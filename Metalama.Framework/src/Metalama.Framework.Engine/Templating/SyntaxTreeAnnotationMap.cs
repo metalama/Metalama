@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -228,7 +229,7 @@ namespace Metalama.Framework.Engine.Templating
         /// <returns></returns>
         public ISymbol? GetDeclaredSymbol( SyntaxNode node )
         {
-            var annotation = node.GetAnnotations( _declaredSymbolAnnotationKind ).SingleOrDefault();
+            var annotation = GetDeclaredSymbolAnnotation( node );
 
             if ( annotation is not null )
             {
@@ -236,6 +237,11 @@ namespace Metalama.Framework.Engine.Templating
             }
 
             return null;
+        }
+
+        public static SyntaxAnnotation? GetDeclaredSymbolAnnotation( SyntaxNode node )
+        {
+            return node.GetAnnotations( _declaredSymbolAnnotationKind ).SingleOrDefault();
         }
 
         /// <summary>
@@ -318,6 +324,15 @@ namespace Metalama.Framework.Engine.Templating
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets the <see cref="SyntaxAnnotation"/> with which an <see cref="ISymbol"/> is annotated. This annotation
+        /// tracks the node in subsequent transformation of the annotated syntax trees.
+        /// </summary>
+        public bool TryGetDeclarationAnnotation( ISymbol symbol, [NotNullWhen( true )] out SyntaxAnnotation? annotation )
+        {
+            return this._declaredSymbolToAnnotationMap.TryGetValue( symbol, out annotation );
         }
     }
 }

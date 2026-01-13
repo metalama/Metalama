@@ -68,7 +68,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     private int _nextLocalFunctionFactoryId;
     private int _nextLabelId = 1;
     private ISymbol? _rootTemplateSymbol;
-    
+
     /// <summary>
     /// Set to true by <see cref="VisitReturnStatement"/> or <see cref="VisitThrowStatement"/> when the statement should terminate compile-time flow.
     /// Callers should check this flag and generate a skip flag assignment if needed.
@@ -118,10 +118,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             syntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(Dictionary<string, IType>) ) );
 
         this._iExpressionSymbol = this._runTimeCompilation.GetTypeByMetadataName( typeof(IExpression).FullName! ).AssertSymbolNotNull();
-        
+
         this._unsafeType =
-            syntaxGenerationContext.SyntaxGenerator.TypeSyntax(
-                this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(Unsafe) ) );
+            syntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(Unsafe) ) );
     }
 
     public bool Success { get; private set; } = true;
@@ -348,6 +347,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             {
                 arg = node.Arguments[i];
             }
+
             // If the tuple element has a name (i.e. it's not just ItemX), set it explicitly.
             else if ( !tupleElement.Name.Equals( tupleElement.CorrespondingTupleField!.Name, StringComparison.Ordinal ) )
             {
@@ -1709,7 +1709,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
     public override SyntaxNode? VisitVariableDeclarator( VariableDeclaratorSyntax node )
     {
-        if ( this._syntaxKind == TemplateCompilerSemantics.Initializer )
+        if ( this._syntaxKind == TemplateCompilerSemantics.Initializer && node.Parent == null )
         {
             this.Indent( 3 );
 
@@ -2285,7 +2285,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             .NormalizeWhitespace();
 
         // Find compile-time variables declared in this statement that need Unsafe.SkipInit
-        var variableFinder = new StatementCompileTimeVariableFinder( this._syntaxTreeAnnotationMap, originalStatement );
+        var variableFinder = new StatementCompileTimeVariableFinder( this, originalStatement );
         variableFinder.Visit();
 
         foreach ( var localSymbol in variableFinder.AssignedVariables )
