@@ -11,6 +11,7 @@ param(
     [switch]$KeepEnv, # Does not override the env.g.json file.
     [switch]$Claude, # Run Claude CLI instead of Build.ps1. Use -Claude for interactive, -Claude "prompt" for non-interactive.
     [switch]$NoMcp, # Do not start the MCP approval server (for -Claude mode).
+    [switch]$Update, # Update timestamp to invalidate Docker cache and force Claude/plugin updates (Claude mode only).
     [string]$ImageName, # Image name (defaults to a name based on the directory).
     [string]$BuildAgentPath = $(if ($env:TEAMCITY_JRE) { Split-Path $env:TEAMCITY_JRE -Parent } else { 'C:\BuildAgent' }),
     [switch]$LoadEnvFromKeyVault, # Forces loading environment variables form the key vault.
@@ -94,12 +95,13 @@ function New-EnvJson
     }
 
     # Convert to JSON and save
-    $jsonPath = Join-Path $dockerContextDirectory "env.g.json"
+    $gDirectory = Join-Path $dockerContextDirectory ".g"
+    $jsonPath = Join-Path $gDirectory "env.g.json"
 
     # Ensure the directory exists
-    if (-not (Test-Path $dockerContextDirectory))
+    if (-not (Test-Path $gDirectory))
     {
-        New-Item -ItemType Directory -Path $dockerContextDirectory -Force | Out-Null
+        New-Item -ItemType Directory -Path $gDirectory -Force | Out-Null
     }
 
     # Write a test JSON file with GUID first
@@ -135,6 +137,10 @@ function New-ClaudeEnvJson
     if ($env:ANTHROPIC_API_KEY)
     {
         $claudeEnv["ANTHROPIC_API_KEY"] = $env:ANTHROPIC_API_KEY
+    }
+    if ($env:CLAUDE_CODE_OAUTH_TOKEN)
+    {
+        $claudeEnv["CLAUDE_CODE_OAUTH_TOKEN"] = $env:CLAUDE_CODE_OAUTH_TOKEN
     }
     if ($env:IS_POSTSHARP_OWNED)
     {
@@ -174,12 +180,13 @@ function New-ClaudeEnvJson
     $claudeEnv["NUGET_PACKAGES"] = $nugetPackages
 
     # Convert to JSON and save
-    $jsonPath = Join-Path $dockerContextDirectory "env.g.json"
+    $gDirectory = Join-Path $dockerContextDirectory ".g"
+    $jsonPath = Join-Path $gDirectory "env.g.json"
 
     # Ensure the directory exists
-    if (-not (Test-Path $dockerContextDirectory))
+    if (-not (Test-Path $gDirectory))
     {
-        New-Item -ItemType Directory -Path $dockerContextDirectory -Force | Out-Null
+        New-Item -ItemType Directory -Path $gDirectory -Force | Out-Null
     }
 
     # Write a test JSON file with GUID first
@@ -264,14 +271,44 @@ function Copy-McpServerToTemp
     # Create temporary directory using hash of source directory
     # This ensures the same repo always uses the same temp path (avoiding firewall prompts)
     # but different repos won't conflict
+    # IMPORTANT: We cannot use a unique directory per invocation (e.g., with timestamp/GUID)
+    # because Windows Firewall authorization is tied to the executable path. Using a different
+    # path each time would trigger firewall prompts on every run.
     $hashBytes = (New-Object -TypeName System.Security.Cryptography.SHA256Managed).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($SourceRootDir))
     $directoryHash = [System.BitConverter]::ToString($hashBytes, 0, 4).Replace("-", "").ToLower()
     $tempDir = Join-Path $env:TEMP "mcp-server-$directoryHash"
 
     # Clean up old temp directory if it exists
+    # Use retry logic because files may be locked by a previous MCP server process
     if (Test-Path $tempDir)
     {
-        Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+        $maxRetries = 3
+        $retryCount = 0
+        $cleaned = $false
+
+        while (-not $cleaned -and $retryCount -lt $maxRetries)
+        {
+            try
+            {
+                Remove-Item $tempDir -Recurse -Force -ErrorAction Stop
+                $cleaned = $true
+                Write-Host "Successfully cleaned up old MCP server directory" -ForegroundColor Cyan
+            }
+            catch
+            {
+                $retryCount++
+                if ($retryCount -lt $maxRetries)
+                {
+                    Write-Host "Failed to clean up temp directory (attempt $retryCount/$maxRetries). Retrying in 1 second..." -ForegroundColor Yellow
+                    Start-Sleep -Seconds 1
+                }
+                else
+                {
+                    Write-Error "Failed to clean up temp directory after $maxRetries attempts: $_`nPlease close any processes using files in: $tempDir"
+                    throw
+                }
+            }
+        }
     }
 
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
@@ -289,6 +326,32 @@ function Copy-McpServerToTemp
         TempDirectory = $tempDir
         IsExe = $executableFile.Extension -eq ".exe"
     }
+}
+
+function Get-TimestampFile
+{
+    param(
+        [switch]$Update
+    )
+
+    $timestampDir = Join-Path $env:LOCALAPPDATA "PostSharp.Engineering"
+    $timestampFile = Join-Path $timestampDir "update.timestamp"
+
+    # Ensure directory exists
+    if (-not (Test-Path $timestampDir))
+    {
+        New-Item -ItemType Directory -Path $timestampDir -Force | Out-Null
+    }
+
+    # Create file if it doesn't exist OR update if -Update specified
+    if (-not (Test-Path $timestampFile) -or $Update)
+    {
+        $timestamp = [DateTime]::UtcNow.ToString("o")  # ISO 8601 format
+        Set-Content -Path $timestampFile -Value $timestamp -NoNewline -Force
+        Write-Host "Timestamp file updated: $timestamp" -ForegroundColor Cyan
+    }
+
+    return $timestampFile
 }
 
 if ($env:RUNNING_IN_DOCKER)
@@ -366,6 +429,12 @@ if (-not $KeepEnv)
     {
         # Use Claude-specific environment variables (filtered and renamed)
         New-ClaudeEnvJson
+
+        # Get/update timestamp file for cache invalidation (only if building image)
+        if (-not $NoBuildImage)
+        {
+            $timestampFile = Get-TimestampFile -Update:$Update
+        }
     }
     else
     {
@@ -410,6 +479,9 @@ if (-not (Test-Path $dockerContextDirectory))
 }
 
 
+# Container user profile (matches actual Windows user in container)
+$containerUserProfile = "C:\Users\ContainerAdministrator"
+
 # Prepare volume mappings (stored as mapping strings, "-v" flags added later)
 $VolumeMappings = @("${SourceDirName}:${SourceDirName}")
 $MountPoints = @($SourceDirName)
@@ -445,6 +517,17 @@ if (-not $NoNuGetCache)
     $VolumeMappings += "${nugetCacheDir}:${nugetCacheDir}"
     $MountPoints += $nugetCacheDir
 }
+
+# Mount PostSharp.Engineering data directory (for version counters)
+$hostEngineeringDataDir = Join-Path $env:LOCALAPPDATA "PostSharp.Engineering"
+if (-not (Test-Path $hostEngineeringDataDir))
+{
+    New-Item -ItemType Directory -Force -Path $hostEngineeringDataDir | Out-Null
+}
+
+$containerEngineeringDataDir = Join-Path $containerUserProfile "AppData\Local\PostSharp.Engineering"
+$VolumeMappings += "${hostEngineeringDataDir}:${containerEngineeringDataDir}"
+$MountPoints += $containerEngineeringDataDir
 
 # Mount VS Remote Debugger
 if ($StartVsmon)
@@ -626,7 +709,12 @@ if ($driveLetters.Count -gt 0)
 }
 
 # Create Init.g.ps1 with git configuration (safe.directory and user identity)
-$initScript = Join-Path $dockerContextDirectory "Init.g.ps1"
+$gDirectory = Join-Path $dockerContextDirectory ".g"
+if (-not (Test-Path $gDirectory))
+{
+    New-Item -ItemType Directory -Path $gDirectory -Force | Out-Null
+}
+$initScript = Join-Path $gDirectory "Init.g.ps1"
 $initScriptContent = @"
 # Auto-generated initialization script for container startup
 
@@ -657,6 +745,19 @@ foreach (`$dir in `$gitDirectories) {
 
 "@
 $initScriptContent | Set-Content -Path $initScript -Encoding UTF8
+
+# Copy timestamp file to docker context (for Claude mode cache invalidation)
+if ($Claude -and $timestampFile)
+{
+    $gDirectory = Join-Path $dockerContextDirectory ".g"
+    if (-not (Test-Path $gDirectory))
+    {
+        New-Item -ItemType Directory -Path $gDirectory -Force | Out-Null
+    }
+    $timestampDestination = Join-Path $gDirectory "update.timestamp"
+    Copy-Item -Path $timestampFile -Destination $timestampDestination -Force
+    Write-Host "Copied timestamp file to docker context" -ForegroundColor Cyan
+}
 
 $mountPointsAsString = $MountPoints -Join ";"
 $gitDirectoriesAsString = $GitDirectories -Join ";"
@@ -783,7 +884,8 @@ if (-not $BuildImage)
                     # Open new tab in current Windows Terminal window
                     # The -w 0 option targets the current window
                     # Use single argument string for proper escaping
-                    $wtArgString = "-w 0 new-tab --title `"MCP Approval Server`" -- pwsh -NoExit -Command `"$mcpCommand`""
+                    # NOTE: --startingDirectory must be specified because Start-Process's -WorkingDirectory doesn't pass through to wt.exe
+                    $wtArgString = "-w 0 new-tab --title `"MCP Approval Server - $PSScriptRoot`" --startingDirectory `"$PSScriptRoot`" -- pwsh -NoExit -Command `"$mcpCommand`""
                     $mcpServerProcess = Start-Process -FilePath "wt.exe" -ArgumentList $wtArgString -PassThru
                 }
                 else
@@ -791,6 +893,7 @@ if (-not $BuildImage)
                     # Fallback: start in new console window
                     $mcpServerProcess = Start-Process -FilePath "pwsh" `
                         -ArgumentList "-NoExit", "-Command", $mcpCommand `
+                        -WorkingDirectory $PSScriptRoot `
                         -PassThru
                 }
 
@@ -840,39 +943,8 @@ if (-not $BuildImage)
         # Run Claude mode
         Write-Host "Running Claude in the container." -ForegroundColor Green
 
-        # Add Claude-specific volume mounts for auth and settings
+        # Container will have its own Claude profile (no mount, no copy from host)
         $hostUserProfile = $env:USERPROFILE
-        $containerUserProfile = "C:\Users\ContainerUser"
-
-        # Mount .claude directory (settings and credentials)
-        if (Test-Path "$hostUserProfile\.claude")
-        {
-            $VolumeMappings += "${hostUserProfile}\.claude:${containerUserProfile}\.claude"
-        }
-
-        # Copy .claude.json to docker-context (cannot mount files on Windows Docker)
-        # Also fix installMethod to match container's npm installation
-        $claudeJsonSource = "$hostUserProfile\.claude.json"
-        $claudeJsonDest = Join-Path $dockerContextDirectory "claude.json"
-        $copyClaudeJsonScript = ""
-        if (Test-Path $claudeJsonSource)
-        {
-            $claudeConfig = Get-Content $claudeJsonSource -Raw | ConvertFrom-Json
-            # Change installMethod to npm since that's how Claude is installed in container
-            if ($claudeConfig.installMethod)
-            {
-                $claudeConfig.installMethod = "npm"
-            }
-            $claudeConfig | ConvertTo-Json -Depth 10 | Set-Content $claudeJsonDest -Encoding UTF8
-            # Will copy from mounted source dir to user profile in container
-            $copyClaudeJsonScript = "Copy-Item '$ContainerSourceDir\eng\docker-context\claude.json' '$containerUserProfile\.claude.json' -Force; "
-        }
-
-        # Mount .cache\claude (cache)
-        if (Test-Path "$hostUserProfile\.cache\claude")
-        {
-            $VolumeMappings += "${hostUserProfile}\.cache\claude:${containerUserProfile}\.cache\claude"
-        }
 
         # Convert volume mappings to docker args format (interleave "-v" flags)
         $volumeArgs = @()
@@ -880,6 +952,27 @@ if (-not $BuildImage)
         {
             $volumeArgs += @("-v", $mapping)
         }
+
+        # Mount Claude sessions directory to preserve history (but not plugins)
+        $hostClaudeSessions = Join-Path $hostUserProfile ".claude\.sessions"
+        $containerClaudeSessions = Join-Path $containerUserProfile ".claude\.sessions"
+        if (-not (Test-Path $hostClaudeSessions))
+        {
+            New-Item -ItemType Directory -Path $hostClaudeSessions -Force | Out-Null
+        }
+        $volumeArgs += @("-v", "${hostClaudeSessions}:${containerClaudeSessions}")
+        Write-Host "Mounting Claude sessions directory: $hostClaudeSessions" -ForegroundColor Cyan
+
+        # Mount Claude projects directory to share session history between container instances
+        $hostClaudeProjects = Join-Path $hostUserProfile ".claude\projects"
+        $containerClaudeProjects = Join-Path $containerUserProfile ".claude\projects"
+        if (-not (Test-Path $hostClaudeProjects))
+        {
+            New-Item -ItemType Directory -Path $hostClaudeProjects -Force | Out-Null
+        }
+        $volumeArgs += @("-v", "${hostClaudeProjects}:${containerClaudeProjects}")
+        Write-Host "Mounting Claude projects directory: $hostClaudeProjects" -ForegroundColor Cyan
+
         $VolumeMappingsAsString = ($VolumeMappings | ForEach-Object { "-v $_" }) -join " "
 
         # Extract Claude prompt from remaining arguments if present
@@ -903,7 +996,7 @@ if (-not $BuildImage)
             {
                 ""
             }
-            $inlineScript = "${substCommandsInline}& c:\Init.g.ps1; ${copyClaudeJsonScript}cd '$SourceDirName'; & .\eng\RunClaude.ps1 -Prompt `"$ClaudePrompt`"$mcpArg"
+            $inlineScript = "${substCommandsInline}& c:\docker-context\Init.g.ps1; cd '$SourceDirName'; & .\eng\RunClaude.ps1 -Prompt `"$ClaudePrompt`"$mcpArg"
         }
         else
         {
@@ -917,17 +1010,14 @@ if (-not $BuildImage)
             {
                 ""
             }
-            $inlineScript = "${substCommandsInline}& c:\Init.g.ps1; ${copyClaudeJsonScript}cd '$SourceDirName'; & .\eng\RunClaude.ps1$mcpArg"
+            $inlineScript = "${substCommandsInline}& c:\docker-context\Init.g.ps1; cd '$SourceDirName'; & .\eng\RunClaude.ps1$mcpArg"
         }
 
         $dockerArgsAsString = $dockerArgs -join " "
         $pwshPath = 'C:\Program Files\PowerShell\7\pwsh.exe'
 
-        # Set HOME/USERPROFILE so Claude finds its config in the mounted location
-        $envArgs = @(
-            "-e", "HOME=$containerUserProfile",
-            "-e", "USERPROFILE=$containerUserProfile"
-        )
+        # Environment variables to pass to container
+        $envArgs = @()
 
         # Pass MCP secret to container if MCP server is running
         if ($mcpSecret)
@@ -938,7 +1028,8 @@ if (-not $BuildImage)
         try
         {
             # Start new container with docker run
-            Write-Host "Executing: docker run --rm --memory=$Memory --cpus=$Cpus --isolation=$Isolation $dockerArgsAsString $VolumeMappingsAsString -e HOME=$containerUserProfile -e USERPROFILE=$containerUserProfile -w $ContainerSourceDir $ImageTag `"$pwshPath`" -Command `"$inlineScript`"" -ForegroundColor Cyan
+            $envArgsAsString = ($envArgs -join " ")
+            Write-Host "Executing: docker run --rm --memory=$Memory --cpus=$Cpus --isolation=$Isolation $dockerArgsAsString $VolumeMappingsAsString $envArgsAsString -w $ContainerSourceDir $ImageTag `"$pwshPath`" -Command `"$inlineScript`"" -ForegroundColor Cyan
             docker run --rm --memory=$Memory --cpus=$Cpus --isolation=$Isolation $dockerArgs @volumeArgs @envArgs -w $ContainerSourceDir $ImageTag $pwshPath -Command $inlineScript
             $dockerExitCode = $LASTEXITCODE
         }
@@ -1046,7 +1137,7 @@ if (-not $BuildImage)
         $dockerArgsAsString = $dockerArgs -join " "
 
         # Build inline script: subst drives, run init, cd to source, run build
-        $inlineScript = "${substCommandsInline}& c:\Init.g.ps1; cd '$SourceDirName'; & .\$Script $buildArgsString; $pwshExitCommand"
+        $inlineScript = "${substCommandsInline}& c:\docker-context\Init.g.ps1; cd '$SourceDirName'; & .\$Script $buildArgsString; $pwshExitCommand"
 
         $pwshPath = 'C:\Program Files\PowerShell\7\pwsh.exe'
 

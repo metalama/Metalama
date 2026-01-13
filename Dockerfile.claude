@@ -110,28 +110,34 @@ RUN Invoke-WebRequest -Uri https://github.com/cli/cli/releases/download/v2.63.2/
 ENV PATH="C:\Program Files\GitHub CLI;${PATH}"
 
 
+# Timestamp
+# Cache invalidation layer - changes when -Update is used
+COPY .g/update.timestamp C:\docker-context\update.timestamp
+RUN Write-Host "PostSharp.Engineering build timestamp: $(Get-Content C:\docker-context\update.timestamp)"
+
+
 # Install Claude CLI
 # Configure npm global directory to avoid Windows container path issues
 ENV NPM_CONFIG_PREFIX=C:\\npm
 ENV PATH="C:\\npm;${PATH}"
 
-# Install Claude CLI using cmd shell to avoid HCS issues with PowerShell
-SHELL ["cmd", "/S", "/C"]
-RUN C:\\nodejs\\npm.cmd install --global @anthropic-ai/claude-code
-
 # Set HOME/USERPROFILE so Claude CLI finds credentials during build
-ENV HOME=C:\\Users\\ContainerUser
-ENV USERPROFILE=C:\\Users\\ContainerUser
+ENV HOME=C:\\Users\\ContainerAdministrator
+ENV USERPROFILE=C:\\Users\\ContainerAdministrator
 ENV CLAUDE_CODE_SHELL=pwsh
 
-# Create Claude config directory (credentials are mounted at runtime)
-RUN mkdir C:\Users\ContainerUser\.claude
+# Install Claude CLI and configure plugins using cmd shell to avoid HCS issues with PowerShell
+SHELL ["cmd", "/S", "/C"]
+RUN C:\nodejs\npm.cmd install --global @anthropic-ai/claude-code && mkdir C:\Users\ContainerAdministrator\.claude && echo {"hasCompletedOnboarding": true} > C:\Users\ContainerAdministrator\.claude.json && echo {"alwaysThinkingEnabled": true} > C:\Users\ContainerAdministrator\.claude\settings.json && C:\npm\claude plugin marketplace add https://github.com/metalama/Metalama.AI.Skills && C:\npm\claude plugin marketplace add https://github.com/postsharp/PostSharp.Engineering.AISkills && C:\npm\claude plugin install metalama && C:\npm\claude plugin install metalama-dev && C:\npm\claude plugin install eng
 
 # Restore PowerShell shell using full path
 SHELL ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Command"]
 
 
 # Epilogue
+# Create docker-context directory for build scripts
+RUN New-Item -ItemType Directory -Path c:\docker-context -Force | Out-Null
+
 # Create directories for mountpoints
 ARG MOUNTPOINTS
 RUN if ($env:MOUNTPOINTS) { `
@@ -145,12 +151,12 @@ RUN if ($env:MOUNTPOINTS) { `
     }
 
 # Import environment variables
-COPY ReadEnvironmentVariables.ps1 c:\ReadEnvironmentVariables.ps1
-COPY env.g.json c:\env.g.json
-RUN c:\ReadEnvironmentVariables.ps1 c:\env.g.json
+COPY ReadEnvironmentVariables.ps1 c:\docker-context\ReadEnvironmentVariables.ps1
+COPY .g/env.g.json c:\docker-context\env.g.json
+RUN c:\docker-context\ReadEnvironmentVariables.ps1 c:\docker-context\env.g.json
 
 # Copy Init.g.ps1 placeholder (drive mappings handled inline in docker run)
-COPY Init.g.ps1 c:\Init.g.ps1
+COPY .g/Init.g.ps1 c:\docker-context\Init.g.ps1
 
 # Configure .NET SDK
 ENV DOTNET_NOLOGO=1

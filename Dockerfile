@@ -93,6 +93,9 @@ RUN New-Item -ItemType Directory -Path 'C:\Program Files (x86)\Microsoft Visual 
 
 
 # Epilogue
+# Create docker-context directory for build scripts
+RUN New-Item -ItemType Directory -Path c:\docker-context -Force | Out-Null
+
 # Create directories for mountpoints
 ARG MOUNTPOINTS
 RUN if ($env:MOUNTPOINTS) { `
@@ -106,12 +109,12 @@ RUN if ($env:MOUNTPOINTS) { `
     }
 
 # Import environment variables
-COPY ReadEnvironmentVariables.ps1 c:\ReadEnvironmentVariables.ps1
-COPY env.g.json c:\env.g.json
-RUN c:\ReadEnvironmentVariables.ps1 c:\env.g.json
+COPY ReadEnvironmentVariables.ps1 c:\docker-context\ReadEnvironmentVariables.ps1
+COPY .g/env.g.json c:\docker-context\env.g.json
+RUN c:\docker-context\ReadEnvironmentVariables.ps1 c:\docker-context\env.g.json
 
 # Copy Init.g.ps1 placeholder (drive mappings handled inline in docker run)
-COPY Init.g.ps1 c:\Init.g.ps1
+COPY .g/Init.g.ps1 c:\docker-context\Init.g.ps1
 
 # Configure .NET SDK
 ENV DOTNET_NOLOGO=1
