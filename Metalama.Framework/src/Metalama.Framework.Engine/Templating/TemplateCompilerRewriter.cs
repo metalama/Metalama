@@ -51,8 +51,6 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     private readonly IDiagnosticAdder _diagnosticAdder;
     private readonly CancellationToken _cancellationToken;
     private readonly SerializableTypes _serializableTypes;
-    private readonly SyntaxNode _sourceSyntaxRoot;
-    private readonly SyntaxNode _annotatedSyntaxRoot;
     private readonly TemplateMemberClassifier _templateMemberClassifier;
     private readonly CompileTimeOnlyRewriter _compileTimeOnlyRewriter;
     private readonly TypeOfRewriter _typeOfRewriter;
@@ -86,12 +84,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         CompilationContext compileTimeCompilationContext,
         SerializableTypes serializableTypes,
         RoslynApiVersion targetApiVersion,
-        SyntaxNode sourceSyntaxRoot,
-        SyntaxNode annotatedSyntaxRoot,
         CancellationToken cancellationToken ) : base( compileTimeCompilationContext, targetApiVersion )
     {
-        Invariant.Assert( sourceSyntaxRoot.IsKind( annotatedSyntaxRoot.Kind() ) );
-
         this._templateName = templateName;
         this._syntaxKind = syntaxKind;
         this._runTimeCompilation = runTimeCompilationContext.SourceCompilation;
@@ -99,8 +93,6 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         this._diagnosticAdder = diagnosticAdder;
         this._cancellationToken = cancellationToken;
         this._serializableTypes = serializableTypes;
-        this._sourceSyntaxRoot = sourceSyntaxRoot;
-        this._annotatedSyntaxRoot = annotatedSyntaxRoot;
         this._templateMetaSyntaxFactory = new TemplateMetaSyntaxFactoryImpl( _templateSyntaxFactoryParameterName );
 
         this._templateMemberClassifier = new TemplateMemberClassifier(
