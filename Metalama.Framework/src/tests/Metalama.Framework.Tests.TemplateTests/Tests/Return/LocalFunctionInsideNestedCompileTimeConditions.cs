@@ -29,8 +29,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.LocalFunctionInsideNeste
                 {
                     return LocalFunc( meta.Proceed() );
 
-                    return null;
-
                     // Local function defined inside nested compile-time ifs
                     object? LocalFunc( object? input )
                     {

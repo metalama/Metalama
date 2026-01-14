@@ -27,26 +27,18 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NestedLocalFunctionWithC
         // return OuterFunc( meta.Proceed() );
         templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(templateSyntaxFactory.AddSimplifierAnnotations(SyntaxFactory.InvocationExpression(SyntaxFactory.IdentifierName(templateSyntaxFactory.EscapeIdentifier(OuterFuncName)), SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList<ArgumentSyntax>(SyntaxFactory.Argument(null, default, templateSyntaxFactory.GetDynamicSyntax(templateSyntaxFactory.Proceed("Proceed"))))))))));
         __skip1 = true;
-        if (__skip1)
-          goto __next1;
-        // return null;
-        templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword)))));
-        __next1:
-          ;
-        __skip1 = true;
       }
       if (__skip1)
-        goto __next2;
+        goto __next1;
       // return null;
       templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword)))));
-      __next2:
+      __next1:
         ;
       SyntaxToken inputName = templateSyntaxFactory.GetUniqueIdentifier("input");
       // object? OuterFunc( object? input ) { // Inner local function NESTED inside OuterFunc object? InnerFunc( object? value...
       templateSyntaxFactory.AddStatement(__s1, SyntaxFactory.LocalFunctionStatement(default(SyntaxList<AttributeListSyntax>), default(SyntaxTokenList), SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword)), SyntaxFactory.Token(SyntaxKind.QuestionToken)), templateSyntaxFactory.EscapeIdentifier(OuterFuncName), null, SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList<ParameterSyntax>(SyntaxFactory.Parameter(default(SyntaxList<AttributeListSyntax>), default(SyntaxTokenList), SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword)), SyntaxFactory.Token(SyntaxKind.QuestionToken)), templateSyntaxFactory.EscapeIdentifier(inputName), null))), default(SyntaxList<TypeParameterConstraintClauseSyntax>), SyntaxFactory.Block(default, new Func<SyntaxList<StatementSyntax>>(delegate
       {
         List<StatementOrTrivia> __s2 = new List<StatementOrTrivia>();
-        bool __skip2 = false;
         ITemplateSyntaxFactory localTemplateSyntaxFactory1 = templateSyntaxFactory.ForLocalFunction("Y:global::System.Object?!", null, false);
         SyntaxToken InnerFuncName = localTemplateSyntaxFactory1.GetUniqueIdentifier("InnerFunc");
         SyntaxToken valueName = localTemplateSyntaxFactory1.GetUniqueIdentifier("value");
@@ -54,7 +46,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NestedLocalFunctionWithC
         localTemplateSyntaxFactory1.AddStatement(__s2, SyntaxFactory.LocalFunctionStatement(default(SyntaxList<AttributeListSyntax>), default(SyntaxTokenList), SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword)), SyntaxFactory.Token(SyntaxKind.QuestionToken)), localTemplateSyntaxFactory1.EscapeIdentifier(InnerFuncName), null, SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList<ParameterSyntax>(SyntaxFactory.Parameter(default(SyntaxList<AttributeListSyntax>), default(SyntaxTokenList), SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword)), SyntaxFactory.Token(SyntaxKind.QuestionToken)), localTemplateSyntaxFactory1.EscapeIdentifier(valueName), null))), default(SyntaxList<TypeParameterConstraintClauseSyntax>), SyntaxFactory.Block(default, new Func<SyntaxList<StatementSyntax>>(delegate
         {
           List<StatementOrTrivia> __s3 = new List<StatementOrTrivia>();
-          bool __skip3 = false;
           ITemplateSyntaxFactory localTemplateSyntaxFactory2 = localTemplateSyntaxFactory1.ForLocalFunction("Y:global::System.Object?!", null, false);
           // Console.WriteLine( "InnerFunc called" );
           localTemplateSyntaxFactory2.AddStatement(__s3, localTemplateSyntaxFactory2.ToStatement(localTemplateSyntaxFactory2.AddSimplifierAnnotations(SyntaxFactory.InvocationExpression(localTemplateSyntaxFactory2.AddSimplifierAnnotations(SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, localTemplateSyntaxFactory2.AddSimplifierAnnotations(SyntaxFactory.QualifiedName(SyntaxFactory.AliasQualifiedName(SyntaxFactory.IdentifierName(SyntaxFactory.Token(SyntaxKind.GlobalKeyword)), SyntaxFactory.Token(SyntaxKind.ColonColonToken), SyntaxFactory.IdentifierName(SyntaxFactory.Identifier("System"))), SyntaxFactory.Token(SyntaxKind.DotToken), SyntaxFactory.IdentifierName(SyntaxFactory.Identifier("Console")))), SyntaxFactory.Token(SyntaxKind.DotToken), SyntaxFactory.IdentifierName(SyntaxFactory.Identifier("WriteLine")))), SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList<ArgumentSyntax>(SyntaxFactory.Argument(null, default, SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal("\"InnerFunc called\"", "InnerFunc called")))))))));

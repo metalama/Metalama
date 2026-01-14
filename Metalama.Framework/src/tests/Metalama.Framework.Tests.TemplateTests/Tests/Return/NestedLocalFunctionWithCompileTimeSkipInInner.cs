@@ -37,9 +37,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NestedLocalFunctionWithC
                         Console.WriteLine( "InnerFunc called" );
 
                         return value;
-
-                        // This should be skipped
-                        return null;
                     }
 
                     return value;

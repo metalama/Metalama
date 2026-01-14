@@ -164,8 +164,9 @@ namespace Metalama.Framework.Engine.Templating
                           currentNode != null && currentNode != this._statement;
                           currentNode = currentNode.Parent )
                     {
-                        // If we encounter a block before reaching the statement, the variable is nested
-                        if ( currentNode is BlockSyntax )
+                        // Detect situations where the variable declaration is not visible by the parent.
+                        if ( currentNode.Kind() is SyntaxKind.Block or SyntaxKind.SwitchSection or SyntaxKind.ParenthesizedExpression
+                             || currentNode is StatementSyntax )
                         {
                             return false;
                         }

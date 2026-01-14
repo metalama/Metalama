@@ -24,7 +24,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.ReturnInCompileTimeIfInR
     private SyntaxNode __Template(ITemplateSyntaxFactory templateSyntaxFactory)
     {
       List<StatementOrTrivia> __s1 = new List<StatementOrTrivia>();
-      bool __skip1 = false;
       var p = meta.Target.Parameters[0];
       // if ( p.Value == null ) { // Compile-time condition that is always true. if ( meta.Target.Method.Name.Length > 0 ) { r...
       templateSyntaxFactory.AddStatement(__s1, SyntaxFactory.IfStatement(default(SyntaxList<AttributeListSyntax>), SyntaxFactory.Token(SyntaxKind.IfKeyword), SyntaxFactory.Token(SyntaxKind.OpenParenToken), SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression, templateSyntaxFactory.GetDynamicSyntax(p.Value), SyntaxFactory.Token(SyntaxKind.EqualsEqualsToken), SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword))), SyntaxFactory.Token(SyntaxKind.CloseParenToken), SyntaxFactory.Block(default, new Func<SyntaxList<StatementSyntax>>(delegate

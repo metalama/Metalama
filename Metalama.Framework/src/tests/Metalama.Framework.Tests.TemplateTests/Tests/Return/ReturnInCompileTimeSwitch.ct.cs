@@ -22,29 +22,24 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.ReturnInCompileTimeSwitc
       switch (meta.Target.Method.Parameters.Count)
       {
         case 0:
+          __skip1 = true;
           // return null;
           templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword)))));
-          __skip1 = true;
           break;
         // Compile-time flow should stop here.
         default:
-          if (__skip1)
-            goto __next1;
-          break;
-          __next1:
-            ;
           break;
       }
       if (__skip1)
-        goto __next2;
+        goto __next1;
       Aspect.ThrowIfReached();
-      __next2:
+      __next1:
         ;
       if (__skip1)
-        goto __next3;
+        goto __next2;
       // return meta.Proceed();
       templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.DynamicReturnStatement(templateSyntaxFactory.GetUserExpression(templateSyntaxFactory.Proceed("Proceed")), false)));
-      __next3:
+      __next2:
         ;
       return SyntaxFactory.Block(default, templateSyntaxFactory.ToStatementList(__s1));
     }

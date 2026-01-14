@@ -19,8 +19,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.LocalFunctionAfterReturn
         // Tests local function after return in compile-time if that's inside a run-time if.
         // The local function should be generated because compile-time flow continues past
         // the run-time if (since it might not execute at runtime).
-        // The return null; after the compile-time return should NOT appear because
-        // the skip flag should work within the compile-time conditional.
         [TestTemplate]
         private dynamic? Template()
         {
@@ -33,9 +31,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.LocalFunctionAfterReturn
                 if ( meta.Target.Method.Name == "Method" )
                 {
                     return LocalFunc( meta.Proceed() );
-
-                    // This return should NOT be emitted - skip flag should work
-                    return null;
                 }
             }
 

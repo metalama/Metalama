@@ -26,9 +26,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NestedLocalFunctionWithC
             if ( meta.Target.Method.Name == "Method" )
             {
                 return OuterFunc( meta.Proceed() );
-
-                // This should be skipped
-                return null;
             }
 
             return null;

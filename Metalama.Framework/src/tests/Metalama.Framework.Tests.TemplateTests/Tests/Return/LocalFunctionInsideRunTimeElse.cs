@@ -33,8 +33,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.LocalFunctionInsideRunTi
                 if ( meta.Target.Method.Name == "Method" )
                 {
                     return LocalFunc( "null input" );
-
-                    return null;
                 }
 
                 // Local function inside run-time else

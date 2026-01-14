@@ -19,7 +19,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NestedLocalFunctionWithC
     private SyntaxNode __Template(ITemplateSyntaxFactory templateSyntaxFactory)
     {
       List<StatementOrTrivia> __s1 = new List<StatementOrTrivia>();
-      bool __skip1 = false;
       SyntaxToken OuterFuncName = templateSyntaxFactory.GetUniqueIdentifier("OuterFunc");
       // return OuterFunc( meta.Proceed() );
       templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(templateSyntaxFactory.AddSimplifierAnnotations(SyntaxFactory.InvocationExpression(SyntaxFactory.IdentifierName(templateSyntaxFactory.EscapeIdentifier(OuterFuncName)), SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList<ArgumentSyntax>(SyntaxFactory.Argument(null, default, templateSyntaxFactory.GetDynamicSyntax(templateSyntaxFactory.Proceed("Proceed"))))))))));
@@ -28,7 +27,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NestedLocalFunctionWithC
       templateSyntaxFactory.AddStatement(__s1, SyntaxFactory.LocalFunctionStatement(default(SyntaxList<AttributeListSyntax>), default(SyntaxTokenList), SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword)), SyntaxFactory.Token(SyntaxKind.QuestionToken)), templateSyntaxFactory.EscapeIdentifier(OuterFuncName), null, SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList<ParameterSyntax>(SyntaxFactory.Parameter(default(SyntaxList<AttributeListSyntax>), default(SyntaxTokenList), SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword)), SyntaxFactory.Token(SyntaxKind.QuestionToken)), templateSyntaxFactory.EscapeIdentifier(inputName), null))), default(SyntaxList<TypeParameterConstraintClauseSyntax>), SyntaxFactory.Block(default, new Func<SyntaxList<StatementSyntax>>(delegate
       {
         List<StatementOrTrivia> __s2 = new List<StatementOrTrivia>();
-        bool __skip2 = false;
         ITemplateSyntaxFactory localTemplateSyntaxFactory1 = templateSyntaxFactory.ForLocalFunction("Y:global::System.Object?!", null, false);
         SyntaxToken InnerFuncName = localTemplateSyntaxFactory1.GetUniqueIdentifier("InnerFunc");
         // return InnerFunc( input );
@@ -47,19 +45,12 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NestedLocalFunctionWithC
             // return value;
             localTemplateSyntaxFactory2.AddStatement(__s3, localTemplateSyntaxFactory2.AddSimplifierAnnotations(localTemplateSyntaxFactory2.ReturnStatement(SyntaxFactory.IdentifierName(localTemplateSyntaxFactory2.EscapeIdentifier(valueName)))));
             __skip3 = true;
-            if (__skip3)
-              goto __next1;
-            // return null;
-            localTemplateSyntaxFactory2.AddStatement(__s3, localTemplateSyntaxFactory2.AddSimplifierAnnotations(localTemplateSyntaxFactory2.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword)))));
-            __next1:
-              ;
-            __skip3 = true;
           }
           if (__skip3)
-            goto __next2;
+            goto __next1;
           // return value;
           localTemplateSyntaxFactory2.AddStatement(__s3, localTemplateSyntaxFactory2.AddSimplifierAnnotations(localTemplateSyntaxFactory2.ReturnStatement(SyntaxFactory.IdentifierName(localTemplateSyntaxFactory2.EscapeIdentifier(valueName)))));
-          __next2:
+          __next1:
             ;
           return localTemplateSyntaxFactory1.ToStatementList(__s3);
         })()), null, default(SyntaxToken)));
