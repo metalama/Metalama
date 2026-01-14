@@ -832,6 +832,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                     }
 
                 case ILocalSymbol:
+                case IRangeVariableSymbol:
                     // Local variables are classified by the template annotator. The SymbolClassifier can be called by other components
                     // for a local variable, but then it cannot give any answer. We could return null, but then the RunTime fallback would be
                     // applied. So we use RunTimeOrCompileTime.
