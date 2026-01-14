@@ -30,8 +30,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.LocalFunctionInsideRunTi
                 if ( meta.Target.Method.Name == "Method" )
                 {
                     return LocalFunc( meta.Proceed() );
-
-                    return null;
                 }
 
                 // Local function defined inside the run-time if but after compile-time if

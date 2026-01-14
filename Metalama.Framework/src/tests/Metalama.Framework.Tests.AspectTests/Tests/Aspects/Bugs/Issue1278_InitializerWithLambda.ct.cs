@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using Metalama.Framework.Aspects;
 using System;
 using Metalama.Framework.CompileTimeContracts;
@@ -22,7 +21,6 @@ public class TheAspect : TypeAspect
   public SyntaxNode __IntroducedProperty(ITemplateSyntaxFactory templateSyntaxFactory)
   {
     List<StatementOrTrivia> __s1 = new List<StatementOrTrivia>();
-    bool __skip1 = false;
     // returnmeta.RunTime( () => { if ( RequestedPermission == Permission.NotSet ) { return 0; } else { var requestedPermiss...
     templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(templateSyntaxFactory.SimplifyAnonymousFunction(SyntaxFactory.ParenthesizedLambdaExpression(default(SyntaxList<AttributeListSyntax>), default(SyntaxTokenList), null, SyntaxFactory.ParameterList(default(SeparatedSyntaxList<ParameterSyntax>)), SyntaxFactory.Token(SyntaxKind.EqualsGreaterThanToken), SyntaxFactory.Block(default, new Func<SyntaxList<StatementSyntax>>(delegate
     {
@@ -37,28 +35,15 @@ public class TheAspect : TypeAspect
       }
       else
       {
-        if (__skip2)
-          goto __next1;
         var requestedPermission = TheAspect.RequestedPermission != Permission.NotSet ? TheAspect.RequestedPermission : Permission.Read;
-        __next1:
-          ;
-        Unsafe.SkipInit(out requestedPermission);
-        if (__skip2)
-          goto __next2;
         if (requestedPermission == Permission.Write)
         {
           // return 1;
           localTemplateSyntaxFactory1.AddStatement(__s2, localTemplateSyntaxFactory1.AddSimplifierAnnotations(localTemplateSyntaxFactory1.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal("1", 1)))));
           __skip2 = true;
         }
-        __next2:
-          ;
-        if (__skip2)
-          goto __next3;
         // return 2;
         localTemplateSyntaxFactory1.AddStatement(__s2, localTemplateSyntaxFactory1.AddSimplifierAnnotations(localTemplateSyntaxFactory1.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal("2", 2)))));
-        __next3:
-          ;
         __skip2 = true;
       }
       return templateSyntaxFactory.ToStatementList(__s2);

@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.Templating;
@@ -27,7 +26,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NameCollisionInCompileTi
         __skip1 = true;
       }
       if (__skip1)
-        goto __next3;
+        goto __next1;
       if (meta.Target.Method.Name.Length < 5)
       {
         var method = meta.Target.Method;
@@ -39,26 +38,17 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NameCollisionInCompileTi
       }
       else
       {
-        if (__skip1)
-          goto __next1;
         var method = meta.Target.Method;
-        __next1:
-          ;
-        Unsafe.SkipInit(out method);
-        if (__skip1)
-          goto __next2;
         // method.Invoke();
         templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.ToStatement(templateSyntaxFactory.GetDynamicSyntax(method.Invoke())));
-        __next2:
-          ;
       }
-      __next3:
+      __next1:
         ;
       if (__skip1)
-        goto __next4;
+        goto __next2;
       // return meta.Proceed();
       templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.DynamicReturnStatement(templateSyntaxFactory.GetUserExpression(templateSyntaxFactory.Proceed("Proceed")), false)));
-      __next4:
+      __next2:
         ;
       return SyntaxFactory.Block(default, templateSyntaxFactory.ToStatementList(__s1));
     }
