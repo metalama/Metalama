@@ -35,17 +35,8 @@ jobs:
         uses: anthropics/claude-code-action@6337623ebba10cf8c8214b507993f8062fd4ccfb # v1.0.22
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          plugins: |
+            code-review
           prompt: |
-            Review this pull request using the pr-reviewer agent. Focus on:
-            - Code quality issues (bugs, race conditions, resource leaks)
-            - Security vulnerabilities
-            - Missing or inadequate documentation on public APIs
-            - Missing test coverage
-
-            Do NOT report:
-            - Formatting issues
-            - Compiler warnings (handled by build process)
-            - Issues in unchanged code
-
-            Provide your review organized into: Critical Issues, Recommendations, Suggestions, Positive Observations, and Summary.
-          claude_args: "--max-turns 10"
+            /code-review
+          claude_args: "--max-turns 20"
