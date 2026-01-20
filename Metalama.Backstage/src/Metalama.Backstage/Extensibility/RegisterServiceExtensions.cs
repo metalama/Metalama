@@ -122,6 +122,7 @@ public static class RegisterServiceExtensions
             .AddSingleton( _ => new EarlyLoggerFactory() )
             .AddSingleton( _ => new RandomNumberGenerator() )
             .AddSingleton<IEnvironmentVariableProvider>( new EnvironmentVariableProvider() )
+            .AddSingleton<IRuntimeInformation>( _ => new RuntimeInformationProvider() )
             .AddSingleton<IRecoverableExceptionService>( serviceProvider => new RecoverableExceptionService( serviceProvider ) )
             .AddSingleton<IApplicationInfoProvider>( new ApplicationInfoProvider( applicationInfo ) )
             .AddSingleton<IUserDeviceDetectionService>( serviceProvider => new WindowsUserDeviceDetectionService( serviceProvider ) )

@@ -56,6 +56,8 @@ namespace Metalama.Backstage.Testing
 
         protected ITelemetryConfigurationService TelemetryConfigurationService => this._defaultTestContext.Value.TelemetryConfigurationService;
 
+        protected TestRuntimeInformation RuntimeInformation => this._defaultTestContext.Value.RuntimeInformation;
+
         protected virtual LicensingAuthority LicensingAuthority { get; } = LicensingAuthority.GetTestAuthority();
 
         private TestFileSystem? _uniqueFileSystem;
@@ -166,7 +168,8 @@ namespace Metalama.Backstage.Testing
             TestUserInterfaceService UserInterface,
             TestHttpClientFactory HttpClientFactory,
             ILicenseRegistrationService LicenseRegistrationService,
-            ITelemetryConfigurationService TelemetryConfigurationService );
+            ITelemetryConfigurationService TelemetryConfigurationService,
+            TestRuntimeInformation RuntimeInformation );
 
         private Services CreateServices( Action<ServiceProviderBuilder>? serviceBuilder = null, BackstageInitializationOptions? options = null )
         {
@@ -182,7 +185,8 @@ namespace Metalama.Backstage.Testing
                 (TestUserInterfaceService) serviceProvider.GetRequiredBackstageService<IUserInterfaceService>(),
                 (TestHttpClientFactory) serviceProvider.GetRequiredBackstageService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredBackstageService<ILicenseRegistrationService>(),
-                serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>() );
+                serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>(),
+                (TestRuntimeInformation) serviceProvider.GetRequiredBackstageService<IRuntimeInformation>() );
         }
 
         private ServiceCollection CreateServiceCollection(
@@ -199,6 +203,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton( new BackstageInitializationOptionsProvider( options ) )
                 .AddSingleton<IDateTimeProvider>( this.Time )
                 .AddSingleton<IProcessExecutor>( this.ProcessExecutor )
+                .AddSingleton<IRuntimeInformation>( _ => new TestRuntimeInformation() )
                 .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
                 .AddSingleton( this.BackgroundTasks )
                 .AddSingleton<IHttpClientFactory>( _ => new TestHttpClientFactory() )
