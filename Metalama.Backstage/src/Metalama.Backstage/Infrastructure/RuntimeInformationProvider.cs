@@ -6,6 +6,9 @@ using System.Runtime.InteropServices;
 
 namespace Metalama.Backstage.Infrastructure;
 
+/// <summary>
+/// Wraps the <see cref="RuntimeInformation"/> class as an <see cref="IRuntimeInformation"/>.
+/// </summary>
 internal sealed class RuntimeInformationProvider : IRuntimeInformation
 {
     public bool IsOSPlatform( OSPlatform osPlatform ) => RuntimeInformation.IsOSPlatform( osPlatform );

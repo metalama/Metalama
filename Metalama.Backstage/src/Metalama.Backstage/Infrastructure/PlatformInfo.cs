@@ -44,25 +44,8 @@ namespace Metalama.Backstage.Infrastructure
             // We no longer look for the current process being dotnet because of Rider. Rider runs in dotnet.exe, but this
             // instance of dotnet.exe does not have an SDK installed. So, it is better to ignore the current process as a hint.
 
-            // Check DOTNET_ROOT environment variables first.
-            if ( this.TryGetDotNetRootFromEnvironment( out var dotnetRoot, out var variableName ) )
-            {
-                var dotnetPath = Path.Combine( dotnetRoot, dotnetFileName );
-
-                if ( this._fileSystem.FileExists( dotnetPath ) )
-                {
-                    logger?.Trace?.Log( $"{dotnetFileName} found via {variableName}: '{dotnetPath}'." );
-
-                    return dotnetPath;
-                }
-                else
-                {
-                    logger?.Trace?.Log( $"{variableName} is set to '{dotnetRoot}' but {dotnetFileName} was not found there." );
-                }
-            }
-
-            // Search in default installation locations.
-            foreach ( var directory in this.GetDefaultDotNetDirectories() )
+            // Search in installation locations.
+            foreach ( var directory in this.GetDotNetDirectories() )
             {
                 var dotnetPath = Path.Combine( directory, dotnetFileName );
 
@@ -80,7 +63,6 @@ namespace Metalama.Backstage.Infrastructure
 
             // Explicitly resolve PATH, because in the Rider process, "dotnet" alone would resolve to Rider's limited dotnet.
             // While doing so, ignore Rider's ReSharperHost paths, which contain that dotnet.
-
             var path = this._environmentVariableProvider.GetEnvironmentVariable( "PATH" );
 
             if ( path != null )
@@ -118,13 +100,23 @@ namespace Metalama.Backstage.Infrastructure
         }
 
         /// <summary>
-        /// Gets the default .NET installation directories for the current platform.
-        /// Returns directories in priority order.
+        /// Gets the .NET installation directories for the current platform.
+        /// Returns directories in priority order: first based on environment variables, then on default locations.
         /// Reference: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables
         /// </summary>
-        /// <returns>An enumerable of directory paths to check for .NET installations.</returns>
-        private IEnumerable<string> GetDefaultDotNetDirectories()
+        /// <returns>A list of directory paths to check for .NET installations.</returns>
+        private IEnumerable<string> GetDotNetDirectories()
         {
+            foreach ( var environmentVariableName in this.GetDotNetRootEnvironmentVariables() )
+            {
+                var environmentVariableValue = this._environmentVariableProvider.GetEnvironmentVariable( environmentVariableName );
+
+                if ( !string.IsNullOrWhiteSpace( environmentVariableValue ) )
+                {
+                    yield return environmentVariableValue!;
+                }
+            }
+
             if ( this._runtimeInformation.IsOSPlatform( OSPlatform.Windows ) )
             {
                 // On Windows, %ProgramFiles% expands to the correct directory for the current architecture.
@@ -145,7 +137,7 @@ namespace Metalama.Backstage.Infrastructure
             }
             else if ( this._runtimeInformation.IsOSPlatform( OSPlatform.OSX ) )
             {
-                var baseDirectory = "/usr/local/share/dotnet";
+                const string baseDirectory = "/usr/local/share/dotnet";
 
                 // On ARM64 macOS running x64 process, check the x64 subfolder first.
                 if ( this._runtimeInformation.OSArchitecture == Architecture.Arm64 && this._runtimeInformation.ProcessArchitecture == Architecture.X64 )
@@ -158,11 +150,11 @@ namespace Metalama.Backstage.Infrastructure
             else if ( this._runtimeInformation.IsOSPlatform( OSPlatform.Linux ) )
             {
                 // Common locations on Linux (priority order).
-                var linuxLocations = new[]
-                {
-                    "/usr/share/dotnet",  // packages.microsoft.com
-                    "/usr/lib/dotnet"     // Ubuntu Jammy feed
-                };
+                string[] linuxLocations =
+                [
+                    "/usr/share/dotnet", // packages.microsoft.com
+                    "/usr/lib/dotnet"    // Ubuntu Jammy feed
+                ];
 
                 // On ARM64 Linux running x64 process, check x64 subfolders first.
                 if ( this._runtimeInformation.OSArchitecture == Architecture.Arm64 && this._runtimeInformation.ProcessArchitecture == Architecture.X64 )
@@ -181,89 +173,40 @@ namespace Metalama.Backstage.Infrastructure
         }
 
         /// <summary>
-        /// Tries to get the .NET root directory from environment variables.
+        /// Gets the DOTNET_ROOT environment variable names to check in priority order.
         /// Precedence order follows the official .NET SDK specification:
         /// https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables
         /// </summary>
-        /// <param name="path">The directory path of the .NET root, if found.</param>
-        /// <param name="variableName">The name of the environment variable that was matched.</param>
-        /// <returns>True if a DOTNET_ROOT environment variable was found; otherwise, false.</returns>
-        private bool TryGetDotNetRootFromEnvironment( [System.Diagnostics.CodeAnalysis.NotNullWhen( true )] out string? path, [System.Diagnostics.CodeAnalysis.NotNullWhen( true )] out string? variableName )
+        /// <returns>An enumerable of environment variable names in priority order.</returns>
+        private IEnumerable<string> GetDotNetRootEnvironmentVariables()
         {
-            string? dotnetRoot;
-
             // 1. Check architecture-specific variables first (highest priority).
             switch ( this._runtimeInformation.ProcessArchitecture )
             {
                 case Architecture.X64:
-                    dotnetRoot = this._environmentVariableProvider.GetEnvironmentVariable( "DOTNET_ROOT_X64" );
-
-                    if ( !string.IsNullOrEmpty( dotnetRoot ) )
-                    {
-                        path = dotnetRoot!;
-                        variableName = "DOTNET_ROOT_X64";
-
-                        return true;
-                    }
+                    yield return "DOTNET_ROOT_X64";
 
                     break;
 
                 case Architecture.X86:
-                    dotnetRoot = this._environmentVariableProvider.GetEnvironmentVariable( "DOTNET_ROOT_X86" );
-
-                    if ( !string.IsNullOrEmpty( dotnetRoot ) )
-                    {
-                        path = dotnetRoot!;
-                        variableName = "DOTNET_ROOT_X86";
-
-                        return true;
-                    }
+                    yield return "DOTNET_ROOT_X86";
 
                     // 2. For x86 on 64-bit Windows, check DOTNET_ROOT(x86) next.
                     if ( this._runtimeInformation.IsOSPlatform( OSPlatform.Windows ) )
                     {
-                        dotnetRoot = this._environmentVariableProvider.GetEnvironmentVariable( "DOTNET_ROOT(x86)" );
-
-                        if ( !string.IsNullOrEmpty( dotnetRoot ) )
-                        {
-                            path = dotnetRoot!;
-                            variableName = "DOTNET_ROOT(x86)";
-
-                            return true;
-                        }
+                        yield return "DOTNET_ROOT(x86)";
                     }
 
                     break;
 
                 case Architecture.Arm64:
-                    dotnetRoot = this._environmentVariableProvider.GetEnvironmentVariable( "DOTNET_ROOT_ARM64" );
-
-                    if ( !string.IsNullOrEmpty( dotnetRoot ) )
-                    {
-                        path = dotnetRoot!;
-                        variableName = "DOTNET_ROOT_ARM64";
-
-                        return true;
-                    }
+                    yield return "DOTNET_ROOT_ARM64";
 
                     break;
             }
 
             // 3. Check generic DOTNET_ROOT as fallback (lowest priority).
-            dotnetRoot = this._environmentVariableProvider.GetEnvironmentVariable( "DOTNET_ROOT" );
-
-            if ( !string.IsNullOrEmpty( dotnetRoot ) )
-            {
-                path = dotnetRoot!;
-                variableName = "DOTNET_ROOT";
-
-                return true;
-            }
-
-            path = null;
-            variableName = null;
-
-            return false;
+            yield return "DOTNET_ROOT";
         }
     }
 }
