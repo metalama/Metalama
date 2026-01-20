@@ -67,7 +67,7 @@ object DebugBuild : BuildType({
     }
 
     requirements {
-        equals("env.BuildAgentType", "docker-win-x64-md")
+        equals("env.BuildAgentType", "docker-win-x64-g2")
     }
 
     features {
@@ -167,7 +167,7 @@ object ReleaseBuild : BuildType({
     }
 
     requirements {
-        equals("env.BuildAgentType", "docker-win-x64-md")
+        equals("env.BuildAgentType", "docker-win-x64-g2")
     }
 
     features {
@@ -256,7 +256,7 @@ object PublicBuild : BuildType({
     }
 
     requirements {
-        equals("env.BuildAgentType", "docker-win-x64-md")
+        equals("env.BuildAgentType", "docker-win-x64-g2")
     }
 
     features {
@@ -340,7 +340,7 @@ object PublicDeployment : BuildType({
     }
 
     requirements {
-        equals("env.BuildAgentType", "docker-win-x64-md")
+        equals("env.BuildAgentType", "docker-win-x64-g2")
     }
 
     features {
@@ -416,7 +416,7 @@ object DownstreamMerge : BuildType({
     }
 
     requirements {
-        equals("env.BuildAgentType", "docker-win-x64-md")
+        equals("env.BuildAgentType", "docker-win-x64-g2")
     }
 
     features {
