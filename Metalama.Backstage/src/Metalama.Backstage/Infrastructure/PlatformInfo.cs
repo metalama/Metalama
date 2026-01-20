@@ -75,7 +75,7 @@ namespace Metalama.Backstage.Infrastructure
                 }
                 else
                 {
-                    logger?.Warning?.Log( $"Looked for {dotnetFileName} in default location '{dotnetPath}' but it did not exist." );
+                    logger?.Trace?.Log( $"Looked for {dotnetFileName} in default location '{dotnetPath}' but it did not exist." );
                 }
             }
 
@@ -106,7 +106,7 @@ namespace Metalama.Backstage.Infrastructure
                     }
                     else
                     {
-                        logger?.Warning?.Log( $"Looked for {dotnetFileName} in '{dotnetPath}', but it did not exist." );
+                        logger?.Trace?.Log( $"Looked for {dotnetFileName} in '{dotnetPath}', but it did not exist." );
                     }
                 }
             }

@@ -58,7 +58,6 @@ public sealed class PlatformInfoTests : TestsBase
 
         this.EnvironmentVariableProvider.Environment["DOTNET_ROOT_X64"] = dotnetRootX64;
         this.EnvironmentVariableProvider.Environment["DOTNET_ROOT"] = dotnetRoot;
-        this.FileSystem.CreateDirectory( dotnetRootX64 );
         this.FileSystem.CreateDirectory( Path.GetDirectoryName( dotnetExePath )! );
         this.FileSystem.WriteAllText( dotnetExePath, string.Empty );
 
@@ -194,7 +193,6 @@ public sealed class PlatformInfoTests : TestsBase
         this.FileSystem.CreateDirectory( Path.GetDirectoryName( x64DotnetPath )! );
         this.FileSystem.CreateDirectory( Path.GetDirectoryName( defaultDotnetPath )! );
         this.FileSystem.WriteAllText( x64DotnetPath, string.Empty );
-        this.FileSystem.CreateDirectory( Path.GetDirectoryName( defaultDotnetPath )! );
         this.FileSystem.WriteAllText( defaultDotnetPath, string.Empty );
 
         // Act
