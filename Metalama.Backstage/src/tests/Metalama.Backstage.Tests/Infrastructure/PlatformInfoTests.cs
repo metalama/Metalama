@@ -22,6 +22,30 @@ public sealed class PlatformInfoTests : TestsBase
     }
 
     [Fact]
+    public void DOTNET_HOST_PATH_HasHighestPrecedence()
+    {
+        // Arrange
+        this.RuntimeInformation.TestProcessArchitecture = Architecture.X64;
+        this.RuntimeInformation.Platform = OSPlatform.Windows;
+
+        const string dotnetHostPath = "C:\\host\\dotnet.exe";
+        const string dotnetRootX64 = "C:\\custom\\dotnet64";
+        const string dotnetRoot = "C:\\custom\\dotnet";
+
+        this.EnvironmentVariableProvider.Environment["DOTNET_HOST_PATH"] = dotnetHostPath;
+        this.EnvironmentVariableProvider.Environment["DOTNET_ROOT_X64"] = dotnetRootX64;
+        this.EnvironmentVariableProvider.Environment["DOTNET_ROOT"] = dotnetRoot;
+        this.FileSystem.CreateDirectory( Path.GetDirectoryName( dotnetHostPath )! );
+        this.FileSystem.WriteAllText( dotnetHostPath, string.Empty );
+
+        // Act
+        var result = this._platformInfo.DotNetExePath;
+
+        // Assert
+        Assert.Equal( dotnetHostPath, result );
+    }
+
+    [Fact]
     public void DOTNET_ROOT_X64_HasPrecedence_OnX64Process()
     {
         // Arrange

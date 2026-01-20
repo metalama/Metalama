@@ -44,7 +44,25 @@ namespace Metalama.Backstage.Infrastructure
             // We no longer look for the current process being dotnet because of Rider. Rider runs in dotnet.exe, but this
             // instance of dotnet.exe does not have an SDK installed. So, it is better to ignore the current process as a hint.
 
-            // Search in installation locations.
+            // 1. Check DOTNET_HOST_PATH first (highest priority).
+            // This is the absolute path to the dotnet host executable.
+            var dotnetHostPath = this._environmentVariableProvider.GetEnvironmentVariable( "DOTNET_HOST_PATH" );
+
+            if ( !string.IsNullOrEmpty( dotnetHostPath ) )
+            {
+                if ( this._fileSystem.FileExists( dotnetHostPath ) )
+                {
+                    logger?.Trace?.Log( $"{dotnetFileName} found via DOTNET_HOST_PATH: '{dotnetHostPath}'." );
+
+                    return dotnetHostPath;
+                }
+                else
+                {
+                    logger?.Warning?.Log( $"DOTNET_HOST_PATH is set to '{dotnetHostPath}' but the file was not found." );
+                }
+            }
+
+            // 2. Search in installation locations.
             foreach ( var directory in this.GetDotNetDirectories() )
             {
                 var dotnetPath = Path.Combine( directory, dotnetFileName );
@@ -57,7 +75,7 @@ namespace Metalama.Backstage.Infrastructure
                 }
                 else
                 {
-                    logger?.Trace?.Log( $"Looked for {dotnetFileName} in default location '{dotnetPath}' but it did not exist." );
+                    logger?.Warning?.Log( $"Looked for {dotnetFileName} in default location '{dotnetPath}' but it did not exist." );
                 }
             }
 
@@ -88,20 +106,21 @@ namespace Metalama.Backstage.Infrastructure
                     }
                     else
                     {
-                        logger?.Trace?.Log( $"Looked for {dotnetFileName} in '{dotnetPath}', but it did not exist." );
+                        logger?.Warning?.Log( $"Looked for {dotnetFileName} in '{dotnetPath}', but it did not exist." );
                     }
                 }
             }
 
             // The file was not found.
-            logger?.Trace?.Log( $"{dotnetFileName} was found nowhere. We hope it will be in the PATH." );
+            logger?.Warning?.Log( $"{dotnetFileName} was found nowhere. We hope it will be in the PATH." );
 
             return "dotnet";
         }
 
         /// <summary>
         /// Gets the .NET installation directories for the current platform.
-        /// Returns directories in priority order: first based on environment variables, then on default locations.
+        /// Returns directories in priority order: first based on DOTNET_ROOT environment variables, then on default locations.
+        /// Note: DOTNET_HOST_PATH is checked separately before this method, as it specifies the full path to the executable.
         /// Reference: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables
         /// </summary>
         /// <returns>A list of directory paths to check for .NET installations.</returns>
