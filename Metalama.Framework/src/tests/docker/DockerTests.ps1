@@ -76,8 +76,8 @@ Get-ChildItem -Path $targetDir -Directory | ForEach-Object {
         $dockerfilePath = ConvertTo-WslPath $dockerfile
         $testScriptPath = ConvertTo-WslPath $testScript
 
-        $command = "\`$env:IS_TEAMCITY_AGENT='$env:IS_TEAMCITY_AGENT'; & '$scriptPath' -Dockerfile '$dockerfilePath' -NoInit -Script '$testScriptPath'"
-      #  $command = ConvertTo-BashEscaped $command
+        # This makes DockerBuld.ps1 receive the environment variables correctly.
+        $command = "\`$env:IS_TEAMCITY_AGENT='$env:IS_TEAMCITY_AGENT'; \`$env:GIT_USER_EMAIL='$env:GIT_USER_EMAIL'; \`$env:GIT_USER_NAME ='$env:GIT_USER_NAME'; & '$scriptPath' -Dockerfile '$dockerfilePath' -NoInit -Script '$testScriptPath'"
         Write-Host "Executing in WSL: pwsh -Command `$'$command`$'"
         wsl pwsh -Command "$command"
     } else {
