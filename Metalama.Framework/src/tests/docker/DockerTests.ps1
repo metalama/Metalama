@@ -1,9 +1,20 @@
 param(
     [Parameter(Mandatory=$true)]
-    [string]$Directory
+    [string]$Directory,
+
+    [Parameter(Mandatory=$false)]
+    [switch]$Wsl
 )
 
 $ErrorActionPreference = 'Stop'
+
+function ConvertTo-WslPath {
+    param([string]$WindowsPath)
+
+    $wslPath = $WindowsPath -replace '\\', '/'
+    $wslPath = $wslPath -replace '^([A-Z]):', { '/mnt/' + $_.Groups[1].Value.ToLower() }
+    return $wslPath
+}
 
 $scriptDir = $PSScriptRoot
 $targetDir = Join-Path $scriptDir $Directory
@@ -44,7 +55,17 @@ Get-ChildItem -Path $targetDir -Directory | ForEach-Object {
     }
 
     Write-Host "Running test for $($_.Name)..."
-    & $dockerBuildScript -Dockerfile $dockerfile -NoInit -Script $testScript
+
+    if ($Wsl) {
+        # Run DockerBuild.ps1 under WSL
+        $wslDockerBuildScript = ConvertTo-WslPath $dockerBuildScript
+        $wslDockerfile = ConvertTo-WslPath $dockerfile
+        $wslTestScript = ConvertTo-WslPath $testScript
+
+        wsl pwsh -File $wslDockerBuildScript -Dockerfile $wslDockerfile -NoInit -Script $wslTestScript
+    } else {
+        & $dockerBuildScript -Dockerfile $dockerfile -NoInit -Script $testScript
+    }
 
     if (-not $? -or $LASTEXITCODE -ne 0) {
         throw "Test failed for $($_.Name)"

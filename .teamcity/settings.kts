@@ -581,10 +581,11 @@ object DockerTestsWslX64 : BuildType({
         powerShell {
             name = "Execute ./Metalama.Framework/src/tests/docker/DockerTests.ps1"
             id = "Exec"
-            scriptMode = script {
-                content = "wsl pwsh ./Metalama.Framework/src/tests/docker/DockerTests.ps1 linux-x64 %Exec.Arguments%"
+            scriptMode = file {
+                path = "./Metalama.Framework/src/tests/docker/DockerTests.ps1"
             }
             noProfile = false
+            scriptArgs = "linux-x64 -Wsl %Exec.Arguments%"
         }
     }
 

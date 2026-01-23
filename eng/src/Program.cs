@@ -213,9 +213,9 @@ var product = new Product( MetalamaDependencies.Metalama )
             "DockerTestsWslX64",
             "Docker-based tests on WSL X64",
             "./Metalama.Framework/src/tests/docker/DockerTests.ps1",
-            "linux-x64" )
+            "linux-x64 -Wsl" )
         {
-            BuildAgentRequirements = new ContainerHostRequirements( ContainerHostKind.Windows ), BuildSnapshotDependency = BuildConfiguration.Debug, UseWsl = true
+            BuildAgentRequirements = new ContainerHostRequirements( ContainerHostKind.Windows ), BuildSnapshotDependency = BuildConfiguration.Debug
         }
     ]
 };
