@@ -23,6 +23,13 @@ function ConvertTo-WslPath {
     return $wslPath
 }
 
+function ConvertTo-BashEscaped {
+    param([string]$Value)
+
+    # Escape single quotes by replacing ' with '\''
+    return $Value -replace "'", "'\\''"
+}
+
 $scriptDir = $PSScriptRoot
 $targetDir = Join-Path $scriptDir $Directory
 
@@ -65,12 +72,17 @@ Get-ChildItem -Path $targetDir -Directory | ForEach-Object {
 
     if ($Wsl) {
         # Run DockerBuild.ps1 under WSL
-        $scriptPath = ConvertTo-WslPath $dockerBuildScript
-        $dockerfilePath = ConvertTo-WslPath $dockerfile
-        $testScriptPath = ConvertTo-WslPath $testScript
+        $scriptPath = ConvertTo-BashEscaped (ConvertTo-WslPath $dockerBuildScript)
+        $dockerfilePath = ConvertTo-BashEscaped (ConvertTo-WslPath $dockerfile)
+        $testScriptPath = ConvertTo-BashEscaped (ConvertTo-WslPath $testScript)
 
-        $envPrefix = if ($env:IS_TEAMCITY_AGENT) { "`$env:IS_TEAMCITY_AGENT='$($env:IS_TEAMCITY_AGENT)'; " } else { "" }
-        wsl pwsh -Command "${envPrefix}& `'$scriptPath`' -Dockerfile `'$dockerfilePath`' -NoInit -Script `'$testScriptPath`'"
+        $command = "& '$scriptPath' -Dockerfile '$dockerfilePath' -NoInit -Script '$testScriptPath'"
+        if ($env:IS_TEAMCITY_AGENT) {
+            $tcAgentValue = ConvertTo-BashEscaped $env:IS_TEAMCITY_AGENT
+            $command = "`$env:IS_TEAMCITY_AGENT='$tcAgentValue'; $command"
+        }
+
+        wsl pwsh -Command "$command"
     } else {
         & $dockerBuildScript -Dockerfile $dockerfile -NoInit -Script $testScript
     }
