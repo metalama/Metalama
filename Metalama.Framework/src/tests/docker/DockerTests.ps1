@@ -72,16 +72,13 @@ Get-ChildItem -Path $targetDir -Directory | ForEach-Object {
 
     if ($Wsl) {
         # Run DockerBuild.ps1 under WSL
-        $scriptPath = ConvertTo-BashEscaped (ConvertTo-WslPath $dockerBuildScript)
-        $dockerfilePath = ConvertTo-BashEscaped (ConvertTo-WslPath $dockerfile)
-        $testScriptPath = ConvertTo-BashEscaped (ConvertTo-WslPath $testScript)
+        $scriptPath = ConvertTo-WslPath $dockerBuildScript
+        $dockerfilePath = ConvertTo-WslPath $dockerfile
+        $testScriptPath = ConvertTo-WslPath $testScript
 
-        $command = "& '$scriptPath' -Dockerfile '$dockerfilePath' -NoInit -Script '$testScriptPath'"
-        if ($env:IS_TEAMCITY_AGENT) {
-            $tcAgentValue = ConvertTo-BashEscaped $env:IS_TEAMCITY_AGENT
-            $command = "`$env:IS_TEAMCITY_AGENT='$tcAgentValue'; $command"
-        }
-
+        $command = "\`$env:IS_TEAMCITY_AGENT='$tcAgentValue'; & '$scriptPath' -Dockerfile '$dockerfilePath' -NoInit -Script '$testScriptPath'"
+      #  $command = ConvertTo-BashEscaped $command
+        Write-Host "Executing in WSL: pwsh -Command `$'$command`$'"
         wsl pwsh -Command "$command"
     } else {
         & $dockerBuildScript -Dockerfile $dockerfile -NoInit -Script $testScript
