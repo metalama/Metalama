@@ -385,4 +385,95 @@ public sealed class PlatformInfoTests : TestsBase
         // Assert
         Assert.Equal( customDotnetPath, result );
     }
+
+    [Fact]
+    public void DOTNET_ROOT_Ignored_WhenRiderDetected()
+    {
+        // Arrange
+        this.RuntimeInformation.Platform = OSPlatform.Windows;
+        this.RuntimeInformation.TestProcessArchitecture = Architecture.X64;
+
+        const string riderPath = "C:\\Users\\test\\AppData\\Local\\JetBrains\\Installations\\ReSharperHost";
+        const string riderDotnetRoot = "C:\\RiderDotNet";
+        const string programFiles = "C:\\Program Files";
+        var riderDotnetPath = Path.Combine( riderDotnetRoot, "dotnet.exe" );
+        var defaultDotnetPath = Path.Combine( programFiles, "dotnet", "dotnet.exe" );
+
+        // Rider sets DOTNET_ROOT and includes ReSharperHost in PATH.
+        this.EnvironmentVariableProvider.Environment["PATH"] = riderPath;
+        this.EnvironmentVariableProvider.Environment["DOTNET_ROOT"] = riderDotnetRoot;
+        this.EnvironmentVariableProvider.Environment["ProgramFiles"] = programFiles;
+        this.FileSystem.CreateDirectory( Path.GetDirectoryName( riderDotnetPath )! );
+        this.FileSystem.WriteAllText( riderDotnetPath, string.Empty );
+        this.FileSystem.CreateDirectory( Path.GetDirectoryName( defaultDotnetPath )! );
+        this.FileSystem.WriteAllText( defaultDotnetPath, string.Empty );
+
+        // Act
+        var result = this._platformInfo.DotNetExePath;
+
+        // Assert
+        // Should use default location, not Rider's DOTNET_ROOT.
+        Assert.Equal( defaultDotnetPath, result );
+    }
+
+    [Fact]
+    public void DOTNET_ROOT_X64_Ignored_WhenRiderDetected()
+    {
+        // Arrange
+        this.RuntimeInformation.Platform = OSPlatform.Windows;
+        this.RuntimeInformation.TestProcessArchitecture = Architecture.X64;
+
+        const string riderPath = "C:\\Users\\test\\AppData\\Local\\JetBrains\\Installations\\ReSharperHost";
+        const string riderDotnetRootX64 = "C:\\RiderDotNetX64";
+        const string programFiles = "C:\\Program Files";
+        var riderDotnetPath = Path.Combine( riderDotnetRootX64, "dotnet.exe" );
+        var defaultDotnetPath = Path.Combine( programFiles, "dotnet", "dotnet.exe" );
+
+        // Rider sets DOTNET_ROOT_X64 and includes ReSharperHost in PATH.
+        this.EnvironmentVariableProvider.Environment["PATH"] = riderPath;
+        this.EnvironmentVariableProvider.Environment["DOTNET_ROOT_X64"] = riderDotnetRootX64;
+        this.EnvironmentVariableProvider.Environment["ProgramFiles"] = programFiles;
+        this.FileSystem.CreateDirectory( Path.GetDirectoryName( riderDotnetPath )! );
+        this.FileSystem.WriteAllText( riderDotnetPath, string.Empty );
+        this.FileSystem.CreateDirectory( Path.GetDirectoryName( defaultDotnetPath )! );
+        this.FileSystem.WriteAllText( defaultDotnetPath, string.Empty );
+
+        // Act
+        var result = this._platformInfo.DotNetExePath;
+
+        // Assert
+        // Should use default location, not Rider's DOTNET_ROOT_X64.
+        Assert.Equal( defaultDotnetPath, result );
+    }
+
+    [Fact]
+    public void DOTNET_HOST_PATH_Ignored_WhenRiderDetected()
+    {
+        // Arrange
+        this.RuntimeInformation.Platform = OSPlatform.Windows;
+        this.RuntimeInformation.TestProcessArchitecture = Architecture.X64;
+
+        const string riderPath = "C:\\Users\\test\\AppData\\Local\\JetBrains\\Installations\\ReSharperHost";
+        const string dotnetHostPath = "C:\\custom\\host\\dotnet.exe";
+        const string riderDotnetRoot = "C:\\RiderDotNet";
+        const string programFiles = "C:\\Program Files";
+        var defaultDotnetPath = Path.Combine( programFiles, "dotnet", "dotnet.exe" );
+
+        // Rider environment with ReSharperHost in PATH, DOTNET_HOST_PATH and DOTNET_ROOT set.
+        this.EnvironmentVariableProvider.Environment["PATH"] = riderPath;
+        this.EnvironmentVariableProvider.Environment["DOTNET_HOST_PATH"] = dotnetHostPath;
+        this.EnvironmentVariableProvider.Environment["DOTNET_ROOT"] = riderDotnetRoot;
+        this.EnvironmentVariableProvider.Environment["ProgramFiles"] = programFiles;
+        this.FileSystem.CreateDirectory( Path.GetDirectoryName( dotnetHostPath )! );
+        this.FileSystem.WriteAllText( dotnetHostPath, string.Empty );
+        this.FileSystem.CreateDirectory( Path.GetDirectoryName( defaultDotnetPath )! );
+        this.FileSystem.WriteAllText( defaultDotnetPath, string.Empty );
+
+        // Act
+        var result = this._platformInfo.DotNetExePath;
+
+        // Assert
+        // DOTNET_HOST_PATH should be ignored when Rider is detected, falling back to default location.
+        Assert.Equal( defaultDotnetPath, result );
+    }
 }

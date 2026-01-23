@@ -7,6 +7,7 @@ using Metalama.Backstage.Extensibility;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace Metalama.Backstage.Infrastructure
@@ -18,6 +19,7 @@ namespace Metalama.Backstage.Infrastructure
         private readonly IFileSystem _fileSystem;
         private readonly IRuntimeInformation _runtimeInformation;
         private readonly Lazy<string> _dotNetExePath;
+        private readonly Lazy<bool> _isRunningUnderRider;
 
         public string DotNetExePath => this._dotNetExePath.Value;
 
@@ -28,7 +30,27 @@ namespace Metalama.Backstage.Infrastructure
             this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
             this._runtimeInformation = serviceProvider.GetRequiredBackstageService<IRuntimeInformation>();
 
+            this._isRunningUnderRider = new Lazy<bool>( this.DetectRider );
             this._dotNetExePath = new Lazy<string>( this.GetDotNetPath );
+        }
+
+        /// <summary>
+        /// Detects if the current process is running under JetBrains Rider.
+        /// Rider runs in its own dotnet.exe instance and sets DOTNET_ROOT to point to its limited installation,
+        /// which doesn't have the SDK we need. We need to skip environment variable detection in this case.
+        /// </summary>
+        private bool DetectRider()
+        {
+            var path = this._environmentVariableProvider.GetEnvironmentVariable( "PATH" );
+
+            if ( path == null )
+            {
+                return false;
+            }
+
+            var splitCharacter = this._runtimeInformation.IsOSPlatform( OSPlatform.Windows ) ? ';' : ':';
+
+            return path.Split( splitCharacter ).Any( directory => directory.ContainsOrdinal( "ReSharperHost" ) );
         }
 
         private string GetDotNetPath()
@@ -44,21 +66,32 @@ namespace Metalama.Backstage.Infrastructure
             // We no longer look for the current process being dotnet because of Rider. Rider runs in dotnet.exe, but this
             // instance of dotnet.exe does not have an SDK installed. So, it is better to ignore the current process as a hint.
 
-            // 1. Check DOTNET_HOST_PATH first (highest priority).
-            // This is the absolute path to the dotnet host executable.
-            var dotnetHostPath = this._environmentVariableProvider.GetEnvironmentVariable( "DOTNET_HOST_PATH" );
+            // Check if we're running under Rider.
+            var isRunningUnderRider = this._isRunningUnderRider.Value;
 
-            if ( !string.IsNullOrEmpty( dotnetHostPath ) )
+            if ( isRunningUnderRider )
             {
-                if ( this._fileSystem.FileExists( dotnetHostPath ) )
-                {
-                    logger?.Trace?.Log( $"{dotnetFileName} found via DOTNET_HOST_PATH: '{dotnetHostPath}'." );
+                logger?.Trace?.Log( "Detected JetBrains Rider environment (ReSharperHost found in PATH). Skipping DOTNET_HOST_PATH and DOTNET_ROOT environment variables to avoid using Rider's limited dotnet installation." );
+            }
 
-                    return dotnetHostPath;
-                }
-                else
+            // 1. Check DOTNET_HOST_PATH first (highest priority), unless running under Rider.
+            // This is the absolute path to the dotnet host executable.
+            if ( !isRunningUnderRider )
+            {
+                var dotnetHostPath = this._environmentVariableProvider.GetEnvironmentVariable( "DOTNET_HOST_PATH" );
+
+                if ( !string.IsNullOrEmpty( dotnetHostPath ) )
                 {
-                    logger?.Warning?.Log( $"DOTNET_HOST_PATH is set to '{dotnetHostPath}' but the file was not found." );
+                    if ( this._fileSystem.FileExists( dotnetHostPath ) )
+                    {
+                        logger?.Trace?.Log( $"{dotnetFileName} found via DOTNET_HOST_PATH: '{dotnetHostPath}'." );
+
+                        return dotnetHostPath;
+                    }
+                    else
+                    {
+                        logger?.Warning?.Log( $"DOTNET_HOST_PATH is set to '{dotnetHostPath}' but the file was not found." );
+                    }
                 }
             }
 
@@ -119,20 +152,26 @@ namespace Metalama.Backstage.Infrastructure
 
         /// <summary>
         /// Gets the .NET installation directories for the current platform.
-        /// Returns directories in priority order: first based on DOTNET_ROOT environment variables, then on default locations.
-        /// Note: DOTNET_HOST_PATH is checked separately before this method, as it specifies the full path to the executable.
+        /// Returns directories in priority order: first based on DOTNET_ROOT environment variables (unless running under Rider), then on default locations.
+        /// Note: DOTNET_HOST_PATH is checked separately before this method, as it specifies the full path to the executable (also skipped when running under Rider).
         /// Reference: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables
         /// </summary>
         /// <returns>A list of directory paths to check for .NET installations.</returns>
         private IEnumerable<string> GetDotNetDirectories()
         {
-            foreach ( var environmentVariableName in this.GetDotNetRootEnvironmentVariables() )
+            // Skip DOTNET_ROOT environment variables when running under Rider, as Rider overrides them
+            // to point to its own limited dotnet installation which doesn't have the SDK we need.
+            // (DOTNET_HOST_PATH is also skipped when running under Rider - see GetDotNetPath method.)
+            if ( !this._isRunningUnderRider.Value )
             {
-                var environmentVariableValue = this._environmentVariableProvider.GetEnvironmentVariable( environmentVariableName );
-
-                if ( !string.IsNullOrWhiteSpace( environmentVariableValue ) )
+                foreach ( var environmentVariableName in this.GetDotNetRootEnvironmentVariables() )
                 {
-                    yield return environmentVariableValue!;
+                    var environmentVariableValue = this._environmentVariableProvider.GetEnvironmentVariable( environmentVariableName );
+
+                    if ( !string.IsNullOrWhiteSpace( environmentVariableValue ) )
+                    {
+                        yield return environmentVariableValue!;
+                    }
                 }
             }
 
