@@ -16,8 +16,10 @@ project {
     buildType(PublicBuild)
     buildType(PublicDeployment)
     buildType(DownstreamMerge)
+    buildType(DockerTestsWinX64)
+    buildType(DockerTestsWslX64)
 
-    buildTypesOrder = arrayListOf(DebugBuild,ReleaseBuild,PublicBuild,PublicDeployment,DownstreamMerge)
+    buildTypesOrder = arrayListOf(DebugBuild,ReleaseBuild,PublicBuild,PublicDeployment,DownstreamMerge,DockerTestsWinX64,DockerTestsWslX64)
 
 }
 
@@ -36,7 +38,11 @@ object DebugBuild : BuildType({
 +:%system.teamcity.build.tempDir%/Metalama/ExtractExceptions/**/*=>logs"""
 
     params {
-        text("Build.Arguments", "", label = "DockerBuild.ps1 Arguments", description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
+        text(
+            "Build.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
         param("Build.Timeout", "30")
     }
 
@@ -136,7 +142,11 @@ object ReleaseBuild : BuildType({
 """
 
     params {
-        text("Build.Arguments", "", label = "DockerBuild.ps1 Arguments", description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
+        text(
+            "Build.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
         param("Build.Timeout", "30")
     }
 
@@ -225,7 +235,11 @@ object PublicBuild : BuildType({
 """
 
     params {
-        text("Build.Arguments", "", label = "DockerBuild.ps1 Arguments", description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
+        text(
+            "Build.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
         param("Build.Timeout", "30")
     }
 
@@ -309,7 +323,11 @@ object PublicDeployment : BuildType({
     type = Type.DEPLOYMENT
 
     params {
-        text("Publish.Arguments", "", label = "DockerBuild.ps1 Arguments", description = "Arguments to append to the 'Publish' build step.", allowEmpty = true)
+        text(
+            "Publish.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Publish' build step.", allowEmpty = true)
         param("Publish.Timeout", "30")
     }
 
@@ -385,7 +403,11 @@ object DownstreamMerge : BuildType({
     name = "Downstream Merge"
 
     params {
-        text("DownstreamMerge.Arguments", "", label = "DockerBuild.ps1 Arguments", description = "Arguments to append to the 'Merge downstream' build step.", allowEmpty = true)
+        text(
+            "DownstreamMerge.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Merge downstream' build step.", allowEmpty = true)
         param("DownstreamMerge.Timeout", "15")
     }
 
@@ -435,6 +457,132 @@ object DownstreamMerge : BuildType({
         dependency(AbsoluteId("Metalama_Metalama20260_MetalamaCompiler_DownstreamMerge")) {
             snapshot {
                      onDependencyFailure = FailureAction.ADD_PROBLEM
+            }
+        }
+     }
+
+})
+
+object DockerTestsWinX64 : BuildType({
+
+    name = "Docker-based tests on Windows X64"
+
+    params {
+        text(
+            "Exec.Arguments", 
+            "", 
+            label =".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 Arguments",
+            description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
+    }
+
+    vcs {
+        root(AbsoluteId("Metalama_Metalama20260_Metalama"))
+     checkoutMode = CheckoutMode.ON_AGENT
+    }
+
+    steps {
+        powerShell {
+            name = "Copy nuget.restored.config to nuget.config"
+            id = "CopyNuGetConfig"
+            scriptMode = script {
+                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force"
+            }
+            noProfile = false
+        }
+        powerShell {
+            name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
+            id = "Exec"
+            scriptMode = file {
+                path = "./Metalama.Framework/src/tests/docker/DockerTests.ps1"
+            }
+            noProfile = false
+            scriptArgs = "win-x64 %Exec.Arguments%"
+        }
+    }
+
+    requirements {
+        equals("env.BuildAgentType", "docker-win-x64-md")
+    }
+
+    features {
+        swabra {
+            lockingProcesses = Swabra.LockingProcessPolicy.KILL
+            verbose = true
+        }
+    }
+
+    dependencies {
+        dependency(DebugBuild) {
+            snapshot {
+                     onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = "+:artifacts/publish/private/**/*=>artifacts/publish/private"
+            }
+        }
+     }
+
+})
+
+object DockerTestsWslX64 : BuildType({
+
+    name = "Docker-based tests on WSL X64"
+
+    params {
+        text(
+            "Exec.Arguments", 
+            "", 
+            label =".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 Arguments",
+            description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
+    }
+
+    vcs {
+        root(AbsoluteId("Metalama_Metalama20260_Metalama"))
+     checkoutMode = CheckoutMode.ON_AGENT
+    }
+
+    steps {
+        powerShell {
+            name = "Copy nuget.restored.config to nuget.config"
+            id = "CopyNuGetConfig"
+            scriptMode = script {
+                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force"
+            }
+            noProfile = false
+        }
+        powerShell {
+            name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
+            id = "Exec"
+            scriptMode = file {
+                path = "./Metalama.Framework/src/tests/docker/DockerTests.ps1"
+            }
+            noProfile = false
+            scriptArgs = "linux-x64 %Exec.Arguments%"
+        }
+    }
+
+    requirements {
+        equals("env.BuildAgentType", "docker-wsl-x64-md")
+    }
+
+    features {
+        swabra {
+            lockingProcesses = Swabra.LockingProcessPolicy.KILL
+            verbose = true
+        }
+    }
+
+    dependencies {
+        dependency(DebugBuild) {
+            snapshot {
+                     onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = "+:artifacts/publish/private/**/*=>artifacts/publish/private"
             }
         }
      }

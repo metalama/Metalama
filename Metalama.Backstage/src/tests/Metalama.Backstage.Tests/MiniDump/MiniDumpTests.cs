@@ -9,6 +9,7 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Testing;
+using Metalama.Backstage.Utilities;
 using System;
 using System.IO;
 using Xunit;
@@ -26,6 +27,7 @@ public sealed class MiniDumpTests : TestsBase
             .AddSingleton<IApplicationInfoProvider>( new ApplicationInfoProvider( new TestApplicationInfo() ) )
             .AddSingleton<IConfigurationManager>( serviceProvider => new InMemoryConfigurationManager( serviceProvider ) )
             .AddSingleton<ITempFileManager>( serviceProvider => new TempFileManager( serviceProvider ) )
+            .AddSingleton<IProcessInfo>( _ => ProcessInfoService.Instance )
             .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) );
     }
 

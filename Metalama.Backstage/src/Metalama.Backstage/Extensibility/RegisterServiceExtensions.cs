@@ -132,6 +132,7 @@ public static class RegisterServiceExtensions
             .AddSingleton<IProcessExecutor>( new ProcessExecutor() )
             .AddSingleton<IHttpClientFactory>( new HttpClientFactory() )
             .AddSingleton<IConfigurationManager>( serviceProvider => new ConfigurationManager( serviceProvider ) )
+            .AddSingleton<IProcessInfo>( _ => ProcessInfoService.Instance )
             .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
             .AddSingleton<BackstageBackgroundTasksService>( _ => BackstageBackgroundTasksService.Default )
             .AddSingleton<WebLinks>( _ => new WebLinks() )
