@@ -215,7 +215,7 @@ var product = new Product( MetalamaDependencies.Metalama )
             ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1",
             "linux-x64" )
         {
-            BuildAgentRequirements = new ContainerHostRequirements( ContainerHostKind.Wsl ), BuildSnapshotDependency = BuildConfiguration.Debug
+            BuildAgentRequirements = new ContainerHostRequirements( ContainerHostKind.Windows ), BuildSnapshotDependency = BuildConfiguration.Debug, UseWsl = true
         }
     ]
 };

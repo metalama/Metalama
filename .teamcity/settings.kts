@@ -589,7 +589,7 @@ object DockerTestsWslX64 : BuildType({
     }
 
     requirements {
-        equals("env.BuildAgentType", "docker-wsl-x64-md")
+        equals("env.BuildAgentType", "docker-win-x64-md")
     }
 
     features {
