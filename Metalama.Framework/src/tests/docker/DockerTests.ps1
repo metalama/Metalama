@@ -70,7 +70,7 @@ Get-ChildItem -Path $targetDir -Directory | ForEach-Object {
         $testScriptPath = ConvertTo-WslPath $testScript
 
         $envPrefix = if ($env:IS_TEAMCITY_AGENT) { "`$env:IS_TEAMCITY_AGENT='$($env:IS_TEAMCITY_AGENT)'; " } else { "" }
-        wsl pwsh -Command "${envPrefix}& '$scriptPath' -Dockerfile '$dockerfilePath' -NoInit -Script '$testScriptPath'"
+        wsl pwsh -Command "${envPrefix}& `'$scriptPath`' -Dockerfile `'$dockerfilePath`' -NoInit -Script `'$testScriptPath`'"
     } else {
         & $dockerBuildScript -Dockerfile $dockerfile -NoInit -Script $testScript
     }
