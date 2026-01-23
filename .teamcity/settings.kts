@@ -493,7 +493,7 @@ object DockerTestsWinX64 : BuildType({
             name = "Create eng/Versions.g.props"
             id = "CreateVersionsFile"
             scriptMode = script {
-                content = "New-Item -Path \"eng/Versions.g.props\" -ItemType File -Force -Value \"<Project><Import Project=`\"artifacts/publish/private/Metalama.version.props`\" /><Import Project=`\"dependencies/Metalama.Compiler/artifacts/packages/Release/Shipping/Metalama.Compiler.version.props`\" /></Project>\" | Out-Null;"
+                content = "New-Item -Path \"eng/Versions.g.props\" -ItemType File -Force -Value \"<Project><Import Project=`\"../artifacts/publish/private/Metalama.version.props`\" /><Import Project=`\"../dependencies/Metalama.Compiler/Metalama.Compiler.version.props`\" /></Project>\" | Out-Null;"
             }
             noProfile = false
         }
@@ -574,7 +574,7 @@ object DockerTestsWslX64 : BuildType({
             name = "Create eng/Versions.g.props"
             id = "CreateVersionsFile"
             scriptMode = script {
-                content = "New-Item -Path \"eng/Versions.g.props\" -ItemType File -Force -Value \"<Project><Import Project=`\"artifacts/publish/private/Metalama.version.props`\" /><Import Project=`\"dependencies/Metalama.Compiler/artifacts/packages/Release/Shipping/Metalama.Compiler.version.props`\" /></Project>\" | Out-Null;"
+                content = "New-Item -Path \"eng/Versions.g.props\" -ItemType File -Force -Value \"<Project><Import Project=`\"../artifacts/publish/private/Metalama.version.props`\" /><Import Project=`\"../dependencies/Metalama.Compiler/Metalama.Compiler.version.props`\" /></Project>\" | Out-Null;"
             }
             noProfile = false
         }
