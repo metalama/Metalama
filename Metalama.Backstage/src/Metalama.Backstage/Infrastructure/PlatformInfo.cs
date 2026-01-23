@@ -64,7 +64,8 @@ namespace Metalama.Backstage.Infrastructure
 
             if ( isRunningUnderRider )
             {
-                logger?.Trace?.Log( "Detected JetBrains Rider environment (ReSharperHost found in PATH). Skipping DOTNET_HOST_PATH and DOTNET_ROOT environment variables to avoid using Rider's limited dotnet installation." );
+                logger?.Trace?.Log(
+                    "Detected JetBrains Rider environment (ReSharperHost found in PATH). Skipping DOTNET_HOST_PATH and DOTNET_ROOT environment variables to avoid using Rider's limited dotnet installation." );
             }
 
             // 1. Check DOTNET_HOST_PATH first (highest priority), unless running under Rider.

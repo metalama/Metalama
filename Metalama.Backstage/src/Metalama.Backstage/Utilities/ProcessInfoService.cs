@@ -10,9 +10,7 @@ internal sealed class ProcessInfoService : IProcessInfo
 {
     public static ProcessInfoService Instance { get; } = new();
 
-    private ProcessInfoService()
-    {
-    }
+    private ProcessInfoService() { }
 
     public ProcessKind ProcessKind => ProcessUtilities.ProcessKind;
 }

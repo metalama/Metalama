@@ -27,7 +27,7 @@ public sealed class MiniDumpTests : TestsBase
             .AddSingleton<IApplicationInfoProvider>( new ApplicationInfoProvider( new TestApplicationInfo() ) )
             .AddSingleton<IConfigurationManager>( serviceProvider => new InMemoryConfigurationManager( serviceProvider ) )
             .AddSingleton<ITempFileManager>( serviceProvider => new TempFileManager( serviceProvider ) )
-            .AddSingleton<IProcessInfo>(  _ => ProcessInfoService.Instance )
+            .AddSingleton<IProcessInfo>( _ => ProcessInfoService.Instance )
             .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) );
     }
 
