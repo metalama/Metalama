@@ -7,7 +7,7 @@
     <RestorePrerelease>true</RestorePrerelease>
   </PropertyGroup>
   <PropertyGroup>
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.309</PostSharpEngineeringVersion>
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.310</PostSharpEngineeringVersion>
 
     <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.12. -->
     <NewtonsoftJsonMinVersion>13.0.3</NewtonsoftJsonMinVersion>
