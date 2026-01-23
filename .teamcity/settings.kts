@@ -38,7 +38,11 @@ object DebugBuild : BuildType({
 +:%system.teamcity.build.tempDir%/Metalama/ExtractExceptions/**/*=>logs"""
 
     params {
-        text("Build.Arguments", "", label = "DockerBuild.ps1 Arguments", description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
+        text(
+            "Build.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
         param("Build.Timeout", "30")
     }
 
@@ -138,7 +142,11 @@ object ReleaseBuild : BuildType({
 """
 
     params {
-        text("Build.Arguments", "", label = "DockerBuild.ps1 Arguments", description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
+        text(
+            "Build.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
         param("Build.Timeout", "30")
     }
 
@@ -227,7 +235,11 @@ object PublicBuild : BuildType({
 """
 
     params {
-        text("Build.Arguments", "", label = "DockerBuild.ps1 Arguments", description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
+        text(
+            "Build.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
         param("Build.Timeout", "30")
     }
 
@@ -311,7 +323,11 @@ object PublicDeployment : BuildType({
     type = Type.DEPLOYMENT
 
     params {
-        text("Publish.Arguments", "", label = "DockerBuild.ps1 Arguments", description = "Arguments to append to the 'Publish' build step.", allowEmpty = true)
+        text(
+            "Publish.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Publish' build step.", allowEmpty = true)
         param("Publish.Timeout", "30")
     }
 
@@ -387,7 +403,11 @@ object DownstreamMerge : BuildType({
     name = "Downstream Merge"
 
     params {
-        text("DownstreamMerge.Arguments", "", label = "DockerBuild.ps1 Arguments", description = "Arguments to append to the 'Merge downstream' build step.", allowEmpty = true)
+        text(
+            "DownstreamMerge.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Merge downstream' build step.", allowEmpty = true)
         param("DownstreamMerge.Timeout", "15")
     }
 
@@ -448,7 +468,11 @@ object DockerTestsWinX64 : BuildType({
     name = "Docker-based tests on Windows X64"
 
     params {
-        text("Exec.Arguments", "", label = ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 Arguments", description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
+        text(
+            "Exec.Arguments", 
+            "", 
+            label =".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 Arguments",
+            description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
     }
 
     vcs {
@@ -461,7 +485,7 @@ object DockerTestsWinX64 : BuildType({
             name = "Copy nuget.restored.config to nuget.config"
             id = "CopyNuGetConfig"
             scriptMode = script {
-                content = "Copy-Item -Path ""artifacts/publish/private/nuget.restored.config"" -Destination ""nuget.config"" -Force"
+                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force"
             }
             noProfile = false
         }
@@ -469,7 +493,7 @@ object DockerTestsWinX64 : BuildType({
             name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             id = "Exec"
             scriptMode = file {
-                path = ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
+                path = "./Metalama.Framework/src/tests/docker/DockerTests.ps1"
             }
             noProfile = false
             scriptArgs = "win-x64 %Exec.Arguments%"
@@ -507,7 +531,11 @@ object DockerTestsWslX64 : BuildType({
     name = "Docker-based tests on WSL X64"
 
     params {
-        text("Exec.Arguments", "", label = ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 Arguments", description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
+        text(
+            "Exec.Arguments", 
+            "", 
+            label =".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 Arguments",
+            description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
     }
 
     vcs {
@@ -520,7 +548,7 @@ object DockerTestsWslX64 : BuildType({
             name = "Copy nuget.restored.config to nuget.config"
             id = "CopyNuGetConfig"
             scriptMode = script {
-                content = "Copy-Item -Path ""artifacts/publish/private/nuget.restored.config"" -Destination ""nuget.config"" -Force"
+                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force"
             }
             noProfile = false
         }
@@ -528,7 +556,7 @@ object DockerTestsWslX64 : BuildType({
             name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             id = "Exec"
             scriptMode = file {
-                path = ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
+                path = "./Metalama.Framework/src/tests/docker/DockerTests.ps1"
             }
             noProfile = false
             scriptArgs = "linux-x64 %Exec.Arguments%"
