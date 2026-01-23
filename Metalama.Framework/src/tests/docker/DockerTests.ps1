@@ -11,8 +11,15 @@ $ErrorActionPreference = 'Stop'
 function ConvertTo-WslPath {
     param([string]$WindowsPath)
 
+    # Convert backslashes to forward slashes
     $wslPath = $WindowsPath -replace '\\', '/'
-    $wslPath = $wslPath -replace '^([A-Z]):', { '/mnt/' + $_.Groups[1].Value.ToLower() }
+
+    # Convert drive letter (e.g., C: -> /mnt/c)
+    if ($wslPath -match '^([A-Z]):') {
+        $driveLetter = $matches[1].ToLower()
+        $wslPath = $wslPath -replace '^[A-Z]:', "/mnt/$driveLetter"
+    }
+
     return $wslPath
 }
 
