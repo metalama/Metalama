@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Testing;
@@ -393,14 +394,13 @@ public sealed class PlatformInfoTests : TestsBase
         this.RuntimeInformation.Platform = OSPlatform.Windows;
         this.RuntimeInformation.TestProcessArchitecture = Architecture.X64;
 
-        const string riderPath = "C:\\Users\\test\\AppData\\Local\\JetBrains\\Installations\\ReSharperHost";
         const string riderDotnetRoot = "C:\\RiderDotNet";
         const string programFiles = "C:\\Program Files";
         var riderDotnetPath = Path.Combine( riderDotnetRoot, "dotnet.exe" );
         var defaultDotnetPath = Path.Combine( programFiles, "dotnet", "dotnet.exe" );
 
-        // Rider sets DOTNET_ROOT and includes ReSharperHost in PATH.
-        this.EnvironmentVariableProvider.Environment["PATH"] = riderPath;
+        // Rider sets DOTNET_ROOT and the process kind is Rider.
+        this.ProcessInfo.ProcessKind = ProcessKind.Rider;
         this.EnvironmentVariableProvider.Environment["DOTNET_ROOT"] = riderDotnetRoot;
         this.EnvironmentVariableProvider.Environment["ProgramFiles"] = programFiles;
         this.FileSystem.CreateDirectory( Path.GetDirectoryName( riderDotnetPath )! );
@@ -423,14 +423,13 @@ public sealed class PlatformInfoTests : TestsBase
         this.RuntimeInformation.Platform = OSPlatform.Windows;
         this.RuntimeInformation.TestProcessArchitecture = Architecture.X64;
 
-        const string riderPath = "C:\\Users\\test\\AppData\\Local\\JetBrains\\Installations\\ReSharperHost";
         const string riderDotnetRootX64 = "C:\\RiderDotNetX64";
         const string programFiles = "C:\\Program Files";
         var riderDotnetPath = Path.Combine( riderDotnetRootX64, "dotnet.exe" );
         var defaultDotnetPath = Path.Combine( programFiles, "dotnet", "dotnet.exe" );
 
-        // Rider sets DOTNET_ROOT_X64 and includes ReSharperHost in PATH.
-        this.EnvironmentVariableProvider.Environment["PATH"] = riderPath;
+        // Rider sets DOTNET_ROOT_X64 and the process kind is Rider.
+        this.ProcessInfo.ProcessKind = ProcessKind.Rider;
         this.EnvironmentVariableProvider.Environment["DOTNET_ROOT_X64"] = riderDotnetRootX64;
         this.EnvironmentVariableProvider.Environment["ProgramFiles"] = programFiles;
         this.FileSystem.CreateDirectory( Path.GetDirectoryName( riderDotnetPath )! );
@@ -453,14 +452,13 @@ public sealed class PlatformInfoTests : TestsBase
         this.RuntimeInformation.Platform = OSPlatform.Windows;
         this.RuntimeInformation.TestProcessArchitecture = Architecture.X64;
 
-        const string riderPath = "C:\\Users\\test\\AppData\\Local\\JetBrains\\Installations\\ReSharperHost";
         const string dotnetHostPath = "C:\\custom\\host\\dotnet.exe";
         const string riderDotnetRoot = "C:\\RiderDotNet";
         const string programFiles = "C:\\Program Files";
         var defaultDotnetPath = Path.Combine( programFiles, "dotnet", "dotnet.exe" );
 
-        // Rider environment with ReSharperHost in PATH, DOTNET_HOST_PATH and DOTNET_ROOT set.
-        this.EnvironmentVariableProvider.Environment["PATH"] = riderPath;
+        // Rider environment with process kind set to Rider, DOTNET_HOST_PATH and DOTNET_ROOT set.
+        this.ProcessInfo.ProcessKind = ProcessKind.Rider;
         this.EnvironmentVariableProvider.Environment["DOTNET_HOST_PATH"] = dotnetHostPath;
         this.EnvironmentVariableProvider.Environment["DOTNET_ROOT"] = riderDotnetRoot;
         this.EnvironmentVariableProvider.Environment["ProgramFiles"] = programFiles;

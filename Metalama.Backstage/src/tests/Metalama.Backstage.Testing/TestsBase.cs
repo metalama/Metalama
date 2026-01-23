@@ -15,6 +15,7 @@ using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Tools;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Toasts;
+using Metalama.Backstage.Utilities;
 using Metalama.Backstage.Welcome;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -34,6 +35,8 @@ namespace Metalama.Backstage.Testing
         protected TestFileSystem FileSystem => this._defaultTestContext.Value.FileSystem;
 
         protected TestEnvironmentVariableProvider EnvironmentVariableProvider { get; } = new();
+
+        protected TestProcessInfo ProcessInfo { get; } = new();
 
         protected TestLoggerFactory Log { get; }
 
@@ -204,6 +207,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IDateTimeProvider>( this.Time )
                 .AddSingleton<IProcessExecutor>( this.ProcessExecutor )
                 .AddSingleton<IRuntimeInformation>( _ => new TestRuntimeInformation() )
+                .AddSingleton<IProcessInfo>( this.ProcessInfo )
                 .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
                 .AddSingleton( this.BackgroundTasks )
                 .AddSingleton<IHttpClientFactory>( _ => new TestHttpClientFactory() )

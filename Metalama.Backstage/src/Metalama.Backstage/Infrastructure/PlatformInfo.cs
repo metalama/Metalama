@@ -4,10 +4,10 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace Metalama.Backstage.Infrastructure
@@ -18,6 +18,7 @@ namespace Metalama.Backstage.Infrastructure
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
         private readonly IFileSystem _fileSystem;
         private readonly IRuntimeInformation _runtimeInformation;
+        private readonly IProcessInfo _processInfo;
         private readonly Lazy<string> _dotNetExePath;
         private readonly Lazy<bool> _isRunningUnderRider;
 
@@ -29,6 +30,7 @@ namespace Metalama.Backstage.Infrastructure
             this._environmentVariableProvider = serviceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>();
             this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
             this._runtimeInformation = serviceProvider.GetRequiredBackstageService<IRuntimeInformation>();
+            this._processInfo = serviceProvider.GetRequiredBackstageService<IProcessInfo>();
 
             this._isRunningUnderRider = new Lazy<bool>( this.DetectRider );
             this._dotNetExePath = new Lazy<string>( this.GetDotNetPath );
@@ -41,16 +43,7 @@ namespace Metalama.Backstage.Infrastructure
         /// </summary>
         private bool DetectRider()
         {
-            var path = this._environmentVariableProvider.GetEnvironmentVariable( "PATH" );
-
-            if ( path == null )
-            {
-                return false;
-            }
-
-            var splitCharacter = this._runtimeInformation.IsOSPlatform( OSPlatform.Windows ) ? ';' : ':';
-
-            return path.Split( splitCharacter ).Any( directory => directory.ContainsOrdinal( "ReSharperHost" ) );
+            return this._processInfo.ProcessKind == ProcessKind.Rider;
         }
 
         private string GetDotNetPath()
