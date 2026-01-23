@@ -448,7 +448,7 @@ object DockerTestsWinX64 : BuildType({
     name = "Docker-based tests on Windows X64"
 
     params {
-        text("Exec.Arguments", "", label = ".\Metalama.Framework\src\tests\docker\DockerTests.ps1 Arguments", description = "Arguments to append to the 'Execute .\Metalama.Framework\src\tests\docker\DockerTests.ps1' build step.", allowEmpty = true)
+        text("Exec.Arguments", "", label = ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 Arguments", description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
     }
 
     vcs {
@@ -466,10 +466,10 @@ object DockerTestsWinX64 : BuildType({
             noProfile = false
         }
         powerShell {
-            name = "Execute .\Metalama.Framework\src\tests\docker\DockerTests.ps1"
+            name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             id = "Exec"
             scriptMode = file {
-                path = ".\Metalama.Framework\src\tests\docker\DockerTests.ps1"
+                path = ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             }
             noProfile = false
             scriptArgs = "win-x64 %Exec.Arguments%"
@@ -507,7 +507,7 @@ object DockerTestsWslX64 : BuildType({
     name = "Docker-based tests on WSL X64"
 
     params {
-        text("Exec.Arguments", "", label = ".\Metalama.Framework\src\tests\docker\DockerTests.ps1 Arguments", description = "Arguments to append to the 'Execute .\Metalama.Framework\src\tests\docker\DockerTests.ps1' build step.", allowEmpty = true)
+        text("Exec.Arguments", "", label = ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 Arguments", description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
     }
 
     vcs {
@@ -525,10 +525,10 @@ object DockerTestsWslX64 : BuildType({
             noProfile = false
         }
         powerShell {
-            name = "Execute .\Metalama.Framework\src\tests\docker\DockerTests.ps1"
+            name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             id = "Exec"
             scriptMode = file {
-                path = ".\Metalama.Framework\src\tests\docker\DockerTests.ps1"
+                path = ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             }
             noProfile = false
             scriptArgs = "linux-x64 %Exec.Arguments%"
