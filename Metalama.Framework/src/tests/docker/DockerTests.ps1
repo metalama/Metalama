@@ -69,7 +69,13 @@ Get-ChildItem -Path $targetDir -Directory | ForEach-Object {
         $wslDockerfile = ConvertTo-WslPath $dockerfile
         $wslTestScript = ConvertTo-WslPath $testScript
 
-        wsl pwsh -File $wslDockerBuildScript -Dockerfile $wslDockerfile -NoInit -Script $wslTestScript
+        # Transfer IS_TEAMCITY_AGENT environment variable to WSL
+        $tcAgentValue = $env:IS_TEAMCITY_AGENT
+        if ($tcAgentValue) {
+            wsl pwsh -Command "`$env:IS_TEAMCITY_AGENT='$tcAgentValue'; & '$wslDockerBuildScript' -Dockerfile '$wslDockerfile' -NoInit -Script '$wslTestScript'"
+        } else {
+            wsl pwsh -File $wslDockerBuildScript -Dockerfile $wslDockerfile -NoInit -Script $wslTestScript
+        }
     } else {
         & $dockerBuildScript -Dockerfile $dockerfile -NoInit -Script $testScript
     }
