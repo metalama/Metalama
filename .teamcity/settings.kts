@@ -485,7 +485,15 @@ object DockerTestsWinX64 : BuildType({
             name = "Copy nuget.restored.config to nuget.config"
             id = "CopyNuGetConfig"
             scriptMode = script {
-                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force"
+                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force;Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.wsl.config\" -Force;"
+            }
+            noProfile = false
+        }
+        powerShell {
+            name = "Create eng/Versions.g.props"
+            id = "CreateVersionsFile"
+            scriptMode = script {
+                content = "New-Item -Path \"eng/Versions.g.props\" -ItemType File -Force -Value \"<Project><Import Project=`\"../artifacts/publish/private/Metalama.version.props`\" /><Import Project=`\"../dependencies/Metalama.Compiler/Metalama.Compiler.version.props`\" /></Project>\" | Out-Null;"
             }
             noProfile = false
         }
@@ -522,6 +530,16 @@ object DockerTestsWinX64 : BuildType({
                 artifactRules = "+:artifacts/publish/private/**/*=>artifacts/publish/private"
             }
         }
+        dependency(AbsoluteId("Metalama_Metalama20260_MetalamaCompiler_ReleaseBuild")) {
+            snapshot {
+                     onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
+            }
+        }
      }
 
 })
@@ -548,18 +566,25 @@ object DockerTestsWslX64 : BuildType({
             name = "Copy nuget.restored.config to nuget.config"
             id = "CopyNuGetConfig"
             scriptMode = script {
-                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force"
+                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force;Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.wsl.config\" -Force;"
+            }
+            noProfile = false
+        }
+        powerShell {
+            name = "Create eng/Versions.g.props"
+            id = "CreateVersionsFile"
+            scriptMode = script {
+                content = "New-Item -Path \"eng/Versions.g.props\" -ItemType File -Force -Value \"<Project><Import Project=`\"../artifacts/publish/private/Metalama.version.props`\" /><Import Project=`\"../dependencies/Metalama.Compiler/Metalama.Compiler.version.props`\" /></Project>\" | Out-Null;"
             }
             noProfile = false
         }
         powerShell {
             name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             id = "Exec"
-            scriptMode = file {
-                path = "./Metalama.Framework/src/tests/docker/DockerTests.ps1"
+            scriptMode = script {
+                content = "wsl pwsh .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 linux-x64 %Exec.Arguments%"
             }
             noProfile = false
-            scriptArgs = "linux-x64 %Exec.Arguments%"
         }
     }
 
@@ -583,6 +608,16 @@ object DockerTestsWslX64 : BuildType({
             artifacts {
                 cleanDestination = true
                 artifactRules = "+:artifacts/publish/private/**/*=>artifacts/publish/private"
+            }
+        }
+        dependency(AbsoluteId("Metalama_Metalama20260_MetalamaCompiler_ReleaseBuild")) {
+            snapshot {
+                     onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
             }
         }
      }
