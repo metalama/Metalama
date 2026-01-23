@@ -485,7 +485,7 @@ object DockerTestsWinX64 : BuildType({
             name = "Copy nuget.restored.config to nuget.config"
             id = "CopyNuGetConfig"
             scriptMode = script {
-                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force"
+                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force;Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.wsl.config\" -Force;"
             }
             noProfile = false
         }
@@ -548,18 +548,17 @@ object DockerTestsWslX64 : BuildType({
             name = "Copy nuget.restored.config to nuget.config"
             id = "CopyNuGetConfig"
             scriptMode = script {
-                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force"
+                content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force;Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.wsl.config\" -Force;"
             }
             noProfile = false
         }
         powerShell {
             name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             id = "Exec"
-            scriptMode = file {
-                path = "./Metalama.Framework/src/tests/docker/DockerTests.ps1"
+            scriptMode = script {
+                content = "wsl pwsh .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 linux-x64 %Exec.Arguments%"
             }
             noProfile = false
-            scriptArgs = "linux-x64 %Exec.Arguments%"
         }
     }
 
