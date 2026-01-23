@@ -490,6 +490,14 @@ object DockerTestsWinX64 : BuildType({
             noProfile = false
         }
         powerShell {
+            name = "Create eng/Versions.g.props"
+            id = "CreateVersionsFile"
+            scriptMode = script {
+                content = "New-Item -Path \"eng/Versions.g.props\" -ItemType File -Force -Value \"<Project><Import Project=\"artifacts/publish/private/Metalama.version.props\" /><Import Project=\"dependencies/Metalama.Compiler/artifacts/packages/Release/Shipping/Metalama.Compiler.version.props\" /></Project>\" | Out-Null;"
+            }
+            noProfile = false
+        }
+        powerShell {
             name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             id = "Exec"
             scriptMode = file {
@@ -520,6 +528,16 @@ object DockerTestsWinX64 : BuildType({
             artifacts {
                 cleanDestination = true
                 artifactRules = "+:artifacts/publish/private/**/*=>artifacts/publish/private"
+            }
+        }
+        dependency(AbsoluteId("Metalama_Metalama20260_MetalamaCompiler_ReleaseBuild")) {
+            snapshot {
+                     onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
             }
         }
      }
@@ -553,6 +571,14 @@ object DockerTestsWslX64 : BuildType({
             noProfile = false
         }
         powerShell {
+            name = "Create eng/Versions.g.props"
+            id = "CreateVersionsFile"
+            scriptMode = script {
+                content = "New-Item -Path \"eng/Versions.g.props\" -ItemType File -Force -Value \"<Project><Import Project=\"artifacts/publish/private/Metalama.version.props\" /><Import Project=\"dependencies/Metalama.Compiler/artifacts/packages/Release/Shipping/Metalama.Compiler.version.props\" /></Project>\" | Out-Null;"
+            }
+            noProfile = false
+        }
+        powerShell {
             name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             id = "Exec"
             scriptMode = script {
@@ -582,6 +608,16 @@ object DockerTestsWslX64 : BuildType({
             artifacts {
                 cleanDestination = true
                 artifactRules = "+:artifacts/publish/private/**/*=>artifacts/publish/private"
+            }
+        }
+        dependency(AbsoluteId("Metalama_Metalama20260_MetalamaCompiler_ReleaseBuild")) {
+            snapshot {
+                     onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
             }
         }
      }
