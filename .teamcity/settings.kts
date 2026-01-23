@@ -552,8 +552,8 @@ object DockerTestsWslX64 : BuildType({
         text(
             "Exec.Arguments", 
             "", 
-            label =".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 Arguments",
-            description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
+            label ="./Metalama.Framework/src/tests/docker/DockerTests.ps1 Arguments",
+            description = "Arguments to append to the 'Execute ./Metalama.Framework/src/tests/docker/DockerTests.ps1' build step.", allowEmpty = true)
     }
 
     vcs {
@@ -579,10 +579,10 @@ object DockerTestsWslX64 : BuildType({
             noProfile = false
         }
         powerShell {
-            name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
+            name = "Execute ./Metalama.Framework/src/tests/docker/DockerTests.ps1"
             id = "Exec"
             scriptMode = script {
-                content = "wsl pwsh .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 linux-x64 %Exec.Arguments%"
+                content = "wsl pwsh ./Metalama.Framework/src/tests/docker/DockerTests.ps1 linux-x64 %Exec.Arguments%"
             }
             noProfile = false
         }

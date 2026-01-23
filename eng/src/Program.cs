@@ -212,7 +212,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         new PowershellAdditionalCiBuildConfiguration(
             "DockerTestsWslX64",
             "Docker-based tests on WSL X64",
-            ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1",
+            "./Metalama.Framework/src/tests/docker/DockerTests.ps1",
             "linux-x64" )
         {
             BuildAgentRequirements = new ContainerHostRequirements( ContainerHostKind.Windows ), BuildSnapshotDependency = BuildConfiguration.Debug, UseWsl = true

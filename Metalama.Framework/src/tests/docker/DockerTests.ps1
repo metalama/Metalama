@@ -46,7 +46,7 @@ Get-ChildItem -Path $targetDir -Directory | ForEach-Object {
     Write-Host "Running test for $($_.Name)..."
     & $dockerBuildScript -Dockerfile $dockerfile -NoInit -Script $testScript
 
-    if ($LASTEXITCODE -ne 0) {
+    if (-not $? -or $LASTEXITCODE -ne 0) {
         throw "Test failed for $($_.Name)"
     }
 }
