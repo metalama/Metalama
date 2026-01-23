@@ -76,7 +76,7 @@ Get-ChildItem -Path $targetDir -Directory | ForEach-Object {
         $dockerfilePath = ConvertTo-WslPath $dockerfile
         $testScriptPath = ConvertTo-WslPath $testScript
 
-        $command = "\`$env:IS_TEAMCITY_AGENT='$tcAgentValue'; & '$scriptPath' -Dockerfile '$dockerfilePath' -NoInit -Script '$testScriptPath'"
+        $command = "\`$env:IS_TEAMCITY_AGENT='$env:IS_TEAMCITY_AGENT'; & '$scriptPath' -Dockerfile '$dockerfilePath' -NoInit -Script '$testScriptPath'"
       #  $command = ConvertTo-BashEscaped $command
         Write-Host "Executing in WSL: pwsh -Command `$'$command`$'"
         wsl pwsh -Command "$command"
