@@ -1075,7 +1075,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     }
 
     Write-Host "Building the image with tag: $ImageTag" -ForegroundColor Green
-    $dockerfileContent | docker build -t $ImageTag --build-arg MOUNTPOINTS="$mountPointsAsString" -f - $dockerContextDirectory
+    $dockerfileContent | docker build -t $ImageTag --memory=$Memory --build-arg MOUNTPOINTS="$mountPointsAsString" -f - $dockerContextDirectory
     if ($LASTEXITCODE -ne 0)
     {
         Write-Host "Docker build failed with exit code $LASTEXITCODE" -ForegroundColor Red

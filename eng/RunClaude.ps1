@@ -8,6 +8,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$Model = "opus"
+
 if ($env:RUNNING_IN_DOCKER -ne "true")
 {
     Write-Error "This script must be run inside a Docker container. Set RUNNING_IN_DOCKER=true to override."
@@ -69,7 +71,7 @@ if ($Prompt)
     Write-Host "Running Claude with prompt from file: $promptFile" -ForegroundColor Cyan
 
     # Use stdin redirection to pass the prompt, avoiding command line length issues
-    $cmd = "Get-Content -Path '$promptFile' -Raw | claude --dangerously-skip-permissions $mcpConfigArg"
+    $cmd = "Get-Content -Path '$promptFile' -Raw | claude --model $Model --dangerously-skip-permissions $mcpConfigArg"
     $exitCode = Invoke-Expression $cmd
 
     # Clean up prompt file
@@ -79,7 +81,7 @@ if ($Prompt)
 else
 {
     Write-Host "Running Claude in interactive mode" -ForegroundColor Cyan
-    $cmd = "claude --dangerously-skip-permissions $mcpConfigArg"
+    $cmd = "claude --model $Model --dangerously-skip-permissions $mcpConfigArg"
     Invoke-Expression $cmd
     exit $LASTEXITCODE
 }
