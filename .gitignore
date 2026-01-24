@@ -59,8 +59,9 @@ coverage.json
 .sonarqube
 /.config/dotnet-tools.json
 .generated
-nuget.config
-global.json
+/nuget.config
+/nuget.wsl.config
+/global.json
 **/.idea/workspace.xml
 **/.idea/copilot.data.*.xml
 *-TODO.md

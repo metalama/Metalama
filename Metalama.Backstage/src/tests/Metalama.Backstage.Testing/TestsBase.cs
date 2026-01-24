@@ -15,6 +15,7 @@ using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Tools;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Toasts;
+using Metalama.Backstage.Utilities;
 using Metalama.Backstage.Welcome;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -34,6 +35,8 @@ namespace Metalama.Backstage.Testing
         protected TestFileSystem FileSystem => this._defaultTestContext.Value.FileSystem;
 
         protected TestEnvironmentVariableProvider EnvironmentVariableProvider { get; } = new();
+
+        protected TestProcessInfo ProcessInfo { get; } = new();
 
         protected TestLoggerFactory Log { get; }
 
@@ -55,6 +58,8 @@ namespace Metalama.Backstage.Testing
         protected ILicenseRegistrationService LicenseRegistrationService => this._defaultTestContext.Value.LicenseRegistrationService;
 
         protected ITelemetryConfigurationService TelemetryConfigurationService => this._defaultTestContext.Value.TelemetryConfigurationService;
+
+        protected TestRuntimeInformation RuntimeInformation => this._defaultTestContext.Value.RuntimeInformation;
 
         protected virtual LicensingAuthority LicensingAuthority { get; } = LicensingAuthority.GetTestAuthority();
 
@@ -166,7 +171,8 @@ namespace Metalama.Backstage.Testing
             TestUserInterfaceService UserInterface,
             TestHttpClientFactory HttpClientFactory,
             ILicenseRegistrationService LicenseRegistrationService,
-            ITelemetryConfigurationService TelemetryConfigurationService );
+            ITelemetryConfigurationService TelemetryConfigurationService,
+            TestRuntimeInformation RuntimeInformation );
 
         private Services CreateServices( Action<ServiceProviderBuilder>? serviceBuilder = null, BackstageInitializationOptions? options = null )
         {
@@ -182,7 +188,8 @@ namespace Metalama.Backstage.Testing
                 (TestUserInterfaceService) serviceProvider.GetRequiredBackstageService<IUserInterfaceService>(),
                 (TestHttpClientFactory) serviceProvider.GetRequiredBackstageService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredBackstageService<ILicenseRegistrationService>(),
-                serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>() );
+                serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>(),
+                (TestRuntimeInformation) serviceProvider.GetRequiredBackstageService<IRuntimeInformation>() );
         }
 
         private ServiceCollection CreateServiceCollection(
@@ -199,6 +206,8 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton( new BackstageInitializationOptionsProvider( options ) )
                 .AddSingleton<IDateTimeProvider>( this.Time )
                 .AddSingleton<IProcessExecutor>( this.ProcessExecutor )
+                .AddSingleton<IRuntimeInformation>( _ => new TestRuntimeInformation() )
+                .AddSingleton<IProcessInfo>( this.ProcessInfo )
                 .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
                 .AddSingleton( this.BackgroundTasks )
                 .AddSingleton<IHttpClientFactory>( _ => new TestHttpClientFactory() )
