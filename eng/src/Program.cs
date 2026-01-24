@@ -8,6 +8,7 @@ using PostSharp.Engineering.BuildTools.BillOfMaterials;
 using PostSharp.Engineering.BuildTools.Build;
 using PostSharp.Engineering.BuildTools.Build.Model;
 using PostSharp.Engineering.BuildTools.Build.Solutions;
+using PostSharp.Engineering.BuildTools.ContinuousIntegration.Model;
 using PostSharp.Engineering.BuildTools.Docker;
 using PostSharp.Engineering.BuildTools.Utilities;
 using System;
@@ -39,7 +40,7 @@ var product = new Product( MetalamaDependencies.Metalama )
                     // Required to test MSBuild.
                     "Microsoft.Component.MSBuild",
                     "Microsoft.NetCore.Component.SDK",
-                    
+
                     // Required because we target these frameworks.
                     "Microsoft.Net.Component.4.7.2.TargetingPack",
                     "Microsoft.Net.Component.4.7.2.SDK",
@@ -137,8 +138,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Framework.DesignTime.Rpc.$(PackageVersion).nupkg" ),
     ExportedProperties =
     {
-        { "Directory.Packages.props", ["RoslynApiMaxVersion", "RoslynMaxVersion"] },
-        { "Metalama.Framework\\Directory.Build.props", ["LangMaxVersion"] }
+        { "Directory.Packages.props", ["RoslynApiMaxVersion", "RoslynMaxVersion"] }, { "Metalama.Framework\\Directory.Build.props", ["LangMaxVersion"] }
     },
     Configurations = Product.DefaultConfigurations
         .WithValue(
@@ -197,6 +197,26 @@ var product = new Product( MetalamaDependencies.Metalama )
         new DependentPackageExclusion( "Metalama.Compiler", "See notices in <https://github.com/metalama/Metalama.Compiler>." ),
 
         new DependentPackageExclusion( "Flashtrace", "Current repository." )
+    ],
+    AddWslSupport = true,
+    AdditionalCiBuildConfigurations =
+    [
+        new PowershellAdditionalCiBuildConfiguration(
+            "DockerTestsWinX64",
+            "Docker-based tests on Windows X64",
+            ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1",
+            "win-x64" )
+        {
+            BuildAgentRequirements = new ContainerHostRequirements( ContainerHostKind.Windows ), BuildSnapshotDependency = BuildConfiguration.Debug
+        },
+        new PowershellAdditionalCiBuildConfiguration(
+            "DockerTestsWslX64",
+            "Docker-based tests on WSL X64",
+            "./Metalama.Framework/src/tests/docker/DockerTests.ps1",
+            "linux-x64 -Wsl" )
+        {
+            BuildAgentRequirements = new ContainerHostRequirements( ContainerHostKind.Windows ), BuildSnapshotDependency = BuildConfiguration.Debug
+        }
     ]
 };
 

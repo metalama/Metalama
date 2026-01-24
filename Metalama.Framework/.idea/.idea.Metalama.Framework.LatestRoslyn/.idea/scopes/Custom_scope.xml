@@ -1,3 +1,0 @@
-<component name="DependencyValidationManager">
-  <scope name="Custom scope" pattern="file:**/*.cs&amp;&amp;!file:src/tests/Metalama.Framework.Tests.TemplateTests/Tests//*&amp;&amp;!file:src/tests/Metalama.Framework.Tests.LinkerTests/Tests//*&amp;&amp;!file:src/tests/Metalama.Framework.Tests.AspectTests/Tests//*&amp;&amp;!file:**/*.g.cs" />
-</component>
