@@ -13,14 +13,14 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <remarks>
 /// <para>Extension blocks have the following restrictions compared to regular named types:</para>
 /// <list type="bullet">
-///   <item>Cannot have a base type (always throws on <see cref="INamedTypeBuilder.BaseType"/> setter)</item>
-///   <item>Cannot have a name (identified by receiver type, <see cref="IMemberOrNamedTypeBuilder.Name"/> setter throws)</item>
-///   <item>Cannot set accessibility (extension blocks don't have access modifiers)</item>
-///   <item>Cannot be abstract, sealed, or partial</item>
-///   <item>Cannot contain fields (will fail at advice execution time)</item>
-///   <item>Cannot contain auto-properties (will fail at advice execution time)</item>
-///   <item>Cannot contain nested types (will fail at advice execution time)</item>
-///   <item>Cannot contain constructors (will fail at advice execution time)</item>
+///   <item>Cannot have a base type (always throws on <see cref="INamedTypeBuilder.BaseType"/> setter).</item>
+///   <item>Cannot have a name (identified by receiver type, <see cref="IMemberOrNamedTypeBuilder.Name"/> setter throws).</item>
+///   <item>Cannot set accessibility (extension blocks don't have access modifiers).</item>
+///   <item>Cannot be abstract, sealed, or partial.</item>
+///   <item>Cannot contain fields (will fail at advice execution time).</item>
+///   <item>Cannot contain auto-properties (will fail at advice execution time).</item>
+///   <item>Cannot contain nested types (will fail at advice execution time).</item>
+///   <item>Cannot contain constructors (will fail at advice execution time).</item>
 /// </list>
 /// </remarks>
 /// <seealso cref="IExtensionBlock"/>

@@ -37,12 +37,10 @@ internal sealed class IntroducedExtensionBlock : IntroducedMemberOrNamedType, IE
     public IntroducedExtensionBlock(
         ExtensionBlockBuilderData builderData,
         CompilationModel compilation,
-        IGenericContext genericContext,
-        bool? isNullable = false )
+        IGenericContext genericContext )
         : base( compilation, genericContext )
     {
         this._builderData = builderData;
-        this.IsNullable = isNullable;
     }
 
     public override DeclarationBuilderData BuilderData => this._builderData;
@@ -193,7 +191,7 @@ internal sealed class IntroducedExtensionBlock : IntroducedMemberOrNamedType, IE
 
     public bool IsRecord => false;
 
-    public bool? IsNullable { get; }
+    public bool? IsNullable => false; // Extension blocks don't support nullability annotations.
 
     [Memo]
     public ITypeParameterList TypeParameters => new TypeParameterList( this, this._builderData.TypeParameters.Select( t => t.ToRef() ).ToReadOnlyList() );
@@ -223,36 +221,20 @@ internal sealed class IntroducedExtensionBlock : IntroducedMemberOrNamedType, IE
             _ => false
         };
 
-    public IArrayType MakeArrayType( int rank = 1 ) => new ConstructedArrayType( this.Compilation, this.Ref.As<IType>(), rank );
+    public IArrayType MakeArrayType( int rank = 1 ) => throw new NotSupportedException( "Extension blocks cannot be used as array element types." );
 
-    public IPointerType MakePointerType() => new ConstructedPointerType( this.Compilation, this.Ref.As<IType>() );
+    public IPointerType MakePointerType() => throw new NotSupportedException( "Extension blocks cannot be used as pointer types." );
 
-    IType IType.ToNullable() => this.ToNullable();
+    // Extension blocks don't support nullability annotations.
+    IType IType.ToNullable() => throw new NotSupportedException( "Extension blocks do not support nullability annotations." );
 
-    public IType ToNonNullable()
-    {
-        if ( this.IsNullable == false )
-        {
-            return this;
-        }
+    public IType ToNonNullable() => throw new NotSupportedException( "Extension blocks do not support nullability annotations." );
 
-        return this.Compilation.Factory.GetExtensionBlock( this._builderData, this.GenericContext, false );
-    }
+    public INamedType StripNullabilityAnnotation() => throw new NotSupportedException( "Extension blocks do not support nullability annotations." );
 
-    public INamedType StripNullabilityAnnotation()
-    {
-        if ( this.IsNullable == null )
-        {
-            return this;
-        }
+    IType IType.StripNullabilityAnnotation() => throw new NotSupportedException( "Extension blocks do not support nullability annotations." );
 
-        return this.Compilation.Factory.GetExtensionBlock( this._builderData, this.GenericContext, null );
-    }
-
-    IType IType.StripNullabilityAnnotation() => this.StripNullabilityAnnotation();
-
-    public INamedType ToNullable()
-        => this.IsNullable == true ? this : this.Compilation.Factory.GetExtensionBlock( this._builderData, this.GenericContext, true );
+    public INamedType ToNullable() => throw new NotSupportedException( "Extension blocks do not support nullability annotations." );
 
     public INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments )
     {

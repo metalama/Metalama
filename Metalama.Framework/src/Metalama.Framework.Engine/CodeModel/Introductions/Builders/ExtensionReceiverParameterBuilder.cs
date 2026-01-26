@@ -62,6 +62,12 @@ internal sealed class ExtensionReceiverParameterBuilder : BaseParameterBuilder
         set
         {
             this.CheckNotFrozen();
+
+            if ( value == RefKind.Out )
+            {
+                throw new ArgumentOutOfRangeException( nameof(value), "Extension block receiver parameters cannot use 'out'. Use 'ref' or 'in' instead." );
+            }
+
             this._refKind = value;
         }
     }

@@ -179,17 +179,14 @@ public partial class DeclarationFactory
 #if ROSLYN_5_0_0_OR_GREATER
     internal IExtensionBlock GetExtensionBlock(
         ExtensionBlockBuilderData extensionBlockBuilder,
-        IGenericContext? genericContext = null,
-        bool? isNullable = false )
+        IGenericContext? genericContext = null )
         => this.GetDeclarationFromBuilder<IExtensionBlock, ExtensionBlockBuilderData>(
             extensionBlockBuilder,
             genericContext,
             static ( in args ) => new IntroducedExtensionBlock(
                 args.Builder,
                 args.Compilation,
-                args.GenericContext,
-                args.IsNullable ),
-            isNullable: isNullable );
+                args.GenericContext ) );
 #endif
 
     internal IDeclaration GetDeclaration(

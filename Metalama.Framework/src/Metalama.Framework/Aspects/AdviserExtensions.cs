@@ -1629,7 +1629,7 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a new extension block into a static class. Extension blocks allow adding
-    /// extension members (methods, properties, indexers) to a type. Requires C# 14+ and Roslyn 5.0+.
+    /// extension members (methods, properties, indexers) to a type (represented as an <see cref="IType"/>). Requires C# 14+ and Roslyn 5.0+.
     /// </summary>
     /// <param name="adviser">An adviser for a named type. Must be a static class.</param>
     /// <param name="receiverType">The type being extended. Members introduced into this extension block
@@ -1638,7 +1638,7 @@ public static class AdviserExtensions
     ///     for a static extension (members appear as static members of the extended type).
     ///     Set to a non-empty string (e.g., "self", "value") for an instance extension.</param>
     /// <param name="buildExtensionBlock">An optional callback that allows you to configure the extension block,
-    ///     such as adding methods, properties, indexers, or custom attributes.</param>
+    ///     such as adding type parameters or attributes to the receiver parameter. Does not allow adding members.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice.
     ///     The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced extension block.
     ///     The result also implements <see cref="IAdviser{T}"/> and can be used to introduce members.</returns>
@@ -1655,7 +1655,7 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a new extension block into the target static class. Extension blocks allow adding
-    /// extension members (methods, properties, indexers) to a type. Requires C# 14+ and Roslyn 5.0+.
+    /// extension members (methods, properties, indexers) to a type (represented as an <see cref="Type"/>). Requires C# 14+ and Roslyn 5.0+.
     /// </summary>
     /// <param name="adviser">An adviser for the target static class.</param>
     /// <param name="receiverType">The <see cref="Type"/> being extended.</param>

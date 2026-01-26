@@ -10,7 +10,8 @@
 | 0300-0319 | Design-Time
 | 0320-0339 | GeneratedCodeAnalyzer
 | 0400-0499 | Attribute deserialization 
-| 0500-0599 | Advices
+| 0500-0539 | Advices
+| 0540-0549 | Extension Block Introduction
 | 0600-0649 | Metalama.Compiler
 | 0650-0699 | Linker
 | 0700      | Metalama.Framework

@@ -36,13 +36,13 @@ internal sealed class IntroducedParameter : IntroducedDeclaration, IParameterImp
     }
 
     /// <summary>
-    /// Constructor for extension receiver parameters where the containing declaration is not an IHasParameters.
+    /// Constructor for extension receiver parameters where the containing declaration is an <see cref="IExtensionBlock"/>.
     /// </summary>
     public IntroducedParameter(
         ParameterBuilderData builder,
         CompilationModel compilation,
         IGenericContext genericContext,
-        IDeclaration containingDeclaration ) : base(
+        IExtensionBlock containingDeclaration ) : base(
         compilation,
         genericContext )
     {

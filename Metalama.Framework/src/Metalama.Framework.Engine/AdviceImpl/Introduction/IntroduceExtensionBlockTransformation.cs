@@ -5,6 +5,7 @@
 #if ROSLYN_5_0_0_OR_GREATER
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
@@ -15,7 +16,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-using OurRefKind = Metalama.Framework.Code.RefKind;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
@@ -40,7 +40,7 @@ internal sealed class IntroduceExtensionBlockTransformation : IntroduceDeclarati
         // Build the receiver parameter syntax
         var parameterSyntax = Parameter(
             AdviceSyntaxGenerator.GetAttributeLists( receiverParam, context ),
-            GetRefKindTokenList( receiverParam.RefKind ),
+            ModifierHelper.GetRefKindModifiers( receiverParam.RefKind ),
             receiverTypeSyntax,
             this.BuilderData.IsStaticExtension ? default : SyntaxFactoryEx.SafeIdentifier( receiverParam.Name ),
             null );
@@ -77,14 +77,5 @@ internal sealed class IntroduceExtensionBlockTransformation : IntroduceDeclarati
                 this.BuilderData.ToRef().As<IDeclaration>() )
         ];
     }
-
-    private static SyntaxTokenList GetRefKindTokenList( OurRefKind refKind )
-        => refKind switch
-        {
-            OurRefKind.Ref => TokenList( Token( SyntaxKind.RefKeyword ) ),
-            OurRefKind.In => TokenList( Token( SyntaxKind.InKeyword ) ),
-            OurRefKind.Out => TokenList( Token( SyntaxKind.OutKeyword ) ),
-            _ => default
-        };
 }
 #endif
