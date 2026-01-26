@@ -129,8 +129,8 @@ public static partial class EligibilityRuleFactory
         builder =>
         {
             builder.MustSatisfy(
-                t => t.TypeKind == TypeKind.Class && t.IsStatic,
-                t => $"'{t}' must be a static class" );
+                t => t.TypeKind == TypeKind.Class && t.IsStatic && t.DeclaringType == null,
+                t => $"'{t}' must be a top-level static class" );
 
             builder.MustBeExplicitlyDeclared();
             builder.MustBeRunTimeOnly();
