@@ -1628,6 +1628,32 @@ public static class AdviserExtensions
             buildType );
 
     /// <summary>
+    /// Introduces a new extension block into a static class. Extension blocks allow adding
+    /// extension members (methods, properties, indexers) to a type. Requires C# 14+ and Roslyn 5.0+.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type. Must be a static class.</param>
+    /// <param name="receiverType">The type being extended. Members introduced into this extension block
+    ///     will appear as members of this type.</param>
+    /// <param name="receiverParameterName">The name of the receiver parameter. Set to <c>null</c> or empty
+    ///     for a static extension (members appear as static members of the extended type).
+    ///     Set to a non-empty string (e.g., "self", "value") for an instance extension.</param>
+    /// <param name="buildExtensionBlock">An optional callback that allows you to configure the extension block,
+    ///     such as adding methods, properties, indexers, or custom attributes.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice.
+    ///     The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced extension block.
+    ///     The result also implements <see cref="IAdviser{T}"/> and can be used to introduce members.</returns>
+    public static IIntroductionAdviceResult<IExtensionBlock> IntroduceExtensionBlock(
+        this IAdviser<INamedType> adviser,
+        IType receiverType,
+        string? receiverParameterName = null,
+        Action<IExtensionBlockBuilder>? buildExtensionBlock = null )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceExtensionBlock(
+            adviser.Target,
+            receiverType,
+            receiverParameterName,
+            buildExtensionBlock );
+
+    /// <summary>
     /// Adds an aspect to the target declaration.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the aspect to a different declaration than the current one.
     /// </summary>

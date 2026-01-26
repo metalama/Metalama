@@ -293,5 +293,63 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce the partial member '{1}' into type '{2}' because it is not partial.",
                 _category,
                 Error );
+
+        // Sub-range 540-549: Extension block introduction diagnostics.
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IType ReceiverType, INamedType TargetType)>
+            ExtensionBlockTargetMustBeStaticClass = new(
+                "LAMA0540",
+                "Cannot introduce an extension block into a non-static class.",
+                "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target type is not a static class.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IType ReceiverType, INamedType TargetType)>
+            CannotIntroduceExtensionBlockIntoExtensionBlock = new(
+                "LAMA0541",
+                "Cannot introduce an extension block into another extension block.",
+                "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target is an extension block. Extension blocks can only be introduced into static classes.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, string MemberName, INamedType TargetType)>
+            CannotIntroduceFieldIntoExtensionBlock = new(
+                "LAMA0542",
+                "Cannot introduce a field into an extension block.",
+                "The aspect '{0}' cannot introduce field '{1}' into extension block '{2}' because extension blocks cannot contain fields.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, string MemberName, INamedType TargetType)>
+            CannotIntroduceAutoPropertyIntoExtensionBlock = new(
+                "LAMA0543",
+                "Cannot introduce an auto-property into an extension block.",
+                "The aspect '{0}' cannot introduce auto-property '{1}' into extension block '{2}' because extension blocks cannot contain backing fields. Use a computed property with explicit getter instead.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, string MemberName, INamedType TargetType)>
+            CannotIntroduceNestedTypeIntoExtensionBlock = new(
+                "LAMA0544",
+                "Cannot introduce a nested type into an extension block.",
+                "The aspect '{0}' cannot introduce nested type '{1}' into extension block '{2}' because extension blocks cannot contain nested types.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, INamedType TargetType)>
+            CannotIntroduceConstructorIntoExtensionBlock = new(
+                "LAMA0545",
+                "Cannot introduce a constructor into an extension block.",
+                "The aspect '{0}' cannot introduce a constructor into extension block '{1}' because extension blocks cannot have constructors.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, string MemberName, INamedType TargetType)>
+            CannotIntroduceEventIntoExtensionBlock = new(
+                "LAMA0546",
+                "Cannot introduce an event into an extension block.",
+                "The aspect '{0}' cannot introduce event '{1}' into extension block '{2}' because extension blocks cannot contain events with backing fields.",
+                _category,
+                Error );
     }
 }

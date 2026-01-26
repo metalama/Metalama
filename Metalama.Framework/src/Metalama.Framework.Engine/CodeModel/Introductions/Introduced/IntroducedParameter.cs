@@ -21,6 +21,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 internal sealed class IntroducedParameter : IntroducedDeclaration, IParameterImpl
 {
     private readonly ParameterBuilderData _parameterBuilder;
+    private readonly IDeclaration _containingDeclaration;
 
     public IntroducedParameter( ParameterBuilderData builder, CompilationModel compilation, IGenericContext genericContext, IHasParameters parent ) : base(
         compilation,
@@ -30,6 +31,23 @@ internal sealed class IntroducedParameter : IntroducedDeclaration, IParameterImp
         // the parent is the getter of the field or of the property. We resolve this ambiguity by explicitly passing the parent when we know it upfront.
 
         this.DeclaringMember = parent;
+        this._containingDeclaration = parent;
+        this._parameterBuilder = builder;
+    }
+
+    /// <summary>
+    /// Constructor for extension receiver parameters where the containing declaration is not an IHasParameters.
+    /// </summary>
+    public IntroducedParameter(
+        ParameterBuilderData builder,
+        CompilationModel compilation,
+        IGenericContext genericContext,
+        IDeclaration containingDeclaration ) : base(
+        compilation,
+        genericContext )
+    {
+        this.DeclaringMember = null;
+        this._containingDeclaration = containingDeclaration;
         this._parameterBuilder = builder;
     }
 
@@ -50,9 +68,9 @@ internal sealed class IntroducedParameter : IntroducedDeclaration, IParameterImp
 
     public bool IsThis => this._parameterBuilder.IsThis;
 
-    public IHasParameters DeclaringMember { get; }
+    public IHasParameters? DeclaringMember { get; }
 
-    public override IDeclaration ContainingDeclaration => this.DeclaringMember.AssertNotNull();
+    public override IDeclaration ContainingDeclaration => this._containingDeclaration;
 
     public ParameterInfo ToParameterInfo() => throw new NotImplementedException();
 
@@ -80,6 +98,7 @@ internal sealed class IntroducedParameter : IntroducedDeclaration, IParameterImp
     public override bool CanBeInherited => ((IDeclarationImpl) this.ContainingDeclaration).CanBeInherited;
 
     public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
-        => ((IMemberImpl) this.DeclaringMember).GetDerivedDeclarations( options )
-            .Select( d => ((IHasParameters) d).Parameters[this.Index] );
+        => this.DeclaringMember is IMemberImpl memberImpl
+            ? memberImpl.GetDerivedDeclarations( options ).Select( d => ((IHasParameters) d).Parameters[this.Index] )
+            : [];
 }

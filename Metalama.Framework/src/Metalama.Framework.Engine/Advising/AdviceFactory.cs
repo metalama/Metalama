@@ -397,7 +397,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             {
                 return;
             }
-            
+
             if ( parameter.DeclaringMember is IMethod { MethodKind: MethodKind.PropertySet } )
             {
                 return;
@@ -1748,6 +1748,32 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     TypeKind.Interface )
                 .Execute( this._state );
         }
+    }
+
+    public IIntroductionAdviceResult<IExtensionBlock> IntroduceExtensionBlock(
+        INamedType targetStaticClass,
+        IType receiverType,
+        string? receiverParameterName = null,
+        Action<IExtensionBlockBuilder>? buildExtensionBlock = null )
+    {
+#if ROSLYN_5_0_0_OR_GREATER
+        using ( this.WithNonUserCode() )
+        {
+            this.Validate( targetStaticClass, AdviceKind.IntroduceExtensionBlock );
+            this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceExtensionBlock );
+
+            ValidateNotExtensionBlock( targetStaticClass, "an extension block" );
+
+            return new IntroduceExtensionBlockAdvice(
+                    this.GetAdviceConstructorParameters( targetStaticClass ),
+                    receiverType,
+                    receiverParameterName,
+                    buildExtensionBlock )
+                .Execute( this._state );
+        }
+#else
+        throw new NotSupportedException( "Extension blocks require C# 14 and Roslyn 5.0 or later." );
+#endif
     }
 
     public void AddAspect( IDeclaration declaration, IAspect aspect )

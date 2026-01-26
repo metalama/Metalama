@@ -37,6 +37,9 @@ public sealed partial class CompilationModel
     private ImmutableDictionary<IFullRef<INamespace>, NamespaceUpdatableCollection> _namespaces;
     private TypeUpdatableCollection? _topLevelNamedTypes;
     private ImmutableDictionary<string, NamespaceBuilderData> _namespaceBuilders;
+#if ROSLYN_5_0_0_OR_GREATER
+    private ImmutableDictionary<IFullRef<INamedType>, ExtensionBlockUpdatableCollection> _extensionBlocks;
+#endif
 
     internal ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> Annotations { get; private set; }
 
@@ -171,6 +174,15 @@ public sealed partial class CompilationModel
             mutable,
             declaringNamespace,
             static ( c, t ) => new NamespaceUpdatableCollection( c, t ) );
+
+#if ROSLYN_5_0_0_OR_GREATER
+    internal ExtensionBlockUpdatableCollection GetExtensionBlockCollection( IFullRef<INamedType> declaringType, bool mutable = false )
+        => this.GetMemberCollection<INamedType, ExtensionBlockUpdatableCollection>(
+            ref this._extensionBlocks,
+            mutable,
+            declaringType,
+            static ( c, t ) => new ExtensionBlockUpdatableCollection( c, t ) );
+#endif
 
     internal AttributeUpdatableCollection GetAttributeCollection( IFullRef<IDeclaration> parent, bool mutable = false )
         => this.GetMemberCollection<IDeclaration, AttributeUpdatableCollection>(
@@ -400,6 +412,14 @@ public sealed partial class CompilationModel
                 }
 
                 break;
+
+#if ROSLYN_5_0_0_OR_GREATER
+            case ExtensionBlockBuilderData extensionBlock:
+                var extensionBlocks = this.GetExtensionBlockCollection( extensionBlock.DeclaringType.AssertNotNull(), true );
+                extensionBlocks.Add( extensionBlock.ToRef() );
+
+                break;
+#endif
 
             case NamespaceBuilderData ns:
                 // Anomaly with namespaces:

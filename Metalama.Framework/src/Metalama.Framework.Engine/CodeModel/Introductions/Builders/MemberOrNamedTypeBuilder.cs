@@ -22,7 +22,7 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
     private bool _isPartial;
     private string _name;
 
-    public bool IsSealed
+    public virtual bool IsSealed
     {
         get => this._isSealed;
         set
@@ -61,7 +61,7 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
 
     public ExecutionScope ExecutionScope => ExecutionScope.RunTime;
 
-    public Accessibility Accessibility
+    public virtual Accessibility Accessibility
     {
         get => this._accessibility;
         set
@@ -72,7 +72,7 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
         }
     }
 
-    public bool IsAbstract
+    public virtual bool IsAbstract
     {
         get => this._isAbstract;
         set
@@ -83,7 +83,7 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
         }
     }
 
-    public bool IsStatic
+    public virtual bool IsStatic
     {
         get => this._isStatic;
         set
@@ -94,7 +94,7 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
         }
     }
 
-    public bool IsPartial
+    public virtual bool IsPartial
     {
         get => this._isPartial;
         set

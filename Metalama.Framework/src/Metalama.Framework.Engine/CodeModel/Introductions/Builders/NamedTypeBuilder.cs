@@ -27,7 +27,7 @@ using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
-internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, INamedTypeImpl, IMemberOrNamedTypeBuilderImpl
+internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, INamedTypeImpl, IMemberOrNamedTypeBuilderImpl
 {
     private INamedType? _baseType;
 
@@ -97,7 +97,7 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
 
     public bool HasDefaultConstructor => true;
 
-    public INamedType? BaseType
+    public virtual INamedType? BaseType
     {
         get => this._baseType;
         set

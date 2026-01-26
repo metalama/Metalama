@@ -237,6 +237,10 @@ namespace Metalama.Framework.Engine.CodeModel
             this._attributes =
                 ImmutableDictionary.Create<IFullRef<IDeclaration>, AttributeUpdatableCollection>( RefEqualityComparer<IDeclaration>.Default );
 
+#if ROSLYN_5_0_0_OR_GREATER
+            InitializeDictionary( out this._extensionBlocks );
+#endif
+
             this.Factory = new DeclarationFactory( this );
 
             this.SerializableTypeIdResolver = new SerializableTypeIdResolverForIType( this );
@@ -339,6 +343,9 @@ namespace Metalama.Framework.Engine.CodeModel
             this._namedTypesByParent = prototype._namedTypesByParent;
             this._namespaces = prototype._namespaces;
             this._namespaceBuilders = prototype._namespaceBuilders;
+#if ROSLYN_5_0_0_OR_GREATER
+            this._extensionBlocks = prototype._extensionBlocks;
+#endif
 
             this.Factory = new DeclarationFactory( this );
             this.SerializableTypeIdResolver = new SerializableTypeIdResolverForIType( this );
