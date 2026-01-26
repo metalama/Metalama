@@ -125,6 +125,11 @@ internal sealed class ExtensionBlockBuilder : NamedTypeBuilder, IExtensionBlockB
 
     public override bool CanBeInherited => false;
 
+    protected override void InitializeBaseType()
+    {
+        // Extension blocks don't have a base type.
+    }
+
     protected override void FreezeChildren()
     {
         base.FreezeChildren();

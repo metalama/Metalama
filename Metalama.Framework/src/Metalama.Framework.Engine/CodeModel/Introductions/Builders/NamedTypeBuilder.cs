@@ -49,7 +49,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
         declaringNamespaceOrType as INamedType,
         name )
     {
-        Invariant.Assert( typeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface );
+        Invariant.Assert( typeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension );
         Invariant.Assert( !isRecord ); // Introducing records is not yet supported.
 
         this.TypeKind = typeKind;
@@ -64,13 +64,18 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
         this.Ref = new IntroducedRef<INamedType>( this.Compilation.RefFactory );
 
-        this.BaseType = ((CompilationModel) this.ContainingNamespace.Compilation).Factory.GetSpecialType( SpecialType.Object );
+        this.InitializeBaseType();
 
         if ( this.TypeKind == TypeKind.Interface )
         {
             // Interfaces are always abstract.
             this.IsAbstract = true;
         }
+    }
+
+    protected virtual void InitializeBaseType()
+    {
+        this.BaseType = ((CompilationModel) this.ContainingNamespace.Compilation).Factory.GetSpecialType( SpecialType.Object );
     }
 
     protected override void FreezeChildren()
