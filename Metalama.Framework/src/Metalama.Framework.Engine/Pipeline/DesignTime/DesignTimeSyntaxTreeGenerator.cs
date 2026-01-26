@@ -299,11 +299,26 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                 if ( current.TypeKind == TypeKind.Extension )
                 {
-                    var location = current.GetPrimaryDeclarationSyntax().AssertNotNull().GetLocation();
-                    XXH64 hash = new();
-                    hash.Update( location.SourceTree.AssertNotNull().FilePath );
-                    hash.Update( location.SourceSpan.Start );
-                    sb.AppendFormat( CultureInfo.InvariantCulture, "{0:x}", (int) hash.Digest() );
+                    var primarySyntax = current.GetPrimaryDeclarationSyntax();
+
+                    if ( primarySyntax != null )
+                    {
+                        // Source-defined extension block: use location-based hash
+                        var location = primarySyntax.GetLocation();
+                        XXH64 hash = new();
+                        hash.Update( location.SourceTree.AssertNotNull().FilePath );
+                        hash.Update( location.SourceSpan.Start );
+                        sb.AppendFormat( CultureInfo.InvariantCulture, "{0:x}", (int) hash.Digest() );
+                    }
+                    else
+                    {
+                        // Introduced extension block: use the builder data's unique ref hash
+                        var introducedExtensionBlock = (IntroducedExtensionBlock) current;
+                        var builderData = (ExtensionBlockBuilderData) introducedExtensionBlock.BuilderData;
+                        XXH64 hash = new();
+                        hash.Update( builderData.ToRef().ToSerializableId().Id );
+                        sb.AppendFormat( CultureInfo.InvariantCulture, "ext_{0:x}", (int) hash.Digest() );
+                    }
                 }
                 else
                 {
