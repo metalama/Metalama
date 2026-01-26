@@ -533,7 +533,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             {
                 TypeKind.Class when !type.IsRecord => ClassDeclaration(
                     attributeLists: default,
-                    SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
+                    type.IsStatic
+                        ? TokenList(
+                            Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( ElasticSpace ) ),
+                            Token( SyntaxKind.PartialKeyword ) )
+                        : SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
                     SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     baseList,

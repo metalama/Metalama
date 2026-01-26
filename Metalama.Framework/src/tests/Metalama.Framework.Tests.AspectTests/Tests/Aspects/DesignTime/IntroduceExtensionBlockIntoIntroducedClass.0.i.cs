@@ -1,6 +1,6 @@
-namespace Metalama.Framework.IntegrationTests.Aspects.DesignTime.IntroduceExtensionBlock
+namespace Metalama.Framework.IntegrationTests.Aspects.DesignTime.IntroduceExtensionBlockIntoIntroducedClass
 {
-  static partial class TargetClass
+  static partial class StringExtensions
   {
     extension(global::System.String self)
     {
