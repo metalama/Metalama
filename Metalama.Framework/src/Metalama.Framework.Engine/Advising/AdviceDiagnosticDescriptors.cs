@@ -311,45 +311,5 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target is an extension block. Extension blocks can only be introduced into static classes.",
                 _category,
                 Error );
-
-        internal static readonly DiagnosticDefinition<(string AspectType, string MemberName, INamedType TargetType)>
-            CannotIntroduceFieldIntoExtensionBlock = new(
-                "LAMA0542",
-                "Cannot introduce a field into an extension block.",
-                "The aspect '{0}' cannot introduce field '{1}' into extension block '{2}' because extension blocks cannot contain fields.",
-                _category,
-                Error );
-
-        internal static readonly DiagnosticDefinition<(string AspectType, string MemberName, INamedType TargetType)>
-            CannotIntroduceAutoPropertyIntoExtensionBlock = new(
-                "LAMA0543",
-                "Cannot introduce an auto-property into an extension block.",
-                "The aspect '{0}' cannot introduce auto-property '{1}' into extension block '{2}' because extension blocks cannot contain backing fields. Use a computed property with explicit getter instead.",
-                _category,
-                Error );
-
-        internal static readonly DiagnosticDefinition<(string AspectType, string MemberName, INamedType TargetType)>
-            CannotIntroduceNestedTypeIntoExtensionBlock = new(
-                "LAMA0544",
-                "Cannot introduce a nested type into an extension block.",
-                "The aspect '{0}' cannot introduce nested type '{1}' into extension block '{2}' because extension blocks cannot contain nested types.",
-                _category,
-                Error );
-
-        internal static readonly DiagnosticDefinition<(string AspectType, INamedType TargetType)>
-            CannotIntroduceConstructorIntoExtensionBlock = new(
-                "LAMA0545",
-                "Cannot introduce a constructor into an extension block.",
-                "The aspect '{0}' cannot introduce a constructor into extension block '{1}' because extension blocks cannot have constructors.",
-                _category,
-                Error );
-
-        internal static readonly DiagnosticDefinition<(string AspectType, string MemberName, INamedType TargetType)>
-            CannotIntroduceEventIntoExtensionBlock = new(
-                "LAMA0546",
-                "Cannot introduce an event into an extension block.",
-                "The aspect '{0}' cannot introduce event '{1}' into extension block '{2}' because extension blocks cannot contain events with backing fields.",
-                _category,
-                Error );
     }
 }

@@ -965,6 +965,21 @@ namespace Metalama.Framework.Advising
             string? receiverParameterName = null,
             Action<IExtensionBlockBuilder>? buildExtensionBlock = null );
 
+        /// <summary>
+        /// Introduces a new extension block into a static class. Extension blocks allow adding
+        /// extension members (methods, properties, indexers) to a type. Requires C# 14+ and Roslyn 5.0+.
+        /// </summary>
+        /// <param name="targetStaticClass">The static class into which the extension block must be introduced.</param>
+        /// <param name="receiverType">The <see cref="Type"/> being extended.</param>
+        /// <param name="receiverParameterName">The name of the receiver parameter. Set to <c>null</c> or empty
+        ///     for a static extension. Set to a non-empty string for an instance extension.</param>
+        /// <param name="buildExtensionBlock">An optional callback to configure the extension block.</param>
+        IIntroductionAdviceResult<IExtensionBlock> IntroduceExtensionBlock(
+            INamedType targetStaticClass,
+            Type receiverType,
+            string? receiverParameterName = null,
+            Action<IExtensionBlockBuilder>? buildExtensionBlock = null );
+
         void AddAspect( IDeclaration declaration, IAspect aspect );
 
         void RequireAspect( IDeclaration adviserTarget, Type type );

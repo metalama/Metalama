@@ -1654,6 +1654,26 @@ public static class AdviserExtensions
             buildExtensionBlock );
 
     /// <summary>
+    /// Introduces a new extension block into the target static class. Extension blocks allow adding
+    /// extension members (methods, properties, indexers) to a type. Requires C# 14+ and Roslyn 5.0+.
+    /// </summary>
+    /// <param name="adviser">An adviser for the target static class.</param>
+    /// <param name="receiverType">The <see cref="Type"/> being extended.</param>
+    /// <param name="receiverParameterName">The name of the receiver parameter. Set to <c>null</c> or empty
+    ///     for a static extension. Set to a non-empty string for an instance extension.</param>
+    /// <param name="buildExtensionBlock">An optional callback to configure the extension block.</param>
+    public static IIntroductionAdviceResult<IExtensionBlock> IntroduceExtensionBlock(
+        this IAdviser<INamedType> adviser,
+        Type receiverType,
+        string? receiverParameterName = null,
+        Action<IExtensionBlockBuilder>? buildExtensionBlock = null )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceExtensionBlock(
+            adviser.Target,
+            receiverType,
+            receiverParameterName,
+            buildExtensionBlock );
+
+    /// <summary>
     /// Adds an aspect to the target declaration.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the aspect to a different declaration than the current one.
     /// </summary>

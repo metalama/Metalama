@@ -1776,6 +1776,17 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 #endif
     }
 
+    public IIntroductionAdviceResult<IExtensionBlock> IntroduceExtensionBlock(
+        INamedType targetStaticClass,
+        Type receiverType,
+        string? receiverParameterName = null,
+        Action<IExtensionBlockBuilder>? buildExtensionBlock = null )
+        => this.IntroduceExtensionBlock(
+            targetStaticClass,
+            this._compilation.Factory.GetTypeByReflectionType( receiverType ),
+            receiverParameterName,
+            buildExtensionBlock );
+
     public void AddAspect( IDeclaration declaration, IAspect aspect )
     {
         using ( this.WithNonUserCode() )

@@ -70,6 +70,9 @@ internal readonly struct InsertPosition : IEquatable<InsertPosition>
             {
                 NamedTypeBuilderData namedTypeBuilder => $"{this.Relation} {namedTypeBuilder.AssertNotNull().Name} (built type)",
                 NamespaceBuilderData namespaceBuilder => $"{this.Relation} {namespaceBuilder.AssertNotNull().Name} (built namespace)",
+#if ROSLYN_5_0_0_OR_GREATER
+                ExtensionBlockBuilderData => $"{this.Relation} (extension block)",
+#endif
                 _ => throw new AssertionFailedException( $"Unexpected: {this.BuilderData}" )
             };
 }
