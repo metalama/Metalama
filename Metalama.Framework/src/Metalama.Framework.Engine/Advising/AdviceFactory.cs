@@ -951,6 +951,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetType, AdviceKind.IntroduceField );
 
+            ValidateNotExtensionBlock( targetType, "a field" );
+
             var template = this.ValidateRequiredTemplateName( templateName, TemplateKind.Default )
                 .GetTemplateMember<IField>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
