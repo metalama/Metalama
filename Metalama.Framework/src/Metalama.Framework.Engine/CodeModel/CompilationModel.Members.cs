@@ -318,7 +318,7 @@ public sealed partial class CompilationModel
         }
     }
 
-    private void AddDeclaration( DeclarationBuilderData declaration )
+    internal void AddDeclaration( DeclarationBuilderData declaration )
     {
         // TODO Perf: switch on DeclarationKind,
 

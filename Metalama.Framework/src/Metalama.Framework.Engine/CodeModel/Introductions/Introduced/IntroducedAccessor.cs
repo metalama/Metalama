@@ -162,6 +162,37 @@ internal sealed class IntroducedAccessor : IntroducedDeclaration, IMethodImpl
 
     public bool? IsIteratorMethod => this._builderData.IsIteratorMethod;
 
+#if ROSLYN_5_0_0_OR_GREATER
+    [Memo]
+    public IMethod? ExtensionImplementationMethod => this.GetExtensionImplementationMethod();
+
+    private IMethod? GetExtensionImplementationMethod()
+    {
+        // Check if this accessor is in an extension block.
+        if ( this.DeclaringType is not IExtensionBlock extensionBlock )
+        {
+            return null;
+        }
+
+        // Get the property name from the declaring member.
+        var declaringProperty = (IProperty) this._introducedMember;
+        var propertyName = declaringProperty.Name;
+
+        // Get the expected implicit method name based on accessor type.
+        var implicitMethodName = this.MethodKind == MethodKind.PropertyGet
+            ? "get_" + propertyName
+            : "set_" + propertyName;
+
+        return ExtensionImplementationLookup.FindImplicitMethod(
+            extensionBlock,
+            implicitMethodName,
+            this._builderData.IsStatic,
+            this.Parameters );
+    }
+#else
+    IMethod? IMethod.ExtensionImplementationMethod => null;
+#endif
+
     public override bool CanBeInherited => this._introducedMember.CanBeInherited;
 
     public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )

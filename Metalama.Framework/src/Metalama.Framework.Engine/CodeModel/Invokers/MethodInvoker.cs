@@ -114,6 +114,15 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
     private DelegateUserExpression InvokeDefaultMethod( IReadOnlyList<IExpression> args )
     {
+#if ROSLYN_5_0_0_OR_GREATER
+
+        // For extension members, redirect to the implementation method.
+        if ( this.IsExtensionMember )
+        {
+            return this.InvokeExtensionImplementationMethod( args );
+        }
+#endif
+
         return new DelegateUserExpression(
             context =>
             {
@@ -158,6 +167,43 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             },
             (this.Options & InvokerOptions.NullConditional) != 0 ? this.Member.ReturnType.ToNullable() : this.Member.ReturnType );
     }
+
+#if ROSLYN_5_0_0_OR_GREATER
+    private DelegateUserExpression InvokeExtensionImplementationMethod( IReadOnlyList<IExpression> args )
+    {
+        var implMethod = this.Member.ExtensionImplementationMethod;
+
+        if ( implMethod == null )
+        {
+            throw new InvalidOperationException( $"Cannot invoke extension member '{this.Member}' because its implementation method was not found." );
+        }
+
+        // The implementation method is always static, so we pass null as target.
+        var implInvoker = new MethodInvoker( implMethod, this.Options, target: null );
+
+        // For instance extension members, the receiver becomes the first argument.
+        IReadOnlyList<IExpression> implArgs;
+
+        if ( this.Member.IsStatic )
+        {
+            implArgs = args;
+        }
+        else
+        {
+            if ( this.Target == null )
+            {
+                throw new InvalidOperationException(
+                    $"Cannot invoke instance extension member '{this.Member}' because the receiver (target) expression is null." );
+            }
+
+            var combinedArgs = new List<IExpression>( 1 + args.Count ) { this.Target };
+            combinedArgs.AddRange( args );
+            implArgs = combinedArgs;
+        }
+
+        return (DelegateUserExpression) implInvoker.CreateInvokeExpression( implArgs );
+    }
+#endif
 
     private ExpressionSyntax CreateInvocationExpression(
         ReceiverExpressionSyntax receiverTypedExpressionSyntax,

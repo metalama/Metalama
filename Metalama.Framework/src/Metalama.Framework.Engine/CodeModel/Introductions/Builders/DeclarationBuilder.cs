@@ -56,6 +56,11 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
 
     public abstract DeclarationKind DeclarationKind { get; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether this declaration is an implicit implementation
+    /// generated to support extension members. For example, when a method is introduced in an extension block,
+    /// C# generates a static method in the parent type; this flag marks such implementations.
+    /// </summary>
     public virtual bool IsImplicitlyDeclared => false;
 
     DeclarationImplementationKind IDeclarationImpl.ImplementationKind => DeclarationImplementationKind.Builder;

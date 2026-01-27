@@ -4,10 +4,12 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -47,4 +49,23 @@ internal sealed class AttributeBuilderData : DeclarationBuilderData
     public override DeclarationKind DeclarationKind => DeclarationKind.Attribute;
 
     public new AttributeRef ToRef() => this._ref;
+
+    /// <summary>
+    /// Converts this <see cref="AttributeBuilderData"/> to an <see cref="AttributeConstruction"/>
+    /// that can be used to add this attribute to another declaration.
+    /// </summary>
+    /// <param name="compilation">The compilation for resolving references.</param>
+    /// <returns>An <see cref="AttributeConstruction"/> representing this attribute.</returns>
+    public AttributeConstruction ToAttributeConstruction( CompilationModel compilation )
+    {
+        var constructor = this.Constructor.GetTarget( compilation );
+        var constructorArgs = new List<TypedConstant>( this.ConstructorArguments.Length );
+
+        foreach ( var argRef in this.ConstructorArguments )
+        {
+            constructorArgs.Add( argRef.ToTypedConstant( compilation ) );
+        }
+
+        return AttributeConstruction.Create( constructor, constructorArgs, this.NamedArguments );
+    }
 }

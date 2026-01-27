@@ -74,6 +74,14 @@ namespace Metalama.Framework.Code
         IHasAccessors? DeclaringMember { get; }
 
         /// <summary>
+        /// Gets the implicit static method that implements this extension member, or <c>null</c> if the current
+        /// method is not an extension member. For methods in extension blocks, the compiler generates an implicit
+        /// static method in the parent type that serves as the actual implementation.
+        /// </summary>
+        /// <seealso cref="IExtensionBlock"/>
+        IMethod? ExtensionImplementationMethod { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the method is <c>readonly</c>.
         /// </summary>
         bool IsReadOnly { get; }
