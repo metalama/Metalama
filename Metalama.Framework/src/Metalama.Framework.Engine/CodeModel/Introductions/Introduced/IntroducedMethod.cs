@@ -148,8 +148,7 @@ internal sealed class IntroducedMethod : IntroducedMember, IMethodImpl
             extensionBlock,
             implicitMethodName,
             this._methodBuilderData.IsStatic,
-            this.Parameters,
-            this.Compilation.Comparers );
+            this.Parameters );
     }
 #else
     IMethod? IMethod.ExtensionImplementationMethod => null;

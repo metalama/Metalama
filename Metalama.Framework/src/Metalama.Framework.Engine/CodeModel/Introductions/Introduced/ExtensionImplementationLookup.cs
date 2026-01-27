@@ -6,7 +6,6 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
-using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
@@ -23,103 +22,98 @@ internal static class ExtensionImplementationLookup
     /// <param name="implicitMethodName">The expected name of the implicit method.</param>
     /// <param name="isSourceMemberStatic">Whether the source member is static.</param>
     /// <param name="sourceParameters">The parameters of the source member.</param>
-    /// <param name="comparers">The comparers to use for type comparison.</param>
     /// <returns>The implicit implementation method, or null if not found.</returns>
     public static IMethod? FindImplicitMethod(
         IExtensionBlock extensionBlock,
         string implicitMethodName,
         bool isSourceMemberStatic,
-        IParameterList sourceParameters,
-        ICompilationComparers comparers )
+        IParameterList sourceParameters )
     {
         var parentType = extensionBlock.DeclaringType;
         var receiverType = extensionBlock.ReceiverType;
+        var receiverRefKind = extensionBlock.ReceiverParameter.RefKind;
+        var comparers = parentType.Compilation.Comparers;
 
-        // Use OfName for better performance.
+        // Build the expected parameter signature.
+        // For instance members, the implicit method has the receiver as the first parameter.
+        var expectedParameterCount = isSourceMemberStatic
+            ? sourceParameters.Count
+            : sourceParameters.Count + 1;
+
+        // Use SignatureMatcher pattern with OfExactSignature.
+        var matchingMethod = parentType.Methods.OfExactSignature(
+            (sourceParameters, receiverType, receiverRefKind, isSourceMemberStatic),
+            implicitMethodName,
+            expectedParameterCount,
+            GetExpectedParameter,
+            isStatic: true );
+
+        // Verify it's an implicit declaration (introduced by us).
+        if ( matchingMethod is IntroducedMethod introducedMethod &&
+             introducedMethod.BuilderData is MethodBuilderData methodData &&
+             methodData.IsImplicitlyDeclared )
+        {
+            return matchingMethod;
+        }
+
+        // If no exact match found via SignatureMatcher, search manually for implicit methods.
+        // This handles the case where SignatureMatcher returns a non-implicit method.
         foreach ( var method in parentType.Methods.OfName( implicitMethodName ) )
         {
-            // Check if this is an implicit declaration (introduced by us).
-            if ( method is IntroducedMethod introducedMethod &&
-                 introducedMethod.BuilderData is MethodBuilderData methodData &&
-                 methodData.IsImplicitlyDeclared )
+            if ( method is IntroducedMethod introduced &&
+                 introduced.BuilderData is MethodBuilderData data &&
+                 data.IsImplicitlyDeclared &&
+                 method.Parameters.Count == expectedParameterCount &&
+                 ParametersMatch( method.Parameters, sourceParameters, receiverType, receiverRefKind, isSourceMemberStatic, comparers ) )
             {
-                // For static members, signatures should match exactly.
-                // For instance members, the implicit method has the receiver as the first parameter.
-                if ( isSourceMemberStatic )
-                {
-                    if ( ParametersMatch( sourceParameters, method.Parameters, comparers ) )
-                    {
-                        return method;
-                    }
-                }
-                else
-                {
-                    if ( ParametersMatchWithReceiverOffset( sourceParameters, method.Parameters, receiverType, comparers ) )
-                    {
-                        return method;
-                    }
-                }
+                return method;
             }
         }
 
         return null;
+
+        static (IType Type, RefKind RefKind) GetExpectedParameter(
+            (IParameterList SourceParameters, IType ReceiverType, RefKind ReceiverRefKind, bool IsStatic) payload,
+            int index )
+        {
+            if ( !payload.IsStatic && index == 0 )
+            {
+                // First parameter is the receiver for instance members.
+                return (payload.ReceiverType, payload.ReceiverRefKind);
+            }
+
+            var sourceIndex = payload.IsStatic ? index : index - 1;
+            var param = payload.SourceParameters[sourceIndex];
+
+            return (param.Type, param.RefKind);
+        }
     }
 
     private static bool ParametersMatch(
-        IParameterList sourceParameters,
         IParameterList implicitParameters,
-        ICompilationComparers comparers )
-    {
-        if ( sourceParameters.Count != implicitParameters.Count )
-        {
-            return false;
-        }
-
-        for ( var i = 0; i < sourceParameters.Count; i++ )
-        {
-            if ( !comparers.Default.Equals( sourceParameters[i].Type, implicitParameters[i].Type ) )
-            {
-                return false;
-            }
-
-            // Also check RefKind - methods can be overloaded based on ref/in/out modifiers.
-            if ( sourceParameters[i].RefKind != implicitParameters[i].RefKind )
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static bool ParametersMatchWithReceiverOffset(
         IParameterList sourceParameters,
-        IParameterList implicitParameters,
         IType receiverType,
-        ICompilationComparers comparers )
+        RefKind receiverRefKind,
+        bool isSourceMemberStatic,
+        Code.Comparers.ICompilationComparers comparers )
     {
-        // Implicit method should have one more parameter (the receiver).
-        if ( implicitParameters.Count != sourceParameters.Count + 1 )
-        {
-            return false;
-        }
+        var offset = isSourceMemberStatic ? 0 : 1;
 
-        // First parameter should be the receiver type.
-        if ( !comparers.Default.Equals( implicitParameters[0].Type, receiverType ) )
+        // For instance members, verify the receiver parameter.
+        if ( !isSourceMemberStatic )
         {
-            return false;
-        }
-
-        // Remaining parameters should match.
-        for ( var i = 0; i < sourceParameters.Count; i++ )
-        {
-            if ( !comparers.Default.Equals( sourceParameters[i].Type, implicitParameters[i + 1].Type ) )
+            if ( !comparers.Default.Equals( implicitParameters[0].Type, receiverType ) ||
+                 implicitParameters[0].RefKind != receiverRefKind )
             {
                 return false;
             }
+        }
 
-            // Also check RefKind - methods can be overloaded based on ref/in/out modifiers.
-            if ( sourceParameters[i].RefKind != implicitParameters[i + 1].RefKind )
+        // Verify remaining parameters.
+        for ( var i = 0; i < sourceParameters.Count; i++ )
+        {
+            if ( !comparers.Default.Equals( implicitParameters[i + offset].Type, sourceParameters[i].Type ) ||
+                 implicitParameters[i + offset].RefKind != sourceParameters[i].RefKind )
             {
                 return false;
             }

@@ -187,8 +187,7 @@ internal sealed class IntroducedAccessor : IntroducedDeclaration, IMethodImpl
             extensionBlock,
             implicitMethodName,
             this._builderData.IsStatic,
-            this.Parameters,
-            this.Compilation.Comparers );
+            this.Parameters );
     }
 #else
     IMethod? IMethod.ExtensionImplementationMethod => null;
