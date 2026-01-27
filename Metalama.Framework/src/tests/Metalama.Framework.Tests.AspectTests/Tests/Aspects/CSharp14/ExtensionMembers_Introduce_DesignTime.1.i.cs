@@ -1,6 +1,6 @@
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.ExtensionMembers_Introduce_DesignTime
 {
-  partial class C
+  static partial class C
   {
     extension(global::System.String)
     {
