@@ -6,13 +6,17 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+
+#if ROSLYN_5_0_0_OR_GREATER
+using System;
+#endif
 
 namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
@@ -86,11 +90,28 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
             throw new InvalidOperationException( $"Cannot access extension property '{property}' because its implementation method was not found." );
         }
 
-        // Create an invoker for the implementation method (which is a regular static method).
-        // Pass the receiver as the target for instance properties - the invoker will handle it.
-        var implInvoker = new MethodInvoker( implMethod, this.Options, property.IsStatic ? null : this.Target );
+        // The implementation method is always static, so we pass null as target.
+        var implInvoker = new MethodInvoker( implMethod, this.Options, target: null );
 
-        return implInvoker.CreateInvokeExpression( Array.Empty<IExpression>() ).ToTypedExpressionSyntax( context ).Syntax;
+        // For instance extension properties, the receiver becomes the first argument.
+        IExpression[] args;
+
+        if ( property.IsStatic )
+        {
+            args = Array.Empty<IExpression>();
+        }
+        else
+        {
+            if ( this.Target == null )
+            {
+                throw new InvalidOperationException(
+                    $"Cannot access instance extension property '{property}' because the receiver (target) expression is null." );
+            }
+
+            args = new[] { this.Target };
+        }
+
+        return implInvoker.CreateInvokeExpression( args ).ToTypedExpressionSyntax( context ).Syntax;
     }
 #endif
 
@@ -141,12 +162,31 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
             throw new InvalidOperationException( $"Cannot set extension property '{property}' because its setter implementation method was not found." );
         }
 
-        // Create an invoker for the implementation method (which is a regular static method).
-        // Pass the receiver as the target for instance properties - the invoker will handle it.
-        var implInvoker = new MethodInvoker( implMethod, this.Options, property.IsStatic ? null : this.Target );
+        // The implementation method is always static, so we pass null as target.
+        var implInvoker = new MethodInvoker( implMethod, this.Options, target: null );
 
-        // Invoke with the value as argument.
-        return (DelegateUserExpression) implInvoker.CreateInvokeExpression( new[] { CapturedUserExpression.Create( this.Compilation, value ) } );
+        // Build the argument list:
+        // - for static properties: just the value;
+        // - for instance properties: receiver (target) followed by the value.
+        var valueExpression = CapturedUserExpression.Create( this.Compilation, value );
+        IExpression[] args;
+
+        if ( property.IsStatic )
+        {
+            args = new IExpression[] { valueExpression };
+        }
+        else
+        {
+            if ( this.Target == null )
+            {
+                throw new InvalidOperationException(
+                    $"Cannot set instance extension property '{property}' because the receiver (target) expression is null." );
+            }
+
+            args = new IExpression[] { this.Target, valueExpression };
+        }
+
+        return (DelegateUserExpression) implInvoker.CreateInvokeExpression( args );
     }
 #endif
 

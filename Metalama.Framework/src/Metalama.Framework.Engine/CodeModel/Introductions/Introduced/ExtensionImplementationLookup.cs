@@ -81,6 +81,12 @@ internal static class ExtensionImplementationLookup
             {
                 return false;
             }
+
+            // Also check RefKind - methods can be overloaded based on ref/in/out modifiers.
+            if ( sourceParameters[i].RefKind != implicitParameters[i].RefKind )
+            {
+                return false;
+            }
         }
 
         return true;
@@ -108,6 +114,12 @@ internal static class ExtensionImplementationLookup
         for ( var i = 0; i < sourceParameters.Count; i++ )
         {
             if ( !comparers.Default.Equals( sourceParameters[i].Type, implicitParameters[i + 1].Type ) )
+            {
+                return false;
+            }
+
+            // Also check RefKind - methods can be overloaded based on ref/in/out modifiers.
+            if ( sourceParameters[i].RefKind != implicitParameters[i + 1].RefKind )
             {
                 return false;
             }

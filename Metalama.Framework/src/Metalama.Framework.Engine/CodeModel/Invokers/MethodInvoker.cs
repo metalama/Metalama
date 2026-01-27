@@ -178,12 +178,30 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             throw new InvalidOperationException( $"Cannot invoke extension member '{this.Member}' because its implementation method was not found." );
         }
 
-        // Create an invoker for the implementation method (which is a regular static method).
-        // Pass the receiver as the target for instance methods - the invoker will handle it.
-        var implInvoker = new MethodInvoker( implMethod, this.Options, this.Member.IsStatic ? null : this.Target );
+        // The implementation method is always static, so we pass null as target.
+        var implInvoker = new MethodInvoker( implMethod, this.Options, target: null );
 
-        // Invoke with the original arguments.
-        return (DelegateUserExpression) implInvoker.CreateInvokeExpression( args );
+        // For instance extension members, the receiver becomes the first argument.
+        IReadOnlyList<IExpression> implArgs;
+
+        if ( this.Member.IsStatic )
+        {
+            implArgs = args;
+        }
+        else
+        {
+            if ( this.Target == null )
+            {
+                throw new InvalidOperationException(
+                    $"Cannot invoke instance extension member '{this.Member}' because the receiver (target) expression is null." );
+            }
+
+            var combinedArgs = new List<IExpression>( 1 + args.Count ) { this.Target };
+            combinedArgs.AddRange( args );
+            implArgs = combinedArgs;
+        }
+
+        return (DelegateUserExpression) implInvoker.CreateInvokeExpression( implArgs );
     }
 #endif
 

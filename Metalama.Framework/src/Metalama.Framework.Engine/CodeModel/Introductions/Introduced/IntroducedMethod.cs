@@ -17,6 +17,10 @@ using System.Linq;
 using System.Reflection;
 using MethodInvoker = Metalama.Framework.Engine.CodeModel.Invokers.MethodInvoker;
 
+#if ROSLYN_5_0_0_OR_GREATER
+using Metalama.Framework.Engine.Utilities.Roslyn;
+#endif
+
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 
 internal sealed class IntroducedMethod : IntroducedMember, IMethodImpl
