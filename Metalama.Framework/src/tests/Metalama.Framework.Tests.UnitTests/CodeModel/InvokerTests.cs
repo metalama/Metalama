@@ -532,5 +532,291 @@ class TargetCode
                     """ );
             }
         }
+
+#if ROSLYN_5_0_0_OR_GREATER && NET7_0_OR_GREATER
+        [Fact]
+        public void ExtensionMethods()
+        {
+            const string code = """
+                                static class C
+                                {
+                                    extension(int receiver)
+                                    {
+                                        public void InstanceMethod(string arg) { }
+                                        public int InstanceMethodWithReturn() => 0;
+                                    }
+                                }
+                                """;
+
+            using var testContext = this.CreateTestContext();
+            var serviceProvider = testContext.ServiceProvider;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.Single();
+            var extensionBlock = type.ExtensionBlocks.Single();
+            var instanceMethod = extensionBlock.Methods.OfName( "InstanceMethod" ).Single();
+            var instanceMethodWithReturn = extensionBlock.Methods.OfName( "InstanceMethodWithReturn" ).Single();
+
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, instanceMethod );
+            var generator = syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator;
+
+            using ( TemplateExpansionContext.WithTestingContext(
+                       syntaxSerializationContext,
+                       serviceProvider ) )
+            {
+                var receiverExpr = new TypedExpressionSyntaxImpl( generator.IdentifierName( "receiver" ), compilation );
+                var argExpr = new TypedExpressionSyntaxImpl( SyntaxFactoryEx.LiteralExpression( "x" ), compilation );
+
+                // Instance method with argument.
+                AssertEx.DynamicEquals(
+                    instanceMethod.WithObject( receiverExpr ).Invoke( argExpr ),
+                    @"global::C.InstanceMethod((global::System.Int32)receiver, (global::System.String)""x"")" );
+
+                // Instance method without arguments.
+                AssertEx.DynamicEquals(
+                    instanceMethodWithReturn.WithObject( receiverExpr ).Invoke(),
+                    @"global::C.InstanceMethodWithReturn((global::System.Int32)receiver)" );
+            }
+        }
+
+        [Fact]
+        public void ExtensionMethods_Static()
+        {
+            const string code = """
+                                static class C
+                                {
+                                    extension(int receiver)
+                                    {
+                                        public static void StaticMethod(string arg) { }
+                                        public static int StaticMethodNoArgs() => 42;
+                                    }
+                                }
+                                """;
+
+            using var testContext = this.CreateTestContext();
+            var serviceProvider = testContext.ServiceProvider;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.Single();
+            var extensionBlock = type.ExtensionBlocks.Single();
+            var staticMethod = extensionBlock.Methods.OfName( "StaticMethod" ).Single();
+            var staticMethodNoArgs = extensionBlock.Methods.OfName( "StaticMethodNoArgs" ).Single();
+
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, staticMethod );
+
+            using ( TemplateExpansionContext.WithTestingContext(
+                       syntaxSerializationContext,
+                       serviceProvider ) )
+            {
+                var argExpr = new TypedExpressionSyntaxImpl( SyntaxFactoryEx.LiteralExpression( "x" ), compilation );
+
+                // Static method with argument (no receiver needed).
+                AssertEx.DynamicEquals(
+                    staticMethod.Invoke( argExpr ),
+                    @"global::C.StaticMethod((global::System.String)""x"")" );
+
+                // Static method without arguments.
+                AssertEx.DynamicEquals(
+                    staticMethodNoArgs.Invoke(),
+                    @"global::C.StaticMethodNoArgs()" );
+            }
+        }
+
+        [Fact]
+        public void ExtensionProperties()
+        {
+            const string code = """
+                                static class C
+                                {
+                                    extension(int receiver)
+                                    {
+                                        public string Prop { get => null; set { } }
+                                    }
+                                }
+                                """;
+
+            using var testContext = this.CreateTestContext();
+            var serviceProvider = testContext.ServiceProvider;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.Single();
+            var extensionBlock = type.ExtensionBlocks.Single();
+            var property = extensionBlock.Properties.Single();
+
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, property );
+            var generator = syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator;
+
+            using ( TemplateExpansionContext.WithTestingContext(
+                       syntaxSerializationContext,
+                       serviceProvider ) )
+            {
+                var receiverExpr = new TypedExpressionSyntaxImpl( generator.IdentifierName( "receiver" ), compilation );
+
+                // Getter.
+                AssertEx.DynamicEquals(
+                    property.WithObject( receiverExpr ).Value,
+                    @"global::C.get_Prop((global::System.Int32)receiver)" );
+
+                // Setter.
+                AssertEx.DynamicEquals(
+                    ((FieldOrPropertyInvoker) property.WithObject( receiverExpr )).SetValue( SyntaxFactoryEx.SafeIdentifierName( "value" ) ),
+                    @"global::C.set_Prop((global::System.Int32)receiver, (global::System.String)value)" );
+            }
+        }
+
+        [Fact]
+        public void ExtensionProperties_Static()
+        {
+            const string code = """
+                                static class C
+                                {
+                                    extension(int receiver)
+                                    {
+                                        public static string StaticProp { get => null; set { } }
+                                    }
+                                }
+                                """;
+
+            using var testContext = this.CreateTestContext();
+            var serviceProvider = testContext.ServiceProvider;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.Single();
+            var extensionBlock = type.ExtensionBlocks.Single();
+            var property = extensionBlock.Properties.Single();
+
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, property );
+
+            using ( TemplateExpansionContext.WithTestingContext(
+                       syntaxSerializationContext,
+                       serviceProvider ) )
+            {
+                // Static property getter (no receiver needed).
+                AssertEx.DynamicEquals(
+                    property.Value,
+                    @"global::C.get_StaticProp()" );
+
+                // Static property setter (no receiver needed).
+                // Must use WithObject(null) to get the invoker for a static property.
+                AssertEx.DynamicEquals(
+                    ((FieldOrPropertyInvoker) property.WithObject( null )).SetValue( SyntaxFactoryEx.SafeIdentifierName( "value" ) ),
+                    @"global::C.set_StaticProp((global::System.String)value)" );
+            }
+        }
+
+        [Fact]
+        public void ExtensionMethods_Generics()
+        {
+            const string code = """
+                                static class C
+                                {
+                                    extension<T>(T receiver) where T : class
+                                    {
+                                        public void GenericMethod() { }
+                                    }
+                                }
+                                """;
+
+            using var testContext = this.CreateTestContext();
+            var serviceProvider = testContext.ServiceProvider;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.Single();
+            var extensionBlock = type.ExtensionBlocks.Single();
+            var method = extensionBlock.Methods.Single();
+
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, method );
+            var generator = syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator;
+
+            using ( TemplateExpansionContext.WithTestingContext(
+                       syntaxSerializationContext,
+                       serviceProvider ) )
+            {
+                var receiverExpr = new TypedExpressionSyntaxImpl( generator.IdentifierName( "receiver" ), compilation );
+
+                // Generic extension method.
+                AssertEx.DynamicEquals(
+                    method.WithObject( receiverExpr ).Invoke(),
+                    @"global::C.GenericMethod<T>((T)receiver)" );
+            }
+        }
+
+        [Fact]
+        public void ExtensionMethods_WithRefParameters()
+        {
+            const string code = """
+                                static class C
+                                {
+                                    extension(int receiver)
+                                    {
+                                        public void ByRefMethod(out int o, ref string s) { o = 0; }
+                                    }
+                                }
+                                """;
+
+            using var testContext = this.CreateTestContext();
+            var serviceProvider = testContext.ServiceProvider;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.Single();
+            var extensionBlock = type.ExtensionBlocks.Single();
+            var method = extensionBlock.Methods.Single();
+
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, method );
+            var generator = syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator;
+            var intType = compilation.Factory.GetTypeByReflectionType( typeof(int) );
+
+            using ( TemplateExpansionContext.WithTestingContext(
+                       syntaxSerializationContext,
+                       serviceProvider ) )
+            {
+                var receiverExpr = new TypedExpressionSyntaxImpl( generator.IdentifierName( "receiver" ), compilation );
+
+                // Extension method with out/ref parameters.
+                AssertEx.DynamicEquals(
+                    method.WithObject( receiverExpr ).Invoke(
+                        new TypedExpressionSyntaxImpl( generator.IdentifierName( "x" ), intType, compilation, isReferenceable: true ),
+                        new TypedExpressionSyntaxImpl( generator.IdentifierName( "y" ), intType, compilation, isReferenceable: true ) ),
+                    @"global::C.ByRefMethod((global::System.Int32)receiver, out x, ref y)" );
+            }
+        }
+
+        [Fact]
+        public void ExtensionPropertyAccessors()
+        {
+            const string code = """
+                                static class C
+                                {
+                                    extension(int receiver)
+                                    {
+                                        public string Prop { get => null; set { } }
+                                    }
+                                }
+                                """;
+
+            using var testContext = this.CreateTestContext();
+            var serviceProvider = testContext.ServiceProvider;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.Single();
+            var extensionBlock = type.ExtensionBlocks.Single();
+            var property = extensionBlock.Properties.Single();
+
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, property );
+            var generator = syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator;
+
+            using ( TemplateExpansionContext.WithTestingContext(
+                       syntaxSerializationContext,
+                       serviceProvider ) )
+            {
+                var receiverExpr = new TypedExpressionSyntaxImpl( generator.IdentifierName( "receiver" ), compilation );
+
+                // Invoke getter as method - matches the PropertyAccessors test pattern.
+                AssertEx.DynamicEquals(
+                    property.GetMethod!.WithObject( receiverExpr ).Invoke(),
+                    @"global::C.get_Prop((global::System.Int32)receiver)" );
+            }
+        }
+#endif
     }
 }

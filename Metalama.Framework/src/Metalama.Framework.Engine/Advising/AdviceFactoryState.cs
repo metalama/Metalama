@@ -70,6 +70,12 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
             {
                 this.MutableCompilation.AddTransformation( transformation );
 
+                // Add implicit declarations (e.g., implicit static methods for extension block members) to the code model.
+                foreach ( var implicitDeclaration in transformation.GetImplicitDeclarations() )
+                {
+                    this.MutableCompilation.AddDeclaration( implicitDeclaration );
+                }
+
                 if ( transformation is ISyntaxTreeTransformation syntaxTreeTransformation )
                 {
                     UserCodeExecutionContext.CurrentOrNull?.AddDependencyTo( syntaxTreeTransformation.TransformedSyntaxTree );

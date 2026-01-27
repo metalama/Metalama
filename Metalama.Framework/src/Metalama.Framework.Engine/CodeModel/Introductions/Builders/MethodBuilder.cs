@@ -25,10 +25,19 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 {
     private bool _isReadOnly;
     private bool _isIteratorMethod;
+    private bool _isImplicitlyDeclared;
     private DeclarationKind _declarationKind;
     private OperatorKind _operatorKind;
 
     public IntroducedRef<IMethod> Ref { get; }
+
+    public override bool IsImplicitlyDeclared => this._isImplicitlyDeclared;
+
+    public void SetImplicitlyDeclared()
+    {
+        this.CheckNotFrozen();
+        this._isImplicitlyDeclared = true;
+    }
 
     public MethodBuilder(
         AspectLayerInstance aspectLayerInstance,
@@ -288,6 +297,9 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
     public new IRef<IMethod> ToRef() => this.Ref;
 
     IMethod IMethod.MakeGenericInstance( IReadOnlyList<IType> typeArguments ) => throw new NotSupportedException();
+
+    // Builders don't have an extension implementation method; this is resolved after the transformation phase.
+    IMethod? IMethod.ExtensionImplementationMethod => null;
 
     protected override IFullRef<IMember> ToMemberFullRef() => this.Ref;
 

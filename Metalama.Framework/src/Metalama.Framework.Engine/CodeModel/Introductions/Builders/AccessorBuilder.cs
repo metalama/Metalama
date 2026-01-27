@@ -363,6 +363,9 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     IMethod IMethod.MakeGenericInstance( IReadOnlyList<IType> typeArguments ) => throw new NotSupportedException();
 
+    // Builders don't have an extension implementation method; this is resolved after the transformation phase.
+    IMethod? IMethod.ExtensionImplementationMethod => null;
+
     IRef<IMethod> IMethod.ToRef() => this.Ref;
 
     IRef<IMember> IMember.ToRef() => this.Ref;

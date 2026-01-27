@@ -38,6 +38,12 @@ internal sealed class MethodBuilderData : MemberBuilderData
 
     public OperatorKind OperatorKind { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether this method is an implicit implementation
+    /// generated to support extension members.
+    /// </summary>
+    public bool IsImplicitlyDeclared { get; }
+
     public MethodBuilderData( IMethodBuilderImpl builder, IFullRef<IDeclaration> containingDeclaration ) : base(
         builder,
         containingDeclaration )
@@ -56,6 +62,7 @@ internal sealed class MethodBuilderData : MemberBuilderData
         this.MethodKind = builder.MethodKind;
         this.OperatorKind = builder.OperatorKind;
         this.Attributes = builder.Attributes.ToImmutable( this._ref );
+        this.IsImplicitlyDeclared = builder.IsImplicitlyDeclared;
     }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;

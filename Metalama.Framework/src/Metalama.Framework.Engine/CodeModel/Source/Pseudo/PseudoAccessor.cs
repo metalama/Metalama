@@ -222,6 +222,9 @@ internal abstract class PseudoAccessor : IMethodImpl
 
     bool? IMethodImpl.IsIteratorMethod => false;
 
+    // Pseudo accessors (for fields etc.) don't have extension implementations.
+    IMethod? IMethod.ExtensionImplementationMethod => null;
+
     public override string ToString() => this.ToDisplayString();
 
     public bool BelongsToCurrentProject => this.ContainingDeclaration.BelongsToCurrentProject;

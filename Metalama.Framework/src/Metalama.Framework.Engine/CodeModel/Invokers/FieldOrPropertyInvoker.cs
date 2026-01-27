@@ -13,7 +13,10 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-using RefKind = Metalama.Framework.Code.RefKind;
+
+#if ROSLYN_5_0_0_OR_GREATER
+using System;
+#endif
 
 namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
@@ -30,6 +33,15 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
     private ExpressionSyntax CreatePropertyExpression( AspectReferenceTargetKind targetKind, SyntaxSerializationContext context )
     {
         this.CheckInvocationOptionsAndTarget();
+
+#if ROSLYN_5_0_0_OR_GREATER
+
+        // For extension properties, redirect to the implementation method.
+        if ( this.IsExtensionMember && this.Member is IProperty property )
+        {
+            return this.CreateExtensionPropertyExpression( property, targetKind, context );
+        }
+#endif
 
         var receiverInfo = this.GetReceiverInfo( context );
 
@@ -58,6 +70,51 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
         return expression;
     }
 
+#if ROSLYN_5_0_0_OR_GREATER
+    private ExpressionSyntax CreateExtensionPropertyExpression( IProperty property, AspectReferenceTargetKind targetKind, SyntaxSerializationContext context )
+    {
+        // Get the appropriate accessor's implementation method.
+        var accessor = targetKind == AspectReferenceTargetKind.PropertySetAccessor
+            ? property.SetMethod
+            : property.GetMethod;
+
+        if ( accessor == null )
+        {
+            throw new InvalidOperationException( $"Cannot access extension property '{property}' because the required accessor is not available." );
+        }
+
+        var implMethod = accessor.ExtensionImplementationMethod;
+
+        if ( implMethod == null )
+        {
+            throw new InvalidOperationException( $"Cannot access extension property '{property}' because its implementation method was not found." );
+        }
+
+        // The implementation method is always static, so we pass null as target.
+        var implInvoker = new MethodInvoker( implMethod, this.Options, target: null );
+
+        // For instance extension properties, the receiver becomes the first argument.
+        IExpression[] args;
+
+        if ( property.IsStatic )
+        {
+            args = Array.Empty<IExpression>();
+        }
+        else
+        {
+            if ( this.Target == null )
+            {
+                throw new InvalidOperationException(
+                    $"Cannot access instance extension property '{property}' because the receiver (target) expression is null." );
+            }
+
+            args = new[] { this.Target };
+        }
+
+        return implInvoker.CreateInvokeExpression( args ).ToTypedExpressionSyntax( context ).Syntax;
+    }
+#endif
+
     IType IHasType.Type => this.Member.Type;
 
     RefKind IHasType.RefKind => this.Member.RefKind;
@@ -66,6 +123,15 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
 
     public object SetValue( object? value )
     {
+#if ROSLYN_5_0_0_OR_GREATER
+
+        // For extension properties, generate a call to the setter implementation method.
+        if ( this.IsExtensionMember && this.Member is IProperty property )
+        {
+            return this.SetExtensionPropertyValue( property, value );
+        }
+#endif
+
         return new DelegateUserExpression(
             context =>
             {
@@ -78,6 +144,51 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
             },
             this.Member.Type );
     }
+
+#if ROSLYN_5_0_0_OR_GREATER
+    private DelegateUserExpression SetExtensionPropertyValue( IProperty property, object? value )
+    {
+        var setter = property.SetMethod;
+
+        if ( setter == null )
+        {
+            throw new InvalidOperationException( $"Cannot set extension property '{property}' because it has no setter." );
+        }
+
+        var implMethod = setter.ExtensionImplementationMethod;
+
+        if ( implMethod == null )
+        {
+            throw new InvalidOperationException( $"Cannot set extension property '{property}' because its setter implementation method was not found." );
+        }
+
+        // The implementation method is always static, so we pass null as target.
+        var implInvoker = new MethodInvoker( implMethod, this.Options, target: null );
+
+        // Build the argument list:
+        // - for static properties: just the value;
+        // - for instance properties: receiver (target) followed by the value.
+        var valueExpression = CapturedUserExpression.Create( this.Compilation, value );
+        IExpression[] args;
+
+        if ( property.IsStatic )
+        {
+            args = new IExpression[] { valueExpression };
+        }
+        else
+        {
+            if ( this.Target == null )
+            {
+                throw new InvalidOperationException(
+                    $"Cannot set instance extension property '{property}' because the receiver (target) expression is null." );
+            }
+
+            args = new IExpression[] { this.Target, valueExpression };
+        }
+
+        return (DelegateUserExpression) implInvoker.CreateInvokeExpression( args );
+    }
+#endif
 
     public ref object? Value
         => ref RefHelper.Wrap(

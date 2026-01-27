@@ -164,4 +164,45 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                 }
         }
     }
+
+#if ROSLYN_5_0_0_OR_GREATER
+    /// <inheritdoc />
+    public override IEnumerable<DeclarationBuilderData> GetImplicitDeclarations()
+    {
+        // Check if the method is in an extension block.
+        var containingDeclaration = this.BuilderData.ContainingDeclaration.GetTarget( this.InitialCompilation );
+
+        if ( containingDeclaration is not IExtensionBlock extensionBlock )
+        {
+            return [];
+        }
+
+        // Get the implicit method name based on the member type.
+        var implicitMethodName = this.BuilderData.OperatorKind != OperatorKind.None
+            ? OperatorData.GetByKind( this.BuilderData.OperatorKind ).MemberName
+            : this.BuilderData.Name;
+
+        var declarationKind = this.BuilderData.OperatorKind != OperatorKind.None
+            ? DeclarationKind.Operator
+            : DeclarationKind.Method;
+
+        var returnType = this.BuilderData.ReturnParameter.Type.GetTarget( this.InitialCompilation );
+
+        var implicitMethodData = ExtensionImplementationHelper.CreateImplicitMethod(
+            this.AspectLayerInstance,
+            extensionBlock,
+            implicitMethodName,
+            this.BuilderData.Accessibility,
+            this.BuilderData.IsStatic,
+            this.BuilderData.Parameters,
+            returnType,
+            this.InitialCompilation,
+            declarationKind,
+            this.BuilderData.OperatorKind,
+            this.BuilderData.Attributes,
+            this.BuilderData.ReturnParameter.Attributes );
+
+        return [implicitMethodData];
+    }
+#endif
 }

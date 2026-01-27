@@ -7,9 +7,12 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Introspection;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Transformations;
 
@@ -55,4 +58,7 @@ internal abstract class BaseTransformation : ITransformation
     public abstract IntrospectionTransformationKind TransformationKind { get; }
 
     public abstract FormattableString ToDisplayString();
+
+    /// <inheritdoc />
+    public virtual IEnumerable<DeclarationBuilderData> GetImplicitDeclarations() => Enumerable.Empty<DeclarationBuilderData>();
 }
