@@ -685,7 +685,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     // For extension blocks, statements are generated per-method (each with a ContextDeclaration
                     // that is a parameter whose ContainingDeclaration is the target method).
                     // Group statements by method first (O(N)), then look up by method (O(M)), for O(N+M) total
-                    // instead of O(N×M) with the previous IsContainedIn filtering approach.
+                    // instead of O(N×M) with the IsContainedIn filtering approach used for properties.
                     var insertedStatements = GetInsertedStatements();
 
                     // Build a dictionary grouping statements by their containing method.
