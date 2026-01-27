@@ -375,7 +375,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     private void ValidateNotExplicitInterfaceImplementation( AdviceKind adviceKind )
     {
         if ( this._explicitlyImplementedInterfaceType != null
-             && adviceKind is not (AdviceKind.IntroduceMethod or AdviceKind.IntroduceEvent or AdviceKind.IntroduceOperator or AdviceKind.IntroduceProperty
+             && adviceKind is not (AdviceKind.IntroduceMethod or AdviceKind.IntroduceEvent or AdviceKind.IntroduceProperty
                  or AdviceKind.IntroduceIndexer) )
         {
             throw new InvalidOperationException( $"The {adviceKind} advice cannot be applied when explicitly implementing an interface." );
@@ -652,39 +652,46 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         object? args = null,
         object? tags = null )
     {
-        using ( this.WithNonUserCode() )
+        if ( kind.GetCategory() != OperatorCategory.Unary )
         {
-            if ( kind.GetCategory() != OperatorCategory.Unary )
-            {
-                throw new InvalidOperationException(
-                    MetalamaStringFormatter.Format( $"Cannot add an IntroduceUnaryOperator advice with kind {kind} as it is not an unary operator." ) );
-            }
-
-            if ( !OperatorData.IsUserDefinable( kind ) )
-            {
-                throw new InvalidOperationException(
-                    MetalamaStringFormatter.Format(
-                        $"Cannot add an IntroduceBinaryOperator advice with {kind} because this kind of operator cannot be user-defined." ) );
-            }
-
-            this.Validate( targetType, AdviceKind.IntroduceOperator );
-
-            var template = this.ValidateRequiredTemplateName( defaultTemplate, TemplateKind.Default )
-                .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
-
-            var advice = new IntroduceOperatorAdvice(
-                this.GetAdviceConstructorParameters( targetType ),
-                kind,
-                leftOperandType: inputType,
-                rightOperandType: null,
-                resultType,
-                template.PartialForIntroduction( this.GetArgsReader( args ) ),
-                whenExists,
-                buildAction,
-                this._explicitlyImplementedInterfaceType );
-
-            return advice.Execute( this._state );
+            throw new InvalidOperationException(
+                MetalamaStringFormatter.Format( $"Cannot add an IntroduceUnaryOperator advice with kind {kind} as it is not an unary operator." ) );
         }
+
+        if ( !OperatorData.IsUserDefinable( kind ) )
+        {
+            throw new InvalidOperationException(
+                MetalamaStringFormatter.Format(
+                    $"Cannot add an IntroduceUnaryOperator advice with {kind} because this kind of operator cannot be user-defined." ) );
+        }
+
+        // Redirect to IntroduceMethod with a buildMethod callback that configures the operator.
+        return this.IntroduceMethod(
+            targetType,
+            defaultTemplate,
+            scope: IntroductionScope.Static,
+            whenExists: whenExists,
+            buildMethod: m =>
+            {
+                m.OperatorKind = kind;
+                m.ReturnType = resultType;
+
+                // Configure parameter (unary operators have 1 parameter).
+                // Use template parameter if available, otherwise add a new one.
+                if ( m.Parameters.Count >= 1 )
+                {
+                    m.Parameters[0].Type = inputType;
+                }
+                else
+                {
+                    m.AddParameter( "x", inputType );
+                }
+
+                // Call user's buildAction if provided.
+                buildAction?.Invoke( m );
+            },
+            args: args,
+            tags: tags );
     }
 
     public IIntroductionAdviceResult<IMethod> IntroduceBinaryOperator(
@@ -699,39 +706,55 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         object? args = null,
         object? tags = null )
     {
-        using ( this.WithNonUserCode() )
+        if ( kind.GetCategory() != OperatorCategory.Binary )
         {
-            if ( kind.GetCategory() != OperatorCategory.Binary )
-            {
-                throw new InvalidOperationException(
-                    MetalamaStringFormatter.Format( $"Cannot add an IntroduceBinaryOperator advice with {kind} because it is not a binary operator." ) );
-            }
-
-            if ( !OperatorData.IsUserDefinable( kind ) )
-            {
-                throw new InvalidOperationException(
-                    MetalamaStringFormatter.Format(
-                        $"Cannot add an IntroduceBinaryOperator advice with {kind} because this kind of operator cannot be user-defined." ) );
-            }
-
-            this.Validate( targetType, AdviceKind.IntroduceOperator );
-
-            var template = this.ValidateRequiredTemplateName( defaultTemplate, TemplateKind.Default )
-                .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
-
-            var advice = new IntroduceOperatorAdvice(
-                this.GetAdviceConstructorParameters( targetType ),
-                kind,
-                leftType,
-                rightType,
-                resultType,
-                template.PartialForIntroduction( this.GetArgsReader( args ) ),
-                whenExists,
-                buildAction,
-                this._explicitlyImplementedInterfaceType );
-
-            return advice.Execute( this._state );
+            throw new InvalidOperationException(
+                MetalamaStringFormatter.Format( $"Cannot add an IntroduceBinaryOperator advice with {kind} because it is not a binary operator." ) );
         }
+
+        if ( !OperatorData.IsUserDefinable( kind ) )
+        {
+            throw new InvalidOperationException(
+                MetalamaStringFormatter.Format(
+                    $"Cannot add an IntroduceBinaryOperator advice with {kind} because this kind of operator cannot be user-defined." ) );
+        }
+
+        // Redirect to IntroduceMethod with a buildMethod callback that configures the operator.
+        return this.IntroduceMethod(
+            targetType,
+            defaultTemplate,
+            scope: IntroductionScope.Static,
+            whenExists: whenExists,
+            buildMethod: m =>
+            {
+                m.OperatorKind = kind;
+                m.ReturnType = resultType;
+
+                // Configure first parameter.
+                if ( m.Parameters.Count >= 1 )
+                {
+                    m.Parameters[0].Type = leftType;
+                }
+                else
+                {
+                    m.AddParameter( "left", leftType );
+                }
+
+                // Configure second parameter.
+                if ( m.Parameters.Count >= 2 )
+                {
+                    m.Parameters[1].Type = rightType;
+                }
+                else
+                {
+                    m.AddParameter( "right", rightType );
+                }
+
+                // Call user's buildAction if provided.
+                buildAction?.Invoke( m );
+            },
+            args: args,
+            tags: tags );
     }
 
     public IIntroductionAdviceResult<IMethod> IntroduceConversionOperator(
@@ -746,34 +769,40 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         object? args = null,
         object? tags = null )
     {
-        using ( this.WithNonUserCode() )
+        var operatorKind = (isImplicit, isChecked) switch
         {
-            this.Validate( targetType, AdviceKind.IntroduceOperator );
+            (true, false) => OperatorKind.ImplicitConversion,
+            (true, true) => throw new ArgumentOutOfRangeException( nameof(isChecked), isChecked, "Cannot introduce a checked implicit operator." ),
+            (false, false) => OperatorKind.ExplicitConversion,
+            (false, true) => OperatorKind.CheckedExplicitConversion
+        };
 
-            var template = this.ValidateRequiredTemplateName( defaultTemplate, TemplateKind.Default )
-                .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
-
-            var operatorKind = (isImplicit, isChecked) switch
+        // Redirect to IntroduceMethod with a buildMethod callback that configures the operator.
+        return this.IntroduceMethod(
+            targetType,
+            defaultTemplate,
+            scope: IntroductionScope.Static,
+            whenExists: whenExists,
+            buildMethod: m =>
             {
-                (true, false) => OperatorKind.ImplicitConversion,
-                (true, true) => throw new ArgumentOutOfRangeException( nameof(isChecked), isChecked, "Cannot introduce a checked implicit operator." ),
-                (false, false) => OperatorKind.ExplicitConversion,
-                (false, true) => OperatorKind.CheckedExplicitConversion
-            };
+                m.OperatorKind = operatorKind;
+                m.ReturnType = toType;
 
-            var advice = new IntroduceOperatorAdvice(
-                this.GetAdviceConstructorParameters( targetType ),
-                operatorKind,
-                leftOperandType: fromType,
-                rightOperandType: null,
-                toType,
-                template.PartialForIntroduction( this.GetArgsReader( args ) ),
-                whenExists,
-                buildAction,
-                this._explicitlyImplementedInterfaceType );
+                // Configure parameter (conversion operators have 1 parameter).
+                if ( m.Parameters.Count >= 1 )
+                {
+                    m.Parameters[0].Type = fromType;
+                }
+                else
+                {
+                    m.AddParameter( "value", fromType );
+                }
 
-            return advice.Execute( this._state );
-        }
+                // Call user's buildAction if provided.
+                buildAction?.Invoke( m );
+            },
+            args: args,
+            tags: tags );
     }
 
     public IOverrideAdviceResult<IConstructor> Override(

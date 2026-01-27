@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.Transformations;
@@ -20,6 +21,8 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner;
 /// </summary>
 internal abstract class TestTransformationBase : IInjectMemberTransformation
 {
+    private AdviceOrderingIndices _adviceOrderingIndices;
+
     public InsertPosition InsertPosition { get; }
 
     public AspectLayerInstance AspectLayerInstance { get; }
@@ -28,11 +31,12 @@ internal abstract class TestTransformationBase : IInjectMemberTransformation
 
     public IAspectInstanceInternal AspectInstance => this.AspectLayerInstance.AspectInstance;
 
-    public int OrderWithinPipeline { get; set; }
+    public ref readonly AdviceOrderingIndices AdviceOrderingIndices => ref this._adviceOrderingIndices;
 
-    public int OrderWithinPipelineStepAndType { get; set; }
-
-    public int OrderWithinPipelineStepAndTypeAndAspectInstance { get; set; }
+    public void SetAdviceOrderingIndices( in AdviceOrderingIndices indices )
+    {
+        this._adviceOrderingIndices = indices;
+    }
 
     protected TestTransformationBase( AspectLayerInstance aspectLayerInstance, InsertPosition insertPosition )
     {

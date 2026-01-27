@@ -174,21 +174,6 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                             var injectedMembers = injectMemberTransformation.GetInjectedMembers( introductionContext )
                                 .Select( m => m.Syntax );
 
-                            // We don't need to add introduced parameters because the transformation already added them.
-                            /*
-                            if ( injectMemberTransformation is IIntroduceDeclarationTransformation
-                                {
-                                    DeclarationBuilderData: ConstructorBuilderData constructorBuilder
-                                } )
-                            {
-                                injectedMembers = AddIntroducedConstructorParameters(
-                                    injectedMembers,
-                                    constructorBuilder,
-                                    finalCompilationModel,
-                                    syntaxGenerationContext );
-                            }
-                            */
-
                             if ( injectMemberTransformation is IIntroduceDeclarationTransformation { DeclarationBuilderData: NamedTypeBuilderData } )
                             {
                                 // TODO: This is not optimal - the injected member should be skipped instead.
@@ -317,12 +302,8 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     }
                     else
                     {
-                        // Introduced extension block: use the builder data's unique ref hash
-                        var introducedExtensionBlock = (IntroducedExtensionBlock) current;
-                        var builderData = (ExtensionBlockBuilderData) introducedExtensionBlock.BuilderData;
-                        XXH64 hash = new();
-                        hash.Update( builderData.ToRef().ToSerializableId().Id );
-                        sb.AppendFormat( CultureInfo.InvariantCulture, "ext_{0:x}", (int) hash.Digest() );
+                        // Introduced extension block: use the Name for deterministic naming.
+                        sb.Append( current.Name );
                     }
                 }
                 else

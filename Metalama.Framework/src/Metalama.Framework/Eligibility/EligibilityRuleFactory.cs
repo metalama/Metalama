@@ -248,7 +248,9 @@ public static partial class EligibilityRuleFactory
             AdviceKind.OverrideEventInvoke => OverrideEventRaiseAdviceRule,
             AdviceKind.IntroduceMethod => _introduceRule,
             AdviceKind.IntroduceFinalizer => _introduceRule,
+#pragma warning disable CS0618 // IntroduceOperator is obsolete but needs to be handled for backward compatibility
             AdviceKind.IntroduceOperator => _introduceRule,
+#pragma warning restore CS0618
             AdviceKind.IntroduceField => _introduceRule,
             AdviceKind.IntroduceEvent => _introduceRule,
             AdviceKind.IntroduceProperty => _introduceRule,

@@ -84,7 +84,8 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                     }
                     else
                     {
-                        Invariant.Assert( finalMethod.Parameters.Count is 1 or 2 );
+                        // 0 params for unary assignment operators (++, --), 1 for unary/binary assignment, 2 for binary operators.
+                        Invariant.Assert( finalMethod.Parameters.Count is 0 or 1 or 2 );
 
                         var syntax = OperatorDeclaration(
                             AdviceSyntaxGenerator.GetAttributeLists( finalMethod, context ),

@@ -14,7 +14,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <para>Extension blocks have the following restrictions compared to regular named types:</para>
 /// <list type="bullet">
 ///   <item>Cannot have a base type (always throws on <see cref="INamedTypeBuilder.BaseType"/> setter).</item>
-///   <item>Cannot have a name (identified by receiver type, <see cref="IMemberOrNamedTypeBuilder.Name"/> setter throws).</item>
+///   <item>The <see cref="IMemberOrNamedTypeBuilder.Name"/> property is used internally to generate deterministic file names for the design-time syntax tree. It is automatically assigned if not set.</item>
 ///   <item>Cannot set accessibility (extension blocks don't have access modifiers).</item>
 ///   <item>Cannot be abstract, sealed, or partial.</item>
 ///   <item>Cannot contain fields (will fail at advice execution time).</item>

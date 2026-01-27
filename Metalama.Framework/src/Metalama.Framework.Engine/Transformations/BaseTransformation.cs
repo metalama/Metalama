@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
@@ -17,6 +18,8 @@ namespace Metalama.Framework.Engine.Transformations;
 
 internal abstract class BaseTransformation : ITransformation
 {
+    private AdviceOrderingIndices _adviceOrderingIndices;
+
     protected BaseTransformation( AspectLayerInstance aspectLayerInstance )
     {
         // Don't keep a reference to the Advice, as it's supposed to be short-lived.
@@ -43,11 +46,12 @@ internal abstract class BaseTransformation : ITransformation
 
     public AspectLayerInstance AspectLayerInstance { get; }
 
-    public int OrderWithinPipelineStepAndTypeAndAspectInstance { get; set; }
+    public ref readonly AdviceOrderingIndices AdviceOrderingIndices => ref this._adviceOrderingIndices;
 
-    public int OrderWithinPipelineStepAndType { get; set; }
-
-    public int OrderWithinPipeline { get; set; }
+    public void SetAdviceOrderingIndices( in AdviceOrderingIndices indices )
+    {
+        this._adviceOrderingIndices = indices;
+    }
 
     public abstract TransformationObservability Observability { get; }
 

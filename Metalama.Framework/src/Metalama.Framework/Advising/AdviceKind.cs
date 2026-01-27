@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using System;
 
 namespace Metalama.Framework.Advising;
 
@@ -26,7 +27,10 @@ public enum AdviceKind
     IntroduceParameter,
     IntroduceField,
     IntroduceFinalizer,
+
+    [Obsolete( "Use IntroduceMethod with IMethodBuilder.OperatorKind instead." )]
     IntroduceOperator,
+
     IntroduceProperty,
     IntroduceIndexer,
     OverrideFinalizer,

@@ -127,7 +127,11 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     bool IMethodBuilder.IsReadOnly { get; set; }
 
-    public OperatorKind OperatorKind => OperatorKind.None;
+    public OperatorKind OperatorKind
+    {
+        get => OperatorKind.None;
+        set => throw new NotSupportedException( "Accessors cannot be operators." );
+    }
 
     IMethod IMethod.Definition => this;
 
