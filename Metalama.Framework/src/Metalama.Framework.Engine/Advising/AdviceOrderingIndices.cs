@@ -33,12 +33,4 @@ internal readonly record struct AdviceOrderingIndices(
 
         return this.OrderWithinPipelineStepAndTypeAndAspectInstance.CompareTo( other.OrderWithinPipelineStepAndTypeAndAspectInstance );
     }
-
-    public static bool operator <( AdviceOrderingIndices left, AdviceOrderingIndices right ) => left.CompareTo( right ) < 0;
-
-    public static bool operator >( AdviceOrderingIndices left, AdviceOrderingIndices right ) => left.CompareTo( right ) > 0;
-
-    public static bool operator <=( AdviceOrderingIndices left, AdviceOrderingIndices right ) => left.CompareTo( right ) <= 0;
-
-    public static bool operator >=( AdviceOrderingIndices left, AdviceOrderingIndices right ) => left.CompareTo( right ) >= 0;
 }
