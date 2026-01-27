@@ -224,16 +224,16 @@ internal sealed class IntroducedExtensionBlock : IntroducedMemberOrNamedType, IE
 
     public IPointerType MakePointerType() => throw new NotSupportedException( "Extension blocks cannot be used as pointer types." );
 
-    // Extension blocks don't support nullability annotations.
-    IType IType.ToNullable() => throw new NotSupportedException( "Extension blocks do not support nullability annotations." );
+    // Extension blocks don't support nullability annotations, so these methods return this.
+    IType IType.ToNullable() => this;
 
-    public IType ToNonNullable() => throw new NotSupportedException( "Extension blocks do not support nullability annotations." );
+    public IType ToNonNullable() => this;
 
-    public INamedType StripNullabilityAnnotation() => throw new NotSupportedException( "Extension blocks do not support nullability annotations." );
+    public INamedType StripNullabilityAnnotation() => this;
 
-    IType IType.StripNullabilityAnnotation() => throw new NotSupportedException( "Extension blocks do not support nullability annotations." );
+    IType IType.StripNullabilityAnnotation() => this;
 
-    public INamedType ToNullable() => throw new NotSupportedException( "Extension blocks do not support nullability annotations." );
+    public INamedType ToNullable() => this;
 
     public INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments )
     {
