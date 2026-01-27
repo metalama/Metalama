@@ -1,11 +1,12 @@
 name: Claude PR Review
 
 on:
-  pull_request:
-    types: [opened, synchronize]
-    branches:
-      - "develop/*"
-      - "release/*"
+  workflow_dispatch: 
+#  pull_request:
+#    types: [opened, synchronize]
+#    branches:
+#      - "develop/*"
+#      - "release/*"
 
 permissions:
   contents: read
