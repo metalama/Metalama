@@ -11,7 +11,6 @@ using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using System;
 using System.Collections.Generic;
 using System.Linq;
