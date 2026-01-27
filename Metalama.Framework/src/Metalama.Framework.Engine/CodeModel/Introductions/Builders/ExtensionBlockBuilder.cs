@@ -91,7 +91,7 @@ internal sealed class ExtensionBlockBuilder : NamedTypeBuilder, IExtensionBlockB
 
     public override Accessibility Accessibility
     {
-        get => Accessibility.Private; // Internal representation.
+        get => Accessibility.Public; // Roslyn reports Public for extension blocks.
         set => throw new NotSupportedException( "Extension blocks do not have accessibility modifiers." );
     }
 

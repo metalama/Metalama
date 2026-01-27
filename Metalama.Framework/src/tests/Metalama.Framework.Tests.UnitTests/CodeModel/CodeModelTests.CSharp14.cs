@@ -7,6 +7,7 @@
 // We don't run these tests with old frameworks because they require the type CompilerFeatureRequiredAttribute.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.CodeModel.Source;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -133,6 +134,38 @@ public sealed partial class CodeModelTests
 
         // Type parameters.
         Assert.Single( extension4.TypeParameters );
+    }
+
+    [Fact]
+    public void ExtensionBlockAccessibility()
+    {
+        const string code = """
+                            public static class MyExtensions
+                            {
+                                extension(int source)
+                                {
+                                    public int Double => source * 2;
+                                }
+                            }
+                            """;
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+        var type = compilation.Types.Single();
+        var extensionBlock = type.ExtensionBlocks.Single();
+
+        // Check what Roslyn reports via the code model.
+        var codeModelAccessibility = extensionBlock.Accessibility;
+
+        // Also check the underlying Roslyn symbol directly.
+        var sourceExtensionBlock = (ExtensionBlock) extensionBlock;
+        var roslynAccessibility = sourceExtensionBlock.Symbol.DeclaredAccessibility;
+
+        // Roslyn reports Public accessibility for extension blocks.
+        Assert.Equal( Microsoft.CodeAnalysis.Accessibility.Public, roslynAccessibility );
+
+        // The code model maps this to Public.
+        Assert.Equal( Accessibility.Public, codeModelAccessibility );
     }
 }
 

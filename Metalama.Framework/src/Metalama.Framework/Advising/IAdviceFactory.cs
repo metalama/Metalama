@@ -955,7 +955,7 @@ namespace Metalama.Framework.Advising
         ///     for a static extension (members appear as static members of the extended type).
         ///     Set to a non-empty string (e.g., "self", "value") for an instance extension.</param>
         /// <param name="buildExtensionBlock">An optional callback that allows you to configure the extension block,
-        ///     such as adding type parameters or attributes to the receiver parameter. Does not allow adding members.</param>
+        ///     such as adding type parameters or attributes to the receiver parameter.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice.
         ///     The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced extension block.
         ///     The result also implements <see cref="IAdviser{T}"/> and can be used to introduce members.</returns>
