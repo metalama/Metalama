@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
@@ -97,9 +98,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 mutableCompilationModel.AddTransformation( transformation );
 
                 // Set order.
-                transformation.OrderWithinPipeline = 0;
-                transformation.OrderWithinPipelineStepAndType = 0;
-                transformation.OrderWithinPipelineStepAndTypeAndAspectInstance = order++;
+                transformation.SetAdviceOrderingIndices( new AdviceOrderingIndices( 0, 0, order++ ) );
 
                 transformations.Add( transformation );
             }

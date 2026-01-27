@@ -442,8 +442,8 @@ internal sealed class AspectReferenceResolver
                 return
                     new MemberLayerIndex(
                         this._layerIndex[builderData.ParentAdvice.AspectLayerId],
-                        fieldInjectionTransformation.OrderWithinPipelineStepAndType + 1,
-                        fieldInjectionTransformation.OrderWithinPipelineStepAndTypeAndAspectInstance + 1 );
+                        fieldInjectionTransformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType + 1,
+                        fieldInjectionTransformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance + 1 );
             }
             else
             {
@@ -468,8 +468,8 @@ internal sealed class AspectReferenceResolver
         => injectedMember.Transformation != null
             ? new MemberLayerIndex(
                 this._layerIndex[injectedMember.AspectLayerId.AssertNotNull()],
-                injectedMember.Transformation.OrderWithinPipelineStepAndType + 1,
-                injectedMember.Transformation.OrderWithinPipelineStepAndTypeAndAspectInstance + 1 )
+                injectedMember.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType + 1,
+                injectedMember.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance + 1 )
             : new MemberLayerIndex( 0, 0, 0 );
 
     /// <summary>

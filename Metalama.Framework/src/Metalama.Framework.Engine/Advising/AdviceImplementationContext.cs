@@ -44,7 +44,15 @@ internal class AdviceImplementationContext
 
     public void AddTransformation( ITransformation transformation )
     {
-        this._adviceExecutionContext.SetOrders( transformation );
+        transformation.SetAdviceOrderingIndices( this._adviceExecutionContext.GetAdviceOrderIndices() );
+        this.AddTransformationWithoutSettingOrders( transformation );
+    }
+
+    public AdviceOrderingIndices GetAdviceOrderIndices()
+        => this._adviceExecutionContext.GetAdviceOrderIndices();
+
+    public void AddTransformationWithoutSettingOrders( ITransformation transformation )
+    {
         this._transformations ??= ImmutableArray.CreateBuilder<ITransformation>();
         this._transformations.Add( transformation );
     }

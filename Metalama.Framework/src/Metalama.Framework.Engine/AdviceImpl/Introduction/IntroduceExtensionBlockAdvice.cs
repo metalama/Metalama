@@ -3,7 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if ROSLYN_5_0_0_OR_GREATER
+using K4os.Hash.xxHash;
 using Metalama.Framework.Advising;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
@@ -71,8 +73,25 @@ internal sealed class IntroduceExtensionBlockAdvice : IntroduceDeclarationAdvice
         }
 
         // No uniqueness check - multiple extension blocks with the same receiver are allowed.
+
+        // Get ordering values for deterministic naming.
+        var orders = context.GetAdviceOrderIndices();
+
+        // Set deterministic name if not user-defined.
+        if ( string.IsNullOrEmpty( builder.Name ) )
+        {
+            XXH64 hash = new();
+            hash.Update( orders.OrderWithinPipeline );
+            hash.Update( orders.OrderWithinPipelineStepAndType );
+            hash.Update( orders.OrderWithinPipelineStepAndTypeAndAspectInstance );
+            builder.Name = $"Extension_{(ushort) hash.Digest():x4}";
+        }
+
         builder.Freeze();
-        context.AddTransformation( builder.CreateTransformation() );
+
+        var transformation = builder.CreateTransformation();
+        transformation.SetAdviceOrderingIndices( context.GetAdviceOrderIndices() );
+        context.AddTransformationWithoutSettingOrders( transformation );
 
         return this.CreateSuccessResult( AdviceOutcome.Default, builder );
     }
