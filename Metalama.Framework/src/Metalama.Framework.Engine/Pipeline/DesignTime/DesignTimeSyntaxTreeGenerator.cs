@@ -2,7 +2,10 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+#if ROSLYN_5_0_0_OR_GREATER
 using K4os.Hash.xxHash;
+using Metalama.Framework.Engine.Utilities;
+#endif
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -17,7 +20,6 @@ using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
-using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
@@ -26,7 +28,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+#if ROSLYN_5_0_0_OR_GREATER
 using System.Globalization;
+#endif
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -297,6 +301,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     sb.Append( "." );
                 }
 
+#if ROSLYN_5_0_0_OR_GREATER
                 if ( current.TypeKind == TypeKind.Extension )
                 {
                     var primarySyntax = current.GetPrimaryDeclarationSyntax();
@@ -321,6 +326,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     }
                 }
                 else
+#endif
                 {
                     sb.Append( current.Name );
 
