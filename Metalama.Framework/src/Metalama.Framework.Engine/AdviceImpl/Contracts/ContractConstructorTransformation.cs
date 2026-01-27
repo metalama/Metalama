@@ -97,5 +97,5 @@ internal sealed class ContractConstructorTransformation : ContractBaseTransforma
         }
     }
 
-    public override IFullRef<IMember> TargetMember => this._targetConstructor;
+    public override IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetConstructor;
 }

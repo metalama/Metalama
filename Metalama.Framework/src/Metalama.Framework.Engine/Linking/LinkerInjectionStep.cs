@@ -74,8 +74,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 
         HashSet<IIntroduceDeclarationTransformation> replacedIntroduceDeclarationTransformations = [];
 
-        ConcurrentDictionary<IFullRef<IMember>, InsertStatementTransformationContextImpl>
-            pendingInsertStatementContexts = new( RefEqualityComparer<IMember>.Default );
+        ConcurrentDictionary<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl>
+            pendingInsertStatementContexts = new( RefEqualityComparer<IMemberOrNamedType>.Default );
 
         ConcurrentDictionary<IFullRef<IMember>, AuxiliaryMemberTransformations> auxiliaryMemberTransformations = new( RefEqualityComparer<IMember>.Default );
 
@@ -210,19 +210,25 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             this._concurrentTaskRunner,
             cancellationToken );
 
-        void FlushPendingInsertStatementContext( KeyValuePair<IFullRef<IMember>, InsertStatementTransformationContextImpl> pair )
+        void FlushPendingInsertStatementContext( KeyValuePair<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl> pair )
         {
-            if ( RequiresAuxiliaryContractMember( pair.Key, pair.Value ) )
+            // Extension blocks don't need auxiliary contract members - their individual members might, but those are handled separately.
+            if ( pair.Key is not IFullRef<IMember> memberRef )
+            {
+                return;
+            }
+
+            if ( RequiresAuxiliaryContractMember( memberRef, pair.Value ) )
             {
                 pair.Value.Complete();
 
                 transformationCollection.AddTransformationCausingAuxiliaryOverride( pair.Value.OriginTransformation );
 
                 // This may be the only "override" present, so make sure all other effects of overrides are present.
-                AddSynthesizedSetterForPropertyIfRequired( pair.Key, transformationCollection );
+                AddSynthesizedSetterForPropertyIfRequired( memberRef, transformationCollection );
 
                 auxiliaryMemberTransformations
-                    .GetOrAdd( pair.Key, _ => new AuxiliaryMemberTransformations() )
+                    .GetOrAdd( memberRef, _ => new AuxiliaryMemberTransformations() )
                     .InjectAuxiliaryContractMember(
                         pair.Value.OriginTransformation,
                         pair.Value.ReturnValueVariableName );
@@ -547,7 +553,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         ITransformation transformation,
         TransformationCollection transformationCollection,
         ConcurrentDictionary<IFullRef<IMember>, AuxiliaryMemberTransformations> auxiliaryMemberTransformations,
-        ConcurrentDictionary<IFullRef<IMember>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts )
+        ConcurrentDictionary<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts )
     {
         if ( transformation is not IOverrideDeclarationTransformation overrideDeclarationTransformation )
         {
@@ -616,19 +622,19 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         ITransformation transformation,
         TransformationCollection transformationCollection,
         ConcurrentDictionary<IFullRef<IMember>, AuxiliaryMemberTransformations> auxiliaryMemberTransformations,
-        ConcurrentDictionary<IFullRef<IMember>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts )
+        ConcurrentDictionary<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts )
     {
         if ( transformation is not IInsertStatementTransformation insertStatementTransformation )
         {
             return;
         }
 
-        var targetMember = insertStatementTransformation.TargetMember.Definition;
+        var targetMemberOrNamedType = insertStatementTransformation.TargetMemberOrNamedType.Definition;
 
         var syntaxGenerationContext
-            = this._compilationContext.GetSyntaxGenerationContext( this._syntaxGenerationOptions, targetMember );
+            = this._compilationContext.GetSyntaxGenerationContext( this._syntaxGenerationOptions, targetMemberOrNamedType );
 
-        switch ( targetMember )
+        switch ( targetMemberOrNamedType )
         {
             case IPropertyOrIndexer propertyOrIndexer:
                 {
@@ -674,11 +680,71 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     break;
                 }
 
+            case IExtensionBlock extensionBlock:
+                {
+                    // For extension blocks, statements are generated per-method (each with a ContextDeclaration
+                    // that is contained in the target method). Route using standard IsContainedIn filtering.
+                    var insertedStatements = GetInsertedStatements();
+
+                    foreach ( var method in extensionBlock.Methods.Where( m => !m.IsStatic ) )
+                    {
+                        transformationCollection.AddInsertedStatements(
+                            method.ToRef(),
+                            insertedStatements
+                                .Where( s => s.ContextDeclaration.IsContainedIn( method ) )
+                                .ToReadOnlyList() );
+                    }
+
+                    foreach ( var property in extensionBlock.Properties.Where( p => !p.IsStatic ) )
+                    {
+                        if ( property.GetMethod != null )
+                        {
+                            transformationCollection.AddInsertedStatements(
+                                property.GetMethod.ToRef(),
+                                insertedStatements
+                                    .Where( s => s.ContextDeclaration.IsContainedIn( property.GetMethod ) )
+                                    .ToReadOnlyList() );
+                        }
+
+                        if ( property.SetMethod != null )
+                        {
+                            transformationCollection.AddInsertedStatements(
+                                property.SetMethod.ToRef(),
+                                insertedStatements
+                                    .Where( s => s.ContextDeclaration.IsContainedIn( property.SetMethod ) )
+                                    .ToReadOnlyList() );
+                        }
+                    }
+
+                    foreach ( var indexer in extensionBlock.Indexers.Where( i => !i.IsStatic ) )
+                    {
+                        if ( indexer.GetMethod != null )
+                        {
+                            transformationCollection.AddInsertedStatements(
+                                indexer.GetMethod.ToRef(),
+                                insertedStatements
+                                    .Where( s => s.ContextDeclaration.IsContainedIn( indexer.GetMethod ) )
+                                    .ToReadOnlyList() );
+                        }
+
+                        if ( indexer.SetMethod != null )
+                        {
+                            transformationCollection.AddInsertedStatements(
+                                indexer.SetMethod.ToRef(),
+                                insertedStatements
+                                    .Where( s => s.ContextDeclaration.IsContainedIn( indexer.SetMethod ) )
+                                    .ToReadOnlyList() );
+                        }
+                    }
+
+                    break;
+                }
+
             default:
-                throw new AssertionFailedException( $"Unexpected target: {targetMember}." );
+                throw new AssertionFailedException( $"Unexpected target: {targetMemberOrNamedType}." );
         }
 
-        if ( targetMember is IConstructor { IsPrimary: true } overriddenConstructor )
+        if ( targetMemberOrNamedType is IConstructor { IsPrimary: true } overriddenConstructor )
         {
             auxiliaryMemberTransformations.GetOrAdd( overriddenConstructor.ToFullRef(), _ => new AuxiliaryMemberTransformations() )
                 .InjectAuxiliarySourceMember();
@@ -692,7 +758,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             // Contexts for inserting statements are reused until the next override of the target declaration.
             var context =
                 pendingInsertStatementContexts.GetOrAdd(
-                    insertStatementTransformation.TargetMember,
+                    insertStatementTransformation.TargetMemberOrNamedType,
                     m => new InsertStatementTransformationContextImpl(
                         this._serviceProvider,
                         diagnostics,
@@ -720,8 +786,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     markedForOutputContracts = true;
                     context.MarkAsUsedForOutputContracts();
 
-                    if ( targetMember is IProperty or IIndexer
-                         || (targetMember is IMethod method && method.GetAsyncInfo().ResultType.SpecialType != SpecialType.Void) )
+                    if ( targetMemberOrNamedType is IProperty or IIndexer
+                         || (targetMemberOrNamedType is IMethod method && method.GetAsyncInfo().ResultType.SpecialType != SpecialType.Void) )
                     {
                         // Force the return variable name to be allocated if the return type is not void.
                         // If there are output contracts that don't use the return value, the return value is still required.

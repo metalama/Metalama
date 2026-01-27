@@ -25,9 +25,10 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
     private readonly IObjectReader _templateArguments;
 
     /// <summary>
-    /// Gets the target member of the contract into which contract statements will be inserted.
+    /// Gets the target member or extension block of the contract into which contract statements will be inserted.
+    /// For extension blocks, statements are inserted into all instance members.
     /// </summary>
-    public abstract IFullRef<IMember> TargetMember { get; }
+    public abstract IFullRef<IMemberOrNamedType> TargetMemberOrNamedType { get; }
 
     /// <summary>
     /// Gets the declaration on which the contract was applied on.
@@ -54,7 +55,7 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
         this._templateArguments = templateArguments;
     }
 
-    public override IFullRef<IDeclaration> TargetDeclaration => this.TargetMember;
+    public override IFullRef<IDeclaration> TargetDeclaration => this.TargetMemberOrNamedType;
 
     public abstract IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context );
 
@@ -87,7 +88,7 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
         var expansionContext = new TemplateExpansionContext(
             context,
             metaApi,
-            this.TargetMember.GetTarget( context.FinalCompilation ),
+            this.TargetMemberOrNamedType.GetTarget( context.FinalCompilation ),
             boundTemplate,
             null,
             this.AspectLayerId );
@@ -112,6 +113,6 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
             var target => $"unexpected declaration '{target}'"
         };
 
-        return $"Add contract to {parameter} of {this.TargetMember.DeclarationKind} '{this.TargetMember}'";
+        return $"Add contract to {parameter} of {this.TargetMemberOrNamedType.DeclarationKind} '{this.TargetMemberOrNamedType}'";
     }
 }

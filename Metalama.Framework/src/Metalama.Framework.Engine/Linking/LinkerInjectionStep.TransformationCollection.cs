@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
+using Metalama.Framework.Engine.AdviceImpl.Contracts;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
@@ -619,10 +620,25 @@ internal sealed partial class LinkerInjectionStep
                 // Makes sure that the order is not changed when override is added in the middle of aspects that insert statements.
                 statements
                     .OrderBy(
-                        s => s.ContextDeclaration switch
+                        s =>
                         {
-                            IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
-                            _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
+                            // Receiver parameter contracts come first (before method parameter contracts).
+                            // These are identified by their parent transformation type.
+                            if ( s.Transformation is ContractExtensionBlockTransformation )
+                            {
+                                return -1;
+                            }
+
+                            return s.ContextDeclaration switch
+                            {
+                                // Extension block receiver parameters are ordered first (before method parameters).
+                                // This case handles any other transformations that might use receiver parameters directly.
+                                IParameter { ContainingDeclaration: IExtensionBlock } => -1,
+                                IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
+                                IParameter { IsReturnParameter: true, ContainingDeclaration: IMethod method } =>
+                                    method.Parameters.Count, // Return parameter contracts (for receiver contracts on parameterless methods) are ordered after other parameters.
+                                _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
+                            };
                         } )
                     .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
                     .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
@@ -634,12 +650,25 @@ internal sealed partial class LinkerInjectionStep
                 // Makes sure that the order is not changed when override is added in the middle of aspects that insert statements.
                 statements
                     .OrderBy(
-                        s => s.ContextDeclaration switch
+                        s =>
                         {
-                            IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
-                            IParameter { IsReturnParameter: true, ContainingDeclaration: IMethod method } =>
-                                method.Parameters.Count, // Method return value contracts are ordered after other parameters
-                            _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
+                            // Receiver parameter contracts come first.
+                            // These are identified by their parent transformation type.
+                            if ( s.Transformation is ContractExtensionBlockTransformation )
+                            {
+                                return -1;
+                            }
+
+                            return s.ContextDeclaration switch
+                            {
+                                // Extension block receiver parameters are ordered first.
+                                // This case handles any other transformations that might use receiver parameters directly.
+                                IParameter { ContainingDeclaration: IExtensionBlock } => -1,
+                                IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
+                                IParameter { IsReturnParameter: true, ContainingDeclaration: IMethod method } =>
+                                    method.Parameters.Count, // Method return value contracts are ordered after other parameters
+                                _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
+                            };
                         } )
                     .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
                     .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )

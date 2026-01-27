@@ -113,5 +113,5 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
         }
     }
 
-    public override IFullRef<IMember> TargetMember => this._targetMethod;
+    public override IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetMethod;
 }

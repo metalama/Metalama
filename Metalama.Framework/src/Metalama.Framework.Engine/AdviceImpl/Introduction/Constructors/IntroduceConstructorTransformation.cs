@@ -146,5 +146,5 @@ internal sealed class IntroduceConstructorTransformation
         return Array.Empty<InsertedStatement>();
     }
 
-    IFullRef<IMember> IInsertStatementTransformation.TargetMember => this.BuilderData.ToRef();
+    IFullRef<IMemberOrNamedType> IInsertStatementTransformation.TargetMemberOrNamedType => this.BuilderData.ToRef();
 }

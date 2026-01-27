@@ -1282,21 +1282,36 @@ internal sealed partial class LinkerInjectionStep
 
             if ( symbol is
                 {
-                    SetMethod: { } setMethodSymbol,
 #if ROSLYN_4_12_0_OR_GREATER
                     PartialImplementationPart: null
 #endif
                 } )
             {
-                var setter = this._compilation.RefFactory.FromSymbol<IMethod>( setMethodSymbol );
+                // Handle getter entry statements (e.g., for extension block receiver contracts).
+                if ( symbol.GetMethod is { } getMethodSymbol )
+                {
+                    var getter = this._compilation.RefFactory.FromSymbol<IMethod>( getMethodSymbol );
+                    var entryStatements = this._transformationCollection.GetInjectedEntryStatements( getter, property );
 
-                var entryStatements = this._transformationCollection.GetInjectedEntryStatements( setter, property );
+                    node = (PropertyDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                        getter,
+                        entryStatements,
+                        [],
+                        node );
+                }
 
-                node = (PropertyDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
-                    setter,
-                    entryStatements,
-                    [],
-                    node );
+                // Handle setter entry statements.
+                if ( symbol.SetMethod is { } setMethodSymbol )
+                {
+                    var setter = this._compilation.RefFactory.FromSymbol<IMethod>( setMethodSymbol );
+                    var entryStatements = this._transformationCollection.GetInjectedEntryStatements( setter, property );
+
+                    node = (PropertyDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                        setter,
+                        entryStatements,
+                        [],
+                        node );
+                }
             }
 
             if ( this._transformationCollection.IsAutoPropertyWithSynthesizedSetter( originalNode ) )

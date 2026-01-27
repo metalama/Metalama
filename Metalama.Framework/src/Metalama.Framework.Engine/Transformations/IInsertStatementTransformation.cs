@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Engine.Transformations;
 
 /// <summary>
-/// Represents a code transformation that insert statements into the target member.
+/// Represents a code transformation that insert statements into the target member or extension block.
 /// </summary>
 internal interface IInsertStatementTransformation : ISyntaxTreeTransformation
 {
@@ -21,7 +21,8 @@ internal interface IInsertStatementTransformation : ISyntaxTreeTransformation
     IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context );
 
     /// <summary>
-    /// Gets the member that statements will be inserted into (may differ from <see cref="ITransformationBase.TargetDeclaration"/> e.g. for builders).
+    /// Gets the member or extension block that statements will be inserted into (may differ from <see cref="ITransformationBase.TargetDeclaration"/> e.g. for builders).
+    /// For extension blocks, statements are inserted into all instance members.
     /// </summary>
-    IFullRef<IMember> TargetMember { get; }
+    IFullRef<IMemberOrNamedType> TargetMemberOrNamedType { get; }
 }

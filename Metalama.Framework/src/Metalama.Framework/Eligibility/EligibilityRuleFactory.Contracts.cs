@@ -77,7 +77,7 @@ public static partial class EligibilityRuleFactory
                         builder.ExceptForInheritance().MustNotBeAbstract();
                     } );
 
-            // Eligibility rules for parameters.
+            // Eligibility rules for regular parameters (not extension block receiver parameters).
             static void AddCommonParameterRules( IEligibilityBuilder<IParameter> parameter )
             {
                 parameter.DeclaringMember().MustBeExplicitlyDeclared();
@@ -103,7 +103,44 @@ public static partial class EligibilityRuleFactory
                     member => $"{member} must not have void awaitable result" );
             }
 
-            var parameterEligibilityInput =
+            // Helper to check if parameter is a receiver parameter of an extension block.
+            static bool IsReceiverParameter( IParameter p ) => p.ContainingDeclaration is IExtensionBlock;
+
+            // Eligibility rules for receiver parameters of extension blocks.
+            // Receiver parameters have a different structure - they don't have a DeclaringMember but a containing extension block.
+            var receiverParameterEligibilityInput =
+                CreateRule<IParameter>(
+                    parameter =>
+                    {
+                        parameter.MustSatisfy( IsReceiverParameter, p => $"{p} must be a receiver parameter of an extension block" );
+                        parameter.MustBeReadable();
+                    } );
+
+            var receiverParameterEligibilityOutput =
+                CreateRule<IParameter>(
+                    parameter =>
+                    {
+                        parameter.MustSatisfy( IsReceiverParameter, p => $"{p} must be a receiver parameter of an extension block" );
+                        parameter.MustBeWritable();
+                    } );
+
+            var receiverParameterEligibilityBoth =
+                CreateRule<IParameter>(
+                    parameter =>
+                    {
+                        parameter.MustSatisfy( IsReceiverParameter, p => $"{p} must be a receiver parameter of an extension block" );
+                        parameter.MustBeRef();
+                    } );
+
+            var receiverParameterEligibilityDefault =
+                CreateRule<IParameter>(
+                    parameter =>
+                    {
+                        parameter.MustSatisfy( IsReceiverParameter, p => $"{p} must be a receiver parameter of an extension block" );
+                    } );
+
+            // Eligibility rules for regular parameters.
+            var regularParameterEligibilityInput =
                 CreateRule(
                     (Action<IEligibilityBuilder<IParameter>>) (parameter =>
                     {
@@ -114,7 +151,7 @@ public static partial class EligibilityRuleFactory
                         parameter.DeclaringMember().DeclaringType().AddRule( declaringTypeRule );
                     }) );
 
-            var parameterEligibilityOutput =
+            var regularParameterEligibilityOutput =
                 CreateRule<IParameter>(
                     parameter =>
                     {
@@ -125,7 +162,7 @@ public static partial class EligibilityRuleFactory
                         parameter.DeclaringMember().DeclaringType().AddRule( declaringTypeRule );
                     } );
 
-            var parameterEligibilityBoth =
+            var regularParameterEligibilityBoth =
                 CreateRule<IParameter>(
                     parameter =>
                     {
@@ -137,7 +174,7 @@ public static partial class EligibilityRuleFactory
                         parameter.DeclaringMember().DeclaringType().AddRule( declaringTypeRule );
                     } );
 
-            var parameterEligibilityDefault =
+            var regularParameterEligibilityDefault =
                 CreateRule<IParameter>(
                     parameter =>
                     {
@@ -149,6 +186,34 @@ public static partial class EligibilityRuleFactory
                         AddCommonReturnParameterRules( parameter );
                         parameter.DeclaringMember().DeclaringType().AddRule( declaringTypeRule );
                     } );
+
+            // Combined parameter eligibility rules that handle both regular and receiver parameters.
+            // The receiver parameter eligibility rules already check that the parameter IS a receiver parameter.
+            // The regular parameter eligibility rules use DeclaringMember() which fails on receiver parameters.
+            // So receiver parameters will satisfy receiverParameterEligibility, and regular parameters will satisfy regularParameterEligibility.
+            var parameterEligibilityInput =
+                CreateRule<IParameter>(
+                    parameter => parameter.MustSatisfyAny(
+                        p => p.AddRule( receiverParameterEligibilityInput ),
+                        p => p.AddRule( regularParameterEligibilityInput ) ) );
+
+            var parameterEligibilityOutput =
+                CreateRule<IParameter>(
+                    parameter => parameter.MustSatisfyAny(
+                        p => p.AddRule( receiverParameterEligibilityOutput ),
+                        p => p.AddRule( regularParameterEligibilityOutput ) ) );
+
+            var parameterEligibilityBoth =
+                CreateRule<IParameter>(
+                    parameter => parameter.MustSatisfyAny(
+                        p => p.AddRule( receiverParameterEligibilityBoth ),
+                        p => p.AddRule( regularParameterEligibilityBoth ) ) );
+
+            var parameterEligibilityDefault =
+                CreateRule<IParameter>(
+                    parameter => parameter.MustSatisfyAny(
+                        p => p.AddRule( receiverParameterEligibilityDefault ),
+                        p => p.AddRule( regularParameterEligibilityDefault ) ) );
 
             _contractEligibilityBoth = CreateRule<IDeclaration>(
                 d =>
@@ -181,7 +246,7 @@ public static partial class EligibilityRuleFactory
 
                     d.Convert()
                         .When<IParameter>()
-                        .MustSatisfyAll( p => p.AddRule( parameterEligibilityDefault ), p => p.MustNotBeExtensionBlockReceiverParameter() );
+                        .AddRule( parameterEligibilityDefault );
 
                     d.Convert().When<IFieldOrPropertyOrIndexer>().AddRule( propertyOrIndexerEligibilityDefault );
                 } );
