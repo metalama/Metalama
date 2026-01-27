@@ -34,13 +34,8 @@ internal sealed class OverrideMethodAdvice : OverrideMemberAdvice<IMethod, IMeth
 
                 break;
 
-            case MethodKind.Operator:
-                context.AddTransformation(
-                    new OverrideOperatorTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef(), this._boundTemplate ) );
-
-                break;
-
             default:
+                // OverrideMethodTransformation handles both regular methods and operators.
                 context.AddTransformation(
                     new OverrideMethodTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef(), this._boundTemplate ) );
 
