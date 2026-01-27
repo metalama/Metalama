@@ -12,7 +12,6 @@
 | 0400-0499 | Attribute deserialization 
 | 0500-0539 | Advices
 | 0540-0549 | Extension Block Introduction
-| 0550-0559 | Operator Introduction
 | 0600-0649 | Metalama.Compiler
 | 0650-0699 | Linker
 | 0700      | Metalama.Framework

@@ -311,23 +311,5 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target is an extension block. Extension blocks can only be introduced into static classes.",
                 _category,
                 Error );
-
-        // Sub-range 550-559: Operator introduction diagnostics.
-
-        internal static readonly DiagnosticDefinition<(string AspectType, IMethod Operator, OperatorKind OperatorKind, int ExpectedCount, int ActualCount)>
-            OperatorHasWrongParameterCount = new(
-                "LAMA0550",
-                "Cannot introduce an operator with wrong parameter count.",
-                "The aspect '{0}' cannot introduce operator '{1}' with OperatorKind '{2}' because it requires {3} parameter(s) but {4} were provided.",
-                _category,
-                Error );
-
-        internal static readonly DiagnosticDefinition<(string AspectType, IMethod Operator, OperatorKind OperatorKind, string ExpectedStaticity)>
-            OperatorHasWrongStaticity = new(
-                "LAMA0551",
-                "Cannot introduce an operator with wrong staticity.",
-                "The aspect '{0}' cannot introduce operator '{1}' with OperatorKind '{2}' because it must be {3}.",
-                _category,
-                Error );
     }
 }
