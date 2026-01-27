@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `TargetClass`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [IntroductionAttribute] applied to 'TargetClass': Cannot change the IsStatic property of an operator method. It is automatically set based on the OperatorKind. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

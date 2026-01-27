@@ -15,7 +15,7 @@ using Metalama.Framework.Engine.Advising;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.IgnoredIntroductionResult;
 
-#pragma warning disable CS0067, CS0169, CS0649
+#pragma warning disable CS0067, CS0169, CS0649, CS0618
 
 internal class Aspect : TypeAspect
 {

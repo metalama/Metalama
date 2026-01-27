@@ -145,27 +145,9 @@ internal sealed partial class LinkerInjectionStep
                     return 1;
 
                 case (not null, not null):
-                    // Order by aspect layer.
-                    var aspectLayerComparison = x.Transformation.OrderWithinPipeline.CompareTo( y.Transformation.OrderWithinPipeline );
-
-                    if ( aspectLayerComparison != 0 )
-                    {
-                        return aspectLayerComparison;
-                    }
-
-                    // Order by aspect instance in the current type.
-                    var aspectInstanceOrderComparison =
-                        x.Transformation.OrderWithinPipelineStepAndType.CompareTo( y.Transformation.OrderWithinPipelineStepAndType );
-
-                    if ( aspectInstanceOrderComparison != 0 )
-                    {
-                        return aspectInstanceOrderComparison;
-                    }
-
-                    // Order by adding order within the aspect instance.
+                    // Order by adding order within the pipeline, then type, then aspect instance.
                     var adviceOrderComparison =
-                        x.Transformation.OrderWithinPipelineStepAndTypeAndAspectInstance.CompareTo(
-                            y.Transformation.OrderWithinPipelineStepAndTypeAndAspectInstance );
+                        x.Transformation.AdviceOrderingIndices.CompareTo( y.Transformation.AdviceOrderingIndices );
 
                     if ( adviceOrderComparison != 0 )
                     {

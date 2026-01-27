@@ -29,29 +29,12 @@ internal sealed class TransformationLinkerOrderComparer : Comparer<ITransformati
             return -1;
         }
 
-        // Sort by pipeline order, i.e. aspect layer and depth.
-        var aspectLayerComparison = x.OrderWithinPipeline.CompareTo( y.OrderWithinPipeline );
+        // Sort by order within the pipeline, then type, then aspect instance (i.e. the order in which the advice were added).
+        var adviceOrderingComparison = x.AdviceOrderingIndices.CompareTo( y.AdviceOrderingIndices );
 
-        if ( aspectLayerComparison != 0 )
+        if ( adviceOrderingComparison != 0 )
         {
-            return aspectLayerComparison;
-        }
-
-        // Sort by processing order within the type (as set with the pipeline).
-        var orderWithinTypeComparison = x.OrderWithinPipelineStepAndType.CompareTo( y.OrderWithinPipelineStepAndType );
-
-        if ( orderWithinTypeComparison != 0 )
-        {
-            return orderWithinTypeComparison;
-        }
-
-        // Sort by order within the aspect instance (i.e. the order in which the advice were added).
-        var aspectInstanceComparison =
-            x.OrderWithinPipelineStepAndTypeAndAspectInstance.CompareTo( y.OrderWithinPipelineStepAndTypeAndAspectInstance );
-
-        if ( aspectInstanceComparison != 0 )
-        {
-            return aspectInstanceComparison;
+            return adviceOrderingComparison;
         }
 
         // There may still be some non-determinism at this point because types of the same depth are not ordered,

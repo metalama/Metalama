@@ -8,7 +8,7 @@ using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.TemplateTypeParameters.IntroduceOperator;
 
-#pragma warning disable CS0219
+#pragma warning disable CS0219, CS0618
 
 public class Aspect : TypeAspect
 {

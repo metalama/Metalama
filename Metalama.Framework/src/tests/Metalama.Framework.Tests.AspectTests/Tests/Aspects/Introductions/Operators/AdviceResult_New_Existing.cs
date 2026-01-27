@@ -29,9 +29,9 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Opera
                 throw new InvalidOperationException( $"Outcome was {result.Outcome} instead of Error." );
             }
 
-            if (result.AdviceKind != AdviceKind.IntroduceOperator)
+            if (result.AdviceKind != AdviceKind.IntroduceMethod)
             {
-                throw new InvalidOperationException( $"AdviceKind was {result.AdviceKind} instead of IntroduceOperator." );
+                throw new InvalidOperationException( $"AdviceKind was {result.AdviceKind} instead of IntroduceMethod." );
             }
 
             // TODO: #33060

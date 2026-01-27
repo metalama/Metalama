@@ -9,6 +9,8 @@
 
 #if ROSLYN_5_0_0_OR_GREATER
 
+#pragma warning disable CS0618 // Obsolete
+
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;

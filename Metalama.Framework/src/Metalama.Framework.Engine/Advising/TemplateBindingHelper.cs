@@ -96,6 +96,8 @@ internal static class TemplateBindingHelper
                 OperatorCategory.Binary => 2,
                 OperatorCategory.Conversion => 1,
                 OperatorCategory.Unary => 1,
+                OperatorCategory.UnaryAssignment => 0, // C# 14 compound operators like ++
+                OperatorCategory.BinaryAssignment => 1, // C# 14 compound operators like +=
                 _ => throw new AssertionFailedException( $"Invalid value for OperatorCategory: {targetMethod.OperatorKind.GetCategory()}." )
             };
 
@@ -367,7 +369,8 @@ internal static class TemplateBindingHelper
                         { MethodKind: OurMethodKind.PropertyGet } => 0,
                         { MethodKind: OurMethodKind.PropertySet or OurMethodKind.EventAdd or OurMethodKind.EventRemove or OurMethodKind.EventRaise } => 1,
                         _ when targetMethod.OperatorKind.GetCategory() is OperatorCategory.Binary => 2,
-                        _ when targetMethod.OperatorKind.GetCategory() is OperatorCategory.Conversion or OperatorCategory.Unary => 1,
+                        _ when targetMethod.OperatorKind.GetCategory() is OperatorCategory.Conversion or OperatorCategory.Unary or OperatorCategory.BinaryAssignment => 1,
+                        _ when targetMethod.OperatorKind.GetCategory() is OperatorCategory.UnaryAssignment => 0,
                         _ => throw new AssertionFailedException( $"Unexpected operator/accessor method: {targetMethod}." )
                     };
 

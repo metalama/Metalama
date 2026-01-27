@@ -85,9 +85,11 @@ internal sealed class ExtensionBlockBuilder : NamedTypeBuilder, IExtensionBlockB
 
     public override string Name
     {
-        get => "";
-        set => throw new NotSupportedException( "Extension blocks are identified by their receiver type, not by name." );
+        get => this._name;
+        set => this._name = value;
     }
+
+    private string _name = "";
 
     public override Accessibility Accessibility
     {

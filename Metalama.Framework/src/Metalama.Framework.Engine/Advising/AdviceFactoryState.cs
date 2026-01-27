@@ -86,12 +86,7 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
         }
     }
 
-    public void SetOrders( ITransformation transformation )
-    {
-        transformation.OrderWithinPipelineStepAndTypeAndAspectInstance = this._nextTransformationOrder++;
-        transformation.OrderWithinPipelineStepAndType = this._orderWithinType;
-        transformation.OrderWithinPipeline = this.AspectOrder;
-    }
+    public AdviceOrderingIndices GetNextAdviceOrderIndices() => new( this.AspectOrder, this._orderWithinType, this._nextTransformationOrder++ );
 
     public int AspectOrder { get; }
 

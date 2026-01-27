@@ -624,9 +624,9 @@ internal sealed partial class LinkerInjectionStep
                             IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
                             _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                         } )
-                    .ThenByDescending( s => s.Transformation.OrderWithinPipeline )
-                    .ThenByDescending( s => s.Transformation.OrderWithinPipelineStepAndType )
-                    .ThenBy( s => s.Transformation.OrderWithinPipelineStepAndTypeAndAspectInstance );
+                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
+                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
+                    .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance );
 
         private static IEnumerable<InsertedStatement> OrderOutputContractStatements( IEnumerable<InsertedStatement> statements )
             =>
@@ -641,16 +641,16 @@ internal sealed partial class LinkerInjectionStep
                                 method.Parameters.Count, // Method return value contracts are ordered after other parameters
                             _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                         } )
-                    .ThenByDescending( s => s.Transformation.OrderWithinPipeline )
-                    .ThenByDescending( s => s.Transformation.OrderWithinPipelineStepAndType )
-                    .ThenBy( s => s.Transformation.OrderWithinPipelineStepAndTypeAndAspectInstance );
+                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
+                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
+                    .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance );
 
         private static MemberLayerIndex GetTransformationMemberLayerIndex( ITransformation? transformation )
             => transformation != null
                 ? new MemberLayerIndex(
-                    transformation.OrderWithinPipeline,
-                    transformation.OrderWithinPipelineStepAndType,
-                    transformation.OrderWithinPipelineStepAndTypeAndAspectInstance )
+                    transformation.AdviceOrderingIndices.OrderWithinPipeline,
+                    transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType,
+                    transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance )
                 : new MemberLayerIndex( 0, 0, 0 );
 
         public void AddIntroducedSyntaxTree( SyntaxTree transformedSyntaxTree )
