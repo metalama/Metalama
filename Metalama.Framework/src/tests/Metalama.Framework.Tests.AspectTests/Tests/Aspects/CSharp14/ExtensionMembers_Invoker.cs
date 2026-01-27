@@ -11,7 +11,6 @@
 #if ROSLYN_5_0_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.ExtensionMembers_Invoker;
