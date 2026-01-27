@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -122,4 +123,32 @@ internal sealed class IntroducedMethod : IntroducedMember, IMethodImpl
     object? IMethodInvoker.Invoke( IEnumerable<IExpression> args ) => this.Invoker.Invoke( args );
 
     public bool? IsIteratorMethod => this._methodBuilderData.IsIteratorMethod;
+
+#if ROSLYN_5_0_0_OR_GREATER
+    [Memo]
+    public IMethod? ExtensionImplementationMethod => this.GetExtensionImplementationMethod();
+
+    private IMethod? GetExtensionImplementationMethod()
+    {
+        // Check if this method is in an extension block.
+        if ( this.DeclaringType is not IExtensionBlock extensionBlock )
+        {
+            return null;
+        }
+
+        // Get the expected implicit method name.
+        var implicitMethodName = this._methodBuilderData.OperatorKind != OperatorKind.None
+            ? OperatorData.GetByKind( this._methodBuilderData.OperatorKind ).MemberName
+            : this._methodBuilderData.Name;
+
+        return ExtensionImplementationLookup.FindImplicitMethod(
+            extensionBlock,
+            implicitMethodName,
+            this._methodBuilderData.IsStatic,
+            this.Parameters,
+            this.Compilation.Comparers );
+    }
+#else
+    IMethod? IMethod.ExtensionImplementationMethod => null;
+#endif
 }

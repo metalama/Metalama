@@ -5,11 +5,13 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Introspection;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Metalama.Framework.Tests.LinkerTests.Runner;
 
@@ -49,6 +51,8 @@ internal abstract class TestTransformationBase : IInjectMemberTransformation
     public IntrospectionTransformationKind TransformationKind => throw new NotSupportedException();
 
     public abstract IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context );
+
+    public IEnumerable<DeclarationBuilderData> GetImplicitDeclarations() => Enumerable.Empty<DeclarationBuilderData>();
 
     public FormattableString ToDisplayString() => $"Test";
 }

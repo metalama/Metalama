@@ -3,6 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Transformations;
 
@@ -25,4 +27,11 @@ internal interface ITransformation : ITransformationBase
     int OrderWithinPipeline { get; set; }
 
     TransformationObservability Observability { get; }
+
+    /// <summary>
+    /// Gets implicit declarations that are generated as a side effect of this transformation.
+    /// These declarations are added to the code model but do not have corresponding syntax transformations.
+    /// Used primarily for extension member implicit implementations.
+    /// </summary>
+    IEnumerable<DeclarationBuilderData> GetImplicitDeclarations();
 }

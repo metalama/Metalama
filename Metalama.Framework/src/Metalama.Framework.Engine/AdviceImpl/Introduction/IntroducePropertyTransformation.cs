@@ -212,4 +212,56 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
             return List( attributes );
         }
     }
+
+#if ROSLYN_5_0_0_OR_GREATER
+    /// <inheritdoc />
+    public override IEnumerable<DeclarationBuilderData> GetImplicitDeclarations()
+    {
+        // Check if the property is in an extension block.
+        var containingDeclaration = this.BuilderData.ContainingDeclaration.GetTarget( this.InitialCompilation );
+
+        if ( containingDeclaration is not IExtensionBlock extensionBlock )
+        {
+            return [];
+        }
+
+        var result = new List<DeclarationBuilderData>( 2 );
+        var propertyName = this.BuilderData.Name;
+        var propertyType = this.BuilderData.Type.GetTarget( this.InitialCompilation );
+
+        // Create implicit method for getter if it exists.
+        if ( this.BuilderData.GetMethod != null )
+        {
+            var getterData = ExtensionImplementationHelper.CreateImplicitAccessorMethod(
+                this.AspectLayerInstance,
+                extensionBlock,
+                propertyName,
+                isSetter: false,
+                this.BuilderData.GetMethod.Accessibility,
+                this.BuilderData.IsStatic,
+                propertyType,
+                this.InitialCompilation );
+
+            result.Add( getterData );
+        }
+
+        // Create implicit method for setter if it exists.
+        if ( this.BuilderData.SetMethod != null )
+        {
+            var setterData = ExtensionImplementationHelper.CreateImplicitAccessorMethod(
+                this.AspectLayerInstance,
+                extensionBlock,
+                propertyName,
+                isSetter: true,
+                this.BuilderData.SetMethod.Accessibility,
+                this.BuilderData.IsStatic,
+                propertyType,
+                this.InitialCompilation );
+
+            result.Add( setterData );
+        }
+
+        return result;
+    }
+#endif
 }

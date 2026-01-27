@@ -157,6 +157,23 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
             ? this.Compilation.Factory.GetDeclaration( this.MethodSymbol.AssociatedSymbol ) as IHasAccessors
             : null;
 
+#if ROSLYN_5_0_0_OR_GREATER
+    public IMethod? ExtensionImplementationMethod
+    {
+        get
+        {
+            // For methods in extension blocks, the compiler generates an implicit static method in the parent type.
+            var implMethod = this.MethodSymbol.AssociatedExtensionImplementation;
+
+            return implMethod != null
+                ? this.Compilation.Factory.GetMethod( implMethod, this.GenericContextForSymbolMapping )
+                : null;
+        }
+    }
+#else
+    IMethod? IMethod.ExtensionImplementationMethod => null;
+#endif
+
     public override MethodBase ToMethodBase() => this.ToMethodInfo();
 
     public override IMember? OverriddenMember => this.OverriddenMethod;

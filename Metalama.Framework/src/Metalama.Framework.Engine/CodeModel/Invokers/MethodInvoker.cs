@@ -114,6 +114,15 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
     private DelegateUserExpression InvokeDefaultMethod( IReadOnlyList<IExpression> args )
     {
+#if ROSLYN_5_0_0_OR_GREATER
+
+        // For extension members, redirect to the implementation method.
+        if ( this.IsExtensionMember )
+        {
+            return this.InvokeExtensionImplementationMethod( args );
+        }
+#endif
+
         return new DelegateUserExpression(
             context =>
             {
@@ -158,6 +167,25 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             },
             (this.Options & InvokerOptions.NullConditional) != 0 ? this.Member.ReturnType.ToNullable() : this.Member.ReturnType );
     }
+
+#if ROSLYN_5_0_0_OR_GREATER
+    private DelegateUserExpression InvokeExtensionImplementationMethod( IReadOnlyList<IExpression> args )
+    {
+        var implMethod = this.Member.ExtensionImplementationMethod;
+
+        if ( implMethod == null )
+        {
+            throw new InvalidOperationException( $"Cannot invoke extension member '{this.Member}' because its implementation method was not found." );
+        }
+
+        // Create an invoker for the implementation method (which is a regular static method).
+        // Pass the receiver as the target for instance methods - the invoker will handle it.
+        var implInvoker = new MethodInvoker( implMethod, this.Options, this.Member.IsStatic ? null : this.Target );
+
+        // Invoke with the original arguments.
+        return (DelegateUserExpression) implInvoker.CreateInvokeExpression( args );
+    }
+#endif
 
     private ExpressionSyntax CreateInvocationExpression(
         ReceiverExpressionSyntax receiverTypedExpressionSyntax,
