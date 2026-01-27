@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
@@ -33,6 +34,8 @@ internal static class ExtensionImplementationHelper
     /// <param name="compilation">The compilation for resolving types.</param>
     /// <param name="declarationKind">The declaration kind (Method or Operator).</param>
     /// <param name="operatorKind">The operator kind if applicable.</param>
+    /// <param name="sourceMethodAttributes">The method-level attributes to copy.</param>
+    /// <param name="sourceReturnParameterAttributes">The return parameter attributes to copy.</param>
     /// <returns>The MethodBuilderData for the implicit method.</returns>
     public static MethodBuilderData CreateImplicitMethod(
         AspectLayerInstance aspectLayerInstance,
@@ -44,7 +47,9 @@ internal static class ExtensionImplementationHelper
         IType returnType,
         CompilationModel compilation,
         DeclarationKind declarationKind = DeclarationKind.Method,
-        OperatorKind operatorKind = OperatorKind.None )
+        OperatorKind operatorKind = OperatorKind.None,
+        ImmutableArray<AttributeBuilderData> sourceMethodAttributes = default,
+        ImmutableArray<AttributeBuilderData> sourceReturnParameterAttributes = default )
     {
         var parentType = extensionBlock.DeclaringType;
 
@@ -94,23 +99,52 @@ internal static class ExtensionImplementationHelper
                 receiverParam.RefKind );
         }
 
-        // Copy the source parameters.
+        // Copy the source parameters, including their attributes.
         foreach ( var param in sourceParameters )
         {
             var paramType = param.Type.GetTarget( compilation );
             var defaultValue = param.DefaultValue?.ToTypedConstant( compilation );
 
-            implicitMethodBuilder.AddParameter(
+            var paramBuilder = (BaseParameterBuilder) implicitMethodBuilder.AddParameter(
                 param.Name ?? $"arg{param.Index}",
                 paramType,
                 param.RefKind,
                 defaultValue );
+
+            // Copy parameter attributes.
+            CopyAttributes( param.Attributes, paramBuilder, compilation );
+        }
+
+        // Copy method-level attributes.
+        if ( !sourceMethodAttributes.IsDefault )
+        {
+            CopyAttributes( sourceMethodAttributes, implicitMethodBuilder, compilation );
+        }
+
+        // Copy return parameter attributes.
+        if ( !sourceReturnParameterAttributes.IsDefault )
+        {
+            CopyAttributes( sourceReturnParameterAttributes, implicitMethodBuilder.ReturnParameter, compilation );
         }
 
         // Freeze and return the builder data.
         implicitMethodBuilder.Freeze();
 
         return implicitMethodBuilder.BuilderData;
+    }
+
+    /// <summary>
+    /// Copies attributes from source builder data to a target declaration builder.
+    /// </summary>
+    private static void CopyAttributes(
+        ImmutableArray<AttributeBuilderData> sourceAttributes,
+        DeclarationBuilder targetBuilder,
+        CompilationModel compilation )
+    {
+        foreach ( var attrData in sourceAttributes )
+        {
+            targetBuilder.AddAttribute( attrData.ToAttributeConstruction( compilation ) );
+        }
     }
 
     /// <summary>
@@ -124,6 +158,8 @@ internal static class ExtensionImplementationHelper
     /// <param name="isPropertyStatic">Whether the property is static.</param>
     /// <param name="propertyType">The property type.</param>
     /// <param name="compilation">The compilation for resolving types.</param>
+    /// <param name="sourceAccessorAttributes">The accessor-level attributes to copy.</param>
+    /// <param name="sourceReturnParameterAttributes">The return parameter attributes to copy (for getter).</param>
     /// <returns>The MethodBuilderData for the implicit accessor method.</returns>
     public static MethodBuilderData CreateImplicitAccessorMethod(
         AspectLayerInstance aspectLayerInstance,
@@ -133,7 +169,9 @@ internal static class ExtensionImplementationHelper
         Accessibility accessorAccessibility,
         bool isPropertyStatic,
         IType propertyType,
-        ICompilation compilation )
+        ICompilation compilation,
+        ImmutableArray<AttributeBuilderData> sourceAccessorAttributes = default,
+        ImmutableArray<AttributeBuilderData> sourceReturnParameterAttributes = default )
     {
         var parentType = extensionBlock.DeclaringType;
         var methodName = (isSetter ? "set_" : "get_") + propertyName;
@@ -189,6 +227,18 @@ internal static class ExtensionImplementationHelper
         {
             // Getter returns the property type.
             implicitMethodBuilder.ReturnType = propertyType;
+        }
+
+        // Copy accessor-level attributes.
+        if ( !sourceAccessorAttributes.IsDefault && compilation is CompilationModel compilationModel )
+        {
+            CopyAttributes( sourceAccessorAttributes, implicitMethodBuilder, compilationModel );
+        }
+
+        // Copy return parameter attributes (primarily for getter).
+        if ( !sourceReturnParameterAttributes.IsDefault && compilation is CompilationModel compModel )
+        {
+            CopyAttributes( sourceReturnParameterAttributes, implicitMethodBuilder.ReturnParameter, compModel );
         }
 
         // Freeze and return the builder data.

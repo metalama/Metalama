@@ -167,6 +167,146 @@ public sealed partial class CodeModelTests
         // The code model maps this to Public.
         Assert.Equal( Accessibility.Public, codeModelAccessibility );
     }
+
+    [Fact]
+    public void ExtensionMemberAttributes_MirroredToImplementation()
+    {
+        // This test examines how Roslyn mirrors custom attributes from extension member declarations
+        // to the implicit implementation methods on the parent type.
+        const string code = """
+                            using System;
+                            using System.Runtime.CompilerServices;
+
+                            [AttributeUsage(AttributeTargets.All, AllowMultiple = true)]
+                            public class MyMethodAttribute : Attribute
+                            {
+                                public MyMethodAttribute() { }
+                                public MyMethodAttribute(string name) { Name = name; }
+                                public string Name { get; set; }
+                            }
+
+                            [AttributeUsage(AttributeTargets.All)]
+                            public class MyParamAttribute : Attribute { }
+
+                            [AttributeUsage(AttributeTargets.All)]
+                            public class MyReturnAttribute : Attribute { }
+
+                            public static class MyExtensions
+                            {
+                                extension(string source)
+                                {
+                                    // Method with attributes on method, return, and parameter.
+                                    [MyMethod("OnMethod")]
+                                    [return: MyReturn]
+                                    public int MethodWithAttributes([MyParam] int x) => source.Length + x;
+
+                                    // Property with attribute on getter.
+                                    public int PropertyWithAttributes
+                                    {
+                                        [MyMethod("OnGetter")]
+                                        get => source.Length;
+                                    }
+                                }
+                            }
+                            """;
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+        var type = compilation.Types.OfName( "MyExtensions" ).Single();
+
+        // Get the extension block.
+        var extensionBlock = type.ExtensionBlocks.Single();
+
+        // Get the extension method and property.
+        var extensionMethod = extensionBlock.Methods.Single();
+        var extensionProperty = extensionBlock.Properties.Single();
+        var extensionGetter = extensionProperty.GetMethod!;
+
+        // Check attributes on the extension method itself.
+        var extensionMethodAttrs = extensionMethod.Attributes.ToList();
+        var extensionMethodMyMethodAttr = extensionMethodAttrs.FirstOrDefault( a => a.Type.Name == "MyMethodAttribute" );
+
+        // Check attributes on the extension method's return parameter.
+        var extensionMethodReturnAttrs = extensionMethod.ReturnParameter.Attributes.ToList();
+        var extensionMethodReturnMyReturnAttr = extensionMethodReturnAttrs.FirstOrDefault( a => a.Type.Name == "MyReturnAttribute" );
+
+        // Check attributes on the extension method's parameter.
+        var extensionMethodParamAttrs = extensionMethod.Parameters[0].Attributes.ToList();
+        var extensionMethodParamMyParamAttr = extensionMethodParamAttrs.FirstOrDefault( a => a.Type.Name == "MyParamAttribute" );
+
+        // Check attributes on the getter.
+        var extensionGetterAttrs = extensionGetter.Attributes.ToList();
+        var extensionGetterMyMethodAttr = extensionGetterAttrs.FirstOrDefault( a => a.Type.Name == "MyMethodAttribute" );
+
+        // Now check the implicit implementation methods on the parent type.
+        // These are the static methods that Roslyn generates.
+        var implMethods = type.Methods.Where( m => m.IsImplicitlyDeclared ).ToList();
+
+        // Find the implementation method for MethodWithAttributes.
+        var implMethod = implMethods.FirstOrDefault( m => m.Name == "MethodWithAttributes" );
+        var implMethodAttrs = implMethod?.Attributes.ToList();
+        var implMethodMyMethodAttr = implMethodAttrs?.FirstOrDefault( a => a.Type.Name == "MyMethodAttribute" );
+
+        // Check implementation method's return parameter.
+        var implMethodReturnAttrs = implMethod?.ReturnParameter.Attributes.ToList();
+        var implMethodReturnMyReturnAttr = implMethodReturnAttrs?.FirstOrDefault( a => a.Type.Name == "MyReturnAttribute" );
+
+        // Check implementation method's parameters (first param is receiver, second is x).
+        var implMethodParamAttrs = implMethod?.Parameters.Count > 1 ? implMethod.Parameters[1].Attributes.ToList() : null;
+        var implMethodParamMyParamAttr = implMethodParamAttrs?.FirstOrDefault( a => a.Type.Name == "MyParamAttribute" );
+
+        // Find the implementation method for the getter (get_PropertyWithAttributes).
+        var implGetter = implMethods.FirstOrDefault( m => m.Name == "get_PropertyWithAttributes" );
+        var implGetterAttrs = implGetter?.Attributes.ToList();
+        var implGetterMyMethodAttr = implGetterAttrs?.FirstOrDefault( a => a.Type.Name == "MyMethodAttribute" );
+
+        // Output the findings for analysis.
+        // Extension method attributes:
+        Assert.NotNull( extensionMethodMyMethodAttr ); // Extension method has the attribute.
+        Assert.NotNull( extensionMethodReturnMyReturnAttr ); // Extension method return has the attribute.
+        Assert.NotNull( extensionMethodParamMyParamAttr ); // Extension method param has the attribute.
+        Assert.NotNull( extensionGetterMyMethodAttr ); // Extension getter has the attribute.
+
+        // Implementation method attributes - document what Roslyn does:
+        // These assertions document the observed behavior. If they fail, Roslyn's behavior has changed.
+
+        // Method attribute mirroring:
+        var methodAttrMirrored = implMethodMyMethodAttr != null;
+
+        // Return attribute mirroring:
+        var returnAttrMirrored = implMethodReturnMyReturnAttr != null;
+
+        // Parameter attribute mirroring:
+        var paramAttrMirrored = implMethodParamMyParamAttr != null;
+
+        // Getter attribute mirroring:
+        var getterAttrMirrored = implGetterMyMethodAttr != null;
+
+        // Log what we found (these will show in test output if test fails).
+        Assert.True( implMethod != null, "Implementation method 'MethodWithAttributes' not found" );
+        Assert.True( implGetter != null, "Implementation getter 'get_PropertyWithAttributes' not found" );
+
+        // Document the actual Roslyn behavior by checking what's mirrored.
+        // If these assertions fail, we'll see what Roslyn actually does.
+        // For now, we're just documenting - adjust based on actual behavior.
+
+        // Document Roslyn's actual behavior: ALL attributes are mirrored from extension members to implementation.
+        // Method attributes are mirrored.
+        Assert.True( methodAttrMirrored, "Roslyn mirrors method attributes to implementation" );
+
+        // Return attributes are mirrored.
+        Assert.True( returnAttrMirrored, "Roslyn mirrors return attributes to implementation" );
+
+        // Parameter attributes are mirrored (at the correct offset - first param is receiver).
+        Assert.True( paramAttrMirrored, "Roslyn mirrors parameter attributes to implementation" );
+
+        // Accessor (getter/setter) attributes are mirrored.
+        Assert.True( getterAttrMirrored, "Roslyn mirrors accessor attributes to implementation" );
+
+        // Verify the implementation method has the expected structure.
+        Assert.Equal( 2, implMethod!.Parameters.Count ); // receiver + x
+        Assert.Single( implGetter!.Parameters ); // receiver only
+    }
 }
 
 #endif

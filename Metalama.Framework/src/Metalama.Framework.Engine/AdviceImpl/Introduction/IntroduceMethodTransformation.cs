@@ -197,7 +197,9 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
             returnType,
             this.InitialCompilation,
             declarationKind,
-            this.BuilderData.OperatorKind );
+            this.BuilderData.OperatorKind,
+            this.BuilderData.Attributes,
+            this.BuilderData.ReturnParameter.Attributes );
 
         return [implicitMethodData];
     }
