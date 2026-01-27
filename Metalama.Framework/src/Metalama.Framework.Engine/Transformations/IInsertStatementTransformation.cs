@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Engine.Transformations;
 
 /// <summary>
-/// Represents a code transformation that insert statements into the target member or extension block.
+/// Represents a code transformation that inserts statements into the target member or extension block.
 /// </summary>
 internal interface IInsertStatementTransformation : ISyntaxTreeTransformation
 {

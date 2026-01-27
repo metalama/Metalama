@@ -517,7 +517,7 @@ internal sealed partial class LinkerInjectionStep
                             && (bottomBound == null || GetTransformationMemberLayerIndex( s.Transformation ) >= bottomBound)
                             && (topBound == null || GetTransformationMemberLayerIndex( s.Transformation ) < topBound) );
 
-            var orderedInputContractStatements = OrderInputContractStatements( inputContractStatements );
+            var orderedInputContractStatements = OrderContractStatements( inputContractStatements );
 
             statements.AddRange(
                 orderedInputContractStatements.Select(
@@ -587,7 +587,7 @@ internal sealed partial class LinkerInjectionStep
                             && GetTransformationMemberLayerIndex( s.Transformation ) >= bottomBound
                             && (topBound == null || GetTransformationMemberLayerIndex( s.Transformation ) < topBound) );
 
-            var orderedOutputContractStatements = OrderOutputContractStatements( outputContractStatements );
+            var orderedOutputContractStatements = OrderContractStatements( outputContractStatements );
 
             statements.AddRange(
                 orderedOutputContractStatements.Select(
@@ -614,37 +614,14 @@ internal sealed partial class LinkerInjectionStep
                     } )
                 .ThenBy( s => (s.ContextDeclaration as IMember)?.ToDisplayString() );
 
-        private static IEnumerable<InsertedStatement> OrderInputContractStatements( IEnumerable<InsertedStatement> statements )
-            =>
-
-                // Makes sure that the order is not changed when override is added in the middle of aspects that insert statements.
-                statements
-                    .OrderBy(
-                        s =>
-                        {
-                            // Receiver parameter contracts come first (before method parameter contracts).
-                            // These are identified by their parent transformation type.
-                            if ( s.Transformation is ContractExtensionBlockTransformation )
-                            {
-                                return -1;
-                            }
-
-                            return s.ContextDeclaration switch
-                            {
-                                // Extension block receiver parameters are ordered first (before method parameters).
-                                // This case handles any other transformations that might use receiver parameters directly.
-                                IParameter { ContainingDeclaration: IExtensionBlock } => -1,
-                                IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
-                                IParameter { IsReturnParameter: true, ContainingDeclaration: IMethod method } =>
-                                    method.Parameters.Count, // Return parameter contracts (for receiver contracts on parameterless methods) are ordered after other parameters.
-                                _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
-                            };
-                        } )
-                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
-                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
-                    .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance );
-
-        private static IEnumerable<InsertedStatement> OrderOutputContractStatements( IEnumerable<InsertedStatement> statements )
+        /// <summary>
+        /// Orders contract statements ensuring:
+        /// 1. Receiver parameter contracts (extension blocks) come first
+        /// 2. Regular parameters are ordered by index
+        /// 3. Return parameter contracts come last
+        /// This ordering is consistent for both input and output contracts.
+        /// </summary>
+        private static IEnumerable<InsertedStatement> OrderContractStatements( IEnumerable<InsertedStatement> statements )
             =>
 
                 // Makes sure that the order is not changed when override is added in the middle of aspects that insert statements.
@@ -662,11 +639,10 @@ internal sealed partial class LinkerInjectionStep
                             return s.ContextDeclaration switch
                             {
                                 // Extension block receiver parameters are ordered first.
-                                // This case handles any other transformations that might use receiver parameters directly.
                                 IParameter { ContainingDeclaration: IExtensionBlock } => -1,
                                 IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
                                 IParameter { IsReturnParameter: true, ContainingDeclaration: IMethod method } =>
-                                    method.Parameters.Count, // Method return value contracts are ordered after other parameters
+                                    method.Parameters.Count, // Return parameter contracts are ordered after other parameters.
                                 _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                             };
                         } )

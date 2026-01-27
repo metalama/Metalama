@@ -683,57 +683,63 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             case IExtensionBlock extensionBlock:
                 {
                     // For extension blocks, statements are generated per-method (each with a ContextDeclaration
-                    // that is contained in the target method). Route using standard IsContainedIn filtering.
+                    // that is a parameter whose ContainingDeclaration is the target method).
+                    // Group statements by method first (O(N)), then look up by method (O(M)), for O(N+M) total
+                    // instead of O(N×M) with the previous IsContainedIn filtering approach.
                     var insertedStatements = GetInsertedStatements();
 
+                    // Build a dictionary grouping statements by their containing method.
+                    // ContextDeclaration is always a parameter (regular or return), and ContainingDeclaration is the method.
+                    var statementsByMethod = new Dictionary<IRef<IMethodBase>, List<InsertedStatement>>( RefEqualityComparer<IMethodBase>.Default );
+
+                    foreach ( var statement in insertedStatements )
+                    {
+                        if ( statement.ContextDeclaration.ContainingDeclaration is IMethodBase method )
+                        {
+                            var methodRef = method.ToRef();
+
+                            if ( !statementsByMethod.TryGetValue( methodRef, out var list ) )
+                            {
+                                list = new List<InsertedStatement>();
+                                statementsByMethod[methodRef] = list;
+                            }
+
+                            list.Add( statement );
+                        }
+                    }
+
+                    // Now assign statements to each member by direct lookup.
                     foreach ( var method in extensionBlock.Methods.Where( m => !m.IsStatic ) )
                     {
-                        transformationCollection.AddInsertedStatements(
-                            method.ToRef(),
-                            insertedStatements
-                                .Where( s => s.ContextDeclaration.IsContainedIn( method ) )
-                                .ToReadOnlyList() );
+                        if ( statementsByMethod.TryGetValue( method.ToRef(), out var methodStatements ) )
+                        {
+                            transformationCollection.AddInsertedStatements( method.ToRef(), methodStatements );
+                        }
                     }
 
                     foreach ( var property in extensionBlock.Properties.Where( p => !p.IsStatic ) )
                     {
-                        if ( property.GetMethod != null )
+                        if ( property.GetMethod != null && statementsByMethod.TryGetValue( property.GetMethod.ToRef(), out var getStatements ) )
                         {
-                            transformationCollection.AddInsertedStatements(
-                                property.GetMethod.ToRef(),
-                                insertedStatements
-                                    .Where( s => s.ContextDeclaration.IsContainedIn( property.GetMethod ) )
-                                    .ToReadOnlyList() );
+                            transformationCollection.AddInsertedStatements( property.GetMethod.ToRef(), getStatements );
                         }
 
-                        if ( property.SetMethod != null )
+                        if ( property.SetMethod != null && statementsByMethod.TryGetValue( property.SetMethod.ToRef(), out var setStatements ) )
                         {
-                            transformationCollection.AddInsertedStatements(
-                                property.SetMethod.ToRef(),
-                                insertedStatements
-                                    .Where( s => s.ContextDeclaration.IsContainedIn( property.SetMethod ) )
-                                    .ToReadOnlyList() );
+                            transformationCollection.AddInsertedStatements( property.SetMethod.ToRef(), setStatements );
                         }
                     }
 
                     foreach ( var indexer in extensionBlock.Indexers.Where( i => !i.IsStatic ) )
                     {
-                        if ( indexer.GetMethod != null )
+                        if ( indexer.GetMethod != null && statementsByMethod.TryGetValue( indexer.GetMethod.ToRef(), out var getStatements ) )
                         {
-                            transformationCollection.AddInsertedStatements(
-                                indexer.GetMethod.ToRef(),
-                                insertedStatements
-                                    .Where( s => s.ContextDeclaration.IsContainedIn( indexer.GetMethod ) )
-                                    .ToReadOnlyList() );
+                            transformationCollection.AddInsertedStatements( indexer.GetMethod.ToRef(), getStatements );
                         }
 
-                        if ( indexer.SetMethod != null )
+                        if ( indexer.SetMethod != null && statementsByMethod.TryGetValue( indexer.SetMethod.ToRef(), out var setStatements ) )
                         {
-                            transformationCollection.AddInsertedStatements(
-                                indexer.SetMethod.ToRef(),
-                                insertedStatements
-                                    .Where( s => s.ContextDeclaration.IsContainedIn( indexer.SetMethod ) )
-                                    .ToReadOnlyList() );
+                            transformationCollection.AddInsertedStatements( indexer.SetMethod.ToRef(), setStatements );
                         }
                     }
 
