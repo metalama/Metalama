@@ -163,6 +163,7 @@ public static class AdviserExtensions
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/>.</returns>
     /// <seealso href="@introducing-members"/>
     /// <seealso href="@sharing-state-with-advice"/>
+    [Obsolete( "Use IntroduceMethod with the buildMethod callback and set IMethodBuilder.OperatorKind instead." )]
     public static IIntroductionAdviceResult<IMethod> IntroduceUnaryOperator(
         this IAdviser<INamedType> adviser,
         string template,
@@ -173,7 +174,9 @@ public static class AdviserExtensions
         Action<IMethodBuilder>? buildOperator = null,
         object? args = null,
         object? tags = null )
+#pragma warning disable CS0618 // Obsolete
         => ((IAdviserInternal) adviser).AdviceFactory.IntroduceUnaryOperator(
+#pragma warning restore CS0618
             adviser.Target,
             template,
             inputType,
@@ -203,6 +206,7 @@ public static class AdviserExtensions
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/>.</returns>
     /// <seealso href="@introducing-members"/>
     /// <seealso href="@sharing-state-with-advice"/>
+    [Obsolete( "Use IntroduceMethod with the buildMethod callback and set IMethodBuilder.OperatorKind instead." )]
     public static IIntroductionAdviceResult<IMethod> IntroduceBinaryOperator(
         this IAdviser<INamedType> adviser,
         string template,
@@ -214,7 +218,9 @@ public static class AdviserExtensions
         Action<IMethodBuilder>? buildOperator = null,
         object? args = null,
         object? tags = null )
+#pragma warning disable CS0618 // Obsolete
         => ((IAdviserInternal) adviser).AdviceFactory.IntroduceBinaryOperator(
+#pragma warning restore CS0618
             adviser.Target,
             template,
             leftType,
@@ -245,6 +251,7 @@ public static class AdviserExtensions
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/>.</returns>
     /// <seealso href="@introducing-members"/>
     /// <seealso href="@sharing-state-with-advice"/>
+    [Obsolete( "Use IntroduceMethod with the buildMethod callback and set IMethodBuilder.OperatorKind instead." )]
     public static IIntroductionAdviceResult<IMethod> IntroduceConversionOperator(
         this IAdviser<INamedType> adviser,
         string template,
@@ -256,7 +263,9 @@ public static class AdviserExtensions
         Action<IMethodBuilder>? buildOperator = null,
         object? args = null,
         object? tags = null )
+#pragma warning disable CS0618 // Obsolete
         => ((IAdviserInternal) adviser).AdviceFactory.IntroduceConversionOperator(
+#pragma warning restore CS0618
             adviser.Target,
             template,
             fromType,

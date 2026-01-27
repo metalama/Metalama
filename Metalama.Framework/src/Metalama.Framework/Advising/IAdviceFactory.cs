@@ -114,6 +114,7 @@ namespace Metalama.Framework.Advising
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced unary operator.</returns>
         /// <seealso href="@introducing-members"/>
+        [Obsolete( "Use IntroduceMethod with the buildMethod callback and set IMethodBuilder.OperatorKind instead." )]
         IIntroductionAdviceResult<IMethod> IntroduceUnaryOperator(
             INamedType targetType,
             string template,
@@ -140,6 +141,7 @@ namespace Metalama.Framework.Advising
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced binary operator.</returns>
         /// <seealso href="@introducing-members"/>
+        [Obsolete( "Use IntroduceMethod with the buildMethod callback and set IMethodBuilder.OperatorKind instead." )]
         IIntroductionAdviceResult<IMethod> IntroduceBinaryOperator(
             INamedType targetType,
             string template,
@@ -167,6 +169,7 @@ namespace Metalama.Framework.Advising
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced conversion operator.</returns>
         /// <seealso href="@introducing-members"/>
+        [Obsolete( "Use IntroduceMethod with the buildMethod callback and set IMethodBuilder.OperatorKind instead." )]
         IIntroductionAdviceResult<IMethod> IntroduceConversionOperator(
             INamedType targetType,
             string template,

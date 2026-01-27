@@ -39,5 +39,12 @@ namespace Metalama.Framework.Code.DeclarationBuilders
         /// Gets or sets a value indicating whether the method is read-only (applicable to struct methods).
         /// </summary>
         new bool IsReadOnly { get; set; }
+
+        /// <summary>
+        /// Gets or sets the operator kind. When set to a value other than <see cref="OperatorKind.None"/>,
+        /// the method becomes an operator. The name and <see cref="IMemberOrNamedType.IsStatic"/>
+        /// properties are automatically set based on the operator kind.
+        /// </summary>
+        new OperatorKind OperatorKind { get; set; }
     }
 }

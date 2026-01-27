@@ -55,12 +55,13 @@ internal sealed class IntroduceOperatorAdvice : IntroduceMemberAdvice<IMethod, I
     {
         var operatorData = OperatorData.GetByKind( this._operatorKind );
 
+        // Note: IsStatic is automatically set by the MethodBuilder constructor based on operatorKind.
         var builder = new MethodBuilder(
             this.AspectLayerInstance,
             this.TargetDeclaration,
             operatorData.MemberName,
             DeclarationKind.Operator,
-            this._operatorKind ) { IsStatic = operatorData.IsStatic };
+            this._operatorKind );
 
         var runtimeParameters = this.Template.AssertNotNull().TemplateClassMember.RunTimeParameters;
 

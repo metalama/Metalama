@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -123,6 +124,53 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
     }
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceMethod;
+
+    protected override void ValidateBuilder( MethodBuilder builder, IDiagnosticAdder diagnosticAdder )
+    {
+        base.ValidateBuilder( builder, diagnosticAdder );
+
+        // Validate operator signature if OperatorKind is set.
+        if ( builder.OperatorKind != OperatorKind.None )
+        {
+            this.ValidateOperatorSignature( builder, diagnosticAdder );
+        }
+    }
+
+    private void ValidateOperatorSignature( MethodBuilder builder, IDiagnosticAdder diagnosticAdder )
+    {
+        var category = builder.OperatorKind.GetCategory();
+
+        var expectedParameterCount = category switch
+        {
+            OperatorCategory.Binary => 2,
+            OperatorCategory.Conversion => 1,
+            OperatorCategory.Unary => 1,
+            OperatorCategory.UnaryAssignment => 0, // C# 14 compound operators like ++
+            OperatorCategory.BinaryAssignment => 1, // C# 14 compound operators like +=
+            _ => throw new AssertionFailedException( $"Unexpected OperatorCategory: {category}." )
+        };
+
+        if ( builder.Parameters.Count != expectedParameterCount )
+        {
+            diagnosticAdder.Report(
+                AdviceDiagnosticDescriptors.OperatorHasWrongParameterCount.CreateRoslynDiagnostic(
+                    this.TargetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, builder, builder.OperatorKind, expectedParameterCount, builder.Parameters.Count),
+                    this ) );
+        }
+
+        // Validate IsStatic matches operator requirements.
+        var operatorData = OperatorData.GetByKind( builder.OperatorKind );
+
+        if ( builder.IsStatic != operatorData.IsStatic )
+        {
+            diagnosticAdder.Report(
+                AdviceDiagnosticDescriptors.OperatorHasWrongStaticity.CreateRoslynDiagnostic(
+                    this.TargetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, builder, builder.OperatorKind, operatorData.IsStatic),
+                    this ) );
+        }
+    }
 
     protected override IntroductionAdviceResult<IMethod> ImplementCore( MethodBuilder builder, AdviceImplementationContext context )
     {

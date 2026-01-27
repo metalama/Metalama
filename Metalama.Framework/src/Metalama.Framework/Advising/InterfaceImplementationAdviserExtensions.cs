@@ -425,6 +425,7 @@ public static class InterfaceImplementationAdviserExtensions
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden unary operator.</returns>
     /// <seealso href="@introducing-members"/>
+    [Obsolete( "Use IntroduceMethod with the buildMethod callback and set IMethodBuilder.OperatorKind instead." )]
     public static IIntroductionAdviceResult<IMethod> IntroduceUnaryOperator(
         this IInterfaceImplementationAdviser adviser,
         string template,
@@ -435,7 +436,9 @@ public static class InterfaceImplementationAdviserExtensions
         Action<IMethodBuilder>? buildOperator = null,
         object? args = null,
         object? tags = null )
+#pragma warning disable CS0618 // Obsolete
         => ((IAdviserInternal) adviser).AdviceFactory.IntroduceUnaryOperator(
+#pragma warning restore CS0618
             adviser.Target,
             template,
             inputType,

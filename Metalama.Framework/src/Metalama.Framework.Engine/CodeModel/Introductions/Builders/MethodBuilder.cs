@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -24,6 +25,8 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 {
     private bool _isReadOnly;
     private bool _isIteratorMethod;
+    private DeclarationKind _declarationKind;
+    private OperatorKind _operatorKind;
 
     public IntroducedRef<IMethod> Ref { get; }
 
@@ -41,8 +44,17 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
                             (operatorKind != OperatorKind.None) );
 
         this.Ref = new IntroducedRef<IMethod>( this.Compilation.RefFactory );
-        this.DeclarationKind = declarationKind;
-        this.OperatorKind = operatorKind;
+        this._declarationKind = declarationKind;
+        this._operatorKind = operatorKind;
+
+        // When created with an operator kind, set IsStatic based on the operator.
+        // This must be done here because the IsStatic setter will reject changes
+        // when _operatorKind is already set.
+        if ( operatorKind != OperatorKind.None )
+        {
+            var operatorData = OperatorData.GetByKind( operatorKind );
+            base.IsStatic = operatorData.IsStatic;
+        }
 
         this.ReturnParameter =
             new ParameterBuilder(
@@ -55,6 +67,36 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
     }
 
     public TypeParameterBuilderList TypeParameters { get; } = [];
+
+    public override string Name
+    {
+        get => base.Name;
+        set
+        {
+            if ( this._operatorKind != OperatorKind.None && value != base.Name )
+            {
+                throw new InvalidOperationException(
+                    "Cannot change the name of an operator method. The name is automatically set based on the OperatorKind." );
+            }
+
+            base.Name = value;
+        }
+    }
+
+    public override bool IsStatic
+    {
+        get => base.IsStatic;
+        set
+        {
+            if ( this._operatorKind != OperatorKind.None && value != base.IsStatic )
+            {
+                throw new InvalidOperationException(
+                    "Cannot change the IsStatic property of an operator method. It is automatically set based on the OperatorKind." );
+            }
+
+            base.IsStatic = value;
+        }
+    }
 
     public bool IsReadOnly
     {
@@ -154,9 +196,57 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     public override MethodBase ToMethodBase() => this.ToMethodInfo();
 
-    public override DeclarationKind DeclarationKind { get; }
+    public override DeclarationKind DeclarationKind => this._declarationKind;
 
-    public OperatorKind OperatorKind { get; }
+    public OperatorKind OperatorKind
+    {
+        get => this._operatorKind;
+        set
+        {
+            this.CheckNotFrozen();
+
+            if ( value == this._operatorKind )
+            {
+                return;
+            }
+
+            if ( value == OperatorKind.None )
+            {
+                // Switching from operator to regular method.
+                this._operatorKind = OperatorKind.None;
+                this._declarationKind = DeclarationKind.Method;
+
+                // Name and IsStatic are not automatically reset - user must set them manually.
+            }
+            else
+            {
+                // OperatorKind can only be set once (from None to a specific value).
+                if ( this._operatorKind != OperatorKind.None )
+                {
+                    throw new InvalidOperationException(
+                        $"The OperatorKind cannot be changed from '{this._operatorKind}' to '{value}'. It can only be set once." );
+                }
+
+                // Switching to operator.
+                if ( !OperatorData.IsUserDefinable( value ) )
+                {
+                    throw new ArgumentException(
+                        $"The operator kind '{value}' is not user-definable and cannot be introduced.",
+                        nameof(value) );
+                }
+
+                var operatorData = OperatorData.GetByKind( value );
+
+                // Set Name and IsStatic BEFORE setting _operatorKind to bypass validation.
+                // We use the base setters directly to avoid our validation that prevents
+                // changing these properties when _operatorKind is set.
+                base.Name = operatorData.MemberName;
+                base.IsStatic = operatorData.IsStatic;
+                this._operatorKind = value;
+                this._declarationKind = DeclarationKind.Operator;
+            }
+        }
+    }
 
     IMethod IMethod.Definition => this;
 
