@@ -86,7 +86,7 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
         }
     }
 
-    public AdviceOrderingIndices GetAdviceOrderIndices() => new( this.AspectOrder, this._orderWithinType, this._nextTransformationOrder++ );
+    public AdviceOrderingIndices GetNextAdviceOrderIndices() => new( this.AspectOrder, this._orderWithinType, this._nextTransformationOrder++ );
 
     public int AspectOrder { get; }
 

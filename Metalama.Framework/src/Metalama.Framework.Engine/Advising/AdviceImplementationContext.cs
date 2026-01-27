@@ -13,7 +13,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Advising;
 
-internal class AdviceImplementationContext
+internal sealed class AdviceImplementationContext
 {
     private readonly IAdviceExecutionContext _adviceExecutionContext;
 
@@ -44,12 +44,17 @@ internal class AdviceImplementationContext
 
     public void AddTransformation( ITransformation transformation )
     {
-        transformation.SetAdviceOrderingIndices( this._adviceExecutionContext.GetAdviceOrderIndices() );
+        transformation.SetAdviceOrderingIndices( this._adviceExecutionContext.GetNextAdviceOrderIndices() );
         this.AddTransformationWithoutSettingOrders( transformation );
     }
 
-    public AdviceOrderingIndices GetAdviceOrderIndices()
-        => this._adviceExecutionContext.GetAdviceOrderIndices();
+    /// <summary>
+    /// Gets the ordering indices for the next transformation. This method has a side effect: it increments the internal
+    /// transformation counter, so each call returns a unique set of indices. Do not call this method more than once
+    /// per transformation.
+    /// </summary>
+    public AdviceOrderingIndices GetNextAdviceOrderIndices()
+        => this._adviceExecutionContext.GetNextAdviceOrderIndices();
 
     public void AddTransformationWithoutSettingOrders( ITransformation transformation )
     {

@@ -75,7 +75,7 @@ internal sealed class IntroduceExtensionBlockAdvice : IntroduceDeclarationAdvice
         // No uniqueness check - multiple extension blocks with the same receiver are allowed.
 
         // Get ordering values for deterministic naming.
-        var orders = context.GetAdviceOrderIndices();
+        var orders = context.GetNextAdviceOrderIndices();
 
         // Set deterministic name if not user-defined.
         if ( string.IsNullOrEmpty( builder.Name ) )

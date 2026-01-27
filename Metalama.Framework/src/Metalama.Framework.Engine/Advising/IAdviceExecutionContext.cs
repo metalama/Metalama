@@ -29,9 +29,11 @@ internal interface IAdviceExecutionContext
     void AddTransitiveAspects( ImmutableArray<TransitiveAspectInstance> aspects );
 
     /// <summary>
-    /// Gets the ordering values for the next transformation and increments the counter.
+    /// Gets the ordering indices for the next transformation. This method has a side effect: it increments the internal
+    /// transformation counter, so each call returns a unique set of indices. Do not call this method more than once
+    /// per transformation.
     /// </summary>
-    AdviceOrderingIndices GetAdviceOrderIndices();
+    AdviceOrderingIndices GetNextAdviceOrderIndices();
 
     int AspectOrder { get; }
 
