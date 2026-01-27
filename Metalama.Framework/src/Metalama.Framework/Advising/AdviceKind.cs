@@ -42,5 +42,6 @@ public enum AdviceKind
     IntroduceNamespace,
     OverrideEventRaise,
     OverrideEventInvoke,
-    PullConstructorParameter
+    PullConstructorParameter,
+    IntroduceExtensionBlock
 }

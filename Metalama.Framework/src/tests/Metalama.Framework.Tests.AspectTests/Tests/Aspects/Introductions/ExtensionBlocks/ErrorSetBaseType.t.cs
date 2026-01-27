@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `TargetType`: `'Exception of type 'System.NotSupportedException' thrown while executing BuildAspect for aspect [IntroductionAttribute] applied to 'TargetType': Extension blocks cannot have a base type. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

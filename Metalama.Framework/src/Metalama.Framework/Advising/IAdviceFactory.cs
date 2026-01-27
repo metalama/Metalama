@@ -943,6 +943,43 @@ namespace Metalama.Framework.Advising
             OverrideStrategy whenExists = OverrideStrategy.Default,
             Action<INamedTypeBuilder>? buildType = null );
 
+        /// <summary>
+        /// Introduces a new extension block into a static class. Extension blocks allow adding
+        /// extension members (methods, properties, indexers) to a type (represented as an <see cref="IType"/>). Requires C# 14+ and Roslyn 5.0+.
+        /// </summary>
+        /// <param name="targetStaticClass">The static class into which the extension block must be introduced.
+        ///     Only static classes can contain extension blocks.</param>
+        /// <param name="receiverType">The type being extended. Members introduced into this extension block
+        ///     will appear as members of this type.</param>
+        /// <param name="receiverParameterName">The name of the receiver parameter. Set to <c>null</c> or empty
+        ///     for a static extension (members appear as static members of the extended type).
+        ///     Set to a non-empty string (e.g., "self", "value") for an instance extension.</param>
+        /// <param name="buildExtensionBlock">An optional callback that allows you to configure the extension block,
+        ///     such as adding type parameters or attributes to the receiver parameter.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice.
+        ///     The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced extension block.
+        ///     The result also implements <see cref="IAdviser{T}"/> and can be used to introduce members.</returns>
+        IIntroductionAdviceResult<IExtensionBlock> IntroduceExtensionBlock(
+            INamedType targetStaticClass,
+            IType receiverType,
+            string? receiverParameterName = null,
+            Action<IExtensionBlockBuilder>? buildExtensionBlock = null );
+
+        /// <summary>
+        /// Introduces a new extension block into a static class. Extension blocks allow adding
+        /// extension members (methods, properties, indexers) to a type  (represented as a <see cref="Type"/>). Requires C# 14+ and Roslyn 5.0+.
+        /// </summary>
+        /// <param name="targetStaticClass">The static class into which the extension block must be introduced.</param>
+        /// <param name="receiverType">The <see cref="Type"/> being extended.</param>
+        /// <param name="receiverParameterName">The name of the receiver parameter. Set to <c>null</c> or empty
+        ///     for a static extension. Set to a non-empty string for an instance extension.</param>
+        /// <param name="buildExtensionBlock">An optional callback to configure the extension block.</param>
+        IIntroductionAdviceResult<IExtensionBlock> IntroduceExtensionBlock(
+            INamedType targetStaticClass,
+            Type receiverType,
+            string? receiverParameterName = null,
+            Action<IExtensionBlockBuilder>? buildExtensionBlock = null );
+
         void AddAspect( IDeclaration declaration, IAspect aspect );
 
         void RequireAspect( IDeclaration adviserTarget, Type type );

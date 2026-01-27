@@ -293,5 +293,23 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce the partial member '{1}' into type '{2}' because it is not partial.",
                 _category,
                 Error );
+
+        // Sub-range 540-549: Extension block introduction diagnostics.
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IType ReceiverType, INamedType TargetType)>
+            ExtensionBlockTargetMustBeStaticClass = new(
+                "LAMA0540",
+                "Cannot introduce an extension block into a non-static class.",
+                "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target type is not a static class.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IType ReceiverType, INamedType TargetType)>
+            CannotIntroduceExtensionBlockIntoExtensionBlock = new(
+                "LAMA0541",
+                "Cannot introduce an extension block into another extension block.",
+                "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target is an extension block. Extension blocks can only be introduced into static classes.",
+                _category,
+                Error );
     }
 }

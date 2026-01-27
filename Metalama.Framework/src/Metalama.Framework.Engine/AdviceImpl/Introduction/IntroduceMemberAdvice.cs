@@ -185,7 +185,9 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
         }
 
         // Check that instance member is not introduced to a static type.
-        if ( targetDeclaration.IsStatic && !builder.IsStatic )
+        // Skip this check for extension blocks, which can contain instance-appearing members
+        // that become extension methods.
+        if ( targetDeclaration.IsStatic && !builder.IsStatic && targetDeclaration.TypeKind != TypeKind.Extension )
         {
             diagnosticAdder.Report(
                 AdviceDiagnosticDescriptors.CannotIntroduceInstanceMember.CreateRoslynDiagnostic(

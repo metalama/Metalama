@@ -318,7 +318,35 @@ internal static class ModifierHelper
             AddToken( SyntaxKind.ThisKeyword );
         }
 
-        switch ( parameter.RefKind )
+        AddRefKindModifiers( parameter.RefKind, tokens );
+
+        if ( parameter.IsParams )
+        {
+            AddToken( SyntaxKind.ParamsKeyword );
+        }
+
+        return TokenList( tokens );
+    }
+
+    /// <summary>
+    /// Gets the syntax token list for a parameter RefKind (ref, in, out, ref readonly).
+    /// </summary>
+    internal static SyntaxTokenList GetRefKindModifiers( RefKind refKind )
+    {
+        var tokens = new List<SyntaxToken>( 2 );
+        AddRefKindModifiers( refKind, tokens );
+
+        return TokenList( tokens );
+    }
+
+    private static void AddRefKindModifiers( RefKind refKind, List<SyntaxToken> tokens )
+    {
+        void AddToken( SyntaxKind syntaxKind )
+        {
+            tokens.Add( SyntaxFactoryEx.TokenWithTrailingSpace( syntaxKind ) );
+        }
+
+        switch ( refKind )
         {
             case RefKind.None:
                 // Do nothing.
@@ -346,14 +374,7 @@ internal static class ModifierHelper
                 break;
 
             default:
-                throw new AssertionFailedException( $"Unexpected parameter RefKind {parameter.RefKind}." );
+                throw new AssertionFailedException( $"Unexpected parameter RefKind {refKind}." );
         }
-
-        if ( parameter.IsParams )
-        {
-            AddToken( SyntaxKind.ParamsKeyword );
-        }
-
-        return TokenList( tokens );
     }
 }

@@ -164,7 +164,18 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     IMethod? INamedType.Finalizer => null;
 
     [Memo]
-    public IExtensionBlockCollection ExtensionBlocks => new ExtensionBlockCollection( this, [] );
+    public IExtensionBlockCollection ExtensionBlocks => this.GetExtensionBlocksCore();
+
+    private IExtensionBlockCollection GetExtensionBlocksCore()
+    {
+#if ROSLYN_5_0_0_OR_GREATER
+        var collection = this.Compilation.GetExtensionBlockCollection( this.Ref, false );
+
+        return new ExtensionBlockCollection( this, collection.ToImmutableArray() );
+#else
+        return new ExtensionBlockCollection( this, [] );
+#endif
+    }
 
     public INamedType TypeDefinition => this.Definition;
 

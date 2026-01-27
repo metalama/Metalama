@@ -10,14 +10,15 @@
 | 0300-0319 | Design-Time
 | 0320-0339 | GeneratedCodeAnalyzer
 | 0400-0499 | Attribute deserialization 
-| 0500-0599 | Advices
+| 0500-0539 | Advices
+| 0540-0549 | Extension Block Introduction
 | 0600-0649 | Metalama.Compiler
 | 0650-0699 | Linker
 | 0700      | Metalama.Framework
 | 0701-0749 | Extensions.DependencyInjection
 | 0750-0799 | Metalama.Framework
 | 0800-0819 | Licensing
-| 0820-0849 | Engine.Analyzers
+| 0820-0859 | Engine.Analyzers
 | 0900-0999 | Extensions.Architecture
 | 5000-5019 | Metalama.Patterns.Contracts
 | 5020-5039 | Metalama.Patterns.Immutability

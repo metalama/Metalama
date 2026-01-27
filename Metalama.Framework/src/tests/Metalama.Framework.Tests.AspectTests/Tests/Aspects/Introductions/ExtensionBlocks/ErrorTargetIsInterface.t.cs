@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `ITargetType`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [IntroductionAttribute] applied to 'ITargetType': Cannot add an IntroduceExtensionBlock advice to 'ITargetType' because ''ITargetType'' must be a top-level static class. Check the IsAdviceEligible(AdviceKind.IntroduceExtensionBlock) method. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

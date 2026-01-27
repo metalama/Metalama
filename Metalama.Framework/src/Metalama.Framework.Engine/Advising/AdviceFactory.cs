@@ -397,7 +397,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             {
                 return;
             }
-            
+
             if ( parameter.DeclaringMember is IMethod { MethodKind: MethodKind.PropertySet } )
             {
                 return;
@@ -951,6 +951,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetType, AdviceKind.IntroduceField );
 
+            ValidateNotExtensionBlock( targetType, "a field" );
+
             var template = this.ValidateRequiredTemplateName( templateName, TemplateKind.Default )
                 .GetTemplateMember<IField>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
@@ -1226,6 +1228,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             }
 
             this.Validate( targetType, AdviceKind.IntroduceIndexer );
+
+            ValidateNotExtensionBlock( targetType, "an indexer" );
 
             var boundGetTemplate = this.ValidateTemplateName( getTemplate, TemplateKind.Default )
                 ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
@@ -1749,6 +1753,43 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 .Execute( this._state );
         }
     }
+
+    public IIntroductionAdviceResult<IExtensionBlock> IntroduceExtensionBlock(
+        INamedType targetStaticClass,
+        IType receiverType,
+        string? receiverParameterName = null,
+        Action<IExtensionBlockBuilder>? buildExtensionBlock = null )
+    {
+#if ROSLYN_5_0_0_OR_GREATER
+        using ( this.WithNonUserCode() )
+        {
+            this.Validate( targetStaticClass, AdviceKind.IntroduceExtensionBlock );
+            this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceExtensionBlock );
+
+            ValidateNotExtensionBlock( targetStaticClass, "an extension block" );
+
+            return new IntroduceExtensionBlockAdvice(
+                    this.GetAdviceConstructorParameters( targetStaticClass ),
+                    receiverType,
+                    receiverParameterName,
+                    buildExtensionBlock )
+                .Execute( this._state );
+        }
+#else
+        throw new NotSupportedException( "Extension blocks require C# 14 and Roslyn 5.0 or later." );
+#endif
+    }
+
+    public IIntroductionAdviceResult<IExtensionBlock> IntroduceExtensionBlock(
+        INamedType targetStaticClass,
+        Type receiverType,
+        string? receiverParameterName = null,
+        Action<IExtensionBlockBuilder>? buildExtensionBlock = null )
+        => this.IntroduceExtensionBlock(
+            targetStaticClass,
+            this._compilation.Factory.GetTypeByReflectionType( receiverType ),
+            receiverParameterName,
+            buildExtensionBlock );
 
     public void AddAspect( IDeclaration declaration, IAspect aspect )
     {

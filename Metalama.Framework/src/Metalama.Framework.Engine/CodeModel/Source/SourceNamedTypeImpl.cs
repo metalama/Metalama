@@ -309,14 +309,27 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     }
 
     [Memo]
-    public IExtensionBlockCollection ExtensionBlocks
-        => new ExtensionBlockCollection(
+    public IExtensionBlockCollection ExtensionBlocks => this.GetExtensionBlocksCore();
+
+    private IExtensionBlockCollection GetExtensionBlocksCore()
+    {
+#if ROSLYN_5_0_0_OR_GREATER
+
+        // Use the updatable collection which includes both source and introduced extension blocks
+        var allBlocks = this.Compilation.GetExtensionBlockCollection( this.Ref, false );
+
+        return new ExtensionBlockCollection( this.Facade, allBlocks );
+#else
+        var sourceBlocks = this.NamedTypeSymbol.OriginalDefinition.GetMembers( "" )
+            .OfType<INamedTypeSymbol>()
+            .Where( m => m.IsExtensionSafe() )
+            .Select( t => t.ToExtensionBlockRef( this.RefFactory ) );
+
+        return new ExtensionBlockCollection(
             this.Facade,
-            this.NamedTypeSymbol.OriginalDefinition.GetMembers( "" )
-                .OfType<INamedTypeSymbol>()
-                .Where( m => m.IsExtensionSafe() )
-                .Select( t => t.ToExtensionBlockRef( this.RefFactory ) )
-                .ToReadOnlyList() );
+            sourceBlocks.ToReadOnlyList() );
+#endif
+    }
 
     public override bool IsPartial
     {

@@ -304,6 +304,9 @@ internal partial class SymbolRef<T>
         }
     }
 
+    private static bool IsValidExtensionBlock( ISymbol symbol, CompilationModel compilation )
+        => symbol is INamedTypeSymbol namedType && namedType.IsExtensionSafe();
+
     private static Func<ISymbol, CompilationModel, bool> GetSymbolPredicate( DeclarationKind kind )
         => kind switch
         {
@@ -314,6 +317,7 @@ internal partial class SymbolRef<T>
             DeclarationKind.Method => IsValidMethod,
             DeclarationKind.Property => IsValidProperty,
             DeclarationKind.NamedType => IsValidNamedType,
+            DeclarationKind.ExtensionBlock => IsValidExtensionBlock,
             _ => throw new NotImplementedException()
         };
 }

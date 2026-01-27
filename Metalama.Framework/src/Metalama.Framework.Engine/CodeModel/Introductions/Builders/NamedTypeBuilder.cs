@@ -27,7 +27,7 @@ using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
-internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, INamedTypeImpl, IMemberOrNamedTypeBuilderImpl
+internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, INamedTypeImpl, IMemberOrNamedTypeBuilderImpl
 {
     private INamedType? _baseType;
 
@@ -49,7 +49,7 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
         declaringNamespaceOrType as INamedType,
         name )
     {
-        Invariant.Assert( typeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface );
+        Invariant.Assert( typeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension );
         Invariant.Assert( !isRecord ); // Introducing records is not yet supported.
 
         this.TypeKind = typeKind;
@@ -64,13 +64,18 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
 
         this.Ref = new IntroducedRef<INamedType>( this.Compilation.RefFactory );
 
-        this.BaseType = ((CompilationModel) this.ContainingNamespace.Compilation).Factory.GetSpecialType( SpecialType.Object );
+        this.InitializeBaseType();
 
         if ( this.TypeKind == TypeKind.Interface )
         {
             // Interfaces are always abstract.
             this.IsAbstract = true;
         }
+    }
+
+    protected virtual void InitializeBaseType()
+    {
+        this.BaseType = ((CompilationModel) this.ContainingNamespace.Compilation).Factory.GetSpecialType( SpecialType.Object );
     }
 
     protected override void FreezeChildren()
@@ -97,7 +102,7 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
 
     public bool HasDefaultConstructor => true;
 
-    public INamedType? BaseType
+    public virtual INamedType? BaseType
     {
         get => this._baseType;
         set

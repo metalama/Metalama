@@ -125,6 +125,17 @@ public static partial class EligibilityRuleFactory
             builder.MustBeRunTimeOnly();
         } );
 
+    private static readonly IEligibilityRule<IDeclaration> _introduceExtensionBlockRule = CreateRule<IDeclaration, INamedType>(
+        builder =>
+        {
+            builder.MustSatisfy(
+                t => t.TypeKind == TypeKind.Class && t.IsStatic && t.DeclaringType == null,
+                t => $"'{t}' must be a top-level static class" );
+
+            builder.MustBeExplicitlyDeclared();
+            builder.MustBeRunTimeOnly();
+        } );
+
     private static readonly IEligibilityRule<IDeclaration> _implementInterfaceRule = CreateRule<IDeclaration, INamedType>(
         builder =>
         {
@@ -243,6 +254,7 @@ public static partial class EligibilityRuleFactory
             AdviceKind.IntroduceProperty => _introduceRule,
             AdviceKind.IntroduceIndexer => _introduceRule,
             AdviceKind.IntroduceConstructor => _introduceRule,
+            AdviceKind.IntroduceExtensionBlock => _introduceExtensionBlockRule,
             AdviceKind.ImplementInterface => _implementInterfaceRule,
             AdviceKind.AddInitializer => _addInitializerRule,
             AdviceKind.IntroduceParameter => _introduceParameterRule,

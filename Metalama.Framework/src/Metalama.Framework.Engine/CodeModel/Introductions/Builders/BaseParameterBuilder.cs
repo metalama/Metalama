@@ -32,7 +32,7 @@ internal abstract class BaseParameterBuilder : NamedDeclarationBuilder, IParamet
 
     public abstract bool IsThis { get; set; }
 
-    public abstract IHasParameters DeclaringMember { get; }
+    public abstract IHasParameters? DeclaringMember { get; }
 
     public abstract ParameterInfo ToParameterInfo();
 
@@ -40,7 +40,7 @@ internal abstract class BaseParameterBuilder : NamedDeclarationBuilder, IParamet
 
     IRef<IParameter> IParameter.ToRef() => this.Ref;
 
-    public sealed override IDeclaration ContainingDeclaration => this.DeclaringMember;
+    public override IDeclaration ContainingDeclaration => this.DeclaringMember.AssertNotNull();
 
     protected BaseParameterBuilder( CompilationModel compilation, AspectLayerInstance aspectLayerInstance ) : base( aspectLayerInstance )
     {

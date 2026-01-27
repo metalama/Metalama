@@ -176,6 +176,19 @@ public partial class DeclarationFactory
             genericContext,
             static ( in args ) => new IntroducedNamespace( args.Builder, args.Compilation ) );
 
+#if ROSLYN_5_0_0_OR_GREATER
+    internal IExtensionBlock GetExtensionBlock(
+        ExtensionBlockBuilderData extensionBlockBuilder,
+        IGenericContext? genericContext = null )
+        => this.GetDeclarationFromBuilder<IExtensionBlock, ExtensionBlockBuilderData>(
+            extensionBlockBuilder,
+            genericContext,
+            static ( in args ) => new IntroducedExtensionBlock(
+                args.Builder,
+                args.Compilation,
+                args.GenericContext ) );
+#endif
+
     internal IDeclaration GetDeclaration(
         DeclarationBuilderData builder,
         IGenericContext? genericContext = null,
@@ -218,6 +231,9 @@ public partial class DeclarationFactory
             ConstructorBuilderData constructorBuilder => this.GetConstructor( constructorBuilder, genericContext ),
             NamedTypeBuilderData namedTypeBuilder => this.GetNamedType( namedTypeBuilder, genericContext ),
             NamespaceBuilderData namespaceBuilder => this.GetNamespace( namespaceBuilder, genericContext ),
+#if ROSLYN_5_0_0_OR_GREATER
+            ExtensionBlockBuilderData extensionBlockBuilder => this.GetExtensionBlock( extensionBlockBuilder, genericContext ),
+#endif
 
             // This is for linker tests (fake builders), which resolve to themselves.
             // ReSharper disable once SuspiciousTypeConversion.Global

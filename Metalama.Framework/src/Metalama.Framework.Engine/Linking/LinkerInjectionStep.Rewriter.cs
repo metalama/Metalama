@@ -552,6 +552,28 @@ internal sealed partial class LinkerInjectionStep
 
                         break;
 
+#if ROSLYN_5_0_0_OR_GREATER
+                    case ExtensionBlockDeclarationSyntax extensionBlockDeclaration:
+                        {
+                            // Extension blocks need separate handling because their builder data is ExtensionBlockBuilderData, not NamedTypeBuilderData.
+                            var extensionBlockBuilder = (ExtensionBlockBuilderData) injectedMember.BuilderData.AssertNotNull();
+                            var injectedExtensionBlockMembers = new List<MemberDeclarationSyntax>();
+
+                            this.AddInjectionsOnPosition(
+                                new InsertPosition( InsertPositionRelation.Within, extensionBlockBuilder ),
+                                originalSyntaxTree,
+                                injectedExtensionBlockMembers,
+                                syntaxGenerationContext );
+
+                            injectedNode = extensionBlockDeclaration.WithMembers(
+                                extensionBlockDeclaration.Members.AddRange( injectedExtensionBlockMembers ) );
+
+                            // Extension blocks don't implement interfaces.
+
+                            break;
+                        }
+#endif
+
                     case TypeDeclarationSyntax typeDeclaration:
 
                         var typeBuilder = (NamedTypeBuilderData) injectedMember.BuilderData.AssertNotNull();
