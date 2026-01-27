@@ -157,6 +157,7 @@ internal static class ExtensionImplementationHelper
     /// <param name="accessorAccessibility">The accessibility of the accessor.</param>
     /// <param name="isPropertyStatic">Whether the property is static.</param>
     /// <param name="propertyType">The property type.</param>
+    /// <param name="propertyRefKind">The property's RefKind (for ref/ref readonly properties).</param>
     /// <param name="compilation">The compilation for resolving types.</param>
     /// <param name="sourceAccessorAttributes">The accessor-level attributes to copy.</param>
     /// <param name="sourceReturnParameterAttributes">The return parameter attributes to copy (for getter).</param>
@@ -169,6 +170,7 @@ internal static class ExtensionImplementationHelper
         Accessibility accessorAccessibility,
         bool isPropertyStatic,
         IType propertyType,
+        RefKind propertyRefKind,
         ICompilation compilation,
         ImmutableArray<AttributeBuilderData> sourceAccessorAttributes = default,
         ImmutableArray<AttributeBuilderData> sourceReturnParameterAttributes = default )
@@ -218,8 +220,8 @@ internal static class ExtensionImplementationHelper
 
         if ( isSetter )
         {
-            // Add value parameter for setter.
-            implicitMethodBuilder.AddParameter( "value", propertyType );
+            // Add value parameter for setter with the property's RefKind.
+            implicitMethodBuilder.AddParameter( "value", propertyType, propertyRefKind );
 
             // Setter returns void (default).
         }

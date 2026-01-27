@@ -240,6 +240,7 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                 this.BuilderData.GetMethod.Accessibility,
                 this.BuilderData.IsStatic,
                 propertyType,
+                this.BuilderData.RefKind,
                 this.InitialCompilation,
                 this.BuilderData.GetMethod.Attributes,
                 this.BuilderData.GetMethod.ReturnParameter.Attributes );
@@ -258,6 +259,7 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                 this.BuilderData.SetMethod.Accessibility,
                 this.BuilderData.IsStatic,
                 propertyType,
+                this.BuilderData.RefKind,
                 this.InitialCompilation,
                 this.BuilderData.SetMethod.Attributes,
                 this.BuilderData.SetMethod.ReturnParameter.Attributes );
