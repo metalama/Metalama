@@ -167,7 +167,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
             diagnosticAdder.Report(
                 AdviceDiagnosticDescriptors.OperatorHasWrongStaticity.CreateRoslynDiagnostic(
                     this.TargetDeclaration.GetDiagnosticLocation(),
-                    (this.AspectInstance.AspectClass.ShortName, builder, builder.OperatorKind, operatorData.IsStatic),
+                    (this.AspectInstance.AspectClass.ShortName, builder, builder.OperatorKind, operatorData.IsStatic ? "static" : "non-static"),
                     this ) );
         }
     }

@@ -43,7 +43,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders
         /// <summary>
         /// Gets or sets the operator kind. When set to a value other than <see cref="OperatorKind.None"/>,
         /// the method becomes an operator. The name and <see cref="IMemberOrNamedType.IsStatic"/>
-        /// properties are automatically set based on the operator kind.
+        /// properties are automatically set based on the operator kind. This property can only be set once.
         /// </summary>
         new OperatorKind OperatorKind { get; set; }
     }

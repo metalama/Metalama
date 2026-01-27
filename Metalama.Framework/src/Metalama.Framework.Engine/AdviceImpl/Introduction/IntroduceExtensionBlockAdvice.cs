@@ -90,7 +90,7 @@ internal sealed class IntroduceExtensionBlockAdvice : IntroduceDeclarationAdvice
         builder.Freeze();
 
         var transformation = builder.CreateTransformation();
-        transformation.SetAdviceOrderingIndices( context.GetAdviceOrderIndices() );
+        transformation.SetAdviceOrderingIndices( orders );
         context.AddTransformationWithoutSettingOrders( transformation );
 
         return this.CreateSuccessResult( AdviceOutcome.Default, builder );

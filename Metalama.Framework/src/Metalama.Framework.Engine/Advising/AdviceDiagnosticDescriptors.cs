@@ -322,7 +322,7 @@ namespace Metalama.Framework.Engine.Advising
                 _category,
                 Error );
 
-        internal static readonly DiagnosticDefinition<(string AspectType, IMethod Operator, OperatorKind OperatorKind, bool ExpectedIsStatic)>
+        internal static readonly DiagnosticDefinition<(string AspectType, IMethod Operator, OperatorKind OperatorKind, string ExpectedStaticity)>
             OperatorHasWrongStaticity = new(
                 "LAMA0551",
                 "Cannot introduce an operator with wrong staticity.",

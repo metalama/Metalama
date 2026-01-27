@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Introspection;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
-using System;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Advising;
@@ -37,41 +36,4 @@ internal interface IAdviceExecutionContext
     int AspectOrder { get; }
 
     IAspectClassResolver AspectClassResolver { get; }
-}
-
-internal record struct AdviceOrderingIndices(
-    int OrderWithinPipeline,
-    int OrderWithinPipelineStepAndType,
-    int OrderWithinPipelineStepAndTypeAndAspectInstance ) : IComparable<AdviceOrderingIndices>
-{
-    public int CompareTo( AdviceOrderingIndices other ) => this.CompareToCore( other );
-
-    public int CompareTo( in AdviceOrderingIndices other ) => this.CompareToCore( other );
-
-    private int CompareToCore( in AdviceOrderingIndices other )
-    {
-        var orderWithinPipelineComparison = this.OrderWithinPipeline.CompareTo( other.OrderWithinPipeline );
-
-        if ( orderWithinPipelineComparison != 0 )
-        {
-            return orderWithinPipelineComparison;
-        }
-
-        var orderWithinPipelineStepAndTypeComparison = this.OrderWithinPipelineStepAndType.CompareTo( other.OrderWithinPipelineStepAndType );
-
-        if ( orderWithinPipelineStepAndTypeComparison != 0 )
-        {
-            return orderWithinPipelineStepAndTypeComparison;
-        }
-
-        return this.OrderWithinPipelineStepAndTypeAndAspectInstance.CompareTo( other.OrderWithinPipelineStepAndTypeAndAspectInstance );
-    }
-
-    public static bool operator <( AdviceOrderingIndices left, AdviceOrderingIndices right ) => left.CompareTo( right ) < 0;
-
-    public static bool operator >( AdviceOrderingIndices left, AdviceOrderingIndices right ) => left.CompareTo( right ) > 0;
-
-    public static bool operator <=( AdviceOrderingIndices left, AdviceOrderingIndices right ) => left.CompareTo( right ) <= 0;
-
-    public static bool operator >=( AdviceOrderingIndices left, AdviceOrderingIndices right ) => left.CompareTo( right ) >= 0;
 }
