@@ -197,6 +197,15 @@ internal abstract class TemplateMember
                 }
             }
         }
+        else if ( symbol is IMethodSymbol { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet } )
+        {
+            // For property accessor methods, also check IntroducesBackingField from the CompiledTemplateAttribute.
+            // This is needed when accessor templates are created separately (not from a property template).
+            if ( compiledTemplateAttribute.IntroducesBackingField )
+            {
+                this.IntroducesBackingField = true;
+            }
+        }
 
         // Set the template kind.
         this.SelectedTemplateKind = selectedTemplateKind;

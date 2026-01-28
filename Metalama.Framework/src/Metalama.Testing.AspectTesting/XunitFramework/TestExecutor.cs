@@ -7,6 +7,7 @@ using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Testing;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Testing.UnitTesting;
 using System;
@@ -322,6 +323,9 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                         var serviceProvider = this._serviceProvider.Underlying
                             .WithUntypedService( typeof(ILoggerFactory), new XunitLoggerFactory( logger, false ) )
                             .WithService( new RandomNumberProvider( firstSeed ), true )
+#pragma warning disable CS0618 // Type or member is obsolete
+                            .WithService<ITestOutputService>( _ => new TestOutputService( logger ) )
+#pragma warning restore CS0618 // Type or member is obsolete
                             .WithServiceConditional<IExtensionLoader>( sp => new TestExtensionLoader( sp, testOptions ) )
                             .WithDisjointSharedServices();
 
@@ -349,7 +353,10 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                             var serviceProvider = this._serviceProvider.Underlying
                                 .WithUntypedService( typeof(ILoggerFactory), new XunitLoggerFactory( logger, false ) )
-                                .WithService( new RandomNumberProvider( seed ) );
+                                .WithService( new RandomNumberProvider( seed ) )
+#pragma warning disable CS0618 // Type or member is obsolete
+                                .WithService<ITestOutputService>( _ => new TestOutputService( logger ) );
+#pragma warning restore CS0618 // Type or member is obsolete
 
                             var testRunner = TestRunnerFactory.CreateTestRunner(
                                 testInput,

@@ -273,35 +273,143 @@ public static class DeclarationExtensions
     }
 
     internal static bool? IsAutoProperty( this IPropertySymbol symbol )
-        => symbol switch
+        => symbol.GetPropertyKind() switch
         {
-            { IsAbstract: true } => false,
-            { IsExtern: true } => false,
-#if ROSLYN_4_12_0_OR_GREATER
-            { IsPartialDefinition: true } => false, // Partial property can't be implemented as an auto-property.
-#endif
-            _ when symbol.GetBackingField() != null => true,
-            { DeclaringSyntaxReferences: { Length: > 0 } syntaxReferences } =>
-                syntaxReferences.All(
-                    sr =>
-                        sr.GetSyntax() switch
-                        {
-                            BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } when
-                                accessors.All( a => a.Body == null && a.ExpressionBody == null ) => true,
-                            ParameterSyntax => true,
-                            _ => false
-                        } ),
-            { GetMethod: { } getMethod, SetMethod: { } setMethod } => getMethod.IsCompilerGenerated() || setMethod.IsCompilerGenerated(),
-            { GetMethod: { } getMethod, SetMethod: null } => getMethod.IsCompilerGenerated(),
-            { GetMethod: null, SetMethod: { } setMethod } => setMethod.IsCompilerGenerated(),
+            PropertyKind.Auto => true,
+            PropertyKind.SemiAuto => true, // Semi-auto properties have a backing field, so they are "auto" in the sense of having a compiler-generated field.
+            PropertyKind.Default => false,
             _ => null
         };
+
+    /// <summary>
+    /// Gets the kind of the property: <see cref="PropertyKind.Auto"/>, <see cref="PropertyKind.SemiAuto"/>, or <see cref="PropertyKind.Default"/>.
+    /// </summary>
+    internal static PropertyKind? GetPropertyKind( this IPropertySymbol symbol )
+    {
+        // Abstract and extern properties are regular (no backing field).
+        if ( symbol.IsAbstract || symbol.IsExtern )
+        {
+            return PropertyKind.Default;
+        }
+
+#if ROSLYN_4_12_0_OR_GREATER
+
+        // Partial property definitions can't be auto-properties.
+        if ( symbol.IsPartialDefinition )
+        {
+            return PropertyKind.Default;
+        }
+#endif
+
+        // Check if the property has a compiler-generated backing field.
+        var backingField = symbol.GetBackingField();
+
+        if ( backingField != null )
+        {
+            // Has a backing field. Determine if it's auto or semi-auto by checking if accessors have bodies.
+            if ( symbol.DeclaringSyntaxReferences.Length > 0 )
+            {
+                // Check if any accessor has an explicit body.
+                var hasExplicitBody = HasExplicitAccessorBody( symbol );
+
+                return hasExplicitBody ? PropertyKind.SemiAuto : PropertyKind.Auto;
+            }
+            else
+            {
+                // No syntax references, rely on compiler-generated check.
+                return PropertyKind.Auto;
+            }
+        }
+
+        // No backing field from GetBackingField(). Check syntax for semi-auto properties using 'field' keyword.
+        // This handles cases where GetBackingField() returns null but the property uses the 'field' keyword.
+        if ( symbol.DeclaringSyntaxReferences.Length > 0 )
+        {
+            // First check if any accessor uses the 'field' keyword (C# 14 semi-auto property).
+            if ( ContainsFieldKeyword( symbol ) )
+            {
+                return PropertyKind.SemiAuto;
+            }
+
+            // Check if all accessors are empty (pure auto-property).
+            var allAccessorsEmpty = symbol.DeclaringSyntaxReferences.All(
+                sr => sr.GetSyntax() switch
+                {
+                    BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } =>
+                        accessors.All( a => a.Body == null && a.ExpressionBody == null ),
+                    ParameterSyntax => true, // Primary constructor parameter
+                    _ => false
+                } );
+
+            if ( allAccessorsEmpty )
+            {
+                return PropertyKind.Auto;
+            }
+        }
+
+        // Check if accessors are compiler-generated (for cross-compilation scenarios).
+        var isCompilerGenerated = (symbol.GetMethod, symbol.SetMethod) switch
+        {
+            ({ } getMethod, { } setMethod) => getMethod.IsCompilerGenerated() || setMethod.IsCompilerGenerated(),
+            ({ } getMethod, null) => getMethod.IsCompilerGenerated(),
+            (null, { } setMethod) => setMethod.IsCompilerGenerated(),
+            _ => (bool?) null
+        };
+
+        if ( isCompilerGenerated == true )
+        {
+            return PropertyKind.Auto;
+        }
+
+        if ( isCompilerGenerated == false )
+        {
+            return PropertyKind.Default;
+        }
+
+        return null;
+    }
+
+    private static bool HasExplicitAccessorBody( IPropertySymbol symbol )
+        => symbol.DeclaringSyntaxReferences.Any(
+            sr => sr.GetSyntax() switch
+            {
+                BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } =>
+                    accessors.Any( a => a.Body != null || a.ExpressionBody != null ),
+                PropertyDeclarationSyntax { ExpressionBody: { } } => true, // Expression-bodied property
+                _ => false
+            } );
+
+    private static bool ContainsFieldKeyword( IPropertySymbol symbol )
+    {
+#if ROSLYN_5_0_0_OR_GREATER
+        foreach ( var syntaxRef in symbol.DeclaringSyntaxReferences )
+        {
+            var syntax = syntaxRef.GetSyntax();
+
+            if ( syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } )
+            {
+                foreach ( var accessor in accessors )
+                {
+                    if ( SyntaxHelpers.ContainsFieldExpression( accessor ) )
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+#endif
+
+        return false;
+    }
 
     internal static bool IsAutoAccessor( this IMethodSymbol symbol )
         => symbol switch
         {
             { IsAbstract: true } => false,
-            { AssociatedSymbol: IPropertySymbol propertySymbol } => propertySymbol.IsAutoProperty() == true,
+            // Use GetPropertyKind() instead of IsAutoProperty() to correctly handle semi-auto properties.
+            // Semi-auto properties (using C# 14 'field' keyword) have backing fields but explicit accessor bodies,
+            // so their accessors should NOT be considered auto accessors.
+            { AssociatedSymbol: IPropertySymbol propertySymbol } => propertySymbol.GetPropertyKind() == PropertyKind.Auto,
             _ => symbol.IsCompilerGenerated()
         };
 

@@ -18,11 +18,18 @@ namespace Metalama.Framework.Engine.Advising
             if ( propertyTemplate != null )
             {
                 var templatePropertySymbol = (IPropertySymbol) propertyTemplate.Symbol;
+                var propertyKind = templatePropertySymbol.GetPropertyKind();
 
-                // Extract accessor templates if:
-                // - The property is not an auto property, OR
-                // - The property uses the C# 14 'field' keyword (semi-automatic property)
-                if ( !templatePropertySymbol.IsAutoProperty().GetValueOrDefault() || propertyTemplate.IntroducesBackingField )
+                // Extract accessor templates if the property has explicit accessor bodies.
+                // This includes:
+                // - Default properties (regular properties with explicit bodies)
+                // - Semi-auto properties (using C# 14 'field' keyword - has backing field but explicit bodies)
+                // But NOT pure auto properties (e.g., { get; set; } - no explicit bodies).
+                //
+                // Also use IntroducesBackingField flag as a fallback for transformed templates
+                // where GetPropertyKind() can't detect the 'field' keyword from syntax (because
+                // the syntax has been replaced with 'throw new NotSupportedException(...)').
+                if ( propertyKind != PropertyKind.Auto || propertyTemplate.IntroducesBackingField )
                 {
                     TemplateMember<IMethod>? GetAccessorTemplate( IMethodSymbol? accessor )
                     {
