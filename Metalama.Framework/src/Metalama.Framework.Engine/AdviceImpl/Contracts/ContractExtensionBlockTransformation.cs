@@ -67,9 +67,9 @@ internal sealed class ContractExtensionBlockTransformation : ContractBaseTransfo
         }
 
         // Generate statements for each instance member.
-        // Each statement uses the method's first parameter (or method itself) as ContextDeclaration
-        // to allow proper routing via IsContainedIn. The ordering logic checks ParentTransformation
-        // to identify receiver parameter contracts.
+        // Each statement uses the method's first parameter (or the method itself) as ContextDeclaration,
+        // so the linker can group statements by ContextDeclaration.ContainingDeclaration and
+        // recognize receiver-parameter contracts based on ContractExtensionBlockTransformation.
         foreach ( var method in extensionBlock.Methods.Where( m => !m.IsStatic ) )
         {
             this.AddStatementsForMethod( context, method, receiverParameter, receiverExpression, effectiveDirection, statements );
