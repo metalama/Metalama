@@ -9,33 +9,34 @@
 #if ROSLYN_5_0_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
+using System;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.NullConditionalAssignment_Template;
-
-internal class Node
-{
-    public Node? Next { get; set; }
-    public int Value { get; set; }
-}
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.NullConditionalAssignment_RunTime;
 
 internal class TheAspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        // Run-time null-conditional assignments in template code
-        var node = (Node?)meta.Target.Parameters[0].Value;
-        node?.Value = 1;
-        node?.Next?.Value = 2;
+        // Pure run-time null-conditional assignment
+        var target = (Target?)meta.Target.Parameters[0].Value;
+        target?.Property = 42;
+
+        Console.WriteLine( "Intercepted" );
 
         return meta.Proceed();
     }
+}
+
+internal class Target
+{
+    public int Property { get; set; }
 }
 
 // <target>
 internal class C
 {
     [TheAspect]
-    public void M( Node? node )
+    public void M( Target? t )
     {
     }
 }

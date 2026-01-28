@@ -1,3 +1,11 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0101 on `.Property = 1`: `'null-conditional assignment' is not supported in a template.`
-// Error LAMA0101 on `.Property = 2`: `'null-conditional assignment' is not supported in a template.`
+internal class C
+{
+  [TheAspect]
+  public void M(Node? node)
+  {
+    var node_1 = (global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.NullConditionalAssignment_Template.Node? )node;
+    node_1?.Value = 1;
+    node_1?.Next?.Value = 2;
+    return;
+  }
+}
