@@ -1966,7 +1966,10 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                     // All elements are var declarations, so the scope is determined by the right side
                     // (similar to local variable declaration with assignment)
                     var declarationTransformedRight = this.Visit( node.Right );
-                    var declarationRightScope = this.GetNodeScope( declarationTransformedRight ).GetExpressionValueScope( true ).ReplaceIndeterminate( RunTimeOnly );
+
+                    var declarationRightScope = this.GetNodeScope( declarationTransformedRight )
+                        .GetExpressionValueScope( true )
+                        .ReplaceIndeterminate( RunTimeOnly );
 
                     ExpressionSyntax declarationTransformedLeft;
                     ScopeContext? declarationLeftNodeContext = null;
@@ -1983,7 +1986,8 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                     }
 
                     // The assignment scope is determined by the right side when all are var declarations
-                    return node.Update( declarationTransformedLeft, node.OperatorToken, declarationTransformedRight ).AddScopeAnnotation( declarationRightScope );
+                    return node.Update( declarationTransformedLeft, node.OperatorToken, declarationTransformedRight )
+                        .AddScopeAnnotation( declarationRightScope );
                 }
                 else if ( varStatus == TupleVarStatus.Mixed )
                 {
@@ -2071,6 +2075,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
             {
                 case DeclarationExpressionSyntax:
                     hasVar = true;
+
                     break;
 
                 case TupleExpressionSyntax nestedTuple:
@@ -2094,6 +2099,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
                 default:
                     hasNonVar = true;
+
                     break;
             }
 
@@ -2586,9 +2592,11 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 #if ROSLYN_5_0_0_OR_GREATER
     public override SyntaxNode VisitFieldExpression( FieldExpressionSyntax node )
     {
-        this.ReportUnsupportedLanguageFeature( node, "field keyword" );
-
-        return node;
+        // The C# 14 'field' keyword in property accessors is supported in templates.
+        // It gets rewritten to a backing field reference during template expansion.
+        // Use RunTimeOnly because the field keyword represents a run-time storage location
+        // that can be both read and written (as an lvalue).
+        return node.AddScopeAnnotation( RunTimeOnly );
     }
 #endif
 

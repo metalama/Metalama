@@ -19,7 +19,10 @@ namespace Metalama.Framework.Engine.Advising
             {
                 var templatePropertySymbol = (IPropertySymbol) propertyTemplate.Symbol;
 
-                if ( !templatePropertySymbol.IsAutoProperty().GetValueOrDefault() )
+                // Extract accessor templates if:
+                // - The property is not an auto property, OR
+                // - The property uses the C# 14 'field' keyword (semi-automatic property)
+                if ( !templatePropertySymbol.IsAutoProperty().GetValueOrDefault() || propertyTemplate.IntroducesBackingField )
                 {
                     TemplateMember<IMethod>? GetAccessorTemplate( IMethodSymbol? accessor )
                     {

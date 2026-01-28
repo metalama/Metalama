@@ -58,16 +58,20 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
         var hasSet = this._isProgrammaticAutoProperty
                      || (templatePropertyDeclaration != null ? templatePropertyDeclaration.SetMethod != null : this._setTemplate != null);
 
+        // If the template uses the 'field' keyword, don't treat it as an auto property - we'll manually introduce the backing field.
+        var introducesBackingField = this.Template?.IntroducesBackingField ?? false;
+        var isAutoProperty = this._isProgrammaticAutoProperty || (templatePropertyDeclaration is { IsAutoPropertyOrField: true } && !introducesBackingField);
+
         var builder = new PropertyBuilder(
             this.AspectLayerInstance,
             this.TargetDeclaration,
             name,
             hasGet,
             hasSet,
-            this._isProgrammaticAutoProperty || templatePropertyDeclaration is { IsAutoPropertyOrField: true },
+            isAutoProperty,
             templatePropertyDeclaration is { Writeability: Writeability.InitOnly },
             false,
-            templatePropertyDeclaration is { Writeability: Writeability.ConstructorOnly, IsAutoPropertyOrField: true } );
+            templatePropertyDeclaration is { Writeability: Writeability.ConstructorOnly, IsAutoPropertyOrField: true } && !introducesBackingField );
 
         if ( this._explicitType != null )
         {
@@ -223,22 +227,41 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
         {
             builder.Freeze();
 
+            // Check if the template uses the 'field' keyword.
+            var introducesBackingField = this.Template?.IntroducesBackingField ?? false;
+
             // There is no existing declaration.
-            if ( isAutoProperty )
+            if ( isAutoProperty && !introducesBackingField )
             {
-                // Introduced auto property.
+                // Introduced auto property (no 'field' keyword).
                 context.AddTransformation( builder.CreateTransformation( this.Template ) );
 
                 OverrideHelper.AddTransformationsForStructField( targetDeclaration, this.AspectLayerInstance, context.AddTransformation );
             }
             else
             {
+                // Introduce the property with template body.
+                string? backingFieldName = null;
+
+                if ( introducesBackingField )
+                {
+                    // Compute a unique backing field name and introduce the field.
+                    backingFieldName = OverrideHelper.ComputeBackingFieldName( builder, context.MutableCompilation );
+
+                    OverrideHelper.IntroduceBackingField(
+                        this.AspectLayerInstance,
+                        builder,
+                        backingFieldName,
+                        context.AddTransformation );
+                }
+
                 // Introduce and override using the template.
                 var overriddenProperty = new OverridePropertyTransformation(
                     this.AspectLayerInstance,
                     builder.ToRef(),
                     this._getTemplate?.ForIntroduction( builder.GetMethod ),
-                    this._setTemplate?.ForIntroduction( builder.SetMethod ) );
+                    this._setTemplate?.ForIntroduction( builder.SetMethod ),
+                    backingFieldName );
 
                 context.AddTransformation( builder.CreateTransformation( this.Template ) );
 
@@ -368,7 +391,8 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                             builder,
                             this._getTemplate?.ForIntroduction( builder.GetMethod ),
                             this._setTemplate?.ForIntroduction( builder.SetMethod ),
-                            context.AddTransformation );
+                            context.AddTransformation,
+                            context.MutableCompilation );
 
                         return this.CreateSuccessResult( AdviceOutcome.Override, builder );
                     }

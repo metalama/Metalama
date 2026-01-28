@@ -441,9 +441,11 @@ namespace Metalama.Compiler
     {
         var isIteratorMethod = symbol.IsIteratorMethod();
         var accessibility = symbol.DeclaredAccessibility.ToOurAccessibility();
+        var introducesBackingField = SyntaxHelpers.ContainsFieldExpression( originalNode );
 
         if ( accessibility is Accessibility.Public or Accessibility.Protected
-             && !isIteratorMethod )
+             && !isIteratorMethod
+             && !introducesBackingField )
         {
             // No change is needed.
             return transformedNode;
@@ -463,18 +465,28 @@ namespace Metalama.Compiler
         var compiledTemplateAttributeType = (INamedTypeSymbol) syntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(CompiledTemplateAttribute) );
         var accessibilityType = (INamedTypeSymbol) syntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(Accessibility) );
 
+        // Check if the node contains any 'field' keyword expressions (C# 14 semi-automatic properties).
+        var introducesBackingField = node is AccessorDeclarationSyntax accessor && SyntaxHelpers.ContainsFieldExpression( accessor );
+
+        var attributeArguments = new List<AttributeArgumentSyntax>
+        {
+            AttributeArgument( syntaxFactory.SyntaxGenerator.EnumValueExpression( accessibilityType, (int) accessibility ) )
+                .WithNameEquals( NameEquals( nameof(CompiledTemplateAttribute.Accessibility) ) ),
+            AttributeArgument( SyntaxFactoryEx.LiteralExpression( isAsyncMethod ) )
+                .WithNameEquals( NameEquals( nameof(CompiledTemplateAttribute.IsAsync) ) ),
+            AttributeArgument( SyntaxFactoryEx.LiteralExpression( isIteratorMethod ) )
+                .WithNameEquals( NameEquals( nameof(CompiledTemplateAttribute.IsIteratorMethod) ) )
+        };
+
+        if ( introducesBackingField )
+        {
+            attributeArguments.Add(
+                AttributeArgument( SyntaxFactoryEx.LiteralExpression( true ) )
+                    .WithNameEquals( NameEquals( nameof(CompiledTemplateAttribute.IntroducesBackingField) ) ) );
+        }
+
         var attribute = Attribute( (NameSyntax) syntaxFactory.SyntaxGenerator.TypeSyntax( compiledTemplateAttributeType ) )
-            .WithArgumentList(
-                AttributeArgumentList(
-                    SeparatedList(
-                    [
-                        AttributeArgument( syntaxFactory.SyntaxGenerator.EnumValueExpression( accessibilityType, (int) accessibility ) )
-                            .WithNameEquals( NameEquals( nameof(CompiledTemplateAttribute.Accessibility) ) ),
-                        AttributeArgument( SyntaxFactoryEx.LiteralExpression( isAsyncMethod ) )
-                            .WithNameEquals( NameEquals( nameof(CompiledTemplateAttribute.IsAsync) ) ),
-                        AttributeArgument( SyntaxFactoryEx.LiteralExpression( isIteratorMethod ) )
-                            .WithNameEquals( NameEquals( nameof(CompiledTemplateAttribute.IsIteratorMethod) ) )
-                    ] ) ) );
+            .WithArgumentList( AttributeArgumentList( SeparatedList( attributeArguments ) ) );
 
         var attributeList = AttributeList( SingletonSeparatedList( attribute ) )
             .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );

@@ -86,5 +86,17 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                     .WithParameters( parameterList.Parameters.AddRange( additionalParameterSyntax ) );
             }
         }
+
+        /// <summary>
+        /// Checks if a property accessor syntax node contains the C# 14 <c>field</c> keyword expression.
+        /// </summary>
+        public static bool ContainsFieldExpression( AccessorDeclarationSyntax accessor )
+        {
+#if ROSLYN_5_0_0_OR_GREATER
+            return accessor.DescendantNodesAndSelf().OfType<FieldExpressionSyntax>().Any();
+#else
+            return false;
+#endif
+        }
     }
 }

@@ -306,6 +306,16 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
     }
 
+#if ROSLYN_5_0_0_OR_GREATER
+    public override SyntaxNode? VisitFieldExpression( FieldExpressionSyntax node )
+    {
+        // Handle the C# 14 'field' keyword in property accessors.
+        // Transform to a call to ITemplateSyntaxFactory.GetPropertyBackingField().
+        return InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.GetPropertyBackingField) ) )
+            .WithAdditionalAnnotations( _userExpressionAnnotation );
+    }
+#endif
+
     public override SyntaxNode? VisitTupleExpression( TupleExpressionSyntax node )
     {
         var qualifiedTuple = this.AddTupleNames( node );
@@ -2223,10 +2233,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     /// </summary>
     private BlockSyntax AddSetSkipCompileTimeLogicFlag( BlockSyntax block )
     {
-        return block.WithStatements( block.Statements.Add( this.CreateSetSkipCompileTimeLogicFlag( ) ) );
+        return block.WithStatements( block.Statements.Add( this.CreateSetSkipCompileTimeLogicFlag() ) );
     }
-    
- 
+
     private StatementSyntax CreateSetSkipCompileTimeLogicFlag()
     {
         this._currentMetaContext!.SkipCompileTimeLogicVariable.HasBeenSet = true;
@@ -2423,7 +2432,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 {
                     transformedStatements.Add( BreakStatement() );
                 }
-                
+
                 if ( section.Statements.NeverContinues() )
                 {
                     // We insert at the first position to make sure we are before the `break` or `return`.

@@ -35,4 +35,10 @@ public sealed class CompiledTemplateAttribute : Attribute
     public bool IsIteratorMethod { get; set; }
 
     public bool IsAsync { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether a property template uses the C# 14 <c>field</c> keyword,
+    /// requiring Metalama to introduce a backing field when the template is applied.
+    /// </summary>
+    public bool IntroducesBackingField { get; set; }
 }

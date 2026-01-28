@@ -6,10 +6,12 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
+using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Linq;
 using TypeKind = Metalama.Framework.Code.TypeKind;
@@ -24,12 +26,44 @@ internal static class OverrideHelper
         IFieldOrPropertyOrIndexer targetDeclaration,
         BoundTemplateMethod? getTemplate,
         BoundTemplateMethod? setTemplate,
-        Action<ITransformation> addTransformation )
+        Action<ITransformation> addTransformation,
+        CompilationModel? mutableCompilation = null )
     {
+        // Determine if any template uses the 'field' keyword and needs a backing field.
+        var introducesBackingField =
+            (getTemplate?.TemplateMember.IntroducesBackingField ?? false) ||
+            (setTemplate?.TemplateMember.IntroducesBackingField ?? false);
+
+        string? backingFieldName = null;
+
+        if ( introducesBackingField )
+        {
+            // Compute a unique backing field name using the mutable compilation for collision checking.
+            var property = targetDeclaration switch
+            {
+                IField { OverridingProperty: { } overridingProperty } => overridingProperty,
+                IField => null, // Will be computed later after promotion
+                IProperty p => p,
+                _ => null
+            };
+
+            if ( property != null && mutableCompilation != null )
+            {
+                backingFieldName = ComputeBackingFieldName( property, mutableCompilation );
+            }
+        }
+
         switch ( targetDeclaration )
         {
             case IField { OverridingProperty: { } overridingProperty }:
-                return OverrideProperty( serviceProvider, aspectLayerInstance, overridingProperty, getTemplate, setTemplate, addTransformation );
+                return OverrideProperty(
+                    serviceProvider,
+                    aspectLayerInstance,
+                    overridingProperty,
+                    getTemplate,
+                    setTemplate,
+                    addTransformation,
+                    mutableCompilation );
 
             case IField field:
                 {
@@ -37,8 +71,29 @@ internal static class OverrideHelper
 
                     addTransformation( transformation );
 
+                    // If we need a backing field for a field being promoted, compute the name now.
+                    if ( introducesBackingField && backingFieldName == null && mutableCompilation != null )
+                    {
+                        backingFieldName = ComputeBackingFieldName( transformation.OverridingProperty, mutableCompilation );
+                    }
+
+                    // Introduce the backing field if needed.
+                    if ( introducesBackingField && backingFieldName != null )
+                    {
+                        IntroduceBackingField(
+                            aspectLayerInstance,
+                            transformation.OverridingProperty,
+                            backingFieldName,
+                            addTransformation );
+                    }
+
                     addTransformation(
-                        new OverridePropertyTransformation( aspectLayerInstance, transformation.OverridingProperty.ToRef(), getTemplate, setTemplate ) );
+                        new OverridePropertyTransformation(
+                            aspectLayerInstance,
+                            transformation.OverridingProperty.ToRef(),
+                            getTemplate,
+                            setTemplate,
+                            backingFieldName ) );
 
                     AddTransformationsForStructField( targetDeclaration.DeclaringType, aspectLayerInstance, addTransformation );
 
@@ -47,7 +102,18 @@ internal static class OverrideHelper
 
             case IProperty property:
                 {
-                    addTransformation( new OverridePropertyTransformation( aspectLayerInstance, property.ToFullRef(), getTemplate, setTemplate ) );
+                    // Introduce the backing field if needed.
+                    if ( introducesBackingField && backingFieldName != null )
+                    {
+                        IntroduceBackingField(
+                            aspectLayerInstance,
+                            property,
+                            backingFieldName,
+                            addTransformation );
+                    }
+
+                    addTransformation(
+                        new OverridePropertyTransformation( aspectLayerInstance, property.ToFullRef(), getTemplate, setTemplate, backingFieldName ) );
 
                     if ( property.IsAutoPropertyOrField.GetValueOrDefault() )
                     {
@@ -60,6 +126,63 @@ internal static class OverrideHelper
             default:
                 throw new AssertionFailedException( $"Unexpected declaration: '{targetDeclaration}'." );
         }
+    }
+
+    /// <summary>
+    /// Computes a unique backing field name for a property that uses the <c>field</c> keyword in its template.
+    /// </summary>
+    internal static string ComputeBackingFieldName( IProperty property, CompilationModel compilation )
+    {
+        var propertyName = property.Name;
+        var camelCaseName = propertyName.ToCamelCase();
+        var hint = camelCaseName.StartsWith( "_", StringComparison.Ordinal ) ? camelCaseName : "_" + camelCaseName;
+
+        // Check for collisions and make the name unique.
+        var containingType = property.DeclaringType.ForCompilation( compilation );
+
+        if ( !HasMemberWithName( containingType, hint ) )
+        {
+            return hint;
+        }
+
+        for ( var i = 1; /* infinite */; i++ )
+        {
+            var candidate = hint + i;
+
+            if ( !HasMemberWithName( containingType, candidate ) )
+            {
+                return candidate;
+            }
+        }
+
+        static bool HasMemberWithName( INamedType type, string name )
+            => type.AllFields.OfName( name ).Any()
+               || type.AllProperties.OfName( name ).Any()
+               || type.AllEvents.OfName( name ).Any();
+    }
+
+    /// <summary>
+    /// Introduces a backing field for a property template that uses the <c>field</c> keyword.
+    /// </summary>
+    internal static void IntroduceBackingField(
+        AspectLayerInstance aspectLayerInstance,
+        IProperty property,
+        string backingFieldName,
+        Action<ITransformation> addTransformation )
+    {
+        var fieldBuilder = new FieldBuilder( aspectLayerInstance, property.DeclaringType, backingFieldName )
+        {
+            Accessibility = Accessibility.Private,
+            Type = property.Type,
+            IsStatic = property.IsStatic,
+
+            // For get-only properties, the backing field should be readonly.
+            Writeability = property.SetMethod == null ? Writeability.ConstructorOnly : Writeability.All
+        };
+
+        fieldBuilder.Freeze();
+
+        addTransformation( fieldBuilder.CreateTransformation() );
     }
 
     public static void AddTransformationsForStructField( INamedType type, AspectLayerInstance aspectLayerInstance, Action<ITransformation> addTransformation )
