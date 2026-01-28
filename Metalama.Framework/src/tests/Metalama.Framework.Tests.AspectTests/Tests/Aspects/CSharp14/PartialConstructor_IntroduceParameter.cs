@@ -18,7 +18,7 @@ public class TheAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        foreach (var constructor in builder.Target.Constructors)
+        foreach ( var constructor in builder.Target.Constructors )
         {
             builder.With( constructor ).IntroduceParameter( "p", typeof(int), TypedConstant.Create( 42 ) );
         }

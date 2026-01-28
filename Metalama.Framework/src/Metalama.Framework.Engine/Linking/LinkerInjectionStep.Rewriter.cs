@@ -565,8 +565,7 @@ internal sealed partial class LinkerInjectionStep
                                 injectedExtensionBlockMembers,
                                 syntaxGenerationContext );
 
-                            injectedNode = extensionBlockDeclaration.WithMembers(
-                                extensionBlockDeclaration.Members.AddRange( injectedExtensionBlockMembers ) );
+                            injectedNode = extensionBlockDeclaration.WithMembers( extensionBlockDeclaration.Members.AddRange( injectedExtensionBlockMembers ) );
 
                             // Extension blocks don't implement interfaces.
 
