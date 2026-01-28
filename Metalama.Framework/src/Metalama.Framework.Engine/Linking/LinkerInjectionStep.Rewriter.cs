@@ -1146,9 +1146,10 @@ internal sealed partial class LinkerInjectionStep
             var semanticModel = this._semanticModelProvider.GetSemanticModel( originalNode.SyntaxTree );
             var symbol = semanticModel.GetDeclaredSymbol( originalNode );
 
+            // Transformations are keyed by the original syntax node, so we use originalNode for the lookup.
             // For partial constructor definitions, transformations are stored under the implementation part's syntax,
             // so we need to look up using the implementation syntax instead.
-            SyntaxNode lookupNode = node;
+            SyntaxNode lookupNode = originalNode;
 #if ROSLYN_5_0_0_OR_GREATER
             if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: { } implementationPart } )
             {
