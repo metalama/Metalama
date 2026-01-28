@@ -44,7 +44,7 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
         {
             case IIndexer:
                 {
-                    Invariant.Assert( this.ContractTarget.Equals( this.TargetMember ) );
+                    Invariant.Assert( this.ContractTarget.Equals( this.TargetMemberOrNamedType ) );
 
                     Invariant.Assert( this.ContractDirection is ContractDirection.Output or ContractDirection.Input or ContractDirection.Both );
 
@@ -184,7 +184,7 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
         }
     }
 
-    public override IFullRef<IMember> TargetMember => this._targetIndexer;
+    public override IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetIndexer;
 
     public override FormattableString ToDisplayString()
     {

@@ -24,6 +24,18 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
 
         switch ( targetDeclaration )
         {
+            case IParameter { ContainingDeclaration: IExtensionBlock extensionBlock } receiverParameter:
+                context.AddTransformation(
+                    new ContractExtensionBlockTransformation(
+                        this.AspectLayerInstance,
+                        extensionBlock.ToFullRef<IExtensionBlock>(),
+                        receiverParameter.ToFullRef(),
+                        this.Direction,
+                        this.Template,
+                        this.TemplateArguments ) );
+
+                return this.CreateSuccessResult( receiverParameter );
+
             case IParameter { ContainingDeclaration: IIndexer indexer } parameter:
                 context.AddTransformation(
                     new ContractIndexerTransformation(

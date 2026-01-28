@@ -206,6 +206,11 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                         syntaxGenerator.TypeSyntax( implementedInterfaceMember.DeclaringType ),
                         ThisExpression() ) );
         }
+        else if ( targetIndexer.DeclaringType is IExtensionBlock extensionBlock )
+        {
+            // For extension block indexers, use the receiver parameter instead of 'this'.
+            expression = SyntaxFactoryEx.SafeIdentifierName( extensionBlock.ReceiverParameter.Name );
+        }
         else
         {
             expression = ThisExpression();
@@ -231,7 +236,8 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
         {
             memberName = GenericName( memberNameString )
                 .WithTypeArgumentList(
-                    TypeArgumentList( SeparatedList( generic.TypeParameters.SelectAsReadOnlyList( p => (TypeSyntax) SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) );
+                    TypeArgumentList(
+                        SeparatedList( generic.TypeParameters.SelectAsReadOnlyList( p => (TypeSyntax) SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) );
         }
         else
         {
@@ -253,6 +259,15 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                         memberName )
                     .WithSimplifierAnnotationIfNecessary( syntaxGenerator.SyntaxGenerationContext );
             }
+            else if ( targetDeclaration.DeclaringType is IExtensionBlock extensionBlock )
+            {
+                // For extension block members, use the receiver parameter instead of 'this'.
+                expression = MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        SyntaxFactoryEx.SafeIdentifierName( extensionBlock.ReceiverParameter.Name ),
+                        memberName )
+                    .WithSimplifierAnnotationIfNecessary( syntaxGenerator.SyntaxGenerationContext );
+            }
             else
             {
                 expression = MemberAccessExpression(
@@ -264,12 +279,25 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
         }
         else
         {
-            expression =
-                MemberAccessExpression(
-                        SyntaxKind.SimpleMemberAccessExpression,
-                        syntaxGenerator.TypeExpression( targetDeclaration.DeclaringType ),
-                        memberName )
-                    .WithSimplifierAnnotationIfNecessary( syntaxGenerator.SyntaxGenerationContext );
+            if ( targetDeclaration.DeclaringType is IExtensionBlock extensionBlock )
+            {
+                // For static extension block members, use the receiver type.
+                expression =
+                    MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            syntaxGenerator.TypeExpression( extensionBlock.ReceiverParameter.Type ),
+                            memberName )
+                        .WithSimplifierAnnotationIfNecessary( syntaxGenerator.SyntaxGenerationContext );
+            }
+            else
+            {
+                expression =
+                    MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            syntaxGenerator.TypeExpression( targetDeclaration.DeclaringType ),
+                            memberName )
+                        .WithSimplifierAnnotationIfNecessary( syntaxGenerator.SyntaxGenerationContext );
+            }
         }
 
         return expression;

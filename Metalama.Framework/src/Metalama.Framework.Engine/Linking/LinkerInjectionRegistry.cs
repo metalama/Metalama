@@ -164,20 +164,24 @@ internal sealed class LinkerInjectionRegistry
 
             if ( injectedMember.Transformation != null && transformationsCausingAuxiliaryOverrides.Contains( injectedMember.Transformation ) )
             {
-                var overriddenMember = injectedMember.Transformation switch
+                var overriddenMemberOrNamedType = injectedMember.Transformation switch
                 {
-                    IInsertStatementTransformation insertMember => insertMember.TargetMember,
+                    IInsertStatementTransformation insertMember => insertMember.TargetMemberOrNamedType,
                     _ => throw new AssertionFailedException( $"Unsupported transformation {injectedMember.Transformation}." )
                 };
 
-                var typeMember = overriddenMember.GetTypeMember();
-
-                // These are auxiliary overrides created as a result of another transformation.
-                var list = overriddenDeclarations.GetOrAdd( typeMember, _ => new List<ISymbol>() );
-
-                lock ( list )
+                // Extension blocks don't have auxiliary overrides in the same way members do.
+                if ( overriddenMemberOrNamedType is IFullRef<IMember> overriddenMember )
                 {
-                    list.Add( injectedMemberSymbol );
+                    var typeMember = overriddenMember.GetTypeMember();
+
+                    // These are auxiliary overrides created as a result of another transformation.
+                    var list = overriddenDeclarations.GetOrAdd( typeMember, _ => new List<ISymbol>() );
+
+                    lock ( list )
+                    {
+                        list.Add( injectedMemberSymbol );
+                    }
                 }
             }
 

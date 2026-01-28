@@ -21,6 +21,7 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -74,8 +75,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 
         HashSet<IIntroduceDeclarationTransformation> replacedIntroduceDeclarationTransformations = [];
 
-        ConcurrentDictionary<IFullRef<IMember>, InsertStatementTransformationContextImpl>
-            pendingInsertStatementContexts = new( RefEqualityComparer<IMember>.Default );
+        ConcurrentDictionary<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl>
+            pendingInsertStatementContexts = new( RefEqualityComparer<IMemberOrNamedType>.Default );
 
         ConcurrentDictionary<IFullRef<IMember>, AuxiliaryMemberTransformations> auxiliaryMemberTransformations = new( RefEqualityComparer<IMember>.Default );
 
@@ -210,22 +211,41 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             this._concurrentTaskRunner,
             cancellationToken );
 
-        void FlushPendingInsertStatementContext( KeyValuePair<IFullRef<IMember>, InsertStatementTransformationContextImpl> pair )
+        void FlushPendingInsertStatementContext( KeyValuePair<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl> pair )
         {
-            if ( RequiresAuxiliaryContractMember( pair.Key, pair.Value ) )
+            if ( pair.Key is IFullRef<IMember> memberRef )
             {
+                // Regular member - check if it needs auxiliary contract members.
+                if ( RequiresAuxiliaryContractMember( memberRef, pair.Value ) )
+                {
+                    pair.Value.Complete();
+
+                    transformationCollection.AddTransformationCausingAuxiliaryOverride( pair.Value.OriginTransformation );
+
+                    // This may be the only "override" present, so make sure all other effects of overrides are present.
+                    AddSynthesizedSetterForPropertyIfRequired( memberRef, transformationCollection );
+
+                    auxiliaryMemberTransformations
+                        .GetOrAdd( memberRef, _ => new AuxiliaryMemberTransformations() )
+                        .InjectAuxiliaryContractMember(
+                            pair.Value.OriginTransformation,
+                            pair.Value.ReturnValueVariableName );
+                }
+            }
+            else if ( pair.Key.Definition is IExtensionBlock extensionBlock && pair.Value.WasUsedForOutputContracts )
+            {
+                // Extension block with output contracts - create auxiliary contract members for each instance member.
                 pair.Value.Complete();
 
                 transformationCollection.AddTransformationCausingAuxiliaryOverride( pair.Value.OriginTransformation );
 
-                // This may be the only "override" present, so make sure all other effects of overrides are present.
-                AddSynthesizedSetterForPropertyIfRequired( pair.Key, transformationCollection );
-
-                auxiliaryMemberTransformations
-                    .GetOrAdd( pair.Key, _ => new AuxiliaryMemberTransformations() )
-                    .InjectAuxiliaryContractMember(
-                        pair.Value.OriginTransformation,
-                        pair.Value.ReturnValueVariableName );
+                ForEachMethodInExtensionBlock(
+                    extensionBlock,
+                    method => auxiliaryMemberTransformations
+                        .GetOrAdd( method.ToFullRef(), _ => new AuxiliaryMemberTransformations() )
+                        .InjectAuxiliaryContractMember(
+                            pair.Value.OriginTransformation,
+                            pair.Value.ReturnValueVariableName ) );
             }
         }
 
@@ -443,6 +463,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     var removedFieldSyntax = fieldSyntaxReference.GetSyntax();
                     transformationCollection.AddRemovedSyntax( removedFieldSyntax );
                 }
+
                 // else: Compiler-generated backing fields (e.g., for auto-properties) don't have syntax
 
                 break;
@@ -547,7 +568,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         ITransformation transformation,
         TransformationCollection transformationCollection,
         ConcurrentDictionary<IFullRef<IMember>, AuxiliaryMemberTransformations> auxiliaryMemberTransformations,
-        ConcurrentDictionary<IFullRef<IMember>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts )
+        ConcurrentDictionary<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts )
     {
         if ( transformation is not IOverrideDeclarationTransformation overrideDeclarationTransformation )
         {
@@ -616,19 +637,19 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         ITransformation transformation,
         TransformationCollection transformationCollection,
         ConcurrentDictionary<IFullRef<IMember>, AuxiliaryMemberTransformations> auxiliaryMemberTransformations,
-        ConcurrentDictionary<IFullRef<IMember>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts )
+        ConcurrentDictionary<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts )
     {
         if ( transformation is not IInsertStatementTransformation insertStatementTransformation )
         {
             return;
         }
 
-        var targetMember = insertStatementTransformation.TargetMember.Definition;
+        var targetMemberOrNamedType = insertStatementTransformation.TargetMemberOrNamedType.Definition;
 
         var syntaxGenerationContext
-            = this._compilationContext.GetSyntaxGenerationContext( this._syntaxGenerationOptions, targetMember );
+            = this._compilationContext.GetSyntaxGenerationContext( this._syntaxGenerationOptions, targetMemberOrNamedType );
 
-        switch ( targetMember )
+        switch ( targetMemberOrNamedType )
         {
             case IPropertyOrIndexer propertyOrIndexer:
                 {
@@ -674,11 +695,53 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     break;
                 }
 
+            case IExtensionBlock extensionBlock:
+                {
+                    // For extension blocks, statements are generated per-method (each with a ContextDeclaration
+                    // that is a parameter whose ContainingDeclaration is the target method).
+                    // Group statements by method first (O(N)), then look up by method (O(M)), for O(N+M) total
+                    // instead of O(N×M) with the IsContainedIn filtering approach used for properties.
+                    var insertedStatements = GetInsertedStatements();
+
+                    // Build a dictionary grouping statements by their containing method.
+                    // ContextDeclaration is always a parameter (regular or return), and ContainingDeclaration is the method.
+                    var statementsByMethod = new Dictionary<IRef<IMethodBase>, List<InsertedStatement>>( RefEqualityComparer<IMethodBase>.Default );
+
+                    foreach ( var statement in insertedStatements )
+                    {
+                        if ( statement.ContextDeclaration.ContainingDeclaration is IMethodBase method )
+                        {
+                            var methodRef = method.ToRef();
+
+                            if ( !statementsByMethod.TryGetValue( methodRef, out var list ) )
+                            {
+                                list = new List<InsertedStatement>();
+                                statementsByMethod[methodRef] = list;
+                            }
+
+                            list.Add( statement );
+                        }
+                    }
+
+                    // Now assign statements to each member by direct lookup.
+                    ForEachMethodInExtensionBlock(
+                        extensionBlock,
+                        method =>
+                        {
+                            if ( statementsByMethod.TryGetValue( method.ToRef(), out var methodStatements ) )
+                            {
+                                transformationCollection.AddInsertedStatements( method.ToRef(), methodStatements );
+                            }
+                        } );
+
+                    break;
+                }
+
             default:
-                throw new AssertionFailedException( $"Unexpected target: {targetMember}." );
+                throw new AssertionFailedException( $"Unexpected target: {targetMemberOrNamedType}." );
         }
 
-        if ( targetMember is IConstructor { IsPrimary: true } overriddenConstructor )
+        if ( targetMemberOrNamedType is IConstructor { IsPrimary: true } overriddenConstructor )
         {
             auxiliaryMemberTransformations.GetOrAdd( overriddenConstructor.ToFullRef(), _ => new AuxiliaryMemberTransformations() )
                 .InjectAuxiliarySourceMember();
@@ -692,7 +755,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             // Contexts for inserting statements are reused until the next override of the target declaration.
             var context =
                 pendingInsertStatementContexts.GetOrAdd(
-                    insertStatementTransformation.TargetMember,
+                    insertStatementTransformation.TargetMemberOrNamedType,
                     m => new InsertStatementTransformationContextImpl(
                         this._serviceProvider,
                         diagnostics,
@@ -720,8 +783,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     markedForOutputContracts = true;
                     context.MarkAsUsedForOutputContracts();
 
-                    if ( targetMember is IProperty or IIndexer
-                         || (targetMember is IMethod method && method.GetAsyncInfo().ResultType.SpecialType != SpecialType.Void) )
+                    if ( targetMemberOrNamedType is IProperty or IIndexer
+                         || (targetMemberOrNamedType is IMethod method && method.GetAsyncInfo().ResultType.SpecialType != SpecialType.Void) )
                     {
                         // Force the return variable name to be allocated if the return type is not void.
                         // If there are output contracts that don't use the return value, the return value is still required.
@@ -868,6 +931,44 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     advice.AspectLayerId,
                     InjectedMemberSemantic.AuxiliaryBody,
                     rootMember ) );
+        }
+    }
+
+    /// <summary>
+    /// Iterates over all instance methods and accessors in an extension block, invoking the specified action for each one.
+    /// This includes methods, property getters/setters, and indexer getters/setters.
+    /// </summary>
+    private static void ForEachMethodInExtensionBlock( IExtensionBlock extensionBlock, Action<IMethod> action )
+    {
+        foreach ( var method in extensionBlock.Methods.Where( m => !m.IsStatic ) )
+        {
+            action( method );
+        }
+
+        foreach ( var property in extensionBlock.Properties.Where( p => !p.IsStatic ) )
+        {
+            if ( property.GetMethod != null )
+            {
+                action( property.GetMethod );
+            }
+
+            if ( property.SetMethod != null )
+            {
+                action( property.SetMethod );
+            }
+        }
+
+        foreach ( var indexer in extensionBlock.Indexers.Where( i => !i.IsStatic ) )
+        {
+            if ( indexer.GetMethod != null )
+            {
+                action( indexer.GetMethod );
+            }
+
+            if ( indexer.SetMethod != null )
+            {
+                action( indexer.SetMethod );
+            }
         }
     }
 
