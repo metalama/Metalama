@@ -21,6 +21,7 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -212,26 +213,39 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 
         void FlushPendingInsertStatementContext( KeyValuePair<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl> pair )
         {
-            // Extension blocks don't need auxiliary contract members - their individual members might, but those are handled separately.
-            if ( pair.Key is not IFullRef<IMember> memberRef )
+            if ( pair.Key is IFullRef<IMember> memberRef )
             {
-                return;
-            }
+                // Regular member - check if it needs auxiliary contract members.
+                if ( RequiresAuxiliaryContractMember( memberRef, pair.Value ) )
+                {
+                    pair.Value.Complete();
 
-            if ( RequiresAuxiliaryContractMember( memberRef, pair.Value ) )
+                    transformationCollection.AddTransformationCausingAuxiliaryOverride( pair.Value.OriginTransformation );
+
+                    // This may be the only "override" present, so make sure all other effects of overrides are present.
+                    AddSynthesizedSetterForPropertyIfRequired( memberRef, transformationCollection );
+
+                    auxiliaryMemberTransformations
+                        .GetOrAdd( memberRef, _ => new AuxiliaryMemberTransformations() )
+                        .InjectAuxiliaryContractMember(
+                            pair.Value.OriginTransformation,
+                            pair.Value.ReturnValueVariableName );
+                }
+            }
+            else if ( pair.Key.Definition is IExtensionBlock extensionBlock && pair.Value.WasUsedForOutputContracts )
             {
+                // Extension block with output contracts - create auxiliary contract members for each instance member.
                 pair.Value.Complete();
 
                 transformationCollection.AddTransformationCausingAuxiliaryOverride( pair.Value.OriginTransformation );
 
-                // This may be the only "override" present, so make sure all other effects of overrides are present.
-                AddSynthesizedSetterForPropertyIfRequired( memberRef, transformationCollection );
-
-                auxiliaryMemberTransformations
-                    .GetOrAdd( memberRef, _ => new AuxiliaryMemberTransformations() )
-                    .InjectAuxiliaryContractMember(
-                        pair.Value.OriginTransformation,
-                        pair.Value.ReturnValueVariableName );
+                ForEachMethodInExtensionBlock(
+                    extensionBlock,
+                    method => auxiliaryMemberTransformations
+                        .GetOrAdd( method.ToFullRef(), _ => new AuxiliaryMemberTransformations() )
+                        .InjectAuxiliaryContractMember(
+                            pair.Value.OriginTransformation,
+                            pair.Value.ReturnValueVariableName ) );
             }
         }
 
@@ -449,6 +463,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     var removedFieldSyntax = fieldSyntaxReference.GetSyntax();
                     transformationCollection.AddRemovedSyntax( removedFieldSyntax );
                 }
+
                 // else: Compiler-generated backing fields (e.g., for auto-properties) don't have syntax
 
                 break;
@@ -709,39 +724,15 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     }
 
                     // Now assign statements to each member by direct lookup.
-                    foreach ( var method in extensionBlock.Methods.Where( m => !m.IsStatic ) )
-                    {
-                        if ( statementsByMethod.TryGetValue( method.ToRef(), out var methodStatements ) )
+                    ForEachMethodInExtensionBlock(
+                        extensionBlock,
+                        method =>
                         {
-                            transformationCollection.AddInsertedStatements( method.ToRef(), methodStatements );
-                        }
-                    }
-
-                    foreach ( var property in extensionBlock.Properties.Where( p => !p.IsStatic ) )
-                    {
-                        if ( property.GetMethod != null && statementsByMethod.TryGetValue( property.GetMethod.ToRef(), out var getStatements ) )
-                        {
-                            transformationCollection.AddInsertedStatements( property.GetMethod.ToRef(), getStatements );
-                        }
-
-                        if ( property.SetMethod != null && statementsByMethod.TryGetValue( property.SetMethod.ToRef(), out var setStatements ) )
-                        {
-                            transformationCollection.AddInsertedStatements( property.SetMethod.ToRef(), setStatements );
-                        }
-                    }
-
-                    foreach ( var indexer in extensionBlock.Indexers.Where( i => !i.IsStatic ) )
-                    {
-                        if ( indexer.GetMethod != null && statementsByMethod.TryGetValue( indexer.GetMethod.ToRef(), out var getStatements ) )
-                        {
-                            transformationCollection.AddInsertedStatements( indexer.GetMethod.ToRef(), getStatements );
-                        }
-
-                        if ( indexer.SetMethod != null && statementsByMethod.TryGetValue( indexer.SetMethod.ToRef(), out var setStatements ) )
-                        {
-                            transformationCollection.AddInsertedStatements( indexer.SetMethod.ToRef(), setStatements );
-                        }
-                    }
+                            if ( statementsByMethod.TryGetValue( method.ToRef(), out var methodStatements ) )
+                            {
+                                transformationCollection.AddInsertedStatements( method.ToRef(), methodStatements );
+                            }
+                        } );
 
                     break;
                 }
@@ -940,6 +931,44 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     advice.AspectLayerId,
                     InjectedMemberSemantic.AuxiliaryBody,
                     rootMember ) );
+        }
+    }
+
+    /// <summary>
+    /// Iterates over all instance methods and accessors in an extension block, invoking the specified action for each one.
+    /// This includes methods, property getters/setters, and indexer getters/setters.
+    /// </summary>
+    private static void ForEachMethodInExtensionBlock( IExtensionBlock extensionBlock, Action<IMethod> action )
+    {
+        foreach ( var method in extensionBlock.Methods.Where( m => !m.IsStatic ) )
+        {
+            action( method );
+        }
+
+        foreach ( var property in extensionBlock.Properties.Where( p => !p.IsStatic ) )
+        {
+            if ( property.GetMethod != null )
+            {
+                action( property.GetMethod );
+            }
+
+            if ( property.SetMethod != null )
+            {
+                action( property.SetMethod );
+            }
+        }
+
+        foreach ( var indexer in extensionBlock.Indexers.Where( i => !i.IsStatic ) )
+        {
+            if ( indexer.GetMethod != null )
+            {
+                action( indexer.GetMethod );
+            }
+
+            if ( indexer.SetMethod != null )
+            {
+                action( indexer.SetMethod );
+            }
         }
     }
 
