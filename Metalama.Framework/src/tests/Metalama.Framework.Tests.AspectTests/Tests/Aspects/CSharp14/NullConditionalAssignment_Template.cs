@@ -9,25 +9,41 @@
 #if ROSLYN_5_0_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.NullConditionalAssignment_Template;
 
-internal class Node
+// Compile-time helper class
+[CompileTime]
+internal class CompileTimeNode
 {
-    public Node? Next { get; set; }
+    public CompileTimeNode? Next { get; set; }
     public int Value { get; set; }
 }
 
 internal class TheAspect : OverrideMethodAspect
 {
+    public override void BuildAspect( IAspectBuilder<IMethod> builder )
+    {
+        // Create compile-time node and store in tag
+        var node = new CompileTimeNode { Value = 10 };
+
+        builder.Override( nameof(OverrideMethod), tags: new { Node = node } );
+    }
+
     public override dynamic? OverrideMethod()
     {
-        // Run-time null-conditional assignments in template code
-        var node = (Node?)meta.Target.Parameters[0].Value;
-        node?.Value = 1;
-        node?.Next?.Value = 2;
+        // Get compile-time node from tag
+        var node = (CompileTimeNode?)meta.Tags["Node"];
 
-        return meta.Proceed();
+        // Compile-time null-conditional assignments
+        node?.Value = 42;
+        node?.Next?.Value = 100;
+
+        // The compile-time value is used to generate run-time code
+        var computedValue = node?.Value ?? 0;
+
+        return computedValue;
     }
 }
 
@@ -35,8 +51,9 @@ internal class TheAspect : OverrideMethodAspect
 internal class C
 {
     [TheAspect]
-    public void M( Node? node )
+    public int M()
     {
+        return 0;
     }
 }
 

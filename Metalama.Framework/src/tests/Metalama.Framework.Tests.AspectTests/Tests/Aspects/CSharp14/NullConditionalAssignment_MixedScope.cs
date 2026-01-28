@@ -5,7 +5,7 @@
 using Metalama.Framework.Aspects;
 using System.Linq;
 
-namespace Metalama.Framework.Tests.AspectTests.Aspects.Diagnostics.MixedConditionalAssignment;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.NullConditionalAssignment_MixedScope;
 
 internal class Aspect : OverrideMethodAspect
 {
