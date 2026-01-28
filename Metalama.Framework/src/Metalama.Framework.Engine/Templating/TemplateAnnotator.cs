@@ -1956,14 +1956,6 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         }
         else
         {
-            if ( node.Parent.IsKind( SyntaxKind.ConditionalAccessExpression ) )
-            {
-                // Null-conditional assignments are not implemented.
-                this.ReportUnsupportedLanguageFeature( node, "null-conditional assignment" );
-
-                // The rest of the analysis should be ok anyway.
-            }
-
             // Check if the left side is a tuple with var declarations
             if ( node.Left is TupleExpressionSyntax tupleLeft )
             {
