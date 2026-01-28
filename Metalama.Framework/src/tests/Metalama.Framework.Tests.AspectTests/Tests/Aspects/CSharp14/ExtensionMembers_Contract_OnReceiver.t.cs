@@ -1,3 +1,36 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0041 on `C`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [MyTypeAspect] applied to 'C': Cannot introduce a contract into 'C.extension(string)/test' because it is the receiver parameter of an extension block. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`
-// Error LAMA0037 on `MyContractAspect`: `The aspect 'MyContractAspect' cannot be applied to the parameter 'C.extension(int)/test' because 'C.extension(int)/test' must not be the receiver parameter of an extension block.`
+[MyTypeAspect]
+internal static class C
+{
+  extension([MyContractAspect] int test)
+  {
+    public int Property
+    {
+      get
+      {
+        Console.WriteLine("Original.");
+        return 42;
+      }
+      set
+      {
+        Console.WriteLine("Original.");
+      }
+    }
+  }
+  extension(string test)
+  {
+    public int Property
+    {
+      get
+      {
+        global::System.Console.WriteLine($"Contract on: {test}");
+        Console.WriteLine("Original.");
+        return 42;
+      }
+      set
+      {
+        global::System.Console.WriteLine($"Contract on: {test}");
+        Console.WriteLine("Original.");
+      }
+    }
+  }
+}

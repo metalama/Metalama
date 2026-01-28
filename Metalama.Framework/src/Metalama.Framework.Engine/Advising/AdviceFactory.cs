@@ -1530,8 +1530,6 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         object? tags = null,
         object? args = null )
     {
-        ValidateNotExtensionBlockReceiver( targetParameter, "a contract" );
-
         using ( this.WithNonUserCode() )
         {
             switch ( kind )

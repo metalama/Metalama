@@ -19,9 +19,9 @@ internal sealed partial class LinkerInjectionStep
         // ReSharper disable once MemberCanBePrivate.Local
 
         /// <summary>
-        /// Gets the member for which this context exists.
+        /// Gets the member or extension block for which this context exists.
         /// </summary>
-        public IFullRef<IMember> ContextMember { get; }
+        public IFullRef<IMemberOrNamedType> ContextMemberOrNamedType { get; }
 
         /// <summary>
         /// Gets the first transformation that uses this context.
@@ -47,15 +47,15 @@ internal sealed partial class LinkerInjectionStep
             CompilationModel compilation,
             ITemplateLexicalScopeProvider lexicalScopeProvider,
             IInsertStatementTransformation originTransformation,
-            IFullRef<IMember> contextMember ) : base( serviceProvider, diagnosticSink, syntaxGenerationContext, compilation, lexicalScopeProvider )
+            IFullRef<IMemberOrNamedType> contextMemberOrNamedType ) : base( serviceProvider, diagnosticSink, syntaxGenerationContext, compilation, lexicalScopeProvider )
         {
-            this.ContextMember = contextMember;
+            this.ContextMemberOrNamedType = contextMemberOrNamedType;
             this.OriginTransformation = originTransformation;
         }
 
         public override string GetReturnValueVariableName()
         {
-            var lexicalScope = this.LexicalScopeProvider.GetLexicalScope( this.ContextMember );
+            var lexicalScope = this.LexicalScopeProvider.GetLexicalScope( this.ContextMemberOrNamedType );
 
             return this.ReturnValueVariableName ??= lexicalScope.GetUniqueIdentifier( "returnValue" );
         }

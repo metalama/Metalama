@@ -23,7 +23,7 @@ internal sealed class SyntaxBasedInitializationTransformation : BaseSyntaxTreeTr
 
     private IRef<IMemberOrNamedType> ContextDeclaration { get; }
 
-    public IFullRef<IMember> TargetMember => this._targetConstructor;
+    public IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetConstructor;
 
     public SyntaxBasedInitializationTransformation(
         AspectLayerInstance aspectLayerInstance,
@@ -50,7 +50,7 @@ internal sealed class SyntaxBasedInitializationTransformation : BaseSyntaxTreeTr
         ];
     }
 
-    public override IFullRef<IDeclaration> TargetDeclaration => this.TargetMember;
+    public override IFullRef<IDeclaration> TargetDeclaration => this.TargetMemberOrNamedType;
 
     public override TransformationObservability Observability => TransformationObservability.None;
 

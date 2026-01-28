@@ -25,7 +25,7 @@ internal sealed class TemplateBasedInitializationTransformation : BaseSyntaxTree
 
     private IRef<IMemberOrNamedType> ContextDeclaration { get; }
 
-    public IFullRef<IMember> TargetMember => this._targetConstructor;
+    public IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetConstructor;
 
     public TemplateBasedInitializationTransformation(
         AspectLayerInstance aspectLayerInstance,
@@ -85,7 +85,7 @@ internal sealed class TemplateBasedInitializationTransformation : BaseSyntaxTree
         ];
     }
 
-    public override IFullRef<IDeclaration> TargetDeclaration => this.TargetMember;
+    public override IFullRef<IDeclaration> TargetDeclaration => this.TargetMemberOrNamedType;
 
     public override TransformationObservability Observability => TransformationObservability.None;
 

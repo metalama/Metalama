@@ -33,7 +33,10 @@ internal class MyTypeAspect : TypeAspect
     }
 
     [Template]
-    private void ValidateTemplate() { }
+    private void ValidateTemplate( dynamic? value )
+    {
+        Console.WriteLine( $"Contract on: {value}" );
+    }
 }
 
 // <target>

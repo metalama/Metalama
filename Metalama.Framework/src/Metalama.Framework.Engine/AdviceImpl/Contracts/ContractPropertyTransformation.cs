@@ -34,11 +34,11 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
         this._targetProperty = targetProperty;
     }
 
-    public override IFullRef<IMember> TargetMember => this._targetProperty;
+    public override IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetProperty;
 
     public override IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
     {
-        Invariant.Assert( this.ContractTarget.Equals( this.TargetMember ) );
+        Invariant.Assert( this.ContractTarget.Equals( this.TargetMemberOrNamedType ) );
 
         var targetProperty = this._targetProperty.GetTarget( context.FinalCompilation );
 
@@ -109,5 +109,5 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
     }
 
     public override FormattableString ToDisplayString()
-        => $"Add contract to property '{this.TargetMember.Definition.ToDisplayString( CodeDisplayFormat.MinimallyQualified )}'";
+        => $"Add contract to property '{this.TargetMemberOrNamedType.Definition.ToDisplayString( CodeDisplayFormat.MinimallyQualified )}'";
 }

@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
+using Metalama.Framework.Engine.AdviceImpl.Contracts;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
@@ -516,7 +517,7 @@ internal sealed partial class LinkerInjectionStep
                             && (bottomBound == null || GetTransformationMemberLayerIndex( s.Transformation ) >= bottomBound)
                             && (topBound == null || GetTransformationMemberLayerIndex( s.Transformation ) < topBound) );
 
-            var orderedInputContractStatements = OrderInputContractStatements( inputContractStatements );
+            var orderedInputContractStatements = OrderContractStatements( inputContractStatements );
 
             statements.AddRange(
                 orderedInputContractStatements.Select(
@@ -586,7 +587,7 @@ internal sealed partial class LinkerInjectionStep
                             && GetTransformationMemberLayerIndex( s.Transformation ) >= bottomBound
                             && (topBound == null || GetTransformationMemberLayerIndex( s.Transformation ) < topBound) );
 
-            var orderedOutputContractStatements = OrderOutputContractStatements( outputContractStatements );
+            var orderedOutputContractStatements = OrderContractStatements( outputContractStatements );
 
             statements.AddRange(
                 orderedOutputContractStatements.Select(
@@ -613,33 +614,37 @@ internal sealed partial class LinkerInjectionStep
                     } )
                 .ThenBy( s => (s.ContextDeclaration as IMember)?.ToDisplayString() );
 
-        private static IEnumerable<InsertedStatement> OrderInputContractStatements( IEnumerable<InsertedStatement> statements )
+        /// <summary>
+        /// Orders contract statements ensuring:
+        /// 1. Receiver parameter contracts (extension blocks) come first
+        /// 2. Regular parameters are ordered by index
+        /// 3. Return parameter contracts come last
+        /// This ordering is consistent for both input and output contracts.
+        /// </summary>
+        private static IEnumerable<InsertedStatement> OrderContractStatements( IEnumerable<InsertedStatement> statements )
             =>
 
                 // Makes sure that the order is not changed when override is added in the middle of aspects that insert statements.
                 statements
                     .OrderBy(
-                        s => s.ContextDeclaration switch
+                        s =>
                         {
-                            IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
-                            _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
-                        } )
-                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
-                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
-                    .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance );
+                            // Receiver parameter contracts come first.
+                            // These are identified by their parent transformation type.
+                            if ( s.Transformation is ContractExtensionBlockTransformation )
+                            {
+                                return -1;
+                            }
 
-        private static IEnumerable<InsertedStatement> OrderOutputContractStatements( IEnumerable<InsertedStatement> statements )
-            =>
-
-                // Makes sure that the order is not changed when override is added in the middle of aspects that insert statements.
-                statements
-                    .OrderBy(
-                        s => s.ContextDeclaration switch
-                        {
-                            IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
-                            IParameter { IsReturnParameter: true, ContainingDeclaration: IMethod method } =>
-                                method.Parameters.Count, // Method return value contracts are ordered after other parameters
-                            _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
+                            return s.ContextDeclaration switch
+                            {
+                                // Extension block receiver parameters are ordered first.
+                                IParameter { ContainingDeclaration: IExtensionBlock } => -1,
+                                IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
+                                IParameter { IsReturnParameter: true, ContainingDeclaration: IMethod method } =>
+                                    method.Parameters.Count, // Return parameter contracts are ordered after other parameters.
+                                _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
+                            };
                         } )
                     .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
                     .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
