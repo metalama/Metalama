@@ -8,6 +8,7 @@ using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.AdviceImpl.Attributes;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
+using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -575,9 +576,14 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             return;
         }
 
-        AddSynthesizedSetterForPropertyIfRequired(
-            overrideDeclarationTransformation.OverriddenDeclaration,
-            transformationCollection );
+        // Don't add synthesized setter when the override template introduces its own backing field
+        // via the C# 14 'field' keyword. In that case, the template manages its own backing field.
+        if ( transformation is not OverridePropertyTransformation { IntroducesBackingField: true } )
+        {
+            AddSynthesizedSetterForPropertyIfRequired(
+                overrideDeclarationTransformation.OverriddenDeclaration,
+                transformationCollection );
+        }
 
         if ( overrideDeclarationTransformation.OverriddenDeclaration is IFullRef<IConstructor> { Definition.IsPrimary: true } overriddenConstructorRef )
         {

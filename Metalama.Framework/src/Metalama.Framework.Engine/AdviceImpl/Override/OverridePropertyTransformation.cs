@@ -29,7 +29,12 @@ internal sealed class OverridePropertyTransformation : OverridePropertyBaseTrans
     /// Gets the name of the backing field introduced for a template that uses the C# 14 <c>field</c> keyword.
     /// This is <c>null</c> if the template does not use the <c>field</c> keyword.
     /// </summary>
-    private string? BackingFieldName { get; }
+    internal string? BackingFieldName { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether this transformation introduces a backing field via the <c>field</c> keyword.
+    /// </summary>
+    public bool IntroducesBackingField => this.BackingFieldName != null;
 
     public OverridePropertyTransformation(
         AspectLayerInstance aspectLayerInstance,
