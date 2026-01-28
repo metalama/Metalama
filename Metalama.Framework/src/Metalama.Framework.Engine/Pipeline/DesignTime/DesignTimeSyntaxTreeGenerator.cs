@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using ModifierCategories = Metalama.Framework.Engine.CodeModel.Helpers.ModifierCategories;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -407,10 +408,12 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     continue;
                 }
 
+                // For generated constructors, exclude the Partial modifier. C# 14 partial constructors require matching
+                // definition and implementation parts, but design-time generated constructors are standalone.
                 constructors.Add(
                     ConstructorDeclaration(
                         List<AttributeListSyntax>(),
-                        finalConstructor.GetSyntaxModifierList(),
+                        finalConstructor.GetSyntaxModifierList( ModifierCategories.All & ~ModifierCategories.Partial ),
                         SyntaxFactoryEx.SafeIdentifier( finalConstructor.DeclaringType.Name ),
                         syntaxGenerationContext.SyntaxGenerator.ParameterList( finalParameters, initialCompilationModel ),
                         initialConstructor.IsImplicitlyDeclared
@@ -447,7 +450,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                         constructors.Add(
                             ConstructorDeclaration(
                                 List<AttributeListSyntax>(),
-                                initialConstructor.GetSyntaxModifierList(),
+                                initialConstructor.GetSyntaxModifierList( ModifierCategories.All & ~ModifierCategories.Partial ),
                                 SyntaxFactoryEx.SafeIdentifier( initialConstructor.DeclaringType.Name ),
                                 syntaxGenerationContext.SyntaxGenerator.ParameterList( nonOptionalParameters, initialCompilationModel ),
                                 ConstructorInitializer(

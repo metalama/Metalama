@@ -1144,14 +1144,37 @@ internal sealed partial class LinkerInjectionStep
 
             node = (ConstructorDeclarationSyntax) this.VisitConstructorDeclaration( node )!;
 
-            if ( this._transformationCollection.TryGetMemberLevelTransformations( node, out var memberLevelTransformations ) )
-            {
-                var syntaxGenerationContext = this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, node );
-                node = this.ApplyMemberLevelTransformations( node, memberLevelTransformations, syntaxGenerationContext );
-            }
-
             var semanticModel = this._semanticModelProvider.GetSemanticModel( originalNode.SyntaxTree );
             var symbol = semanticModel.GetDeclaredSymbol( originalNode );
+
+            // For partial constructor definitions, transformations are stored under the implementation part's syntax,
+            // so we need to look up using the implementation syntax instead.
+            SyntaxNode lookupNode = node;
+#if ROSLYN_5_0_0_OR_GREATER
+            if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: { } implementationPart } )
+            {
+                lookupNode = implementationPart.GetPrimaryDeclarationSyntax()!;
+            }
+#endif
+
+            if ( this._transformationCollection.TryGetMemberLevelTransformations( lookupNode, out var memberLevelTransformations ) )
+            {
+                var syntaxGenerationContext = this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, node );
+
+#if ROSLYN_5_0_0_OR_GREATER
+                if ( symbol is { IsPartialDefinition: true } )
+                {
+                    // For partial constructor definitions, only apply parameter transformations (not initializer arguments,
+                    // since the definition doesn't have an initializer).
+                    node = node.WithParameterList(
+                        this.AppendParameters( node.ParameterList, memberLevelTransformations.Parameters, syntaxGenerationContext ) );
+                }
+                else
+#endif
+                {
+                    node = this.ApplyMemberLevelTransformations( node, memberLevelTransformations, syntaxGenerationContext );
+                }
+            }
 
 #if ROSLYN_5_0_0_OR_GREATER
             if ( symbol is { PartialImplementationPart: null } )
