@@ -114,7 +114,7 @@ namespace Metalama.Framework.Engine.Utilities
         public static void Update( this XxHash64 hash, int value ) => hash.Append( value );
 
         /// <summary>
-        /// Compatibility method that maps to <see cref="XxHash64.GetCurrentHashAsUInt64"/>.
+        /// Compatibility method that maps to <c>XxHash64.GetCurrentHashAsUInt64()</c>.
         /// </summary>
         public static ulong Digest( this XxHash64 hash ) => hash.GetCurrentHashAsUInt64();
 
