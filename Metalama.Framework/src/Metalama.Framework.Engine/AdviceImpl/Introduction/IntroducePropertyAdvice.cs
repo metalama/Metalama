@@ -229,6 +229,7 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
 
             // Check if the template uses the 'field' keyword.
             var introducesBackingField = this.Template?.IntroducesBackingField ?? false;
+            var isBackingFieldAssigned = this.Template?.IsBackingFieldAssigned ?? false;
 
             // There is no existing declaration.
             if ( isAutoProperty && !introducesBackingField )
@@ -252,6 +253,7 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                         this.AspectLayerInstance,
                         builder,
                         backingFieldName,
+                        isBackingFieldAssigned,
                         context.AddTransformation );
                 }
 

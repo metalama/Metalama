@@ -467,6 +467,7 @@ namespace Metalama.Compiler
 
         // Check if the node contains any 'field' keyword expressions (C# 14 semi-automatic properties).
         var introducesBackingField = node is AccessorDeclarationSyntax accessor && SyntaxHelpers.ContainsFieldExpression( accessor );
+        var isBackingFieldAssigned = node is AccessorDeclarationSyntax accessorForAssignment && SyntaxHelpers.ContainsFieldAssignment( accessorForAssignment );
 
         var attributeArguments = new List<AttributeArgumentSyntax>
         {
@@ -483,6 +484,13 @@ namespace Metalama.Compiler
             attributeArguments.Add(
                 AttributeArgument( SyntaxFactoryEx.LiteralExpression( true ) )
                     .WithNameEquals( NameEquals( nameof(CompiledTemplateAttribute.IntroducesBackingField) ) ) );
+        }
+
+        if ( isBackingFieldAssigned )
+        {
+            attributeArguments.Add(
+                AttributeArgument( SyntaxFactoryEx.LiteralExpression( true ) )
+                    .WithNameEquals( NameEquals( nameof(CompiledTemplateAttribute.IsBackingFieldAssigned) ) ) );
         }
 
         var attribute = Attribute( (NameSyntax) syntaxFactory.SyntaxGenerator.TypeSyntax( compiledTemplateAttributeType ) )

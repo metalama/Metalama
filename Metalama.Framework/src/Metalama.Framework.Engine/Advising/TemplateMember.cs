@@ -64,6 +64,12 @@ internal abstract class TemplateMember
     public bool IntroducesBackingField { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the property template assigns to the backing field.
+    /// When <c>true</c>, the introduced backing field should be writable; when <c>false</c>, it can be readonly.
+    /// </summary>
+    public bool IsBackingFieldAssigned { get; }
+
+    /// <summary>
     /// Gets a value indicating which kind should the template be treated as, based on the selected template method.
     /// For example, a <see cref="TemplateKind.Default"/> template that is <c>async Task</c> should be treated as <see cref="TemplateKind.Async"/>.
     /// </summary>
@@ -122,6 +128,7 @@ internal abstract class TemplateMember
         this.AdviceAttribute = prototype.AdviceAttribute;
         this.IsIteratorMethod = prototype.IsIteratorMethod;
         this.IntroducesBackingField = prototype.IntroducesBackingField;
+        this.IsBackingFieldAssigned = prototype.IsBackingFieldAssigned;
         this.EffectiveTemplateKind = prototype.EffectiveTemplateKind;
         this.SelectedTemplateKind = prototype.SelectedTemplateKind;
         this.GetAccessorAccessibility = prototype.GetAccessorAccessibility;
@@ -183,6 +190,12 @@ internal abstract class TemplateMember
                 {
                     this.IntroducesBackingField = true;
                 }
+
+                // Check if the getter assigns to the 'field' keyword.
+                if ( attributeOnGetter.IsBackingFieldAssigned )
+                {
+                    this.IsBackingFieldAssigned = true;
+                }
             }
 
             if ( property.SetMethod != null )
@@ -195,6 +208,12 @@ internal abstract class TemplateMember
                 {
                     this.IntroducesBackingField = true;
                 }
+
+                // Check if the setter assigns to the 'field' keyword.
+                if ( attributeOnSetter.IsBackingFieldAssigned )
+                {
+                    this.IsBackingFieldAssigned = true;
+                }
             }
         }
         else if ( symbol is IMethodSymbol { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet } )
@@ -204,6 +223,11 @@ internal abstract class TemplateMember
             if ( compiledTemplateAttribute.IntroducesBackingField )
             {
                 this.IntroducesBackingField = true;
+            }
+
+            if ( compiledTemplateAttribute.IsBackingFieldAssigned )
+            {
+                this.IsBackingFieldAssigned = true;
             }
         }
 
@@ -255,6 +279,11 @@ internal abstract class TemplateMember
             {
                 attribute.IntroducesBackingField = (bool) introducesBackingField.Value!;
             }
+
+            if ( attributeData.TryGetNamedArgument( nameof(CompiledTemplateAttribute.IsBackingFieldAssigned), out var backingFieldIsAssigned ) )
+            {
+                attribute.IsBackingFieldAssigned = (bool) backingFieldIsAssigned.Value!;
+            }
         }
 
         // For same-project scenarios, also check the source syntax for FieldExpressionSyntax.
@@ -264,6 +293,14 @@ internal abstract class TemplateMember
             attribute.IntroducesBackingField = declaration.DeclaringSyntaxReferences
                 .Any( syntaxRef => syntaxRef.GetSyntax() is AccessorDeclarationSyntax accessor
                                    && SyntaxHelpers.ContainsFieldExpression( accessor ) );
+        }
+
+        // For same-project scenarios, also detect if the accessor assigns to the field keyword.
+        if ( !attribute.IsBackingFieldAssigned )
+        {
+            attribute.IsBackingFieldAssigned = declaration.DeclaringSyntaxReferences
+                .Any( syntaxRef => syntaxRef.GetSyntax() is AccessorDeclarationSyntax accessor
+                                   && SyntaxHelpers.ContainsFieldAssignment( accessor ) );
         }
 
         return attribute;

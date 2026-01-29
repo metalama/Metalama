@@ -9,5 +9,5 @@ internal class C
       return (global::System.String? )_name;
     }
   }
-  private global::System.String? _name;
+  private readonly global::System.String? _name;
 }

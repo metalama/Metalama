@@ -34,10 +34,17 @@ internal static class OverrideHelper
             (getTemplate?.TemplateMember.IntroducesBackingField ?? false) ||
             (setTemplate?.TemplateMember.IntroducesBackingField ?? false);
 
+        // Determine if any template assigns to the 'field' keyword (vs just reading it).
+        var isBackingFieldAssigned =
+            (getTemplate?.TemplateMember.IsBackingFieldAssigned ?? false) ||
+            (setTemplate?.TemplateMember.IsBackingFieldAssigned ?? false);
+
         string? backingFieldName = null;
 
         if ( introducesBackingField )
         {
+            Invariant.Assert( mutableCompilation != null, "mutableCompilation is required when template introduces a backing field" );
+
             // Compute a unique backing field name using the mutable compilation for collision checking.
             var property = targetDeclaration switch
             {
@@ -47,9 +54,9 @@ internal static class OverrideHelper
                 _ => null
             };
 
-            if ( property != null && mutableCompilation != null )
+            if ( property != null )
             {
-                backingFieldName = ComputeBackingFieldName( property, mutableCompilation );
+                backingFieldName = ComputeBackingFieldName( property, mutableCompilation! );
             }
         }
 
@@ -72,9 +79,9 @@ internal static class OverrideHelper
                     addTransformation( transformation );
 
                     // If we need a backing field for a field being promoted, compute the name now.
-                    if ( introducesBackingField && backingFieldName == null && mutableCompilation != null )
+                    if ( introducesBackingField && backingFieldName == null )
                     {
-                        backingFieldName = ComputeBackingFieldName( transformation.OverridingProperty, mutableCompilation );
+                        backingFieldName = ComputeBackingFieldName( transformation.OverridingProperty, mutableCompilation! );
                     }
 
                     // Introduce the backing field if needed.
@@ -84,6 +91,7 @@ internal static class OverrideHelper
                             aspectLayerInstance,
                             transformation.OverridingProperty,
                             backingFieldName,
+                            isBackingFieldAssigned,
                             addTransformation );
                     }
 
@@ -109,6 +117,7 @@ internal static class OverrideHelper
                             aspectLayerInstance,
                             property,
                             backingFieldName,
+                            isBackingFieldAssigned,
                             addTransformation );
                     }
 
@@ -164,10 +173,19 @@ internal static class OverrideHelper
     /// <summary>
     /// Introduces a backing field for a property template that uses the <c>field</c> keyword.
     /// </summary>
+    /// <param name="aspectLayerInstance">The aspect layer instance.</param>
+    /// <param name="property">The property to introduce a backing field for.</param>
+    /// <param name="backingFieldName">The name of the backing field.</param>
+    /// <param name="isBackingFieldAssigned">
+    /// Whether the template assigns to the backing field. When <c>true</c>, the field is writable;
+    /// when <c>false</c>, the field can be readonly (ConstructorOnly).
+    /// </param>
+    /// <param name="addTransformation">Action to add transformations.</param>
     internal static void IntroduceBackingField(
         AspectLayerInstance aspectLayerInstance,
         IProperty property,
         string backingFieldName,
+        bool isBackingFieldAssigned,
         Action<ITransformation> addTransformation )
     {
         var fieldBuilder = new FieldBuilder( aspectLayerInstance, property.DeclaringType, backingFieldName )
@@ -176,8 +194,9 @@ internal static class OverrideHelper
             Type = property.Type,
             IsStatic = property.IsStatic,
 
-            // For get-only properties, the backing field should be readonly.
-            Writeability = property.SetMethod == null ? Writeability.ConstructorOnly : Writeability.All,
+            // The backing field is writable only if the template actually assigns to it.
+            // If the template only reads from 'field', the backing field can be readonly.
+            Writeability = isBackingFieldAssigned ? Writeability.All : Writeability.ConstructorOnly,
 
             // Transfer the property initializer to the backing field.
             InitializerExpression = property.InitializerExpression

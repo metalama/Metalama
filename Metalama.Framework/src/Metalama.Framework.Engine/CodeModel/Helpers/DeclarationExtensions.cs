@@ -276,7 +276,7 @@ public static class DeclarationExtensions
         => symbol.GetPropertyKind() switch
         {
             PropertyKind.Auto => true,
-            PropertyKind.SemiAuto => true, // Semi-auto properties have a backing field, so they are "auto" in the sense of having a compiler-generated field.
+            PropertyKind.SemiAuto => true, // Semi-auto properties have compiler-generated backing fields; IsAutoProperty returns true based on backing field existence, not accessor implementation.
             PropertyKind.Default => false,
             _ => null
         };
