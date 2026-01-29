@@ -8,7 +8,6 @@ using Metalama.Framework.DesignTime.CodeLens;
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.DesignTime.Preview;
 using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
@@ -52,7 +51,6 @@ public class DistributedDesignTimeTestBase : UnitTestClass
         services.AddGlobalService( provider => new CodeLensServiceImpl( provider ) );
         services.AddGlobalService( provider => new AspectDatabase( provider ) );
 
-        services.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
         services.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), syncProvider );
 
         var context = (DistributedDesignTimeTestContext) this.CreateTestContext( options, services );
