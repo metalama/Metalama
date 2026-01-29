@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
-using Newtonsoft.Json;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 
@@ -13,7 +12,6 @@ namespace Metalama.Backstage.UserInterface;
 [Description( "IDE extension status." )]
 public sealed record IdeExtensionsStatusConfiguration : ConfigurationFile
 {
-    [JsonProperty( "vs" )]
     [JsonPropertyName( "vs" )]
     public bool IsVisualStudioExtensionInstalled { get; init; }
 }

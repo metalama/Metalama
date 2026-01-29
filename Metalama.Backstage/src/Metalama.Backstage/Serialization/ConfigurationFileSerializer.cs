@@ -3,20 +3,19 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Backstage.Configuration;
-using Newtonsoft.Json;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using Metalama.Backstage.Configuration;
 
 namespace Metalama.Backstage.Serialization;
 
 /// <summary>
-/// Provides serialization and deserialization for configuration files,
-/// using System.Text.Json for writing and supporting both STJ and Newtonsoft.Json for reading (backward compatibility).
+/// Provides serialization and deserialization for configuration files using System.Text.Json.
 /// </summary>
 internal static class ConfigurationFileSerializer
 {
     /// <summary>
-    /// Serializes a configuration file to JSON using System.Text.Json.
+    /// Serializes a configuration file to JSON.
     /// </summary>
     public static string Serialize( ConfigurationFile configuration )
     {
@@ -25,15 +24,15 @@ internal static class ConfigurationFileSerializer
 
         if ( typeInfo != null )
         {
-            return System.Text.Json.JsonSerializer.Serialize( configuration, typeInfo );
+            return JsonSerializer.Serialize( configuration, typeInfo );
         }
 
         // Fallback for types not registered in the context (shouldn't happen in production)
-        return System.Text.Json.JsonSerializer.Serialize( configuration, type, BackstageJsonContext.Indented.Options );
+        return JsonSerializer.Serialize( configuration, type, BackstageJsonContext.Indented.Options );
     }
 
     /// <summary>
-    /// Deserializes a configuration file from JSON, trying System.Text.Json first and falling back to Newtonsoft.Json for backward compatibility.
+    /// Deserializes a configuration file from JSON.
     /// </summary>
     public static bool TryDeserialize<T>( string json, [NotNullWhen( true )] out T? result )
         where T : ConfigurationFile
@@ -51,21 +50,9 @@ internal static class ConfigurationFileSerializer
     }
 
     /// <summary>
-    /// Deserializes a configuration file from JSON, trying System.Text.Json first and falling back to Newtonsoft.Json for backward compatibility.
+    /// Deserializes a configuration file from JSON.
     /// </summary>
     public static bool TryDeserialize( string json, Type type, [NotNullWhen( true )] out ConfigurationFile? result )
-    {
-        // First, try System.Text.Json
-        if ( TryDeserializeWithStj( json, type, out result ) )
-        {
-            return true;
-        }
-
-        // Fall back to Newtonsoft.Json for backward compatibility with existing files
-        return TryDeserializeWithNewtonsoft( json, type, out result );
-    }
-
-    private static bool TryDeserializeWithStj( string json, Type type, [NotNullWhen( true )] out ConfigurationFile? result )
     {
         try
         {
@@ -73,33 +60,17 @@ internal static class ConfigurationFileSerializer
 
             if ( typeInfo != null )
             {
-                result = (ConfigurationFile?) System.Text.Json.JsonSerializer.Deserialize( json, typeInfo );
+                result = (ConfigurationFile?) JsonSerializer.Deserialize( json, typeInfo );
 
                 return result != null;
             }
 
             // Fallback for types not registered in the context
-            result = (ConfigurationFile?) System.Text.Json.JsonSerializer.Deserialize( json, type, BackstageJsonContext.Indented.Options );
+            result = (ConfigurationFile?) JsonSerializer.Deserialize( json, type, BackstageJsonContext.Indented.Options );
 
             return result != null;
         }
-        catch ( System.Text.Json.JsonException )
-        {
-            result = null;
-
-            return false;
-        }
-    }
-
-    private static bool TryDeserializeWithNewtonsoft( string json, Type type, [NotNullWhen( true )] out ConfigurationFile? result )
-    {
-        try
-        {
-            result = (ConfigurationFile?) JsonConvert.DeserializeObject( json, type );
-
-            return result != null;
-        }
-        catch ( Newtonsoft.Json.JsonException )
+        catch ( JsonException )
         {
             result = null;
 

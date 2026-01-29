@@ -5,10 +5,9 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Manifest;
+using Metalama.Framework.Engine.Serialization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using Xunit;
@@ -18,8 +17,6 @@ namespace Metalama.Framework.Tests.UnitTests.Serialization;
 
 public sealed class ManifestSerializationTests : JsonSerializationTestsBase
 {
-    private static readonly JsonConverter[] _converters = [new StringEnumConverter()];
-
     public ManifestSerializationTests( ITestOutputHelper output ) : base( output ) { }
 
     [Fact]
@@ -80,8 +77,8 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
 
         const string expectedJson = """
             {
-              "SourcePath": "/src/MyFile.cs",
-              "TransformedPath": "/obj/compile-time/MyFile.cs"
+              "sourcePath": "/src/MyFile.cs",
+              "transformedPath": "/obj/compile-time/MyFile.cs"
             }
             """;
 
@@ -111,11 +108,11 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
         };
 
         // Test round-trip serialization
-        var json = JsonConvert.SerializeObject( input, Formatting.Indented, _converters );
+        var json = ManifestSerializer.Serialize( input );
         this.Output.WriteLine( "CompileTimeDiagnosticManifest JSON:" );
         this.Output.WriteLine( json );
 
-        var deserialized = JsonConvert.DeserializeObject<CompileTimeDiagnosticManifest>( json, _converters );
+        var deserialized = ManifestSerializer.Deserialize<CompileTimeDiagnosticManifest>( json );
 
         Assert.NotNull( deserialized );
         Assert.Equal( input.Id, deserialized.Id );
@@ -142,10 +139,10 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
 
         const string expectedJson = """
             {
-              "FileIndex": 5,
-              "TextSpan": {
-                "Start": 100,
-                "Length": 50
+              "fileIndex": 5,
+              "textSpan": {
+                "start": 100,
+                "length": 50
               }
             }
             """;
@@ -163,22 +160,21 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
             LineSpan = new LinePositionSpan( new LinePosition( 10, 5 ), new LinePosition( 10, 35 ) )
         };
 
-        // LinePositionSpan serializes with underscore-prefixed field names
         const string expectedJson = """
             {
-              "FilePath": "/src/External.cs",
-              "TextSpan": {
-                "Start": 200,
-                "Length": 30
+              "filePath": "/src/External.cs",
+              "textSpan": {
+                "start": 200,
+                "length": 30
               },
-              "LineSpan": {
-                "_start": {
-                  "_line": 10,
-                  "_character": 5
+              "lineSpan": {
+                "start": {
+                  "line": 10,
+                  "character": 5
                 },
-                "_end": {
-                  "_line": 10,
-                  "_character": 35
+                "end": {
+                  "line": 10,
+                  "character": 35
                 }
               }
             }
@@ -197,10 +193,10 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
 
         const string expectedJson = """
             {
-              "FileIndex": -1,
-              "TextSpan": {
-                "Start": 0,
-                "Length": 0
+              "fileIndex": -1,
+              "textSpan": {
+                "start": 0,
+                "length": 0
               }
             }
             """;
@@ -213,11 +209,11 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
     {
         var input = TemplateProjectManifest.Empty;
 
-        var json = JsonConvert.SerializeObject( input, Formatting.Indented, _converters );
+        var json = ManifestSerializer.Serialize( input );
         this.Output.WriteLine( "TemplateProjectManifest.Empty JSON:" );
         this.Output.WriteLine( json );
 
-        var deserialized = JsonConvert.DeserializeObject<TemplateProjectManifest>( json, _converters );
+        var deserialized = ManifestSerializer.Deserialize<TemplateProjectManifest>( json );
         Assert.NotNull( deserialized );
         Assert.NotNull( deserialized.RootSymbol );
     }
@@ -246,11 +242,11 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
 
         var input = new TemplateProjectManifest( rootSymbol );
 
-        var json = JsonConvert.SerializeObject( input, Formatting.Indented, _converters );
+        var json = ManifestSerializer.Serialize( input );
         this.Output.WriteLine( "TemplateProjectManifest JSON:" );
         this.Output.WriteLine( json );
 
-        var deserialized = JsonConvert.DeserializeObject<TemplateProjectManifest>( json, _converters );
+        var deserialized = ManifestSerializer.Deserialize<TemplateProjectManifest>( json );
         Assert.NotNull( deserialized );
         Assert.NotNull( deserialized.RootSymbol );
         Assert.NotNull( deserialized.RootSymbol.Children );
@@ -269,8 +265,8 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
 
         const string expectedJson = """
             {
-              "Id": "MyNamespace.MyClass",
-              "Scope": "CompileTime"
+              "id": "MyNamespace.MyClass",
+              "scope": "CompileTime"
             }
             """;
 
@@ -289,12 +285,12 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
 
         const string expectedJson = """
             {
-              "Id": "MyNamespace.MyClass.MyTemplate()",
-              "Scope": "RunTimeOrCompileTime",
-              "TemplateInfo": {
-                "AttributeType": "Template",
-                "IsAbstract": false,
-                "HasNoBody": false
+              "id": "MyNamespace.MyClass.MyTemplate()",
+              "scope": "RunTimeOrCompileTime",
+              "templateInfo": {
+                "attributeType": "Template",
+                "isAbstract": false,
+                "hasNoBody": false
               }
             }
             """;
@@ -309,19 +305,13 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
 
         const string expectedJson = """
             {
-              "AttributeType": "DeclarativeAdvice",
-              "IsAbstract": true,
-              "HasNoBody": true
+              "attributeType": "DeclarativeAdvice",
+              "isAbstract": true,
+              "hasNoBody": true
             }
             """;
 
         this.TestSerialization( input, expectedJson );
     }
 
-    private static string NormalizeJson( string json )
-    {
-        return JsonConvert.SerializeObject(
-            JsonConvert.DeserializeObject( json ),
-            Formatting.Indented );
-    }
 }

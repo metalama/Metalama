@@ -9,8 +9,8 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Utilities;
-using Newtonsoft.Json;
 using System;
+using System.Text.Json;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -178,7 +178,7 @@ public sealed class TempFileManager : ITempFileManager
 
             try
             {
-                cleanUpFile = JsonConvert.DeserializeObject<CleanUpFile>( jsonFileContent );
+                cleanUpFile = JsonSerializer.Deserialize<CleanUpFile>( jsonFileContent );
             }
             catch ( JsonException e )
             {
@@ -296,7 +296,7 @@ public sealed class TempFileManager : ITempFileManager
                 // but the cleanup file gets deleted before the failure.
 
                 var cleanUpFile = new CleanUpFile() { Strategy = CleanUpStrategy.AlwaysNoMove };
-                this._fileSystem.WriteAllText( cleanUpFilePath, JsonConvert.SerializeObject( cleanUpFile ) );
+                this._fileSystem.WriteAllText( cleanUpFilePath, JsonSerializer.Serialize( cleanUpFile ) );
             }
             catch ( Exception e2 )
             {
@@ -432,7 +432,7 @@ public sealed class TempFileManager : ITempFileManager
                     if ( !this._fileSystem.FileExists( cleanUpFilePath ) )
                     {
                         var file = new CleanUpFile() { Strategy = cleanUpStrategy };
-                        this._fileSystem.WriteAllText( cleanUpFilePath, JsonConvert.SerializeObject( file ) );
+                        this._fileSystem.WriteAllText( cleanUpFilePath, JsonSerializer.Serialize( file ) );
 
                         return directoryFullPath;
                     }

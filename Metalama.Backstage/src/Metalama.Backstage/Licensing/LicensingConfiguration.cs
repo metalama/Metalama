@@ -6,7 +6,6 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.Licensing.Registration;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -21,21 +20,18 @@ internal sealed record LicensingConfiguration : ConfigurationFile
     /// <summary>
     /// Gets the date of the last evaluation period.
     /// </summary>
-    [JsonProperty( "lastEvaluationStartDate" )]
     [JsonPropertyName( "lastEvaluationStartDate" )]
     public DateTime? LastEvaluationStartDate { get; init; }
 
     /// <summary>
     /// Gets the only license key compatible with pre-2025.1, or <c>null</c> if there is none.
     /// </summary>
-    [JsonProperty( "license" )]
     [JsonPropertyName( "license" )]
     public string? LegacyLicense { get; init; }
 
     /// <summary>
     /// Gets the list of license keys for Metalama 2025.1 or later.
     /// </summary>
-    [JsonProperty( "licenses" )]
     [JsonPropertyName( "licenses" )]
     public ImmutableArray<string?> Licenses { get; init; } = ImmutableArray<string?>.Empty;
 

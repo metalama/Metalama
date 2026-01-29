@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Newtonsoft.Json;
 using System;
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
@@ -14,12 +13,10 @@ public sealed record CrashDumpConfiguration
     /// <summary>
     /// Gets a value indicating whether logging is enabled at all.
     /// </summary>
-    [JsonProperty( "processes" )]
     [JsonPropertyName( "processes" )]
     public ImmutableDictionary<string, bool> Processes { get; init; } =
         ImmutableDictionary<string, bool>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
 
-    [JsonProperty( "exceptionTypes" )]
     [JsonPropertyName( "exceptionTypes" )]
     public ImmutableArray<string> ExceptionTypes { get; init; } = ImmutableArray<string>.Empty;
 }

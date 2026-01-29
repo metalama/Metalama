@@ -2,9 +2,10 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using Metalama.Framework.Engine.Serialization;
 using System;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -15,8 +16,6 @@ namespace Metalama.Framework.Tests.UnitTests.Serialization;
 /// </summary>
 public abstract class JsonSerializationTestsBase
 {
-    private static readonly JsonConverter[] _converters = [new StringEnumConverter()];
-
     protected ITestOutputHelper Output { get; }
 
     protected JsonSerializationTestsBase( ITestOutputHelper output )
@@ -36,7 +35,7 @@ public abstract class JsonSerializationTestsBase
         where T : class
     {
         // Step 1: Serialize object to JSON
-        var serializedJson = JsonConvert.SerializeObject( inputObject, Formatting.Indented, _converters );
+        var serializedJson = ManifestSerializer.Serialize( inputObject );
         this.Output.WriteLine( "Serialized JSON:" );
         this.Output.WriteLine( serializedJson );
 
@@ -44,11 +43,11 @@ public abstract class JsonSerializationTestsBase
         Assert.Equal( NormalizeJson( expectedJson ), NormalizeJson( serializedJson ) );
 
         // Step 3: Deserialize back to object
-        var deserialized = JsonConvert.DeserializeObject<T>( expectedJson, _converters );
+        var deserialized = ManifestSerializer.Deserialize<T>( expectedJson );
         Assert.NotNull( deserialized );
 
         // Step 4: Serialize again
-        var reserializedJson = JsonConvert.SerializeObject( deserialized, Formatting.Indented, _converters );
+        var reserializedJson = ManifestSerializer.Serialize( deserialized );
 
         // Step 5: Compare JSON outputs match (round-trip consistency)
         Assert.Equal( NormalizeJson( serializedJson ), NormalizeJson( reserializedJson ) );
@@ -83,11 +82,11 @@ public abstract class JsonSerializationTestsBase
         Assert.Equal( NormalizeJson( serializedJson ), NormalizeJson( reserializedJson ) );
     }
 
-    private static string NormalizeJson( string json )
+    protected static string NormalizeJson( string json )
     {
-        // Normalize whitespace for comparison
-        return JsonConvert.SerializeObject(
-            JsonConvert.DeserializeObject( json ),
-            Formatting.Indented );
+        // Normalize whitespace for comparison by parsing and re-serializing
+        var node = JsonNode.Parse( json );
+
+        return node?.ToJsonString( new JsonSerializerOptions { WriteIndented = true } ) ?? "";
     }
 }

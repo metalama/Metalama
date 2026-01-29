@@ -13,6 +13,7 @@ using Metalama.Backstage.UserInterface.Rss;
 using Metalama.Backstage.UserInterface.Toasts;
 using Metalama.Backstage.Welcome;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -45,6 +46,12 @@ namespace Metalama.Backstage.Serialization;
 [JsonSerializable( typeof(ImmutableDictionary<long, DateTime>) )]
 [JsonSerializable( typeof(ImmutableArray<string>) )]
 [JsonSerializable( typeof(ImmutableArray<string?>) )]
+// Dictionary types needed for ImmutableDictionary converter deserialization
+[JsonSerializable( typeof(Dictionary<string, bool>) )]
+[JsonSerializable( typeof(Dictionary<string, DateTime>) )]
+[JsonSerializable( typeof(Dictionary<string, ReportingStatus>) )]
+[JsonSerializable( typeof(Dictionary<string, ToastNotificationConfiguration>) )]
+[JsonSerializable( typeof(Dictionary<long, DateTime>) )]
 internal partial class BackstageJsonContext : JsonSerializerContext
 {
     private static BackstageJsonContext? _indented;
@@ -68,9 +75,8 @@ internal partial class BackstageJsonContext : JsonSerializerContext
             PropertyNameCaseInsensitive = true
         };
 
-        // Add converters for immutable collections
+        // Add converter for ImmutableDictionary with case-insensitive string keys
         options.Converters.Add( new ImmutableDictionaryConverterFactory() );
-        options.Converters.Add( new ImmutableArrayConverterFactory() );
 
         return options;
     }

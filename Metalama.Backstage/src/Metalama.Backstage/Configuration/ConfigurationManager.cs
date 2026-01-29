@@ -353,7 +353,7 @@ namespace Metalama.Backstage.Configuration
 
             try
             {
-                // Use the new serializer that supports both STJ and Newtonsoft for backward compatibility
+                // Use the serializer to deserialize the configuration file
                 if ( !ConfigurationFileSerializer.TryDeserialize( json, type, out settings ) )
                 {
                     return false;

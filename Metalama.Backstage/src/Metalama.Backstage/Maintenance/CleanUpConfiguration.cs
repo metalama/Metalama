@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
-using Newtonsoft.Json;
 using System;
 using System.Text.Json.Serialization;
 
@@ -13,7 +12,6 @@ namespace Metalama.Backstage.Maintenance;
 public sealed record CleanUpConfiguration : ConfigurationFile
 {
 #pragma warning disable CA1507 // Use nameof in place of string literal
-    [JsonProperty( "LastCleanUpTime" )]
     [JsonPropertyName( "LastCleanUpTime" )]
 #pragma warning restore CA1507
     public DateTime? LastCleanUpTime { get; init; }

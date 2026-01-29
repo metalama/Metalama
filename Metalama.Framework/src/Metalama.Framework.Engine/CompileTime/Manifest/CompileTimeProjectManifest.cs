@@ -6,18 +6,17 @@ using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.Serialization;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis.CSharp;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Versioning;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Framework.Engine.CompileTime.Manifest
 {
     /// <summary>
-    /// A serializable object that stores the manifest of a <see cref="CompileTimeProject"/>. 
+    /// A serializable object that stores the manifest of a <see cref="CompileTimeProject"/>.
     /// </summary>
-    [JsonObject( ItemNullValueHandling = NullValueHandling.Ignore )]
     internal sealed class CompileTimeProjectManifest
     {
         public CompileTimeProjectManifest(
@@ -84,13 +83,11 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
 
         // We're explicitly serializing as an integer because the manifest might be deserialized by a lower Roslyn
         // version than the one serializing it.
-        [Newtonsoft.Json.JsonConverter( typeof(LanguageVersionConverter) )]
-        [System.Text.Json.Serialization.JsonConverter( typeof(LanguageVersionJsonConverter) )]
+        [JsonConverter( typeof(LanguageVersionJsonConverter) )]
         public LanguageVersion? LanguageVersion { get; set; }
 
         // Prior versions of Metalama did not write LanguageVersion, but the maximum version was 13.
-        [Newtonsoft.Json.JsonIgnore]
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public LanguageVersion ResolvedLanguageVersion
 #if ROSLYN_4_12_0_OR_GREATER
             => this.LanguageVersion ?? Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp13;

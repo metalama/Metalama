@@ -6,15 +6,16 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Maintenance;
+using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Telemetry.User;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Rss;
 using Metalama.Backstage.UserInterface.Toasts;
 using Metalama.Backstage.Welcome;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Immutable;
+using System.Text.Json;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -60,7 +61,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             input,
             expectedJson,
             obj => obj.ToJson(),
-            json => JsonConvert.DeserializeObject<TelemetryConfiguration>( json ) );
+            json => JsonSerializer.Deserialize<TelemetryConfiguration>( json, BackstageJsonContext.Indented.Options ) );
     }
 
     [Fact]
@@ -101,7 +102,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             input,
             expectedJson,
             obj => obj.ToJson(),
-            json => JsonConvert.DeserializeObject<TelemetryConfiguration>( json ) );
+            json => JsonSerializer.Deserialize<TelemetryConfiguration>( json, BackstageJsonContext.Indented.Options ) );
     }
 
     [Fact]
@@ -114,7 +115,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.Output.WriteLine( "DiagnosticsConfiguration JSON:" );
         this.Output.WriteLine( json );
 
-        var deserialized = JsonConvert.DeserializeObject<DiagnosticsConfiguration>( json );
+        var deserialized = JsonSerializer.Deserialize<DiagnosticsConfiguration>( json, BackstageJsonContext.Indented.Options );
         Assert.NotNull( deserialized );
         Assert.NotNull( deserialized.Logging );
         Assert.NotNull( deserialized.Debugging );
@@ -238,7 +239,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             input,
             expectedJson,
             obj => obj.ToJson(),
-            json => JsonConvert.DeserializeObject<CleanUpConfiguration>( json ) );
+            json => JsonSerializer.Deserialize<CleanUpConfiguration>( json, BackstageJsonContext.Indented.Options ) );
     }
 
     [Fact]
@@ -265,7 +266,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             input,
             expectedJson,
             obj => obj.ToJson(),
-            json => JsonConvert.DeserializeObject<WelcomeConfiguration>( json ) );
+            json => JsonSerializer.Deserialize<WelcomeConfiguration>( json, BackstageJsonContext.Indented.Options ) );
     }
 
     [Fact]
@@ -305,7 +306,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             input,
             expectedJson,
             obj => obj.ToJson(),
-            json => JsonConvert.DeserializeObject<ToastNotificationsConfiguration>( json ) );
+            json => JsonSerializer.Deserialize<ToastNotificationsConfiguration>( json, BackstageJsonContext.Indented.Options ) );
     }
 
     [Fact]
@@ -356,7 +357,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             input,
             expectedJson,
             obj => obj.ToJson(),
-            json => JsonConvert.DeserializeObject<LicensingConfiguration>( json ) );
+            json => JsonSerializer.Deserialize<LicensingConfiguration>( json, BackstageJsonContext.Indented.Options ) );
     }
 
     [Fact]
@@ -379,7 +380,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             input,
             expectedJson,
             obj => obj.ToJson(),
-            json => JsonConvert.DeserializeObject<IdeExtensionsStatusConfiguration>( json ) );
+            json => JsonSerializer.Deserialize<IdeExtensionsStatusConfiguration>( json, BackstageJsonContext.Indented.Options ) );
     }
 
     [Fact]
@@ -408,7 +409,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             input,
             expectedJson,
             obj => obj.ToJson(),
-            json => JsonConvert.DeserializeObject<LicenseAuditConfiguration>( json ) );
+            json => JsonSerializer.Deserialize<LicenseAuditConfiguration>( json, BackstageJsonContext.Indented.Options ) );
     }
 
     [Fact]
@@ -432,7 +433,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             input,
             expectedJson,
             obj => obj.ToJson(),
-            json => JsonConvert.DeserializeObject<RssClientConfiguration>( json ) );
+            json => JsonSerializer.Deserialize<RssClientConfiguration>( json, BackstageJsonContext.Indented.Options ) );
     }
 
     [Fact]
@@ -455,7 +456,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             input,
             expectedJson,
             obj => obj.ToJson(),
-            json => JsonConvert.DeserializeObject<UserInfo>( json ) );
+            json => JsonSerializer.Deserialize<UserInfo>( json, BackstageJsonContext.Indented.Options ) );
     }
 
     [Fact]
@@ -474,6 +475,6 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             input,
             expectedJson,
             obj => obj.ToJson(),
-            json => JsonConvert.DeserializeObject<UserInfo>( json ) );
+            json => JsonSerializer.Deserialize<UserInfo>( json, BackstageJsonContext.Indented.Options ) );
     }
 }

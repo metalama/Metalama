@@ -3,11 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Serialization;
-using Newtonsoft.Json;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
-using JsonIgnoreAttribute = System.Text.Json.Serialization.JsonIgnoreAttribute;
 
 namespace Metalama.Backstage.Configuration;
 
@@ -19,7 +17,6 @@ public abstract record ConfigurationFile
     /// Gets a distinct timestamp for the current object.
     /// </summary>
     [JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     internal ConfigurationFileTimestamp? Timestamp
         => this._fileSystemTimestamp == null ? null : new ConfigurationFileTimestamp( this._fileSystemTimestamp.Value, this.Version );
 
@@ -37,7 +34,6 @@ public abstract record ConfigurationFile
     /// Gets or sets a version number of this object.  We don't expect the user (or other versions of Metalama.Backstage) to change this property.
     /// Its value is only taken into account when comparing two objects with the same filesystem timestamp.
     /// </summary>
-    [JsonProperty( "version" )]
     [JsonPropertyName( "version" )]
     public int? Version { get; set; }
 
@@ -47,7 +43,7 @@ public abstract record ConfigurationFile
     }
 
     /// <summary>
-    /// Deserializes a configuration file from JSON, trying System.Text.Json first and falling back to Newtonsoft.Json for backward compatibility.
+    /// Deserializes a configuration file from JSON.
     /// </summary>
     internal static bool TryFromJson<T>( string json, [NotNullWhen( true )] out T? result )
         where T : ConfigurationFile
