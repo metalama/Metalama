@@ -25,6 +25,6 @@ internal class C<T>
       _defaultValue = value;
     }
   }
-  private T? _defaultValue;
+  private T? _defaultValue = default;
   private T? _value;
 }

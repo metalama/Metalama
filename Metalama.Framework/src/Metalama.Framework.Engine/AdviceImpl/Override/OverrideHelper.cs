@@ -177,7 +177,10 @@ internal static class OverrideHelper
             IsStatic = property.IsStatic,
 
             // For get-only properties, the backing field should be readonly.
-            Writeability = property.SetMethod == null ? Writeability.ConstructorOnly : Writeability.All
+            Writeability = property.SetMethod == null ? Writeability.ConstructorOnly : Writeability.All,
+
+            // Transfer the property initializer to the backing field.
+            InitializerExpression = property.InitializerExpression
         };
 
         fieldBuilder.Freeze();

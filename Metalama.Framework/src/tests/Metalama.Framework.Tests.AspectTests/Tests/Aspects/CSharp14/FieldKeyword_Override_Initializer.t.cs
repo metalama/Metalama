@@ -26,6 +26,6 @@ internal class C
     }
   }
   private static string GetDefault() => "Computed";
-  private global::System.String? _description;
-  private global::System.String? _name;
+  private global::System.String? _description = GetDefault();
+  private global::System.String? _name = "DefaultName";
 }

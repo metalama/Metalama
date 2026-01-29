@@ -26,5 +26,5 @@ internal class C
     }
   }
   private global::System.String? _name;
-  private global::System.String? _title;
+  private global::System.String? _title = "Default";
 }
