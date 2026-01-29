@@ -156,21 +156,21 @@ internal sealed class CompileTimeAssemblyLocator
         // Compute a unique hash for the combination of factors.
         using var hashHandle = HashUtilities.AllocateHasher();
         var hashBuilder = hashHandle.Value;
-        hashBuilder.Update( additionalReferences );
-        hashBuilder.Update( targetFrameworksString );
-        hashBuilder.Update( additionalNugetSources );
-        hashBuilder.Update( RoslynApiVersion.Current );
+        hashBuilder.Append( additionalReferences );
+        hashBuilder.Append( targetFrameworksString );
+        hashBuilder.Append( additionalNugetSources );
+        hashBuilder.Append( RoslynApiVersion.Current );
 
         foreach ( var nugetConfigFile in this._nugetConfigFiles ?? [] )
         {
             var nugetConfigContent = File.ReadAllText( nugetConfigFile );
-            hashBuilder.Update( nugetConfigContent );
+            hashBuilder.Append( nugetConfigContent );
         }
 
         // Include optional salt for cache invalidation (useful for testing).
         if ( !string.IsNullOrEmpty( projectOptions.AssemblyLocatorSalt ) )
         {
-            hashBuilder.Update( projectOptions.AssemblyLocatorSalt );
+            hashBuilder.Append( projectOptions.AssemblyLocatorSalt );
         }
 
         var projectHash = hashBuilder.GetCurrentHashAsUInt64().ToString( "x", CultureInfo.InvariantCulture );

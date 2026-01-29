@@ -81,9 +81,9 @@ internal sealed class IntroduceExtensionBlockAdvice : IntroduceDeclarationAdvice
         {
             using var hashHandle = HashUtilities.AllocateHasher();
             var hash = hashHandle.Value;
-            hash.Update( orders.OrderWithinPipeline );
-            hash.Update( orders.OrderWithinPipelineStepAndType );
-            hash.Update( orders.OrderWithinPipelineStepAndTypeAndAspectInstance );
+            hash.Append( orders.OrderWithinPipeline );
+            hash.Append( orders.OrderWithinPipelineStepAndType );
+            hash.Append( orders.OrderWithinPipelineStepAndTypeAndAspectInstance );
             builder.Name = $"Extension_{(ushort) hash.GetCurrentHashAsUInt64():x4}";
         }
 

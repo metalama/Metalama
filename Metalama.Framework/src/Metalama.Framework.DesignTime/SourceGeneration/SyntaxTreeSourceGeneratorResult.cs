@@ -37,7 +37,7 @@ internal sealed class SyntaxTreeSourceGeneratorResult : SourceGeneratorResult
         foreach ( var tree in this.AdditionalSources.Values )
         {
             xxh.Reset();
-            xxh.Update( tree.Name );
+            xxh.Append( tree.Name );
             hasher.Visit( tree.GeneratedSyntaxTree.GetRoot() );
 
             var digest = xxh.GetCurrentHashAsUInt64();

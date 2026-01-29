@@ -61,7 +61,7 @@ namespace Metalama.Framework.Engine.Templating
             // of the same name. It is essential that this hash is consistent across runtimes and versions of Roslyn and Metalama.
             using var hashHandle = HashUtilities.AllocateHasher();
             var hashCode = hashHandle.Value;
-            hashCode.Update( symbol.GetDocumentationCommentId().AssertNotNull() );
+            hashCode.Append( symbol.GetDocumentationCommentId().AssertNotNull() );
 
             return $"{principal}_{hashCode.GetCurrentHashAsUInt64():x}";
         }

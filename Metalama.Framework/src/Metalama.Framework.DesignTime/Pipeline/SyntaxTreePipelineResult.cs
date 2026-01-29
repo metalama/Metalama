@@ -95,9 +95,9 @@ namespace Metalama.Framework.DesignTime.Pipeline
             {
                 var xxh = new XxHash64();
 
-                xxh.Update( aspectInstance.AspectClassFullName );
-                xxh.Update( aspectInstance.TargetDeclarationId.Id );
-                xxh.Update( aspectInstance.PredecessorDeclarationId?.Id );
+                xxh.Append( aspectInstance.AspectClassFullName );
+                xxh.Append( aspectInstance.TargetDeclarationId.Id );
+                xxh.Append( aspectInstance.PredecessorDeclarationId?.Id );
 
                 hashCode ^= xxh.GetCurrentHashAsUInt64();
             }
@@ -106,9 +106,9 @@ namespace Metalama.Framework.DesignTime.Pipeline
             {
                 var xxh = new XxHash64();
 
-                xxh.Update( transformation.AspectClassFullName );
-                xxh.Update( transformation.TargetDeclarationId.Id );
-                xxh.Update( transformation.Description );
+                xxh.Append( transformation.AspectClassFullName );
+                xxh.Append( transformation.TargetDeclarationId.Id );
+                xxh.Append( transformation.Description );
 
                 hashCode ^= xxh.GetCurrentHashAsUInt64();
             }

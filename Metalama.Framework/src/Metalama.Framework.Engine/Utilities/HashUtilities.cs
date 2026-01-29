@@ -92,32 +92,5 @@ namespace Metalama.Framework.Engine.Utilities
 
         public static unsafe void Append( this XxHash64 hash, int value )
             => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(int) ) );
-
-        #region Compatibility shims for Update -> Append migration
-
-        // These extension methods provide backward compatibility during the migration
-        // from K4os.Hash.xxHash (Update) to System.IO.Hashing (Append).
-        // They allow existing code using .Update() to continue working.
-
-        public static void Update( this XxHash64 hash, string? value ) => hash.Append( value );
-
-        public static void Update<T>( this XxHash64 hash, T value )
-            where T : unmanaged
-            => hash.Append( value );
-
-        public static void Update( this XxHash64 hash, long value ) => hash.Append( value );
-
-        public static void Update( this XxHash64 hash, ulong value ) => hash.Append( value );
-
-        public static void Update( this XxHash64 hash, ImmutableArray<byte> bytes ) => hash.Append( bytes );
-
-        public static void Update( this XxHash64 hash, int value ) => hash.Append( value );
-
-        /// <summary>
-        /// Compatibility method that maps to <c>XxHash64.GetCurrentHashAsUInt64()</c>.
-        /// </summary>
-        public static ulong Digest( this XxHash64 hash ) => hash.GetCurrentHashAsUInt64();
-
-        #endregion
     }
 }

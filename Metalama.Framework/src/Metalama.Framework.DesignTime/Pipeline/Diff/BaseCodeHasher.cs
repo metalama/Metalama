@@ -33,7 +33,7 @@ public abstract class BaseCodeHasher : SafeSyntaxWalker
     {
         if ( token.RawKind != 0 && !token.IsMissing )
         {
-            this._hasher.Update( token.RawKind );
+            this._hasher.Append( token.RawKind );
             this.Log?.AppendLineInvariant( $"Adding '{token.RawKind}' to the hash." );
         }
     }
@@ -42,7 +42,7 @@ public abstract class BaseCodeHasher : SafeSyntaxWalker
     {
         if ( !token.IsMissing )
         {
-            this._hasher.Update( token.Text );
+            this._hasher.Append( token.Text );
             this.Log?.AppendLineInvariant( $"Adding '{token.Text}' to the hash." );
         }
     }
@@ -50,7 +50,7 @@ public abstract class BaseCodeHasher : SafeSyntaxWalker
     protected void HashValue<T>( T value )
         where T : unmanaged
     {
-        this._hasher.Update( value );
+        this._hasher.Append( value );
         this.Log?.AppendLineInvariant( $"Adding '{value}' to the hash." );
     }
 
@@ -74,7 +74,7 @@ public abstract class BaseCodeHasher : SafeSyntaxWalker
 
     protected void Visit( in SyntaxToken token )
     {
-        this._hasher.Update( token.Text );
+        this._hasher.Append( token.Text );
         this.Log?.AppendLineInvariant( $"Adding '{token.Text}' to the hash." );
     }
 

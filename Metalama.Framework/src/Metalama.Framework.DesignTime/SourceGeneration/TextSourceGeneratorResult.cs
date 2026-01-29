@@ -30,8 +30,8 @@ internal sealed class TextSourceGeneratorResult : SourceGeneratorResult
         foreach ( var source in this._sources )
         {
             xxh.Reset();
-            xxh.Update( source.Key );
-            xxh.Update( source.Value );
+            xxh.Append( source.Key );
+            xxh.Append( source.Value );
 
             hash ^= xxh.GetCurrentHashAsUInt64();
         }

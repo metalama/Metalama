@@ -64,7 +64,7 @@ public static class ProjectKeyFactory
 
             foreach ( var symbol in immutableArray )
             {
-                hasher.Update( symbol );
+                hasher.Append( symbol );
             }
         }
         else
@@ -76,7 +76,7 @@ public static class ProjectKeyFactory
             foreach ( var symbol in preprocessorSymbolNames )
             {
                 hasHashCode = true;
-                hasher.Update( symbol );
+                hasher.Append( symbol );
             }
 
             if ( !hasHashCode )

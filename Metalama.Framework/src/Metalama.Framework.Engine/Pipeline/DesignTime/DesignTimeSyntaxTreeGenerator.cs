@@ -296,8 +296,8 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                         var location = primarySyntax.GetLocation();
                         using var hashHandle = HashUtilities.AllocateHasher();
                         var hash = hashHandle.Value;
-                        hash.Update( location.SourceTree.AssertNotNull().FilePath );
-                        hash.Update( location.SourceSpan.Start );
+                        hash.Append( location.SourceTree.AssertNotNull().FilePath );
+                        hash.Append( location.SourceSpan.Start );
                         sb.AppendFormat( CultureInfo.InvariantCulture, "{0:x}", (int) hash.GetCurrentHashAsUInt64() );
                     }
                     else

@@ -32,8 +32,8 @@ internal sealed class OfflineSourceGeneratorResult : SourceGeneratorResult
         foreach ( var file in this.OfflineFiles )
         {
             xxh.Reset();
-            xxh.Update( file.Path );
-            xxh.Update( File.GetLastWriteTime( file.Path ).ToFileTimeUtc() );
+            xxh.Append( file.Path );
+            xxh.Append( File.GetLastWriteTime( file.Path ).ToFileTimeUtc() );
 
             hash ^= xxh.GetCurrentHashAsUInt64();
         }

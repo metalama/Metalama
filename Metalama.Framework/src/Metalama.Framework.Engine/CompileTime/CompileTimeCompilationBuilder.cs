@@ -85,7 +85,7 @@ internal sealed partial class CompileTimeCompilationBuilder
                     var text = reader.ReadToEnd();
                     using var hashHandle = HashUtilities.AllocateHasher();
                     var hash = hashHandle.Value;
-                    hash.Update( text );
+                    hash.Append( text );
 
                     return (text, hash.GetCurrentHashAsUInt64());
                 } );
@@ -133,7 +133,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         if ( targetFramework != null )
         {
             this._logger.Trace?.Log( $"SourceHash: TargetFramework='{targetFramework}'" );
-            h.Update( targetFramework.FullName );
+            h.Append( targetFramework.FullName );
         }
 
         // Hash compilation symbols.
@@ -145,7 +145,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         foreach ( var symbol in preprocessorSymbols )
         {
             this._logger.Trace?.Log( $"SourceHash: Symbol='{symbol}'" );
-            h.Update( symbol );
+            h.Append( symbol );
         }
 
         // Hash syntax trees.
@@ -153,14 +153,12 @@ internal sealed partial class CompileTimeCompilationBuilder
         {
             // SourceText.Checksum does not seem to return the same thing at compile time than at run time, so we take use our own algorithm.
             var text = syntaxTree.GetText().ToString();
-            h.Update( text );
+            h.Append( text );
 
             this._logger.Trace?.Log( $"SourceHash: '{syntaxTree.FilePath}'={string.Join( "", HashUtilities.HashString( text ) )}" );
         }
 
-        var digest = h.Digest();
-
-        return digest;
+        return h.GetCurrentHashAsUInt64();
     }
 
     private ulong ComputeProjectHash(
@@ -175,44 +173,44 @@ internal sealed partial class CompileTimeCompilationBuilder
         // The benefit is to avoid conflicts in our development environments where we rebuild without changing the version number.
         // The cost is that there will be redundant caches of compile-time projects in production because the exact same version has different
         // builds, one for each platform.
-        h.Update( _buildId );
+        h.Append( _buildId );
         this._logger.Trace?.Log( $"ProjectHash: BuildId='{_buildId}'" );
 
-        h.Update( assemblyIdentity.Name );
-        h.Update( assemblyIdentity.Version.ToString() );
+        h.Append( assemblyIdentity.Name );
+        h.Append( assemblyIdentity.Version.ToString() );
         this._logger.Trace?.Log( $"ProjectHash: AssemblyIdentity='{assemblyIdentity.Name}, {assemblyIdentity.Version}'" );
 
         foreach ( var reference in referencedProjects.OrderBy( r => r.Hash ) )
         {
-            h.Update( reference.Hash );
+            h.Append( reference.Hash );
             this._logger.Trace?.Log( $"ProjectHash: '{reference.RunTimeIdentity.Name}'={reference.Hash}" );
         }
 
-        h.Update( sourceHash );
+        h.Append( sourceHash );
         this._logger.Trace?.Log( $"ProjectHash: Source={sourceHash:x}" );
 
         if ( this._projectOptions != null )
         {
-            h.Update( this._projectOptions.FormatCompileTimeCode );
+            h.Append( this._projectOptions.FormatCompileTimeCode );
             this._logger.Trace?.Log( $"ProjectHash: FormatCompileTimeCode={this._projectOptions.FormatCompileTimeCode}" );
 
-            h.Update( this._projectOptions.AllowPreviewLanguageFeatures );
+            h.Append( this._projectOptions.AllowPreviewLanguageFeatures );
             this._logger.Trace?.Log( $"ProjectHash: AllowPreviewLanguageFeatures={this._projectOptions.AllowPreviewLanguageFeatures}" );
 
-            h.Update( this._projectOptions.RequireOrderedAspects );
+            h.Append( this._projectOptions.RequireOrderedAspects );
             this._logger.Trace?.Log( $"ProjectHash: RequireOrderedAspects={this._projectOptions.RequireOrderedAspects}" );
 
-            h.Update( this._projectOptions.RoslynIsCompileTimeOnly );
+            h.Append( this._projectOptions.RoslynIsCompileTimeOnly );
             this._logger.Trace?.Log( $"ProjectHash: RoslynIsCompileTimeOnly={this._projectOptions.RoslynIsCompileTimeOnly}" );
 
-            h.Update( this._projectOptions.CompileTimeTargetFrameworks );
+            h.Append( this._projectOptions.CompileTimeTargetFrameworks );
             this._logger.Trace?.Log( $"ProjectHash: CompileTimeTargetFrameworks={this._projectOptions.CompileTimeTargetFrameworks}" );
 
-            h.Update( this._projectOptions.TemplateLanguageVersion );
+            h.Append( this._projectOptions.TemplateLanguageVersion );
             this._logger.Trace?.Log( $"ProjectHash: TemplateLanguageVersion={this._projectOptions.TemplateLanguageVersion}" );
         }
 
-        h.Update( RoslynApiVersion.Current );
+        h.Append( RoslynApiVersion.Current );
         this._logger.Trace?.Log( $"ProjectHash: RoslynApiVersion={RoslynApiVersion.Current}" );
 
         var digest = h.GetCurrentHashAsUInt64();
