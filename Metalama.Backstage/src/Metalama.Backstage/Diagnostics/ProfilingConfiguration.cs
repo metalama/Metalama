@@ -5,6 +5,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Diagnostics;
 
@@ -15,12 +16,14 @@ public sealed record ProfilingConfiguration
     /// are: <c>performance</c>, <c>memory</c> and <c>memory-allocation</c>.
     /// </summary>
     [JsonProperty( "kind" )]
+    [JsonPropertyName( "kind" )]
     public string? Kind { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether profiling is enabled.
     /// </summary>
     [JsonProperty( "processes" )]
+    [JsonPropertyName( "processes" )]
     public ImmutableDictionary<string, bool> Processes { get; init; } =
         ImmutableDictionary<string, bool>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
 }

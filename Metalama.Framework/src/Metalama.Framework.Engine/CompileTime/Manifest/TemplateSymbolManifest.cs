@@ -36,7 +36,8 @@ internal sealed class TemplateSymbolManifest : ITemplateInfo
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyList<TemplateSymbolManifest>>? Children { get; }
 
-    [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
+    [System.Text.Json.Serialization.JsonConstructor]
     public TemplateSymbolManifest(
         string id,
         ExecutionScope? scope,

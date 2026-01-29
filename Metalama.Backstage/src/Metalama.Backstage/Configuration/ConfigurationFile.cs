@@ -2,9 +2,12 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Serialization;
 using Newtonsoft.Json;
 using System;
-using System.IO;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
+using JsonIgnoreAttribute = System.Text.Json.Serialization.JsonIgnoreAttribute;
 
 namespace Metalama.Backstage.Configuration;
 
@@ -15,6 +18,8 @@ public abstract record ConfigurationFile
     /// <summary>
     /// Gets a distinct timestamp for the current object.
     /// </summary>
+    [JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     internal ConfigurationFileTimestamp? Timestamp
         => this._fileSystemTimestamp == null ? null : new ConfigurationFileTimestamp( this._fileSystemTimestamp.Value, this.Version );
 
@@ -33,17 +38,21 @@ public abstract record ConfigurationFile
     /// Its value is only taken into account when comparing two objects with the same filesystem timestamp.
     /// </summary>
     [JsonProperty( "version" )]
+    [JsonPropertyName( "version" )]
     public int? Version { get; set; }
 
     public string ToJson()
     {
-        // Serialize.
-        var textWriter = new StringWriter();
-        var serializer = JsonSerializer.Create();
-        serializer.Formatting = Formatting.Indented;
-        serializer.Serialize( textWriter, this );
+        return ConfigurationFileSerializer.Serialize( this );
+    }
 
-        return textWriter.ToString();
+    /// <summary>
+    /// Deserializes a configuration file from JSON, trying System.Text.Json first and falling back to Newtonsoft.Json for backward compatibility.
+    /// </summary>
+    internal static bool TryFromJson<T>( string json, [NotNullWhen( true )] out T? result )
+        where T : ConfigurationFile
+    {
+        return ConfigurationFileSerializer.TryDeserialize( json, out result );
     }
 
     internal bool StructurallyEqualsTo( ConfigurationFile other )

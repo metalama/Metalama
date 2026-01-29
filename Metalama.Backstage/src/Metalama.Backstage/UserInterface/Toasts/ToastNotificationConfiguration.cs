@@ -4,14 +4,17 @@
 
 using Newtonsoft.Json;
 using System;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.UserInterface.Toasts;
 
 public sealed record ToastNotificationConfiguration
 {
     [JsonProperty( "snoozeUntil" )]
+    [JsonPropertyName( "snoozeUntil" )]
     public DateTime? SnoozeUntil { get; init; }
 
     [JsonProperty( "disabled" )]
+    [JsonPropertyName( "disabled" )]
     public bool Disabled { get; init; }
 }

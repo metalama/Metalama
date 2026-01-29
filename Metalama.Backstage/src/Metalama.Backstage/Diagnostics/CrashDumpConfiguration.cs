@@ -5,6 +5,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Diagnostics;
 
@@ -14,9 +15,11 @@ public sealed record CrashDumpConfiguration
     /// Gets a value indicating whether logging is enabled at all.
     /// </summary>
     [JsonProperty( "processes" )]
+    [JsonPropertyName( "processes" )]
     public ImmutableDictionary<string, bool> Processes { get; init; } =
         ImmutableDictionary<string, bool>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
 
     [JsonProperty( "exceptionTypes" )]
+    [JsonPropertyName( "exceptionTypes" )]
     public ImmutableArray<string> ExceptionTypes { get; init; } = ImmutableArray<string>.Empty;
 }

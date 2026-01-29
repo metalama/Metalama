@@ -6,8 +6,8 @@ using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Utilities;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -353,15 +353,8 @@ namespace Metalama.Backstage.Configuration
 
             try
             {
-                var jsonSettings = new JsonSerializerSettings();
-
-#if TRACE_JSON
-                jsonSettings.TraceWriter = new JsonTraceWriter( fileName, this.Logger.WithPrefix( "Json" ) );
-#endif
-
-                settings = (ConfigurationFile?) JsonConvert.DeserializeObject( json, type, jsonSettings );
-
-                if ( settings == null )
+                // Use the new serializer that supports both STJ and Newtonsoft for backward compatibility
+                if ( !ConfigurationFileSerializer.TryDeserialize( json, type, out settings ) )
                 {
                     return false;
                 }

@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.SerializableIds;
 using Microsoft.CodeAnalysis;
 using Newtonsoft.Json;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Framework.Engine.CompileTime.Manifest;
 
@@ -17,9 +18,11 @@ internal sealed class TemplateProjectManifest
         new( new TemplateSymbolManifest( "", ExecutionScope.RunTime, null, null, null ) );
 
     [JsonProperty]
+    [JsonPropertyName( "rootSymbol" )]
     public TemplateSymbolManifest RootSymbol { get; }
 
-    [JsonConstructor]
+    [Newtonsoft.Json.JsonConstructor]
+    [System.Text.Json.Serialization.JsonConstructor]
     public TemplateProjectManifest( TemplateSymbolManifest rootSymbol )
     {
         this.RootSymbol = rootSymbol;

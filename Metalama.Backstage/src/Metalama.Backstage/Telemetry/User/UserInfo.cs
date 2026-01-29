@@ -5,6 +5,7 @@
 using Metalama.Backstage.Configuration;
 using Newtonsoft.Json;
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Telemetry.User;
 
@@ -20,5 +21,6 @@ public sealed record UserInfo : ConfigurationFile
     }
 
     [JsonProperty( "emailAddress" )]
+    [JsonPropertyName( "emailAddress" )]
     public string? EmailAddress { get; init; }
 }

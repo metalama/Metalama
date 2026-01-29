@@ -5,6 +5,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Diagnostics;
 
@@ -14,6 +15,7 @@ public sealed record LoggingConfiguration
     /// Gets a value indicating whether logging is enabled at all.
     /// </summary>
     [JsonProperty( "processes" )]
+    [JsonPropertyName( "processes" )]
     public ImmutableDictionary<string, bool> Processes { get; init; } =
         ImmutableDictionary<string, bool>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
 
@@ -21,6 +23,7 @@ public sealed record LoggingConfiguration
     /// Gets the list of categories that are enabled for trace-level logging.
     /// </summary>
     [JsonProperty( "trace" )]
+    [JsonPropertyName( "trace" )]
     public ImmutableDictionary<string, bool> TraceCategories { get; init; } =
         ImmutableDictionary<string, bool>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
 
@@ -28,6 +31,7 @@ public sealed record LoggingConfiguration
     /// Gets the logging duration in hours before it is automatically disabled.
     /// </summary>
     [JsonProperty( "stopLoggingAfterHours" )]
+    [JsonPropertyName( "stopLoggingAfterHours" )]
     public double StopLoggingAfterHours { get; init; } = 2;
 
     public bool IsTraceCategoryEnabled( string category )

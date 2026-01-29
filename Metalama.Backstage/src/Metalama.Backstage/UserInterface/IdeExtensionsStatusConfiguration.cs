@@ -5,6 +5,7 @@
 using Metalama.Backstage.Configuration;
 using Newtonsoft.Json;
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.UserInterface;
 
@@ -13,5 +14,6 @@ namespace Metalama.Backstage.UserInterface;
 public sealed record IdeExtensionsStatusConfiguration : ConfigurationFile
 {
     [JsonProperty( "vs" )]
+    [JsonPropertyName( "vs" )]
     public bool IsVisualStudioExtensionInstalled { get; init; }
 }

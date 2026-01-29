@@ -3,10 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Utilities;
+using Metalama.Framework.Engine.Serialization;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis.CSharp;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Versioning;
@@ -84,11 +84,13 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
 
         // We're explicitly serializing as an integer because the manifest might be deserialized by a lower Roslyn
         // version than the one serializing it.
-        [JsonConverter( typeof(LanguageVersionConverter) )]
+        [Newtonsoft.Json.JsonConverter( typeof(LanguageVersionConverter) )]
+        [System.Text.Json.Serialization.JsonConverter( typeof(LanguageVersionJsonConverter) )]
         public LanguageVersion? LanguageVersion { get; set; }
 
         // Prior versions of Metalama did not write LanguageVersion, but the maximum version was 13.
-        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         public LanguageVersion ResolvedLanguageVersion
 #if ROSLYN_4_12_0_OR_GREATER
             => this.LanguageVersion ?? Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp13;
@@ -170,10 +172,8 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             return manifest;
         }
 
-        private static readonly JsonConverter[] _converters = [new StringEnumConverter()];
-
         public static CompileTimeProjectManifest FromJson( string json )
-            => JsonConvert.DeserializeObject<CompileTimeProjectManifest>( json, _converters ).AssertNotNull();
+            => ManifestSerializer.Deserialize<CompileTimeProjectManifest>( json );
 
         public void Serialize( Stream stream )
         {
@@ -182,6 +182,6 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             manifestWriter.Write( manifestJson );
         }
 
-        public string ToJson() => JsonConvert.SerializeObject( this, Newtonsoft.Json.Formatting.Indented, _converters );
+        public string ToJson() => ManifestSerializer.Serialize( this );
     }
 }
