@@ -265,6 +265,12 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
 
     public TemplateProvider TemplateProvider { get; }
 
+    /// <summary>
+    /// Gets the name of the backing field introduced for a property template that uses the C# 14 <c>field</c> keyword.
+    /// This is <c>null</c> if the template does not use the <c>field</c> keyword.
+    /// </summary>
+    public string? BackingFieldName { get; init; }
+
     public SyntaxSerializationService SyntaxSerializationService { get; }
 
     public SyntaxSerializationContext SyntaxSerializationContext { get; }

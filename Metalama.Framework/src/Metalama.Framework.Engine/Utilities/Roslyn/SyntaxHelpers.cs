@@ -86,5 +86,56 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                     .WithParameters( parameterList.Parameters.AddRange( additionalParameterSyntax ) );
             }
         }
+
+        /// <summary>
+        /// Checks if a property accessor syntax node contains the C# 14 <c>field</c> keyword expression.
+        /// </summary>
+        public static bool ContainsFieldExpression( AccessorDeclarationSyntax accessor )
+        {
+#if ROSLYN_5_0_0_OR_GREATER
+            return accessor.DescendantNodesAndSelf().OfType<FieldExpressionSyntax>().Any();
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>
+        /// Checks if an accessor contains an assignment to the <c>field</c> keyword.
+        /// This includes simple assignments (field = value), compound assignments (field += x),
+        /// increment/decrement operators (field++, --field), and passing field as out/ref argument.
+        /// </summary>
+        public static bool ContainsFieldAssignment( AccessorDeclarationSyntax accessor )
+        {
+#if ROSLYN_5_0_0_OR_GREATER
+            return accessor.DescendantNodesAndSelf().Any( IsFieldAssignment );
+#else
+            return false;
+#endif
+        }
+
+#if ROSLYN_5_0_0_OR_GREATER
+        private static bool IsFieldAssignment( SyntaxNode node )
+        {
+            return node switch
+            {
+                // field = value, field += x, field -= x, etc.
+                AssignmentExpressionSyntax { Left: FieldExpressionSyntax } => true,
+
+                // ++field, --field
+                PrefixUnaryExpressionSyntax { Operand: FieldExpressionSyntax } op
+                    when op.IsKind( SyntaxKind.PreIncrementExpression ) || op.IsKind( SyntaxKind.PreDecrementExpression ) => true,
+
+                // field++, field--
+                PostfixUnaryExpressionSyntax { Operand: FieldExpressionSyntax } op
+                    when op.IsKind( SyntaxKind.PostIncrementExpression ) || op.IsKind( SyntaxKind.PostDecrementExpression ) => true,
+
+                // Method(out field), Method(ref field)
+                ArgumentSyntax { Expression: FieldExpressionSyntax } arg
+                    when arg.RefOrOutKeyword.IsKind( SyntaxKind.OutKeyword ) || arg.RefOrOutKeyword.IsKind( SyntaxKind.RefKeyword ) => true,
+
+                _ => false
+            };
+        }
+#endif
     }
 }

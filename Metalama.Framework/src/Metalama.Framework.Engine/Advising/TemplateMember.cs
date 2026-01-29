@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 using Accessibility = Metalama.Framework.Code.Accessibility;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
@@ -55,6 +56,18 @@ internal abstract class TemplateMember
     /// Gets a value indicating whether the method is a <c>yield</c>-based iterator method. If the template is a property, the value applies to the getter.
     /// </summary>
     public bool IsIteratorMethod { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the property template uses the C# 14 <c>field</c> keyword,
+    /// requiring Metalama to introduce a backing field when the template is applied.
+    /// </summary>
+    public bool IntroducesBackingField { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the property template assigns to the backing field.
+    /// When <c>true</c>, the introduced backing field should be writable; when <c>false</c>, it can be readonly.
+    /// </summary>
+    public bool IsBackingFieldAssigned { get; }
 
     /// <summary>
     /// Gets a value indicating which kind should the template be treated as, based on the selected template method.
@@ -114,6 +127,8 @@ internal abstract class TemplateMember
         this.Accessibility = prototype.Accessibility;
         this.AdviceAttribute = prototype.AdviceAttribute;
         this.IsIteratorMethod = prototype.IsIteratorMethod;
+        this.IntroducesBackingField = prototype.IntroducesBackingField;
+        this.IsBackingFieldAssigned = prototype.IsBackingFieldAssigned;
         this.EffectiveTemplateKind = prototype.EffectiveTemplateKind;
         this.SelectedTemplateKind = prototype.SelectedTemplateKind;
         this.GetAccessorAccessibility = prototype.GetAccessorAccessibility;
@@ -169,11 +184,50 @@ internal abstract class TemplateMember
                 var attributeOnGetter = GetCompiledTemplateAttribute( property.GetMethod );
                 this.GetAccessorAccessibility = attributeOnGetter.Accessibility;
                 this.IsIteratorMethod = attributeOnGetter.IsIteratorMethod;
+
+                // Check if the getter uses the 'field' keyword.
+                if ( attributeOnGetter.IntroducesBackingField )
+                {
+                    this.IntroducesBackingField = true;
+                }
+
+                // Check if the getter assigns to the 'field' keyword.
+                if ( attributeOnGetter.IsBackingFieldAssigned )
+                {
+                    this.IsBackingFieldAssigned = true;
+                }
             }
 
             if ( property.SetMethod != null )
             {
-                this.SetAccessorAccessibility = GetCompiledTemplateAttribute( property.SetMethod ).Accessibility;
+                var attributeOnSetter = GetCompiledTemplateAttribute( property.SetMethod );
+                this.SetAccessorAccessibility = attributeOnSetter.Accessibility;
+
+                // Check if the setter uses the 'field' keyword.
+                if ( attributeOnSetter.IntroducesBackingField )
+                {
+                    this.IntroducesBackingField = true;
+                }
+
+                // Check if the setter assigns to the 'field' keyword.
+                if ( attributeOnSetter.IsBackingFieldAssigned )
+                {
+                    this.IsBackingFieldAssigned = true;
+                }
+            }
+        }
+        else if ( symbol is IMethodSymbol { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet } )
+        {
+            // For property accessor methods, also check IntroducesBackingField from the CompiledTemplateAttribute.
+            // This is needed when accessor templates are created separately (not from a property template).
+            if ( compiledTemplateAttribute.IntroducesBackingField )
+            {
+                this.IntroducesBackingField = true;
+            }
+
+            if ( compiledTemplateAttribute.IsBackingFieldAssigned )
+            {
+                this.IsBackingFieldAssigned = true;
             }
         }
 
@@ -201,27 +255,52 @@ internal abstract class TemplateMember
             attribute.IsAsync = method.IsAsyncSafe();
         }
 
-        // Override with values stored in the CompiledTemplateAttribute.
+        // Override with values stored in the CompiledTemplateAttribute (for cross-project scenarios).
         var attributeData = declaration.GetAttributes().SingleOrDefault( a => a.AttributeClass?.Name == nameof(CompiledTemplateAttribute) );
 
-        if ( attributeData == null )
+        if ( attributeData != null )
         {
-            return attribute;
+            if ( attributeData.TryGetNamedArgument( nameof(CompiledTemplateAttribute.Accessibility), out var accessibility ) )
+            {
+                attribute.Accessibility = ((Microsoft.CodeAnalysis.Accessibility) accessibility.Value!).ToOurAccessibility();
+            }
+
+            if ( attributeData.TryGetNamedArgument( nameof(CompiledTemplateAttribute.IsAsync), out var isAsync ) )
+            {
+                attribute.IsAsync = (bool) isAsync.Value!;
+            }
+
+            if ( attributeData.TryGetNamedArgument( nameof(CompiledTemplateAttribute.IsIteratorMethod), out var isIterator ) )
+            {
+                attribute.IsIteratorMethod = (bool) isIterator.Value!;
+            }
+
+            if ( attributeData.TryGetNamedArgument( nameof(CompiledTemplateAttribute.IntroducesBackingField), out var introducesBackingField ) )
+            {
+                attribute.IntroducesBackingField = (bool) introducesBackingField.Value!;
+            }
+
+            if ( attributeData.TryGetNamedArgument( nameof(CompiledTemplateAttribute.IsBackingFieldAssigned), out var backingFieldIsAssigned ) )
+            {
+                attribute.IsBackingFieldAssigned = (bool) backingFieldIsAssigned.Value!;
+            }
         }
 
-        if ( attributeData.TryGetNamedArgument( nameof(CompiledTemplateAttribute.Accessibility), out var accessibility ) )
+        // For same-project scenarios, also check the source syntax for FieldExpressionSyntax.
+        // This is needed because CompiledTemplateAttribute is only added during output transformation.
+        if ( !attribute.IntroducesBackingField )
         {
-            attribute.Accessibility = ((Microsoft.CodeAnalysis.Accessibility) accessibility.Value!).ToOurAccessibility();
+            attribute.IntroducesBackingField = declaration.DeclaringSyntaxReferences
+                .Any( syntaxRef => syntaxRef.GetSyntax() is AccessorDeclarationSyntax accessor
+                                   && SyntaxHelpers.ContainsFieldExpression( accessor ) );
         }
 
-        if ( attributeData.TryGetNamedArgument( nameof(CompiledTemplateAttribute.IsAsync), out var isAsync ) )
+        // For same-project scenarios, also detect if the accessor assigns to the field keyword.
+        if ( !attribute.IsBackingFieldAssigned )
         {
-            attribute.IsAsync = (bool) isAsync.Value!;
-        }
-
-        if ( attributeData.TryGetNamedArgument( nameof(CompiledTemplateAttribute.IsIteratorMethod), out var isIterator ) )
-        {
-            attribute.IsIteratorMethod = (bool) isIterator.Value!;
+            attribute.IsBackingFieldAssigned = declaration.DeclaringSyntaxReferences
+                .Any( syntaxRef => syntaxRef.GetSyntax() is AccessorDeclarationSyntax accessor
+                                   && SyntaxHelpers.ContainsFieldAssignment( accessor ) );
         }
 
         return attribute;

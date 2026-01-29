@@ -25,11 +25,23 @@ internal sealed class OverridePropertyTransformation : OverridePropertyBaseTrans
 
     private BoundTemplateMethod? SetTemplate { get; }
 
+    /// <summary>
+    /// Gets the name of the backing field introduced for a template that uses the C# 14 <c>field</c> keyword.
+    /// This is <c>null</c> if the template does not use the <c>field</c> keyword.
+    /// </summary>
+    internal string? BackingFieldName { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether this transformation introduces a backing field via the <c>field</c> keyword.
+    /// </summary>
+    public bool IntroducesBackingField => this.BackingFieldName != null;
+
     public OverridePropertyTransformation(
         AspectLayerInstance aspectLayerInstance,
         IFullRef<IProperty> overriddenProperty,
         BoundTemplateMethod? getTemplate,
-        BoundTemplateMethod? setTemplate )
+        BoundTemplateMethod? setTemplate,
+        string? backingFieldName = null )
         : base( aspectLayerInstance, overriddenProperty )
     {
         // We need the getTemplate and setTemplate to be set by the caller even if propertyTemplate is set.
@@ -37,6 +49,7 @@ internal sealed class OverridePropertyTransformation : OverridePropertyBaseTrans
 
         this.GetTemplate = getTemplate;
         this.SetTemplate = setTemplate;
+        this.BackingFieldName = backingFieldName;
     }
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
@@ -133,7 +146,7 @@ internal sealed class OverridePropertyTransformation : OverridePropertyBaseTrans
             accessor,
             accessorTemplate,
             ProceedExpressionProvider,
-            this.AspectLayerId );
+            this.AspectLayerId ) { BackingFieldName = this.BackingFieldName };
 
         var templateDriver = accessorTemplate.TemplateMember.Driver;
 

@@ -25,6 +25,7 @@ internal class TheAspect : TypeAspect
     }
 }
 
+// <target>
 [TheAspect]
 internal class C;
 
