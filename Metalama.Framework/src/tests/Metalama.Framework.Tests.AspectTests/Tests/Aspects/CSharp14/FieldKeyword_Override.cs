@@ -36,6 +36,7 @@ internal class LoggingAspect : TypeAspect
     }
 }
 
+// <target>
 [LoggingAspect]
 internal class C
 {

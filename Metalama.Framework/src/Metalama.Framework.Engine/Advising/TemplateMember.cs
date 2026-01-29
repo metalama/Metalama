@@ -261,16 +261,9 @@ internal abstract class TemplateMember
         // This is needed because CompiledTemplateAttribute is only added during output transformation.
         if ( !attribute.IntroducesBackingField )
         {
-            foreach ( var syntaxRef in declaration.DeclaringSyntaxReferences )
-            {
-                if ( syntaxRef.GetSyntax() is AccessorDeclarationSyntax accessor
-                     && SyntaxHelpers.ContainsFieldExpression( accessor ) )
-                {
-                    attribute.IntroducesBackingField = true;
-
-                    break;
-                }
-            }
+            attribute.IntroducesBackingField = declaration.DeclaringSyntaxReferences
+                .Any( syntaxRef => syntaxRef.GetSyntax() is AccessorDeclarationSyntax accessor
+                                   && SyntaxHelpers.ContainsFieldExpression( accessor ) );
         }
 
         return attribute;
