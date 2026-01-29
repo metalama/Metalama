@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
+        <Description>Optional plugin for Metalama.Testing.AspectTesting that provides diff tool integration using DiffEngine. Reference this package to enable automatic diff tool launching when test output differs from expected output.</Description>
+        <PackageId>Metalama.Testing.AspectTesting.DiffEngine</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DiffEngine" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="Metalama.Testing.AspectTesting.DiffEngine.props">
+            <Pack>true</Pack>
+            <PackagePath>build</PackagePath>
+        </None>
+    </ItemGroup>
+
+    <!-- Packaging -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+</Project>

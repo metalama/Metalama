@@ -16,7 +16,6 @@
         <!-- Workspaces is used in TestRunner, Workspaces.Lightweight is a dependency of Metalama.Framework.Engine -->
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(ThisRoslynVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(ThisRoslynVersion)" />
-        <PackageReference Include="DiffEngine" />
         <PackageReference Include="xunit.assert" />
         <PackageReference Include="xunit.extensibility.core" />
         <PackageReference Include="xunit.extensibility.execution" />

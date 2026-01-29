@@ -39,6 +39,7 @@
         <ProjectReference Include="../../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
         <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" />
         <ProjectReference Include="../../Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix)/Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="../../Metalama.Testing.AspectTesting.DiffEngine/Metalama.Testing.AspectTesting.DiffEngine.csproj" />
         <ProjectReference Include="..\Metalama.Framework.Tests.UnitTestHelpers$(ThisRoslynVersionProjectSuffix)\Metalama.Framework.Tests.UnitTestHelpers$(ThisRoslynVersionProjectSuffix).csproj" />
     </ItemGroup>
 

@@ -111,6 +111,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Implemen
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Implementation.Package.4.8.0", "src\Metalama.Framework.Implementation.Package.4.8.0\Metalama.Framework.Implementation.Package.4.8.0.csproj", "{41A4F8E0-3A12-3250-E523-89D60E3E31BB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Testing.AspectTesting.DiffEngine", "src\Metalama.Testing.AspectTesting.DiffEngine\Metalama.Testing.AspectTesting.DiffEngine.csproj", "{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -709,6 +713,18 @@ Global
 		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Release|x64.Build.0 = Release|Any CPU
 		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Release|x86.ActiveCfg = Release|Any CPU
 		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Release|x86.Build.0 = Release|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Debug|x64.Build.0 = Debug|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Debug|x86.Build.0 = Debug|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Release|x64.ActiveCfg = Release|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Release|x64.Build.0 = Release|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Release|x86.ActiveCfg = Release|Any CPU
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -746,6 +762,7 @@ Global
 		{3818DB96-E67D-45DA-B861-E0E1D9FEAC11} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852} = {3818DB96-E67D-45DA-B861-E0E1D9FEAC11}
 		{41A4F8E0-3A12-3250-E523-89D60E3E31BB} = {658E38A9-D87F-49D1-BAC2-DCCF81BAC51E}
+		{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {59CB4F2D-3547-4DDF-9712-7B3F95C1ED66}
