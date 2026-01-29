@@ -7,11 +7,16 @@ using System.Linq;
 using System.Reflection;
 using MessagePack;
 using MessagePack.Resolvers;
+using Metalama.Framework.DesignTime.AspectExplorer;
 using Metalama.Framework.DesignTime.CodeLens;
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.DesignTime.Preview;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Rpc.Notifications;
+using Metalama.Framework.DesignTime.VisualStudio.AspectExplorer;
+using Metalama.Framework.DesignTime.VisualStudio.CompileTimeCodeEditingStatus;
+using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
+using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using Metalama.Framework.Engine.DesignTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -265,5 +270,128 @@ public sealed class MessagePackSerializationTests
         var result = Roundtrip( original );
 
         Assert.IsType<EndpointChangedEventData>( result );
+    }
+
+    [Fact]
+    public void RpcServiceInfo_Roundtrip()
+    {
+        var original = new RpcServiceInfo( "pipe-name-123", "MyFactory.Type", "ExtensionName" );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.PipeName, result.PipeName );
+        Assert.Equal( original.FactoryTypeName, result.FactoryTypeName );
+        Assert.Equal( original.ExtensionName, result.ExtensionName );
+    }
+
+    [Fact]
+    public void RpcServiceInfo_NullExtension_Roundtrip()
+    {
+        var original = new RpcServiceInfo( "pipe-name", "FactoryType", null );
+
+        var result = Roundtrip( original );
+
+        Assert.Null( result.ExtensionName );
+    }
+
+    [Fact]
+    public void ServicesAddedEventData_Roundtrip()
+    {
+        var original = new ServicesAddedEventData(
+            ImmutableArray.Create(
+                new RpcServiceInfo( "pipe1", "Factory1", "Ext1" ),
+                new RpcServiceInfo( "pipe2", "Factory2", null ) ) );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.Services.Length, result.Services.Length );
+        Assert.Equal( original.Services[0].PipeName, result.Services[0].PipeName );
+        Assert.Equal( original.Services[1].FactoryTypeName, result.Services[1].FactoryTypeName );
+    }
+
+    [Fact]
+    public void GeneratedSourceChangedEventData_Roundtrip()
+    {
+        var original = new GeneratedSourceChangedEventData(
+            new ProjectKey( "MyProject", 123UL, true ),
+            ImmutableDictionary<string, string>.Empty
+                .Add( "file1.g.cs", "// generated code 1" )
+                .Add( "file2.g.cs", "// generated code 2" ) );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.ProjectKey.AssemblyName, result.ProjectKey.AssemblyName );
+        Assert.Equal( original.Sources.Count, result.Sources.Count );
+        Assert.Equal( original.Sources["file1.g.cs"], result.Sources["file1.g.cs"] );
+    }
+
+    [Fact]
+    public void AspectInstancesChangedEventData_Roundtrip()
+    {
+        var original = new AspectInstancesChangedEventData(
+            new ProjectKey( "TestProject", 456UL, true ) );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.ProjectKey.AssemblyName, result.ProjectKey.AssemblyName );
+    }
+
+    [Fact]
+    public void AspectClassesChangedEventData_Roundtrip()
+    {
+        var original = new AspectClassesChangedEventData(
+            new ProjectKey( "TestProject", 789UL, true ) );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.ProjectKey.AssemblyName, result.ProjectKey.AssemblyName );
+    }
+
+    [Fact]
+    public void CompileTimeErrorsChangedEventData_Roundtrip()
+    {
+        var original = new CompileTimeErrorsChangedEventData(
+            new ProjectKey( "ErrorProject", 111UL, true ),
+            ImmutableArray.Create(
+                new DiagnosticData(
+                    DiagnosticSeverity.Error,
+                    "file.cs",
+                    "CS0001: Error message",
+                    1, 0, 1, 10 ) ) );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.ProjectKey.AssemblyName, result.ProjectKey.AssemblyName );
+        Assert.Equal( original.Errors.Length, result.Errors.Length );
+        Assert.Equal( original.Errors[0].Message, result.Errors[0].Message );
+    }
+
+    [Fact]
+    public void CompileTimeEditingStatusChangedEventData_Roundtrip()
+    {
+        var original = new CompileTimeEditingStatusChangedEventData( true );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.IsEditing, result.IsEditing );
+    }
+
+    [Fact]
+    public void AspectDatabaseAspectInstance_Roundtrip()
+    {
+        var original = new AspectDatabaseAspectInstance(
+            "M:MyNamespace.MyClass.MyMethod",
+            ImmutableArray.Create(
+                new AspectDatabaseAspectTransformation(
+                    "M:MyNamespace.MyClass.MyMethod",
+                    "Introduces logging",
+                    "M:MyNamespace.MyClass.MyMethod$Logged",
+                    "file.cs" ) ) );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.TargetDeclarationId, result.TargetDeclarationId );
+        Assert.Equal( original.Transformations.Length, result.Transformations.Length );
+        Assert.Equal( original.Transformations[0].Description, result.Transformations[0].Description );
     }
 }
