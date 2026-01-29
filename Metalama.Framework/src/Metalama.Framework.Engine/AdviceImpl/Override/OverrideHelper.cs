@@ -169,7 +169,8 @@ internal static class OverrideHelper
         static bool HasMemberWithName( INamedType type, string name )
             => type.AllFields.OfName( name ).Any()
                || type.AllProperties.OfName( name ).Any()
-               || type.AllEvents.OfName( name ).Any();
+               || type.AllEvents.OfName( name ).Any()
+               || type.AllMethods.OfName( name ).Any();
     }
 
     /// <summary>
