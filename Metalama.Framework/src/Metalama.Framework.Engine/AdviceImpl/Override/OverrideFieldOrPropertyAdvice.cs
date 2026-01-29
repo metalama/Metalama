@@ -37,7 +37,8 @@ internal sealed class OverrideFieldOrPropertyAdvice : OverrideMemberAdvice<IFiel
             targetDeclaration,
             this._getTemplate,
             this._setTemplate,
-            context.AddTransformation );
+            context.AddTransformation,
+            context.MutableCompilation );
 
         return this.CreateSuccessResult( promotedField );
     }

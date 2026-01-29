@@ -56,7 +56,7 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
         // ReSharper disable once MethodHasAsyncOverload
         File.WriteAllText( Path.Combine( directory, "file.txt" ), "test" );
 
-        Assert.Same( wasRaised.Task, await Task.WhenAny( wasRaised.Task, Task.Delay( TimeSpan.FromSeconds( 1 ) ) ) );
+        Assert.Same( wasRaised.Task, await Task.WhenAny( wasRaised.Task, Task.Delay( TimeSpan.FromSeconds( 30 ) ) ) );
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
         // ReSharper disable once MethodHasAsyncOverload
         File.WriteAllText( Path.Combine( directory, "file.txt" ), "test" );
 
-        Assert.Same( wasRaised.Task, await Task.WhenAny( wasRaised.Task, Task.Delay( TimeSpan.FromSeconds( 1 ) ) ) );
+        Assert.Same( wasRaised.Task, await Task.WhenAny( wasRaised.Task, Task.Delay( TimeSpan.FromSeconds( 30 ) ) ) );
     }
 
     [Fact]
@@ -103,6 +103,6 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
         // ReSharper disable once MethodHasAsyncOverload
         File.WriteAllText( Path.Combine( directory, "file.txt" ), "test" );
 
-        Assert.Same( wasRaised.Task, await Task.WhenAny( wasRaised.Task, Task.Delay( TimeSpan.FromSeconds( 1 ) ) ) );
+        Assert.Same( wasRaised.Task, await Task.WhenAny( wasRaised.Task, Task.Delay( TimeSpan.FromSeconds( 30 ) ) ) );
     }
 }

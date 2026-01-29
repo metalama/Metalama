@@ -806,5 +806,20 @@ namespace Metalama.Framework.Engine.Templating
                 TypedExpressionSyntax typedExpressionSyntax => typedExpressionSyntax.Syntax,
                 _ => throw new AssertionFailedException( $"Unexpected expression type: {value.GetType()}" )
             };
+
+        public ExpressionSyntax GetPropertyBackingField()
+        {
+            var backingFieldName = this._templateExpansionContext.BackingFieldName;
+
+            if ( backingFieldName == null )
+            {
+                throw new InvalidOperationException(
+                    "The 'field' keyword was used in a template that does not have a backing field. " +
+                    "This indicates a mismatch between template compilation and expansion." );
+            }
+
+            // Create an identifier expression for the backing field.
+            return SyntaxFactoryEx.WellKnownIdentifierName( backingFieldName );
+        }
     }
 }

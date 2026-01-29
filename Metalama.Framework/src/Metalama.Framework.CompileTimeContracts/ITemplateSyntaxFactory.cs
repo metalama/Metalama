@@ -123,4 +123,9 @@ public interface ITemplateSyntaxFactory
     SyntaxToken EscapeIdentifier( SyntaxToken token );
 
     ExpressionSyntax RewriteAssignmentExpression( AssignmentExpressionSyntax assignmentExpression );
+
+    /// <summary>
+    /// Gets the backing field for a property template that uses the C# 14 <c>field</c> keyword.
+    /// </summary>
+    ExpressionSyntax GetPropertyBackingField();
 }

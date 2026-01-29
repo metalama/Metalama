@@ -66,3 +66,7 @@ When starting work on a GitHub issue:
 - Github comments and issues and PRs must be signed by CLaude - not commits. No ad link, just signature.
 - don't loose time solving cosmetic warnings (such as redundant usings) until the finalizing stage of a commit
 - `Build.ps1 build` does not build test projects, only packable projects.
+
+## Debugging Tests
+
+When you need to debug anything, you can use ITestOutputService to write the test output.
