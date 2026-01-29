@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
+using Metalama.Backstage.Serialization;
 using System;
 using System.Collections.Immutable;
 using System.ComponentModel;
@@ -18,6 +19,7 @@ public sealed record ToastNotificationsConfiguration : ConfigurationFile
     public ImmutableDictionary<string, DateTime> Pauses { get; init; } = ImmutableDictionary<string, DateTime>.Empty;
 
     [JsonPropertyName( "notifications" )]
+    [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<ToastNotificationConfiguration>) )]
     public ImmutableDictionary<string, ToastNotificationConfiguration> Notifications { get; init; } =
         ImmutableDictionary<string, ToastNotificationConfiguration>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
 }

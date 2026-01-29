@@ -6,7 +6,6 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Maintenance;
-using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Telemetry.User;
 using Metalama.Backstage.UserInterface;
@@ -60,8 +59,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.TestSerialization(
             input,
             expectedJson,
-            obj => obj.ToJson(),
-            json => JsonSerializer.Deserialize<TelemetryConfiguration>( json, BackstageJsonContext.Indented.Options ) );
+            obj => this.JsonService.Serialize( obj, typeof(TelemetryConfiguration) ),
+            json => JsonSerializer.Deserialize<TelemetryConfiguration>( json, this.JsonOptions ) );
     }
 
     [Fact]
@@ -101,8 +100,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.TestSerialization(
             input,
             expectedJson,
-            obj => obj.ToJson(),
-            json => JsonSerializer.Deserialize<TelemetryConfiguration>( json, BackstageJsonContext.Indented.Options ) );
+            obj => this.JsonService.Serialize( obj, typeof(TelemetryConfiguration) ),
+            json => JsonSerializer.Deserialize<TelemetryConfiguration>( json, this.JsonOptions ) );
     }
 
     [Fact]
@@ -111,11 +110,11 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         var input = new DiagnosticsConfiguration();
 
         // DiagnosticsConfiguration has complex nested structure; test basic serialization
-        var json = input.ToJson();
+        var json = this.JsonService.Serialize( input, typeof(DiagnosticsConfiguration) );
         this.Output.WriteLine( "DiagnosticsConfiguration JSON:" );
         this.Output.WriteLine( json );
 
-        var deserialized = JsonSerializer.Deserialize<DiagnosticsConfiguration>( json, BackstageJsonContext.Indented.Options );
+        var deserialized = JsonSerializer.Deserialize<DiagnosticsConfiguration>( json, this.JsonOptions );
         Assert.NotNull( deserialized );
         Assert.NotNull( deserialized.Logging );
         Assert.NotNull( deserialized.Debugging );
@@ -238,8 +237,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.TestSerialization(
             input,
             expectedJson,
-            obj => obj.ToJson(),
-            json => JsonSerializer.Deserialize<CleanUpConfiguration>( json, BackstageJsonContext.Indented.Options ) );
+            obj => this.JsonService.Serialize( obj, typeof(CleanUpConfiguration) ),
+            json => JsonSerializer.Deserialize<CleanUpConfiguration>( json, this.JsonOptions ) );
     }
 
     [Fact]
@@ -265,8 +264,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.TestSerialization(
             input,
             expectedJson,
-            obj => obj.ToJson(),
-            json => JsonSerializer.Deserialize<WelcomeConfiguration>( json, BackstageJsonContext.Indented.Options ) );
+            obj => this.JsonService.Serialize( obj, typeof(WelcomeConfiguration) ),
+            json => JsonSerializer.Deserialize<WelcomeConfiguration>( json, this.JsonOptions ) );
     }
 
     [Fact]
@@ -305,8 +304,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.TestSerialization(
             input,
             expectedJson,
-            obj => obj.ToJson(),
-            json => JsonSerializer.Deserialize<ToastNotificationsConfiguration>( json, BackstageJsonContext.Indented.Options ) );
+            obj => this.JsonService.Serialize( obj, typeof(ToastNotificationsConfiguration) ),
+            json => JsonSerializer.Deserialize<ToastNotificationsConfiguration>( json, this.JsonOptions ) );
     }
 
     [Fact]
@@ -356,8 +355,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.TestSerialization(
             input,
             expectedJson,
-            obj => obj.ToJson(),
-            json => JsonSerializer.Deserialize<LicensingConfiguration>( json, BackstageJsonContext.Indented.Options ) );
+            obj => this.JsonService.Serialize( obj, typeof(LicensingConfiguration) ),
+            json => JsonSerializer.Deserialize<LicensingConfiguration>( json, this.JsonOptions ) );
     }
 
     [Fact]
@@ -379,8 +378,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.TestSerialization(
             input,
             expectedJson,
-            obj => obj.ToJson(),
-            json => JsonSerializer.Deserialize<IdeExtensionsStatusConfiguration>( json, BackstageJsonContext.Indented.Options ) );
+            obj => this.JsonService.Serialize( obj, typeof(IdeExtensionsStatusConfiguration) ),
+            json => JsonSerializer.Deserialize<IdeExtensionsStatusConfiguration>( json, this.JsonOptions ) );
     }
 
     [Fact]
@@ -408,8 +407,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.TestSerialization(
             input,
             expectedJson,
-            obj => obj.ToJson(),
-            json => JsonSerializer.Deserialize<LicenseAuditConfiguration>( json, BackstageJsonContext.Indented.Options ) );
+            obj => this.JsonService.Serialize( obj, typeof(LicenseAuditConfiguration) ),
+            json => JsonSerializer.Deserialize<LicenseAuditConfiguration>( json, this.JsonOptions ) );
     }
 
     [Fact]
@@ -432,8 +431,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.TestSerialization(
             input,
             expectedJson,
-            obj => obj.ToJson(),
-            json => JsonSerializer.Deserialize<RssClientConfiguration>( json, BackstageJsonContext.Indented.Options ) );
+            obj => this.JsonService.Serialize( obj, typeof(RssClientConfiguration) ),
+            json => JsonSerializer.Deserialize<RssClientConfiguration>( json, this.JsonOptions ) );
     }
 
     [Fact]
@@ -455,8 +454,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.TestSerialization(
             input,
             expectedJson,
-            obj => obj.ToJson(),
-            json => JsonSerializer.Deserialize<UserInfo>( json, BackstageJsonContext.Indented.Options ) );
+            obj => this.JsonService.Serialize( obj, typeof(UserInfo) ),
+            json => JsonSerializer.Deserialize<UserInfo>( json, this.JsonOptions ) );
     }
 
     [Fact]
@@ -474,7 +473,85 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         this.TestSerialization(
             input,
             expectedJson,
-            obj => obj.ToJson(),
-            json => JsonSerializer.Deserialize<UserInfo>( json, BackstageJsonContext.Indented.Options ) );
+            obj => this.JsonService.Serialize( obj, typeof(UserInfo) ),
+            json => JsonSerializer.Deserialize<UserInfo>( json, this.JsonOptions ) );
+    }
+
+    [Fact]
+    public void LoggingConfiguration_CaseInsensitive_Keys()
+    {
+        // Test that case-insensitive dictionary keys work correctly
+        var input = new LoggingConfiguration
+        {
+            Processes = ImmutableDictionary<string, bool>.Empty
+                .WithComparers( StringComparer.OrdinalIgnoreCase )
+                .Add( "Compiler", true )
+                .Add( "DesignTime", false )
+        };
+
+        // Serialize
+        var json = JsonSerializer.Serialize( input, this.JsonOptions );
+        this.Output.WriteLine( "Serialized JSON:" );
+        this.Output.WriteLine( json );
+
+        // Deserialize
+        var deserialized = JsonSerializer.Deserialize<LoggingConfiguration>( json, this.JsonOptions );
+        Assert.NotNull( deserialized );
+
+        // Verify case-insensitive lookup works
+        Assert.True( deserialized.Processes.ContainsKey( "compiler" ) ); // lowercase
+        Assert.True( deserialized.Processes.ContainsKey( "COMPILER" ) ); // uppercase
+        Assert.True( deserialized.Processes.ContainsKey( "Compiler" ) ); // original case
+        Assert.True( deserialized.Processes["compiler"] );
+        Assert.False( deserialized.Processes["designtime"] );
+    }
+
+    [Fact]
+    public void TelemetryConfiguration_CaseInsensitive_Sessions()
+    {
+        // Test that TelemetryConfiguration.Sessions uses case-insensitive keys
+        var input = new TelemetryConfiguration
+        {
+            Sessions = ImmutableDictionary<string, DateTime>.Empty
+                .WithComparers( StringComparer.OrdinalIgnoreCase )
+                .Add( "Session1", new DateTime( 2025, 1, 15, 10, 0, 0, DateTimeKind.Utc ) )
+        };
+
+        // Serialize
+        var json = JsonSerializer.Serialize( input, this.JsonOptions );
+        this.Output.WriteLine( "Serialized JSON:" );
+        this.Output.WriteLine( json );
+
+        // Deserialize
+        var deserialized = JsonSerializer.Deserialize<TelemetryConfiguration>( json, this.JsonOptions );
+        Assert.NotNull( deserialized );
+
+        // Verify case-insensitive lookup works
+        Assert.True( deserialized.Sessions.ContainsKey( "session1" ) ); // lowercase
+        Assert.True( deserialized.Sessions.ContainsKey( "SESSION1" ) ); // uppercase
+    }
+
+    [Fact]
+    public void ToastNotificationsConfiguration_Pauses_UsesDefaultComparer()
+    {
+        // Test that Pauses (without case-insensitive converter) uses default comparer
+        var input = new ToastNotificationsConfiguration
+        {
+            Pauses = ImmutableDictionary<string, DateTime>.Empty
+                .Add( "Pause1", new DateTime( 2025, 1, 20, 12, 0, 0, DateTimeKind.Utc ) )
+        };
+
+        // Serialize
+        var json = JsonSerializer.Serialize( input, this.JsonOptions );
+        this.Output.WriteLine( "Serialized JSON:" );
+        this.Output.WriteLine( json );
+
+        // Deserialize
+        var deserialized = JsonSerializer.Deserialize<ToastNotificationsConfiguration>( json, this.JsonOptions );
+        Assert.NotNull( deserialized );
+
+        // Pauses uses default (case-sensitive) comparer - should NOT find lowercase
+        Assert.True( deserialized.Pauses.ContainsKey( "Pause1" ) );
+        Assert.False( deserialized.Pauses.ContainsKey( "pause1" ) );
     }
 }

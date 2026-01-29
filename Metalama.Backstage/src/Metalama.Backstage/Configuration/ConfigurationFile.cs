@@ -2,9 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Serialization;
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Configuration;
@@ -36,23 +34,6 @@ public abstract record ConfigurationFile
     /// </summary>
     [JsonPropertyName( "version" )]
     public int? Version { get; set; }
-
-    public string ToJson()
-    {
-        return ConfigurationFileSerializer.Serialize( this );
-    }
-
-    /// <summary>
-    /// Deserializes a configuration file from JSON.
-    /// </summary>
-    internal static bool TryFromJson<T>( string json, [NotNullWhen( true )] out T? result )
-        where T : ConfigurationFile
-    {
-        return ConfigurationFileSerializer.TryDeserialize( json, out result );
-    }
-
-    internal bool StructurallyEqualsTo( ConfigurationFile other )
-        => (this with { Version = null }).ToJson().Equals( (other with { Version = null }).ToJson(), StringComparison.Ordinal );
 
     public virtual void Validate( Action<string> reportWarning ) { }
 }

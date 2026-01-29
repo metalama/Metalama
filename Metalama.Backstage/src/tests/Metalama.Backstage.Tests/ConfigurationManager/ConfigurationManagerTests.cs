@@ -3,7 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
+using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Testing;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using Xunit;
 using Xunit.Abstractions;
@@ -14,7 +17,13 @@ public sealed class ConfigurationManagerTests : TestsBase
 {
     public ConfigurationManagerTests( ITestOutputHelper logger ) : base(
         logger,
-        applicationInfo: new TestApplicationInfo() { IsLongRunningProcess = true } ) { }
+        applicationInfo: new TestApplicationInfo() { IsLongRunningProcess = true } )
+    {
+        this.InitializationOptions = this.InitializationOptions with
+        {
+            AdditionalJsonTypeInfoResolvers = new IJsonTypeInfoResolver[] { TestConfigurationJsonContext.Default }
+        };
+    }
 
     [Fact]
     public void InvalidJson()
@@ -67,7 +76,8 @@ public sealed class ConfigurationManagerTests : TestsBase
 
         var path = configurationManager.GetFilePath<TestConfigurationFile>();
         var newValue = new TestConfigurationFile() { IsModified = true };
-        this.FileSystem.WriteAllText( path, newValue.ToJson() );
+        var jsonService = this.ServiceProvider.GetRequiredBackstageService<IJsonSerializationService>();
+        this.FileSystem.WriteAllText( path, jsonService.Serialize( newValue, typeof(TestConfigurationFile) ) );
 
         Assert.True( gotEvent.WaitOne( 180000 ) );
 

@@ -11,6 +11,7 @@ using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.Licensing.Registration;
 using Metalama.Backstage.Maintenance;
+using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Tools;
 using Metalama.Backstage.UserInterface;
@@ -219,6 +220,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IEnvironmentVariableProvider>( this.EnvironmentVariableProvider )
                 .AddSingleton<IRecoverableExceptionService>( new TestRecoverableExceptionService() )
                 .AddSingleton<IUserDeviceDetectionService>( this.UserDeviceDetection )
+                .AddSingleton<IJsonSerializationService>( _ => new JsonSerializationService( options.AdditionalJsonTypeInfoResolvers ) )
                 .AddSingleton<IConfigurationManager>( serviceProvider => new InMemoryConfigurationManager( serviceProvider ) )
                 .AddSingleton<ITempFileManager>( serviceProvider => new TempFileManager( serviceProvider ) )
                 .AddSingleton<ILicenseRegistrationService>( serviceProvider => new LicenseRegistrationService( serviceProvider ) )

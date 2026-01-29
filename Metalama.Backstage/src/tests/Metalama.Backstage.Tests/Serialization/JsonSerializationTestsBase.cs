@@ -18,9 +18,15 @@ public abstract class JsonSerializationTestsBase
 {
     protected ITestOutputHelper Output { get; }
 
+    protected IJsonSerializationService JsonService { get; }
+
+    protected JsonSerializerOptions JsonOptions { get; }
+
     protected JsonSerializationTestsBase( ITestOutputHelper output )
     {
         this.Output = output;
+        this.JsonOptions = BackstageJsonContext.CreateCombinedOptions( writeIndented: true, [] );
+        this.JsonService = new JsonSerializationService( [] );
     }
 
     /// <summary>
@@ -35,7 +41,7 @@ public abstract class JsonSerializationTestsBase
         where T : class
     {
         // Step 1: Serialize object to JSON
-        var serializedJson = JsonSerializer.Serialize( inputObject, BackstageJsonContext.Indented.Options );
+        var serializedJson = JsonSerializer.Serialize( inputObject, this.JsonOptions );
         this.Output.WriteLine( "Serialized JSON:" );
         this.Output.WriteLine( serializedJson );
 
@@ -43,18 +49,18 @@ public abstract class JsonSerializationTestsBase
         Assert.Equal( NormalizeJson( expectedJson ), NormalizeJson( serializedJson ) );
 
         // Step 3: Deserialize back to object
-        var deserialized = JsonSerializer.Deserialize<T>( expectedJson, BackstageJsonContext.Indented.Options );
+        var deserialized = JsonSerializer.Deserialize<T>( expectedJson, this.JsonOptions );
         Assert.NotNull( deserialized );
 
         // Step 4: Serialize again
-        var reserializedJson = JsonSerializer.Serialize( deserialized, BackstageJsonContext.Indented.Options );
+        var reserializedJson = JsonSerializer.Serialize( deserialized, this.JsonOptions );
 
         // Step 5: Compare JSON outputs match (round-trip consistency)
         Assert.Equal( NormalizeJson( serializedJson ), NormalizeJson( reserializedJson ) );
     }
 
     /// <summary>
-    /// Overload for classes with custom serialization methods (e.g., ConfigurationFile.ToJson()).
+    /// Overload for classes with custom serialization methods.
     /// </summary>
     protected void TestSerialization<T>(
         T inputObject,

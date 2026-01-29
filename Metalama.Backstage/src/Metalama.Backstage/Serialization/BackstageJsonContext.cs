@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Metalama.Backstage.Serialization;
 
@@ -52,31 +53,32 @@ namespace Metalama.Backstage.Serialization;
 [JsonSerializable( typeof(Dictionary<string, ReportingStatus>) )]
 [JsonSerializable( typeof(Dictionary<string, ToastNotificationConfiguration>) )]
 [JsonSerializable( typeof(Dictionary<long, DateTime>) )]
+// HashSet types needed for ImmutableHashSet built-in support
+[JsonSerializable( typeof(HashSet<string>) )]
 internal partial class BackstageJsonContext : JsonSerializerContext
 {
-    private static BackstageJsonContext? _indented;
-    private static BackstageJsonContext? _compact;
-
     /// <summary>
-    /// Gets the context configured for indented output (used for writing configuration files).
+    /// Creates combined <see cref="JsonSerializerOptions"/> that chains this context with additional resolvers.
     /// </summary>
-    public static BackstageJsonContext Indented => _indented ??= new BackstageJsonContext( CreateOptions( writeIndented: true ) );
-
-    /// <summary>
-    /// Gets the context configured for compact output.
-    /// </summary>
-    public static BackstageJsonContext Compact => _compact ??= new BackstageJsonContext( CreateOptions( writeIndented: false ) );
-
-    private static JsonSerializerOptions CreateOptions( bool writeIndented )
+    /// <param name="writeIndented">Whether to write indented JSON.</param>
+    /// <param name="additionalResolvers">Additional type info resolvers to chain after this context.</param>
+    /// <returns>Combined options with all resolvers in the chain.</returns>
+    public static JsonSerializerOptions CreateCombinedOptions(
+        bool writeIndented,
+        IEnumerable<IJsonTypeInfoResolver> additionalResolvers )
     {
         var options = new JsonSerializerOptions
         {
             WriteIndented = writeIndented,
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            TypeInfoResolver = Default
         };
 
-        // Add converter for ImmutableDictionary with case-insensitive string keys
-        options.Converters.Add( new ImmutableDictionaryConverterFactory() );
+        // Add additional resolvers (e.g., FrameworkConfigurationJsonContext)
+        foreach ( var resolver in additionalResolvers )
+        {
+            options.TypeInfoResolverChain.Add( resolver );
+        }
 
         return options;
     }

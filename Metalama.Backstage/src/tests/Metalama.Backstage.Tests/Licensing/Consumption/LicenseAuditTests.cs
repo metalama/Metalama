@@ -5,6 +5,7 @@
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Licensing.Consumption;
+using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.Tests.Licensing.Licenses;
@@ -192,7 +193,8 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
     {
         var guid = new Guid( "75c1ce19-e594-4bfe-ac39-e37b9dd62069" );
         var configuration = new TelemetryConfiguration { DeviceId = guid };
-        var json = configuration.ToJson();
+        var jsonService = this.ServiceProvider.GetRequiredBackstageService<IJsonSerializationService>();
+        var json = jsonService.Serialize( configuration, typeof(TelemetryConfiguration) );
         Assert.Contains( guid.ToString(), json, StringComparison.Ordinal );
     }
 

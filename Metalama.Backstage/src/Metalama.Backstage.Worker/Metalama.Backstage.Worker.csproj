@@ -39,6 +39,8 @@
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
         <PackageReference Include="Newtonsoft.Json" />
     	<PackageReference Include="Spectre.Console.Cli" />
+        <!-- Use latest System.Text.Json in EXE to address NU1903 vulnerability warnings -->
+        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
     </ItemGroup>
 
     <ItemGroup>

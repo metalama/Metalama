@@ -7,6 +7,7 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Testing;
 using System.Collections.Immutable;
 using Xunit;
@@ -22,10 +23,13 @@ public sealed class EnvironmentVariableConfigurationTests : TestsBase
     {
         this._configurationManager = this.ServiceProvider.GetRequiredBackstageService<IConfigurationManager>();
         var standardDirectories = this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>();
+        var jsonService = this.ServiceProvider.GetRequiredBackstageService<IJsonSerializationService>();
 
         // Initialize local DiagnosticsConfiguration.
         this.FileSystem.CreateDirectory( standardDirectories.ApplicationDataDirectory );
-        this.FileSystem.WriteAllText( this._configurationManager.GetFilePath( typeof(DiagnosticsConfiguration) ), new DiagnosticsConfiguration().ToJson() );
+        this.FileSystem.WriteAllText(
+            this._configurationManager.GetFilePath( typeof(DiagnosticsConfiguration) ),
+            jsonService.Serialize( new DiagnosticsConfiguration(), typeof(DiagnosticsConfiguration) ) );
 
         // Set up environment variable DiagnosticsConfiguration.
         var environmentConfiguration = new DiagnosticsConfiguration
@@ -33,7 +37,9 @@ public sealed class EnvironmentVariableConfigurationTests : TestsBase
             Logging = new LoggingConfiguration() { Processes = ImmutableDictionary<string, bool>.Empty.Add( ProcessKind.Compiler.ToString(), true ) }
         };
 
-        this.EnvironmentVariableProvider.Environment.Add( DiagnosticsConfiguration.EnvironmentVariableName, environmentConfiguration.ToJson() );
+        this.EnvironmentVariableProvider.Environment.Add(
+            DiagnosticsConfiguration.EnvironmentVariableName,
+            jsonService.Serialize( environmentConfiguration, typeof(DiagnosticsConfiguration) ) );
     }
 
     protected override void ConfigureServices( ServiceProviderBuilder services )

@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Serialization;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -53,10 +54,11 @@ internal sealed class ConfigurationFileCommandAdapter<T> : ConfigurationFileComm
     public override void Print( ExtendedCommandContext context )
     {
         var configurationManager = context.ServiceProvider.GetRequiredBackstageService<IConfigurationManager>();
+        var jsonService = context.ServiceProvider.GetRequiredBackstageService<IJsonSerializationService>();
 
         var configuration = configurationManager.Get( typeof(T) );
 
-        context.Console.WriteMessage( configuration.ToJson() );
+        context.Console.WriteMessage( jsonService.Serialize( configuration, typeof(T) ) );
     }
 
     public override void Reset( ExtendedCommandContext context )

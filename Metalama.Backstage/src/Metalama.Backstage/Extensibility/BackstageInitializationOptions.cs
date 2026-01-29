@@ -8,6 +8,8 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.UserInterface.Toasts;
 using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Metalama.Backstage.Extensibility;
 
@@ -59,9 +61,16 @@ public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
     public bool NotifyOfLatestNews { get; init; } = true;
 
     /// <summary>
-    /// Gets diagnostic (tracing) options. Considered only when <see cref="AddSupportServices"/> is <c>true</c>. 
+    /// Gets diagnostic (tracing) options. Considered only when <see cref="AddSupportServices"/> is <c>true</c>.
     /// </summary>
     public DiagnosticsInitializationOptions DiagnosticsOptions { get; init; } = new();
+
+    /// <summary>
+    /// Gets additional JSON type info resolvers to chain with the Backstage serialization context.
+    /// This allows external assemblies (e.g., Metalama.Framework) to register their configuration types
+    /// for JSON serialization without creating a circular dependency.
+    /// </summary>
+    public IReadOnlyList<IJsonTypeInfoResolver> AdditionalJsonTypeInfoResolvers { get; init; } = [];
 
     internal bool AutoUploadTelemetry { get; init; } = true;
 }

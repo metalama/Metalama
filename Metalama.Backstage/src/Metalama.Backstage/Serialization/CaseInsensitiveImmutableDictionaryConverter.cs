@@ -11,13 +11,13 @@ using System.Text.Json.Serialization;
 namespace Metalama.Backstage.Serialization;
 
 /// <summary>
-/// A JSON converter for <see cref="ImmutableDictionary{TKey, TValue}"/> that wraps the built-in converter
-/// and uses <see cref="StringComparer.OrdinalIgnoreCase"/> for string keys.
+/// A JSON converter for <see cref="ImmutableDictionary{TKey, TValue}"/> with string keys
+/// that uses <see cref="StringComparer.OrdinalIgnoreCase"/>.
 /// </summary>
-internal sealed class ImmutableDictionaryConverter<TKey, TValue> : JsonConverter<ImmutableDictionary<TKey, TValue>>
-    where TKey : notnull
+/// <typeparam name="TValue">The dictionary value type.</typeparam>
+public sealed class CaseInsensitiveImmutableDictionaryConverter<TValue> : JsonConverter<ImmutableDictionary<string, TValue>>
 {
-    public override ImmutableDictionary<TKey, TValue>? Read( ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options )
+    public override ImmutableDictionary<string, TValue>? Read( ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options )
     {
         if ( reader.TokenType == JsonTokenType.Null )
         {
@@ -25,27 +25,21 @@ internal sealed class ImmutableDictionaryConverter<TKey, TValue> : JsonConverter
         }
 
         // Use the built-in deserializer to get a Dictionary
-        var dictionary = JsonSerializer.Deserialize<Dictionary<TKey, TValue>>( ref reader, options );
+        var dictionary = JsonSerializer.Deserialize<Dictionary<string, TValue>>( ref reader, options );
 
         if ( dictionary == null )
         {
             return null;
         }
 
-        // Convert to ImmutableDictionary with appropriate comparer
-        if ( typeof(TKey) == typeof(string) )
-        {
-            // Use case-insensitive comparer for string keys
-            return dictionary.ToImmutableDictionary(
-                kvp => kvp.Key,
-                kvp => kvp.Value,
-                (IEqualityComparer<TKey>) (object) StringComparer.OrdinalIgnoreCase );
-        }
-
-        return dictionary.ToImmutableDictionary();
+        // Convert to ImmutableDictionary with case-insensitive comparer
+        return dictionary.ToImmutableDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value,
+            StringComparer.OrdinalIgnoreCase );
     }
 
-    public override void Write( Utf8JsonWriter writer, ImmutableDictionary<TKey, TValue> value, JsonSerializerOptions options )
+    public override void Write( Utf8JsonWriter writer, ImmutableDictionary<string, TValue> value, JsonSerializerOptions options )
     {
         // Write as a JSON object manually to avoid needing IDictionary in the type resolver
         writer.WriteStartObject();
@@ -53,11 +47,9 @@ internal sealed class ImmutableDictionaryConverter<TKey, TValue> : JsonConverter
         foreach ( var kvp in value )
         {
             // Write the key as property name
-            var keyString = kvp.Key?.ToString() ?? throw new JsonException( "Dictionary key cannot be null" );
-
             // Note: Dictionary keys are data, not property names, so we don't apply PropertyNamingPolicy
             // (that policy is for C# property names, not dictionary keys which are user data)
-            writer.WritePropertyName( keyString );
+            writer.WritePropertyName( kvp.Key );
 
             // Write the value using the serializer
             JsonSerializer.Serialize( writer, kvp.Value, options );
