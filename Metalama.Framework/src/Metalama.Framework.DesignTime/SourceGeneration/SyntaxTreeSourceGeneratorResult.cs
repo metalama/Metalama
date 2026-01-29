@@ -2,7 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
+using System.IO.Hashing;
 using Metalama.Framework.DesignTime.Pipeline.Diff;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Pipeline;
@@ -26,7 +26,7 @@ internal sealed class SyntaxTreeSourceGeneratorResult : SourceGeneratorResult
 
     protected override ulong ComputeDigest()
     {
-        var xxh = new XXH64();
+        var xxh = new XxHash64();
         var hasher = new RunTimeCodeHasher( xxh );
         ulong hash = 0;
 
@@ -37,10 +37,10 @@ internal sealed class SyntaxTreeSourceGeneratorResult : SourceGeneratorResult
         foreach ( var tree in this.AdditionalSources.Values )
         {
             xxh.Reset();
-            xxh.Update( tree.Name );
+            xxh.Append( tree.Name );
             hasher.Visit( tree.GeneratedSyntaxTree.GetRoot() );
 
-            var digest = xxh.Digest();
+            var digest = xxh.GetCurrentHashAsUInt64();
 
 #if DEBUG
             if ( !uniqueHashes.Add( digest ) )

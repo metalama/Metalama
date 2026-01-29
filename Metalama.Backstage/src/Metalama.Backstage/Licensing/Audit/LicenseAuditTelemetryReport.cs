@@ -2,7 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
+using System.IO.Hashing;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing.Consumption;
@@ -42,14 +42,14 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
         this.BuildDate = this.ReportedComponent.BuildDate
                          ?? throw new InvalidOperationException( $"Build date of '{this.ReportedComponent.Name}' application is unknown." );
 
-        var auditHashCodeBuilder = new XXH64();
+        var auditHashCodeBuilder = new XxHash64();
 
         void AddToMetricsAndHashCode( Metric metric )
         {
             this.Metrics.Add( metric );
 
             // ReSharper disable once RedundantSuppressNullableWarningExpression
-            auditHashCodeBuilder.Update( Encoding.UTF8.GetBytes( metric.ToString()! ) );
+            auditHashCodeBuilder.Append( Encoding.UTF8.GetBytes( metric.ToString()! ) );
         }
 
         // Audit date is not part of the audit hash code. 
@@ -62,7 +62,7 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
         AddToMetricsAndHashCode( new BoolMetric( "CEIP", this.IsUsageReportingEnabled ) );
         AddToMetricsAndHashCode( new StringMetric( "ApplicationName", this.ApplicationName ) );
 
-        this.AuditHashCode = unchecked((long) auditHashCodeBuilder.Digest());
+        this.AuditHashCode = unchecked((long) auditHashCodeBuilder.GetCurrentHashAsUInt64());
     }
 
     /// <summary>

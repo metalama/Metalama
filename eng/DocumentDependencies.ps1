@@ -68,9 +68,6 @@ $global:PackageOverrides = @{
     "Typesense" = @{
         SourceRepository = "https://github.com/DAXGRID/typesense-dotnet"
     }
-    "K4os.Hash.xxHash" = @{
-        License = "MIT"
-    }
     "Octokit.GraphQL" = @{
         License = "MIT"
     }
