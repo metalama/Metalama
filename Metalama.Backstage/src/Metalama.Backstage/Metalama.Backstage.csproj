@@ -19,7 +19,8 @@
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
         <PackageReference Include="JetBrains.Profiler.SelfApi" Condition="'$(TargetFramework)'!='netstandard2.0'" />
         <PackageReference Include="Microsoft.Bcl.HashCode" />
-        <PackageReference Include="System.Text.Json" NoWarn="NU1903" />
+        <!-- Must use 8.0.0 for compatibility with MSBuild.exe (.NET Framework) hosting -->
+        <PackageReference Include="System.Text.Json" VersionOverride="8.0.0" NoWarn="NU1903" />
         <PackageReference Include="System.IO.Packaging" />
         <PackageReference Include="System.DirectoryServices" />
         <PackageReference Include="Microsoft.Win32.Registry" Condition="'$(TargetFramework)'=='netstandard2.0'" />
