@@ -13,6 +13,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 internal static class MetalamaSdkExecutionContext
 {
     private static IMetalamaEngineServices? _current;
+    private static readonly object _lock = new();
 
     /// <summary>
     /// Gets the current execution context. Throws if the context has not been initialized.
@@ -22,14 +23,17 @@ internal static class MetalamaSdkExecutionContext
 
     /// <summary>
     /// Initializes the execution context. This should only be called once by the Engine assembly.
+    /// Subsequent calls are ignored (idempotent) to handle multi-ALC scenarios where Engine
+    /// may be loaded multiple times but Sdk is shared.
     /// </summary>
     public static void Initialize( IMetalamaEngineServices context )
     {
-        if ( _current != null )
+        lock ( _lock )
         {
-            throw new InvalidOperationException( "The MetalamaSdkExecutionContext has already been initialized." );
+            // In multi-ALC scenarios, Engine can be loaded multiple times (each with its own
+            // MetalamaEngineServicesImpl.Instance) while Sdk is shared. The instances are
+            // functionally equivalent, so we just keep the first one.
+            _current ??= context;
         }
-
-        _current = context;
     }
 }

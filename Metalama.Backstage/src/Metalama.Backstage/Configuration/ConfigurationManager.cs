@@ -6,8 +6,8 @@ using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Utilities;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -31,6 +31,7 @@ namespace Metalama.Backstage.Configuration
         private readonly IFileSystem _fileSystem;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
+        private readonly IJsonSerializationService _jsonSerializationService;
         private readonly ConcurrentDictionary<string, string> _fileChanges = new( StringComparer.Ordinal );
 
         // Named semaphore to handle many instances.
@@ -48,6 +49,7 @@ namespace Metalama.Backstage.Configuration
             this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
             this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
             this._environmentVariableProvider = serviceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>();
+            this._jsonSerializationService = serviceProvider.GetRequiredBackstageService<IJsonSerializationService>();
 
             // There is a cyclic dependency between the logger factory and the configuration manager. To work around this problem, we buffer
             // the reported messages and we report them when the real logging service is available.
@@ -208,7 +210,8 @@ namespace Metalama.Backstage.Configuration
 
         private void AddToCache( ConfigurationFile settings )
         {
-            var isChange = this._instances.TryGetValue( settings.GetType(), out var oldValue ) && !oldValue.StructurallyEqualsTo( settings );
+            var isChange = this._instances.TryGetValue( settings.GetType(), out var oldValue ) &&
+                           !this.StructurallyEquals( oldValue, settings );
 
             // We always update the cache even if there is no structural change to make sure we have the latest version number.
             this._instances.AddOrUpdate( settings.GetType(), settings, ( _, _ ) => settings );
@@ -218,6 +221,19 @@ namespace Metalama.Backstage.Configuration
             {
                 this.ConfigurationFileChanged?.Invoke( settings );
             }
+        }
+
+        private bool StructurallyEquals( ConfigurationFile a, ConfigurationFile b )
+        {
+            // Compare JSON representations excluding the version property
+            var type = a.GetType();
+            var aWithoutVersion = a with { Version = null };
+            var bWithoutVersion = b with { Version = null };
+
+            var jsonA = this._jsonSerializationService.Serialize( aWithoutVersion, type );
+            var jsonB = this._jsonSerializationService.Serialize( bWithoutVersion, type );
+
+            return jsonA.Equals( jsonB, StringComparison.Ordinal );
         }
 
         public bool TryUpdate( ConfigurationFile value, ConfigurationFileTimestamp? expectedTimestamp )
@@ -276,7 +292,7 @@ namespace Metalama.Backstage.Configuration
                 }
 
                 value.IncrementVersion();
-                var json = value.ToJson();
+                var json = this._jsonSerializationService.Serialize( value, value.GetType() );
 
                 RetryHelper.Retry( () => this._fileSystem.WriteAllText( fileName, json ) );
 
@@ -353,18 +369,22 @@ namespace Metalama.Backstage.Configuration
 
             try
             {
-                var jsonSettings = new JsonSerializerSettings();
-
-#if TRACE_JSON
-                jsonSettings.TraceWriter = new JsonTraceWriter( fileName, this.Logger.WithPrefix( "Json" ) );
-#endif
-
-                settings = (ConfigurationFile?) JsonConvert.DeserializeObject( json, type, jsonSettings );
-
-                if ( settings == null )
+                // Use the serialization service to deserialize the configuration file
+                if ( !this._jsonSerializationService.TryDeserialize( json, type, out var deserializedObject ) ||
+                     deserializedObject is not ConfigurationFile deserializedSettings )
                 {
-                    return false;
+                    // Deserialization failed (e.g., invalid JSON). We need to return an empty instance of the
+                    // configuration object, with the LastModified property properly set. If instead we return
+                    // false, the caller will interpret this as if the file did not exist, and it can create
+                    // an infinite loop.
+                    this.Logger.Error?.Log( $"Error deserializing file '{fileName}'." );
+                    settings = (ConfigurationFile) Activator.CreateInstance( type )!;
+                    settings.SetFileSystemTimestamp( lastModified );
+
+                    return true;
                 }
+
+                settings = deserializedSettings;
 
                 if ( this.Logger.Warning != null )
                 {

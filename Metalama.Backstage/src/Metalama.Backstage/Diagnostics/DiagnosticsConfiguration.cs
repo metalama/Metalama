@@ -3,12 +3,12 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Diagnostics;
 
@@ -18,16 +18,16 @@ public sealed record DiagnosticsConfiguration : ConfigurationFile
 {
     public const string EnvironmentVariableName = "METALAMA_DIAGNOSTICS";
 
-    [JsonProperty( "logging" )]
+    [JsonPropertyName( "logging" )]
     public LoggingConfiguration Logging { get; init; } = new();
 
-    [JsonProperty( "debugging" )]
+    [JsonPropertyName( "debugging" )]
     public DebuggerConfiguration Debugging { get; } = new();
 
-    [JsonProperty( "crashDumps" )]
+    [JsonPropertyName( "crashDumps" )]
     public CrashDumpConfiguration CrashDumps { get; } = new();
 
-    [JsonProperty( "profiling" )]
+    [JsonPropertyName( "profiling" )]
     public ProfilingConfiguration Profiling { get; } = new();
 
     public DiagnosticsConfiguration()

@@ -43,7 +43,12 @@
             <CoreAssemblyToSignAndEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net8.0/Metalama.*.dll" />
 
             <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/*.dll" Exclude="$(AssembliesNotToEmbed)" />
+            <!-- System.Text.Json and dependencies must be embedded for .NET Framework because they're not in the runtime -->
+            <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.Text.Json.dll" />
+            <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.Text.Encodings.Web.dll" />
+            <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.IO.Pipelines.dll" />
             <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net8.0/*.dll" Exclude="$(AssembliesNotToEmbed)" />
+            <!-- For .NET Core, System.Text.Json is provided by the parent ALC (Roslyn) - do not embed to avoid dependency cascades -->
             
             <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.Threading.AccessControl.dll" />
             <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net8.0/runtimes/win/lib/net8.0/System.Threading.AccessControl.dll" />

@@ -335,9 +335,32 @@ function Copy-McpServerToTemp
     $hashBytes = (New-Object -TypeName System.Security.Cryptography.SHA256Managed).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($SourceRootDir))
     $directoryHash = [System.BitConverter]::ToString($hashBytes, 0, 4).Replace("-", "").ToLower()
     $tempDir = Join-Path $env:TEMP "mcp-server-$directoryHash"
+    $mcpPidFile = Join-Path $env:TEMP "mcp-pid-$directoryHash.txt"
+
+    # Kill existing MCP server for this repo if running
+    if (Test-Path $mcpPidFile)
+    {
+        try
+        {
+            $existingPid = (Get-Content $mcpPidFile -Raw).Trim()
+            if ($existingPid -match '^\d+$')
+            {
+                $process = Get-Process -Id $existingPid -ErrorAction SilentlyContinue
+                if ($process)
+                {
+                    Write-Host "Killing existing MCP server (PID: $existingPid)..." -ForegroundColor Yellow
+                    Stop-Process -Id $existingPid -Force -ErrorAction SilentlyContinue
+                    Start-Sleep -Milliseconds 1000
+                }
+            }
+        }
+        catch
+        {
+            Write-Host "Could not kill existing MCP server: $_" -ForegroundColor Yellow
+        }
+    }
 
     # Clean up old temp directory if it exists
-    # Use retry logic because files may be locked by a previous MCP server process
     if (Test-Path $tempDir)
     {
         $maxRetries = 3
@@ -369,6 +392,12 @@ function Copy-McpServerToTemp
         }
     }
 
+    # Clean up stale PID file
+    if (Test-Path $mcpPidFile)
+    {
+        Remove-Item $mcpPidFile -Force -ErrorAction SilentlyContinue
+    }
+
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
     Write-Host "Created temporary directory: $tempDir" -ForegroundColor Cyan
 
@@ -379,9 +408,18 @@ function Copy-McpServerToTemp
 
     # Return the path to the executable and the temp directory for cleanup
     $tempExecutable = Join-Path $tempTargetDir $executableFile.Name
+
+    # Verify the executable was copied successfully
+    if (-not (Test-Path $tempExecutable))
+    {
+        throw "Failed to copy MCP server executable to temporary directory. Expected at: $tempExecutable"
+    }
+    Write-Host "Verified MCP server executable at: $tempExecutable" -ForegroundColor Cyan
+
     return @{
         ExecutablePath = $tempExecutable
         TempDirectory = $tempDir
+        DirectoryHash = $directoryHash
         IsExe = $executableFile.Extension -eq ".exe"
     }
 }
@@ -471,6 +509,34 @@ if ($Claude -and -not $NoMcp)
 {
     try
     {
+        # Kill existing MCP server BEFORE building (it may have files locked)
+        # Compute the hash to find the PID file
+        $hashBytes = (New-Object -TypeName System.Security.Cryptography.SHA256Managed).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($PSScriptRoot))
+        $mcpDirHash = [System.BitConverter]::ToString($hashBytes, 0, 4).Replace("-", "").ToLower()
+        $mcpPidFilePath = Join-Path $env:TEMP "mcp-pid-$mcpDirHash.txt"
+
+        if (Test-Path $mcpPidFilePath)
+        {
+            try
+            {
+                $existingPid = (Get-Content $mcpPidFilePath -Raw).Trim()
+                if ($existingPid -match '^\d+$')
+                {
+                    $process = Get-Process -Id $existingPid -ErrorAction SilentlyContinue
+                    if ($process)
+                    {
+                        Write-Host "Killing existing MCP server (PID: $existingPid) before build..." -ForegroundColor Yellow
+                        Stop-Process -Id $existingPid -Force -ErrorAction SilentlyContinue
+                        Start-Sleep -Milliseconds 1000
+                    }
+                }
+            }
+            catch
+            {
+                Write-Host "Could not kill existing MCP server: $_" -ForegroundColor Yellow
+            }
+        }
+
         Write-Host "Building MCP server before cleanup..." -ForegroundColor Cyan
         $mcpProjectPath = Join-Path $PSScriptRoot "$EngPath\src"
 
@@ -1117,6 +1183,7 @@ if (-not $BuildImage)
         # Start MCP approval server on host with dynamic port in new terminal tab
         $mcpPort = $null
         $mcpPortFile = $null
+        $mcpPidFile = $null
         $mcpSecret = $null
         $mcpTempDir = $null
         if (-not $NoMcp)
@@ -1130,7 +1197,21 @@ if (-not $BuildImage)
                 }
 
                 Write-Host "Starting MCP approval server..." -ForegroundColor Green
-                $mcpPortFile = Join-Path $env:TEMP "mcp-port-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8) ).txt"
+
+                # Use the MCP server snapshot saved before cleanup
+                $mcpServerInfo = $mcpServerSnapshot
+                $mcpTempDir = $mcpServerInfo.TempDirectory
+                $directoryHash = $mcpServerInfo.DirectoryHash
+
+                # Verify the executable still exists
+                if (-not (Test-Path $mcpServerInfo.ExecutablePath))
+                {
+                    throw "MCP server executable not found at: $($mcpServerInfo.ExecutablePath). The temporary directory may have been cleaned up."
+                }
+
+                # Use deterministic file paths based on repo hash (allows multiple repos to have their own MCP servers)
+                $mcpPortFile = Join-Path $env:TEMP "mcp-port-$directoryHash.txt"
+                $mcpPidFile = Join-Path $env:TEMP "mcp-pid-$directoryHash.txt"
 
                 # Generate 128-bit (16 byte) random secret for authentication
                 $randomBytes = New-Object byte[] 16
@@ -1139,21 +1220,22 @@ if (-not $BuildImage)
                 $mcpSecret = [BitConverter]::ToString($randomBytes).Replace('-', '').ToLower()
                 Write-Host "Generated MCP authentication secret" -ForegroundColor Cyan
 
-                # Use the MCP server snapshot saved before cleanup
-                $mcpServerInfo = $mcpServerSnapshot
-                $mcpTempDir = $mcpServerInfo.TempDirectory
-
                 # Build the command to run in the new tab
+                # Start the MCP server and capture its actual PID (not the PowerShell host PID)
                 if ($mcpServerInfo.IsExe)
                 {
-                    # Run executable directly
-                    $mcpCommand = "& '$( $mcpServerInfo.ExecutablePath )' tools mcp-server --port-file '$mcpPortFile' --secret '$mcpSecret'"
+                    # Run executable directly - use Start-Process to capture the actual process PID
+                    $mcpCommand = "`$proc = Start-Process -FilePath '$( $mcpServerInfo.ExecutablePath )' -ArgumentList 'tools','mcp-server','--port-file','$mcpPortFile','--secret','$mcpSecret' -PassThru -NoNewWindow; `$proc.Id | Set-Content -Path '$mcpPidFile' -NoNewline; Wait-Process -Id `$proc.Id"
                 }
                 else
                 {
-                    # Run DLL with dotnet
-                    $mcpCommand = "dotnet '$( $mcpServerInfo.ExecutablePath )' tools mcp-server --port-file '$mcpPortFile' --secret '$mcpSecret'"
+                    # Run DLL with dotnet - use Start-Process to capture the actual process PID
+                    $mcpCommand = "`$proc = Start-Process -FilePath 'dotnet' -ArgumentList '$( $mcpServerInfo.ExecutablePath )','tools','mcp-server','--port-file','$mcpPortFile','--secret','$mcpSecret' -PassThru -NoNewWindow; `$proc.Id | Set-Content -Path '$mcpPidFile' -NoNewline; Wait-Process -Id `$proc.Id"
                 }
+
+                # Encode command as base64 to avoid quoting issues when passing through wt.exe
+                $mcpCommandBytes = [System.Text.Encoding]::Unicode.GetBytes($mcpCommand)
+                $mcpCommandBase64 = [Convert]::ToBase64String($mcpCommandBytes)
 
                 # Try Windows Terminal first (wt.exe), fall back to conhost
                 $wtPath = Get-Command wt.exe -ErrorAction SilentlyContinue
@@ -1161,16 +1243,16 @@ if (-not $BuildImage)
                 {
                     # Open new tab in current Windows Terminal window
                     # The -w 0 option targets the current window
-                    # Use single argument string for proper escaping
+                    # Use -EncodedCommand to avoid quoting issues with complex commands
                     # NOTE: --startingDirectory must be specified because Start-Process's -WorkingDirectory doesn't pass through to wt.exe
-                    $wtArgString = "-w 0 new-tab --title `"MCP Approval Server - $PSScriptRoot`" --startingDirectory `"$PSScriptRoot`" -- pwsh -NoExit -Command `"$mcpCommand`""
+                    $wtArgString = "-w 0 new-tab --title `"MCP Approval Server - $PSScriptRoot`" --startingDirectory `"$PSScriptRoot`" -- pwsh -NoExit -EncodedCommand $mcpCommandBase64"
                     $mcpServerProcess = Start-Process -FilePath "wt.exe" -ArgumentList $wtArgString -PassThru
                 }
                 else
                 {
-                    # Fallback: start in new console window
+                    # Fallback: start in new console window (use EncodedCommand here too for consistency)
                     $mcpServerProcess = Start-Process -FilePath "pwsh" `
-                        -ArgumentList "-NoExit", "-Command", $mcpCommand `
+                        -ArgumentList "-NoExit", "-EncodedCommand", $mcpCommandBase64 `
                         -WorkingDirectory $PSScriptRoot `
                         -PassThru
                 }
@@ -1201,6 +1283,10 @@ if (-not $BuildImage)
                 if ($mcpServerProcess -and !$mcpServerProcess.HasExited)
                 {
                     Stop-Process -Id $mcpServerProcess.Id -Force -ErrorAction SilentlyContinue
+                }
+                if ($mcpPidFile -and (Test-Path $mcpPidFile))
+                {
+                    Remove-Item $mcpPidFile -Force -ErrorAction SilentlyContinue
                 }
                 if ($mcpTempDir -and (Test-Path $mcpTempDir))
                 {
@@ -1385,41 +1471,23 @@ if (-not $BuildImage)
             {
                 Write-Host "Stopping MCP approval server..." -ForegroundColor Cyan
 
-                # Find the process listening on the MCP port and kill it
-                try
-                {
-                    # Find PID using netstat
-                    $netstatOutput = netstat -ano | Select-String ":$mcpPort\s" | Select-Object -First 1
-                    if ($netstatOutput)
-                    {
-                        $parts = $netstatOutput.Line.Trim() -split '\s+'
-                        $mcpPid = $parts[-1]
-                        if ($mcpPid -and $mcpPid -match '^\d+$')
-                        {
-                            Stop-Process -Id $mcpPid -Force -ErrorAction SilentlyContinue
-                            Write-Host "Stopped MCP server process (PID: $mcpPid)" -ForegroundColor Cyan
-                        }
-                    }
-                }
-                catch
-                {
-                    Write-Host "Could not stop MCP server via port lookup: $_" -ForegroundColor Yellow
-                }
-
-                # Fallback: try to find by command line
-                $mcpProcesses = Get-Process -Name pwsh, dotnet -ErrorAction SilentlyContinue |
-                        Where-Object { $_.CommandLine -like "*mcp-server*" }
-
-                foreach ($proc in $mcpProcesses)
+                # Kill MCP server using PID file
+                if ($mcpPidFile -and (Test-Path $mcpPidFile))
                 {
                     try
                     {
-                        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
-                        Write-Host "Stopped MCP server process $( $proc.Id )" -ForegroundColor Cyan
+                        $mcpPid = (Get-Content $mcpPidFile -Raw).Trim()
+                        if ($mcpPid -match '^\d+$')
+                        {
+                            Stop-Process -Id $mcpPid -Force -ErrorAction SilentlyContinue
+                            Write-Host "Stopped MCP server process (PID: $mcpPid)" -ForegroundColor Cyan
+                            # Wait for process to fully release file locks
+                            Start-Sleep -Milliseconds 1000
+                        }
                     }
                     catch
                     {
-                        # Process may have already exited
+                        Write-Host "Could not stop MCP server: $_" -ForegroundColor Yellow
                     }
                 }
             }
@@ -1431,10 +1499,30 @@ if (-not $BuildImage)
             }
 
             # Clean up temporary MCP server directory
+            # Only delete PID file if temp directory cleanup succeeds (so next run can still kill the process if needed)
+            $tempDirCleaned = $false
             if ($mcpTempDir -and (Test-Path $mcpTempDir))
             {
                 Write-Host "Cleaning up temporary MCP server directory: $mcpTempDir" -ForegroundColor Cyan
-                Remove-Item $mcpTempDir -Recurse -Force -ErrorAction SilentlyContinue
+                try
+                {
+                    Remove-Item $mcpTempDir -Recurse -Force -ErrorAction Stop
+                    $tempDirCleaned = $true
+                }
+                catch
+                {
+                    Write-Host "Could not clean up temp directory (will retry on next run): $_" -ForegroundColor Yellow
+                }
+            }
+            else
+            {
+                $tempDirCleaned = $true
+            }
+
+            # Only clean up PID file if temp directory was successfully cleaned
+            if ($tempDirCleaned -and $mcpPidFile -and (Test-Path $mcpPidFile))
+            {
+                Remove-Item $mcpPidFile -ErrorAction SilentlyContinue
             }
         }
     }

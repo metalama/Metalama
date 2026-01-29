@@ -7,7 +7,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Metalama.Backstage" />
-        <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
+		<PackageReference Include="System.Text.Json" NoWarn="NU1903" />
 	</ItemGroup>
 
 	<ItemGroup>

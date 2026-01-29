@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Immutable;
 using System.ComponentModel;
@@ -15,7 +14,6 @@ namespace Metalama.Framework.ConfigurationFiles
     /// </summary>
     [ConfigurationFile( "userDiagnostics.json" )]
     [Description( "Stores the IDs of diagnostics and suppressions defined by user aspects." )]
-    [JsonObject]
     public sealed record UserDiagnosticsConfiguration : ConfigurationFile
     {
         public ImmutableDictionary<string, UserDiagnosticRegistration> Diagnostics { get; init; } =

@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Tools;
+using Metalama.Framework.ConfigurationFiles;
 
 namespace Metalama.Framework.Engine.Utilities.Diagnostics;
 
@@ -13,15 +14,19 @@ public static class BackstageServiceFactoryInitializer
     [PublicAPI]
     public static bool IsInitialized => BackstageServiceFactory.IsInitialized;
 
-    private static BackstageInitializationOptions WithTools( BackstageInitializationOptions options )
-        => options with { AddToolsExtractor = builder => builder.AddTools() };
+    private static BackstageInitializationOptions WithToolsAndFrameworkJsonContext( BackstageInitializationOptions options )
+        => options with
+        {
+            AddToolsExtractor = builder => builder.AddTools(),
+            AdditionalJsonTypeInfoResolvers = [FrameworkConfigurationJsonContext.Default]
+        };
 
     private static void InitializeMetalamaServices() => Logger.Initialize();
 
     public static bool Initialize( BackstageInitializationOptions options )
     {
         if ( BackstageServiceFactory.Initialize(
-                WithTools( options ),
+                WithToolsAndFrameworkJsonContext( options ),
                 options.ApplicationInfo.Name ) )
         {
             InitializeMetalamaServices();

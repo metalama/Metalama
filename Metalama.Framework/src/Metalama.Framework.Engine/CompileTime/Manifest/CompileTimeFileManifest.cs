@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Templating.Mapping;
-using Newtonsoft.Json;
 
 namespace Metalama.Framework.Engine.CompileTime.Manifest
 {
@@ -11,7 +10,6 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
     /// Represents a file in a <see cref="CompileTimeProject"/>. This class is serialized
     /// to Json as a part of the <see cref="CompileTimeProjectManifest"/>.
     /// </summary>
-    [JsonObject]
     internal sealed class CompileTimeFileManifest
     {
         // TODO: Add serialization-deserialization tests because this is brittle.

@@ -19,7 +19,7 @@
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
         <PackageReference Include="JetBrains.Profiler.SelfApi" Condition="'$(TargetFramework)'!='netstandard2.0'" />
         <PackageReference Include="Microsoft.Bcl.HashCode" />
-        <PackageReference Include="Newtonsoft.Json" VersionOverride="$(NewtonsoftJsonMinVersion)" NoWarn="NU1903" />
+        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonMinVersion)" NoWarn="NU1903" />
         <PackageReference Include="System.IO.Packaging" />
         <PackageReference Include="System.DirectoryServices" />
         <PackageReference Include="Microsoft.Win32.Registry" Condition="'$(TargetFramework)'=='netstandard2.0'" />

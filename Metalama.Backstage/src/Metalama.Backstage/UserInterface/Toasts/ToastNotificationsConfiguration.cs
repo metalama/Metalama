@@ -3,10 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
-using Newtonsoft.Json;
+using Metalama.Backstage.Serialization;
 using System;
 using System.Collections.Immutable;
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.UserInterface.Toasts;
 
@@ -14,10 +15,11 @@ namespace Metalama.Backstage.UserInterface.Toasts;
 [Description( "Toast notifications." )]
 public sealed record ToastNotificationsConfiguration : ConfigurationFile
 {
-    [JsonProperty( "pauses" )]
+    [JsonPropertyName( "pauses" )]
     public ImmutableDictionary<string, DateTime> Pauses { get; init; } = ImmutableDictionary<string, DateTime>.Empty;
 
-    [JsonProperty( "notifications" )]
+    [JsonPropertyName( "notifications" )]
+    [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<ToastNotificationConfiguration>) )]
     public ImmutableDictionary<string, ToastNotificationConfiguration> Notifications { get; init; } =
         ImmutableDictionary<string, ToastNotificationConfiguration>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
 }

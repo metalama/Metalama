@@ -3,18 +3,17 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Diagnostics;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Framework.Engine.CompileTime.Manifest
 {
     /// <summary>
     /// Exposes the list of diagnostics and suppressions defined in the project.
     /// </summary>
-    [JsonObject]
     public sealed class DiagnosticManifest
     {
         [JsonConstructor]
@@ -26,10 +25,8 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             this.SuppressionDefinitions = suppressionDefinitions;
         }
 
-        [JsonProperty]
         public ImmutableDictionary<string, IDiagnosticDefinition> DiagnosticDefinitions { get; }
 
-        [JsonProperty]
         public ImmutableDictionary<string, SuppressionDefinition> SuppressionDefinitions { get; }
 
         public bool IsEmpty => this.DiagnosticDefinitions.IsEmpty && this.SuppressionDefinitions.IsEmpty;

@@ -35,6 +35,10 @@
     <SystemTextJsonLatestVersion>9.0.10</SystemTextJsonLatestVersion>
     <MicrosoftBclAsyncInterfacesLatestVersion>9.0.10</MicrosoftBclAsyncInterfacesLatestVersion>
 
+    <!-- The minimal version of System.Text.Json used by any supported Roslyn.-->
+    <SystemTextJsonMinVersion>8.0.0</SystemTextJsonMinVersion>
+
+
     <!-- SystemTextJsonVersion depends on the Roslyn version; here is the fallback. -->
     <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.0</SystemTextJsonVersion>
     <SystemNetHttpLatestVersion>4.3.4</SystemNetHttpLatestVersion>

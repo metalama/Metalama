@@ -2,9 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Newtonsoft.Json;
 using System;
-using System.IO;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Configuration;
 
@@ -15,6 +14,7 @@ public abstract record ConfigurationFile
     /// <summary>
     /// Gets a distinct timestamp for the current object.
     /// </summary>
+    [JsonIgnore]
     internal ConfigurationFileTimestamp? Timestamp
         => this._fileSystemTimestamp == null ? null : new ConfigurationFileTimestamp( this._fileSystemTimestamp.Value, this.Version );
 
@@ -32,22 +32,8 @@ public abstract record ConfigurationFile
     /// Gets or sets a version number of this object.  We don't expect the user (or other versions of Metalama.Backstage) to change this property.
     /// Its value is only taken into account when comparing two objects with the same filesystem timestamp.
     /// </summary>
-    [JsonProperty( "version" )]
+    [JsonPropertyName( "version" )]
     public int? Version { get; set; }
-
-    public string ToJson()
-    {
-        // Serialize.
-        var textWriter = new StringWriter();
-        var serializer = JsonSerializer.Create();
-        serializer.Formatting = Formatting.Indented;
-        serializer.Serialize( textWriter, this );
-
-        return textWriter.ToString();
-    }
-
-    internal bool StructurallyEqualsTo( ConfigurationFile other )
-        => (this with { Version = null }).ToJson().Equals( (other with { Version = null }).ToJson(), StringComparison.Ordinal );
 
     public virtual void Validate( Action<string> reportWarning ) { }
 }

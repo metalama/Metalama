@@ -3,8 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
-using Newtonsoft.Json;
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Telemetry.User;
 
@@ -19,6 +19,6 @@ public sealed record UserInfo : ConfigurationFile
         this.EmailAddress = emailAddress;
     }
 
-    [JsonProperty( "emailAddress" )]
+    [JsonPropertyName( "emailAddress" )]
     public string? EmailAddress { get; init; }
 }

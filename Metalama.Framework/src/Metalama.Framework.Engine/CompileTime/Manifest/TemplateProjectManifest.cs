@@ -5,18 +5,17 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.SerializableIds;
 using Microsoft.CodeAnalysis;
-using Newtonsoft.Json;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Metalama.Framework.Engine.CompileTime.Manifest;
 
-[JsonObject( ItemNullValueHandling = NullValueHandling.Ignore )]
 internal sealed class TemplateProjectManifest
 {
     public static TemplateProjectManifest Empty { get; } =
         new( new TemplateSymbolManifest( "", ExecutionScope.RunTime, null, null, null ) );
 
-    [JsonProperty]
+    [JsonPropertyName( "rootSymbol" )]
     public TemplateSymbolManifest RootSymbol { get; }
 
     [JsonConstructor]
