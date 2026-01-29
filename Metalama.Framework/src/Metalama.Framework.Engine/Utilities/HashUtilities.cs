@@ -3,41 +3,56 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using K4os.Hash.xxHash;
+using Metalama.Framework.Engine.Utilities.Caching;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
+using System.IO.Hashing;
 using System.Text;
-
-#if NETCOREAPP2_1_OR_GREATER
-using System;
-#endif
 
 namespace Metalama.Framework.Engine.Utilities
 {
     [PublicAPI]
     public static class HashUtilities
     {
-        public static string HashString( string s ) => XXH64.DigestOf( Encoding.UTF8.GetBytes( s ) ).ToString( "x16", CultureInfo.InvariantCulture );
+        private static readonly ObjectPool<XxHash64> _hasherPool = new(
+            () => new XxHash64(),
+            trimOnFree: false );
+
+        /// <summary>
+        /// Gets a pooled XxHash64 instance. Dispose the handle to return it to the pool.
+        /// The hasher is reset before being returned.
+        /// </summary>
+        public static ObjectPoolHandle<XxHash64> AllocateHasher()
+        {
+            var handle = _hasherPool.Allocate();
+            handle.Value.Reset();
+
+            return handle;
+        }
+
+        public static string HashString( string s ) => XxHash64.HashToUInt64( Encoding.UTF8.GetBytes( s ) ).ToString( "x16", CultureInfo.InvariantCulture );
 
         public static ulong HashStrings<T>( T strings )
             where T : IEnumerable<string>
         {
-            var hash = new XXH64();
+            using var handle = AllocateHasher();
+            var hash = handle.Value;
 
             foreach ( var s in strings )
             {
-                hash.Update( s );
+                hash.Append( s );
             }
 
-            return hash.Digest();
+            return hash.GetCurrentHashAsUInt64();
         }
 
-        public static void Update( this XXH64 hash, string? value )
+        public static void Append( this XxHash64 hash, string? value )
         {
             if ( value == null )
             {
-                hash.Update( 0 );
+                hash.Append( 0 );
             }
             else
             {
@@ -50,29 +65,59 @@ namespace Metalama.Framework.Engine.Utilities
 
                     var encodedLength = Encoding.UTF8.GetBytes( value, bytes );
 
-                    hash.Update( bytes[..encodedLength] );
+                    hash.Append( bytes[..encodedLength] );
                 }
                 else
                 {
-                    hash.Update( Encoding.UTF8.GetBytes( value ) );
+                    hash.Append( Encoding.UTF8.GetBytes( value ) );
                 }
 #else
-                hash.Update( Encoding.UTF8.GetBytes( value ) );
+                hash.Append( Encoding.UTF8.GetBytes( value ) );
 #endif
             }
         }
 
-        public static unsafe void Update<T>( this XXH64 hash, T value )
+        public static unsafe void Append<T>( this XxHash64 hash, T value )
             where T : unmanaged
-            => hash.Update( &value, sizeof(T) );
+            => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(T) ) );
 
-        public static unsafe void Update( this XXH64 hash, long value ) => hash.Update( &value, sizeof(long) );
+        public static unsafe void Append( this XxHash64 hash, long value )
+            => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(long) ) );
 
-        public static unsafe void Update( this XXH64 hash, ulong value ) => hash.Update( &value, sizeof(ulong) );
+        public static unsafe void Append( this XxHash64 hash, ulong value )
+            => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(ulong) ) );
 
         // The following overloads are redundant but they work around a compiler bug.
-        public static void Update( this XXH64 hash, ImmutableArray<byte> bytes ) => hash.Update( bytes.AsSpan() );
+        public static void Append( this XxHash64 hash, ImmutableArray<byte> bytes ) => hash.Append( bytes.AsSpan() );
 
-        public static unsafe void Update( this XXH64 hash, int value ) => hash.Update( &value, sizeof(int) );
+        public static unsafe void Append( this XxHash64 hash, int value )
+            => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(int) ) );
+
+        #region Compatibility shims for Update -> Append migration
+
+        // These extension methods provide backward compatibility during the migration
+        // from K4os.Hash.xxHash (Update) to System.IO.Hashing (Append).
+        // They allow existing code using .Update() to continue working.
+
+        public static void Update( this XxHash64 hash, string? value ) => hash.Append( value );
+
+        public static void Update<T>( this XxHash64 hash, T value )
+            where T : unmanaged
+            => hash.Append( value );
+
+        public static void Update( this XxHash64 hash, long value ) => hash.Append( value );
+
+        public static void Update( this XxHash64 hash, ulong value ) => hash.Append( value );
+
+        public static void Update( this XxHash64 hash, ImmutableArray<byte> bytes ) => hash.Append( bytes );
+
+        public static void Update( this XxHash64 hash, int value ) => hash.Append( value );
+
+        /// <summary>
+        /// Compatibility method that maps to <see cref="XxHash64.GetCurrentHashAsUInt64"/>.
+        /// </summary>
+        public static ulong Digest( this XxHash64 hash ) => hash.GetCurrentHashAsUInt64();
+
+        #endregion
     }
 }

@@ -56,9 +56,7 @@
     <PackageVersion Include="JetBrains.Profiler.SelfApi" Version="2.5.14" />
     <PackageVersion Include="JetBrains.Profiler.Api" Version="1.4.10" />
     <PackageVersion Include="System.Text.Json" Version="$(SystemTextJsonVersion)" /> 
-    <!-- With K4os.Hash.xxHash, make sure that the dependency on System.Memory is not higher
-         than the one required by the lowest version of Visual Studio supported by the VSX. -->
-    <PackageVersion Include="K4os.Hash.xxHash" Version="1.0.8" />
+    <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />

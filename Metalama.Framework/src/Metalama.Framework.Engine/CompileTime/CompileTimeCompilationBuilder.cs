@@ -2,7 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
+using System.IO.Hashing;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Maintenance;
@@ -83,10 +83,11 @@ internal sealed partial class CompileTimeCompilationBuilder
                     using var reader = new StreamReader( assembly.GetManifestResourceStream( name )! );
 
                     var text = reader.ReadToEnd();
-                    XXH64 hash = new();
+                    using var hashHandle = HashUtilities.AllocateHasher();
+                    var hash = hashHandle.Value;
                     hash.Update( text );
 
-                    return (text, hash.Digest());
+                    return (text, hash.GetCurrentHashAsUInt64());
                 } );
 
         if ( files.Count == 0 )
@@ -125,7 +126,8 @@ internal sealed partial class CompileTimeCompilationBuilder
             return 0;
         }
 
-        XXH64 h = new();
+        using var hashHandle = HashUtilities.AllocateHasher();
+        var h = hashHandle.Value;
 
         // Hash the target framework.
         if ( targetFramework != null )
@@ -166,7 +168,8 @@ internal sealed partial class CompileTimeCompilationBuilder
         IEnumerable<CompileTimeProject> referencedProjects,
         ulong sourceHash )
     {
-        XXH64 h = new();
+        using var hashHandle = HashUtilities.AllocateHasher();
+        var h = hashHandle.Value;
 
         // We include the MVID of the current module in the hash instead of for instance the version number.
         // The benefit is to avoid conflicts in our development environments where we rebuild without changing the version number.
@@ -212,7 +215,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         h.Update( RoslynApiVersion.Current );
         this._logger.Trace?.Log( $"ProjectHash: RoslynApiVersion={RoslynApiVersion.Current}" );
 
-        var digest = h.Digest();
+        var digest = h.GetCurrentHashAsUInt64();
 
         return digest;
     }
@@ -291,7 +294,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         var syntaxTrees = treesWithCompileTimeCode
             .SelectAsArray(
                 t => (SyntaxTree: t, FileName: Path.GetFileNameWithoutExtension( t.FilePath ),
-                      Hash: XXH64.DigestOf( Encoding.UTF8.GetBytes( t.GetText().ToString() ) )) )
+                      Hash: XxHash64.HashToUInt64( Encoding.UTF8.GetBytes( t.GetText().ToString() ) )) )
             .OrderBy( t => t.FileName )
             .ThenBy( t => t.Hash )
             .Select(

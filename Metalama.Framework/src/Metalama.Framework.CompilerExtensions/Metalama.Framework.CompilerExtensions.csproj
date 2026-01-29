@@ -47,7 +47,10 @@
             <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.Text.Json.dll" />
             <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.Text.Encodings.Web.dll" />
             <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.IO.Pipelines.dll" />
+            <!-- System.IO.Hashing must be embedded as it's not in the runtime or VS hosting environment -->
+            <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.IO.Hashing.dll" />
             <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net8.0/*.dll" Exclude="$(AssembliesNotToEmbed)" />
+            <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net8.0/System.IO.Hashing.dll" />
             <!-- For .NET Core, System.Text.Json is provided by the parent ALC (Roslyn) - do not embed to avoid dependency cascades -->
             
             <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.Threading.AccessControl.dll" />

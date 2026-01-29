@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Utilities;
@@ -155,7 +154,8 @@ internal sealed class CompileTimeAssemblyLocator
         }
 
         // Compute a unique hash for the combination of factors.
-        var hashBuilder = new XXH64();
+        using var hashHandle = HashUtilities.AllocateHasher();
+        var hashBuilder = hashHandle.Value;
         hashBuilder.Update( additionalReferences );
         hashBuilder.Update( targetFrameworksString );
         hashBuilder.Update( additionalNugetSources );
@@ -173,7 +173,7 @@ internal sealed class CompileTimeAssemblyLocator
             hashBuilder.Update( projectOptions.AssemblyLocatorSalt );
         }
 
-        var projectHash = hashBuilder.Digest().ToString( "x", CultureInfo.InvariantCulture );
+        var projectHash = hashBuilder.GetCurrentHashAsUInt64().ToString( "x", CultureInfo.InvariantCulture );
 
         this._cacheDirectory = tempFileManager.GetTempDirectory( TempDirectories.AssemblyLocator, CleanUpStrategy.WhenUnused, projectHash );
 

@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Utilities;
@@ -309,8 +308,9 @@ internal sealed class CompileTimeProject : IProjectService
         CacheableTemplateDiscoveryContextProvider? templateDiscoveryContextProvider,
         [NotNullWhen( true )] out CompileTimeProject? compileTimeProject )
     {
-        // Compute a unique hash based on the binary. 
-        XXH64 hash = new();
+        // Compute a unique hash based on the binary.
+        using var hashHandle = HashUtilities.AllocateHasher();
+        var hash = hashHandle.Value;
         var buffer = new byte[1024];
 
         using ( var file = File.OpenRead( assemblyPath ) )
@@ -319,11 +319,11 @@ internal sealed class CompileTimeProject : IProjectService
 
             while ( (read = file.Read( buffer, 0, 1024 )) > 0 )
             {
-                hash.Update( buffer, 0, read );
+                hash.Append( buffer.AsSpan( 0, read ) );
             }
         }
 
-        var projectHash = hash.Digest();
+        var projectHash = hash.GetCurrentHashAsUInt64();
 
         var assemblyName = new AssemblyName( assemblyIdentity.ToString() );
 

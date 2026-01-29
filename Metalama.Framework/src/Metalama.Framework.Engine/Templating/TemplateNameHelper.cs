@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
@@ -60,10 +59,11 @@ namespace Metalama.Framework.Engine.Templating
 
             // If we have parameters, we need to add a unique hash of the symbol to differentiate symbols
             // of the same name. It is essential that this hash is consistent across runtimes and versions of Roslyn and Metalama.
-            var hashCode = new XXH64();
+            using var hashHandle = HashUtilities.AllocateHasher();
+            var hashCode = hashHandle.Value;
             hashCode.Update( symbol.GetDocumentationCommentId().AssertNotNull() );
 
-            return $"{principal}_{hashCode.Digest():x}";
+            return $"{principal}_{hashCode.GetCurrentHashAsUInt64():x}";
         }
     }
 }

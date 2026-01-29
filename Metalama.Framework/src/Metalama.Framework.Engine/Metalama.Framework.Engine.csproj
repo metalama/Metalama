@@ -61,7 +61,7 @@
         <PackageReference Include="Metalama.Backstage.Tools" />
 
         <PackageReference Include="Microsoft.Bcl.HashCode" />
-        <PackageReference Include="K4os.Hash.xxHash" />
+        <PackageReference Include="System.IO.Hashing" />
         <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
 
 		<!-- Resolve conflict -->

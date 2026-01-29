@@ -3,10 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using K4os.Hash.xxHash;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using System.IO.Hashing;
 using System.Text;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Diff;
@@ -18,13 +18,13 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff;
 [UsedImplicitly( ImplicitUseTargetFlags.WithMembers )]
 public abstract class BaseCodeHasher : SafeSyntaxWalker
 {
-    private readonly XXH64 _hasher;
+    private readonly XxHash64 _hasher;
 
     internal StringBuilder? Log { get; private set; }
 
     internal void EnableLogging() => this.Log = new StringBuilder();
 
-    protected BaseCodeHasher( XXH64 hasher )
+    protected BaseCodeHasher( XxHash64 hasher )
     {
         this._hasher = hasher;
     }

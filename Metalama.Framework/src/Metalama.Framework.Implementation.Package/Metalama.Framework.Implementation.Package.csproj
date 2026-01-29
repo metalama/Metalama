@@ -47,7 +47,7 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(ThisRoslynVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" VersionOverride="$(ThisRoslynVersion)" />
         <PackageReference Include="Microsoft.Bcl.HashCode" />
-        <PackageReference Include="K4os.Hash.xxHash" />
+        <PackageReference Include="System.IO.Hashing" />
         <PackageReference Include="Microsoft.CSharp" />
         <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
         <PackageReference Include="System.Reflection.Emit" />
