@@ -7,7 +7,6 @@ using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities.Testing;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Services;
 using System;
@@ -91,16 +90,8 @@ namespace Metalama.Testing.UnitTesting
             this.AddSyntaxGenerationOptions( services );
             this.AddXunitLogging( services );
             this.AddExceptionHandler( services );
-            this.AddTestOutputService( services );
 
             services.AddGlobalService( _ => TestingServices.CompileTimeAssemblyLocatorProvider );
-        }
-
-        private void AddTestOutputService( IAdditionalServiceCollection services )
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            services.AddGlobalService<ITestOutputService>( _ => new TestOutputService( this._logger ) );
-#pragma warning restore CS0618 // Type or member is obsolete
         }
 
 #pragma warning disable LAMA0821
