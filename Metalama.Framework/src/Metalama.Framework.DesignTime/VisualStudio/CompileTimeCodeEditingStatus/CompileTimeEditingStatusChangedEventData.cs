@@ -3,11 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Rpc;
-using Newtonsoft.Json;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.CompileTimeCodeEditingStatus;
 
-[JsonObject]
+[RpcContract]
 internal sealed class CompileTimeEditingStatusChangedEventData : RpcEventData
 {
     public override string Category => nameof(ICompileTimeCodeEditingStatusRpcApi);

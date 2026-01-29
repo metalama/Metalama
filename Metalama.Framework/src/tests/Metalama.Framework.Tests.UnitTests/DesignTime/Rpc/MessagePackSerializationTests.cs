@@ -1,0 +1,269 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using System;
+using System.Linq;
+using System.Reflection;
+using MessagePack;
+using MessagePack.Resolvers;
+using Metalama.Framework.DesignTime.CodeLens;
+using Metalama.Framework.DesignTime.Diagnostics;
+using Metalama.Framework.DesignTime.Preview;
+using Metalama.Framework.DesignTime.Rpc;
+using Metalama.Framework.DesignTime.Rpc.Notifications;
+using Metalama.Framework.Engine.DesignTime;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using System.Collections.Immutable;
+using Xunit;
+
+namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
+
+/// <summary>
+/// Roundtrip serialization tests for MessagePack serialization of RPC contract types.
+/// These tests verify that all types used in RPC communication can be correctly serialized
+/// and deserialized using a composite resolver with TypelessObjectResolver and StandardResolver.
+/// </summary>
+public sealed class MessagePackSerializationTests
+{
+    private static readonly MessagePackSerializerOptions _options =
+        MessagePackSerializerOptions.Standard.WithResolver(
+            CompositeResolver.Create(
+                TypelessObjectResolver.Instance,
+                StandardResolver.Instance ) );
+
+    private static T Roundtrip<T>( T value )
+    {
+        // Verify that the type is marked with [RpcContract] attribute.
+        var type = typeof(T);
+        var attribute = type.GetCustomAttribute<RpcContractAttribute>();
+        Assert.True( attribute != null, $"Type {type.FullName} is missing the [RpcContract] attribute." );
+
+        var bytes = MessagePackSerializer.Serialize( value, _options );
+
+        return MessagePackSerializer.Deserialize<T>( bytes, _options );
+    }
+
+    [Fact]
+    public void ProjectKey_Roundtrip()
+    {
+        var original = new ProjectKey( "MyAssembly", 12345UL, true );
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.AssemblyName, result.AssemblyName );
+        Assert.Equal( original.PreprocessorSymbolHashCode, result.PreprocessorSymbolHashCode );
+        Assert.Equal( original.IsMetalamaEnabled, result.IsMetalamaEnabled );
+    }
+
+    [Fact]
+    public void ProjectKey_WithZeroHashCode_Roundtrip()
+    {
+        var original = new ProjectKey( "TestAssembly", 0UL, false );
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.AssemblyName, result.AssemblyName );
+        Assert.Equal( original.PreprocessorSymbolHashCode, result.PreprocessorSymbolHashCode );
+        Assert.False( result.HasHashCode );
+    }
+
+    [Fact]
+    public void RpcEventEnvelope_Roundtrip()
+    {
+        var original = new RpcEventEnvelope(
+            "TestApi",
+            new CompilationResultChangedEventData(
+                new ProjectKey( "Test", 123UL, true ),
+                false,
+                ImmutableArray.Create( "file1.cs", "file2.cs" ) ) );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.OriginatingApi, result.OriginatingApi );
+        Assert.IsType<CompilationResultChangedEventData>( result.Data );
+
+        var originalData = (CompilationResultChangedEventData) original.Data;
+        var resultData = (CompilationResultChangedEventData) result.Data;
+
+        Assert.Equal( originalData.ProjectKey.AssemblyName, resultData.ProjectKey.AssemblyName );
+        Assert.Equal( originalData.IsPartialCompilation, resultData.IsPartialCompilation );
+        Assert.True( originalData.SyntaxTreePaths.SequenceEqual( resultData.SyntaxTreePaths ) );
+    }
+
+    [Fact]
+    public void CompilationResultChangedEventData_Roundtrip()
+    {
+        var original = new CompilationResultChangedEventData(
+            new ProjectKey( "MyProject", 999UL, true ),
+            true,
+            ImmutableArray.Create( "path/to/file.cs" ) );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.ProjectKey.AssemblyName, result.ProjectKey.AssemblyName );
+        Assert.Equal( original.IsPartialCompilation, result.IsPartialCompilation );
+        Assert.True( original.SyntaxTreePaths.SequenceEqual( result.SyntaxTreePaths ) );
+    }
+
+    [Fact]
+    public void CompilationResultChangedEventData_EmptySyntaxTreePaths_Roundtrip()
+    {
+        var original = new CompilationResultChangedEventData(
+            new ProjectKey( "MyProject", 0UL, false ),
+            false,
+            ImmutableArray<string>.Empty );
+
+        var result = Roundtrip( original );
+
+        Assert.True( original.SyntaxTreePaths.SequenceEqual( result.SyntaxTreePaths ) );
+    }
+
+    [Fact]
+    public void EndpointChangedEventData_Roundtrip()
+    {
+        var guid = Guid.NewGuid();
+        var original = new EndpointChangedEventData( guid );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( guid, result.ProjectGuid );
+    }
+
+    [Fact]
+    public void CodeLensSummary_Roundtrip()
+    {
+        var original = new CodeLensSummary( "3 aspects applied", "tooltip text" );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.Description, result.Description );
+        Assert.Equal( original.TooltipText, result.TooltipText );
+    }
+
+    [Fact]
+    public void CodeLensSummary_WithNullTooltip_Roundtrip()
+    {
+        var original = new CodeLensSummary( "description only" );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.Description, result.Description );
+        Assert.Null( result.TooltipText );
+    }
+
+    [Fact]
+    public void CodeLensDetailsTable_Roundtrip()
+    {
+        var original = new CodeLensDetailsTable(
+            ImmutableArray.Create(
+                new CodeLensDetailsHeader( "Aspect", "aspect", true, 100 ),
+                new CodeLensDetailsHeader( "Target", "target", true, 200 ) ),
+            ImmutableArray.Create(
+                new CodeLensDetailsEntry(
+                    ImmutableArray.Create(
+                        new CodeLensDetailsField( "LoggingAspect" ),
+                        new CodeLensDetailsField( "MyMethod" ) ),
+                    "Row 1 tooltip" ) ) );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.Headers.Length, result.Headers.Length );
+        Assert.Equal( original.Headers[0].DisplayName, result.Headers[0].DisplayName );
+        Assert.Equal( original.Headers[0].UniqueName, result.Headers[0].UniqueName );
+        Assert.Equal( original.Headers[0].IsVisible, result.Headers[0].IsVisible );
+        Assert.Equal( original.Headers[0].Width, result.Headers[0].Width );
+
+        Assert.Equal( original.Entries.Length, result.Entries.Length );
+        Assert.Equal( original.Entries[0].Fields.Length, result.Entries[0].Fields.Length );
+        Assert.Equal( original.Entries[0].Fields[0].Text, result.Entries[0].Fields[0].Text );
+        Assert.Equal( original.Entries[0].Tooltip, result.Entries[0].Tooltip );
+    }
+
+    [Fact]
+    public void CodeLensDetailsTable_Empty_Roundtrip()
+    {
+        var original = CodeLensDetailsTable.Empty;
+
+        var result = Roundtrip( original );
+
+        Assert.Empty( result.Headers );
+        Assert.Empty( result.Entries );
+    }
+
+    [Fact]
+    public void DiagnosticData_Roundtrip()
+    {
+        var original = new DiagnosticData(
+            DiagnosticSeverity.Error,
+            "C:/src/file.cs",
+            "Error CS0001: Something went wrong",
+            10,
+            5,
+            10,
+            25 );
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.Severity, result.Severity );
+        Assert.Equal( original.FilePath, result.FilePath );
+        Assert.Equal( original.Message, result.Message );
+        Assert.Equal( original.StartLine, result.StartLine );
+        Assert.Equal( original.StartColumn, result.StartColumn );
+        Assert.Equal( original.EndLine, result.EndLine );
+        Assert.Equal( original.EndColumn, result.EndColumn );
+    }
+
+    [Fact]
+    public void SerializablePreviewTransformationResult_Success_Roundtrip()
+    {
+        var syntaxTree = CSharpSyntaxTree.ParseText( "class TransformedCode { }" );
+        var serializableSyntaxTree = JsonSerializationHelper.CreateSerializableSyntaxTree( syntaxTree );
+
+        var original = SerializablePreviewTransformationResult.Success( serializableSyntaxTree, null );
+
+        var result = Roundtrip( original );
+
+        Assert.True( result.IsSuccessful );
+        Assert.NotNull( result.TransformedSyntaxTree );
+        Assert.Equal( serializableSyntaxTree.Text, result.TransformedSyntaxTree.Text );
+        Assert.Null( result.ErrorMessages );
+    }
+
+    [Fact]
+    public void SerializablePreviewTransformationResult_Failure_Roundtrip()
+    {
+        var original = SerializablePreviewTransformationResult.Failure( "Error 1", "Error 2" );
+
+        var result = Roundtrip( original );
+
+        Assert.False( result.IsSuccessful );
+        Assert.Null( result.TransformedSyntaxTree );
+        Assert.NotNull( result.ErrorMessages );
+        Assert.Equal( 2, result.ErrorMessages.Length );
+        Assert.Equal( "Error 1", result.ErrorMessages[0] );
+        Assert.Equal( "Error 2", result.ErrorMessages[1] );
+    }
+
+    [Fact]
+    public void PolymorphicRpcEventData_CompilationResultChanged_Roundtrip()
+    {
+        RpcEventData original = new CompilationResultChangedEventData(
+            new ProjectKey( "Test", 1UL, true ),
+            false,
+            ImmutableArray<string>.Empty );
+
+        var result = Roundtrip( original );
+
+        Assert.IsType<CompilationResultChangedEventData>( result );
+    }
+
+    [Fact]
+    public void PolymorphicRpcEventData_EndpointChanged_Roundtrip()
+    {
+        RpcEventData original = new EndpointChangedEventData( Guid.NewGuid() );
+
+        var result = Roundtrip( original );
+
+        Assert.IsType<EndpointChangedEventData>( result );
+    }
+}

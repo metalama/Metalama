@@ -28,14 +28,14 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        
+
         <PackageReference Include="StreamJsonRpc" PrivateAssets="all"/>
-        
+        <PackageReference Include="MessagePack" PrivateAssets="all"/>
+
         <!-- The following package are _not_ merge but must be flowed to consuming packages. -->
         <PackageReference Include="System.IO.Pipelines"/>
         <PackageReference Include="System.Diagnostics.DiagnosticSource"/>
         <PackageReference Include="System.Collections.Immutable"/>
-        <PackageReference Include="Newtonsoft.Json"/>
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces"/>
     </ItemGroup>
   
@@ -60,6 +60,7 @@
             <ILMergeOtherInputs Include="$(OutDir)Microsoft.VisualStudio.Threading.dll" Internalize="True" />
             <ILMergeOtherInputs Include="$(OutDir)Microsoft.VisualStudio.Validation.dll" Internalize="True" />
             <ILMergeOtherInputs Include="$(OutDir)Nerdbank.Streams.dll" Internalize="True" />
+            <ILMergeOtherInputs Include="$(OutDir)MessagePack.dll" Internalize="True" />
             <ILMergeOtherInputs Include="$(OutDir)MessagePack.Annotations.dll" Internalize="True" />
             <ILMergeLibs Include="$(OutDir)"/>
             <ILMergeLibs Include="$(NuGetPackageRoot)netstandard.library/$(NETStandardLibraryPackageVersion)/build/netstandard2.0/ref"/>

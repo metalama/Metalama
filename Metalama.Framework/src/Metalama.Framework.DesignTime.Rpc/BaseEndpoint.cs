@@ -3,8 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
+using MessagePack;
+using MessagePack.Resolvers;
 using Microsoft.VisualStudio.Threading;
-using Newtonsoft.Json;
 using StreamJsonRpc;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -16,7 +17,6 @@ namespace Metalama.Framework.DesignTime.Rpc;
 /// </summary>
 public abstract class BaseEndpoint : IDisposable
 {
-    private readonly JsonSerializationBinder _binder;
     private readonly CancellationTokenSource _disposeCancellationSource = new();
     private readonly ConcurrentDictionary<int, (Task Task, string Description)> _backgroundTasks = new();
 
@@ -46,11 +46,6 @@ public abstract class BaseEndpoint : IDisposable
         this.Logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
         this.PipeName = pipeName;
         this.ExceptionHandler = (IRpcExceptionHandler?) serviceProvider.GetService( typeof(IRpcExceptionHandler) );
-
-        var binderProvider = (IJsonSerializationBinderProvider?) serviceProvider.GetService( typeof(IJsonSerializationBinderProvider) )
-                             ?? throw new InvalidOperationException( "Cannot get the IJsonSerializationBinderProvider" );
-
-        this._binder = binderProvider.Binder;
         this.TestSyncProvider = serviceProvider.GetService( typeof(ITestSynchronizationProvider) ) as ITestSynchronizationProvider;
     }
 
@@ -98,23 +93,15 @@ public abstract class BaseEndpoint : IDisposable
 
     protected JsonRpc CreateRpc( Stream stream )
     {
-        // MessagePackFormatter does not work in the devenv process, probably because devenv sets it up with some global effect.
-
-        /*
         var formatter = new MessagePackFormatter();
-        var options = MessagePackSerializerOptions.Standard.WithResolver(
-            CompositeResolver.Create( BuiltinResolver.Instance, DynamicObjectResolverAllowPrivate.Instance ) );
-            formatter.SetMessagePackSerializerOptions( options );
-        */
 
-        var formatter = new JsonMessageFormatter();
-        formatter.JsonSerializer.TypeNameHandling = TypeNameHandling.All;
-
-        // We have to specify the full assembly name otherwise there are conflicts when several versions of Metalama are loaded in the AppDomain (see #31075).
-        // However, we need to remove the version number for non-Metalama assemblies because different versions of these libraries may run on both ends
-        // of the pipe. The solution is to specify TypeNameAssemblyFormatHandling.Full but implement our JsonSerializationBinder.
-        formatter.JsonSerializer.TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple;
-        formatter.JsonSerializer.SerializationBinder = this._binder;
+        // Use TypelessObjectResolver with CompositeResolver to handle both polymorphic types
+        // and immutable collections. StandardResolver includes formatters for ImmutableArray<T>, etc.
+        var resolver = CompositeResolver.Create(
+            TypelessObjectResolver.Instance,
+            StandardResolver.Instance );
+        var options = MessagePackSerializerOptions.Standard.WithResolver( resolver );
+        formatter.SetMessagePackSerializerOptions( options );
 
         var handler = new LengthHeaderMessageHandler( stream, stream, formatter );
 

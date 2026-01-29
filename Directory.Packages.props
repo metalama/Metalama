@@ -30,7 +30,7 @@
 
     <!-- These are the latest versions of dependencies, which we use in test projects to avoid vulnerability warnings -->
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
-    <MessagePackLatestVersion>3.1.4</MessagePackLatestVersion>
+    <MessagePackLatestVersion>2.5.198</MessagePackLatestVersion>
     <StreamJsonRpcLatestVersion>2.22.23</StreamJsonRpcLatestVersion>
     <SystemTextJsonLatestVersion>9.0.10</SystemTextJsonLatestVersion>
     <MicrosoftBclAsyncInterfacesLatestVersion>9.0.10</MicrosoftBclAsyncInterfacesLatestVersion>
@@ -129,6 +129,7 @@
      however all dependencies must be lower or equal than the minimal we must suppport. -->
 
     <PackageVersion Include="StreamJsonRpc" Version="2.20.17" />
+    <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
     <!-- The following packages are dependencies of StreamJsonRpc and we must match the version. 
         We now target the .NET SDK 8 and equivalent VS.
     -->

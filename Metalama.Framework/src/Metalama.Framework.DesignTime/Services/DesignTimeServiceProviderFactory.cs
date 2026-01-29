@@ -11,7 +11,6 @@ using Metalama.Framework.DesignTime.Extensibility;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.DesignTime.VersionNeutral;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.Services;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CompileTime;
@@ -141,9 +140,6 @@ internal abstract class DesignTimeServiceProviderFactory
 
         serviceProvider = serviceProvider
             .WithUntypedService( typeof(IRpcExceptionHandler), new RpcExceptionHandler( serviceProvider ), true );
-
-        serviceProvider = serviceProvider
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
 
         // Create a CompilerServiceProvider.
         var compilerServiceProvider = this.CreateCompilerServiceProvider();
