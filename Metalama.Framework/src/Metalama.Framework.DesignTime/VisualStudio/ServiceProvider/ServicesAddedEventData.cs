@@ -3,12 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Rpc;
-using Newtonsoft.Json;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 
-[JsonObject]
+[RpcContract]
 internal sealed class ServicesAddedEventData : RpcEventData
 {
     public ServicesAddedEventData( ImmutableArray<RpcServiceInfo> services )

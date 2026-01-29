@@ -2,8 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Newtonsoft.Json;
-
 // ReSharper disable NonReadonlyMemberInGetHashCode
 
 namespace Metalama.Framework.DesignTime.Rpc;
@@ -12,13 +10,14 @@ namespace Metalama.Framework.DesignTime.Rpc;
 /// Represents a unique project in a solution. The implementation is optimized to be cheaply computed from a Compilation,
 /// because a Compilation does not hold a reference to its project.
 /// </summary>
+[RpcContract]
 public sealed class ProjectKey : IEquatable<ProjectKey>
 {
-    // We compare equality of two projects that have the same assembly name by hashing their preprocessor 
+    // We compare equality of two projects that have the same assembly name by hashing their preprocessor
     // symbols. There are typically very few compilations of the same assembly name in a solution (one for each different platform)
     // so the chance of collision is negligible.
 
-    // ReSharper disable once MemberCanBePrivate.Global (Json)
+    // ReSharper disable once MemberCanBePrivate.Global (Serialization)
     public ulong PreprocessorSymbolHashCode { get; }
 
     public string AssemblyName { get; }
@@ -29,10 +28,8 @@ public sealed class ProjectKey : IEquatable<ProjectKey>
     /// Gets a value indicating whether the <see cref="ProjectKey"/> contains a valid hash code. The value can be <c>false</c> in tests
     /// or at design time when the project has no syntax tree.
     /// </summary>
-    [JsonIgnore]
     public bool HasHashCode => this.PreprocessorSymbolHashCode != 0;
 
-    [JsonConstructor]
     public ProjectKey( string assemblyName, ulong preprocessorSymbolHashCode, bool isMetalamaEnabled )
     {
         this.AssemblyName = assemblyName;

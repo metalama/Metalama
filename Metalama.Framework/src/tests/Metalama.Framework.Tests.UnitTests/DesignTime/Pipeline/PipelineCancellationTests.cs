@@ -7,16 +7,13 @@
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.DesignTime;
 using Metalama.Framework.DesignTime.Pipeline;
-using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.SourceGeneration;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
-using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
@@ -41,12 +38,6 @@ public sealed class PipelineCancellationTests : UnitTestClass
 
     public PipelineCancellationTests( ITestOutputHelper logger ) : base( logger ) { }
 
-    protected override void ConfigureServices( IAdditionalServiceCollection services )
-    {
-        base.ConfigureServices( services );
-
-        services.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
-    }
 
     [Theory]
     [MemberData( nameof(GetCancellationPoints) )]

@@ -8,7 +8,6 @@ using Metalama.Framework.DesignTime.Preview;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Rpc.Notifications;
 using Metalama.Framework.DesignTime.VisualStudio.Preview;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
@@ -39,7 +38,6 @@ public sealed class RemotingTests : UnitTestClass
     {
         base.ConfigureServices( services );
         services.AddGlobalService( sp => new AnalysisProcessEventHub( sp ) );
-        services.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
         services.AddUntypedGlobalService( typeof(IRpcExceptionHandler), new TestRpcExceptionHandler( this.TestOutput ) );
     }
 

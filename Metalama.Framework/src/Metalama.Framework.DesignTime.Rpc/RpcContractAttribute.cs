@@ -5,13 +5,8 @@
 namespace Metalama.Framework.DesignTime.Rpc;
 
 /// <summary>
-/// Provides access to the <see cref="JsonSerializationBinder"/> used for RPC serialization.
-/// Register an implementation in the service provider.
+/// Marks a type as an RPC contract that is serialized using MessagePack during RPC communication.
+/// This is a marker attribute used for documentation purposes only and has no runtime effect.
 /// </summary>
-public interface IJsonSerializationBinderProvider
-{
-    /// <summary>
-    /// Gets the JSON serialization binder configured for RPC communication.
-    /// </summary>
-    JsonSerializationBinder Binder { get; }
-}
+[AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct, Inherited = false )]
+public sealed class RpcContractAttribute : Attribute;

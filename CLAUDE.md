@@ -30,6 +30,16 @@ Before starting work:
 
 - **Faster Framework build**: Use `Metalama.Framework.LatestRoslyn.slnf` instead of full solution
 
+## Package Versioning
+
+In `Directory.Packages.props`, dependencies fall into two categories:
+
+- **API dependencies**: When Metalama is *hosted* (e.g., in Visual Studio), the host provides these dependencies. We must use minimum versions compatible with the lowest supported host version.
+
+- **Runtime (latest) dependencies**: When Metalama *hosts itself* (e.g., standalone tools, tests), we provide the dependencies. These use the latest versions to avoid vulnerability warnings.
+
+The `*LatestVersion` properties (e.g., `MessagePackLatestVersion`, `StreamJsonRpcLatestVersion`) are for runtime dependencies. Note that "latest" means latest at the time of updating - some packages like MessagePack are pinned to older major versions for compatibility (MessagePack 2.x for StreamJsonRpc compatibility).
+
 ## Dependency Injection
 
 Custom immutable DI (not MEDI). Core types in `Metalama.Framework.Sdk/Services/`.

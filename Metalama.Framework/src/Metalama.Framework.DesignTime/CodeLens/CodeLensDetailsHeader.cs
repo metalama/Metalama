@@ -3,14 +3,13 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Contracts.CodeLens;
-using Newtonsoft.Json;
+using Metalama.Framework.DesignTime.Rpc;
 
 namespace Metalama.Framework.DesignTime.CodeLens;
 
-[JsonObject]
+[RpcContract]
 public sealed class CodeLensDetailsHeader : ICodeLensDetailsHeader
 {
-    [JsonConstructor]
     public CodeLensDetailsHeader( string displayName, string uniqueName, bool isVisible = true, double width = 0 )
     {
         this.DisplayName = displayName;

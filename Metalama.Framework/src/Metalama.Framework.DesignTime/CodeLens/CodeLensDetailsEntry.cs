@@ -3,15 +3,14 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Contracts.CodeLens;
-using Newtonsoft.Json;
+using Metalama.Framework.DesignTime.Rpc;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.CodeLens;
 
-[JsonObject]
+[RpcContract]
 public sealed class CodeLensDetailsEntry : ICodeLensDetailsEntry
 {
-    [JsonConstructor]
     public CodeLensDetailsEntry( ImmutableArray<CodeLensDetailsField> fields, string? tooltip = null )
     {
         this.Fields = fields;

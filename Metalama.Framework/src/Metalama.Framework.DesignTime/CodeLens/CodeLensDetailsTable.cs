@@ -3,12 +3,12 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Contracts.CodeLens;
-using Newtonsoft.Json;
+using Metalama.Framework.DesignTime.Rpc;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.CodeLens;
 
-[JsonObject]
+[RpcContract]
 public sealed class CodeLensDetailsTable : ICodeLensDetailsTable
 {
     public ImmutableArray<CodeLensDetailsHeader> Headers { get; }
@@ -17,7 +17,6 @@ public sealed class CodeLensDetailsTable : ICodeLensDetailsTable
 
     public static CodeLensDetailsTable Empty { get; } = new( ImmutableArray<CodeLensDetailsHeader>.Empty, ImmutableArray<CodeLensDetailsEntry>.Empty );
 
-    [JsonConstructor]
     public CodeLensDetailsTable( ImmutableArray<CodeLensDetailsHeader> headers, ImmutableArray<CodeLensDetailsEntry> entries )
     {
         this.Headers = headers;

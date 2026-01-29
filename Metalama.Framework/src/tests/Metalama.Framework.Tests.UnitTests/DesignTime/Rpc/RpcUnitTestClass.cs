@@ -4,7 +4,6 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
 using System.Runtime.CompilerServices;
@@ -14,14 +13,14 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
 /// <summary>
 /// Base class for RPC unit tests. Provides <see cref="CreateRpcTestContext"/> which returns an <see cref="RpcTestContext"/>
-/// configured with <see cref="JsonSerializationBinderProvider"/> and <see cref="TestSynchronizationProvider"/>.
+/// configured with <see cref="TestSynchronizationProvider"/>.
 /// </summary>
 public abstract class RpcUnitTestClass : UnitTestClass
 {
     protected RpcUnitTestClass( ITestOutputHelper? logger = null ) : base( logger ) { }
 
     /// <summary>
-    /// Creates an RPC test context with JSON serialization binder and synchronization provider pre-configured.
+    /// Creates an RPC test context with synchronization provider pre-configured.
     /// </summary>
     /// <param name="callerFile">Automatically populated by the compiler.</param>
     /// <param name="callerMemberName">Automatically populated by the compiler.</param>
@@ -29,15 +28,13 @@ public abstract class RpcUnitTestClass : UnitTestClass
     [MustDisposeResource]
     private protected RpcTestContext CreateRpcTestContext( [CallerFilePath] string? callerFile = null, [CallerMemberName] string? callerMemberName = null )
     {
-        var jsonSerializationBinderProvider = new JsonSerializationBinderProvider();
         var syncProvider = new TestSynchronizationProvider( this.TestOutput );
 
         var additionalServices = new AdditionalServiceCollection();
-        additionalServices.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), jsonSerializationBinderProvider );
         additionalServices.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), syncProvider );
 
         var testContext = this.CreateTestContext( additionalServices, callerFile, callerMemberName );
 
-        return new RpcTestContext( testContext, jsonSerializationBinderProvider, syncProvider );
+        return new RpcTestContext( testContext, syncProvider );
     }
 }

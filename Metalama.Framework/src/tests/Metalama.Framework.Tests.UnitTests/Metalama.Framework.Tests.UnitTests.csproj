@@ -29,6 +29,7 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(ThisRoslynVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(ThisRoslynVersion)" />
         <PackageReference Include="Xunit.SkippableFact" />
+        <PackageReference Include="MessagePack" />
     </ItemGroup>
 
     <ItemGroup>
