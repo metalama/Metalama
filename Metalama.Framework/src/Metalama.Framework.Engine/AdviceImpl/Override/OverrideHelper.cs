@@ -154,7 +154,7 @@ internal static class OverrideHelper
             return hint;
         }
 
-        for ( var i = 1; /* infinite */; i++ )
+        for ( var i = 1; i < int.MaxValue; i++ )
         {
             var candidate = hint + i;
 
@@ -163,6 +163,8 @@ internal static class OverrideHelper
                 return candidate;
             }
         }
+
+        throw new InvalidOperationException( $"Cannot compute a unique backing field name for property '{property.Name}'." );
 
         static bool HasMemberWithName( INamedType type, string name )
             => type.AllFields.OfName( name ).Any()
