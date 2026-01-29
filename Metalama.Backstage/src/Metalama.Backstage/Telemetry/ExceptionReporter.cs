@@ -11,7 +11,6 @@ using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -109,21 +108,7 @@ internal sealed class ExceptionReporter : IExceptionReporter
             }
         }
 
-        byte[] hashBytes;
-
-        using ( var md5 = new MD5Managed() )
-        {
-            hashBytes = md5.ComputeHash( Encoding.UTF8.GetBytes( signature.ToString().Normalize() ) );
-        }
-
-        var hash = new StringBuilder( hashBytes.Length * 2 );
-
-        foreach ( var t in hashBytes )
-        {
-            hash.AppendFormat( CultureInfo.InvariantCulture, "{0:x2}", t );
-        }
-
-        return hash.ToString();
+        return HashUtilities.HashToString( signature.ToString().Normalize() );
     }
 
     public bool ShouldReportIssue( string hash )
