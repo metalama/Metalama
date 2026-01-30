@@ -2,7 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
+using System.IO.Hashing;
 using Metalama.Framework.DesignTime.Pipeline.Dependencies;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CompileTime;
@@ -72,10 +72,10 @@ internal sealed class DiffStrategy
         {
             var newSyntaxRoot = newSyntaxTree.GetRoot();
             var newHasCompileTimeCode = this._detectCompileTimeCode && CompileTimeCodeFastDetector.HasCompileTimeCode( newSyntaxRoot );
-            var hhx64 = new XXH64();
+            var hhx64 = new XxHash64();
             BaseCodeHasher hasher = newHasCompileTimeCode ? new CompileTimeCodeHasher( hhx64 ) : new RunTimeCodeHasher( hhx64 );
             hasher.Visit( newSyntaxRoot );
-            var newSyntaxTreeHash = hhx64.Digest();
+            var newSyntaxTreeHash = hhx64.GetCurrentHashAsUInt64();
 
             if ( newSyntaxTreeHash == oldSyntaxTreeVersion.DeclarationHash )
             {
@@ -153,10 +153,10 @@ internal sealed class DiffStrategy
     {
         var syntaxRoot = syntaxTree.GetRoot();
         var hasCompileTimeCode = this._detectCompileTimeCode && CompileTimeCodeFastDetector.HasCompileTimeCode( syntaxRoot );
-        var hhx64 = new XXH64();
+        var hhx64 = new XxHash64();
         BaseCodeHasher hasher = hasCompileTimeCode ? new CompileTimeCodeHasher( hhx64 ) : new RunTimeCodeHasher( hhx64 );
         hasher.Visit( syntaxRoot );
-        var declarationHash = hhx64.Digest();
+        var declarationHash = hhx64.GetCurrentHashAsUInt64();
 
         var (partialTypes, partialTypesHash) = this.FindPartialTypes( default, syntaxTree, compilation );
 

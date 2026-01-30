@@ -2,7 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
+using System.IO.Hashing;
 using Metalama.Framework.DesignTime.Pipeline.Diff;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
@@ -36,7 +36,7 @@ public sealed class HasherTests
     [InlineData( "class C { int M() { return 5; } } /* Trivia */", "class C { int M() { return 5; } }", true, true )]
     public void IsEqual( string code1, string code2, bool shouldBeEqualCompileTime, bool shouldBeEqualRunTime )
     {
-        var xxh = new XXH64();
+        var xxh = new XxHash64();
 
         var tree1 = CSharpSyntaxTree.ParseText( code1, SupportedCSharpVersions.DefaultParseOptions );
         var tree2 = CSharpSyntaxTree.ParseText( code2, SupportedCSharpVersions.DefaultParseOptions );
@@ -62,7 +62,7 @@ public sealed class HasherTests
             this._testOutput.WriteLine( hasher.Log!.ToString() );
             this._testOutput.WriteLine( "---" );
 
-            return xxh.Digest();
+            return xxh.GetCurrentHashAsUInt64();
         }
 
         ulong HashRunTime( SyntaxTree tree )
@@ -71,7 +71,7 @@ public sealed class HasherTests
             var hasher = new RunTimeCodeHasher( xxh );
             hasher.Visit( tree.GetRoot() );
 
-            return xxh.Digest();
+            return xxh.GetCurrentHashAsUInt64();
         }
     }
 }

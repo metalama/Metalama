@@ -2,7 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
+using System.IO.Hashing;
 using Metalama.Framework.Engine.AdditionalOutputs;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
@@ -26,16 +26,16 @@ internal sealed class OfflineSourceGeneratorResult : SourceGeneratorResult
 
     protected override ulong ComputeDigest()
     {
-        var xxh = new XXH64();
+        var xxh = new XxHash64();
         ulong hash = 0;
 
         foreach ( var file in this.OfflineFiles )
         {
             xxh.Reset();
-            xxh.Update( file.Path );
-            xxh.Update( File.GetLastWriteTime( file.Path ).ToFileTimeUtc() );
+            xxh.Append( file.Path );
+            xxh.Append( File.GetLastWriteTime( file.Path ).ToFileTimeUtc() );
 
-            hash ^= xxh.Digest();
+            hash ^= xxh.GetCurrentHashAsUInt64();
         }
 
         return hash;

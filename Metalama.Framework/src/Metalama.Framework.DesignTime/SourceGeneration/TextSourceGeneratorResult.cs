@@ -2,7 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
+using System.IO.Hashing;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
@@ -24,16 +24,16 @@ internal sealed class TextSourceGeneratorResult : SourceGeneratorResult
 
     protected override ulong ComputeDigest()
     {
-        var xxh = new XXH64();
+        var xxh = new XxHash64();
         ulong hash = 0;
 
         foreach ( var source in this._sources )
         {
             xxh.Reset();
-            xxh.Update( source.Key );
-            xxh.Update( source.Value );
+            xxh.Append( source.Key );
+            xxh.Append( source.Value );
 
-            hash ^= xxh.Digest();
+            hash ^= xxh.GetCurrentHashAsUInt64();
         }
 
         return hash;

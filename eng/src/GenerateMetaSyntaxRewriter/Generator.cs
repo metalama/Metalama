@@ -622,13 +622,13 @@ internal sealed class Generator
         using var writer = File.CreateText( path );
 
         WriteUsings( writer );
-        writer.WriteLine( "using K4os.Hash.xxHash;" );
+        writer.WriteLine( "using System.IO.Hashing;" );
         writer.WriteLine();
         writer.WriteLine( "namespace Metalama.Framework.DesignTime.Pipeline.Diff" );
         writer.WriteLine( "{" );
         writer.WriteLine( $"\tpublic class {className} : BaseCodeHasher" );
         writer.WriteLine( "\t{" );
-        writer.WriteLine( $"\t\tpublic {className}(XXH64 hasher) : base(hasher) {{}}" );
+        writer.WriteLine( $"\t\tpublic {className}(XxHash64 hasher) : base(hasher) {{}}" );
 
         writer.WriteLine();
 
