@@ -4,6 +4,9 @@
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net472/EmptyFiles.dll" TargetFramework="net472" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net8.0/EmptyFiles.dll" TargetFramework="net8.0" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net9.0/EmptyFiles.dll" TargetFramework="net9.0" />
+        <!-- System.Management for process cleanup (not needed for net472 where it's in-box) -->
+        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net8.0/System.Management.dll" TargetFramework="net8.0" />
+        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net9.0/System.Management.dll" TargetFramework="net9.0" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net472/DiffEngine.dll" TargetFramework="net472" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net8.0/DiffEngine.dll" TargetFramework="net8.0" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net9.0/DiffEngine.dll" TargetFramework="net9.0" />

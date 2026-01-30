@@ -499,6 +499,9 @@ Include them in the package via `_AddAssembliesToOutput` target.
 **Critical:** You must bundle **all** transitive dependencies, not just direct dependencies. For example, if your extension uses `DiffEngine`, you must also bundle:
 - `DiffEngine.dll` (direct dependency)
 - `EmptyFiles.dll` (transitive dependency of DiffEngine)
+- `System.Management.dll` (undeclared runtime dependency for process cleanup on .NET Core/.NET 5+)
+
+**Note:** Some packages have undeclared dependencies that are loaded dynamically at runtime. These won't appear in the NuGet dependency graph but will cause `FileNotFoundException` at runtime. Test your extension thoroughly to discover these.
 
 Use `dotnet publish` or inspect the build output to identify all required assemblies. Missing transitive dependencies cause `FileNotFoundException` at runtime with errors like:
 ```

@@ -99,6 +99,8 @@
 
 
     <PackageVersion Include="Microsoft.Win32.Registry" Version="5.0.0" />
+    <!-- Pinned to 8.0.0 - version 9.0.0 throws PlatformNotSupportedException when loaded via AssemblyLoadContext (dotnet/runtime#110604) -->
+    <PackageVersion Include="System.Management" Version="8.0.0" />
 
     <PackageVersion Include="DiffEngine" Version="15.5.3" />
     <PackageVersion Include="DiffPlex" Version="1.7.2" />
