@@ -80,3 +80,12 @@ When starting work on a GitHub issue:
 ## Debugging Tests
 
 When you need to debug anything, you can use ITestOutputService to write the test output.
+
+## Framework Extensibility
+
+For creating extension packages (like HtmlWriter or Validation), see `Metalama.Framework/docs/extensibility.md`. It covers:
+- Extension package structure and `.csproj` configuration
+- `MetalamaExtensionAssembly` registration in props files
+- Service registration via `IProjectServiceFactory` and `PipelineExtension`
+- Test framework plugins (`MetalamaTestPlugIn`)
+- Roslyn-version-specific builds

@@ -42,6 +42,10 @@
         <!-- Upgrade for latest security fixes. -->
         <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
 
+        <!-- Resolve conflicts -->
+        <PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryLatestVersion)"/>
+        <PackageReference Include="System.Buffers" VersionOverride="$(SystemBuffersLatestVersion)"/>
+
     </ItemGroup>
 
     <ItemGroup>
@@ -55,7 +59,13 @@
         <ProjectReference Include="../../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
         <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" />
         <ProjectReference Include="../../Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix)/Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="../../Metalama.Extensions.DiffEngine/Metalama.Extensions.DiffEngine.csproj" />
+        <ProjectReference Include="../../Metalama.Extensions.HtmlWriter/Metalama.Extensions.HtmlWriter.csproj" />
     </ItemGroup>
+
+    <!-- Register extension assemblies from build output (for ProjectReference; PackageReference imports props automatically) -->
+    <Import Project="../../Metalama.Extensions.HtmlWriter/MetalamaExtensionAssemblies.props" />
+    <Import Project="../../Metalama.Extensions.DiffEngine/MetalamaExtensionAssemblies.props" />
 
     <ItemGroup>
         <InternalsVisibleTo Include="Metalama.AspectWorkbench" />

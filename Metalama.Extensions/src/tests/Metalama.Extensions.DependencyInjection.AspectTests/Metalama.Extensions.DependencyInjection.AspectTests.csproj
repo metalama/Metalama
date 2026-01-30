@@ -22,6 +22,8 @@
         </PackageReference>
         <PackageReference Include="Metalama.Framework" />
         <PackageReference Include="Metalama.Testing.AspectTesting" />
+        <PackageReference Include="Metalama.Extensions.DiffEngine" />
+        <PackageReference Include="Metalama.Extensions.HtmlWriter" />
     </ItemGroup>
 
     <ItemGroup>

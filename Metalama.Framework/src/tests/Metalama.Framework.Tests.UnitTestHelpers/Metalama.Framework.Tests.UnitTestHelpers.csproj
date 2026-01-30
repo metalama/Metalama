@@ -24,7 +24,7 @@
         <ProjectReference Include="..\..\Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix)\Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix).csproj" />
 
         <!-- Dependency of the resulting package should be on Implementation package. -->
-        <ProjectReference Condition="$(ThisRoslynVersion) == $(RoslynApiMaxVersion)" Include="..\..\Metalama.Framework.Implementation.Package/Metalama.Framework.Implementation.Package.csproj" />
+        <ProjectReference Condition="$(ThisRoslynVersion) == $(RoslynApiMaxVersion)" Include="..\..\Metalama.Framework.Implementation.Package$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Implementation.Package$(ThisRoslynVersionProjectSuffix).csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -17,7 +18,7 @@ using System.Windows.Media;
 
 namespace Metalama.AspectWorkbench.ViewModels
 {
-    internal sealed class SyntaxColorizer : FormattedCodeWriter
+    internal sealed class SyntaxColorizer
     {
         private static readonly Dictionary<string, Color> _classificationToColor = new()
         {
@@ -88,6 +89,13 @@ namespace Metalama.AspectWorkbench.ViewModels
             { ClassificationTypeNames.RegexOtherEscape, Colors.Indigo }
         };
 
+        private readonly IFormattedCodeWriter _formattedCodeWriter;
+
+        public SyntaxColorizer( in ProjectServiceProvider serviceProvider )
+        {
+            this._formattedCodeWriter = new FormattedCodeWriter( serviceProvider );
+        }
+
         public async Task<FlowDocument> WriteSyntaxColoringAsync(
             Document document,
             bool areNodesAnnotated = false,
@@ -99,7 +107,7 @@ namespace Metalama.AspectWorkbench.ViewModels
                 return Color.FromArgb( (byte) (255 * alpha), brush.R, brush.G, brush.B );
             }
 
-            var classified = await this.GetClassifiedTextSpansAsync( document, areNodesAnnotated, diagnostics, cancellationToken: cancellationToken );
+            var classified = await this._formattedCodeWriter.GetClassifiedTextSpansAsync( document, areNodesAnnotated, diagnostics, cancellationToken: cancellationToken );
             var sourceText = await document.GetTextAsync( cancellationToken );
 
             var paragraph = new Paragraph();
@@ -139,7 +147,9 @@ namespace Metalama.AspectWorkbench.ViewModels
                         break;
 
                     default:
-                        if ( span.Tags.TryGetValue( CSharpClassTagName, out var csharpClasses ) )
+                        var csharpClasses = span.CSharpClassification;
+
+                        if ( csharpClasses != null )
                         {
                             foreach ( var csClass in csharpClasses.Split( ';' ) )
                             {
@@ -188,7 +198,9 @@ namespace Metalama.AspectWorkbench.ViewModels
                 }
 
                 // Process diagnostic.
-                if ( span.Tags.TryGetValue( DiagnosticTagName, out var serializedDiagnostic ) )
+                var diagnostic = span.Diagnostic;
+
+                if ( diagnostic != null )
                 {
                     if ( !string.IsNullOrWhiteSpace( run.ToolTip as string ) )
                     {
@@ -199,13 +211,12 @@ namespace Metalama.AspectWorkbench.ViewModels
                         run.ToolTip = "";
                     }
 
-                    var diagnosticAnnotation = DiagnosticAnnotation.FromJson( serializedDiagnostic );
-                    run.ToolTip += diagnosticAnnotation.ToString();
+                    run.ToolTip += $"{diagnostic.Severity} {diagnostic.Id}: {diagnostic.GetMessage( CultureInfo.InvariantCulture )}";
 
                     run.TextDecorations.Add(
                         new TextDecoration(
                             TextDecorationLocation.Underline,
-                            new Pen( diagnosticAnnotation.Severity == DiagnosticSeverity.Error ? Brushes.Red : Brushes.Orange, 1 ),
+                            new Pen( diagnostic.Severity == DiagnosticSeverity.Error ? Brushes.Red : Brushes.Orange, 1 ),
                             3,
                             TextDecorationUnit.Pixel,
                             TextDecorationUnit.Pixel ) );
@@ -221,7 +232,5 @@ namespace Metalama.AspectWorkbench.ViewModels
             // richTextBox.Document.SetBinding( FlowDocument.PageWidthProperty,
             //    new Binding( "ActualWidth" ) { Source = richTextBox } );
         }
-
-        public SyntaxColorizer( in ProjectServiceProvider serviceProvider ) : base( serviceProvider ) { }
     }
 }

@@ -46,7 +46,7 @@ namespace Metalama.Framework.Engine.Formatting
 
                     if ( annotation != null && annotation.Data != null )
                     {
-                        this.ClassifiedTextSpans.SetTag( node.Span, GeneratingAspectTagName, annotation.Data );
+                        this.ClassifiedTextSpans.SetTag( node.Span, ClassifiedTextSpan.GeneratingAspectTagName, annotation.Data );
                     }
                 }
 
@@ -78,7 +78,7 @@ namespace Metalama.Framework.Engine.Formatting
                         span = method.Identifier.Span;
                     }
 
-                    this.ClassifiedTextSpans.SetTag( span, DiagnosticTagName, diagnosticAnnotation.Data! );
+                    this.ClassifiedTextSpans.SetTag( span, ClassifiedTextSpan.DiagnosticTagName, diagnosticAnnotation.Data! );
                 }
             }
 

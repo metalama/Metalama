@@ -118,6 +118,8 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Extensions.DependencyInjection.ServiceLocator.$(PackageVersion).nupkg",
         "Metalama.Extensions.Multicast.$(PackageVersion).nupkg",
         "Metalama.Extensions.Metrics.$(PackageVersion).nupkg",
+        "Metalama.Extensions.HtmlWriter.$(PackageVersion).nupkg",
+        "Metalama.Extensions.DiffEngine.$(PackageVersion).nupkg",
         "Metalama.Migration.$(PackageVersion).nupkg",
         "Metalama.LinqPad.$(PackageVersion).nupkg",
         "Metalama.Patterns.Caching.$(PackageVersion).nupkg",

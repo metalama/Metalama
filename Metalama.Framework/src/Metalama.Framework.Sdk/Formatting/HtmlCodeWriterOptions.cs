@@ -7,8 +7,15 @@ namespace Metalama.Framework.Engine.Formatting
     /// <summary>
     /// Options influencing the HTML writing behavior of the test framework.
     /// </summary>
-    /// <param name="AddTitles"></param>
-    /// <param name="Prolog"></param>
-    /// <param name="Epilogue"></param>
-    public sealed record HtmlCodeWriterOptions( bool AddTitles = false, string? Prolog = null, string? Epilogue = null );
+    /// <param name="ProjectPath">The path to the project file. Required by <see cref="IHtmlCodeWriter.WriteAllDiffAsync"/>.</param>
+    /// <param name="TargetFramework">The target framework. Required by <see cref="IHtmlCodeWriter.WriteAllDiffAsync"/>.</param>
+    /// <param name="AddTitles">Whether to add titles to HTML elements.</param>
+    /// <param name="Prolog">Optional HTML prolog content.</param>
+    /// <param name="Epilogue">Optional HTML epilogue content.</param>
+    public sealed record HtmlCodeWriterOptions(
+        string ProjectPath,
+        string TargetFramework,
+        bool AddTitles = false,
+        string? Prolog = null,
+        string? Epilogue = null );
 }

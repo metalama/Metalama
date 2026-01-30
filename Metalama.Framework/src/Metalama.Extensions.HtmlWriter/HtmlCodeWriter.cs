@@ -5,17 +5,16 @@
 using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.Collections;
-using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Sdk;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -25,57 +24,77 @@ using System.Threading.Tasks;
 
 // ReSharper disable AccessToModifiedClosure
 
-namespace Metalama.Framework.Engine.Formatting;
+namespace Metalama.Extensions.HtmlWriter;
 
-public sealed class HtmlCodeWriter : FormattedCodeWriter
+/// <summary>
+/// Implementation of <see cref="IHtmlCodeWriter"/> that provides HTML code writing functionality.
+/// </summary>
+internal sealed class HtmlCodeWriter : IHtmlCodeWriter
 {
-    private readonly HtmlCodeWriterOptions _options;
-
     private static readonly Regex _cleanAutomaticPropertiesRegex =
         new( @"\{(\s*(private|internal|protected|private protected|protected internal)?\s*[gs]et;\s*){1,2}\}" );
 
     private static readonly Regex _cleanReturnStatementRegex = new( @"(?<=^\s*)return(?=\s*[^\;])" );
 
-    public HtmlCodeWriter( in ProjectServiceProvider serviceProvider, HtmlCodeWriterOptions options ) : base( serviceProvider )
+    private readonly IFormattedCodeWriter _formattedCodeWriter;
+
+    public HtmlCodeWriter( in ProjectServiceProvider serviceProvider )
     {
-        this._options = options;
+        this._formattedCodeWriter = serviceProvider.GetRequiredService<IFormattedCodeWriter>();
     }
 
     public Task WriteAsync(
         Document document,
         TextWriter textWriter,
+        HtmlCodeWriterOptions options,
         IEnumerable<Diagnostic>? diagnostics = null,
         CancellationToken cancellationToken = default )
-        => this.WriteAsync( document, textWriter, diagnostics, null, cancellationToken );
+        => this.WriteAsync( document, textWriter, options, diagnostics, null, cancellationToken );
 
     public async Task WriteDiffAsync(
         Document inputDocument,
         Document outputDocument,
         TextWriter inputTextWriter,
         TextWriter outputTextWriter,
+        HtmlCodeWriterOptions options,
         IEnumerable<Diagnostic>? inputDiagnostics,
         IEnumerable<Diagnostic>? outputDiagnostics,
         CancellationToken cancellationToken )
     {
         var oldSyntaxTree = await inputDocument.GetSyntaxTreeAsync( cancellationToken );
         var newSyntaxTree = await outputDocument.GetSyntaxTreeAsync( cancellationToken );
-        await this.WriteAsync( inputDocument, inputTextWriter, inputDiagnostics, GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, true ), cancellationToken );
-        await this.WriteAsync( outputDocument, outputTextWriter, outputDiagnostics, GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, false ), cancellationToken );
+
+        await this.WriteAsync(
+            inputDocument,
+            inputTextWriter,
+            options,
+            inputDiagnostics,
+            GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, true ),
+            cancellationToken );
+
+        await this.WriteAsync(
+            outputDocument,
+            outputTextWriter,
+            options,
+            outputDiagnostics,
+            GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, false ),
+            cancellationToken );
     }
 
     private async Task WriteAsync(
         Document document,
         TextWriter textWriter,
+        HtmlCodeWriterOptions options,
         IEnumerable<Diagnostic>? diagnostics,
         FileDiffInfo? diffInfo,
         CancellationToken cancellationToken )
     {
         var sourceText = await document.GetTextAsync( cancellationToken );
-        var syntaxRoot = (await document.GetSyntaxRootAsync( cancellationToken )).AssertNotNull();
+        var syntaxRoot = await document.GetSyntaxRootAsync( cancellationToken ) ?? throw new InvalidOperationException( "Document has no syntax root." );
 
-        var classifiedTextSpans = await this.GetClassifiedTextSpansAsync(
+        var classifiedTextSpans = await this._formattedCodeWriter.GetClassifiedTextSpansAsync(
             document,
-            addTitles: this._options.AddTitles,
+            addTitles: options.AddTitles,
             diagnostics: diagnostics,
             cancellationToken: cancellationToken );
 
@@ -89,7 +108,7 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
         {
             if ( number != null && number != 0 )
             {
-                finalBuilder.AppendLineInvariant( $"<span class='diff-Imaginary' data-height='{number}'> " );
+                finalBuilder.AppendLine( FormattableString.Invariant( $"<span class='diff-Imaginary' data-height='{number}'> " ) );
 
                 for ( var i = 1; i < number.Value; i++ )
                 {
@@ -182,7 +201,7 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
             var members = node.AncestorsAndSelf()
                 .Select( GetMemberTextPair )
                 .Where( x => x.Node != null )
-                .ToMutableList();
+                .ToList();
 
             static (SyntaxNode? Node, string? Text) GetMemberTextPair( SyntaxNode n )
             {
@@ -197,7 +216,7 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
                 };
             }
 
-            finalBuilder.AppendInvariant( $"<span class='line-number'" );
+            finalBuilder.Append( FormattableString.Invariant( $"<span class='line-number'" ) );
 
             if ( members.Count > 0 )
             {
@@ -213,11 +232,11 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
                 else
                 {
                     members.Reverse();
-                    finalBuilder.AppendInvariant( $" data-member='{string.Join( ".", members.SelectAsReadOnlyList( x => x.Text! ) )}'" );
+                    finalBuilder.Append( FormattableString.Invariant( $" data-member='{string.Join( ".", members.Select( x => x.Text! ) )}'" ) );
                 }
             }
 
-            finalBuilder.AppendInvariant( $">{lineNumber + 1}</span>" );
+            finalBuilder.Append( FormattableString.Invariant( $">{lineNumber + 1}</span>" ) );
             finalBuilder.AppendLine( codeLineBuilder.ToString() );
             codeLineBuilder.Clear();
 
@@ -227,9 +246,9 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
             lineNumber++;
         }
 
-        if ( this._options.Prolog != null )
+        if ( options.Prolog != null )
         {
-            finalBuilder.Append( this._options.Prolog );
+            finalBuilder.Append( options.Prolog );
         }
 
         finalBuilder.Append( "<pre><code class=\"nohighlight\">" );
@@ -264,7 +283,9 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
                         classes.Add( $"cr-{classifiedSpan.Classification}" );
                     }
 
-                    if ( classifiedSpan.Tags.TryGetValue( CSharpClassTagName, out var csClassification ) )
+                    var csClassification = classifiedSpan.CSharpClassification;
+
+                    if ( csClassification != null )
                     {
                         // Ignore the header.
                         if ( csClassification == "header" )
@@ -276,34 +297,41 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
                         {
                             foreach ( var c in classification.Split( '-' ) )
                             {
-                                classes.Add( "cs-" + c.Trim().ReplaceOrdinal( " ", "-" ) );
+#pragma warning disable CA1307 // Specify StringComparison for clarity - not available in .NET Framework
+                                classes.Add( "cs-" + c.Trim().Replace( " ", "-" ) );
+#pragma warning restore CA1307
                             }
                         }
                     }
 
                     isTopOfTheFile = false;
 
-                    if ( classifiedSpan.Tags.TryGetValue( DiagnosticTagName, out var diagnosticJson ) )
-                    {
-                        var diagnostic = DiagnosticAnnotation.FromJson( diagnosticJson );
+                    var diagnostic = classifiedSpan.Diagnostic;
 
-                        if ( diagnostic.Severity != DiagnosticSeverity.Hidden && diagnosticSet.Add( diagnostic.Message ) )
+                    if ( diagnostic != null )
+                    {
+                        var message = diagnostic.GetMessage( CultureInfo.InvariantCulture );
+
+                        if ( diagnostic.Severity != DiagnosticSeverity.Hidden && diagnosticSet.Add( message ) )
                         {
-                            titles.Add( diagnostic.ToString() );
+                            titles.Add( $"{diagnostic.Severity} {diagnostic.Id}: {message}" );
 
                             classes.Add( "diag-" + diagnostic.Severity );
 
-                            diagnosticBuilder.AppendInvariant( $"<span class=\"diagLine-{diagnostic.Severity}\">{diagnostic.Severity} {diagnostic.Id}: " );
+                            diagnosticBuilder.Append(
+                                FormattableString.Invariant( $"<span class=\"diagLine-{diagnostic.Severity}\">{diagnostic.Severity} {diagnostic.Id}: " ) );
 
-                            HtmlEncode( diagnosticBuilder, textSpan, diagnostic.Message );
+                            HtmlEncode( diagnosticBuilder, textSpan, message );
                             diagnosticBuilder.Append( "</span>\n" );
                         }
                     }
 
-                    string? docTitle = null;
+                    var docTitle = classifiedSpan.Title;
 
-                    if ( this._options.AddTitles && !classifiedSpan.Tags.TryGetValue( "title", out docTitle ) )
+                    if ( options.AddTitles && docTitle == null )
                     {
+                        var generatingAspect = classifiedSpan.GeneratingAspect;
+
                         docTitle = classifiedSpan.Classification switch
                         {
                             TextSpanClassification.Dynamic => "Dynamic member.",
@@ -311,8 +339,8 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
                             TextSpanClassification.RunTime => "Run-time code.",
                             TextSpanClassification.TemplateKeyword => "Meta API.",
                             TextSpanClassification.CompileTimeVariable => "Compile-time variable.",
-                            TextSpanClassification.GeneratedCode when classifiedSpan.Tags.TryGetValue( GeneratingAspectTagName, out var aspect ) =>
-                                $"Generated by {aspect}.",
+                            TextSpanClassification.GeneratedCode when generatingAspect != null =>
+                                $"Generated by {generatingAspect}.",
                             TextSpanClassification.GeneratedCode => "Generated code.",
                             _ => null
                         };
@@ -330,7 +358,7 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
 
                     if ( classes.Count > 0 )
                     {
-                        codeLineBuilder.AppendInvariant( $" class=\"{string.Join( " ", classes )}\"" );
+                        codeLineBuilder.Append( FormattableString.Invariant( $" class=\"{string.Join( " ", classes )}\"" ) );
                     }
 
                     if ( titles.Count > 0 )
@@ -365,9 +393,9 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
 
         finalBuilder.AppendLine( "</code></pre>" );
 
-        if ( this._options.Epilogue != null )
+        if ( options.Epilogue != null )
         {
-            finalBuilder.Append( this._options.Epilogue );
+            finalBuilder.Append( options.Epilogue );
         }
 
         await textWriter.WriteAsync( finalBuilder.ToString() );
@@ -441,19 +469,19 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
     }
 
     private static async Task WriteAllAsync(
-        IProjectOptions projectOptions,
-        ProjectServiceProvider serviceProvider,
-        PartialCompilation partialCompilation,
+        HtmlCodeWriterOptions options,
+        IHtmlCodeWriter htmlCodeWriter,
+        IPartialCompilation partialCompilation,
         Func<string, SyntaxTreeKind> getSyntaxTreeKind,
         Func<string, FileDiffInfo?>? getDiffInfo = null,
         bool includeDiagnostics = false,
         IEnumerable<Diagnostic>? additionalDiagnostics = null,
-        ImmutableArray<ScopedSuppression> suppressions = default,
+        Func<Diagnostic, Compilation, bool>? isSuppressed = null,
         CancellationToken cancellationToken = default )
     {
         var compilation = partialCompilation.Compilation;
 
-        ImmutableDictionaryOfArray<string, Diagnostic>? diagnosticsBySyntaxTree;
+        ILookup<string, Diagnostic>? diagnosticsBySyntaxTree;
 
         if ( includeDiagnostics )
         {
@@ -462,29 +490,31 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
             var allDiagnostics = additionalDiagnostics.Concat( compilation.GetDiagnostics() );
 
             // Filter out suppressed diagnostics.
-            if ( !suppressions.IsDefaultOrEmpty )
+            if ( isSuppressed != null )
             {
-                allDiagnostics = allDiagnostics.Where( d => !IsSuppressed( d, suppressions, compilation ) );
+                allDiagnostics = allDiagnostics.Where( d => !isSuppressed( d, compilation ) );
             }
 
             diagnosticsBySyntaxTree = allDiagnostics
-                .ToMultiValueDictionary( d => d.Location.SourceTree?.FilePath ?? "", d => d );
+                .ToLookup( d => d.Location.SourceTree?.FilePath ?? "" );
         }
         else
         {
             diagnosticsBySyntaxTree = null;
         }
 
-        static bool IsSuppressed( Diagnostic diagnostic, ImmutableArray<ScopedSuppression> suppressions, Compilation compilation )
-            => suppressions.Any( s => s.Matches( diagnostic, compilation, filter => filter() ) );
-
-        var writer = new HtmlCodeWriter( serviceProvider, new HtmlCodeWriterOptions( true ) );
-
         var workspace = new AdhocWorkspace();
 
-        var assemblyName = compilation.AssemblyName.AssertNotNull();
+        var assemblyName = compilation.AssemblyName ?? throw new InvalidOperationException( "Compilation has no assembly name." );
 
         var projectId = ProjectId.CreateNewId( assemblyName );
+
+        var projectPath = options.ProjectPath;
+
+        if ( string.IsNullOrEmpty( projectPath ) )
+        {
+            throw new InvalidOperationException( "HtmlCodeWriterOptions.ProjectPath must be set when calling WriteAllDiffAsync." );
+        }
 
         var projectInfo = ProjectInfo.Create(
             projectId,
@@ -492,7 +522,7 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
             assemblyName,
             assemblyName,
             "C#",
-            projectOptions.ProjectPath,
+            projectPath,
             compilationOptions: compilation.Options,
             metadataReferences: compilation.References );
 
@@ -504,12 +534,12 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
             project = document.Project;
         }
 
-        var projectDirectory = Path.GetFullPath( Path.GetDirectoryName( projectOptions.ProjectPath )! );
-        var outputDirectory = Path.Combine( projectDirectory, "obj", "html", projectOptions.TargetFramework ?? "" );
+        var projectDirectory = Path.GetFullPath( Path.GetDirectoryName( projectPath )! );
+        var outputDirectory = Path.Combine( projectDirectory, "obj", "html", options.TargetFramework ?? "" );
 
         foreach ( var document in project.Documents )
         {
-            var documentPath = document.FilePath.AssertNotNull();
+            var documentPath = document.FilePath ?? throw new InvalidOperationException( "Document has no file path." );
             var syntaxTreeKind = getSyntaxTreeKind( documentPath );
 
             var htmlExtension = syntaxTreeKind switch
@@ -521,12 +551,9 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
             };
 
             string outputPath;
-            FileDiffInfo? diffInfo;
 
             if ( syntaxTreeKind == SyntaxTreeKind.Introduced )
             {
-                diffInfo = null;
-
                 outputPath = Path.Combine( outputDirectory, Path.ChangeExtension( documentPath, htmlExtension ) );
             }
             else
@@ -542,10 +569,10 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
                 var relativePath = documentFullPath.Substring( projectDirectory.Length + 1 );
                 outputPath = Path.Combine( outputDirectory, Path.ChangeExtension( relativePath, htmlExtension ) );
 
-                diffInfo = getDiffInfo?.Invoke( documentPath );
+                getDiffInfo?.Invoke( documentPath );
             }
 
-            var outputSubdirectory = Path.GetDirectoryName( outputPath ).AssertNotNull();
+            var outputSubdirectory = Path.GetDirectoryName( outputPath ) ?? throw new InvalidOperationException( "Invalid output path." );
             Directory.CreateDirectory( outputSubdirectory );
 
 #if NET6_0_OR_GREATER
@@ -554,35 +581,34 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
             using var textWriter = new StreamWriter( outputPath );
 #endif
 
-            var diagnostics = includeDiagnostics ? diagnosticsBySyntaxTree![documentPath] : ImmutableArray<Diagnostic>.Empty;
+            var diagnosticsForDocument = includeDiagnostics ? diagnosticsBySyntaxTree![documentPath].ToImmutableArray() : ImmutableArray<Diagnostic>.Empty;
 
-            await writer.WriteAsync( document, textWriter, diagnostics, diffInfo, cancellationToken );
+            await htmlCodeWriter.WriteAsync( document, textWriter, options, diagnosticsForDocument, cancellationToken );
         }
     }
 
-    internal static async Task WriteAllDiffAsync(
-        IProjectOptions projectOptions,
-        ProjectServiceProvider serviceProvider,
-        PartialCompilation inputCompilation,
-        PartialCompilation outputCompilation,
+    public async Task WriteAllDiffAsync(
+        IPartialCompilation inputCompilation,
+        IPartialCompilation outputCompilation,
+        HtmlCodeWriterOptions options,
         IEnumerable<Diagnostic>? additionalDiagnostics = null,
-        ImmutableArray<ScopedSuppression> suppressions = default,
+        Func<Diagnostic, Compilation, bool>? isSuppressed = null,
         CancellationToken cancellationToken = default )
     {
         await WriteAllAsync(
-            projectOptions,
-            serviceProvider,
+            options,
+            this,
             inputCompilation,
             _ => SyntaxTreeKind.Source,
             p => GetDiffInfoForPath( p, true ),
             true,
             additionalDiagnostics,
-            suppressions,
+            isSuppressed,
             cancellationToken );
 
         await WriteAllAsync(
-            projectOptions,
-            serviceProvider,
+            options,
+            this,
             outputCompilation,
             GetOutputSyntaxTreeKind,
             p => GetDiffInfoForPath( p, false ),

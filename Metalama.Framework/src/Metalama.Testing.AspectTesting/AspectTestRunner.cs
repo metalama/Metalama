@@ -534,12 +534,16 @@ internal class AspectTestRunner : BaseTestRunner
         {
             var aspectTestResult = (AspectTestResult) testResult;
 
+            // Get the diff tool runner from plugins (may be null if DiffEngine package is not referenced).
+            var diffToolRunner = testResult.TestContext?.DiffToolRunner;
+
             this.CompareFiles(
                 aspectTestResult.ExpectedProgramOutputText!,
                 aspectTestResult.ExpectedProgramOutputPath!,
                 aspectTestResult.ActualProgramOutputText!,
                 aspectTestResult.ActualProgramOutputPath!,
-                testInput.Options );
+                testInput.Options,
+                diffToolRunner );
         }
 
 #if DEBUG

@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using JetBrains.Annotations;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -16,15 +15,12 @@ using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Formatting;
 
-public abstract partial class FormattedCodeWriter
+public sealed partial class FormattedCodeWriter : IFormattedCodeWriter
 {
-    protected const string CSharpClassTagName = "csharp";
-    protected const string DiagnosticTagName = "diagnostic";
-    protected const string GeneratingAspectTagName = "aspect";
     private const string _diagnosticAnnotationName = "metalama-diagnostic";
     private readonly ProjectServiceProvider _serviceProvider;
 
-    protected FormattedCodeWriter( in ProjectServiceProvider serviceProvider )
+    public FormattedCodeWriter( in ProjectServiceProvider serviceProvider )
     {
         this._serviceProvider = serviceProvider;
     }
@@ -70,15 +66,14 @@ public abstract partial class FormattedCodeWriter
         return outputSyntaxRoot;
     }
 
-    [PublicAPI( "Used from Try" )]
-    public static void ProcessAnnotations( ClassifiedTextSpanCollection classifiedTextSpans, SyntaxNode syntaxRoot )
+    private static void ProcessAnnotations( ClassifiedTextSpanCollection classifiedTextSpans, SyntaxNode syntaxRoot )
     {
         // Process the annotations by the aspect linker (on the output document).
         FormattingVisitor formattingVisitor = new( classifiedTextSpans );
         formattingVisitor.Visit( syntaxRoot );
     }
 
-    protected async Task<ClassifiedTextSpanCollection> GetClassifiedTextSpansAsync(
+    public async Task<IEnumerable<IClassifiedTextSpan>> GetClassifiedTextSpansAsync(
         Document document,
         bool areNodesAnnotated = false,
         IEnumerable<Diagnostic>? diagnostics = null,
@@ -143,13 +138,13 @@ public abstract partial class FormattedCodeWriter
             foreach ( var existingSpan in classifiedTextSpans.GetClassifiedSpans( csharpSpan.TextSpan ) )
             {
                 var combinedClassification =
-                    existingSpan.Tags != null! && existingSpan.Tags.TryGetValue( CSharpClassTagName, out var existingClassification )
+                    existingSpan.Tags != null! && existingSpan.Tags.TryGetValue( ClassifiedTextSpan.CSharpClassTagName, out var existingClassification )
                         ? existingClassification + ";" + classificationType
                         : classificationType;
 
                 var intersection = csharpSpan.TextSpan.Intersection( csharpSpan.TextSpan ).AssertNotNull();
 
-                classifiedTextSpans.SetTag( intersection, CSharpClassTagName, combinedClassification );
+                classifiedTextSpans.SetTag( intersection, ClassifiedTextSpan.CSharpClassTagName, combinedClassification );
             }
         }
 
@@ -165,7 +160,7 @@ public abstract partial class FormattedCodeWriter
             AddDiagnostics( document, diagnostics, classifiedTextSpans );
         }
 
-        return classifiedTextSpans;
+        return classifiedTextSpans.Cast<IClassifiedTextSpan>();
     }
 
     private static void AddDiagnostics( Document document, IEnumerable<Diagnostic> diagnostics, ClassifiedTextSpanCollection classifiedTextSpans )
@@ -186,7 +181,7 @@ public abstract partial class FormattedCodeWriter
                 {
                     classifiedTextSpans.SetTag(
                         diagnostic.Location.SourceSpan,
-                        DiagnosticTagName,
+                        ClassifiedTextSpan.DiagnosticTagName,
                         new DiagnosticAnnotation( diagnostic ).ToJson() );
                 }
             }

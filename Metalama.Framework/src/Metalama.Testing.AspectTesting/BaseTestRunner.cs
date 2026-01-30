@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using DiffEngine;
 using JetBrains.Annotations;
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Infrastructure;
@@ -66,7 +65,6 @@ internal abstract partial class BaseTestRunner
         this.Logger = logger;
         this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
         this._testRunnerOptions = serviceProvider.GetRequiredBackstageService<IConfigurationManager>().Get<TestRunnerOptions>();
-        DiffRunner.MaxInstancesToLaunch( this._testRunnerOptions.MaxDiffToolInstances );
     }
 
     /// <summary>
@@ -751,6 +749,12 @@ internal abstract partial class BaseTestRunner
             return;
         }
 
+        // Get the diff tool runner from plugins (may be null if DiffEngine package is not referenced).
+        var diffToolRunner = testResult.TestContext?.DiffToolRunner;
+
+        // Configure max instances if available.
+        diffToolRunner?.SetMaxInstances( this._testRunnerOptions.MaxDiffToolInstances );
+
         var actuallyWrittenFiles = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
 
         // First run the diff tool on all files so we populate DiffEngineTray for all files before failing.
@@ -768,7 +772,8 @@ internal abstract partial class BaseTestRunner
                 syntaxTree.ExpectedTransformedCodePath!,
                 syntaxTree.ActualTransformedNormalizedCodeText!,
                 syntaxTree.ActualTransformedCodePath!,
-                testInput.Options );
+                testInput.Options,
+                diffToolRunner );
 
             actuallyWrittenFiles.Add( syntaxTree.ExpectedTransformedCodePath! );
         }
@@ -797,7 +802,8 @@ internal abstract partial class BaseTestRunner
                     syntaxTree.ExpectedCompiledTemplatePath!,
                     syntaxTree.ActualCompiledTemplateNormalizedText!,
                     syntaxTree.ActualCompiledTemplatePath!,
-                    testInput.Options );
+                    testInput.Options,
+                    diffToolRunner );
 
                 actuallyWrittenFiles.Add( syntaxTree.ExpectedCompiledTemplatePath! );
             }
@@ -838,18 +844,30 @@ internal abstract partial class BaseTestRunner
         }
     }
 
-    protected bool CompareFiles( string expectedText, string expectedPath, string actualText, string actualPath, TestOptions testOptions )
-        => this.CompareFiles( expectedText, expectedPath, actualText, actualPath, testOptions.SkipDiffTool == true );
+    protected bool CompareFiles(
+        string expectedText,
+        string expectedPath,
+        string actualText,
+        string actualPath,
+        TestOptions testOptions,
+        IDiffToolRunner? diffToolRunner )
+        => this.CompareFiles( expectedText, expectedPath, actualText, actualPath, diffToolRunner, testOptions.SkipDiffTool == true );
 
-    protected bool CompareFiles( string expectedText, string expectedPath, string actualText, string actualPath, bool skipDiffTool = false )
+    private bool CompareFiles(
+        string expectedText,
+        string expectedPath,
+        string actualText,
+        string actualPath,
+        IDiffToolRunner? diffToolRunner,
+        bool skipDiffTool )
     {
-        var useDiff = this._testRunnerOptions.LaunchDiffTool && !DiffRunner.Disabled && !skipDiffTool;
+        var useDiff = this._testRunnerOptions.LaunchDiffTool && diffToolRunner is { IsDisabled: false } && !skipDiffTool;
 
         if ( expectedText != actualText )
         {
             if ( useDiff )
             {
-                DiffRunner.Launch( actualPath, expectedPath );
+                diffToolRunner!.Launch( actualPath, expectedPath );
             }
 
             return true;
@@ -858,7 +876,7 @@ internal abstract partial class BaseTestRunner
         {
             if ( useDiff )
             {
-                DiffRunner.Kill( actualPath, expectedPath );
+                diffToolRunner!.Kill( actualPath, expectedPath );
             }
 
             return false;
@@ -896,10 +914,20 @@ internal abstract partial class BaseTestRunner
         return project;
     }
 
-    private protected async Task WriteHtmlAsync( TestInput testInput, TestResult testResult, CancellationToken cancellationToken )
+    private protected async Task WriteHtmlAsync(
+        TestInput testInput,
+        TestResult testResult,
+        CancellationToken cancellationToken )
     {
-        var serviceProvider = testResult.TestContext.AssertNotNull().ServiceProvider;
-        var htmlCodeWriter = this.CreateHtmlCodeWriter( serviceProvider, testInput.Options );
+        var testContext = testResult.TestContext.AssertNotNull();
+        var htmlCodeWriter = testContext.CreateHtmlCodeWriter( testContext.ServiceProvider );
+
+        if ( htmlCodeWriter == null )
+        {
+            throw new InvalidOperationException(
+                "HTML output is requested but Metalama.Extensions.HtmlWriter package is not installed. " +
+                "Add a reference to Metalama.Extensions.HtmlWriter to use WriteInputHtml/WriteOutputHtml options." );
+        }
 
         var htmlDirectory = Path.Combine(
             this.ProjectDirectory!,
@@ -916,7 +944,7 @@ internal abstract partial class BaseTestRunner
         // Write each document individually.
         if ( testInput.Options.WriteInputHtml.GetValueOrDefault() || testInput.Options.WriteOutputHtml.GetValueOrDefault() )
         {
-            var pipeline = new TestDesignTimeAspectPipeline( serviceProvider );
+            var pipeline = new TestDesignTimeAspectPipeline( testContext.ServiceProvider );
             var inputCompilation = testResult.InputCompilation.AssertNotNull();
             var designTimePipelineResult = await pipeline.ExecuteAsync( inputCompilation );
 
@@ -934,6 +962,7 @@ internal abstract partial class BaseTestRunner
                     syntaxTree,
                     htmlDirectory,
                     htmlCodeWriter,
+                    this.GetHtmlCodeWriterOptions( testInput ),
                     writeDiff,
                     designTimePipelineResult.Suppressions,
                     cancellationToken );
@@ -941,18 +970,20 @@ internal abstract partial class BaseTestRunner
         }
     }
 
-    private HtmlCodeWriter CreateHtmlCodeWriter( in ProjectServiceProvider serviceProvider, TestOptions options )
-        => new( serviceProvider, this.GetHtmlCodeWriterOptions( options ) );
-
     // Resharper disable once VirtualMemberNeverOverridden.Global
-    protected virtual HtmlCodeWriterOptions GetHtmlCodeWriterOptions( TestOptions options ) => new( options.AddHtmlTitles.GetValueOrDefault() );
+    protected virtual HtmlCodeWriterOptions GetHtmlCodeWriterOptions( TestInput testInput )
+        => new(
+            testInput.ProjectDirectory,
+            testInput.ProjectProperties.TargetFramework,
+            testInput.Options.AddHtmlTitles.GetValueOrDefault() );
 
     private async Task WriteHtmlAsync(
         Compilation compilationWithDesignTimeTrees,
         TestResult testResult,
         TestSyntaxTree testSyntaxTree,
         string htmlDirectory,
-        HtmlCodeWriter htmlCodeWriter,
+        IHtmlCodeWriter htmlCodeWriter,
+        HtmlCodeWriterOptions htmlCodeWriterOptions,
         bool writeDiff,
         ImmutableArray<ScopedSuppression> designTimeSuppressions,
         CancellationToken cancellationToken )
@@ -1019,6 +1050,7 @@ internal abstract partial class BaseTestRunner
                     testSyntaxTree.OutputDocument.AssertNotNull(),
                     inputTextWriter,
                     outputTextWriter,
+                    htmlCodeWriterOptions,
                     inputDiagnostics,
                     outputDiagnostics,
                     cancellationToken );
@@ -1033,6 +1065,7 @@ internal abstract partial class BaseTestRunner
                     await htmlCodeWriter.WriteAsync(
                         testSyntaxTree.InputDocument,
                         inputTextWriter,
+                        htmlCodeWriterOptions,
                         inputDiagnostics!,
                         cancellationToken );
                 }
@@ -1045,6 +1078,7 @@ internal abstract partial class BaseTestRunner
                     await htmlCodeWriter.WriteAsync(
                         testSyntaxTree.OutputDocument.AssertNotNull(),
                         outputTextWriter,
+                        htmlCodeWriterOptions,
                         outputDiagnostics,
                         cancellationToken );
                 }

@@ -20,14 +20,6 @@ if ($env:RUNNING_IN_DOCKER -ne "true")
 $mcpConfigArg = ""
 if ($McpPort -gt 0)
 {
-    # Get MCP secret from environment variable
-    $mcpSecret = $env:MCP_APPROVAL_SERVER_TOKEN
-    if ( [string]::IsNullOrEmpty($mcpSecret))
-    {
-        Write-Error "MCP_APPROVAL_SERVER_TOKEN environment variable is not set. Cannot authenticate to MCP server."
-        exit 1
-    }
-
     # On Windows containers, host.docker.internal doesn't resolve.
     # Use the default gateway IP which points to the host.
     $hostIp = (Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Select-Object -First 1).NextHop
@@ -38,20 +30,17 @@ if ($McpPort -gt 0)
     }
     Write-Host "Host IP (gateway): $hostIp" -ForegroundColor Cyan
 
-    # Use HTTP Streamable transport (not SSE) with Bearer token authentication
+    # Use HTTP Streamable transport - no authentication needed (server binds to localhost)
     $mcpUrl = "http://${hostIp}:$McpPort"
-    Write-Host "Configuring MCP approval server with Bearer token authentication" -ForegroundColor Cyan
+    Write-Host "Configuring MCP approval server at $mcpUrl" -ForegroundColor Cyan
 
-    # Create temporary MCP config file with Bearer token authentication
+    # Create temporary MCP config file (no authentication header - server binds to localhost only)
     $mcpConfigPath = "$env:TEMP\mcp-config.json"
     $mcpConfig = @{
         'mcpServers' = @{
             'host-approval' = @{
                 'type' = 'http'
                 'url' = $mcpUrl
-                'headers' = @{
-                    'Authorization' = "Bearer $mcpSecret"
-                }
             }
         }
     }

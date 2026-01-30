@@ -15,3 +15,8 @@ When creating standalone tests with multiple projects:
    - Consumer project: References Contracts via `ProjectReference`, loads Extension via `MetalamaExtensionAssembly`, adds Contracts via `MetalamaCompileTimeAssembly`
 
 4. **C# limitations with `in` parameters**: Cannot use `yield return` in methods with `in` parameters. Use array initialization instead: `return new[] { ... }`.
+
+
+## Attention
+
+- Tests under this directory should only use `PackageReference` to reference Metalama. `ProjectReference` should only be used within the same solution, in the same test.

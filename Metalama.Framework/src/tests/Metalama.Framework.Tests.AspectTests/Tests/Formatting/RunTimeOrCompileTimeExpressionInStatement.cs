@@ -10,13 +10,9 @@ public class Aspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        if (true)
-        {
-        }
+        if ( true ) { }
 
-        if (true)
-        {
-        }
+        if ( true ) { }
 
 #if TESTRUNNER
         if (()meta.Proceed())
@@ -24,17 +20,11 @@ public class Aspect : OverrideMethodAspect
         }
 #endif
 
-        foreach (var x in new[] { 42 })
-        {
-        }
+        foreach ( var x in new[] { 42 } ) { }
 
-        do
-        {
+        do { }
+        while ( false );
 
-        } while (false);
-
-        while (true)
-        {
-        }
+        while ( true ) { }
     }
 }
