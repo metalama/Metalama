@@ -25,7 +25,14 @@
         <ProjectReference Include="../Metalama.Framework.Tests.TemplateTests/Metalama.Framework.Tests.TemplateTests.csproj" />
     </ItemGroup>
 
-    <!-- Import extension props for ProjectReference (PackageReference imports these automatically) -->
-    <Import Project="../../Metalama.Extensions.DiffEngine/build/Metalama.Extensions.DiffEngine.props" />
+    <!-- Register extension assemblies from build output (for ProjectReference; PackageReference imports props automatically) -->
+    <ItemGroup>
+        <!-- DiffEngine extension and its dependencies -->
+        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/EmptyFiles.dll" TargetFramework="net8.0" />
+        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/DiffEngine.dll" TargetFramework="net8.0" />
+        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/Metalama.Extensions.DiffEngine.dll" TargetFramework="net8.0" />
+        <!-- DiffEngine test plugin registration -->
+        <MetalamaTestPlugIn Include="Metalama.Extensions.DiffEngine.DiffEngineRunner, Metalama.Extensions.DiffEngine" />
+    </ItemGroup>
 
 </Project>
