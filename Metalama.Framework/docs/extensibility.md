@@ -631,9 +631,11 @@ When using `PackageReference`, NuGet automatically imports props files from the 
 
 The `MetalamaExtensionAssembly` and `MetalamaTestPlugIn` items are automatically registered.
 
-### ProjectReference (Manual Import Required)
+### ProjectReference (Direct MetalamaExtensionAssembly Items)
 
-When using `ProjectReference` (common in internal test projects during development), MSBuild does **NOT** automatically import the props files from `build/` or `buildTransitive/` folders. You must explicitly import them:
+When using `ProjectReference` (common in internal test projects during development), MSBuild does **NOT** automatically import the props files from `build/` or `buildTransitive/` folders.
+
+**Important:** Do NOT simply import the props files. The props files reference `metalama/` folder paths that only exist in NuGet packages, not in build output. Instead, add `MetalamaExtensionAssembly` items that point directly to the build output:
 
 ```xml
 <ItemGroup>
@@ -641,19 +643,38 @@ When using `ProjectReference` (common in internal test projects during developme
     <ProjectReference Include="../../Metalama.Extensions.HtmlWriter/Metalama.Extensions.HtmlWriter.csproj" />
 </ItemGroup>
 
-<!-- Import extension props for ProjectReference (PackageReference imports these automatically) -->
-<Import Project="../../Metalama.Extensions.HtmlWriter/build/Metalama.Extensions.HtmlWriter.props" />
-<Import Project="../../Metalama.Extensions.DiffEngine/build/Metalama.Extensions.DiffEngine.props" />
+<!-- Register extension assemblies from build output (for ProjectReference) -->
+<ItemGroup>
+    <!-- HtmlWriter extension and its dependency -->
+    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net472/DiffPlex.dll" TargetFramework="net472" />
+    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net8.0/DiffPlex.dll" TargetFramework="net8.0" />
+    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net472/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net472" />
+    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net8.0/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net8.0" />
+    <!-- DiffEngine extension and its dependencies -->
+    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/EmptyFiles.dll" TargetFramework="net472" />
+    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/EmptyFiles.dll" TargetFramework="net8.0" />
+    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/DiffEngine.dll" TargetFramework="net472" />
+    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/DiffEngine.dll" TargetFramework="net8.0" />
+    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/Metalama.Extensions.DiffEngine.dll" TargetFramework="net472" />
+    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/Metalama.Extensions.DiffEngine.dll" TargetFramework="net8.0" />
+    <!-- DiffEngine test plugin registration -->
+    <MetalamaTestPlugIn Include="Metalama.Extensions.DiffEngine.DiffEngineRunner, Metalama.Extensions.DiffEngine" />
+</ItemGroup>
 ```
 
-**Without these imports:**
-- `MetalamaExtensionAssembly` items are not registered
-- `MetalamaTestPlugIn` items are not registered
-- Extensions fail to load with errors like "HTML output is requested but Metalama.Extensions.HtmlWriter package is not installed"
+**Key points:**
+- Use `bin/$(Configuration)/$(TargetFramework)/` paths, not `metalama/` paths
+- Include transitive dependencies (DiffPlex for HtmlWriter, EmptyFiles for DiffEngine)
+- Register test plugins via `MetalamaTestPlugIn` if needed
+- Always specify `TargetFramework` metadata on each assembly
+
+**Without proper registration:**
+- Extensions fail to load with `FileNotFoundException`
+- Errors like "Could not find a part of the path '...metalama/net8.0/DiffPlex.dll'"
 
 ### Test Projects in Metalama.Framework
 
-The following test projects use `ProjectReference` and require manual props imports:
+The following test projects use `ProjectReference` and require direct `MetalamaExtensionAssembly` registration:
 
 | Project | Extensions Used |
 |---------|-----------------|
@@ -663,7 +684,7 @@ The following test projects use `ProjectReference` and require manual props impo
 | `Metalama.Framework.Tests.UnitTests` | DiffEngine |
 | `Metalama.AspectWorkbench` | DiffEngine |
 
-When adding new test projects that reference extension packages via `ProjectReference`, remember to add the corresponding `<Import>` statements.
+When adding new test projects that reference extension packages via `ProjectReference`, add the corresponding `MetalamaExtensionAssembly` items pointing to build output paths.
 
 ## Common Issues and Troubleshooting
 
