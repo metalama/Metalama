@@ -206,7 +206,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
             }
 
             // Write HTML (used only when building projects for documentation, not in tests).
-            if ( this.ProjectOptions.WriteHtml && !this.ProjectOptions.IsTest )
+            if ( this.ProjectOptions is { WriteHtml: true, IsTest: false } )
             {
                 var htmlCodeWriter = configuration.ServiceProvider.GetService<IHtmlCodeWriter>();
 
@@ -229,15 +229,15 @@ public class CompileTimeAspectPipeline : AspectPipeline
                     var suppressions = result.Value.Diagnostics.DiagnosticSuppressions;
 
                     var htmlOptions = new HtmlCodeWriterOptions(
-                        ProjectPath: this.ProjectOptions.ProjectPath,
-                        TargetFramework: this.ProjectOptions.TargetFramework );
+                        ProjectPath: this.ProjectOptions.ProjectPath.AssertNotNull(),
+                        TargetFramework: this.ProjectOptions.TargetFramework.AssertNotNull() );
 
                     await htmlCodeWriter.WriteAllDiffAsync(
                         compilationWithDesignTimeTrees,
                         resultPartialCompilation,
                         htmlOptions,
                         result.Value.Diagnostics.ReportedDiagnostics,
-                        ( d, c ) => suppressions.Any( s => s.Suppression.Definition.SuppressedDiagnosticId == d.Id ),
+                        ( d, _ ) => suppressions.Any( s => s.Suppression.Definition.SuppressedDiagnosticId == d.Id ),
                         cancellationToken );
                 }
             }

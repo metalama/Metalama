@@ -833,7 +833,6 @@ public class TestOptions
             RequireOrderedAspects = this.RequireOrderedAspects ?? testContextOptions.RequireOrderedAspects,
             FormatCompileTimeCode = this.FormatCompileTimeCode ?? testContextOptions.FormatCompileTimeCode,
             IgnoreUserProfileLicenses = this.IgnoreUserProfileLicenses ?? testContextOptions.IgnoreUserProfileLicenses,
-            WriteHtml = this.WriteInputHtml == true || this.WriteOutputHtml == true || testContextOptions.WriteHtml,
             CodeFormattingOptions =
             this.FormatOutput switch
             {

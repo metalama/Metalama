@@ -19,4 +19,4 @@ When creating standalone tests with multiple projects:
 
 ## Attention
 
-- Tests under this directory should only use `PackageReference` to reference Metalama. `ProjectReference` should only be used within the same solution, in the same tst.
+- Tests under this directory should only use `PackageReference` to reference Metalama. `ProjectReference` should only be used within the same solution, in the same test.

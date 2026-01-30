@@ -1,0 +1,11 @@
+<Project>
+
+  <Target Name="Build">
+    <Exec Command="dotnet test &quot;$(MSBuildThisFileDirectory)HtmlWriterAspectTest.csproj&quot;" />
+
+    <Error Condition="!Exists('$(MSBuildThisFileDirectory)obj\html\net472\HtmlDiffTest.t.cs.html')" Text="Expected HTML output file was not created for net472" />
+    <Error Condition="!Exists('$(MSBuildThisFileDirectory)obj\html\net8.0\HtmlDiffTest.t.cs.html')" Text="Expected HTML output file was not created for net8.0" />
+    <Error Condition="!Exists('$(MSBuildThisFileDirectory)obj\html\net9.0\HtmlDiffTest.t.cs.html')" Text="Expected HTML output file was not created for net9.0" />
+  </Target>
+
+</Project>

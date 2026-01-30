@@ -15,7 +15,8 @@ using System.Collections.Generic;
 namespace Metalama.Extensions.HtmlWriter;
 
 /// <summary>
-/// Factory that creates <see cref="HtmlCodeWriter"/> instances.
+/// Factory that creates <see cref="HtmlCodeWriter"/> instances. This class is used in two ways: through <see cref="ExportExtensionAttribute"/> and <see cref="IProjectServiceFactory"/>
+/// (loaded by the pipeline), or as a test plug-in (accessed through <see cref="IHtmlCodeWriterFactory"/>).
 /// </summary>
 [UsedImplicitly]
 public sealed class HtmlCodeWriterFactory : IProjectServiceFactory, IHtmlCodeWriterFactory

@@ -962,7 +962,7 @@ internal abstract partial class BaseTestRunner
                     syntaxTree,
                     htmlDirectory,
                     htmlCodeWriter,
-                    this.GetHtmlCodeWriterOptions( testInput.Options ),
+                    this.GetHtmlCodeWriterOptions( testInput ),
                     writeDiff,
                     designTimePipelineResult.Suppressions,
                     cancellationToken );
@@ -971,7 +971,11 @@ internal abstract partial class BaseTestRunner
     }
 
     // Resharper disable once VirtualMemberNeverOverridden.Global
-    protected virtual HtmlCodeWriterOptions GetHtmlCodeWriterOptions( TestOptions options ) => new( options.AddHtmlTitles.GetValueOrDefault() );
+    protected virtual HtmlCodeWriterOptions GetHtmlCodeWriterOptions( TestInput testInput )
+        => new(
+            testInput.ProjectDirectory,
+            testInput.ProjectProperties.TargetFramework,
+            testInput.Options.AddHtmlTitles.GetValueOrDefault() );
 
     private async Task WriteHtmlAsync(
         Compilation compilationWithDesignTimeTrees,

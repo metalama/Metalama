@@ -32,11 +32,13 @@ Enable HTML output in your project by setting the `WriteHtml` MSBuild property:
 
 ### Aspect Tests
 
-Enable HTML output in aspect tests using the test options:
+Enable HTML output in aspect tests by adding a `metalamaTests.json` file to your test project:
 
-```csharp
-// @WriteInputHtml
-// @WriteOutputHtml
+```json
+{
+  "WriteInputHtml": true,
+  "WriteOutputHtml": true
+}
 ```
 
 Without this package, the `WriteHtml` feature and related test options will throw an error with a message indicating that the package needs to be installed.

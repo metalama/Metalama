@@ -16,12 +16,18 @@ When this package is referenced, the Metalama test framework will automatically 
 
 ## Configuration
 
-Configure diff tool behavior through the `testRunner.json` configuration file:
+Configure diff tool behavior through the `testRunner.json` configuration file. To edit this file, use the Metalama CLI tool:
+
+```powershell
+metalama config edit testRunner
+```
+
+This opens the configuration file with the following settings:
 
 ```json
 {
-  "launchDiffTool": true,
-  "maxDiffToolInstances": 3
+  "LaunchDiffTool": true,
+  "MaxDiffToolInstances": 3
 }
 ```
 

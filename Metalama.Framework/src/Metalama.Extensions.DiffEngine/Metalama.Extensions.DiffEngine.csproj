@@ -21,8 +21,6 @@
 
     <ItemGroup>
         <PackageReference Include="DiffEngine" PrivateAssets="all" />
-        <!-- DiffEngine uses System.Management for process cleanup (undeclared dependency) -->
-        <PackageReference Include="System.Management" PrivateAssets="all" Condition="'$(TargetFramework)' != 'net472'" />
     </ItemGroup>
 
     <ItemGroup>
@@ -46,8 +44,6 @@
             <!-- DiffEngine and its dependencies -->
             <TfmSpecificPackageFile Include="$(OutDir)DiffEngine.dll" PackagePath="metalama/$(TargetFramework)" />
             <TfmSpecificPackageFile Include="$(OutDir)EmptyFiles.dll" PackagePath="metalama/$(TargetFramework)" />
-            <!-- System.Management for process cleanup (not needed for net472 where it's in-box) -->
-            <TfmSpecificPackageFile Include="$(OutDir)System.Management.dll" PackagePath="metalama/$(TargetFramework)" Condition="'$(TargetFramework)' != 'net472'" />
         </ItemGroup>
     </Target>
 

@@ -171,10 +171,7 @@ public static class ServiceProviderFactory
             projectServiceProvider = projectServiceProvider.WithService( sp => new CodeFormatter( sp ) );
         }
 
-        if ( projectOptions.WriteHtml )
-        {
-            projectServiceProvider = projectServiceProvider.WithServiceConditional<IFormattedCodeWriter>( sp => new FormattedCodeWriter( sp ) );
-        }
+        projectServiceProvider = projectServiceProvider.WithServiceConditional<IFormattedCodeWriter>( sp => new FormattedCodeWriter( sp ) );
 
         return projectServiceProvider;
     }

@@ -115,8 +115,13 @@ internal sealed class HtmlGenerationTestRunner : AspectTestRunner
     protected override bool CompareTransformedCode => false;
 
     /// <inheritdoc />
-    protected override HtmlCodeWriterOptions GetHtmlCodeWriterOptions( TestOptions options )
-        => new( options.AddHtmlTitles.GetValueOrDefault(), _htmlProlog, this._htmlEpilogue );
+    protected override HtmlCodeWriterOptions GetHtmlCodeWriterOptions( TestInput testInput )
+        => new(
+            testInput.ProjectDirectory,
+            testInput.ProjectProperties.TargetFramework,
+            testInput.Options.AddHtmlTitles.GetValueOrDefault(),
+            _htmlProlog,
+            this._htmlEpilogue );
 
     /// <inheritdoc />
     protected override void ExecuteAssertions( TestInput testInput, TestResult testResult )
