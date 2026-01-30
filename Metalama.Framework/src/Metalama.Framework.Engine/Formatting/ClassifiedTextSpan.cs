@@ -50,7 +50,33 @@ namespace Metalama.Framework.Engine.Formatting
         public ImmutableDictionary<string, string> Tags { get; }
 
         /// <inheritdoc />
-        public Diagnostic? Diagnostic => null;
+        public Diagnostic? Diagnostic
+        {
+            get
+            {
+                if ( !this.Tags.TryGetValue( DiagnosticTagName, out var json ) || string.IsNullOrEmpty( json ) )
+                {
+                    return null;
+                }
+
+                var annotation = DiagnosticAnnotation.FromJson( json );
+
+                if ( annotation == null )
+                {
+                    return null;
+                }
+
+                var descriptor = new DiagnosticDescriptor(
+                    annotation.Id,
+                    annotation.Message,
+                    annotation.Message,
+                    "Metalama",
+                    annotation.Severity,
+                    isEnabledByDefault: true );
+
+                return Diagnostic.Create( descriptor, Location.None );
+            }
+        }
 
         /// <inheritdoc />
         public string? CSharpClassification => this.Tags.TryGetValue( CSharpClassTagName, out var value ) ? value : null;
