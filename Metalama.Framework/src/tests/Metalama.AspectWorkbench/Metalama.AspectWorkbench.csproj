@@ -25,4 +25,7 @@
         <ProjectReference Include="../Metalama.Framework.Tests.TemplateTests/Metalama.Framework.Tests.TemplateTests.csproj" />
     </ItemGroup>
 
+    <!-- Import extension props for ProjectReference (PackageReference imports these automatically) -->
+    <Import Project="../../Metalama.Extensions.DiffEngine/build/Metalama.Extensions.DiffEngine.props" />
+
 </Project>

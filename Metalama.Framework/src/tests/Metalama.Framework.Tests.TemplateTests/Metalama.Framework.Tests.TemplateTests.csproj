@@ -58,6 +58,9 @@
         <ProjectReference Include="../../Metalama.Extensions.DiffEngine/Metalama.Extensions.DiffEngine.csproj" />
     </ItemGroup>
 
+    <!-- Import extension props for ProjectReference (PackageReference imports these automatically) -->
+    <Import Project="../../Metalama.Extensions.DiffEngine/build/Metalama.Extensions.DiffEngine.props" />
+
     <ItemGroup>
         <InternalsVisibleTo Include="Metalama.AspectWorkbench" />
         <InternalsVisibleTo Include="DynamicProxyGenAssembly2" Key="$(FakeItEasyKey)" LoadsWithinVisualStudio="false" />

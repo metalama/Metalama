@@ -59,6 +59,10 @@
         <ProjectReference Include="../../Metalama.Extensions.HtmlWriter/Metalama.Extensions.HtmlWriter.csproj" />
     </ItemGroup>
 
+    <!-- Import extension props for ProjectReference (PackageReference imports these automatically) -->
+    <Import Project="../../Metalama.Extensions.HtmlWriter/build/Metalama.Extensions.HtmlWriter.props" />
+    <Import Project="../../Metalama.Extensions.DiffEngine/build/Metalama.Extensions.DiffEngine.props" />
+
     <ItemGroup>
         <InternalsVisibleTo Include="Metalama.AspectWorkbench" />
         <InternalsVisibleTo Include="DynamicProxyGenAssembly2" Key="$(FakeItEasyKey)" LoadsWithinVisualStudio="false" />

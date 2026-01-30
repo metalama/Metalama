@@ -46,6 +46,9 @@
         <ProjectReference Include="..\Metalama.Framework.Tests.UnitTestHelpers$(ThisRoslynVersionProjectSuffix)\Metalama.Framework.Tests.UnitTestHelpers$(ThisRoslynVersionProjectSuffix).csproj" />
     </ItemGroup>
 
+    <!-- Import extension props for ProjectReference (PackageReference imports these automatically) -->
+    <Import Project="../../Metalama.Extensions.DiffEngine/build/Metalama.Extensions.DiffEngine.props" />
+
     <ItemGroup>
         <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
             <_Parameter1>EngineeringDataDirectory</_Parameter1>
