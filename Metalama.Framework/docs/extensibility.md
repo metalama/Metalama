@@ -499,9 +499,6 @@ Include them in the package via `_AddAssembliesToOutput` target.
 **Critical:** You must bundle **all** transitive dependencies, not just direct dependencies. For example, if your extension uses `DiffEngine`, you must also bundle:
 - `DiffEngine.dll` (direct dependency)
 - `EmptyFiles.dll` (transitive dependency of DiffEngine)
-- `System.Management.dll` (undeclared runtime dependency for process cleanup on .NET Core/.NET 5+)
-
-**Note:** Some packages have undeclared dependencies that are loaded dynamically at runtime. These won't appear in the NuGet dependency graph but will cause `FileNotFoundException` at runtime. Test your extension thoroughly to discover these.
 
 **Note:** Some packages have undeclared dependencies that are loaded dynamically at runtime. These won't appear in the NuGet dependency graph but will cause `FileNotFoundException` at runtime. Test your extension thoroughly to discover these.
 
@@ -616,6 +613,57 @@ When tests fail with assembly loading errors:
 2. Verify `MetalamaExtensionAssembly` items have correct `TargetFramework` metadata
 3. Ensure dependencies are loaded before dependent assemblies
 4. Check that all transitive dependencies are bundled in the package
+
+## ProjectReference vs PackageReference
+
+When consuming extension packages, there's a critical difference between `ProjectReference` and `PackageReference` that affects how props files are imported.
+
+### PackageReference (Automatic Import)
+
+When using `PackageReference`, NuGet automatically imports props files from the `build/` and `buildTransitive/` folders. This is the standard pattern for end users consuming published packages:
+
+```xml
+<ItemGroup>
+    <PackageReference Include="Metalama.Extensions.HtmlWriter" />
+    <PackageReference Include="Metalama.Extensions.DiffEngine" />
+</ItemGroup>
+```
+
+The `MetalamaExtensionAssembly` and `MetalamaTestPlugIn` items are automatically registered.
+
+### ProjectReference (Manual Import Required)
+
+When using `ProjectReference` (common in internal test projects during development), MSBuild does **NOT** automatically import the props files from `build/` or `buildTransitive/` folders. You must explicitly import them:
+
+```xml
+<ItemGroup>
+    <ProjectReference Include="../../Metalama.Extensions.DiffEngine/Metalama.Extensions.DiffEngine.csproj" />
+    <ProjectReference Include="../../Metalama.Extensions.HtmlWriter/Metalama.Extensions.HtmlWriter.csproj" />
+</ItemGroup>
+
+<!-- Import extension props for ProjectReference (PackageReference imports these automatically) -->
+<Import Project="../../Metalama.Extensions.HtmlWriter/build/Metalama.Extensions.HtmlWriter.props" />
+<Import Project="../../Metalama.Extensions.DiffEngine/build/Metalama.Extensions.DiffEngine.props" />
+```
+
+**Without these imports:**
+- `MetalamaExtensionAssembly` items are not registered
+- `MetalamaTestPlugIn` items are not registered
+- Extensions fail to load with errors like "HTML output is requested but Metalama.Extensions.HtmlWriter package is not installed"
+
+### Test Projects in Metalama.Framework
+
+The following test projects use `ProjectReference` and require manual props imports:
+
+| Project | Extensions Used |
+|---------|-----------------|
+| `Metalama.Framework.Tests.AspectTests` | HtmlWriter, DiffEngine |
+| `Metalama.Framework.Tests.LinkerTests` | DiffEngine |
+| `Metalama.Framework.Tests.TemplateTests` | DiffEngine |
+| `Metalama.Framework.Tests.UnitTests` | DiffEngine |
+| `Metalama.AspectWorkbench` | DiffEngine |
+
+When adding new test projects that reference extension packages via `ProjectReference`, remember to add the corresponding `<Import>` statements.
 
 ## Common Issues and Troubleshooting
 
