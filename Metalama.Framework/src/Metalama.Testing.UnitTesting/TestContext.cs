@@ -218,8 +218,8 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
         foreach ( var plugInType in options.TestPlugInTypes )
         {
             var parts = plugInType.Split( ',' );
-            var typeName = parts[0];
-            var assemblyName = string.Join( ",", parts.Skip( 1 ) );
+            var typeName = parts[0].Trim();
+            var assemblyName = string.Join( ",", parts.Skip( 1 ) ).Trim();
 
             if ( !this.Domain.TryGetLoadedAssembly( assemblyName, out var assembly ) )
             {

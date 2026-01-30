@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net472;net8.0</TargetFrameworks>
+        <TargetFrameworks>net472;net8.0;net9.0</TargetFrameworks>
         <Description>Optional plugin for Metalama that provides HTML code formatting with diff support. Reference this package to enable HTML output generation for documentation and debugging purposes.</Description>
         <PackageId>Metalama.Extensions.HtmlWriter</PackageId>
         <IncludeBuildOutput>false</IncludeBuildOutput>
