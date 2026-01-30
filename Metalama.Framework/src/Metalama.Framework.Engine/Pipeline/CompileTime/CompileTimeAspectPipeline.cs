@@ -205,30 +205,41 @@ public class CompileTimeAspectPipeline : AspectPipeline
                 resultPartialCompilation = await codeFormatter.FormatAsync( resultPartialCompilation, cancellationToken );
             }
 
-            // Write HTML (used only when building projects for documentation).
-            if ( this.ProjectOptions.WriteHtml )
+            // Write HTML (used only when building projects for documentation, not in tests).
+            if ( this.ProjectOptions.WriteHtml && !this.ProjectOptions.IsTest )
             {
-                // We must simulate add the syntax trees added at design time to avoid some C# linking errors.
-                var introducedSyntaxTrees = await DesignTimeSyntaxTreeGenerator.GenerateDesignTimeSyntaxTreesAsync(
-                    this.ServiceProvider,
-                    compilation,
-                    result.Value.FirstCompilationModel.AssertNotNull(),
-                    result.Value.LastCompilationModel,
-                    result.Value.Transformations.OfType<ITransformation>(),
-                    new UserDiagnosticSink( configuration.ServiceProvider ),
-                    cancellationToken );
+                var htmlCodeWriter = configuration.ServiceProvider.GetService<IHtmlCodeWriter>();
 
-                var compilationWithDesignTimeTrees = (PartialCompilation)
-                    compilation
-                        .AddSyntaxTrees( introducedSyntaxTrees.SelectAsReadOnlyCollection( t => t.GeneratedSyntaxTree ) );
+                if ( htmlCodeWriter != null )
+                {
+                    // We must simulate add the syntax trees added at design time to avoid some C# linking errors.
+                    var introducedSyntaxTrees = await DesignTimeSyntaxTreeGenerator.GenerateDesignTimeSyntaxTreesAsync(
+                        this.ServiceProvider,
+                        compilation,
+                        result.Value.FirstCompilationModel.AssertNotNull(),
+                        result.Value.LastCompilationModel,
+                        result.Value.Transformations.OfType<ITransformation>(),
+                        new UserDiagnosticSink( configuration.ServiceProvider ),
+                        cancellationToken );
 
-                await HtmlCodeWriter.WriteAllDiffAsync(
-                    this.ProjectOptions,
-                    this.ServiceProvider,
-                    compilationWithDesignTimeTrees,
-                    resultPartialCompilation,
-                    result.Value.Diagnostics.ReportedDiagnostics,
-                    result.Value.Diagnostics.DiagnosticSuppressions );
+                    var compilationWithDesignTimeTrees = (PartialCompilation)
+                        compilation
+                            .AddSyntaxTrees( introducedSyntaxTrees.SelectAsReadOnlyCollection( t => t.GeneratedSyntaxTree ) );
+
+                    var suppressions = result.Value.Diagnostics.DiagnosticSuppressions;
+
+                    var htmlOptions = new HtmlCodeWriterOptions(
+                        ProjectPath: this.ProjectOptions.ProjectPath,
+                        TargetFramework: this.ProjectOptions.TargetFramework );
+
+                    await htmlCodeWriter.WriteAllDiffAsync(
+                        compilationWithDesignTimeTrees,
+                        resultPartialCompilation,
+                        htmlOptions,
+                        result.Value.Diagnostics.ReportedDiagnostics,
+                        ( d, c ) => suppressions.Any( s => s.Suppression.Definition.SuppressedDiagnosticId == d.Id ),
+                        cancellationToken );
+                }
             }
 
             // Add managed resources.

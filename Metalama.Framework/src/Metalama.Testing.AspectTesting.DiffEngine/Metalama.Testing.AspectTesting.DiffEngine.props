@@ -1,5 +1,0 @@
-<Project>
-    <ItemGroup>
-        <MetalamaTestPlugIn Include="Metalama.Testing.AspectTesting.DiffEngine.DiffEngineRunner, Metalama.Testing.AspectTesting.DiffEngine" />
-    </ItemGroup>
-</Project>

@@ -140,4 +140,10 @@ public record TestContextOptions
     /// Gets the C# version used in the compile-time project.
     /// </summary>
     public string? TemplateLanguageVersion { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether HTML output should be written. When <c>true</c>, the
+    /// <c>IFormattedCodeWriter</c> service is registered, enabling HTML generation features.
+    /// </summary>
+    public bool WriteHtml { get; init; }
 }

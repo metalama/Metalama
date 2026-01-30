@@ -8,16 +8,16 @@ namespace Metalama.Testing.AspectTesting;
 
 /// <summary>
 /// Provides diff tool functionality for the test framework.
-/// When no implementation is available (i.e., when the <c>Metalama.Testing.AspectTesting.DiffEngine</c> package is not referenced),
+/// When no implementation is available (i.e., when the <c>Metalama.Extensions.DiffEngine</c> package is not referenced),
 /// diff tool features are silently disabled and tests continue to work normally.
 /// </summary>
 /// <remarks>
 /// <para>
-/// To enable diff tool support, add a reference to the <c>Metalama.Testing.AspectTesting.DiffEngine</c> package.
+/// To enable diff tool support, add a reference to the <c>Metalama.Extensions.DiffEngine</c> package.
 /// </para>
 /// </remarks>
 [PublicAPI]
-public interface IDiffToolRunner
+public interface ISnapshotDiffToolRunner
 {
     /// <summary>
     /// Gets a value indicating whether the diff tool is disabled.

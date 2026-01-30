@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.Utilities;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
 using System.Linq;
@@ -13,8 +14,28 @@ namespace Metalama.Framework.Engine.Formatting
     /// <summary>
     /// Represents a <see cref="TextSpan"/> and its <see cref="TextSpanClassification"/>.
     /// </summary>
-    public readonly struct ClassifiedTextSpan
+    public readonly struct ClassifiedTextSpan : IClassifiedTextSpan
     {
+        /// <summary>
+        /// Tag name for C# classification.
+        /// </summary>
+        public const string CSharpClassTagName = "csharp";
+
+        /// <summary>
+        /// Tag name for diagnostic annotation.
+        /// </summary>
+        public const string DiagnosticTagName = "diagnostic";
+
+        /// <summary>
+        /// Tag name for generating aspect.
+        /// </summary>
+        public const string GeneratingAspectTagName = "aspect";
+
+        /// <summary>
+        /// Tag name for title.
+        /// </summary>
+        public const string TitleTagName = "title";
+
         /// <summary>
         /// Gets the <see cref="TextSpan"/>.
         /// </summary>
@@ -27,6 +48,18 @@ namespace Metalama.Framework.Engine.Formatting
 
         [UsedImplicitly]
         public ImmutableDictionary<string, string> Tags { get; }
+
+        /// <inheritdoc />
+        public Diagnostic? Diagnostic => null;
+
+        /// <inheritdoc />
+        public string? CSharpClassification => this.Tags.TryGetValue( CSharpClassTagName, out var value ) ? value : null;
+
+        /// <inheritdoc />
+        public string? Title => this.Tags.TryGetValue( TitleTagName, out var value ) ? value : null;
+
+        /// <inheritdoc />
+        public string? GeneratingAspect => this.Tags.TryGetValue( GeneratingAspectTagName, out var value ) ? value : null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ClassifiedTextSpan"/> struct.

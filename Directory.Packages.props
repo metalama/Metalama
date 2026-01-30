@@ -154,6 +154,8 @@
     <PackageVersion Include="Metalama.Extensions.DependencyInjection" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.Metrics" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.Multicast" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.DiffEngine" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.HtmlWriter" Version="$(MetalamaVersion)" />
 
 
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.5" />

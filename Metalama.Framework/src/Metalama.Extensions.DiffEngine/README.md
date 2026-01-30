@@ -1,4 +1,4 @@
-# Metalama.Testing.AspectTesting.DiffEngine
+# Metalama.Extensions.DiffEngine
 
 This package provides optional diff tool integration for the Metalama aspect testing framework.
 
@@ -7,7 +7,7 @@ This package provides optional diff tool integration for the Metalama aspect tes
 Add a reference to this package in your test project:
 
 ```xml
-<PackageReference Include="Metalama.Testing.AspectTesting.DiffEngine" />
+<PackageReference Include="Metalama.Extensions.DiffEngine" />
 ```
 
 ## Features

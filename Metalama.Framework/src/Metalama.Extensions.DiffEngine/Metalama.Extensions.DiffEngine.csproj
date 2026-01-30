@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFrameworks>net472;net8.0</TargetFrameworks>
         <Description>Optional plugin for Metalama.Testing.AspectTesting that provides diff tool integration using DiffEngine. Reference this package to enable automatic diff tool launching when test output differs from expected output.</Description>
-        <PackageId>Metalama.Testing.AspectTesting.DiffEngine</PackageId>
+        <PackageId>Metalama.Extensions.DiffEngine</PackageId>
     </PropertyGroup>
 
     <ItemGroup>
@@ -15,7 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="Metalama.Testing.AspectTesting.DiffEngine.props">
+        <None Include="Metalama.Extensions.DiffEngine.props">
             <Pack>true</Pack>
             <PackagePath>build</PackagePath>
         </None>

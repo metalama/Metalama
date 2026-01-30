@@ -1,0 +1,5 @@
+<Project>
+    <ItemGroup>
+        <MetalamaTestPlugIn Include="Metalama.Extensions.DiffEngine.DiffEngineRunner, Metalama.Extensions.DiffEngine" />
+    </ItemGroup>
+</Project>

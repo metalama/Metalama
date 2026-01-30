@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
+        <Description>Optional plugin for Metalama that provides HTML code formatting with diff support. Reference this package to enable HTML output generation for documentation and debugging purposes.</Description>
+        <PackageId>Metalama.Extensions.HtmlWriter</PackageId>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddAssembliesToOutput</TargetsForTfmSpecificContentInPackage>
+
+        <!-- Disable a warning saying that we have nothing under the lib folder. -->
+        <NoWarn>$(NoWarn);NU5128;NU5100</NoWarn>
+
+        <!-- Disable the customization done by Metalama.Compiler.Sdk -->
+        <MetalamaCompilerDisablePackCustomization>True</MetalamaCompilerDisablePackCustomization>
+
+        <!-- Avoid creating a package that has no dependencies nor content. -->
+        <IncludeSymbols>false</IncludeSymbols>
+
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DiffPlex" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="build\**\*" Pack="true" PackagePath="build" />
+        <None Include="buildTransitive\**\*" Pack="true" PackagePath="buildTransitive" />
+    </ItemGroup>
+
+    <!-- Packaging -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+    <Target Name="_AddAssembliesToOutput">
+        <ItemGroup>
+            <!-- HtmlWriter assembly -->
+            <TfmSpecificPackageFile Include="$(OutDir)Metalama.Extensions.HtmlWriter.dll" PackagePath="metalama/$(TargetFramework)" />
+            <!-- DiffPlex dependency -->
+            <TfmSpecificPackageFile Include="$(OutDir)DiffPlex.dll" PackagePath="metalama/$(TargetFramework)" />
+        </ItemGroup>
+    </Target>
+
+    <Target Name="SetPackageContent" AfterTargets="MetalamaCompilerSetLibAssembliesInPackage">
+        <ItemGroup>
+            <!-- remove everything from lib -->
+            <BuildOutputInPackage Remove="@(BuildOutputInPackage)" />
+        </ItemGroup>
+    </Target>
+
+</Project>
