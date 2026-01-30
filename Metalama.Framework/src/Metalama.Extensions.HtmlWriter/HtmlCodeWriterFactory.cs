@@ -10,21 +10,29 @@ using Metalama.Framework.Services;
 using Metalama.Testing.AspectTesting;
 using System.Collections.Generic;
 
-[assembly: ExportExtension( typeof( Metalama.Extensions.HtmlWriter.HtmlCodeWriterFactory ), ExtensionKinds.ServiceFactory )]
+[assembly: ExportExtension( typeof( Metalama.Extensions.HtmlWriter.HtmlCodeWriterServiceFactory ), ExtensionKinds.ServiceFactory )]
 
 namespace Metalama.Extensions.HtmlWriter;
 
 /// <summary>
-/// Factory that creates <see cref="HtmlCodeWriter"/> instances. This class is used in two ways: through <see cref="ExportExtensionAttribute"/> and <see cref="IProjectServiceFactory"/>
-/// (loaded by the pipeline), or as a test plug-in (accessed through <see cref="IHtmlCodeWriterFactory"/>).
+/// Factory that creates <see cref="HtmlCodeWriter"/> instances for the compile-time pipeline.
+/// This class is loaded via <see cref="ExportExtensionAttribute"/> and must not have dependencies on test assemblies.
 /// </summary>
 [UsedImplicitly]
-public sealed class HtmlCodeWriterFactory : IProjectServiceFactory, IHtmlCodeWriterFactory
+public sealed class HtmlCodeWriterServiceFactory : IProjectServiceFactory
 {
     IEnumerable<IProjectService> IProjectServiceFactory.CreateServices( in ProjectServiceProvider serviceProvider )
     {
         return [new HtmlCodeWriter( serviceProvider )];
     }
+}
 
+/// <summary>
+/// Factory that creates <see cref="HtmlCodeWriter"/> instances for the test framework.
+/// This class implements <see cref="IHtmlCodeWriterFactory"/> for use by test plug-ins.
+/// </summary>
+[UsedImplicitly]
+public sealed class HtmlCodeWriterFactory : IHtmlCodeWriterFactory
+{
     IHtmlCodeWriter IHtmlCodeWriterFactory.Create( in ProjectServiceProvider serviceProvider ) => new HtmlCodeWriter( serviceProvider );
 }
