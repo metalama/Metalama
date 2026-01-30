@@ -21,64 +21,66 @@ namespace Metalama.Testing.AspectTesting;
 /// </summary>
 internal sealed class HtmlGenerationTestRunner : AspectTestRunner
 {
-    private const string _htmlProlog = @"
-<html>
-    <head>
-        <style>
-            .cr-CompileTime,
-            .cr-Conflict,
-            .cr-TemplateKeyword,
-            .cr-Dynamic,
-            .cr-CompileTimeVariable,
-            .cr-GeneratedCode
-            {
-                background-color: rgba(50,50,90,0.1);
-            }
+    private const string _htmlProlog = """
 
-            .cr-NeutralTrivia
-            {
-                background-color: rgba(0,255,0,0.1);
-            }
+                                       <html>
+                                           <head>
+                                               <style>
+                                                   .cr-CompileTime,
+                                                   .cr-Conflict,
+                                                   .cr-TemplateKeyword,
+                                                   .cr-Dynamic,
+                                                   .cr-CompileTimeVariable,
+                                                   .cr-GeneratedCode
+                                                   {
+                                                       background-color: rgba(50,50,90,0.1);
+                                                   }
 
-            .cr-TemplateKeyword
-            {
-                color: rgb(250, 0, 250) !important;
-                font-weight: bold;
-            }
+                                                   .cr-NeutralTrivia
+                                                   {
+                                                       background-color: rgba(0,255,0,0.1);
+                                                   }
 
-            .cr-Dynamic
-            {
-                text-decoration: underline;
-            }
+                                                   .cr-TemplateKeyword
+                                                   {
+                                                       color: rgb(250, 0, 250) !important;
+                                                       font-weight: bold;
+                                                   }
 
-            .cr-CompileTimeVariable
-            {
-                font-style: italic;
-            }
+                                                   .cr-Dynamic
+                                                   {
+                                                       text-decoration: underline;
+                                                   }
 
-            .diag-Warning
-            {
-                text-decoration: underline 1px wavy orange;
-            }
+                                                   .cr-CompileTimeVariable
+                                                   {
+                                                       font-style: italic;
+                                                   }
 
-            .diag-Error
-            {
-                text-decoration: underline 1px wavy red;
-            }
+                                                   .diag-Warning
+                                                   {
+                                                       text-decoration: underline 1px wavy orange;
+                                                   }
 
-         .diff-Imaginary {
-                display: block;
-                background-image: repeating-linear-gradient( -45deg, gray, gray 2px, transparent 2px, transparent 8px );
-            }
+                                                   .diag-Error
+                                                   {
+                                                       text-decoration: underline 1px wavy red;
+                                                   }
+
+                                                .diff-Imaginary {
+                                                       display: block;
+                                                       background-image: repeating-linear-gradient( -45deg, gray, gray 2px, transparent 2px, transparent 8px );
+                                                   }
 
 
-            .legend
-            {
-                margin-top: 100px;
-            }
-        </style>
-    </head>
-    <body>";
+                                                   .legend
+                                                   {
+                                                       margin-top: 100px;
+                                                   }
+                                               </style>
+                                           </head>
+                                           <body>
+                                       """;
 
     private readonly string _htmlEpilogue;
 
@@ -121,6 +123,8 @@ internal sealed class HtmlGenerationTestRunner : AspectTestRunner
     {
         base.ExecuteAssertions( testInput, testResult );
 
+        var diffToolRunner = testResult.TestContext?.DiffToolRunner;
+
         Assert.NotNull( testInput.ProjectDirectory );
         Assert.NotNull( testInput.RelativePath );
 
@@ -142,12 +146,18 @@ internal sealed class HtmlGenerationTestRunner : AspectTestRunner
                     continue;
                 }
 
+                // Skip trees without HTML outputs. This happens upon compilation errors.
+                if ( syntaxTree.HtmlInputPath == null )
+                {
+                    Assert.Fail( $"No HTML was produced for syntax tree '{sourceAbsolutePath}'." );
+                }
+
                 // Input.
                 var expectedInputHtmlPath = Path.Combine(
                     Path.GetDirectoryName( sourceAbsolutePath )!,
                     Path.GetFileNameWithoutExtension( sourceAbsolutePath ) + FileExtensions.InputHtml );
 
-                this.CompareHtmlFiles( syntaxTree.HtmlInputPath!, expectedInputHtmlPath, testInput.Options );
+                this.CompareHtmlFiles( syntaxTree.HtmlInputPath, expectedInputHtmlPath, testInput.Options, diffToolRunner );
             }
         }
 
@@ -162,12 +172,12 @@ internal sealed class HtmlGenerationTestRunner : AspectTestRunner
                     Path.GetDirectoryName( testInput.FullPath )!,
                     syntaxTree.ShortName + extension );
 
-                this.CompareHtmlFiles( syntaxTree.HtmlOutputPath.AssertNotNull(), expectedOutputHtmlPath, testInput.Options );
+                this.CompareHtmlFiles( syntaxTree.HtmlOutputPath.AssertNotNull(), expectedOutputHtmlPath, testInput.Options, diffToolRunner );
             }
         }
     }
 
-    private void CompareHtmlFiles( string actualHtmlPath, string expectedHtmlPath, TestOptions testOptions )
+    private void CompareHtmlFiles( string actualHtmlPath, string expectedHtmlPath, TestOptions testOptions, IDiffToolRunner? diffToolRunner )
     {
         this.Logger?.WriteLine( "Actual HTML: " + actualHtmlPath );
 
@@ -183,7 +193,7 @@ internal sealed class HtmlGenerationTestRunner : AspectTestRunner
         var htmlPath = actualHtmlPath;
         var actualHighlightedSource = TestOutputNormalizer.NormalizeEndOfLines( File.ReadAllText( htmlPath ) );
 
-        var hasDifference = this.CompareFiles( expectedHighlightedSource, expectedHtmlPath, actualHighlightedSource, htmlPath, testOptions );
+        var hasDifference = this.CompareFiles( expectedHighlightedSource, expectedHtmlPath, actualHighlightedSource, htmlPath, testOptions, diffToolRunner );
 
         if ( hasDifference )
         {

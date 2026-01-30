@@ -135,10 +135,7 @@ internal class AspectTestRunner : BaseTestRunner
 
         if ( testInput.Options.WriteInputHtml.GetValueOrDefault() || testInput.Options.WriteOutputHtml.GetValueOrDefault() )
         {
-            if ( pipelineResult.IsSuccessful && pipelineResult.Value.Configuration != null )
-            {
-                await this.WriteHtmlAsync( testInput, testResult, pipelineResult.Value.Configuration.ServiceProvider, testContext.CancellationToken );
-            }
+            await this.WriteHtmlAsync( testInput, testResult, testContext.CancellationToken );
         }
     }
 
@@ -538,7 +535,7 @@ internal class AspectTestRunner : BaseTestRunner
             var aspectTestResult = (AspectTestResult) testResult;
 
             // Get the diff tool runner from plugins (may be null if DiffEngine package is not referenced).
-            var diffToolRunner = testResult.TestContext?.PlugIns.OfType<ISnapshotDiffToolRunner>().SingleOrDefault();
+            var diffToolRunner = testResult.TestContext.AssertNotNull().DiffToolRunner;
 
             this.CompareFiles(
                 aspectTestResult.ExpectedProgramOutputText!,

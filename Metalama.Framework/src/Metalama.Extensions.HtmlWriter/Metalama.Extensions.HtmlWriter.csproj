@@ -25,6 +25,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
+        <ProjectReference Include="../Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.csproj" />
     </ItemGroup>
 
     <ItemGroup>

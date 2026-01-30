@@ -42,6 +42,10 @@
         <!-- Upgrade for latest security fixes. -->
         <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
 
+        <!-- Resolve conflicts -->
+        <PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryLatestVersion)"/>
+        <PackageReference Include="System.Buffers" VersionOverride="$(SystemBuffersLatestVersion)"/>
+
     </ItemGroup>
 
     <ItemGroup>
@@ -60,22 +64,8 @@
     </ItemGroup>
 
     <!-- Register extension assemblies from build output (for ProjectReference; PackageReference imports props automatically) -->
-    <ItemGroup>
-        <!-- HtmlWriter extension and its dependency -->
-        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net472/DiffPlex.dll" TargetFramework="net472" />
-        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net8.0/DiffPlex.dll" TargetFramework="net8.0" />
-        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net472/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net472" />
-        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net8.0/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net8.0" />
-        <!-- DiffEngine extension and its dependencies -->
-        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/EmptyFiles.dll" TargetFramework="net472" />
-        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/EmptyFiles.dll" TargetFramework="net8.0" />
-        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/DiffEngine.dll" TargetFramework="net472" />
-        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/DiffEngine.dll" TargetFramework="net8.0" />
-        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/Metalama.Extensions.DiffEngine.dll" TargetFramework="net472" />
-        <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/Metalama.Extensions.DiffEngine.dll" TargetFramework="net8.0" />
-        <!-- DiffEngine test plugin registration -->
-        <MetalamaTestPlugIn Include="Metalama.Extensions.DiffEngine.DiffEngineRunner, Metalama.Extensions.DiffEngine" />
-    </ItemGroup>
+    <Import Project="../../Metalama.Extensions.HtmlWriter/MetalamaExtensionAssemblies.props" />
+    <Import Project="../../Metalama.Extensions.DiffEngine/MetalamaExtensionAssemblies.props" />
 
     <ItemGroup>
         <InternalsVisibleTo Include="Metalama.AspectWorkbench" />

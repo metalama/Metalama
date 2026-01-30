@@ -2,9 +2,12 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
+using Metalama.Testing.AspectTesting;
 using System.Collections.Generic;
 
 [assembly: ExportExtension( typeof( Metalama.Extensions.HtmlWriter.HtmlCodeWriterFactory ), ExtensionKinds.ServiceFactory )]
@@ -14,11 +17,13 @@ namespace Metalama.Extensions.HtmlWriter;
 /// <summary>
 /// Factory that creates <see cref="HtmlCodeWriter"/> instances.
 /// </summary>
-public sealed class HtmlCodeWriterFactory : IProjectServiceFactory
+[UsedImplicitly]
+public sealed class HtmlCodeWriterFactory : IProjectServiceFactory, IHtmlCodeWriterFactory
 {
-    /// <inheritdoc />
-    public IEnumerable<IProjectService> CreateServices( in ProjectServiceProvider serviceProvider )
+    IEnumerable<IProjectService> IProjectServiceFactory.CreateServices( in ProjectServiceProvider serviceProvider )
     {
         return [new HtmlCodeWriter( serviceProvider )];
     }
+
+    IHtmlCodeWriter IHtmlCodeWriterFactory.Create( in ProjectServiceProvider serviceProvider ) => new HtmlCodeWriter( serviceProvider );
 }

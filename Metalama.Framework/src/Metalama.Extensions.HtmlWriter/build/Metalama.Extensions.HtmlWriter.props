@@ -8,5 +8,7 @@
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net472/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net472" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net8.0/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net8.0" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net9.0/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net9.0" />
+        <!-- Test plugin -->
+        <MetalamaTestPlugIn Include="Metalama.Extensions.HtmlWriter.HtmlCodeWriterFactory, Metalama.Extensions.HtmlWriter" />
     </ItemGroup>
 </Project>

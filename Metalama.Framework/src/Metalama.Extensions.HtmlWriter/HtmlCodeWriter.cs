@@ -29,7 +29,7 @@ namespace Metalama.Extensions.HtmlWriter;
 /// <summary>
 /// Implementation of <see cref="IHtmlCodeWriter"/> that provides HTML code writing functionality.
 /// </summary>
-public sealed class HtmlCodeWriter : IHtmlCodeWriter
+internal sealed class HtmlCodeWriter : IHtmlCodeWriter
 {
     private static readonly Regex _cleanAutomaticPropertiesRegex =
         new( @"\{(\s*(private|internal|protected|private protected|protected internal)?\s*[gs]et;\s*){1,2}\}" );
@@ -63,8 +63,22 @@ public sealed class HtmlCodeWriter : IHtmlCodeWriter
     {
         var oldSyntaxTree = await inputDocument.GetSyntaxTreeAsync( cancellationToken );
         var newSyntaxTree = await outputDocument.GetSyntaxTreeAsync( cancellationToken );
-        await this.WriteAsync( inputDocument, inputTextWriter, options, inputDiagnostics, GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, true ), cancellationToken );
-        await this.WriteAsync( outputDocument, outputTextWriter, options, outputDiagnostics, GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, false ), cancellationToken );
+
+        await this.WriteAsync(
+            inputDocument,
+            inputTextWriter,
+            options,
+            inputDiagnostics,
+            GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, true ),
+            cancellationToken );
+
+        await this.WriteAsync(
+            outputDocument,
+            outputTextWriter,
+            options,
+            outputDiagnostics,
+            GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, false ),
+            cancellationToken );
     }
 
     private async Task WriteAsync(
@@ -304,7 +318,8 @@ public sealed class HtmlCodeWriter : IHtmlCodeWriter
 
                             classes.Add( "diag-" + diagnostic.Severity );
 
-                            diagnosticBuilder.Append( FormattableString.Invariant( $"<span class=\"diagLine-{diagnostic.Severity}\">{diagnostic.Severity} {diagnostic.Id}: " ) );
+                            diagnosticBuilder.Append(
+                                FormattableString.Invariant( $"<span class=\"diagLine-{diagnostic.Severity}\">{diagnostic.Severity} {diagnostic.Id}: " ) );
 
                             HtmlEncode( diagnosticBuilder, textSpan, message );
                             diagnosticBuilder.Append( "</span>\n" );
@@ -536,12 +551,9 @@ public sealed class HtmlCodeWriter : IHtmlCodeWriter
             };
 
             string outputPath;
-            FileDiffInfo? diffInfo;
 
             if ( syntaxTreeKind == SyntaxTreeKind.Introduced )
             {
-                diffInfo = null;
-
                 outputPath = Path.Combine( outputDirectory, Path.ChangeExtension( documentPath, htmlExtension ) );
             }
             else
@@ -557,7 +569,7 @@ public sealed class HtmlCodeWriter : IHtmlCodeWriter
                 var relativePath = documentFullPath.Substring( projectDirectory.Length + 1 );
                 outputPath = Path.Combine( outputDirectory, Path.ChangeExtension( relativePath, htmlExtension ) );
 
-                diffInfo = getDiffInfo?.Invoke( documentPath );
+                getDiffInfo?.Invoke( documentPath );
             }
 
             var outputSubdirectory = Path.GetDirectoryName( outputPath ) ?? throw new InvalidOperationException( "Invalid output path." );

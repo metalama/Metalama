@@ -15,6 +15,7 @@ using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
@@ -161,6 +162,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
                 sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory( this.ProjectOptions ) ) );
 
             typedAdditionalServices.ProjectServices.Add( _ => new TestLanguageVersionProvider() );
+            typedAdditionalServices.ProjectServices.Add<IFormattedCodeWriter>( sp => new FormattedCodeWriter( sp ) );
 
             backstageServices = typedAdditionalServices.BackstageServices.Build( backstageServices );
 

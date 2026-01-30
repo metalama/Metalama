@@ -17,7 +17,7 @@ namespace Metalama.Testing.AspectTesting;
 /// </para>
 /// </remarks>
 [PublicAPI]
-public interface ISnapshotDiffToolRunner
+public interface IDiffToolRunner
 {
     /// <summary>
     /// Gets a value indicating whether the diff tool is disabled.

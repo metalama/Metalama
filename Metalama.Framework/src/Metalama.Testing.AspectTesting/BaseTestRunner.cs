@@ -750,7 +750,7 @@ internal abstract partial class BaseTestRunner
         }
 
         // Get the diff tool runner from plugins (may be null if DiffEngine package is not referenced).
-        var diffToolRunner = testResult.TestContext?.PlugIns.OfType<ISnapshotDiffToolRunner>().SingleOrDefault();
+        var diffToolRunner = testResult.TestContext?.DiffToolRunner;
 
         // Configure max instances if available.
         diffToolRunner?.SetMaxInstances( this._testRunnerOptions.MaxDiffToolInstances );
@@ -850,16 +850,16 @@ internal abstract partial class BaseTestRunner
         string actualText,
         string actualPath,
         TestOptions testOptions,
-        ISnapshotDiffToolRunner? diffToolRunner = null )
-        => this.CompareFiles( expectedText, expectedPath, actualText, actualPath, testOptions.SkipDiffTool == true, diffToolRunner );
+        IDiffToolRunner? diffToolRunner )
+        => this.CompareFiles( expectedText, expectedPath, actualText, actualPath, diffToolRunner, testOptions.SkipDiffTool == true );
 
-    protected bool CompareFiles(
+    private bool CompareFiles(
         string expectedText,
         string expectedPath,
         string actualText,
         string actualPath,
-        bool skipDiffTool = false,
-        ISnapshotDiffToolRunner? diffToolRunner = null )
+        IDiffToolRunner? diffToolRunner,
+        bool skipDiffTool )
     {
         var useDiff = this._testRunnerOptions.LaunchDiffTool && diffToolRunner is { IsDisabled: false } && !skipDiffTool;
 
@@ -914,9 +914,13 @@ internal abstract partial class BaseTestRunner
         return project;
     }
 
-    private protected async Task WriteHtmlAsync( TestInput testInput, TestResult testResult, ProjectServiceProvider pipelineServiceProvider, CancellationToken cancellationToken )
+    private protected async Task WriteHtmlAsync(
+        TestInput testInput,
+        TestResult testResult,
+        CancellationToken cancellationToken )
     {
-        var htmlCodeWriter = pipelineServiceProvider.GetService<IHtmlCodeWriter>();
+        var testContext = testResult.TestContext.AssertNotNull();
+        var htmlCodeWriter = testContext.CreateHtmlCodeWriter( testContext.ServiceProvider );
 
         if ( htmlCodeWriter == null )
         {
@@ -940,8 +944,7 @@ internal abstract partial class BaseTestRunner
         // Write each document individually.
         if ( testInput.Options.WriteInputHtml.GetValueOrDefault() || testInput.Options.WriteOutputHtml.GetValueOrDefault() )
         {
-            var serviceProvider = testResult.TestContext.AssertNotNull().ServiceProvider;
-            var pipeline = new TestDesignTimeAspectPipeline( serviceProvider );
+            var pipeline = new TestDesignTimeAspectPipeline( testContext.ServiceProvider );
             var inputCompilation = testResult.InputCompilation.AssertNotNull();
             var designTimePipelineResult = await pipeline.ExecuteAsync( inputCompilation );
 

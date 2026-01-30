@@ -8,9 +8,9 @@ using Metalama.Testing.AspectTesting;
 namespace Metalama.Extensions.DiffEngine;
 
 /// <summary>
-/// Implementation of <see cref="ISnapshotDiffToolRunner"/> that uses DiffEngine to launch diff tools.
+/// Implementation of <see cref="IDiffToolRunner"/> that uses DiffEngine to launch diff tools.
 /// </summary>
-public sealed class DiffEngineRunner : ISnapshotDiffToolRunner
+public sealed class DiffEngineRunner : IDiffToolRunner
 {
     /// <inheritdoc />
     public bool IsDisabled => DiffRunner.Disabled;
