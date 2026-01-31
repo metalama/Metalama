@@ -15,10 +15,11 @@ project {
     buildType(ReleaseBuild)
     buildType(PublicBuild)
     buildType(PublicDeployment)
+    buildType(UpstreamMerge)
     buildType(DockerTestsWinX64)
     buildType(DockerTestsWslX64)
 
-    buildTypesOrder = arrayListOf(DebugBuild,ReleaseBuild,PublicBuild,PublicDeployment,DockerTestsWinX64,DockerTestsWslX64)
+    buildTypesOrder = arrayListOf(DebugBuild,ReleaseBuild,PublicBuild,PublicDeployment,UpstreamMerge,DockerTestsWinX64,DockerTestsWslX64)
 
 }
 
@@ -397,6 +398,76 @@ object PublicDeployment : BuildType({
 
 })
 
+object UpstreamMerge : BuildType({
+
+    name = "Upstream Merge"
+
+    params {
+        text(
+            "UpstreamMerge.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Merge upstream' build step.", allowEmpty = true)
+        param("UpstreamMerge.Timeout", "15")
+    }
+
+    vcs {
+        root(AbsoluteId("Metalama_Metalama20261_Metalama"))
+     checkoutMode = CheckoutMode.ON_AGENT
+    }
+
+    steps {
+        powerShell {
+            name = "Prepare Docker image metalama-2026.1"
+            id = "PrepareImage"
+            scriptMode = file {
+                path = "DockerBuild.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-BuildImage -ImageName metalama-2026.1 -Dockerfile Dockerfile.claude "
+        }
+        powerShell {
+            name = "Merge upstream"
+            id = "UpstreamMerge"
+            scriptMode = file {
+                path = "DockerBuild.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-Script Build.ps1 -ImageName metalama-2026.1 -Dockerfile Dockerfile.claude -NoBuildImage -Snapshot merge-upstream --timeout %UpstreamMerge.Timeout% %UpstreamMerge.Arguments%"
+        }
+    }
+
+    requirements {
+        equals("env.BuildAgentType", "docker-win-x64-md")
+    }
+
+    features {
+        swabra {
+            lockingProcesses = Swabra.LockingProcessPolicy.KILL
+            verbose = true
+        }
+    }
+
+    dependencies {
+        dependency(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
+            snapshot {
+                     onDependencyFailure = FailureAction.FAIL_TO_START
+            }
+
+            artifacts {
+                cleanDestination = true
+                artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
+            }
+        }
+        dependency(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_UpstreamMerge")) {
+            snapshot {
+                     onDependencyFailure = FailureAction.ADD_PROBLEM
+            }
+        }
+     }
+
+})
+
 object DockerTestsWinX64 : BuildType({
 
     name = "Docker-based tests on Windows X64"
@@ -405,7 +476,7 @@ object DockerTestsWinX64 : BuildType({
         text(
             "Exec.Arguments", 
             "", 
-            label =".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 Arguments",
+            label ="DockerBuild.ps1 Arguments",
             description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
     }
 
@@ -432,13 +503,22 @@ object DockerTestsWinX64 : BuildType({
             noProfile = false
         }
         powerShell {
+            name = "Prepare Docker image metalama-2026.1-dockertestswinx64"
+            id = "PrepareImage"
+            scriptMode = file {
+                path = "DockerBuild.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-BuildImage -ImageName metalama-2026.1-dockertestswinx64 "
+        }
+        powerShell {
             name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             id = "Exec"
             scriptMode = file {
-                path = "./Metalama.Framework/src/tests/docker/DockerTests.ps1"
+                path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "win-x64 %Exec.Arguments%"
+            scriptArgs = "-Script .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 -ImageName metalama-2026.1-dockertestswinx64 -NoBuildImage win-x64 %Exec.Arguments%"
         }
     }
 
@@ -486,7 +566,7 @@ object DockerTestsWslX64 : BuildType({
         text(
             "Exec.Arguments", 
             "", 
-            label ="./Metalama.Framework/src/tests/docker/DockerTests.ps1 Arguments",
+            label ="DockerBuild.ps1 Arguments",
             description = "Arguments to append to the 'Execute ./Metalama.Framework/src/tests/docker/DockerTests.ps1' build step.", allowEmpty = true)
     }
 
@@ -513,13 +593,22 @@ object DockerTestsWslX64 : BuildType({
             noProfile = false
         }
         powerShell {
+            name = "Prepare Docker image metalama-2026.1-dockertestswslx64"
+            id = "PrepareImage"
+            scriptMode = file {
+                path = "DockerBuild.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-BuildImage -ImageName metalama-2026.1-dockertestswslx64 "
+        }
+        powerShell {
             name = "Execute ./Metalama.Framework/src/tests/docker/DockerTests.ps1"
             id = "Exec"
             scriptMode = file {
-                path = "./Metalama.Framework/src/tests/docker/DockerTests.ps1"
+                path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "linux-x64 -Wsl %Exec.Arguments%"
+            scriptArgs = "-Script ./Metalama.Framework/src/tests/docker/DockerTests.ps1 -ImageName metalama-2026.1-dockertestswslx64 -NoBuildImage linux-x64 -Wsl %Exec.Arguments%"
         }
     }
 

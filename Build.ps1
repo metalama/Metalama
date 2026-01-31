@@ -7,6 +7,7 @@ param(
     [switch]$Interactive, # Opens an interactive PowerShell session
     [switch]$StartVsmon, # Enable the remote debugger.
     [switch]$NoCache, # Bypass the build cache for `eng`, and force a rebuild.
+    [switch]$Snapshot, # Copy eng/src to temp directory to avoid file locking during Claude conflict resolution.
     [Parameter(ValueFromRemainingArguments)]
     [string[]]$BuildArgs   # Arguments passed to `Build.ps1` within the container.
 )
@@ -48,7 +49,18 @@ if (-not $Interactive -or $BuildArgs)
     # Change the working directory so we can use a global.json that is specific to eng.
     $previousLocation = Get-Location
 
-    Set-Location (Join-Path $PSScriptRoot $EngPath "src")
+    # Snapshot mode: copy eng/src to temp to avoid file locking during Claude conflict resolution
+    $engSrcPath = Join-Path $PSScriptRoot $EngPath "src"
+    $snapshotDir = $null
+    if ($Snapshot)
+    {
+        $snapshotDir = Join-Path $env:TEMP "eng-snapshot-$([Guid]::NewGuid().ToString('N').Substring(0,8))"
+        Write-Host "Creating snapshot of eng/src at $snapshotDir..." -ForegroundColor Cyan
+        Copy-Item -Path $engSrcPath -Destination $snapshotDir -Recurse -Force
+        $engSrcPath = $snapshotDir
+    }
+
+    Set-Location $engSrcPath
 
     try
     {
@@ -146,6 +158,13 @@ if (-not $Interactive -or $BuildArgs)
     finally
     {
         Set-Location $previousLocation
+
+        # Cleanup snapshot directory if it was created
+        if ($snapshotDir -and (Test-Path $snapshotDir))
+        {
+            Write-Host "Cleaning up snapshot directory..." -ForegroundColor Cyan
+            Remove-Item -Path $snapshotDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 
