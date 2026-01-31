@@ -12,6 +12,9 @@ param(
     [switch]$Claude, # Run Claude CLI instead of Build.ps1. Use -Claude for interactive, -Claude "prompt" for non-interactive.
     [switch]$NoMcp, # Do not start the MCP approval server (for -Claude mode).
     [switch]$Update, # Update timestamp to invalidate Docker cache and force Claude/plugin updates (Claude mode only).
+    # Timestamp value for Docker cache invalidation. Increase this to force updates of unpinned components like Claude CLI.
+    # If not specified, defaults to the first day of the current week (so cache auto-invalidates weekly).
+    [string]$Timestamp,
     [string]$ImageName, # Image name (defaults to a name based on the directory).
     [string]$BuildAgentPath, # Path to build agent directory (defaults based on platform).
     [switch]$LoadEnvFromKeyVault, # Forces loading environment variables form the key vault.
@@ -319,6 +322,39 @@ function Get-TimestampFile
     return $timestampFile
 }
 
+# Creates a timestamp file for TeamCity builds to control Docker cache invalidation.
+# Uses the -Timestamp parameter if provided, otherwise defaults to first day of current week
+# for automatic weekly invalidation of unpinned components like Claude CLI.
+function New-TeamCityTimestampFile
+{
+    param(
+        [string]$TimestampValue,
+        [string]$DockerContextDir
+    )
+
+    if ([string]::IsNullOrEmpty($TimestampValue))
+    {
+        # Default to first day of current week (Monday) for weekly cache invalidation
+        $today = [DateTime]::UtcNow.Date
+        $daysFromMonday = [int]$today.DayOfWeek - 1
+        if ($daysFromMonday -lt 0) { $daysFromMonday = 6 }  # Sunday = 6 days from Monday
+        $firstDayOfWeek = $today.AddDays(-$daysFromMonday)
+        $TimestampValue = $firstDayOfWeek.ToString("yyyy-MM-dd")
+    }
+
+    $gDirectory = Join-Path $DockerContextDir ".g"
+    if (-not (Test-Path $gDirectory))
+    {
+        New-Item -ItemType Directory -Path $gDirectory -Force | Out-Null
+    }
+
+    $timestampFile = Join-Path $gDirectory "update.timestamp"
+    Set-Content -Path $timestampFile -Value $TimestampValue -NoNewline -Force
+    Write-Host "TeamCity timestamp: $TimestampValue" -ForegroundColor Cyan
+
+    return $timestampFile
+}
+
 # Dictionary to track volume mounts with "writable wins" logic
 $script:VolumeMountDict = @{}
 
@@ -430,7 +466,14 @@ if (-not $KeepEnv)
         # Get/update timestamp file for cache invalidation (only if building image)
         if (-not $NoBuildImage)
         {
-            $timestampFile = Get-TimestampFile -Update:$Update
+            if ($env:IS_TEAMCITY_AGENT)
+            {
+                $timestampFile = New-TeamCityTimestampFile -TimestampValue $Timestamp -DockerContextDir $dockerContextDirectory
+            }
+            else
+            {
+                $timestampFile = Get-TimestampFile -Update:$Update
+            }
         }
     }
     else
@@ -997,7 +1040,8 @@ foreach (`$dir in `$gitDirectories) {
 }
 
 # Copy timestamp file to docker context (for Claude mode cache invalidation)
-if ($Claude -and $timestampFile)
+# Skip if running on TeamCity - we already created the file directly in docker-context
+if ($Claude -and $timestampFile -and -not $env:IS_TEAMCITY_AGENT)
 {
     $gDirectory = Join-Path $dockerContextDirectory ".g"
     if (-not (Test-Path $gDirectory))
