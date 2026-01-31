@@ -178,6 +178,9 @@ if (-not $Interactive -or $BuildArgs)
             Write-Host "Cleaning up snapshot directory..." -ForegroundColor Cyan
             Remove-Item -Path $snapshotDir -Recurse -Force -ErrorAction SilentlyContinue
         }
+
+        # Reset environment variable
+        $env:ENG_REPO_DIRECTORY = ""
     }
 }
 
