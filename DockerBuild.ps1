@@ -19,9 +19,9 @@ param(
     [string]$Script = 'Build.ps1', # The build script to be executed inside Docker.
     [string]$Dockerfile, # Path to custom Dockerfile (defaults to Dockerfile or Dockerfile.claude based on -Claude).
     [switch]$NoInit, # Do not generate or call Init.g.ps1 (skips git config, safe.directory, etc).
-    [string]$Isolation = 'process', # Docker isolation mode (process or hyperv).
-    [string]$Memory, # Docker memory limit. Default calculated from $DefaultMemoryGb.
-    [int]$Cpus = [Environment]::ProcessorCount, # Docker CPU limit (defaults to host's CPU count).
+    [string]$Isolation = 'process', # Docker isolation mode (process or hyperv). Memory/CPU limits only apply to hyperv.
+    [string]$Memory, # Docker memory limit (e.g., "8g"). Only used with hyperv isolation.
+    [int]$Cpus = [Environment]::ProcessorCount, # Docker CPU limit. Only used with hyperv isolation.
     [string[]]$Mount, # Additional directories to mount from host (readonly by default, append :w for writable). Supports * and ** glob patterns.
     [Parameter(ValueFromRemainingArguments)]
     [string[]]$BuildArgs   # Arguments passed to `Build.ps1` within the container (or Claude prompt if -Claude is specified).
@@ -31,14 +31,7 @@ param(
 # These settings are replaced by the generate-scripts command.
 $EngPath = 'eng'
 $EnvironmentVariables = 'AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AZ_IDENTITY_USERNAME,AZURE_CLIENT_ID,AZURE_CLIENT_SECRET,AZURE_DEVOPS_TOKEN,AZURE_DEVOPS_USER,AZURE_TENANT_ID,DOC_API_KEY,DOWNLOADS_API_KEY,ENG_USERNAME,GIT_USER_EMAIL,GIT_USER_NAME,GITHUB_AUTHOR_EMAIL,GITHUB_REVIEWER_TOKEN,GITHUB_TOKEN,IS_POSTSHARP_OWNED,IS_TEAMCITY_AGENT,MetalamaLicense,NUGET_ORG_API_KEY,PostSharpLicense,SIGNSERVER_SECRET,TEAMCITY_CLOUD_TOKEN,TYPESENSE_API_KEY,VS_MARKETPLACE_ACCESS_TOKEN,VSS_NUGET_EXTERNAL_FEED_ENDPOINTS'
-$DefaultMemoryGb = 8
 ####
-
-# Calculate default memory: add 4GB for Claude mode
-if (-not $Memory) {
-    $memoryGb = if ($Claude) { $DefaultMemoryGb + 4 } else { $DefaultMemoryGb }
-    $Memory = "${memoryGb}g"
-}
 
 $ErrorActionPreference = "Stop"
 $dockerContextDirectory = "$EngPath/docker-context"
@@ -1112,7 +1105,15 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     }
 
     Write-Host "Building the image with tag: $ImageTag" -ForegroundColor Green
-    $dockerfileContent | docker build -t $ImageTag --memory=$Memory --build-arg MOUNTPOINTS="$mountPointsAsString" -f - $dockerContextDirectory
+
+    # Build docker build command with optional --memory (not supported in process isolation)
+    $dockerBuildCmd = @('build', '-t', $ImageTag)
+    if ($Memory -and $Isolation -ne 'process') {
+        $dockerBuildCmd += "--memory=$Memory"
+    }
+    $dockerBuildCmd += @('--build-arg', "MOUNTPOINTS=$mountPointsAsString", '-f', '-', $dockerContextDirectory)
+
+    $dockerfileContent | & docker @dockerBuildCmd
     if ($LASTEXITCODE -ne 0)
     {
         Write-Host "Docker build failed with exit code $LASTEXITCODE" -ForegroundColor Red
@@ -1147,7 +1148,6 @@ if (-not $BuildImage)
     {
         $volumeArgs += @("-v", $mapping)
     }
-    $VolumeMappingsAsString = ($VolumeMappings | ForEach-Object { "-v $_" }) -join " "
 
     if ($Claude)
     {
@@ -1287,7 +1287,6 @@ if (-not $BuildImage)
 
     # Common docker execution for both modes
     $dockerArgsAsString = $dockerArgs -join " "
-    $envArgsAsString = ($envArgs -join " ")
 
     # Execute docker command
     if ($existingContainerId)
@@ -1299,10 +1298,17 @@ if (-not $BuildImage)
     else
     {
         # Start new container with docker run
-        Write-Host "Executing: ``docker run --rm --memory=$Memory --cpus=$Cpus $isolationArg $dockerArgsAsString $VolumeMappingsAsString $envArgsAsString -w $ContainerCallingDir $ImageTag `"$pwshPath`" $pwshArgs -Command `"$inlineScript`"" -ForegroundColor Cyan
-
         # Build docker command with proper argument handling (avoid empty strings)
-        $dockerCmd = @('run', '--rm', "--memory=$Memory", "--cpus=$Cpus")
+        $dockerCmd = @('run', '--rm')
+
+        # Only add --memory and --cpus when NOT using process isolation
+        if ($Isolation -ne 'process') {
+            if ($Memory) {
+                $dockerCmd += "--memory=$Memory"
+            }
+            $dockerCmd += "--cpus=$Cpus"
+        }
+
         if ($isolationArg) { $dockerCmd += $isolationArg }
         $dockerCmd += $dockerArgs
         $dockerCmd += $volumeArgs
@@ -1313,6 +1319,7 @@ if (-not $BuildImage)
             $dockerCmd += @('-w', $ContainerCallingDir, $ImageTag, $pwshPath, '-Command', $inlineScript)
         }
 
+        Write-Host "Executing: ``docker $($dockerCmd -join ' ')" -ForegroundColor Cyan
         & docker @dockerCmd
     }
     $dockerExitCode = $LASTEXITCODE

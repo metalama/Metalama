@@ -21,7 +21,6 @@ var product = new Product( MetalamaDependencies.Metalama )
 {
     OverriddenBuildAgentRequirements = new ContainerRequirements( ContainerHostKind.Windows )
     {
-        Memory = 16,
         Components =
         [
             // Must match global.json.
