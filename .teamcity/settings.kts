@@ -471,7 +471,7 @@ object DockerTestsWinX64 : BuildType({
         text(
             "Exec.Arguments", 
             "", 
-            label =".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 Arguments",
+            label ="DockerBuild.ps1 Arguments",
             description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
     }
 
@@ -498,13 +498,22 @@ object DockerTestsWinX64 : BuildType({
             noProfile = false
         }
         powerShell {
+            name = "Prepare Docker image metalama-2026.0-dockertestswinx64"
+            id = "PrepareImage"
+            scriptMode = file {
+                path = "DockerBuild.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-BuildImage -ImageName metalama-2026.0-dockertestswinx64 "
+        }
+        powerShell {
             name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             id = "Exec"
             scriptMode = file {
-                path = "./Metalama.Framework/src/tests/docker/DockerTests.ps1"
+                path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "win-x64 %Exec.Arguments%"
+            scriptArgs = "-Script .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 -ImageName metalama-2026.0-dockertestswinx64 -NoBuildImage win-x64 %Exec.Arguments%"
         }
     }
 
@@ -552,7 +561,7 @@ object DockerTestsWslX64 : BuildType({
         text(
             "Exec.Arguments", 
             "", 
-            label ="./Metalama.Framework/src/tests/docker/DockerTests.ps1 Arguments",
+            label ="DockerBuild.ps1 Arguments",
             description = "Arguments to append to the 'Execute ./Metalama.Framework/src/tests/docker/DockerTests.ps1' build step.", allowEmpty = true)
     }
 
@@ -579,13 +588,22 @@ object DockerTestsWslX64 : BuildType({
             noProfile = false
         }
         powerShell {
+            name = "Prepare Docker image metalama-2026.0-dockertestswslx64"
+            id = "PrepareImage"
+            scriptMode = file {
+                path = "DockerBuild.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-BuildImage -ImageName metalama-2026.0-dockertestswslx64 "
+        }
+        powerShell {
             name = "Execute ./Metalama.Framework/src/tests/docker/DockerTests.ps1"
             id = "Exec"
             scriptMode = file {
-                path = "./Metalama.Framework/src/tests/docker/DockerTests.ps1"
+                path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "linux-x64 -Wsl %Exec.Arguments%"
+            scriptArgs = "-Script ./Metalama.Framework/src/tests/docker/DockerTests.ps1 -ImageName metalama-2026.0-dockertestswslx64 -NoBuildImage linux-x64 -Wsl %Exec.Arguments%"
         }
     }
 
