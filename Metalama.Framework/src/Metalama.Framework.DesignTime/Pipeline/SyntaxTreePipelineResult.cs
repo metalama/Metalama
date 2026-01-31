@@ -2,7 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
+using System.IO.Hashing;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Collections;
@@ -93,24 +93,24 @@ namespace Metalama.Framework.DesignTime.Pipeline
 
             foreach ( var aspectInstance in aspectInstances )
             {
-                var xxh = new XXH64();
+                var xxh = new XxHash64();
 
-                xxh.Update( aspectInstance.AspectClassFullName );
-                xxh.Update( aspectInstance.TargetDeclarationId.Id );
-                xxh.Update( aspectInstance.PredecessorDeclarationId?.Id );
+                xxh.Append( aspectInstance.AspectClassFullName );
+                xxh.Append( aspectInstance.TargetDeclarationId.Id );
+                xxh.Append( aspectInstance.PredecessorDeclarationId?.Id );
 
-                hashCode ^= xxh.Digest();
+                hashCode ^= xxh.GetCurrentHashAsUInt64();
             }
 
             foreach ( var transformation in transformations )
             {
-                var xxh = new XXH64();
+                var xxh = new XxHash64();
 
-                xxh.Update( transformation.AspectClassFullName );
-                xxh.Update( transformation.TargetDeclarationId.Id );
-                xxh.Update( transformation.Description );
+                xxh.Append( transformation.AspectClassFullName );
+                xxh.Append( transformation.TargetDeclarationId.Id );
+                xxh.Append( transformation.Description );
 
-                hashCode ^= xxh.Digest();
+                hashCode ^= xxh.GetCurrentHashAsUInt64();
             }
 
             return hashCode;

@@ -3,13 +3,13 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Contracts.Diagnostics;
+using Metalama.Framework.DesignTime.Rpc;
 using Microsoft.CodeAnalysis;
-using Newtonsoft.Json;
 using System.Globalization;
 
 namespace Metalama.Framework.DesignTime.Diagnostics;
 
-[JsonObject]
+[RpcContract]
 public class DiagnosticData : IDiagnosticData
 {
     public DiagnosticData( Diagnostic diagnostic )
@@ -25,7 +25,6 @@ public class DiagnosticData : IDiagnosticData
         this.EndColumn = lineSpan.EndLinePosition.Character;
     }
 
-    [JsonConstructor]
     public DiagnosticData( DiagnosticSeverity severity, string filePath, string message, int startLine, int startColumn, int endLine, int endColumn )
     {
         this.Severity = severity;

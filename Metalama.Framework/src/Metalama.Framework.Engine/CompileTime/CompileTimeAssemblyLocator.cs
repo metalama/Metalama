@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Utilities;
@@ -155,25 +154,26 @@ internal sealed class CompileTimeAssemblyLocator
         }
 
         // Compute a unique hash for the combination of factors.
-        var hashBuilder = new XXH64();
-        hashBuilder.Update( additionalReferences );
-        hashBuilder.Update( targetFrameworksString );
-        hashBuilder.Update( additionalNugetSources );
-        hashBuilder.Update( RoslynApiVersion.Current );
+        using var hashHandle = HashUtilities.AllocateHasher();
+        var hashBuilder = hashHandle.Value;
+        hashBuilder.Append( additionalReferences );
+        hashBuilder.Append( targetFrameworksString );
+        hashBuilder.Append( additionalNugetSources );
+        hashBuilder.Append( RoslynApiVersion.Current );
 
         foreach ( var nugetConfigFile in this._nugetConfigFiles ?? [] )
         {
             var nugetConfigContent = File.ReadAllText( nugetConfigFile );
-            hashBuilder.Update( nugetConfigContent );
+            hashBuilder.Append( nugetConfigContent );
         }
 
         // Include optional salt for cache invalidation (useful for testing).
         if ( !string.IsNullOrEmpty( projectOptions.AssemblyLocatorSalt ) )
         {
-            hashBuilder.Update( projectOptions.AssemblyLocatorSalt );
+            hashBuilder.Append( projectOptions.AssemblyLocatorSalt );
         }
 
-        var projectHash = hashBuilder.Digest().ToString( "x", CultureInfo.InvariantCulture );
+        var projectHash = hashBuilder.GetCurrentHashAsUInt64().ToString( "x", CultureInfo.InvariantCulture );
 
         this._cacheDirectory = tempFileManager.GetTempDirectory( TempDirectories.AssemblyLocator, CleanUpStrategy.WhenUnused, projectHash );
 

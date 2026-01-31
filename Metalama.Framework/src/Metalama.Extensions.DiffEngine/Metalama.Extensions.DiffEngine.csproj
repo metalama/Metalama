@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net472;net8.0;net9.0</TargetFrameworks>
+        <Description>Optional plugin for Metalama.Testing.AspectTesting that provides diff tool integration using DiffEngine. Reference this package to enable automatic diff tool launching when test output differs from expected output.</Description>
+        <PackageId>Metalama.Extensions.DiffEngine</PackageId>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddAssembliesToOutput</TargetsForTfmSpecificContentInPackage>
+
+        <!-- Disable a warning saying that we have nothing under the lib folder. -->
+        <NoWarn>$(NoWarn);NU5128;NU5100</NoWarn>
+
+        <!-- Disable the customization done by Metalama.Compiler.Sdk -->
+        <MetalamaCompilerDisablePackCustomization>True</MetalamaCompilerDisablePackCustomization>
+
+        <!-- Avoid creating a package that has no dependencies nor content. -->
+        <IncludeSymbols>false</IncludeSymbols>
+
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DiffEngine" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="build\**\*" Pack="true" PackagePath="build" />
+        <None Include="buildTransitive\**\*" Pack="true" PackagePath="buildTransitive" />
+    </ItemGroup>
+
+    <!-- Packaging -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+    <Target Name="_AddAssembliesToOutput">
+        <ItemGroup>
+            <!-- DiffEngine extension assembly -->
+            <TfmSpecificPackageFile Include="$(OutDir)Metalama.Extensions.DiffEngine.dll" PackagePath="metalama/$(TargetFramework)" />
+            <!-- DiffEngine and its dependencies -->
+            <TfmSpecificPackageFile Include="$(OutDir)DiffEngine.dll" PackagePath="metalama/$(TargetFramework)" />
+            <TfmSpecificPackageFile Include="$(OutDir)EmptyFiles.dll" PackagePath="metalama/$(TargetFramework)" />
+        </ItemGroup>
+    </Target>
+
+    <Target Name="SetPackageContent" AfterTargets="MetalamaCompilerSetLibAssembliesInPackage">
+        <ItemGroup>
+            <!-- remove everything from lib -->
+            <BuildOutputInPackage Remove="@(BuildOutputInPackage)" />
+        </ItemGroup>
+    </Target>
+
+</Project>

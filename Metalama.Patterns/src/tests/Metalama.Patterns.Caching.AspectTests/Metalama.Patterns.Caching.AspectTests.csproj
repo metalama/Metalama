@@ -14,6 +14,7 @@
         <PackageReference Include="xunit" />
         <PackageReference Include="xunit.runner.visualstudio" />
         <PackageReference Include="Metalama.Testing.AspectTesting" />
+        <PackageReference Include="Metalama.Extensions.DiffEngine" />
     </ItemGroup>
 
     <ItemGroup>

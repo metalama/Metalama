@@ -1,7 +1,8 @@
-{
+﻿{
   "solution": {
     "path": "Metalama.Framework.sln",
     "projects": [
+      "src\\Metalama.Extensions.HtmlWriter\\Metalama.Extensions.HtmlWriter.csproj",
       "src\\Metalama.Framework.CompileTimeContracts\\Metalama.Framework.CompileTimeContracts.csproj",
       "src\\Metalama.Framework.CompileTime\\Metalama.Framework.CompileTime.csproj",
       "src\\Metalama.Framework.ConfigurationFiles\\Metalama.Framework.ConfigurationFiles.csproj",
@@ -16,6 +17,7 @@
       "src\\Metalama.Framework.Workspaces\\Metalama.Framework.Workspaces.csproj",
       "src\\Metalama.Framework\\Metalama.Framework.csproj",
       "src\\Metalama.SourceTransformer\\Metalama.SourceTransformer.csproj",
+      "src\\Metalama.Extensions.DiffEngine\\Metalama.Extensions.DiffEngine.csproj",
       "src\\Metalama.Testing.AspectTesting\\Metalama.Testing.AspectTesting.csproj",
       "src\\Metalama.Testing.UnitTesting\\Metalama.Testing.UnitTesting.csproj",
       "src\\Metalama.Tool\\Metalama.Tool.csproj",

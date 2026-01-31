@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if ROSLYN_5_0_0_OR_GREATER
-using K4os.Hash.xxHash;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Code;
@@ -80,11 +79,12 @@ internal sealed class IntroduceExtensionBlockAdvice : IntroduceDeclarationAdvice
         // Set deterministic name if not user-defined.
         if ( string.IsNullOrEmpty( builder.Name ) )
         {
-            XXH64 hash = new();
-            hash.Update( orders.OrderWithinPipeline );
-            hash.Update( orders.OrderWithinPipelineStepAndType );
-            hash.Update( orders.OrderWithinPipelineStepAndTypeAndAspectInstance );
-            builder.Name = $"Extension_{(ushort) hash.Digest():x4}";
+            using var hashHandle = HashUtilities.AllocateHasher();
+            var hash = hashHandle.Value;
+            hash.Append( orders.OrderWithinPipeline );
+            hash.Append( orders.OrderWithinPipelineStepAndType );
+            hash.Append( orders.OrderWithinPipelineStepAndTypeAndAspectInstance );
+            builder.Name = $"Extension_{(ushort) hash.GetCurrentHashAsUInt64():x4}";
         }
 
         builder.Freeze();

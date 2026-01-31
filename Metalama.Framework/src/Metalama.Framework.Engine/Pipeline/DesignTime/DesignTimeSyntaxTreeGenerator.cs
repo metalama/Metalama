@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if ROSLYN_5_0_0_OR_GREATER
-using K4os.Hash.xxHash;
 using Metalama.Framework.Engine.Utilities;
 #endif
 using Metalama.Framework.Code;
@@ -295,10 +294,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     {
                         // Source-defined extension block: use location-based hash
                         var location = primarySyntax.GetLocation();
-                        XXH64 hash = new();
-                        hash.Update( location.SourceTree.AssertNotNull().FilePath );
-                        hash.Update( location.SourceSpan.Start );
-                        sb.AppendFormat( CultureInfo.InvariantCulture, "{0:x}", (int) hash.Digest() );
+                        using var hashHandle = HashUtilities.AllocateHasher();
+                        var hash = hashHandle.Value;
+                        hash.Append( location.SourceTree.AssertNotNull().FilePath );
+                        hash.Append( location.SourceSpan.Start );
+                        sb.AppendFormat( CultureInfo.InvariantCulture, "{0:x}", (int) hash.GetCurrentHashAsUInt64() );
                     }
                     else
                     {

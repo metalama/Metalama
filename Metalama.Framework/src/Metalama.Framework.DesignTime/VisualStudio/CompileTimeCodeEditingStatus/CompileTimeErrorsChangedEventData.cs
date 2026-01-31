@@ -4,12 +4,11 @@
 
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.DesignTime.Rpc;
-using Newtonsoft.Json;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.CompileTimeCodeEditingStatus;
 
-[JsonObject]
+[RpcContract]
 internal sealed class CompileTimeErrorsChangedEventData : RpcEventData
 {
     public ProjectKey ProjectKey { get; }

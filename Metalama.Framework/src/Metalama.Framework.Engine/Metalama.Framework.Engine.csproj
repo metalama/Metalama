@@ -50,7 +50,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="DiffPlex" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(ThisRoslynVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(ThisRoslynVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" VersionOverride="$(ThisRoslynVersion)" />
@@ -61,7 +60,7 @@
         <PackageReference Include="Metalama.Backstage.Tools" />
 
         <PackageReference Include="Microsoft.Bcl.HashCode" />
-        <PackageReference Include="K4os.Hash.xxHash" />
+        <PackageReference Include="System.IO.Hashing" />
         <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
 
 		<!-- Resolve conflict -->

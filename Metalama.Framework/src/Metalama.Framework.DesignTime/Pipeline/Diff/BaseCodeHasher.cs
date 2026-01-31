@@ -3,10 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using K4os.Hash.xxHash;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using System.IO.Hashing;
 using System.Text;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Diff;
@@ -18,13 +18,13 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff;
 [UsedImplicitly( ImplicitUseTargetFlags.WithMembers )]
 public abstract class BaseCodeHasher : SafeSyntaxWalker
 {
-    private readonly XXH64 _hasher;
+    private readonly XxHash64 _hasher;
 
     internal StringBuilder? Log { get; private set; }
 
     internal void EnableLogging() => this.Log = new StringBuilder();
 
-    protected BaseCodeHasher( XXH64 hasher )
+    protected BaseCodeHasher( XxHash64 hasher )
     {
         this._hasher = hasher;
     }
@@ -33,7 +33,7 @@ public abstract class BaseCodeHasher : SafeSyntaxWalker
     {
         if ( token.RawKind != 0 && !token.IsMissing )
         {
-            this._hasher.Update( token.RawKind );
+            this._hasher.Append( token.RawKind );
             this.Log?.AppendLineInvariant( $"Adding '{token.RawKind}' to the hash." );
         }
     }
@@ -42,7 +42,7 @@ public abstract class BaseCodeHasher : SafeSyntaxWalker
     {
         if ( !token.IsMissing )
         {
-            this._hasher.Update( token.Text );
+            this._hasher.Append( token.Text );
             this.Log?.AppendLineInvariant( $"Adding '{token.Text}' to the hash." );
         }
     }
@@ -50,7 +50,7 @@ public abstract class BaseCodeHasher : SafeSyntaxWalker
     protected void HashValue<T>( T value )
         where T : unmanaged
     {
-        this._hasher.Update( value );
+        this._hasher.Append( value );
         this.Log?.AppendLineInvariant( $"Adding '{value}' to the hash." );
     }
 
@@ -74,7 +74,7 @@ public abstract class BaseCodeHasher : SafeSyntaxWalker
 
     protected void Visit( in SyntaxToken token )
     {
-        this._hasher.Update( token.Text );
+        this._hasher.Append( token.Text );
         this.Log?.AppendLineInvariant( $"Adding '{token.Text}' to the hash." );
     }
 

@@ -1,0 +1,15 @@
+<Project>
+    <!-- Set up additional items needed when referencing this project as a ProjectReference. -->
+    <ItemGroup>
+        <!-- DiffPlex dependency -->
+        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)bin/$(Configuration)/net472/DiffPlex.dll" TargetFramework="net472" />
+        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)bin/$(Configuration)/net8.0/DiffPlex.dll" TargetFramework="net8.0" />
+        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)bin/$(Configuration)/net9.0/DiffPlex.dll" TargetFramework="net9.0" />
+        <!-- HtmlWriter extension -->
+        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)bin/$(Configuration)/net472/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net472" />
+        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)bin/$(Configuration)/net8.0/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net8.0" />
+        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)bin/$(Configuration)/net9.0/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net9.0" />
+        <!-- Test plugin -->
+        <MetalamaTestPlugIn Include="Metalama.Extensions.HtmlWriter.HtmlCodeWriterFactory, Metalama.Extensions.HtmlWriter" />
+    </ItemGroup>
+</Project>
