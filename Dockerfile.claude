@@ -18,9 +18,10 @@ ENV RUNNING_IN_DOCKER=TRUE
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV DOTNET_CLI_UI_LANGUAGE=en
+ENV VSLANG=1033
 
-# Add Windows PowerShell to PATH (pwsh added later by PowershellComponent)
-ENV PATH="C:\Windows\System32\WindowsPowerShell\v1.0;${PATH}"
+# Set base PATH explicitly to avoid issues with ${PATH} expansion
+ENV PATH="C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0"
 
 # Enable long path support
 RUN Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name 'LongPathsEnabled' -Value 1
@@ -97,43 +98,37 @@ RUN New-Item -ItemType Directory -Path 'C:\Program Files (x86)\Microsoft Visual 
     New-Item -ItemType Directory -Path 'C:\Program Files\dotnet\sdk\NuGetFallbackFolder' -Force | Out-Null
 
 
-# Install GitHub CLI
-RUN Invoke-WebRequest -Uri https://github.com/cli/cli/releases/download/v2.63.2/gh_2.63.2_windows_amd64.msi -OutFile gh.msi; `
-    $process = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/I gh.msi /quiet'; `
-    if ($process.ExitCode -ne 0) { exit $process.ExitCode }; `
-    Remove-Item gh.msi
+# Install Node.js
+RUN Invoke-WebRequest -Uri "https://nodejs.org/dist/v22.0.0/node-v22.0.0-win-x64.zip" -OutFile node.zip; `
+    Expand-Archive node.zip -DestinationPath C:\; `
+    Rename-Item "C:\node-v22.0.0-win-x64" "C:\nodejs"; `
+    Remove-Item node.zip
 
-ENV PATH="C:\Program Files\GitHub CLI;${PATH}"
-
-
-# Timestamp
-# Cache invalidation layer - changes when -Update is used
-COPY .g/update.timestamp C:\docker-context\update.timestamp
-RUN Write-Host "PostSharp.Engineering build timestamp: $(Get-Content C:\docker-context\update.timestamp)"
+ENV NPM_CONFIG_PREFIX=C:\npm
+ENV PATH="C:\nodejs;C:\npm;${PATH}"
 
 
 # Install Claude CLI
-ENV HOME=C:\Users\ContainerAdministrator
-ENV USERPROFILE=C:\Users\ContainerAdministrator
-ENV CLAUDE_CODE_SHELL=pwsh
-ENV PATH=$PATH;C:\Users\ContainerAdministrator\.local\bin
+# Set HOME/USERPROFILE so Claude CLI finds credentials during build
+ENV HOME=C:\\Users\\ContainerAdministrator
+ENV USERPROFILE=C:\\Users\\ContainerAdministrator
 
-RUN irm https://claude.ai/install.ps1 | iex; `
-    $claudeJsonPath = 'C:\Users\ContainerAdministrator\.claude.json'; `
-    if (Test-Path $claudeJsonPath) { `
-        $claudeConfig = Get-Content $claudeJsonPath -Raw | ConvertFrom-Json; `
-        $claudeConfig | Add-Member -NotePropertyName 'hasCompletedOnboarding' -NotePropertyValue $true -Force; `
-        $claudeConfig | ConvertTo-Json -Depth 10 | Set-Content $claudeJsonPath; `
-    } else { `
-        '{"hasCompletedOnboarding": true}' | Set-Content $claudeJsonPath; `
-    }; `
-    claude plugin marketplace add https://github.com/metalama/Metalama.AI.Skills; `
-    claude plugin marketplace add https://github.com/postsharp/PostSharp.Engineering.AISkills; `
-    claude plugin install metalama; `
-    claude plugin install metalama-dev; `
-    claude plugin install eng; `
-  echo 'Claude CLI installation completed.'
+# Install Claude CLI and configure using cmd shell to avoid HCS issues with PowerShell
+SHELL ["cmd", "/S", "/C"]
+RUN C:\nodejs\npm.cmd install --global @anthropic-ai/claude-code@2.1.27
+RUN mkdir C:\Users\ContainerAdministrator\.claude && echo {"hasCompletedOnboarding": true} > C:\Users\ContainerAdministrator\.claude.json && echo {"alwaysThinkingEnabled": true} > C:\Users\ContainerAdministrator\.claude\settings.json
 
+# Restore PowerShell shell using full path
+SHELL ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Command"]
+
+
+# Install Claude CLI Add-ins
+# Install Claude plugins using cmd shell to avoid HCS issues with PowerShell
+SHELL ["cmd", "/S", "/C"]
+RUN echo Installing Claude plugins && C:\npm\claude plugin marketplace add https://github.com/metalama/Metalama.AI.Skills && C:\npm\claude plugin marketplace add https://github.com/postsharp/PostSharp.Engineering.AISkills && C:\npm\claude plugin install metalama && C:\npm\claude plugin install metalama-dev && C:\npm\claude plugin install eng
+
+# Restore PowerShell shell using full path
+SHELL ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Command"]
 
 
 # Epilogue

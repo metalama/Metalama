@@ -11,10 +11,7 @@ param(
     [switch]$KeepEnv, # Does not override the env.g.json file.
     [switch]$Claude, # Run Claude CLI instead of Build.ps1. Use -Claude for interactive, -Claude "prompt" for non-interactive.
     [switch]$NoMcp, # Do not start the MCP approval server (for -Claude mode).
-    [switch]$Update, # Update timestamp to invalidate Docker cache and force Claude/plugin updates (Claude mode only).
-    # Timestamp value for Docker cache invalidation. Increase this to force updates of unpinned components like Claude CLI.
-    # If not specified, defaults to the first day of the current week (so cache auto-invalidates weekly).
-    [string]$Timestamp,
+    [switch]$Update, # Force full timestamp update to invalidate Docker cache and force Claude/plugin updates.
     [string]$ImageName, # Image name (defaults to a name based on the directory).
     [string]$BuildAgentPath, # Path to build agent directory (defaults based on platform).
     [switch]$LoadEnvFromKeyVault, # Forces loading environment variables form the key vault.
@@ -311,46 +308,35 @@ function Get-TimestampFile
         New-Item -ItemType Directory -Path $timestampDir -Force | Out-Null
     }
 
-    # Create file if it doesn't exist OR update if -Update specified
-    if (-not (Test-Path $timestampFile) -or $Update)
+    if ($Update)
     {
+        # Force update with full timestamp (seconds precision) to invalidate cache
         $timestamp = [DateTime]::UtcNow.ToString("o")  # ISO 8601 format
         Set-Content -Path $timestampFile -Value $timestamp -NoNewline -Force
-        Write-Host "Timestamp file updated: $timestamp" -ForegroundColor Cyan
+        Write-Host "Timestamp file updated (forced): $timestamp" -ForegroundColor Cyan
     }
-
-    return $timestampFile
-}
-
-# Creates a timestamp file for TeamCity builds to control Docker cache invalidation.
-# Uses the -Timestamp parameter if provided, otherwise defaults to first day of current week
-# for automatic weekly invalidation of unpinned components like Claude CLI.
-function New-TeamCityTimestampFile
-{
-    param(
-        [string]$TimestampValue,
-        [string]$DockerContextDir
-    )
-
-    if ([string]::IsNullOrEmpty($TimestampValue))
+    else
     {
-        # Default to first day of current week (Monday) for weekly cache invalidation
-        $today = [DateTime]::UtcNow.Date
-        $daysFromMonday = [int]$today.DayOfWeek - 1
-        if ($daysFromMonday -lt 0) { $daysFromMonday = 6 }  # Sunday = 6 days from Monday
-        $firstDayOfWeek = $today.AddDays(-$daysFromMonday)
-        $TimestampValue = $firstDayOfWeek.ToString("yyyy-MM-dd")
-    }
+        # Daily timestamp - only update if file doesn't exist or date changed
+        $todayTimestamp = [DateTime]::UtcNow.Date.ToString("yyyy-MM-dd")
+        $needsUpdate = $true
 
-    $gDirectory = Join-Path $DockerContextDir ".g"
-    if (-not (Test-Path $gDirectory))
-    {
-        New-Item -ItemType Directory -Path $gDirectory -Force | Out-Null
-    }
+        if (Test-Path $timestampFile)
+        {
+            $currentTimestamp = Get-Content $timestampFile -Raw
+            # Check if current timestamp starts with today's date
+            if ($currentTimestamp -and $currentTimestamp.StartsWith($todayTimestamp))
+            {
+                $needsUpdate = $false
+            }
+        }
 
-    $timestampFile = Join-Path $gDirectory "update.timestamp"
-    Set-Content -Path $timestampFile -Value $TimestampValue -NoNewline -Force
-    Write-Host "TeamCity timestamp: $TimestampValue" -ForegroundColor Cyan
+        if ($needsUpdate)
+        {
+            Set-Content -Path $timestampFile -Value $todayTimestamp -NoNewline -Force
+            Write-Host "Timestamp file updated (daily): $todayTimestamp" -ForegroundColor Cyan
+        }
+    }
 
     return $timestampFile
 }
@@ -458,23 +444,17 @@ Write-Host "Preparing context and mounts." -ForegroundColor Green
 # Create secrets JSON file.
 if (-not $KeepEnv)
 {
+        # Create timestamp file for cache invalidation (only if building image)
+    # This is used by Dockerfile.claude but doesn't affect other Dockerfiles
+    if (-not $NoBuildImage)
+    {
+        $timestampFile = Get-TimestampFile -Update:$Update
+    }
+
     if ($Claude)
     {
         # Use Claude-specific environment variables (filtered and renamed)
         New-ClaudeEnvJson
-
-        # Get/update timestamp file for cache invalidation (only if building image)
-        if (-not $NoBuildImage)
-        {
-            if ($env:IS_TEAMCITY_AGENT)
-            {
-                $timestampFile = New-TeamCityTimestampFile -TimestampValue $Timestamp -DockerContextDir $dockerContextDirectory
-            }
-            else
-            {
-                $timestampFile = Get-TimestampFile -Update:$Update
-            }
-        }
     }
     else
     {
@@ -1039,9 +1019,8 @@ foreach (`$dir in `$gitDirectories) {
     $initScriptContent | Set-Content -Path $initScript -Encoding UTF8
 }
 
-# Copy timestamp file to docker context (for Claude mode cache invalidation)
-# Skip if running on TeamCity - we already created the file directly in docker-context
-if ($Claude -and $timestampFile -and -not $env:IS_TEAMCITY_AGENT)
+# Copy timestamp file to docker context (for cache invalidation)
+if ($timestampFile)
 {
     $gDirectory = Join-Path $dockerContextDirectory ".g"
     if (-not (Test-Path $gDirectory))
