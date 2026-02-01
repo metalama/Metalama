@@ -15,7 +15,7 @@ using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2026_0;
 
-const string dotNetSdkVersion = "10.0.100";
+const string dotNetSdkVersion = PreferredVersions.DotNetSdk.V_10_0;
 
 var product = new Product( MetalamaDependencies.Metalama )
 {
@@ -28,10 +28,10 @@ var product = new Product( MetalamaDependencies.Metalama )
 
             // The runtime is required by all tests.
             // The SDK is required by the Workspace tests.
-            new DotNetComponent( "8.0.414", DotNetComponentKind.Sdk ),
+            new DotNetComponent( PreferredVersions.DotNetSdk.V_8_0, DotNetComponentKind.Sdk ),
 
             // Required by eng.
-            new DotNetComponent( "9.0.9", DotNetComponentKind.DotNetRuntime ),
+            new DotNetComponent( PreferredVersions.DotNet.V_9_0, DotNetComponentKind.DotNetRuntime ),
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(

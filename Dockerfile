@@ -67,16 +67,16 @@ RUN Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet
 ENV PATH="C:\Program Files\dotnet;${PATH}"
 
 
-# Install .NET Sdk 8.0.414
-RUN & .\dotnet-install.ps1 -Version 8.0.414 -InstallDir 'C:\Program Files\dotnet'
+# Install .NET Sdk 8.0.417
+RUN & .\dotnet-install.ps1 -Version 8.0.417 -InstallDir 'C:\Program Files\dotnet'
 
 
-# Install .NET DotNetRuntime 9.0.9
-RUN & .\dotnet-install.ps1 -Version 9.0.9 -Runtime dotnet -InstallDir 'C:\Program Files\dotnet'
+# Install .NET DotNetRuntime 9.0.12
+RUN & .\dotnet-install.ps1 -Version 9.0.12 -Runtime dotnet -InstallDir 'C:\Program Files\dotnet'
 
 
-# Install .NET Sdk 10.0.100
-RUN & .\dotnet-install.ps1 -Version 10.0.100 -InstallDir 'C:\Program Files\dotnet'
+# Install .NET Sdk 10.0.102
+RUN & .\dotnet-install.ps1 -Version 10.0.102 -InstallDir 'C:\Program Files\dotnet'
 
 
 # Install VS Build Tools
