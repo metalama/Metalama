@@ -15,8 +15,6 @@ using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2026_1;
 
-const string dotNetSdkVersion = "10.0.100";
-
 var product = new Product( MetalamaDependencies.Metalama )
 {
     OverriddenBuildAgentRequirements = new ContainerRequirements( ContainerHostKind.Windows )
@@ -24,14 +22,14 @@ var product = new Product( MetalamaDependencies.Metalama )
         Components =
         [
             // Must match global.json.
-            new DotNetComponent( dotNetSdkVersion, DotNetComponentKind.Sdk ),
+            new DotNetComponent( PreferredVersions.DotNetSdk.V_10_0, DotNetComponentKind.Sdk ),
 
             // The runtime is required by all tests.
             // The SDK is required by the Workspace tests.
-            new DotNetComponent( "8.0.414", DotNetComponentKind.Sdk ),
+            new DotNetComponent( PreferredVersions.DotNetSdk.V_8_0, DotNetComponentKind.Sdk ),
 
             // Required by eng and to provide net9.0 targeting pack.
-            new DotNetComponent( "9.0.203", DotNetComponentKind.Sdk ),
+            new DotNetComponent( PreferredVersions.DotNetSdk.V_9_0, DotNetComponentKind.Sdk ),
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
@@ -52,7 +50,7 @@ var product = new Product( MetalamaDependencies.Metalama )
             new AzureCliComponent()
         ]
     },
-    DotNetSdkVersion = new DotNetSdkVersion( dotNetSdkVersion ) { AllowPrerelease = true },
+    DotNetSdkVersion = new DotNetSdkVersion( PreferredVersions.DotNetSdk.V_10_0 ) { AllowPrerelease = true },
     GenerateNuGetConfig = true,
     MSBuildVersion = new Version( 17, 14 ),
     Solutions =
