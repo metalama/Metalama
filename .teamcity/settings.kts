@@ -453,14 +453,6 @@ object UpstreamMerge : BuildType({
         }
     }
 
-    dependencies {
-        dependency(AbsoluteId("Metalama_Metalama20260_MetalamaCompiler_UpstreamMerge")) {
-            snapshot {
-                     onDependencyFailure = FailureAction.ADD_PROBLEM
-            }
-        }
-     }
-
 })
 
 object DockerTestsWinX64 : BuildType({
