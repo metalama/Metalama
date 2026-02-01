@@ -7,6 +7,7 @@ param(
     [switch]$Interactive, # Opens an interactive PowerShell session
     [switch]$StartVsmon, # Enable the remote debugger.
     [switch]$NoCache, # Bypass the build cache for `eng`, and force a rebuild.
+    [switch]$Snapshot, # Copy built output to temp directory to avoid file locking during execution.
     [Parameter(ValueFromRemainingArguments)]
     [string[]]$BuildArgs   # Arguments passed to `Build.ps1` within the container.
 )
@@ -47,20 +48,28 @@ if (-not $Interactive -or $BuildArgs)
 
     # Change the working directory so we can use a global.json that is specific to eng.
     $previousLocation = Get-Location
+    $engSrcPath = Join-Path $PSScriptRoot $EngPath "src"
 
-    Set-Location (Join-Path $PSScriptRoot $EngPath "src")
+    Set-Location $engSrcPath
+
+    $snapshotDir = $null
 
     try
     {
         # Build caching: check if we need to rebuild
-        $projectPath = Join-Path $PSScriptRoot $EngPath "src" "Build$ProductName.csproj"
+        $projectPath = Join-Path $engSrcPath "Build$ProductName.csproj"
 
         # Find the output DLL by looking for the first DLL in bin/Debug/*/
-        $binDebugPath = Join-Path $PSScriptRoot $EngPath "src" "bin" "Debug"
+        $binDebugPath = Join-Path $engSrcPath "bin" "Debug"
         $outputDll = $null
+        $tfmDir = $null
         if (Test-Path $binDebugPath)
         {
             $outputDll = Get-ChildItem -Path $binDebugPath -Filter "Build$ProductName.dll" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 | ForEach-Object { $_.FullName }
+            if ($outputDll)
+            {
+                $tfmDir = Split-Path $outputDll -Parent
+            }
         }
 
         $needsBuild = $false
@@ -115,6 +124,10 @@ if (-not $Interactive -or $BuildArgs)
             if (Test-Path $binDebugPath)
             {
                 $outputDll = Get-ChildItem -Path $binDebugPath -Filter "Build$ProductName.dll" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 | ForEach-Object { $_.FullName }
+                if ($outputDll)
+                {
+                    $tfmDir = Split-Path $outputDll -Parent
+                }
             }
 
             # Update the DLL timestamp to mark the cache as valid
@@ -134,7 +147,19 @@ if (-not $Interactive -or $BuildArgs)
             throw "Output DLL not found. Expected path: '$outputDll'."
         }
 
-        & dotnet exec $outputDll $BuildArgs
+        # Snapshot mode: copy the TFM output directory to temp to avoid file locking during execution
+        $execDll = $outputDll
+        if ($Snapshot -and $tfmDir)
+        {
+            $snapshotDir = Join-Path $env:TEMP "eng-snapshot-$([Guid]::NewGuid().ToString('N').Substring(0,8))"
+            Write-Host "Creating snapshot of build output at $snapshotDir..." -ForegroundColor Cyan
+            Copy-Item -Path $tfmDir -Destination $snapshotDir -Recurse -Force
+            $execDll = Join-Path $snapshotDir "Build$ProductName.dll"
+        }
+
+        # Set the repository directory via environment variable (needed when running from snapshot)
+        $env:ENG_REPO_DIRECTORY = $PSScriptRoot
+        & dotnet exec $execDll $BuildArgs
 
         if ($StartVsmon)
         {
@@ -146,6 +171,16 @@ if (-not $Interactive -or $BuildArgs)
     finally
     {
         Set-Location $previousLocation
+
+        # Cleanup snapshot directory if it was created
+        if ($snapshotDir -and (Test-Path $snapshotDir))
+        {
+            Write-Host "Cleaning up snapshot directory..." -ForegroundColor Cyan
+            Remove-Item -Path $snapshotDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+
+        # Reset environment variable
+        $env:ENG_REPO_DIRECTORY = ""
     }
 }
 
