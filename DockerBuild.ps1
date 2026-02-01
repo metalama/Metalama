@@ -11,7 +11,7 @@ param(
     [switch]$KeepEnv, # Does not override the env.g.json file.
     [switch]$Claude, # Run Claude CLI instead of Build.ps1. Use -Claude for interactive, -Claude "prompt" for non-interactive.
     [switch]$NoMcp, # Do not start the MCP approval server (for -Claude mode).
-    [switch]$Update, # Update timestamp to invalidate Docker cache and force Claude/plugin updates (Claude mode only).
+    [switch]$Update, # Force full timestamp update to invalidate Docker cache and force Claude/plugin updates.
     [string]$ImageName, # Image name (defaults to a name based on the directory).
     [string]$BuildAgentPath, # Path to build agent directory (defaults based on platform).
     [switch]$LoadEnvFromKeyVault, # Forces loading environment variables form the key vault.
@@ -30,7 +30,7 @@ param(
 ####
 # These settings are replaced by the generate-scripts command.
 $EngPath = 'eng'
-$EnvironmentVariables = 'AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AZ_IDENTITY_USERNAME,AZURE_CLIENT_ID,AZURE_CLIENT_SECRET,AZURE_DEVOPS_TOKEN,AZURE_DEVOPS_USER,AZURE_TENANT_ID,DOC_API_KEY,DOWNLOADS_API_KEY,ENG_USERNAME,GIT_USER_EMAIL,GIT_USER_NAME,GITHUB_AUTHOR_EMAIL,GITHUB_REVIEWER_TOKEN,GITHUB_TOKEN,IS_POSTSHARP_OWNED,IS_TEAMCITY_AGENT,MetalamaLicense,NUGET_ORG_API_KEY,PostSharpLicense,SIGNSERVER_SECRET,TEAMCITY_CLOUD_TOKEN,TYPESENSE_API_KEY,VS_MARKETPLACE_ACCESS_TOKEN,VSS_NUGET_EXTERNAL_FEED_ENDPOINTS'
+$EnvironmentVariables = 'AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AZ_IDENTITY_USERNAME,AZURE_CLIENT_ID,AZURE_CLIENT_SECRET,AZURE_DEVOPS_TOKEN,AZURE_DEVOPS_USER,AZURE_TENANT_ID,CLAUDE_CODE_OAUTH_TOKEN,DOC_API_KEY,DOWNLOADS_API_KEY,ENG_USERNAME,GIT_USER_EMAIL,GIT_USER_NAME,GITHUB_AUTHOR_EMAIL,GITHUB_REVIEWER_TOKEN,GITHUB_TOKEN,IS_POSTSHARP_OWNED,IS_TEAMCITY_AGENT,MetalamaLicense,NUGET_ORG_API_KEY,PostSharpLicense,SIGNSERVER_SECRET,TEAMCITY_CLOUD_TOKEN,TYPESENSE_API_KEY,VS_MARKETPLACE_ACCESS_TOKEN,VSS_NUGET_EXTERNAL_FEED_ENDPOINTS'
 ####
 
 $ErrorActionPreference = "Stop"
@@ -308,12 +308,34 @@ function Get-TimestampFile
         New-Item -ItemType Directory -Path $timestampDir -Force | Out-Null
     }
 
-    # Create file if it doesn't exist OR update if -Update specified
-    if (-not (Test-Path $timestampFile) -or $Update)
+    if ($Update)
     {
+        # Force update with full timestamp (seconds precision) to invalidate cache
         $timestamp = [DateTime]::UtcNow.ToString("o")  # ISO 8601 format
         Set-Content -Path $timestampFile -Value $timestamp -NoNewline -Force
-        Write-Host "Timestamp file updated: $timestamp" -ForegroundColor Cyan
+        Write-Host "Timestamp file updated (forced): $timestamp" -ForegroundColor Cyan
+    }
+    else
+    {
+        # Daily timestamp - only update if file doesn't exist or date changed
+        $todayTimestamp = [DateTime]::UtcNow.Date.ToString("yyyy-MM-dd")
+        $needsUpdate = $true
+
+        if (Test-Path $timestampFile)
+        {
+            $currentTimestamp = Get-Content $timestampFile -Raw
+            # Check if current timestamp starts with today's date
+            if ($currentTimestamp -and $currentTimestamp.StartsWith($todayTimestamp))
+            {
+                $needsUpdate = $false
+            }
+        }
+
+        if ($needsUpdate)
+        {
+            Set-Content -Path $timestampFile -Value $todayTimestamp -NoNewline -Force
+            Write-Host "Timestamp file updated (daily): $todayTimestamp" -ForegroundColor Cyan
+        }
     }
 
     return $timestampFile
@@ -422,16 +444,17 @@ Write-Host "Preparing context and mounts." -ForegroundColor Green
 # Create secrets JSON file.
 if (-not $KeepEnv)
 {
+        # Create timestamp file for cache invalidation (only if building image)
+    # This is used by Dockerfile.claude but doesn't affect other Dockerfiles
+    if (-not $NoBuildImage)
+    {
+        $timestampFile = Get-TimestampFile -Update:$Update
+    }
+
     if ($Claude)
     {
         # Use Claude-specific environment variables (filtered and renamed)
         New-ClaudeEnvJson
-
-        # Get/update timestamp file for cache invalidation (only if building image)
-        if (-not $NoBuildImage)
-        {
-            $timestampFile = Get-TimestampFile -Update:$Update
-        }
     }
     else
     {
@@ -996,8 +1019,8 @@ foreach (`$dir in `$gitDirectories) {
     $initScriptContent | Set-Content -Path $initScript -Encoding UTF8
 }
 
-# Copy timestamp file to docker context (for Claude mode cache invalidation)
-if ($Claude -and $timestampFile)
+# Copy timestamp file to docker context (for cache invalidation)
+if ($timestampFile)
 {
     $gDirectory = Join-Path $dockerContextDirectory ".g"
     if (-not (Test-Path $gDirectory))

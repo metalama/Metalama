@@ -18,9 +18,10 @@ ENV RUNNING_IN_DOCKER=TRUE
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV DOTNET_CLI_UI_LANGUAGE=en
+ENV VSLANG=1033
 
-# Add Windows PowerShell to PATH (pwsh added later by PowershellComponent)
-ENV PATH="C:\Windows\System32\WindowsPowerShell\v1.0;${PATH}"
+# Set base PATH explicitly to avoid issues with ${PATH} expansion
+ENV PATH="C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0"
 
 # Enable long path support
 RUN Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name 'LongPathsEnabled' -Value 1
