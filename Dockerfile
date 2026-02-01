@@ -75,12 +75,12 @@ RUN & .\dotnet-install.ps1 -Version 6.0.36 -Runtime aspnetcore -InstallDir 'C:\P
 RUN & .\dotnet-install.ps1 -Version 6.0.36 -Runtime windowsdesktop -InstallDir 'C:\Program Files\dotnet'
 
 
-# Install .NET Sdk 8.0.414
-RUN & .\dotnet-install.ps1 -Version 8.0.414 -InstallDir 'C:\Program Files\dotnet'
+# Install .NET Sdk 8.0.417
+RUN & .\dotnet-install.ps1 -Version 8.0.417 -InstallDir 'C:\Program Files\dotnet'
 
 
-# Install .NET DotNetRuntime 9.0.9
-RUN & .\dotnet-install.ps1 -Version 9.0.9 -Runtime dotnet -InstallDir 'C:\Program Files\dotnet'
+# Install .NET DotNetRuntime 9.0.12
+RUN & .\dotnet-install.ps1 -Version 9.0.12 -Runtime dotnet -InstallDir 'C:\Program Files\dotnet'
 
 
 # Install .NET Sdk 9.0.310

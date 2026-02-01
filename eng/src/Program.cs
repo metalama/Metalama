@@ -16,7 +16,7 @@ using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2025_1;
 
-const string dotNetSdkVersion = "9.0.310";
+const string dotNetSdkVersion = PreferredVersions.DotNetSdk.V_9_0;
 
 var product = new Product( MetalamaDependencies.Metalama )
 {
@@ -27,17 +27,17 @@ var product = new Product( MetalamaDependencies.Metalama )
             new DotNetComponent( dotNetSdkVersion, DotNetComponentKind.Sdk ),
 
             // For PostSharp.Engineering.
-            new DotNetComponent( "9.0.9", DotNetComponentKind.DotNetRuntime ),
+            new DotNetComponent( PreferredVersions.DotNet.V_9_0, DotNetComponentKind.DotNetRuntime ),
 
             // The runtime is required by all tests.
             // The SDK is required by the Workspace tests.
-            new DotNetComponent( "8.0.414", DotNetComponentKind.Sdk ),
+            new DotNetComponent( PreferredVersions.DotNetSdk.V_8_0, DotNetComponentKind.Sdk ),
             
             // .NET 6 Runtime is used by most tests.
             // ASP.NET Core is used at least by Backstage tests.
             // Windows Desktop is used by Xaml tests.
-            new DotNetComponent( "6.0.36", DotNetComponentKind.AspNetCoreRuntime ),
-            new DotNetComponent( "6.0.36", DotNetComponentKind.WindowsDesktopRuntime ),
+            new DotNetComponent( PreferredVersions.DotNet.V_6_0, DotNetComponentKind.AspNetCoreRuntime ),
+            new DotNetComponent( PreferredVersions.DotNet.V_6_0, DotNetComponentKind.WindowsDesktopRuntime ),
             
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
