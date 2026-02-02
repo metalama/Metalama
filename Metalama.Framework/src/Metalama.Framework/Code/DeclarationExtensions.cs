@@ -112,6 +112,14 @@ namespace Metalama.Framework.Code
             => declarationKind.IsMemberKind() || declarationKind == DeclarationKind.NamedType;
 
         /// <summary>
+        /// Determines whether a <see cref="DeclarationKind"/> represents an <see cref="IType"/>.
+        /// </summary>
+        /// <param name="declarationKind">The declaration kind to check.</param>
+        /// <returns><c>true</c> if the declaration kind represents a type; otherwise, <c>false</c>.</returns>
+        public static bool IsTypeKind( this DeclarationKind declarationKind )
+            => declarationKind is DeclarationKind.NamedType or DeclarationKind.TypeParameter or DeclarationKind.Type;
+
+        /// <summary>
         /// Gets all containing ancestors, i.e. <c>declaration.ContainingDeclaration</c>, <c>declaration.ContainingDeclaration.ContainingDeclaration</c>,
         /// <c>declaration.ContainingDeclaration.ContainingDeclaration.ContainingDeclaration</c>...
         /// </summary>

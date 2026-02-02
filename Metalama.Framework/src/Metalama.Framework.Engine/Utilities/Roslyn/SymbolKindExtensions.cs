@@ -13,9 +13,9 @@ internal static class SymbolKindExtensions
 {
     /// <summary>
     /// Determines whether the symbol kind represents a type symbol
-    /// (named type, array type, pointer type, function pointer type, dynamic type, or type parameter).
+    /// (named type, array type, pointer type, function pointer type, dynamic type, error type, or type parameter).
     /// </summary>
     public static bool IsType( this SymbolKind kind )
         => kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType
-            or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.TypeParameter;
+            or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter;
 }

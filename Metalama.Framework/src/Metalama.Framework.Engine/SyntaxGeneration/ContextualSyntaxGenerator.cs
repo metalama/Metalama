@@ -207,24 +207,19 @@ public sealed partial class ContextualSyntaxGenerator
     {
         TypeSyntax expression;
 
+      
+
         switch ( symbol.Kind )
         {
-            case SymbolKind.NamedType:
-            case SymbolKind.ArrayType:
-            case SymbolKind.PointerType:
-            case SymbolKind.FunctionPointerType:
-            case SymbolKind.DynamicType:
-            case SymbolKind.ErrorType:
-            case SymbolKind.TypeParameter:
-                return this.TypeSyntax( (ITypeSymbol) symbol );
-
             case SymbolKind.Namespace when symbol is INamespaceSymbol namespaceSymbol:
                 expression = (NameSyntax) _roslynSyntaxGenerator.NameExpression( namespaceSymbol );
 
                 break;
 
             default:
-                throw new AssertionFailedException( $"Unexpected symbol kind: {symbol.Kind}." );
+                return symbol.Kind.IsType() 
+                    ? this.TypeSyntax( (ITypeSymbol) symbol ) 
+                    : throw new AssertionFailedException( $"Unexpected symbol kind: {symbol.Kind}." );
         }
 
         return expression.WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );

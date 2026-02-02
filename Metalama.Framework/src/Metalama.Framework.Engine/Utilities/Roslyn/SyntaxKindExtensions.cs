@@ -39,4 +39,14 @@ internal static class SyntaxKindExtensions
     /// </summary>
     public static bool IsBaseFieldDeclaration( this SyntaxKind kind )
         => kind is SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration;
+
+    /// <summary>
+    /// Determines whether the syntax kind represents a literal expression
+    /// (character, string, numeric, true, false, null, or default literal).
+    /// </summary>
+    public static bool IsLiteralExpression( this SyntaxKind kind )
+        => kind is SyntaxKind.CharacterLiteralExpression or SyntaxKind.StringLiteralExpression
+            or SyntaxKind.NumericLiteralExpression or SyntaxKind.TrueLiteralExpression
+            or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression
+            or SyntaxKind.DefaultLiteralExpression;
 }
