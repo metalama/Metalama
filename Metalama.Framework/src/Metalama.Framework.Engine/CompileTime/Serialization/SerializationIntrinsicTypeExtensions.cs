@@ -212,7 +212,7 @@ namespace Metalama.Framework.Engine.CompileTime.Serialization
                 default:
                     if ( typeSymbol.TypeKind == TypeKind.TypeParameter )
                     {
-                        if ( typeSymbol.ContainingSymbol is IMethodSymbol )
+                        if ( typeSymbol.ContainingSymbol.Kind == SymbolKind.Method && typeSymbol.ContainingSymbol is IMethodSymbol )
                         {
                             // Not supported.
                             throw new AssertionFailedException(

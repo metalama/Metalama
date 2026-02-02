@@ -613,7 +613,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
                         if ( !serializableType.Type.IsValueType
                              && !serializableType.Type.GetMembers()
-                                 .Any( m => m is IMethodSymbol { MethodKind: MethodKind.Constructor } method && method.GetPrimarySyntaxReference() != null ) )
+                                 .Any( m => m.Kind == SymbolKind.Method && m is IMethodSymbol { MethodKind: MethodKind.Constructor } method && method.GetPrimarySyntaxReference() != null ) )
                         {
                             // There is no defined constructor, so we need to explicitly add parameterless constructor (only for reference types).
                             members.Add(
@@ -1590,7 +1590,8 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 var symbol = this.RunTimeSemanticModelProvider.GetSemanticModel( node.SyntaxTree ).GetSymbolInfo( node ).Symbol;
 
-                if ( symbol is INamespaceOrTypeSymbol namespaceOrType )
+                if ( symbol?.Kind is SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.TypeParameter or SymbolKind.ErrorType
+                     && symbol is INamespaceOrTypeSymbol namespaceOrType )
                 {
                     var nodeWithoutPreprocessorDirectives = base.VisitQualifiedName( node ).AssertNotNull();
 
@@ -1606,7 +1607,8 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 var symbol = this.RunTimeSemanticModelProvider.GetSemanticModel( node.SyntaxTree ).GetSymbolInfo( node ).Symbol;
 
-                if ( symbol is INamespaceOrTypeSymbol namespaceOrType )
+                if ( symbol?.Kind is SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.TypeParameter or SymbolKind.ErrorType
+                     && symbol is INamespaceOrTypeSymbol namespaceOrType )
                 {
                     var nodeWithoutPreprocessorDirectives = base.VisitMemberAccessExpression( node ).AssertNotNull();
 

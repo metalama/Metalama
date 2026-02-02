@@ -350,12 +350,12 @@ internal sealed class CompileTimeAssemblyLocator
     {
         symbol = symbol.OriginalDefinition;
 
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case IMethodSymbol { ReducedFrom: { } reducedFrom }:
+            case SymbolKind.Method when symbol is IMethodSymbol { ReducedFrom: { } reducedFrom }:
                 return this.TryGetAvailableSymbol( reducedFrom, compilation, out availableSymbol );
 
-            case IMethodSymbol { MethodKind: MethodKind.BuiltinOperator }:
+            case SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.BuiltinOperator }:
                 // For some reason, DocumentationId mapping does not work for operators.
                 availableSymbol = null;
 
@@ -380,7 +380,8 @@ internal sealed class CompileTimeAssemblyLocator
                         // We didn't find the exact symbol, but there could still be a more general overload.
                         // So do overload resolution based on the parameter types of the run-time overload.
 
-                        if ( symbol is (IMethodSymbol or IPropertySymbol { IsIndexer: true }) and { ContainingType: { } containingType } )
+                        if ( symbol.Kind is SymbolKind.Method or SymbolKind.Property
+                            && symbol is (IMethodSymbol or IPropertySymbol { IsIndexer: true }) and { ContainingType: { } containingType } )
                         {
                             if ( this.TryGetAvailableSymbol( containingType, compilation, out var compileTimeContainingType ) != true )
                             {

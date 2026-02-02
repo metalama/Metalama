@@ -316,12 +316,12 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
             case TypedConstant typedConstant:
                 return this.TryTranslateAttributeArgument( attribute, typedConstant, targetType, out translatedValue );
 
-            case IErrorTypeSymbol:
+            case ISymbol { Kind: SymbolKind.ErrorType }:
                 translatedValue = null;
 
                 return false;
 
-            case ITypeSymbol type:
+            case ISymbol { Kind: SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.TypeParameter } when value is ITypeSymbol type:
 
                 var compileTimeTime = this._compileTimeTypeResolver.GetCompileTimeType( type, true );
 
@@ -385,7 +385,7 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
                 return true;
 
             default:
-                if ( sourceType is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType )
+                if ( sourceType?.Kind == SymbolKind.NamedType && sourceType is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType )
                 {
                     // Convert the underlying value of an enum to a strongly typed enum when we can.
                     var enumReflectionType = this._compileTimeTypeResolver.GetCompileTimeType( enumType, false );
