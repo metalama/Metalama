@@ -73,7 +73,7 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
 
         // Variable and awaited return type should be equal (i.e. no implicit conversions).
         // Use GetDeclaredSymbol to handle 'var' declarations where GetSymbolInfo returns null.
-        var localSymbol = semanticModel.GetDeclaredSymbol( variableDeclaration.Variables[0] );
+        var localSymbol = semanticModel.GetDeclaredSymbol( variableDeclaration.Variables[0] ) as ILocalSymbol;
         var localType = localSymbol?.Type ?? semanticModel.GetTypeInfo( variableDeclaration.Type ).Type;
 
         if ( localType == null || !SignatureTypeComparer.Instance.Equals( localType, awaitedType ) )
