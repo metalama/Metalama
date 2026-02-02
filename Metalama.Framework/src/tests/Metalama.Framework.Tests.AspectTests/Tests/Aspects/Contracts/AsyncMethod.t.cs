@@ -31,18 +31,15 @@ public class TestClass
     {
       throw new global::System.ArgumentNullException("text");
     }
-    var returnValue = (await this.DoSomethingAsyncT_Source(text));
+    global::System.String returnValue;
+    await Task.Yield();
+    Console.WriteLine("Hello");
+    returnValue = null !;
     if (returnValue is null)
     {
       throw new global::System.InvalidOperationException("Method returned null");
     }
     return returnValue;
-  }
-  private async Task<string> DoSomethingAsyncT_Source(string text)
-  {
-    await Task.Yield();
-    Console.WriteLine("Hello");
-    return null !;
   }
   public async void DoSomethingAsyncVoid(string text)
   {

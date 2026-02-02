@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -41,6 +40,23 @@ internal abstract class AsyncMethodInliner : Inliner
 
     public override bool IsValidForTargetSymbol( ISymbol symbol )
         => symbol is IMethodSymbol { MethodKind: not MethodKind.Constructor, AssociatedSymbol: null, IsAsync: true };
+
+    public override bool CanInline( ResolvedAspectReference aspectReference, SemanticModel semanticModel )
+    {
+        if ( !base.CanInline( aspectReference, semanticModel ) )
+        {
+            return false;
+        }
+
+        // Don't inline Base semantics for async methods because the empty body may contain
+        // return default(Task<T>) which is incorrect in an async method context (should be return default(T)).
+        if ( aspectReference.ResolvedSemantic.Kind == IntermediateSymbolSemanticKind.Base )
+        {
+            return false;
+        }
+
+        return true;
+    }
 
     public override bool IsValidForContainingSymbol( ISymbol symbol ) => true;
 
