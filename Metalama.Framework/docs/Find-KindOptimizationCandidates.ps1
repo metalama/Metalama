@@ -3,8 +3,8 @@
     Finds C# files that may need Kind check optimization.
 
 .DESCRIPTION
-    Searches for pattern matching on IDeclaration types that could be optimized
-    by checking the DeclarationKind property first.
+    Searches for pattern matching on IDeclaration, ISymbol, and SyntaxNode types
+    that could be optimized by checking the discriminator property first.
 
 .PARAMETER Path
     The root path to search. Defaults to Metalama.Framework.Engine.
@@ -22,29 +22,84 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Base types for IDeclaration
+# =============================================================================
+# IDeclaration patterns (DeclarationKind)
+# =============================================================================
 $declarationTypes = "Method|Property|Event|Field|Indexer|Constructor|NamedType|Parameter|TypeParameter"
 
-# IDeclaration patterns
-$patterns = @(
-    # 1. If statement patterns (positive)
+$declarationPatterns = @(
+    # If statement patterns (positive)
     "is I($declarationTypes)\b"
 
-    # 2. If statement patterns (negation)
+    # If statement patterns (negation)
     "is not I($declarationTypes)\b"
 
-    # 3. Switch statement case patterns
+    # Switch statement case patterns
     "case I($declarationTypes)\b"
 
-    # 4. Switch expression arm patterns (with variable)
+    # Switch expression arm patterns (with variable)
     "I($declarationTypes)\s+\w+\s*=>"
 
-    # 5. Switch expression arm patterns (with property pattern)
+    # Switch expression arm patterns (with property pattern)
     "I($declarationTypes)\s*\{[^\}]*\}\s*=>"
 )
 
-# Pattern to identify already-optimized code (to exclude)
-$alreadyOptimizedPattern = "DeclarationKind\.\w+\s*(when|&&)"
+# =============================================================================
+# ISymbol patterns (SymbolKind)
+# =============================================================================
+# Match any I*Symbol pattern (IMethodSymbol, IPropertySymbol, etc.)
+$symbolPatterns = @(
+    # If statement patterns (positive)
+    "is I\w+Symbol\b"
+
+    # If statement patterns (negation)
+    "is not I\w+Symbol\b"
+
+    # Switch statement case patterns
+    "case I\w+Symbol\b"
+
+    # Switch expression arm patterns (with variable)
+    "I\w+Symbol\s+\w+\s*=>"
+
+    # Switch expression arm patterns (with property pattern)
+    "I\w+Symbol\s*\{[^\}]*\}\s*=>"
+)
+
+# =============================================================================
+# SyntaxNode patterns (SyntaxKind)
+# =============================================================================
+# Match any *Syntax pattern (MethodDeclarationSyntax, BlockSyntax, etc.)
+$syntaxPatterns = @(
+    # If statement patterns (positive)
+    "is \w+Syntax\b"
+
+    # If statement patterns (negation)
+    "is not \w+Syntax\b"
+
+    # Switch statement case patterns
+    "case \w+Syntax\b"
+
+    # Switch expression arm patterns (with variable)
+    "\w+Syntax\s+\w+\s*=>"
+
+    # Switch expression arm patterns (with property pattern)
+    "\w+Syntax\s*\{[^\}]*\}\s*=>"
+)
+
+# Combine all patterns
+$patterns = $declarationPatterns + $symbolPatterns + $syntaxPatterns
+
+# =============================================================================
+# Patterns to identify already-optimized code (to exclude)
+# =============================================================================
+$alreadyOptimizedPatterns = @(
+    "DeclarationKind\.\w+\s*(when|&&)"
+    "SymbolKind\.\w+\s*(when|&&)"
+    "SyntaxKind\.\w+\s*(when|&&)"
+    "\.Kind\s*==\s*SymbolKind\."
+    "\.Kind\(\)\s*==\s*SyntaxKind\."
+    "\.DeclarationKind\s*==\s*DeclarationKind\."
+)
 
 # Resolve path
 $resolvedPath = Resolve-Path $Path -ErrorAction SilentlyContinue
@@ -54,7 +109,7 @@ if (-not $resolvedPath) {
 }
 
 Write-Host "Searching in: $resolvedPath" -ForegroundColor Cyan
-Write-Host "Patterns: $($patterns.Count)" -ForegroundColor Cyan
+Write-Host "Patterns: $($patterns.Count) (IDeclaration: $($declarationPatterns.Count), ISymbol: $($symbolPatterns.Count), SyntaxNode: $($syntaxPatterns.Count))" -ForegroundColor Cyan
 Write-Host ""
 
 # Find all C# files, excluding tests
@@ -84,20 +139,25 @@ foreach ($file in $files) {
             $lineContent = if ($lineNumber -le $lines.Count) { $lines[$lineNumber - 1].Trim() } else { "" }
 
             # Skip if this line is already optimized
-            if ($lineContent -match $alreadyOptimizedPattern) {
-                continue
+            $isOptimized = $false
+            foreach ($optPattern in $alreadyOptimizedPatterns) {
+                if ($lineContent -match $optPattern) {
+                    $isOptimized = $true
+                    break
+                }
             }
+            if ($isOptimized) { continue }
 
             # Skip if this looks like a method parameter declaration
-            if ($lineContent -match "^\s*(public|private|protected|internal|static|async|override|virtual|abstract|sealed)?\s*(static\s+)?I(Method|Property|Event|Field|Indexer|Constructor|NamedType|Parameter)\s+\w+\s*[,\)]") {
+            if ($lineContent -match "^\s*(public|private|protected|internal|static|async|override|virtual|abstract|sealed)?\s*(static\s+)?I\w+\s+\w+\s*[,\)]") {
                 continue
             }
-            if ($lineContent -match "\(\s*this\s+I(Method|Property|Event|Field|Indexer|Constructor|NamedType|Parameter)\s+\w+") {
+            if ($lineContent -match "\(\s*this\s+I\w+\s+\w+") {
                 continue
             }
 
             # Skip property/field declarations (return types)
-            if ($lineContent -match "^\s*(public|private|protected|internal|new|static|readonly|override|virtual|abstract|sealed|\s)+I(Method|Property|Event|Field|Indexer|Constructor|NamedType|Parameter|TypeParameter)\??\s+\w+\s*(=>|\{|;)") {
+            if ($lineContent -match "^\s*(public|private|protected|internal|new|static|readonly|override|virtual|abstract|sealed|\s)+I\w+\??\s+\w+\s*(=>|\{|;)") {
                 continue
             }
 
@@ -107,24 +167,28 @@ foreach ($file in $files) {
             }
 
             # Skip cast expressions like (IMethod)
-            if ($lineContent -match "\(I(Method|Property|Event|Field|Indexer|Constructor|NamedType)\)\s*\w+") {
+            if ($lineContent -match "\(I\w+\)\s*\w+") {
                 continue
             }
 
             # Skip variable declarations with explicit type
-            if ($lineContent -match "^\s*I(Method|Property|Event|Field|Indexer|Constructor|NamedType|Parameter)\??\s+\w+\s*=") {
+            if ($lineContent -match "^\s*I\w+\??\s+\w+\s*=") {
                 continue
             }
 
             # Skip as expressions
-            if ($lineContent -match "as\s+I(Method|Property|Event|Field|Indexer|Constructor|NamedType)") {
+            if ($lineContent -match "as\s+I\w+") {
                 continue
             }
+
+            # Determine category
+            $category = if ($pattern -match "Symbol") { "ISymbol" } elseif ($pattern -match "Syntax") { "SyntaxNode" } else { "IDeclaration" }
 
             $fileMatches += [PSCustomObject]@{
                 Line = $lineNumber
                 Pattern = $pattern
                 Content = $lineContent
+                Category = $category
             }
         }
     }
@@ -141,18 +205,63 @@ Write-Host "RESULTS: $($results.Count) files with potential optimization opportu
 Write-Host ("=" * 80) -ForegroundColor Yellow
 Write-Host ""
 
-$sortedKeys = $results.Keys | Sort-Object
+# Group by category
+$declarationFiles = @{}
+$symbolFiles = @{}
+$syntaxFiles = @{}
 
-foreach ($file in $sortedKeys) {
-    Write-Host $file -ForegroundColor Green
-    foreach ($match in $results[$file]) {
-        Write-Host "  L$($match.Line): $($match.Content)" -ForegroundColor Gray
-    }
+foreach ($file in $results.Keys) {
+    $matches = $results[$file]
+    $hasDeclaration = $matches | Where-Object { $_.Category -eq "IDeclaration" }
+    $hasSymbol = $matches | Where-Object { $_.Category -eq "ISymbol" }
+    $hasSyntax = $matches | Where-Object { $_.Category -eq "SyntaxNode" }
+
+    if ($hasDeclaration) { $declarationFiles[$file] = $hasDeclaration }
+    if ($hasSymbol) { $symbolFiles[$file] = $hasSymbol }
+    if ($hasSyntax) { $syntaxFiles[$file] = $hasSyntax }
+}
+
+# Output by category
+if ($declarationFiles.Count -gt 0) {
     Write-Host ""
+    Write-Host "=== IDeclaration patterns ($($declarationFiles.Count) files) ===" -ForegroundColor Magenta
+    foreach ($file in ($declarationFiles.Keys | Sort-Object)) {
+        Write-Host $file -ForegroundColor Green
+        foreach ($match in $declarationFiles[$file]) {
+            Write-Host "  L$($match.Line): $($match.Content)" -ForegroundColor Gray
+        }
+    }
+}
+
+if ($symbolFiles.Count -gt 0) {
+    Write-Host ""
+    Write-Host "=== ISymbol patterns ($($symbolFiles.Count) files) ===" -ForegroundColor Magenta
+    foreach ($file in ($symbolFiles.Keys | Sort-Object)) {
+        Write-Host $file -ForegroundColor Green
+        foreach ($match in $symbolFiles[$file]) {
+            Write-Host "  L$($match.Line): $($match.Content)" -ForegroundColor Gray
+        }
+    }
+}
+
+if ($syntaxFiles.Count -gt 0) {
+    Write-Host ""
+    Write-Host "=== SyntaxNode patterns ($($syntaxFiles.Count) files) ===" -ForegroundColor Magenta
+    foreach ($file in ($syntaxFiles.Keys | Sort-Object)) {
+        Write-Host $file -ForegroundColor Green
+        foreach ($match in $syntaxFiles[$file]) {
+            Write-Host "  L$($match.Line): $($match.Content)" -ForegroundColor Gray
+        }
+    }
 }
 
 Write-Host ""
-Write-Host "Total: $($results.Count) files" -ForegroundColor Cyan
+Write-Host ("=" * 80) -ForegroundColor Yellow
+Write-Host "Summary:" -ForegroundColor Cyan
+Write-Host "  Total files: $($results.Count)" -ForegroundColor Cyan
+Write-Host "  IDeclaration: $($declarationFiles.Count) files" -ForegroundColor Cyan
+Write-Host "  ISymbol: $($symbolFiles.Count) files" -ForegroundColor Cyan
+Write-Host "  SyntaxNode: $($syntaxFiles.Count) files" -ForegroundColor Cyan
 
 # Return the list for pipeline use
-return $sortedKeys
+return $results.Keys | Sort-Object
