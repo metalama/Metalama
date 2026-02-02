@@ -177,8 +177,6 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
             }
             else
             {
-                identifier = SyntaxFactoryEx.DiscardIdentifierName();
-
                 // For async methods, use the result type (the inner type of Task<T>/ValueTask<T>)
                 // instead of the full return type, because when inlining with await, the return
                 // expression should have the awaited type.
@@ -188,6 +186,16 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                 {
                     returnType = resultType;
                 }
+
+                // For void-returning methods (including void-like async methods like Task/ValueTask),
+                // we can't assign to a discard, so just use the expression as a statement.
+                if ( returnType.SpecialType == SpecialType.System_Void )
+                {
+                    return ExpressionStatement( expression )
+                        .WithOptionalTrailingLineFeed( substitutionContext.SyntaxGenerationContext );
+                }
+
+                identifier = SyntaxFactoryEx.DiscardIdentifierName();
 
                 expression = syntaxGenerator.SafeCastExpression(
                     syntaxGenerator.TypeSyntax( returnType ),
