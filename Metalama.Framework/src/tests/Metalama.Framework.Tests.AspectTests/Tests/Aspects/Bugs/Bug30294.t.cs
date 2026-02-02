@@ -5,16 +5,12 @@ internal class TestClass
   {
     try
     {
-      await this.Execute_Source(param);
+      await Task.CompletedTask;
       return;
     }
     catch (global::System.Exception)when (param)
     {
       return;
     }
-  }
-  private async global::System.Threading.Tasks.ValueTask Execute_Source(bool param)
-  {
-    await Task.CompletedTask;
   }
 }

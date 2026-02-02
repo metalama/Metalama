@@ -5,12 +5,8 @@ internal class TargetCode
   {
     global::System.Console.WriteLine("normal template");
     global::System.Console.WriteLine("virtual method");
-    await this.Method_Source();
+    await Task.Yield();
     return;
     throw new global::System.Exception();
-  }
-  private async Task Method_Source()
-  {
-    await Task.Yield();
   }
 }

@@ -18,18 +18,14 @@ public class TestClass
   {
     try
     {
-      await this.AsyncVoidMethod_Source();
+      await Task.Yield();
+      throw new InvalidOperationException();
       return;
     }
     catch
     {
       return;
     }
-  }
-  private async global::System.Threading.Tasks.ValueTask AsyncVoidMethod_Source()
-  {
-    await Task.Yield();
-    throw new InvalidOperationException();
   }
   [IgnoreException]
   public int IntMethod()
@@ -60,18 +56,14 @@ public class TestClass
   {
     try
     {
-      await this.AsyncTaskMethod_Source();
+      await Task.Yield();
+      throw new InvalidOperationException();
       return;
     }
     catch
     {
       return;
     }
-  }
-  private async Task AsyncTaskMethod_Source()
-  {
-    await Task.Yield();
-    throw new InvalidOperationException();
   }
   [IgnoreException]
   public Task<int> TaskIntMethod()
@@ -90,17 +82,13 @@ public class TestClass
   {
     try
     {
-      return (await this.AsyncTaskIntMethod_Source());
+      await Task.Yield();
+      throw new InvalidOperationException();
     }
     catch
     {
       return default(global::System.Int32);
     }
-  }
-  private async Task<int> AsyncTaskIntMethod_Source()
-  {
-    await Task.Yield();
-    throw new InvalidOperationException();
   }
   [IgnoreException]
   public ValueTask ValueTaskMethod()
@@ -119,18 +107,14 @@ public class TestClass
   {
     try
     {
-      await this.AsyncValueTaskMethod_Source();
+      await Task.Yield();
+      throw new InvalidOperationException();
       return;
     }
     catch
     {
       return;
     }
-  }
-  private async ValueTask AsyncValueTaskMethod_Source()
-  {
-    await Task.Yield();
-    throw new InvalidOperationException();
   }
   [IgnoreException]
   public ValueTask<int> ValueTaskIntMethod()
@@ -149,16 +133,12 @@ public class TestClass
   {
     try
     {
-      return (await this.AsyncValueTaskIntMethod_Source());
+      await Task.Yield();
+      throw new InvalidOperationException();
     }
     catch
     {
       return default(global::System.Int32);
     }
-  }
-  private async ValueTask<int> AsyncValueTaskIntMethod_Source()
-  {
-    await Task.Yield();
-    throw new InvalidOperationException();
   }
 }
