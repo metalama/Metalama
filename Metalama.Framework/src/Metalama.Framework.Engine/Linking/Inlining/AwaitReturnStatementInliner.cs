@@ -48,7 +48,7 @@ internal sealed class AwaitReturnStatementInliner : AsyncMethodInliner
             return false;
         }
 
-        // Return types must be compatible (the inner type of Task<T>/ValueTask<T>).
+        // Return types must be equal (we don't allow mixing Task<T> and ValueTask<T>).
         var containingMethodReturnType = aspectReference.ContainingSemantic.Symbol.ReturnType;
         var targetMethodReturnType = methodSymbol.ReturnType;
 
