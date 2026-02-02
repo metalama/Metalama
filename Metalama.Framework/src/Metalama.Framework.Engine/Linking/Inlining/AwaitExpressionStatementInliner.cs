@@ -37,7 +37,8 @@ internal sealed class AwaitExpressionStatementInliner : AsyncMethodInliner
             return false;
         }
 
-        // The await expression should be directly inside an expression statement (not parenthesized, not assigned).
+        // The await expression should be directly inside an expression statement.
+        // Note: (await M()); is not valid C# - a parenthesized expression cannot be a statement.
         if ( awaitExpression.Parent is not ExpressionStatementSyntax )
         {
             return false;
