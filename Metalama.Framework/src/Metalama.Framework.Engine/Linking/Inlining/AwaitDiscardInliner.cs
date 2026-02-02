@@ -1,0 +1,102 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+
+namespace Metalama.Framework.Engine.Linking.Inlining;
+
+/// <summary>
+/// Handles inlining of discard assignment with await expression: _ = await M(); or _ = (await M());
+/// </summary>
+internal sealed class AwaitDiscardInliner : AsyncMethodInliner
+{
+    public override bool CanInline( ResolvedAspectReference aspectReference, SemanticModel semanticModel )
+    {
+        if ( !base.CanInline( aspectReference, semanticModel ) )
+        {
+            return false;
+        }
+
+        // The syntax has to be in form: _ = await <annotated_method_expression>( <arguments> );
+        // or: _ = (await <annotated_method_expression>( <arguments> ));
+        if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
+        {
+            return false;
+        }
+
+        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        {
+            return false;
+        }
+
+        // The invocation should be inside an await expression.
+        if ( invocationExpression.Parent is not AwaitExpressionSyntax awaitExpression )
+        {
+            return false;
+        }
+
+        // The await expression (possibly parenthesized) should be the right side of an assignment.
+        SyntaxNode awaitOrParenthesized = awaitExpression;
+
+        while ( awaitOrParenthesized.Parent is ParenthesizedExpressionSyntax )
+        {
+            awaitOrParenthesized = awaitOrParenthesized.Parent;
+        }
+
+        if ( awaitOrParenthesized.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        {
+            return false;
+        }
+
+        // Invocation should be on the right.
+        if ( assignmentExpression.Right != awaitOrParenthesized )
+        {
+            throw new AssertionFailedException( Justifications.CoverageMissing );
+        }
+
+        // Assignment should have a discard identifier on the left.
+        if ( assignmentExpression.Kind() != SyntaxKind.SimpleAssignmentExpression
+             || assignmentExpression.Left is not IdentifierNameSyntax identifierName
+             || !string.Equals( identifierName.Identifier.ValueText, "_", StringComparison.Ordinal ) )
+        {
+            return false;
+        }
+
+        // The assignment should be part of expression statement.
+        if ( assignmentExpression.Parent is not ExpressionStatementSyntax )
+        {
+            return false;
+        }
+
+        // The invocation needs to be inlineable in itself.
+        if ( !IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
+    {
+        var invocationExpression = (InvocationExpressionSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
+        var awaitExpression = (AwaitExpressionSyntax) invocationExpression.Parent.AssertNotNull();
+
+        // Navigate through parentheses.
+        SyntaxNode current = awaitExpression;
+
+        while ( current.Parent is ParenthesizedExpressionSyntax )
+        {
+            current = current.Parent;
+        }
+
+        var assignmentExpression = (AssignmentExpressionSyntax) current.Parent.AssertNotNull();
+        var expressionStatement = (ExpressionStatementSyntax) assignmentExpression.Parent.AssertNotNull();
+
+        return new InliningAnalysisInfo( expressionStatement, null );
+    }
+}
