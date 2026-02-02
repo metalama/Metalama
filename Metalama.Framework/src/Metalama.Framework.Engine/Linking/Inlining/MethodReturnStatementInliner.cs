@@ -21,7 +21,7 @@ internal sealed class MethodReturnStatementInliner : MethodInliner
         }
 
         // The syntax has to be in form: return <annotated_method_expression( <arguments> );
-        if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol methodSymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol methodSymbol )
         {
             // Coverage: ignore (hit only when the check in base class is incorrect).
             return false;
