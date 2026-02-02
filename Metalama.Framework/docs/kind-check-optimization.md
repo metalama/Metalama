@@ -655,3 +655,154 @@ After running a search, filter out false positives:
 | ContextualSyntaxGenerator.cs | Patterns check `IType`, not `IDeclaration` |
 | Advising/DeclarationExtensions.cs | Uses method parameters in tuple pattern |
 
+---
+
+## Pitfalls and Common Mistakes
+
+This section documents common mistakes that were discovered during the Kind optimization work. These pitfalls can cause subtle bugs that are difficult to diagnose.
+
+### Pitfall 1: Multiple DeclarationKinds for the Same Interface
+
+**Problem:** Some interfaces can have multiple `DeclarationKind` values. Checking only one Kind excludes valid cases.
+
+**Example Bug (Query.cs):**
+```csharp
+// WRONG - CompilationModel has DeclarationKind.Compilation, not AssemblyReference
+if (declaration.DeclarationKind == DeclarationKind.AssemblyReference && declaration is IAssembly assembly)
+
+// CORRECT - IAssembly includes both Compilation and AssemblyReference
+if (declaration.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.AssemblyReference && declaration is IAssembly assembly)
+```
+
+**Common multi-Kind interfaces:**
+| Interface | Possible DeclarationKinds |
+|-----------|--------------------------|
+| `IAssembly` | `Compilation`, `AssemblyReference` |
+| `INamedType` | `NamedType`, `ExtensionBlock` |
+| `IMethodBase` | `Method`, `Constructor`, `Finalizer`, `Operator` |
+| `IMember` | `Method`, `Property`, `Field`, `Event`, `Indexer`, `Constructor` |
+| `IType` | `NamedType`, `TypeParameter`, `Type` |
+
+### Pitfall 2: ExtensionBlock is Not NamedType
+
+**Problem:** `IExtensionBlock` is processed as `INamedType` but has `DeclarationKind.ExtensionBlock`, not `NamedType`.
+
+**Example Bug (DesignTimeSyntaxTreeGenerator.cs):**
+```csharp
+// WRONG - Extension blocks won't match this
+case DeclarationKind.NamedType when target is INamedType namedType:
+    ProcessTransformationsOnType(namedType, transformations);
+
+// CORRECT - Include ExtensionBlock
+case DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when target is INamedType namedType:
+    ProcessTransformationsOnType(namedType, transformations);
+```
+
+### Pitfall 3: Switch Already Using Kind as Discriminator
+
+**Problem:** If a switch already uses `Kind()` or `SyntaxKind`, adding pattern matching for extraction doesn't need Kind optimization.
+
+**Example - Do NOT optimize:**
+```csharp
+// This switch ALREADY uses expression.Kind() - don't add redundant Kind checks
+switch (expression.Kind())
+{
+    case SyntaxKind.CharacterLiteralExpression:
+    case SyntaxKind.StringLiteralExpression:
+    case SyntaxKind.NumericLiteralExpression:
+        var literal = (LiteralExpressionSyntax)expression;  // Just cast
+        return literal.Token.Value;
+}
+```
+
+### Pitfall 4: Fall-Through Cases with Pattern Variables
+
+**Problem:** When multiple switch cases fall through to shared code, a pattern variable defined in only one case is undefined for others.
+
+**Example Bug:**
+```csharp
+// WRONG - literal is only defined for DefaultLiteralExpression
+case SyntaxKind.CharacterLiteralExpression:
+case SyntaxKind.StringLiteralExpression:
+case SyntaxKind.DefaultLiteralExpression when expression is LiteralExpressionSyntax literal:
+    var value = literal.Token.Value;  // literal undefined for other cases!
+
+// CORRECT - Cast inside the case body
+case SyntaxKind.CharacterLiteralExpression:
+case SyntaxKind.StringLiteralExpression:
+case SyntaxKind.DefaultLiteralExpression:
+    var literal = (LiteralExpressionSyntax)expression;
+    var value = literal.Token.Value;
+```
+
+### Pitfall 5: Missing Using Directives
+
+**Problem:** Adding `SyntaxKind` checks requires `using Microsoft.CodeAnalysis.CSharp;`
+
+**Symptoms:**
+- `CS0103: The name 'SyntaxKind' does not exist in the current context`
+- `.Kind()` method not found on `SyntaxNode`
+
+**Fix:** Add `using Microsoft.CodeAnalysis.CSharp;` to the file's using directives.
+
+### Pitfall 6: Unassigned Variable After Pattern Match
+
+**Problem:** When a `when` clause pattern defines a variable but the switch/if doesn't guarantee that branch, the variable may be unassigned.
+
+**Example Bug:**
+```csharp
+// WRONG - typeSymbol only assigned if Kind == TypeParameter
+case SymbolKind.NamedType:
+case SymbolKind.ArrayType:
+case SymbolKind.TypeParameter when symbol is ITypeSymbol typeSymbol:
+    return this.TypeSyntax(typeSymbol);  // typeSymbol undefined for NamedType/ArrayType!
+
+// CORRECT - Cast directly
+case SymbolKind.NamedType:
+case SymbolKind.ArrayType:
+case SymbolKind.TypeParameter:
+    return this.TypeSyntax((ITypeSymbol)symbol);
+```
+
+### Pitfall 7: RS1034 Analyzer Warning
+
+**Problem:** Roslyn analyzer RS1034 prefers `.IsKind()` over `.Kind() ==` for SyntaxKind checks.
+
+**Example:**
+```csharp
+// Triggers RS1034 warning
+if (node.Kind() == SyntaxKind.MethodDeclaration)
+
+// Preferred - no warning
+if (node.IsKind(SyntaxKind.MethodDeclaration))
+```
+
+### Pitfall 8: Null Reference After Null-Conditional
+
+**Problem:** After `symbol?.Kind == ...`, accessing `symbol.X` without null check can throw.
+
+**Example Bug:**
+```csharp
+// WRONG - symbol could be null
+if (parameterTypeX?.ContainingSymbol?.Kind == SymbolKind.Method
+    && parameterTypeX.ContainingSymbol is IMethodSymbol)  // NullRef if parameterTypeX is null!
+
+// CORRECT - Keep null-conditional or check separately
+if (parameterTypeX?.ContainingSymbol?.Kind == SymbolKind.Method
+    && parameterTypeX?.ContainingSymbol is IMethodSymbol)
+```
+
+---
+
+## Testing Strategy
+
+After applying Kind optimizations to a batch of files:
+
+1. **Build first:** `dotnet build Metalama.Framework/Metalama.Framework.LatestRoslyn.slnf`
+2. **Run tests:** `dotnet test Metalama.Framework/Metalama.Framework.LatestRoslyn.slnf`
+3. **If tests fail:**
+   - Check for multi-Kind interfaces (Pitfall 1, 2)
+   - Check for pattern variable scope issues (Pitfall 4, 6)
+   - Check for missing using directives (Pitfall 5)
+4. **Commit after each successful batch** - Don't batch too many changes together
+

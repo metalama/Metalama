@@ -49,14 +49,21 @@ internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpres
 
     private TypedConstant? GetTypeConstant( ExpressionSyntax expression )
     {
-        switch ( expression )
+        switch ( expression.Kind() )
         {
 #pragma warning disable RS1034
-            case PostfixUnaryExpressionSyntax postFix when postFix.OperatorToken.Kind() == SyntaxKind.ExclamationToken:
+            case SyntaxKind.SuppressNullableWarningExpression when expression is PostfixUnaryExpressionSyntax postFix && postFix.OperatorToken.Kind() == SyntaxKind.ExclamationToken:
 #pragma warning restore RS1034
                 return this.GetTypeConstant( postFix.Operand );
 
-            case LiteralExpressionSyntax literal:
+            case SyntaxKind.CharacterLiteralExpression:
+            case SyntaxKind.StringLiteralExpression:
+            case SyntaxKind.NumericLiteralExpression:
+            case SyntaxKind.TrueLiteralExpression:
+            case SyntaxKind.FalseLiteralExpression:
+            case SyntaxKind.NullLiteralExpression:
+            case SyntaxKind.DefaultLiteralExpression:
+                var literal = (LiteralExpressionSyntax) expression;
                 var value = literal.Token.Value;
 
                 if ( value != null )
@@ -68,12 +75,12 @@ internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpres
                     return TypedConstant.Default( this.Type );
                 }
 
-            case MemberAccessExpressionSyntax:
-            case IdentifierNameSyntax:
+            case SyntaxKind.SimpleMemberAccessExpression:
+            case SyntaxKind.IdentifierName:
                 var semanticModel = this.Type.GetCompilationContext().SemanticModelProvider.GetSemanticModel( this.Expression.SyntaxTree );
                 var member = semanticModel.GetSymbolInfo( expression ).Symbol;
 
-                if ( member is IFieldSymbol field && field.ContainingType.TypeKind == TypeKind.Enum )
+                if ( member?.Kind == SymbolKind.Field && member is IFieldSymbol field && field.ContainingType.TypeKind == TypeKind.Enum )
                 {
                     var enumType = this.Type.GetCompilationModel().Factory.GetTypeByReflectionName( field.ContainingType.GetReflectionFullName() );
 

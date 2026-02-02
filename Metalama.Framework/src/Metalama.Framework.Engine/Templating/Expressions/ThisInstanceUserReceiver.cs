@@ -39,14 +39,15 @@ internal sealed class ThisInstanceUserReceiver : InstanceUserReceiver
         bool throwOnError,
         [NotNullWhen( true )] out ThisInstanceUserReceiver? receiver )
     {
-        switch ( currentDeclaration )
+        switch ( currentDeclaration?.DeclarationKind )
         {
             // Parameters
-            case IParameter { DeclaringMember: { } m }:
+            case DeclarationKind.Parameter when currentDeclaration is IParameter { DeclaringMember: { } m }:
                 return TryCreate( m, aspectReferenceSpecification, throwOnError, out receiver );
 
             // Instance member.
-            case IMember { IsStatic: false, DeclaringType: { } type }:
+            case DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Indexer or DeclarationKind.Constructor
+                when currentDeclaration is IMember { IsStatic: false, DeclaringType: { } type }:
                 receiver = new ThisInstanceUserReceiver( type, aspectReferenceSpecification );
 
                 return true;

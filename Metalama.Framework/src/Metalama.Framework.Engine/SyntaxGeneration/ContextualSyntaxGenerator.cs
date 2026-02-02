@@ -207,12 +207,18 @@ public sealed partial class ContextualSyntaxGenerator
     {
         TypeSyntax expression;
 
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case ITypeSymbol typeSymbol:
-                return this.TypeSyntax( typeSymbol );
+            case SymbolKind.NamedType:
+            case SymbolKind.ArrayType:
+            case SymbolKind.PointerType:
+            case SymbolKind.FunctionPointerType:
+            case SymbolKind.DynamicType:
+            case SymbolKind.ErrorType:
+            case SymbolKind.TypeParameter:
+                return this.TypeSyntax( (ITypeSymbol) symbol );
 
-            case INamespaceSymbol namespaceSymbol:
+            case SymbolKind.Namespace when symbol is INamespaceSymbol namespaceSymbol:
                 expression = (NameSyntax) _roslynSyntaxGenerator.NameExpression( namespaceSymbol );
 
                 break;

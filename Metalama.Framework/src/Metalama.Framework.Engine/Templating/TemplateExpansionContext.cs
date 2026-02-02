@@ -490,7 +490,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         ExpressionSyntax? usingExpression;
         IdentifierNameSyntax? enumeratorIdentifier;
 
-        if ( returnExpression is IdentifierNameSyntax returnIdentifier )
+        if ( returnExpression.Kind() == SyntaxKind.IdentifierName && returnExpression is IdentifierNameSyntax returnIdentifier )
         {
             local = null;
             usingExpression = returnExpression;

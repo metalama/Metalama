@@ -33,11 +33,11 @@ public static partial class SerializableDeclarationIdProvider
         {
             case null:
             case ILocalSymbol:
-            case IMethodSymbol
-            {
-                MethodKind: MethodKind.LocalFunction or MethodKind.AnonymousFunction
-            }:
+                id = default;
 
+                return false;
+
+            case IMethodSymbol { MethodKind: MethodKind.LocalFunction or MethodKind.AnonymousFunction }:
                 id = default;
 
                 return false;

@@ -86,7 +86,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                 switch ( target.DeclarationKind )
                 {
-                    case DeclarationKind.NamedType when target is INamedType namedType:
+                    case DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when target is INamedType namedType:
                         ProcessTransformationsOnType( namedType, transformationGroup.Value );
 
                         break;

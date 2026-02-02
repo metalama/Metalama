@@ -15,24 +15,24 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
     {
         public static SyntaxTokenList GetSyntaxModifierList( this ISymbol declaration, ModifierCategories categories = ModifierCategories.All )
         {
-            switch ( declaration )
+            switch ( declaration.Kind )
             {
-                case IMethodSymbol accessor when accessor.IsAccessor():
+                case SymbolKind.Method when declaration is IMethodSymbol accessor && accessor.IsAccessor():
                     return GetAccessorSyntaxModifierList( accessor, categories );
 
-                case IMethodSymbol method:
+                case SymbolKind.Method when declaration is IMethodSymbol method:
                     return GetMemberSyntaxModifierList( method, categories );
 
-                case IPropertySymbol property:
+                case SymbolKind.Property when declaration is IPropertySymbol property:
                     return GetMemberSyntaxModifierList( property, categories );
 
-                case IEventSymbol @event:
+                case SymbolKind.Event when declaration is IEventSymbol @event:
                     return GetMemberSyntaxModifierList( @event, categories );
 
-                case IParameterSymbol parameter:
+                case SymbolKind.Parameter when declaration is IParameterSymbol parameter:
                     return GetParameterSyntaxModifierList( parameter );
 
-                case IFieldSymbol field:
+                case SymbolKind.Field when declaration is IFieldSymbol field:
                     return GetMemberSyntaxModifierList( field, categories );
 
                 default:
@@ -100,12 +100,14 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 }
             }
 
-            if ( (categories & ModifierCategories.ReadOnly) != 0 && member is IMethodSymbol { IsReadOnly: true } or IFieldSymbol { IsReadOnly: true } )
+            if ( (categories & ModifierCategories.ReadOnly) != 0
+                 && (member.Kind == SymbolKind.Method && member is IMethodSymbol { IsReadOnly: true }
+                     || member.Kind == SymbolKind.Field && member is IFieldSymbol { IsReadOnly: true }) )
             {
                 tokens.Add( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReadOnlyKeyword ) );
             }
 
-            if ( (categories & ModifierCategories.Const) != 0 && member is IFieldSymbol { IsConst: true } )
+            if ( (categories & ModifierCategories.Const) != 0 && member.Kind == SymbolKind.Field && member is IFieldSymbol { IsConst: true } )
             {
                 tokens.Add( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ConstKeyword ) );
             }
@@ -115,12 +117,12 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 tokens.Add( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.UnsafeKeyword ) );
             }
 
-            if ( (categories & ModifierCategories.Volatile) != 0 && member is IFieldSymbol { IsVolatile: true } )
+            if ( (categories & ModifierCategories.Volatile) != 0 && member.Kind == SymbolKind.Field && member is IFieldSymbol { IsVolatile: true } )
             {
                 tokens.Add( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.VolatileKeyword ) );
             }
 
-            if ( (categories & ModifierCategories.Async) != 0 && member is IMethodSymbol { IsAsync: true } )
+            if ( (categories & ModifierCategories.Async) != 0 && member.Kind == SymbolKind.Method && member is IMethodSymbol { IsAsync: true } )
             {
                 tokens.Add( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.AsyncKeyword ) );
             }
@@ -131,9 +133,9 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         private static void AddAccessibilityTokens( ISymbol member, List<SyntaxToken> tokens )
         {
             // If the target is explicit interface implementation, skip accessibility modifiers.
-            switch ( member )
+            switch ( member.Kind )
             {
-                case IMethodSymbol method:
+                case SymbolKind.Method when member is IMethodSymbol method:
                     if ( method.ExplicitInterfaceImplementations.Length > 0 )
                     {
                         return;
@@ -141,7 +143,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
                     break;
 
-                case IPropertySymbol property:
+                case SymbolKind.Property when member is IPropertySymbol property:
                     if ( property.ExplicitInterfaceImplementations.Length > 0 )
                     {
                         return;
@@ -149,7 +151,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
                     break;
 
-                case IEventSymbol @event:
+                case SymbolKind.Event when member is IEventSymbol @event:
                     if ( @event.ExplicitInterfaceImplementations.Length > 0 )
                     {
                         return;

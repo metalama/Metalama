@@ -59,7 +59,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             {
                 return true;
             }
-            else if ( type is IArrayTypeSymbol arrayType )
+            else if ( type.Kind == SymbolKind.ArrayType && type is IArrayTypeSymbol arrayType )
             {
                 return this.IsSerializable( arrayType.ElementType, diagnosticLocation, diagnosticAdder );
             }
@@ -76,7 +76,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             {
                 return true;
             }
-            else if ( type is INamedTypeSymbol namedType )
+            else if ( type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol namedType )
             {
                 if ( namedType.EnumUnderlyingType != null )
                 {

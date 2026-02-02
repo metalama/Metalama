@@ -184,7 +184,8 @@ internal static partial class DocumentationIdHelper
                 this._builder.Append( ':' );
             }
 
-            if ( typeParameter.ContainingDeclaration?.DeclarationKind == DeclarationKind.Method )
+            if ( typeParameter.ContainingDeclaration?.DeclarationKind == DeclarationKind.Method
+                 && typeParameter.ContainingDeclaration is IMethod )
             {
                 this._builder.Append( "``" );
                 this._builder.Append( typeParameter.Index );

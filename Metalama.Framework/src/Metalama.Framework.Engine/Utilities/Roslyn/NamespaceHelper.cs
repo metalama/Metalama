@@ -37,11 +37,11 @@ internal static class NamespaceHelper
 
         void AppendNameRecursive( ISymbol s )
         {
-            var (parent, separator) = s switch
+            var (parent, separator) = s.Kind switch
             {
-                INamedTypeSymbol { ContainingType: { } containingType } => (containingType, '.'),
-                INamedTypeSymbol namedType => (namedType.ContainingNamespace, '.'),
-                INamespaceSymbol ns => (ns.ContainingNamespace, '.'),
+                SymbolKind.NamedType when s is INamedTypeSymbol { ContainingType: { } containingType } => (containingType, '.'),
+                SymbolKind.NamedType when s is INamedTypeSymbol namedType => (namedType.ContainingNamespace, '.'),
+                SymbolKind.Namespace when s is INamespaceSymbol ns => (ns.ContainingNamespace, '.'),
                 _ => (s.ContainingSymbol, '.')
             };
 

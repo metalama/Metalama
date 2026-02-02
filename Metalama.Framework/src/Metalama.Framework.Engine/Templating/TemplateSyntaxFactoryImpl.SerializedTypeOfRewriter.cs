@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 
@@ -22,7 +23,7 @@ internal sealed partial class TemplateSyntaxFactoryImpl
 
         public override SyntaxNode VisitIdentifierName( IdentifierNameSyntax node )
         {
-            if ( node.Parent is QualifiedNameSyntax or AliasQualifiedNameSyntax )
+            if ( node.Parent?.Kind() is SyntaxKind.QualifiedName or SyntaxKind.AliasQualifiedName )
             {
                 // We have a type name. Don't substitute.
                 return node;
