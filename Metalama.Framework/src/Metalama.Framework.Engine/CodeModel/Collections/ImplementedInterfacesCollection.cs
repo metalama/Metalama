@@ -19,12 +19,12 @@ namespace Metalama.Framework.Engine.CodeModel.Collections
         {
             var itype = this.ContainingDeclaration!.Compilation.Factory.GetTypeByReflectionType( type );
 
-            if ( itype is not INamedType namedType )
+            if ( itype.DeclarationKind == DeclarationKind.NamedType && itype is INamedType namedType )
             {
-                return false;
+                return this.Contains( namedType );
             }
 
-            return this.Contains( namedType );
+            return false;
         }
     }
 }

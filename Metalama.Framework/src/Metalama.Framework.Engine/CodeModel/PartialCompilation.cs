@@ -296,7 +296,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
             void AddTypeRecursive( INamedTypeSymbol type )
             {
-                if ( type is IErrorTypeSymbol )
+                if ( type.Kind == SymbolKind.ErrorType )
                 {
                     return;
                 }

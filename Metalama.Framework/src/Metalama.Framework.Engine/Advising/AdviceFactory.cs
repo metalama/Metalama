@@ -391,27 +391,27 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
 
         // Allow return value parameters of explicitly-declared members or `value` parameter of property setters.
-        if ( declaration is IParameter { DeclaringMember.IsImplicitlyDeclared: false } parameter )
+        if ( declaration.DeclarationKind == DeclarationKind.Parameter && declaration is IParameter { DeclaringMember.IsImplicitlyDeclared: false } parameter )
         {
             if ( parameter.IsReturnParameter )
             {
                 return;
             }
 
-            if ( parameter.DeclaringMember is IMethod { MethodKind: MethodKind.PropertySet } )
+            if ( parameter.DeclaringMember.DeclarationKind == DeclarationKind.Method && parameter.DeclaringMember is IMethod { MethodKind: MethodKind.PropertySet } )
             {
                 return;
             }
         }
 
         // Allow default constructors (implicitly declared)
-        if ( declaration is IConstructor { IsImplicitlyDeclared: true, Parameters.Count: 0 } )
+        if ( declaration.DeclarationKind == DeclarationKind.Constructor && declaration is IConstructor { IsImplicitlyDeclared: true, Parameters.Count: 0 } )
         {
             return;
         }
 
         // Allow backing fields of auto-properties (implicitly declared)
-        if ( declaration is IField field && field.IsAutoPropertyBackingField() )
+        if ( declaration.DeclarationKind == DeclarationKind.Field && declaration is IField field && field.IsAutoPropertyBackingField() )
         {
             return;
         }

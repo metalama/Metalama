@@ -64,11 +64,11 @@ public static class DeclarationExtensions
     /// </summary>
     internal static IEnumerable<IDeclaration> GetContainedDeclarations( this IDeclaration declaration )
         => declaration.SelectManyRecursive(
-            child => child switch
+            child => child.DeclarationKind switch
             {
-                ICompilation compilation => [compilation.GlobalNamespace],
-                INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
-                INamedType namedType => EnumerableExtensions.Concat<IDeclaration>(
+                DeclarationKind.Compilation when child is ICompilation compilation => [compilation.GlobalNamespace],
+                DeclarationKind.Namespace when child is INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
+                DeclarationKind.NamedType when child is INamedType namedType => EnumerableExtensions.Concat<IDeclaration>(
                         namedType.Types,
                         namedType.Methods,
                         namedType.Constructors,
@@ -79,12 +79,12 @@ public static class DeclarationExtensions
                         namedType.TypeParameters )
                     .ConcatNotNull( namedType.StaticConstructor )
                     .ConcatNotNull( namedType.Finalizer ),
-                IMethod method => Enumerable
+                DeclarationKind.Method when child is IMethod method => Enumerable
                     .Concat<IDeclaration>( method.Parameters, method.TypeParameters )
                     .ConcatNotNull( method.ReturnParameter ),
-                IIndexer indexer => indexer.Parameters.Concat<IDeclaration>( indexer.Accessors ),
-                IConstructor constructor => constructor.Parameters,
-                IHasAccessors member => member.Accessors,
+                DeclarationKind.Indexer when child is IIndexer indexer => indexer.Parameters.Concat<IDeclaration>( indexer.Accessors ),
+                DeclarationKind.Constructor when child is IConstructor constructor => constructor.Parameters,
+                DeclarationKind.Property or DeclarationKind.Event when child is IHasAccessors member => member.Accessors,
                 _ => []
             } );
 
@@ -657,7 +657,7 @@ public static class DeclarationExtensions
     /// i.e. returns containing namespace for top-level types.
     /// </summary>
     internal static IDeclaration? GetContainingDeclarationOrNamespace( this IDeclaration declaration )
-        => declaration.ContainingDeclaration is IAssembly && declaration is INamedType namedType
+        => declaration.ContainingDeclaration is IAssembly && declaration.DeclarationKind == DeclarationKind.NamedType && declaration is INamedType namedType
             ? namedType.ContainingNamespace
             : declaration.ContainingDeclaration;
 

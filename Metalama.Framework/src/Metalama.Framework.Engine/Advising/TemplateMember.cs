@@ -81,7 +81,7 @@ internal abstract class TemplateMember
     {
         if ( this.SelectedTemplateKind == TemplateKind.Default )
         {
-            if ( declaration is IMethodSymbol method && method.IsAsyncSafe() )
+            if ( declaration.Kind == SymbolKind.Method && declaration is IMethodSymbol method && method.IsAsyncSafe() )
             {
                 if ( this.IsIteratorMethod )
                 {
@@ -101,7 +101,9 @@ internal abstract class TemplateMember
             }
             else if ( this.IsIteratorMethod )
             {
-                var iteratorMethod = declaration as IMethodSymbol ?? (declaration as IPropertySymbol)?.GetMethod;
+                var iteratorMethod = declaration.Kind == SymbolKind.Method
+                    ? declaration as IMethodSymbol
+                    : (declaration.Kind == SymbolKind.Property ? (declaration as IPropertySymbol)?.GetMethod : null);
 
                 switch ( iteratorMethod?.GetEnumerableKind() )
                 {
@@ -154,7 +156,7 @@ internal abstract class TemplateMember
         this.AdviceAttribute = adviceAttribute.AssertNotNull();
         this.Tags = tags;
 
-        if ( symbol is IMethodSymbol { MethodKind: MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove }
+        if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove }
              && templateClassMember.Parameters.Length != 1 )
         {
             throw new AssertionFailedException(
@@ -177,7 +179,7 @@ internal abstract class TemplateMember
             this.IsIteratorMethod = compiledTemplateAttribute.IsIteratorMethod;
         }
 
-        if ( symbol is IPropertySymbol property )
+        if ( symbol.Kind == SymbolKind.Property && symbol is IPropertySymbol property )
         {
             if ( property.GetMethod != null )
             {
@@ -216,7 +218,7 @@ internal abstract class TemplateMember
                 }
             }
         }
-        else if ( symbol is IMethodSymbol { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet } )
+        else if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet } )
         {
             // For property accessor methods, also check IntroducesBackingField from the CompiledTemplateAttribute.
             // This is needed when accessor templates are created separately (not from a property template).
@@ -249,7 +251,7 @@ internal abstract class TemplateMember
         // Set the attribute data with data computed from the code, if available.
         attribute.Accessibility = declaration.DeclaredAccessibility.ToOurAccessibility();
 
-        if ( declaration is IMethodSymbol method )
+        if ( declaration.Kind == SymbolKind.Method && declaration is IMethodSymbol method )
         {
             attribute.IsIteratorMethod = method.IsIteratorMethod();
             attribute.IsAsync = method.IsAsyncSafe();

@@ -53,13 +53,13 @@ namespace Metalama.Framework.Engine.CodeModel
                         this._builder.Add( attributeType, new SyntaxAttributeRef( attributeType, node, realDeclaration, this._compilation.RefFactory, kind ) );
                     }
 
-                    switch ( parentDeclaration )
+                    switch ( parentDeclaration.Kind() )
                     {
-                        case IncompleteMemberSyntax or (StatementSyntax and not LocalFunctionStatementSyntax):
+                        case SyntaxKind.IncompleteMember when parentDeclaration is IncompleteMemberSyntax:
                             // This happens at design time when we have an invalid syntax. Local functions are skipped to produce correct errors later.
                             break;
 
-                        case BaseFieldDeclarationSyntax field:
+                        case SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration when parentDeclaration is BaseFieldDeclarationSyntax field:
                             {
                                 // In case of fields and field-like events, add the attribute to all defined fields.
 
@@ -72,6 +72,13 @@ namespace Metalama.Framework.Engine.CodeModel
                             }
 
                         default:
+                            // Handle statement syntax separately to skip local functions
+                            if ( parentDeclaration is StatementSyntax and not LocalFunctionStatementSyntax )
+                            {
+                                // This happens at design time when we have an invalid syntax. Local functions are skipped to produce correct errors later.
+                                break;
+                            }
+
                             Add( parentDeclaration );
 
                             break;
@@ -115,7 +122,8 @@ namespace Metalama.Framework.Engine.CodeModel
                             break;
 
                         case SyntaxKind.MethodKeyword:
-                            if ( declaration is BasePropertyDeclarationSyntax { AccessorList: { } } property )
+                            if ( declaration.Kind() is SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration
+                                && declaration is BasePropertyDeclarationSyntax { AccessorList: { } } property )
                             {
                                 foreach ( var accessor in property.AccessorList.Accessors )
                                 {

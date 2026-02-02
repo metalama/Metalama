@@ -106,11 +106,13 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
 
     public override FormattableString ToDisplayString()
     {
-        var parameter = this.ContractTarget.GetTarget( this.InitialCompilation ) switch
+        var target = this.ContractTarget.GetTarget( this.InitialCompilation );
+
+        var parameter = target.DeclarationKind switch
         {
-            { DeclarationKind: DeclarationKind.Parameter } and IParameter { IsReturnParameter: true } => "return value",
-            { DeclarationKind: DeclarationKind.Parameter } and IParameter param => $"parameter '{param.Name}'",
-            var target => $"unexpected declaration '{target}'"
+            DeclarationKind.Parameter when target is IParameter { IsReturnParameter: true } => "return value",
+            DeclarationKind.Parameter when target is IParameter param => $"parameter '{param.Name}'",
+            _ => $"unexpected declaration '{target}'"
         };
 
         return $"Add contract to {parameter} of {this.TargetMemberOrNamedType.DeclarationKind} '{this.TargetMemberOrNamedType}'";

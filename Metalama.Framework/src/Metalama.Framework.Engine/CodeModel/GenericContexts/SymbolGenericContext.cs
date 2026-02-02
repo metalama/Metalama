@@ -71,8 +71,8 @@ internal sealed partial class SymbolGenericContext : GenericContext
 
         return closestMember.Kind switch
         {
-            SymbolKind.Method => Get( (IMethodSymbol) closestMember, compilationContext ),
-            SymbolKind.NamedType => Get( (INamedTypeSymbol) closestMember, compilationContext ),
+            SymbolKind.Method when closestMember is IMethodSymbol methodSymbol => Get( methodSymbol, compilationContext ),
+            SymbolKind.NamedType when closestMember is INamedTypeSymbol namedTypeSymbol => Get( namedTypeSymbol, compilationContext ),
             _ => Get( closestMember.ContainingType, compilationContext )
         };
     }
@@ -130,10 +130,10 @@ internal sealed partial class SymbolGenericContext : GenericContext
             return type;
         }
 
-        return type switch
+        return type?.Kind switch
         {
             null => null,
-            ITypeParameterSymbol typeParameter => this.MapToSymbol( typeParameter ),
+            SymbolKind.TypeParameter when type is ITypeParameterSymbol typeParameter => this.MapToSymbol( typeParameter ),
             _ => ReferencesTypeParameter( type ) ? this.TypeSymbolMapperInstance.Visit( type ) : type
         };
     }
@@ -181,7 +181,8 @@ internal sealed partial class SymbolGenericContext : GenericContext
                             {
                                 var typeArgument = type.TypeArguments[typeParameter.Index];
 
-                                if ( typeArgument is ITypeParameterSymbol { TypeParameterKind: TypeParameterKind.Type } typeArgumentAsTypeParameter
+                                if ( typeArgument.Kind == SymbolKind.TypeParameter
+                                     && typeArgument is ITypeParameterSymbol { TypeParameterKind: TypeParameterKind.Type } typeArgumentAsTypeParameter
                                      && typeArgumentAsTypeParameter.Ordinal == typeParameter.Index )
                                 {
                                     // Avoid an infinite recursion trying to resolve it.
@@ -207,7 +208,8 @@ internal sealed partial class SymbolGenericContext : GenericContext
                     {
                         var typeArgument = this._methodSymbol.TypeArguments[typeParameter.Index];
 
-                        if ( typeArgument is ITypeParameterSymbol { TypeParameterKind: TypeParameterKind.Method } typeArgumentAsTypeParameter
+                        if ( typeArgument.Kind == SymbolKind.TypeParameter
+                             && typeArgument is ITypeParameterSymbol { TypeParameterKind: TypeParameterKind.Method } typeArgumentAsTypeParameter
                              && typeArgumentAsTypeParameter.Ordinal == typeParameter.Index )
                         {
                             // Avoid an infinite recursion trying to resolve it.
@@ -240,16 +242,16 @@ internal sealed partial class SymbolGenericContext : GenericContext
             IntroducedGenericContext? parentContext;
             ISymbol symbolDefinition;
 
-            switch ( symbol )
+            switch ( symbol.Kind )
             {
-                case IMethodSymbol methodSymbol:
+                case SymbolKind.Method when symbol is IMethodSymbol methodSymbol:
                     parentContext = MapRecursive( methodSymbol.ContainingSymbol );
                     typeArguments = methodSymbol.TypeArguments;
                     symbolDefinition = methodSymbol.OriginalDefinition;
 
                     break;
 
-                case INamedTypeSymbol namedTypeSymbol:
+                case SymbolKind.NamedType when symbol is INamedTypeSymbol namedTypeSymbol:
                     parentContext = namedTypeSymbol.ContainingType != null ? MapRecursive( namedTypeSymbol.ContainingType ) : null;
                     typeArguments = namedTypeSymbol.TypeArguments;
                     symbolDefinition = namedTypeSymbol.OriginalDefinition;

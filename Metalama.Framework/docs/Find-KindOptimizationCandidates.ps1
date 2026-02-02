@@ -28,61 +28,32 @@ $ErrorActionPreference = "Stop"
 $declarationTypes = "Method|Property|Event|Field|Indexer|Constructor|NamedType|Parameter|TypeParameter"
 
 $declarationPatterns = @(
-    # If statement patterns (positive)
     "is I($declarationTypes)\b"
-
-    # If statement patterns (negation)
     "is not I($declarationTypes)\b"
-
-    # Switch statement case patterns
     "case I($declarationTypes)\b"
-
-    # Switch expression arm patterns (with variable)
     "I($declarationTypes)\s+\w+\s*=>"
-
-    # Switch expression arm patterns (with property pattern)
     "I($declarationTypes)\s*\{[^\}]*\}\s*=>"
 )
 
 # =============================================================================
 # ISymbol patterns (SymbolKind)
 # =============================================================================
-# Match any I*Symbol pattern (IMethodSymbol, IPropertySymbol, etc.)
 $symbolPatterns = @(
-    # If statement patterns (positive)
     "is I\w+Symbol\b"
-
-    # If statement patterns (negation)
     "is not I\w+Symbol\b"
-
-    # Switch statement case patterns
     "case I\w+Symbol\b"
-
-    # Switch expression arm patterns (with variable)
     "I\w+Symbol\s+\w+\s*=>"
-
-    # Switch expression arm patterns (with property pattern)
     "I\w+Symbol\s*\{[^\}]*\}\s*=>"
 )
 
 # =============================================================================
 # SyntaxNode patterns (SyntaxKind)
 # =============================================================================
-# Match any *Syntax pattern (MethodDeclarationSyntax, BlockSyntax, etc.)
 $syntaxPatterns = @(
-    # If statement patterns (positive)
     "is \w+Syntax\b"
-
-    # If statement patterns (negation)
     "is not \w+Syntax\b"
-
-    # Switch statement case patterns
     "case \w+Syntax\b"
-
-    # Switch expression arm patterns (with variable)
     "\w+Syntax\s+\w+\s*=>"
-
-    # Switch expression arm patterns (with property pattern)
     "\w+Syntax\s*\{[^\}]*\}\s*=>"
 )
 
@@ -109,7 +80,7 @@ if (-not $resolvedPath) {
 }
 
 Write-Host "Searching in: $resolvedPath" -ForegroundColor Cyan
-Write-Host "Patterns: $($patterns.Count) (IDeclaration: $($declarationPatterns.Count), ISymbol: $($symbolPatterns.Count), SyntaxNode: $($syntaxPatterns.Count))" -ForegroundColor Cyan
+Write-Host "Patterns: $($patterns.Count)" -ForegroundColor Cyan
 Write-Host ""
 
 # Find all C# files, excluding tests
@@ -181,14 +152,9 @@ foreach ($file in $files) {
                 continue
             }
 
-            # Determine category
-            $category = if ($pattern -match "Symbol") { "ISymbol" } elseif ($pattern -match "Syntax") { "SyntaxNode" } else { "IDeclaration" }
-
             $fileMatches += [PSCustomObject]@{
                 Line = $lineNumber
-                Pattern = $pattern
                 Content = $lineContent
-                Category = $category
             }
         }
     }
@@ -199,69 +165,24 @@ foreach ($file in $files) {
     }
 }
 
-# Output results
+# Output results - simple list of files sorted by path
 Write-Host ("=" * 80) -ForegroundColor Yellow
 Write-Host "RESULTS: $($results.Count) files with potential optimization opportunities" -ForegroundColor Yellow
 Write-Host ("=" * 80) -ForegroundColor Yellow
 Write-Host ""
 
-# Group by category
-$declarationFiles = @{}
-$symbolFiles = @{}
-$syntaxFiles = @{}
+$sortedFiles = $results.Keys | Sort-Object
 
-foreach ($file in $results.Keys) {
-    $matches = $results[$file]
-    $hasDeclaration = $matches | Where-Object { $_.Category -eq "IDeclaration" }
-    $hasSymbol = $matches | Where-Object { $_.Category -eq "ISymbol" }
-    $hasSyntax = $matches | Where-Object { $_.Category -eq "SyntaxNode" }
-
-    if ($hasDeclaration) { $declarationFiles[$file] = $hasDeclaration }
-    if ($hasSymbol) { $symbolFiles[$file] = $hasSymbol }
-    if ($hasSyntax) { $syntaxFiles[$file] = $hasSyntax }
-}
-
-# Output by category
-if ($declarationFiles.Count -gt 0) {
-    Write-Host ""
-    Write-Host "=== IDeclaration patterns ($($declarationFiles.Count) files) ===" -ForegroundColor Magenta
-    foreach ($file in ($declarationFiles.Keys | Sort-Object)) {
-        Write-Host $file -ForegroundColor Green
-        foreach ($match in $declarationFiles[$file]) {
-            Write-Host "  L$($match.Line): $($match.Content)" -ForegroundColor Gray
-        }
+foreach ($file in $sortedFiles) {
+    Write-Host $file -ForegroundColor Green
+    foreach ($match in $results[$file]) {
+        Write-Host "  L$($match.Line): $($match.Content)" -ForegroundColor Gray
     }
-}
-
-if ($symbolFiles.Count -gt 0) {
     Write-Host ""
-    Write-Host "=== ISymbol patterns ($($symbolFiles.Count) files) ===" -ForegroundColor Magenta
-    foreach ($file in ($symbolFiles.Keys | Sort-Object)) {
-        Write-Host $file -ForegroundColor Green
-        foreach ($match in $symbolFiles[$file]) {
-            Write-Host "  L$($match.Line): $($match.Content)" -ForegroundColor Gray
-        }
-    }
-}
-
-if ($syntaxFiles.Count -gt 0) {
-    Write-Host ""
-    Write-Host "=== SyntaxNode patterns ($($syntaxFiles.Count) files) ===" -ForegroundColor Magenta
-    foreach ($file in ($syntaxFiles.Keys | Sort-Object)) {
-        Write-Host $file -ForegroundColor Green
-        foreach ($match in $syntaxFiles[$file]) {
-            Write-Host "  L$($match.Line): $($match.Content)" -ForegroundColor Gray
-        }
-    }
 }
 
 Write-Host ""
-Write-Host ("=" * 80) -ForegroundColor Yellow
-Write-Host "Summary:" -ForegroundColor Cyan
-Write-Host "  Total files: $($results.Count)" -ForegroundColor Cyan
-Write-Host "  IDeclaration: $($declarationFiles.Count) files" -ForegroundColor Cyan
-Write-Host "  ISymbol: $($symbolFiles.Count) files" -ForegroundColor Cyan
-Write-Host "  SyntaxNode: $($syntaxFiles.Count) files" -ForegroundColor Cyan
+Write-Host "Total: $($results.Count) files" -ForegroundColor Cyan
 
-# Return the list for pipeline use
-return $results.Keys | Sort-Object
+# Return the distinct sorted list of files for pipeline use
+return $sortedFiles

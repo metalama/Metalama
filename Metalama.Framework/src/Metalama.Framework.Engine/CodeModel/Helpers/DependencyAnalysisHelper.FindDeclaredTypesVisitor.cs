@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 
@@ -24,17 +25,24 @@ public static partial class DependencyAnalysisHelper
 
         private void VisitType( SyntaxNode node )
         {
-            if ( this._semanticModel.GetDeclaredSymbol( node ) is INamedTypeSymbol type )
+            var declaredSymbol = this._semanticModel.GetDeclaredSymbol( node );
+
+            if ( declaredSymbol?.Kind == SymbolKind.NamedType && declaredSymbol is INamedTypeSymbol type )
             {
                 this._addDeclaredType( type );
             }
 
             // Also index nested types.
-            if ( node is TypeDeclarationSyntax typeDeclaration )
+            if ( node.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                    or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                && node is TypeDeclarationSyntax typeDeclaration )
             {
                 foreach ( var child in typeDeclaration.Members )
                 {
-                    if ( child is BaseTypeDeclarationSyntax )
+                    if ( child.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                            or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
+                            or SyntaxKind.DelegateDeclaration
+                        && child is BaseTypeDeclarationSyntax )
                     {
                         this.VisitType( child );
                     }
