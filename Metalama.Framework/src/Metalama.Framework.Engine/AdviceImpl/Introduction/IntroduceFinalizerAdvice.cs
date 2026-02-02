@@ -36,9 +36,7 @@ internal sealed class IntroduceFinalizerAdvice : IntroduceMemberAdvice<IMethod, 
 
     protected override MethodBuilder CreateBuilder()
     {
-#pragma warning disable CS0618 // DeclarationKind.Finalizer is obsolete - used internally for code generation
-        return new MethodBuilder( this.AspectLayerInstance, this.TargetDeclaration, "Finalize", DeclarationKind.Finalizer );
-#pragma warning restore CS0618
+        return new MethodBuilder( this.AspectLayerInstance, this.TargetDeclaration, "Finalize", MethodKind.Finalizer );
     }
 
     protected override void InitializeBuilderCore(

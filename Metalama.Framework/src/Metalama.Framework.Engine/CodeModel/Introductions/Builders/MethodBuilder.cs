@@ -26,7 +26,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
     private bool _isReadOnly;
     private bool _isIteratorMethod;
     private bool _isImplicitlyDeclared;
-    private DeclarationKind _declarationKind;
+    private MethodKind _methodKind;
     private OperatorKind _operatorKind;
 
     public IntroducedRef<IMethod> Ref { get; }
@@ -39,23 +39,20 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
         this._isImplicitlyDeclared = true;
     }
 
-#pragma warning disable CS0618 // DeclarationKind.Operator and DeclarationKind.Finalizer are obsolete - used internally
     public MethodBuilder(
         AspectLayerInstance aspectLayerInstance,
         INamedType declaringType,
         string name,
-        DeclarationKind declarationKind = DeclarationKind.Method,
+        MethodKind methodKind = MethodKind.Default,
         OperatorKind operatorKind = OperatorKind.None )
         : base( aspectLayerInstance, declaringType, name )
     {
-        Invariant.Assert(
-            declarationKind == DeclarationKind.Operator
-                            ==
-                            (operatorKind != OperatorKind.None) );
-#pragma warning restore CS0618
+        var isOperatorMethodKind = methodKind == MethodKind.Operator;
+        var hasOperatorKind = operatorKind != OperatorKind.None;
+        Invariant.Assert( isOperatorMethodKind == hasOperatorKind );
 
         this.Ref = new IntroducedRef<IMethod>( this.Compilation.RefFactory );
-        this._declarationKind = declarationKind;
+        this._methodKind = methodKind;
         this._operatorKind = operatorKind;
 
         // When created with an operator kind, set IsStatic based on the operator.
@@ -195,17 +192,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     public bool IsCanonicalGenericInstance => true;
 
-    // We don't currently support adding other methods than default ones.
-    public MethodKind MethodKind
-        => this._declarationKind switch
-        {
-#pragma warning disable CS0618 // DeclarationKind.Operator and DeclarationKind.Finalizer are obsolete
-            DeclarationKind.Method => MethodKind.Default,
-            DeclarationKind.Operator => MethodKind.Operator,
-            DeclarationKind.Finalizer => MethodKind.Finalizer,
-#pragma warning restore CS0618
-            _ => throw new AssertionFailedException( $"Unexpected _declarationKind: {this._declarationKind}." )
-        };
+    public MethodKind MethodKind => this._methodKind;
 
     public override MethodBase ToMethodBase() => this.ToMethodInfo();
 
@@ -228,7 +215,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
             {
                 // Switching from operator to regular method.
                 this._operatorKind = OperatorKind.None;
-                this._declarationKind = DeclarationKind.Method;
+                this._methodKind = MethodKind.Default;
 
                 // Name and IsStatic are not automatically reset - user must set them manually.
             }
@@ -257,9 +244,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
                 base.Name = operatorData.MemberName;
                 base.IsStatic = operatorData.IsStatic;
                 this._operatorKind = value;
-#pragma warning disable CS0618 // DeclarationKind.Operator is obsolete - used internally
-                this._declarationKind = DeclarationKind.Operator;
-#pragma warning restore CS0618
+                this._methodKind = MethodKind.Operator;
             }
         }
     }

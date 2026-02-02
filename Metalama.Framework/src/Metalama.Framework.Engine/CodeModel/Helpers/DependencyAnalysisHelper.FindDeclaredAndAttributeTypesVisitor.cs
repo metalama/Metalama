@@ -36,15 +36,11 @@ public static partial class DependencyAnalysisHelper
             }
 
             // Also index nested types.
-            if ( node.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
-                    or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
-                && node is TypeDeclarationSyntax typeDeclaration )
+            if ( node.Kind().IsTypeDeclaration() && node is TypeDeclarationSyntax typeDeclaration )
             {
                 foreach ( var child in typeDeclaration.Members )
                 {
-                    if ( child.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
-                            or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
-                        && child is BaseTypeDeclarationSyntax )
+                    if ( child.Kind().IsBaseTypeDeclaration() && child is BaseTypeDeclarationSyntax )
                     {
                         this.VisitType( child );
                     }

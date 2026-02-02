@@ -84,11 +84,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                     ConstructorInitializerKind.This,
                 SyntaxKind.ConstructorDeclaration when this.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax { Initializer: { } initializer } && initializer.IsKind( SyntaxKind.BaseConstructorInitializer ) =>
                     ConstructorInitializerKind.Base,
-                SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
-                    when this.GetPrimaryDeclarationSyntax() is TypeDeclarationSyntax { BaseList: null } =>
+                var kind when kind.Value.IsTypeDeclaration() && this.GetPrimaryDeclarationSyntax() is TypeDeclarationSyntax { BaseList: null } =>
                     ConstructorInitializerKind.None,
-                SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
-                    when this.GetPrimaryDeclarationSyntax() is TypeDeclarationSyntax { BaseList: { } baseList } =>
+                var kind when kind.Value.IsTypeDeclaration() && this.GetPrimaryDeclarationSyntax() is TypeDeclarationSyntax { BaseList: { } baseList } =>
                     baseList.Types.Any( bt => bt.IsKind( SyntaxKind.PrimaryConstructorBaseType ) )
                         ? ConstructorInitializerKind.Base
                         : ConstructorInitializerKind.None,

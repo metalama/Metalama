@@ -183,11 +183,9 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
             ? OperatorData.GetByKind( this.BuilderData.OperatorKind ).MemberName
             : this.BuilderData.Name;
 
-#pragma warning disable CS0618 // DeclarationKind.Operator is obsolete - used internally
-        var declarationKind = this.BuilderData.OperatorKind != OperatorKind.None
-            ? DeclarationKind.Operator
-            : DeclarationKind.Method;
-#pragma warning restore CS0618
+        var methodKind = this.BuilderData.OperatorKind != OperatorKind.None
+            ? MethodKind.Operator
+            : MethodKind.Default;
 
         var returnType = this.BuilderData.ReturnParameter.Type.GetTarget( this.InitialCompilation );
 
@@ -200,7 +198,7 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
             this.BuilderData.Parameters,
             returnType,
             this.InitialCompilation,
-            declarationKind,
+            methodKind,
             this.BuilderData.OperatorKind,
             this.BuilderData.Attributes,
             this.BuilderData.ReturnParameter.Attributes );

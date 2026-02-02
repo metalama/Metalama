@@ -53,35 +53,29 @@ namespace Metalama.Framework.Engine.CodeModel
                         this._builder.Add( attributeType, new SyntaxAttributeRef( attributeType, node, realDeclaration, this._compilation.RefFactory, kind ) );
                     }
 
-                    switch ( parentDeclaration.Kind() )
+                    if ( parentDeclaration.IsKind( SyntaxKind.IncompleteMember) )
                     {
-                        case SyntaxKind.IncompleteMember when parentDeclaration is IncompleteMemberSyntax:
-                            // This happens at design time when we have an invalid syntax. Local functions are skipped to produce correct errors later.
-                            break;
-
-                        case SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration when parentDeclaration is BaseFieldDeclarationSyntax field:
-                            {
-                                // In case of fields and field-like events, add the attribute to all defined fields.
-
-                                foreach ( var variable in field.Declaration.Variables )
-                                {
-                                    Add( variable );
-                                }
-
-                                break;
-                            }
-
-                        default:
-                            // Handle statement syntax separately to skip local functions
-                            if ( parentDeclaration is StatementSyntax and not LocalFunctionStatementSyntax )
-                            {
-                                // This happens at design time when we have an invalid syntax. Local functions are skipped to produce correct errors later.
-                                break;
-                            }
-
+                        // This happens at design time when we have an invalid syntax.
+                    }
+                    else if ( parentDeclaration.Kind().IsBaseFieldDeclaration() && parentDeclaration is BaseFieldDeclarationSyntax field )
+                    {
+                        // In case of fields and field-like events, add the attribute to all defined fields.
+                        foreach ( var variable in field.Declaration.Variables )
+                        {
+                            Add( variable );
+                        }
+                    }
+                    else
+                    {
+                        // Handle statement syntax separately to skip local functions
+                        if ( parentDeclaration is StatementSyntax and not LocalFunctionStatementSyntax )
+                        {
+                            // This happens at design time when we have an invalid syntax.
+                        }
+                        else
+                        {
                             Add( parentDeclaration );
-
-                            break;
+                        }
                     }
                 }
 

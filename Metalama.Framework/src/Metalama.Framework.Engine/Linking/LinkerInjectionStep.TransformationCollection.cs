@@ -608,9 +608,7 @@ internal sealed partial class LinkerInjectionStep
                 .OrderBy(
                     s => s.ContextDeclaration.DeclarationKind switch
                     {
-                        DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event
-                            or DeclarationKind.Indexer or DeclarationKind.Constructor
-                            when s.ContextDeclaration is IMember => 0,
+                        var kind when kind.IsMemberKind() && s.ContextDeclaration is IMember => 0,
                         DeclarationKind.NamedType when s.ContextDeclaration is INamedType => 1,
                         _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                     } )

@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Microsoft.CodeAnalysis;
 using System;
@@ -321,7 +322,7 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
 
                 return false;
 
-            case ISymbol { Kind: SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.TypeParameter } when value is ITypeSymbol type:
+            case ISymbol symbol when symbol.Kind.IsType() && value is ITypeSymbol type:
 
                 var compileTimeTime = this._compileTimeTypeResolver.GetCompileTimeType( type, true );
 

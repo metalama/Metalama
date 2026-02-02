@@ -29,7 +29,7 @@ namespace Metalama.Framework.Code
         /// <param name="declaration">The declaration to check.</param>
         /// <returns><c>true</c> if the declaration or any of its declaring types is generic; otherwise, <c>false</c>.</returns>
         public static bool IsSelfOrDeclaringTypeGeneric( this IMemberOrNamedType declaration )
-            => ((declaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.Method) && declaration is IGeneric { IsGeneric: true })
+            => ((declaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock or DeclarationKind.Method) && declaration is IGeneric { IsGeneric: true })
                || (declaration.DeclaringType != null && declaration.DeclaringType.IsSelfOrDeclaringTypeGeneric());
 
         /// <summary>
