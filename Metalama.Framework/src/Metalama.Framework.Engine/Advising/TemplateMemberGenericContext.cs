@@ -50,7 +50,7 @@ internal sealed class TemplateMemberGenericContext : GenericContext
                 _ => throw new AssertionFailedException( $"Unexpected value of type '{this._arguments[name]?.GetType()}'." )
             };
         }
-        else if ( this._targetMethod is IMethod method )
+        else if ( this._targetMethod.DeclarationKind == DeclarationKind.Method && this._targetMethod is IMethod method )
         {
             var typeParameter = method.TypeParameters.FirstOrDefault( t => t.Name == name );
 
