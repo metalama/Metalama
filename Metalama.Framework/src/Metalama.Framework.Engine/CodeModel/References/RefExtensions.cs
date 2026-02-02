@@ -104,7 +104,7 @@ public static class RefExtensions
                 DeclarationKind.Compilation => [typeof(ICompilation)],
                 DeclarationKind.NamedType => [typeof(INamedType), typeof(ITupleType)],
                 DeclarationKind.ExtensionBlock => [typeof(IExtensionBlock)],
-                DeclarationKind.Method or DeclarationKind.Operator or DeclarationKind.Finalizer => [typeof(IMethod)],
+                DeclarationKind.Method => [typeof(IMethod)],
                 DeclarationKind.Property => [typeof(IProperty), typeof(IField)],
                 DeclarationKind.Indexer => [typeof(IIndexer)],
                 DeclarationKind.Field => [typeof(IField), typeof(IProperty)],

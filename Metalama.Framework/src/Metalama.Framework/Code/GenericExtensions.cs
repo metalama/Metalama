@@ -54,7 +54,7 @@ namespace Metalama.Framework.Code
         internal static IDeclaration GetDefinition( this IDeclaration declaration )
             => declaration.DeclarationKind switch
             {
-                DeclarationKind.NamedType or DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Constructor or DeclarationKind.Indexer or DeclarationKind.Operator or DeclarationKind.Finalizer
+                DeclarationKind.NamedType or DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Constructor or DeclarationKind.Indexer
                     when declaration is IMemberOrNamedType memberOrNamedType => memberOrNamedType.Definition,
                 _ => declaration
             };
@@ -301,7 +301,7 @@ namespace Metalama.Framework.Code
 
                     break;
 
-                case DeclarationKind.Method or DeclarationKind.Operator when declaration is IMethod method:
+                case DeclarationKind.Method when declaration is IMethod method:
                     candidates = typeInstance.Methods.OfName( method.Name );
 
                     break;

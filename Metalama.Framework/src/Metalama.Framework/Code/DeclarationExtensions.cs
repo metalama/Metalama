@@ -68,7 +68,7 @@ namespace Metalama.Framework.Code
                     return containedDeclarationKind is not (DeclarationKind.Compilation or DeclarationKind.Namespace);
 
                 case DeclarationKind.ExtensionBlock:
-                    return containedDeclarationKind is DeclarationKind.Method or DeclarationKind.Indexer or DeclarationKind.Operator
+                    return containedDeclarationKind is DeclarationKind.Method or DeclarationKind.Indexer
                         or DeclarationKind.Property or DeclarationKind.Parameter or DeclarationKind.Attribute or DeclarationKind.TypeParameter;
 
                 case DeclarationKind.Parameter:
@@ -76,9 +76,7 @@ namespace Metalama.Framework.Code
                 case DeclarationKind.Field:
                     return containedDeclarationKind == DeclarationKind.Attribute;
 
-                case DeclarationKind.Operator:
                 case DeclarationKind.Constructor:
-                case DeclarationKind.Finalizer:
                     return containedDeclarationKind is DeclarationKind.Parameter or DeclarationKind.Attribute;
 
                 case DeclarationKind.Method:
@@ -101,9 +99,9 @@ namespace Metalama.Framework.Code
         /// <param name="declarationKind">The declaration kind to check.</param>
         /// <returns><c>true</c> if the declaration kind represents a member; otherwise, <c>false</c>.</returns>
         public static bool IsMemberKind( this DeclarationKind declarationKind )
-            => declarationKind is DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Finalizer or DeclarationKind.Property
+            => declarationKind is DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Property
                 or DeclarationKind.Indexer
-                or DeclarationKind.Constructor or DeclarationKind.Operator or DeclarationKind.Method;
+                or DeclarationKind.Constructor or DeclarationKind.Method;
 
         /// <summary>
         /// Gets all containing ancestors, i.e. <c>declaration.ContainingDeclaration</c>, <c>declaration.ContainingDeclaration.ContainingDeclaration</c>,

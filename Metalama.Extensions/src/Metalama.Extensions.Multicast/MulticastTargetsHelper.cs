@@ -38,8 +38,6 @@ internal static class MulticastTargetsHelper
 
                 break;
 
-            case DeclarationKind.Finalizer:
-            case DeclarationKind.Operator:
             case DeclarationKind.Method:
                 return MulticastTargets.Method;
 

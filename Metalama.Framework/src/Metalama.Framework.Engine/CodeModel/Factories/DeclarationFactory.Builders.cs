@@ -202,7 +202,7 @@ public partial class DeclarationFactory
 
         return builder.DeclarationKind switch
         {
-            DeclarationKind.Method or DeclarationKind.Operator or DeclarationKind.Finalizer when builder is MethodBuilderData
+            DeclarationKind.Method when builder is MethodBuilderData
             {
                 ContainingDeclaration.DeclarationKind: DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
             } methodBuilder => this.GetMethod(

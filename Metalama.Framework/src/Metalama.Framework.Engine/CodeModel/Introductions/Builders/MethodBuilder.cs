@@ -39,6 +39,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
         this._isImplicitlyDeclared = true;
     }
 
+#pragma warning disable CS0618 // DeclarationKind.Operator and DeclarationKind.Finalizer are obsolete - used internally
     public MethodBuilder(
         AspectLayerInstance aspectLayerInstance,
         INamedType declaringType,
@@ -51,6 +52,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
             declarationKind == DeclarationKind.Operator
                             ==
                             (operatorKind != OperatorKind.None) );
+#pragma warning restore CS0618
 
         this.Ref = new IntroducedRef<IMethod>( this.Compilation.RefFactory );
         this._declarationKind = declarationKind;
@@ -195,17 +197,20 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     // We don't currently support adding other methods than default ones.
     public MethodKind MethodKind
-        => this.DeclarationKind switch
+        => this._declarationKind switch
         {
+#pragma warning disable CS0618 // DeclarationKind.Operator and DeclarationKind.Finalizer are obsolete
             DeclarationKind.Method => MethodKind.Default,
             DeclarationKind.Operator => MethodKind.Operator,
             DeclarationKind.Finalizer => MethodKind.Finalizer,
-            _ => throw new AssertionFailedException( $"Unexpected DeclarationKind: {this.DeclarationKind}." )
+#pragma warning restore CS0618
+            _ => throw new AssertionFailedException( $"Unexpected _declarationKind: {this._declarationKind}." )
         };
 
     public override MethodBase ToMethodBase() => this.ToMethodInfo();
 
-    public override DeclarationKind DeclarationKind => this._declarationKind;
+    // Public API always returns Method - use MethodKind to distinguish operators/finalizers.
+    public override DeclarationKind DeclarationKind => DeclarationKind.Method;
 
     public OperatorKind OperatorKind
     {
@@ -252,7 +257,9 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
                 base.Name = operatorData.MemberName;
                 base.IsStatic = operatorData.IsStatic;
                 this._operatorKind = value;
+#pragma warning disable CS0618 // DeclarationKind.Operator is obsolete - used internally
                 this._declarationKind = DeclarationKind.Operator;
+#pragma warning restore CS0618
             }
         }
     }

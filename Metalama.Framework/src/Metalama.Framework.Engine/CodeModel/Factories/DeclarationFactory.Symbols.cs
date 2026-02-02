@@ -419,7 +419,7 @@ public partial class DeclarationFactory
                             RefTargetKind.Parameter => this.GetParameter( method.Parameters[0], genericContext ),
                             RefTargetKind.Default => method.GetDeclarationKind( this.CompilationContext ) switch
                             {
-                                DeclarationKind.Method or DeclarationKind.Finalizer => this.GetMethod( method, genericContext ),
+                                DeclarationKind.Method => this.GetMethod( method, genericContext ),
                                 DeclarationKind.Constructor => this.GetConstructor( method, genericContext ),
                                 _ => throw new AssertionFailedException(
                                     $"Unexpected DeclarationRefTargetKind: {method.GetDeclarationKind( this.CompilationContext )}." )

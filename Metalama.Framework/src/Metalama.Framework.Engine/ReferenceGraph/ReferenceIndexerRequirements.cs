@@ -35,7 +35,20 @@ public sealed record ReferenceIndexerRequirements(
             referenceKinds &= ~ReferenceKinds.BaseType;
         }
 
-        referenceKinds &= GetReferenceKindsSupportedByDeclarationKind( validatedDeclarationKind );
+        // Special handling for methods: check MethodKind to determine reference kinds for finalizers and operators
+        if ( validatedDeclaration is IMethod method )
+        {
+            referenceKinds &= method.MethodKind switch
+            {
+                MethodKind.Finalizer => ReferenceKinds.None,
+                MethodKind.Operator => ReferenceKinds.Invocation,
+                _ => GetReferenceKindsSupportedByDeclarationKind( validatedDeclarationKind )
+            };
+        }
+        else
+        {
+            referenceKinds &= GetReferenceKindsSupportedByDeclarationKind( validatedDeclarationKind );
+        }
 
         if ( includeDerivedTypes )
         {
@@ -62,10 +75,8 @@ public sealed record ReferenceIndexerRequirements(
             DeclarationKind.Property => ReferenceKinds.Default | ReferenceKinds.Assignment | ReferenceKinds.NameOf
                                         | ReferenceKinds.InterfaceMemberImplementation | ReferenceKinds.OverrideMember,
             DeclarationKind.Field => ReferenceKinds.Default | ReferenceKinds.Assignment | ReferenceKinds.NameOf,
-            DeclarationKind.Finalizer => ReferenceKinds.None,
             DeclarationKind.Indexer => ReferenceKinds.Default | ReferenceKinds.Assignment | ReferenceKinds.InterfaceMemberImplementation
                                        | ReferenceKinds.OverrideMember,
-            DeclarationKind.Operator => ReferenceKinds.Invocation,
             _ => ReferenceKinds.None
         };
 }

@@ -44,12 +44,9 @@ public static class DeclarationExtensions
 #endif
             INamedTypeSymbol => DeclarationKind.NamedType,
             IMethodSymbol method =>
-                method.MethodKind switch
-                {
-                    MethodKind.Constructor or MethodKind.StaticConstructor => DeclarationKind.Constructor,
-                    MethodKind.Destructor => DeclarationKind.Finalizer,
-                    _ => DeclarationKind.Method
-                },
+                method.MethodKind is MethodKind.Constructor or MethodKind.StaticConstructor
+                    ? DeclarationKind.Constructor
+                    : DeclarationKind.Method,
             IPropertySymbol { Parameters.Length: var parameters } => parameters == 0 ? DeclarationKind.Property : DeclarationKind.Indexer,
             IFieldSymbol => DeclarationKind.Field,
             ITypeParameterSymbol => DeclarationKind.TypeParameter,
