@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Compiler;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
@@ -178,8 +179,18 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
             {
                 identifier = SyntaxFactoryEx.DiscardIdentifierName();
 
+                // For async methods, use the result type (the inner type of Task<T>/ValueTask<T>)
+                // instead of the full return type, because when inlining with await, the return
+                // expression should have the awaited type.
+                var returnType = this._originalContainingSymbol.ReturnType;
+
+                if ( AsyncHelper.TryGetAsyncInfo( returnType, out var resultType, out _ ) )
+                {
+                    returnType = resultType;
+                }
+
                 expression = syntaxGenerator.SafeCastExpression(
-                    syntaxGenerator.TypeSyntax( this._originalContainingSymbol.ReturnType ),
+                    syntaxGenerator.TypeSyntax( returnType ),
                     expression );
             }
 
