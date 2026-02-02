@@ -31,8 +31,11 @@ internal sealed class AwaitExpressionStatementInliner : AsyncMethodInliner
             return false;
         }
 
-        // The invocation should be inside an await expression.
-        if ( invocationExpression.Parent is not AwaitExpressionSyntax awaitExpression )
+        // The invocation should be inside an await expression, possibly through parentheses.
+        // Note: await (M()); is valid, but (await M()); is not valid C# as a statement.
+        var possibleAwait = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent;
+
+        if ( possibleAwait is not AwaitExpressionSyntax awaitExpression )
         {
             return false;
         }
@@ -56,7 +59,9 @@ internal sealed class AwaitExpressionStatementInliner : AsyncMethodInliner
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
         var invocationExpression = (InvocationExpressionSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
-        var awaitExpression = (AwaitExpressionSyntax) invocationExpression.Parent.AssertNotNull();
+
+        // Navigate through parentheses to find the await expression.
+        var awaitExpression = (AwaitExpressionSyntax) InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent.AssertNotNull();
         var expressionStatement = (ExpressionStatementSyntax) awaitExpression.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( expressionStatement, null );

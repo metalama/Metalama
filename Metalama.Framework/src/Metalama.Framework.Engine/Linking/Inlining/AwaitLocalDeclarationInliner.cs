@@ -37,8 +37,10 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
             return false;
         }
 
-        // The invocation should be inside an await expression.
-        if ( invocationExpression.Parent is not AwaitExpressionSyntax awaitExpression )
+        // The invocation should be inside an await expression, possibly through parentheses.
+        var possibleAwait = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent;
+
+        if ( possibleAwait is not AwaitExpressionSyntax awaitExpression )
         {
             return false;
         }
@@ -93,9 +95,11 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
         var invocationExpression = (InvocationExpressionSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
-        var awaitExpression = (AwaitExpressionSyntax) invocationExpression.Parent.AssertNotNull();
 
-        // Navigate through parentheses.
+        // Navigate through parentheses to find the await expression.
+        var awaitExpression = (AwaitExpressionSyntax) InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent.AssertNotNull();
+
+        // Navigate through parentheses to find the equals clause.
         var current = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
         var equalsClause = (EqualsValueClauseSyntax) current.Parent.AssertNotNull();
