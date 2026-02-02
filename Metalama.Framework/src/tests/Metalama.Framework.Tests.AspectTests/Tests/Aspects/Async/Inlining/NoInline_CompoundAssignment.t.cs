@@ -4,7 +4,7 @@ internal class TargetCode
   private async Task<int> AsyncMethod(int a)
   {
     global::System.Console.WriteLine("Before");
-    int result = 10;
+    var result = 10;
     result += await this.AsyncMethod_Source(a);
     global::System.Console.WriteLine("After");
     return (global::System.Int32)result;
