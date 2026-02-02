@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -54,9 +55,9 @@ internal sealed class LinkerLateTransformationRegistry
                         continue;
                     }
 
-                    switch ( symbol )
+                    switch ( symbol.Kind )
                     {
-                        case IFieldSymbol { IsStatic: false } fieldSymbol:
+                        case SymbolKind.Field when symbol is IFieldSymbol { IsStatic: false } fieldSymbol:
                             var declarator = (VariableDeclaratorSyntax) fieldSymbol.GetPrimaryDeclarationSyntax().AssertNotNull();
 
                             if ( declarator.Initializer == null )
@@ -68,12 +69,12 @@ internal sealed class LinkerLateTransformationRegistry
 
                             break;
 
-                        case IPropertySymbol { IsStatic: false } propertySymbol:
+                        case SymbolKind.Property when symbol is IPropertySymbol { IsStatic: false } propertySymbol:
                             var primaryDeclaration = propertySymbol.GetPrimaryDeclarationSyntax().AssertNotNull();
 
-                            switch ( primaryDeclaration )
+                            switch ( primaryDeclaration.Kind() )
                             {
-                                case PropertyDeclarationSyntax propertyDeclaration:
+                                case SyntaxKind.PropertyDeclaration when primaryDeclaration is PropertyDeclarationSyntax propertyDeclaration:
                                     if ( propertyDeclaration.Initializer == null )
                                     {
                                         continue;
@@ -83,7 +84,7 @@ internal sealed class LinkerLateTransformationRegistry
 
                                     break;
 
-                                case ParameterSyntax:
+                                case SyntaxKind.Parameter when primaryDeclaration is ParameterSyntax:
                                     primaryConstructorInitializedMembers.Add( propertySymbol );
 
                                     break;
@@ -91,10 +92,10 @@ internal sealed class LinkerLateTransformationRegistry
 
                             break;
 
-                        case IEventSymbol { IsStatic: false } eventSymbol:
+                        case SymbolKind.Event when symbol is IEventSymbol { IsStatic: false } eventSymbol:
                             var eventDeclaration = eventSymbol.GetPrimaryDeclarationSyntax().AssertNotNull();
 
-                            if ( eventDeclaration is VariableDeclaratorSyntax eventFieldDeclarator )
+                            if ( eventDeclaration.IsKind( SyntaxKind.VariableDeclarator ) && eventDeclaration is VariableDeclaratorSyntax eventFieldDeclarator )
                             {
                                 if ( eventFieldDeclarator.Initializer == null )
                                 {

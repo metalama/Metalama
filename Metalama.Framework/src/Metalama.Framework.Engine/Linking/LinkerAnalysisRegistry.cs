@@ -64,9 +64,9 @@ internal sealed class LinkerAnalysisRegistry
 
     public bool HasAnySubstitutions( ISymbol symbol )
     {
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case IMethodSymbol methodSymbol:
+            case SymbolKind.Method when symbol is IMethodSymbol methodSymbol:
                 var semantic = methodSymbol.ToSemantic( IntermediateSymbolSemanticKind.Default );
                 var rootContextId = new InliningContextIdentifier( semantic );
 
@@ -79,12 +79,12 @@ internal sealed class LinkerAnalysisRegistry
                     return false;
                 }
 
-            case IEventSymbol eventSymbol:
+            case SymbolKind.Event when symbol is IEventSymbol eventSymbol:
                 return
                     (eventSymbol.AddMethod != null && this.HasAnySubstitutions( eventSymbol.AddMethod ))
                     || (eventSymbol.RemoveMethod != null && this.HasAnySubstitutions( eventSymbol.RemoveMethod ));
 
-            case IPropertySymbol propertySymbol:
+            case SymbolKind.Property when symbol is IPropertySymbol propertySymbol:
                 return
                     (propertySymbol.GetMethod != null && this.HasAnySubstitutions( propertySymbol.GetMethod ))
                     || (propertySymbol.SetMethod != null && this.HasAnySubstitutions( propertySymbol.SetMethod ));

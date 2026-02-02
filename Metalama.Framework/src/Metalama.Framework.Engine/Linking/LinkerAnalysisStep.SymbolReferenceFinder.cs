@@ -72,9 +72,9 @@ internal sealed partial class LinkerAnalysisStep
                 // Only take methods.
                 foreach ( var member in referencingType.Key.GetMembers() )
                 {
-                    switch ( member )
+                    switch ( member.Kind )
                     {
-                        case IMethodSymbol method:
+                        case SymbolKind.Method when member is IMethodSymbol method:
                             if ( referencingSymbolPredicate( method ) )
                             {
                                 methodsToAnalyze.Add( (method, referencingType.Value) );
