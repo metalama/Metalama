@@ -146,10 +146,12 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                             ];
                         }
 
-                        // Async methods need to return the awaited result type, not the full Task<T> type.
+                        // Async methods (with the async modifier) need to return the awaited result type,
+                        // not the full Task<T> type. Non-async methods returning Task<T> should still
+                        // return default(Task<T>).
                         var asyncInfo = finalMethod.GetAsyncInfo();
 
-                        if ( asyncInfo.IsAwaitable )
+                        if ( asyncInfo.IsAsync == true )
                         {
                             // For void-like async methods (Task, ValueTask without type parameter),
                             // we don't need a return statement.

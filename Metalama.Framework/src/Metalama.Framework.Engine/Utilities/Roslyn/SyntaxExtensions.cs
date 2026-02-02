@@ -71,7 +71,7 @@ public static class SyntaxExtensions
     /// <summary>
     /// Unwraps parentheses from an expression, walking down through children.
     /// </summary>
-    /// <seealso cref="Linking.Inlining.InlinerHelper.SkipParenthesizedExpressionAncestors"/>
+    /// <seealso cref="Metalama.Framework.Engine.Linking.Inlining.InlinerHelper.SkipParenthesizedExpressionAncestors"/>
     internal static ExpressionSyntax RemoveParenthesis( this ExpressionSyntax node )
         => node switch
         {

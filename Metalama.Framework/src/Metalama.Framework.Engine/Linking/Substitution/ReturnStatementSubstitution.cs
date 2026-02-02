@@ -177,12 +177,15 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
             }
             else
             {
-                // For async methods, use the result type (the inner type of Task<T>/ValueTask<T>)
-                // instead of the full return type, because when inlining with await, the return
-                // expression should have the awaited type.
+                // For async methods (with the async modifier), use the result type (the inner type
+                // of Task<T>/ValueTask<T>) instead of the full return type, because when inlining
+                // with await, the return expression should have the awaited type.
+                // For non-async methods that return Task<T>/ValueTask<T>, we must use the full
+                // return type since their return expressions are of type Task<T>.
                 var returnType = this._originalContainingSymbol.ReturnType;
 
-                if ( AsyncHelper.TryGetAsyncInfo( returnType, out var resultType, out _ ) )
+                if ( this._originalContainingSymbol.IsAsyncSafe() &&
+                     AsyncHelper.TryGetAsyncInfo( returnType, out var resultType, out _ ) )
                 {
                     returnType = resultType;
                 }
