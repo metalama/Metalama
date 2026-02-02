@@ -94,6 +94,7 @@ internal static class InlinerHelper
     /// Walks up through parent nodes while they are parenthesized expressions.
     /// Returns the outermost node that is not wrapped in parentheses.
     /// </summary>
+    /// <seealso cref="Utilities.Roslyn.SyntaxExtensions.RemoveParenthesis"/>
     public static SyntaxNode SkipParenthesizedExpressionAncestors( SyntaxNode node )
     {
         while ( node.Parent is ParenthesizedExpressionSyntax )

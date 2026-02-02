@@ -68,6 +68,10 @@ public static class SyntaxExtensions
 
     internal static bool IsAccessModifierKeyword( this SyntaxToken token ) => SyntaxFacts.IsAccessibilityModifier( token.Kind() );
 
+    /// <summary>
+    /// Unwraps parentheses from an expression, walking down through children.
+    /// </summary>
+    /// <seealso cref="Linking.Inlining.InlinerHelper.SkipParenthesizedExpressionAncestors"/>
     internal static ExpressionSyntax RemoveParenthesis( this ExpressionSyntax node )
         => node switch
         {

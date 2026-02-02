@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -24,14 +25,7 @@ internal abstract class AsyncMethodInliner : Inliner
     /// Handles patterns like: (await x), ((await x)), await x
     /// </summary>
     protected static AwaitExpressionSyntax? GetAwaitExpression( ExpressionSyntax expression )
-    {
-        while ( expression is ParenthesizedExpressionSyntax parenthesized )
-        {
-            expression = parenthesized.Expression;
-        }
-
-        return expression as AwaitExpressionSyntax;
-    }
+        => expression.RemoveParenthesis() as AwaitExpressionSyntax;
 
     /// <summary>
     /// Gets the invocation expression from an await expression.
