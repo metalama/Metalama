@@ -3,9 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 
 namespace Metalama.Framework.Engine.Linking.Inlining;
 
@@ -40,12 +38,7 @@ internal sealed class AwaitDiscardInliner : AsyncMethodInliner
         }
 
         // The await expression (possibly parenthesized) should be the right side of an assignment.
-        SyntaxNode awaitOrParenthesized = awaitExpression;
-
-        while ( awaitOrParenthesized.Parent is ParenthesizedExpressionSyntax )
-        {
-            awaitOrParenthesized = awaitOrParenthesized.Parent;
-        }
+        var awaitOrParenthesized = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
         if ( awaitOrParenthesized.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
@@ -59,9 +52,7 @@ internal sealed class AwaitDiscardInliner : AsyncMethodInliner
         }
 
         // Assignment should have a discard identifier on the left.
-        if ( assignmentExpression.Kind() != SyntaxKind.SimpleAssignmentExpression
-             || assignmentExpression.Left is not IdentifierNameSyntax identifierName
-             || !string.Equals( identifierName.Identifier.ValueText, "_", StringComparison.Ordinal ) )
+        if ( !InlinerHelper.IsDiscardAssignment( assignmentExpression ) )
         {
             return false;
         }
@@ -73,7 +64,7 @@ internal sealed class AwaitDiscardInliner : AsyncMethodInliner
         }
 
         // The invocation needs to be inlineable in itself.
-        if ( !IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
+        if ( !InlinerHelper.IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
         {
             return false;
         }
@@ -87,12 +78,7 @@ internal sealed class AwaitDiscardInliner : AsyncMethodInliner
         var awaitExpression = (AwaitExpressionSyntax) invocationExpression.Parent.AssertNotNull();
 
         // Navigate through parentheses.
-        SyntaxNode current = awaitExpression;
-
-        while ( current.Parent is ParenthesizedExpressionSyntax )
-        {
-            current = current.Parent;
-        }
+        var current = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
         var assignmentExpression = (AssignmentExpressionSyntax) current.Parent.AssertNotNull();
         var expressionStatement = (ExpressionStatementSyntax) assignmentExpression.Parent.AssertNotNull();

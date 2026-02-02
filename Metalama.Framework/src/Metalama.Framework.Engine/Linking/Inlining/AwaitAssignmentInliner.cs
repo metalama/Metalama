@@ -39,12 +39,7 @@ internal sealed class AwaitAssignmentInliner : AsyncMethodInliner
         }
 
         // The await expression (possibly parenthesized) should be the right side of an assignment.
-        SyntaxNode awaitOrParenthesized = awaitExpression;
-
-        while ( awaitOrParenthesized.Parent is ParenthesizedExpressionSyntax )
-        {
-            awaitOrParenthesized = awaitOrParenthesized.Parent;
-        }
+        var awaitOrParenthesized = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
         if ( awaitOrParenthesized.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
@@ -71,7 +66,7 @@ internal sealed class AwaitAssignmentInliner : AsyncMethodInliner
         }
 
         // The invocation needs to be inlineable in itself.
-        if ( !IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
+        if ( !InlinerHelper.IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
         {
             return false;
         }
@@ -85,12 +80,7 @@ internal sealed class AwaitAssignmentInliner : AsyncMethodInliner
         var awaitExpression = (AwaitExpressionSyntax) invocationExpression.Parent.AssertNotNull();
 
         // Navigate through parentheses.
-        SyntaxNode current = awaitExpression;
-
-        while ( current.Parent is ParenthesizedExpressionSyntax )
-        {
-            current = current.Parent;
-        }
+        var current = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
         var assignmentExpression = (AssignmentExpressionSyntax) current.Parent.AssertNotNull();
         var localVariable = (IdentifierNameSyntax) assignmentExpression.Left.AssertNotNull();

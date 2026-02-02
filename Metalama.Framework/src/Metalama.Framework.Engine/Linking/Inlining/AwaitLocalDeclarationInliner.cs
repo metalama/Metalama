@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel.Comparers;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -43,12 +44,7 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
         }
 
         // The await expression (possibly parenthesized) should be inside an equals value clause.
-        SyntaxNode awaitOrParenthesized = awaitExpression;
-
-        while ( awaitOrParenthesized.Parent is ParenthesizedExpressionSyntax )
-        {
-            awaitOrParenthesized = awaitOrParenthesized.Parent;
-        }
+        var awaitOrParenthesized = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
         if ( awaitOrParenthesized.Parent is not EqualsValueClauseSyntax equalsClause )
         {
@@ -67,10 +63,8 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
             return false;
         }
 
-        // Get the awaited type (the T in Task<T>/ValueTask<T>).
-        var awaitedType = GetAwaitedType( methodSymbol.ReturnType );
-
-        if ( awaitedType is null )
+        // Get the awaited type (the T in Task<T>/ValueTask<T>/custom awaitable).
+        if ( !AsyncHelper.TryGetAsyncInfo( methodSymbol.ReturnType, out var awaitedType, out _ ) )
         {
             return false;
         }
@@ -88,7 +82,7 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
         }
 
         // The invocation needs to be inlineable in itself.
-        if ( !IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
+        if ( !InlinerHelper.IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
         {
             return false;
         }
@@ -102,12 +96,7 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
         var awaitExpression = (AwaitExpressionSyntax) invocationExpression.Parent.AssertNotNull();
 
         // Navigate through parentheses.
-        SyntaxNode current = awaitExpression;
-
-        while ( current.Parent is ParenthesizedExpressionSyntax )
-        {
-            current = current.Parent;
-        }
+        var current = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
         var equalsClause = (EqualsValueClauseSyntax) current.Parent.AssertNotNull();
         var variableDeclarator = (VariableDeclaratorSyntax) equalsClause.Parent.AssertNotNull();
@@ -130,9 +119,8 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
 
         // Get the awaited type from the destination method's return type.
         var methodReturnType = specification.DestinationSemantic.Symbol.ReturnType;
-        var awaitedType = GetAwaitedType( methodReturnType );
 
-        if ( awaitedType is null )
+        if ( !AsyncHelper.TryGetAsyncInfo( methodReturnType, out var awaitedType, out _ ) )
         {
             throw new AssertionFailedException( $"Could not get awaited type from {methodReturnType}" );
         }
@@ -148,22 +136,5 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
             .WithFormattingAnnotationsFrom( currentStatement )
             .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock )
             .AddTriviaFromIfNecessary( currentNode, syntaxGenerationContext.Options );
-    }
-
-    private static ITypeSymbol? GetAwaitedType( ITypeSymbol returnType )
-    {
-        // For Task<T>, ValueTask<T>, get T.
-        // For Task, ValueTask, return null (void).
-        if ( returnType is INamedTypeSymbol namedType )
-        {
-            var fullName = namedType.OriginalDefinition.ToDisplayString();
-
-            if ( fullName is "System.Threading.Tasks.Task<TResult>" or "System.Threading.Tasks.ValueTask<TResult>" )
-            {
-                return namedType.TypeArguments[0];
-            }
-        }
-
-        return null;
     }
 }

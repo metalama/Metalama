@@ -3,9 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 
 namespace Metalama.Framework.Engine.Linking.Inlining;
 
@@ -48,9 +46,7 @@ internal sealed class MethodDiscardInliner : MethodInliner
         }
 
         // Assignment should have a discard identifier on the left (TODO: ref returns).
-        if ( assignmentExpression.Kind() != SyntaxKind.SimpleAssignmentExpression
-             || assignmentExpression.Left is not IdentifierNameSyntax identifierName
-             || !string.Equals( identifierName.Identifier.ValueText, "_", StringComparison.Ordinal ) )
+        if ( !InlinerHelper.IsDiscardAssignment( assignmentExpression ) )
         {
             return false;
         }
@@ -62,7 +58,7 @@ internal sealed class MethodDiscardInliner : MethodInliner
         }
 
         // The invocation needs to be inlineable in itself.
-        if ( !IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
+        if ( !InlinerHelper.IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
         {
             return false;
         }

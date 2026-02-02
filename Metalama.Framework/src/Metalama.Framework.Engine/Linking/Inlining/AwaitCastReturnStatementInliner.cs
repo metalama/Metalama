@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel.Comparers;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -39,12 +40,7 @@ internal sealed class AwaitCastReturnStatementInliner : AsyncMethodInliner
         }
 
         // The await expression (possibly parenthesized) should be inside a cast expression.
-        SyntaxNode awaitOrParenthesized = awaitExpression;
-
-        while ( awaitOrParenthesized.Parent is ParenthesizedExpressionSyntax )
-        {
-            awaitOrParenthesized = awaitOrParenthesized.Parent;
-        }
+        var awaitOrParenthesized = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
         if ( awaitOrParenthesized.Parent is not CastExpressionSyntax castExpression )
         {
@@ -52,11 +48,10 @@ internal sealed class AwaitCastReturnStatementInliner : AsyncMethodInliner
         }
 
         // The cast type should match the return type of the containing method.
-        // For async methods, we need to get the awaited type (the T in Task<T>).
+        // For async methods, we need to get the awaited type (the T in Task<T>/ValueTask<T>/custom awaitable).
         var containingMethodReturnType = aspectReference.ContainingSemantic.Symbol.ReturnType;
-        var awaitedReturnType = GetAwaitedType( containingMethodReturnType );
 
-        if ( awaitedReturnType is null )
+        if ( !AsyncHelper.TryGetAsyncInfo( containingMethodReturnType, out var awaitedReturnType, out _ ) )
         {
             return false;
         }
@@ -73,7 +68,7 @@ internal sealed class AwaitCastReturnStatementInliner : AsyncMethodInliner
         }
 
         // The invocation needs to be inlineable in itself.
-        if ( !IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
+        if ( !InlinerHelper.IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
         {
             return false;
         }
@@ -87,33 +82,11 @@ internal sealed class AwaitCastReturnStatementInliner : AsyncMethodInliner
         var awaitExpression = (AwaitExpressionSyntax) invocationExpression.Parent.AssertNotNull();
 
         // Navigate through parentheses.
-        SyntaxNode current = awaitExpression;
-
-        while ( current.Parent is ParenthesizedExpressionSyntax )
-        {
-            current = current.Parent;
-        }
+        var current = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
         var castExpression = (CastExpressionSyntax) current.Parent.AssertNotNull();
         var returnStatement = (ReturnStatementSyntax) castExpression.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( returnStatement, null );
-    }
-
-    private static ITypeSymbol? GetAwaitedType( ITypeSymbol returnType )
-    {
-        // For Task<T>, ValueTask<T>, get T.
-        // For Task, ValueTask, return null (void).
-        if ( returnType is INamedTypeSymbol namedType )
-        {
-            var fullName = namedType.OriginalDefinition.ToDisplayString();
-
-            if ( fullName is "System.Threading.Tasks.Task<TResult>" or "System.Threading.Tasks.ValueTask<TResult>" )
-            {
-                return namedType.TypeArguments[0];
-            }
-        }
-
-        return null;
     }
 }

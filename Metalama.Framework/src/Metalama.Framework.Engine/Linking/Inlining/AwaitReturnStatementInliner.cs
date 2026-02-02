@@ -39,12 +39,7 @@ internal sealed class AwaitReturnStatementInliner : AsyncMethodInliner
         }
 
         // The await expression should be inside a return statement, possibly through parentheses.
-        var possibleReturn = awaitExpression.Parent;
-
-        while ( possibleReturn is ParenthesizedExpressionSyntax )
-        {
-            possibleReturn = possibleReturn.Parent;
-        }
+        var possibleReturn = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression ).Parent;
 
         if ( possibleReturn is not ReturnStatementSyntax )
         {
@@ -61,7 +56,7 @@ internal sealed class AwaitReturnStatementInliner : AsyncMethodInliner
         }
 
         // The invocation needs to be inlineable in itself.
-        if ( !IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
+        if ( !InlinerHelper.IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
         {
             return false;
         }
@@ -75,14 +70,7 @@ internal sealed class AwaitReturnStatementInliner : AsyncMethodInliner
         var awaitExpression = (AwaitExpressionSyntax) invocationExpression.Parent.AssertNotNull();
 
         // Navigate through parentheses to find the return statement.
-        SyntaxNode current = awaitExpression;
-
-        while ( current.Parent is ParenthesizedExpressionSyntax )
-        {
-            current = current.Parent;
-        }
-
-        var returnStatement = (ReturnStatementSyntax) current.Parent.AssertNotNull();
+        var returnStatement = (ReturnStatementSyntax) InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression ).Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( returnStatement, null );
     }
