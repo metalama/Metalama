@@ -344,11 +344,12 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
             var syntax = syntaxReference.GetSyntax();
 
-            var modifiers = syntax switch
+            var modifiers = syntax.Kind() switch
             {
-                TypeDeclarationSyntax type => type.Modifiers,
-                EnumDeclarationSyntax e => e.Modifiers,
-                DelegateDeclarationSyntax d => d.Modifiers,
+                SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                    when syntax is TypeDeclarationSyntax type => type.Modifiers,
+                SyntaxKind.EnumDeclaration when syntax is EnumDeclarationSyntax e => e.Modifiers,
+                SyntaxKind.DelegateDeclaration when syntax is DelegateDeclarationSyntax d => d.Modifiers,
                 _ => default
             };
 
@@ -389,10 +390,10 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     [Memo]
     public override IDeclaration ContainingDeclaration
-        => this.NamedTypeSymbol.ContainingSymbol switch
+        => this.NamedTypeSymbol.ContainingSymbol?.Kind switch
         {
-            INamespaceSymbol => this.Compilation.Factory.GetAssembly( this.NamedTypeSymbol.ContainingAssembly ),
-            INamedTypeSymbol containingType => this.Compilation.Factory.GetNamedType( containingType, this.GenericContextForSymbolMapping ),
+            SymbolKind.Namespace => this.Compilation.Factory.GetAssembly( this.NamedTypeSymbol.ContainingAssembly ),
+            SymbolKind.NamedType when this.NamedTypeSymbol.ContainingSymbol is INamedTypeSymbol containingType => this.Compilation.Factory.GetNamedType( containingType, this.GenericContextForSymbolMapping ),
             null => this.Compilation, // Empty error type symbol goes here. Other error types return a namespace, which we handle above.
             _ => throw new AssertionFailedException( $"Unexpected containing symbol kind: {this.NamedTypeSymbol.ContainingSymbol.Kind}." )
         };
