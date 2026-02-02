@@ -79,6 +79,19 @@ public static class SyntaxExtensions
             _ => node
         };
 
+    /// <summary>
+    /// Unwraps parentheses and null-forgiving operators from an expression, walking down through children.
+    /// </summary>
+    /// <seealso cref="Metalama.Framework.Engine.Linking.Inlining.InlinerHelper.SkipParenthesizedExpressionAncestors"/>
+    internal static ExpressionSyntax RemoveParenthesisAndNullForgiving( this ExpressionSyntax node )
+        => node switch
+        {
+            ParenthesizedExpressionSyntax parenthesized => parenthesized.Expression.RemoveParenthesisAndNullForgiving(),
+            PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.SuppressNullableWarningExpression } nullForgiving
+                => nullForgiving.Operand.RemoveParenthesisAndNullForgiving(),
+            _ => node
+        };
+
     internal static TypeDeclarationSyntax? GetDeclaringType( this SyntaxNode node )
         => node switch
         {
