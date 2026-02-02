@@ -63,8 +63,16 @@ internal sealed class AwaitCastReturnStatementInliner : AsyncMethodInliner
             return false;
         }
 
-        // The cast expression should be inside a return statement.
-        if ( castExpression.Parent is not ReturnStatementSyntax )
+        // The cast expression (possibly wrapped in additional casts) should be inside a return statement.
+        // Skip through any outer cast expressions (e.g., when template has (int) and framework adds (global::System.Int32)).
+        SyntaxNode castOrOuter = castExpression;
+
+        while ( castOrOuter.Parent is CastExpressionSyntax )
+        {
+            castOrOuter = castOrOuter.Parent;
+        }
+
+        if ( castOrOuter.Parent is not ReturnStatementSyntax )
         {
             return false;
         }
@@ -89,7 +97,16 @@ internal sealed class AwaitCastReturnStatementInliner : AsyncMethodInliner
         var current = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
         var castExpression = (CastExpressionSyntax) current.Parent.AssertNotNull();
-        var returnStatement = (ReturnStatementSyntax) castExpression.Parent.AssertNotNull();
+
+        // Skip through any outer cast expressions.
+        SyntaxNode castOrOuter = castExpression;
+
+        while ( castOrOuter.Parent is CastExpressionSyntax )
+        {
+            castOrOuter = castOrOuter.Parent;
+        }
+
+        var returnStatement = (ReturnStatementSyntax) castOrOuter.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( returnStatement, null );
     }
