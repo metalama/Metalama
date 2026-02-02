@@ -2,18 +2,11 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-// This test documents a scenario where inlining does NOT occur due to a double-cast.
-// The template `return (int) await meta.ProceedAsync();` expands to
-// `return (global::System.Int32)(int)await this.Method_Source(a);`
-// The AwaitCastReturnStatementInliner expects: await → cast → return
-// But the actual structure is: await → cast(int) → cast(Int32) → return
-// DO NOT REMOVE this test - it documents expected non-inline behavior.
-
 using System;
 using System.Threading.Tasks;
 using Metalama.Framework.Aspects;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Async.Inlining.NoInline_DoubleCast;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Async.Inlining.AwaitCastReturn_TaskOfT;
 
 internal class Aspect : OverrideMethodAspect
 {
