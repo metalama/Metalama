@@ -22,10 +22,10 @@ namespace Metalama.Framework.Engine.CodeModel.Factories
         private readonly ConcurrentDictionary<string, CompileTimeType> _instances = new( StringComparer.Ordinal );
 
         public CompileTimeType Get( ITypeSymbol symbol )
-            => symbol switch
+            => symbol.Kind switch
             {
-                IDynamicTypeSymbol => throw new AssertionFailedException( "Cannot get a System.Type for the 'dynamic' type." ),
-                IArrayTypeSymbol { ElementType: IDynamicTypeSymbol } => throw new AssertionFailedException(
+                SymbolKind.DynamicType when symbol is IDynamicTypeSymbol => throw new AssertionFailedException( "Cannot get a System.Type for the 'dynamic' type." ),
+                SymbolKind.ArrayType when symbol is IArrayTypeSymbol { ElementType: IDynamicTypeSymbol } => throw new AssertionFailedException(
                     "Cannot get a System.Type for the 'dynamic[]' type." ),
                 _ => this.Get( symbol.GetSerializableTypeId( true ).Id, symbol )
             };

@@ -51,7 +51,7 @@ internal sealed partial class LinkerAnalysisStep
 
             void ProcessSemantic( IntermediateSymbolSemantic semantic )
             {
-                if ( semantic.Symbol is not IMethodSymbol )
+                if ( semantic.Symbol.Kind != SymbolKind.Method || semantic.Symbol is not IMethodSymbol )
                 {
                     return;
                 }
@@ -75,9 +75,9 @@ internal sealed partial class LinkerAnalysisStep
             void VisitSemantic( IntermediateSymbolSemantic semantic, InliningAnalysisContext context )
             {
                 // Follow edges between method groups and accessors.
-                switch ( semantic.Symbol )
+                switch ( semantic.Symbol.Kind )
                 {
-                    case IMethodSymbol method:
+                    case SymbolKind.Method when semantic.Symbol is IMethodSymbol method:
                         VisitSemanticBody(
                             method.ToSemantic( semantic.Kind ),
                             method.ToSemantic( semantic.Kind ),
@@ -85,7 +85,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IPropertySymbol property:
+                    case SymbolKind.Property when semantic.Symbol is IPropertySymbol property:
                         Invariant.Assert( false ); // temp.
 
                         if ( property.GetMethod != null! )
@@ -106,7 +106,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IEventSymbol @event:
+                    case SymbolKind.Event when semantic.Symbol is IEventSymbol @event:
                         Invariant.Assert( false ); // temp.
 
                         VisitSemanticBody(

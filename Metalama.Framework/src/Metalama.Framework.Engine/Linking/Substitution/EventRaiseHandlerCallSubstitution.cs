@@ -35,9 +35,9 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
     {
         Invariant.Assert( this._containingMethod.Parameters is [{ Type.TypeKind: TypeKind.Delegate }, { Type: INamedTypeSymbol { IsTupleType: true } }] );
 
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case InvocationExpressionSyntax
+            case SyntaxKind.InvocationExpression when currentNode is InvocationExpressionSyntax
             {
                 Expression: MemberAccessExpressionSyntax
                 {

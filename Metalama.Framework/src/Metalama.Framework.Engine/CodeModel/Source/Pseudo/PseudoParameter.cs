@@ -39,11 +39,11 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
         public IHasParameters DeclaringMember => this.DeclaringAccessor;
 
         public RefKind RefKind
-            => this.DeclaringAccessor.ContainingDeclaration switch
+            => this.DeclaringAccessor.ContainingDeclaration?.DeclarationKind switch
             {
-                SourceProperty property => property.RefKind,
-                SourceField _ => RefKind.None,
-                SourceEvent _ => RefKind.None,
+                DeclarationKind.Property when this.DeclaringAccessor.ContainingDeclaration is SourceProperty property => property.RefKind,
+                DeclarationKind.Field when this.DeclaringAccessor.ContainingDeclaration is SourceField _ => RefKind.None,
+                DeclarationKind.Event when this.DeclaringAccessor.ContainingDeclaration is SourceEvent _ => RefKind.None,
                 _ => throw new AssertionFailedException( $"Unexpected member: '{this.DeclaringAccessor.ContainingDeclaration}'." )
             };
 

@@ -59,7 +59,7 @@ internal static class DeclarationHelper
             };
         }
 
-        if ( declaration is ITypeParameter typeParameter )
+        if ( declaration.DeclarationKind == DeclarationKind.TypeParameter && declaration is ITypeParameter typeParameter )
         {
             return typeParameter.Name;
         }

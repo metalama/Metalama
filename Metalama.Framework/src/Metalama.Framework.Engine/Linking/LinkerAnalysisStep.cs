@@ -95,7 +95,7 @@ namespace Metalama.Framework.Engine.Linking
 
             // TODO: This is temporary to keep event field storage alive even when not referenced. May be removed after event raise transformations are implemented.
             var overriddenEventFields = input.InjectionRegistry.GetOverriddenMembers()
-                .Where( s => s is IEventSymbol eventSymbol && eventSymbol.IsEventField() == true )
+                .Where( s => s.Kind == SymbolKind.Event && s is IEventSymbol eventSymbol && eventSymbol.IsEventField() == true )
                 .Cast<IEventSymbol>()
                 .ToArray();
 
@@ -186,7 +186,7 @@ namespace Metalama.Framework.Engine.Linking
             var inliningSpecifications = await inliningAlgorithm.RunAsync( cancellationToken );
 
             var overriddenHybridAutoProperties = input.InjectionRegistry.GetOverriddenMembers()
-                .Where( s => s is IPropertySymbol propertySymbol && propertySymbol.IsAutoProperty() == true && propertySymbol.HasBody() == true )
+                .Where( s => s.Kind == SymbolKind.Property && s is IPropertySymbol propertySymbol && propertySymbol.IsAutoProperty() == true && propertySymbol.HasBody() == true )
                 .Cast<IPropertySymbol>()
                 .ToArray();
 
@@ -770,7 +770,8 @@ namespace Metalama.Framework.Engine.Linking
 
             foreach ( var nonInlinedSemantic in nonInlinedSemantics )
             {
-                if ( nonInlinedSemantic.Symbol is IPropertySymbol { Parameters.Length: > 0 } or IMethodSymbol
+                if ( nonInlinedSemantic.Symbol.Kind is SymbolKind.Property or SymbolKind.Method
+                     && nonInlinedSemantic.Symbol is IPropertySymbol { Parameters.Length: > 0 } or IMethodSymbol
                     {
                         MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor
                     } )
@@ -836,14 +837,14 @@ namespace Metalama.Framework.Engine.Linking
                          Symbol: { IsStatic: false, ContainingType: { TypeKind: TypeKind.Struct, IsReadOnly: true } }
                      } )
                 {
-                    switch ( semantic.Symbol )
+                    switch ( semantic.Symbol.Kind )
                     {
-                        case IPropertySymbol property when property.IsAutoProperty() == true && property.HasInitializer() != true:
+                        case SymbolKind.Property when semantic.Symbol is IPropertySymbol property && property.IsAutoProperty() == true && property.HasInitializer() != true:
                             forcefullyInitializedSymbols.Add( property );
 
                             break;
 
-                        case IEventSymbol @event when @event.IsEventField() == true && @event.HasInitializer() != true:
+                        case SymbolKind.Event when semantic.Symbol is IEventSymbol @event && @event.IsEventField() == true && @event.HasInitializer() != true:
                             forcefullyInitializedSymbols.Add( @event );
 
                             break;
@@ -909,7 +910,7 @@ namespace Metalama.Framework.Engine.Linking
 
             foreach ( var reference in allGetOnlyAutoPropertyReferences )
             {
-                if ( reference.ContainingSemantic.Symbol is { MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor } )
+                if ( reference.ContainingSemantic.Symbol.Kind == SymbolKind.Method && reference.ContainingSemantic.Symbol is { MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor } )
                 {
                     list.Add( reference );
                 }
@@ -1070,13 +1071,13 @@ namespace Metalama.Framework.Engine.Linking
                             x.GetMembers()
                                 .Select(
                                     member =>
-                                        member switch
+                                        member.Kind switch
                                         {
-                                            IMethodSymbol method => method,
-                                            IPropertySymbol => null,
-                                            IEventSymbol => null,
-                                            IFieldSymbol => null,
-                                            INamedTypeSymbol => null,
+                                            SymbolKind.Method when member is IMethodSymbol method => method,
+                                            SymbolKind.Property => null,
+                                            SymbolKind.Event => null,
+                                            SymbolKind.Field => null,
+                                            SymbolKind.NamedType => null,
                                             _ => throw new AssertionFailedException( $"Symbol not supported: {member}." )
                                         } )
                                 .OfType<IMethodSymbol>() )
@@ -1087,7 +1088,8 @@ namespace Metalama.Framework.Engine.Linking
 
             foreach ( var reference in allContainedReferences )
             {
-                if ( reference.TargetSemantic.Symbol is not IMethodSymbol methodSymbol
+                if ( reference.TargetSemantic.Symbol.Kind != SymbolKind.Method
+                     || reference.TargetSemantic.Symbol is not IMethodSymbol methodSymbol
                      || reference.TargetSemantic.Kind != IntermediateSymbolSemanticKind.Default
                      || injectionRegistry.IsOverride( reference.TargetSemantic.Symbol ) )
                 {

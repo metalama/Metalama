@@ -91,13 +91,13 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                 _ => throw new AssertionFailedException( $"Unsupported type kind '{introducedType.TypeKind}'." )
             }).NormalizeWhitespaceIfNecessary( context.SyntaxGenerationContext );
 
-        switch ( introducedType.ContainingDeclaration )
+        switch ( introducedType.ContainingDeclaration?.DeclarationKind )
         {
-            case INamedType:
-            case INamespace { IsGlobalNamespace: true }:
+            case DeclarationKind.NamedType:
+            case DeclarationKind.Namespace when introducedType.ContainingDeclaration is INamespace { IsGlobalNamespace: true }:
                 return [new InjectedMember( this, type, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.BuilderData.ToRef() )];
 
-            case INamespace:
+            case DeclarationKind.Namespace:
                 var namespaceDeclaration =
                     NamespaceDeclaration(
                         Token( TriviaList(), SyntaxKind.NamespaceKeyword, TriviaList( ElasticSpace ) ),

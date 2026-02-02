@@ -42,9 +42,9 @@ internal sealed class ConstructorInliner : Inliner
                 ?? false);
     }
 
-    public override bool IsValidForTargetSymbol( ISymbol symbol ) => symbol is IMethodSymbol { MethodKind: MethodKind.Constructor };
+    public override bool IsValidForTargetSymbol( ISymbol symbol ) => symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.Constructor };
 
-    public override bool IsValidForContainingSymbol( ISymbol symbol ) => symbol is IMethodSymbol { MethodKind: MethodKind.Constructor };
+    public override bool IsValidForContainingSymbol( ISymbol symbol ) => symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.Constructor };
 
     public override bool CanInline( ResolvedAspectReference aspectReference, SemanticModel semanticModel )
     {
@@ -54,7 +54,7 @@ internal sealed class ConstructorInliner : Inliner
         }
 
         // The syntax has to be in form: <annotated_constructor_expression>( new <type>(<arguments>) );
-        if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol { MethodKind: MethodKind.Constructor } )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol { MethodKind: MethodKind.Constructor } )
         {
             // Coverage: ignore (hit only when the check IsValidForTargetSymbol check is incorrect).
             return false;

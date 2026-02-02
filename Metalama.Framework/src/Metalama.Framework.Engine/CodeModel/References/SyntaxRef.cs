@@ -6,7 +6,9 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 
@@ -53,7 +55,7 @@ internal sealed partial class SyntaxRef<T> : FullRef<T>
             this.CompilationContext.SemanticModelProvider.GetSemanticModel( this._syntaxNode.SyntaxTree )
             ?? throw new AssertionFailedException( $"Cannot get a semantic model for '{this._syntaxNode.SyntaxTree.FilePath}'." );
 
-        return (this._syntaxNode is LambdaExpressionSyntax
+        return (this._syntaxNode.Kind().IsLambdaExpression() && this._syntaxNode is LambdaExpressionSyntax
                    ? semanticModel.GetSymbolInfo( this._syntaxNode ).Symbol
                    : semanticModel.GetDeclaredSymbol( this._syntaxNode ))
                ?? throw new AssertionFailedException( $"Cannot get a symbol for {this._syntaxNode.GetType().Name}." );

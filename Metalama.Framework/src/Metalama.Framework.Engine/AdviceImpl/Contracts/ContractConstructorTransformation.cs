@@ -40,9 +40,9 @@ internal sealed class ContractConstructorTransformation : ContractBaseTransforma
         var targetConstructor = this._targetConstructor.GetTarget( context.FinalCompilation );
         var targetDeclaration = this.ContractTarget.GetTarget( context.FinalCompilation );
 
-        switch ( targetDeclaration )
+        switch ( targetDeclaration.DeclarationKind )
         {
-            case IParameter param:
+            case DeclarationKind.Parameter when targetDeclaration is IParameter param:
                 {
                     Invariant.Assert( this.ContractDirection is ContractDirection.Output or ContractDirection.Input or ContractDirection.Both );
 

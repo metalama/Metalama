@@ -49,56 +49,56 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
             // <helper_type>.<helper_member>(<symbol_source_node>);
             // We need to get to symbol source node.
 
-            currentNode = this.AspectReference.RootNode switch
+            currentNode = this.AspectReference.RootNode.Kind() switch
             {
-                InvocationExpressionSyntax { ArgumentList: { Arguments.Count: 1 } argumentList } =>
+                SyntaxKind.InvocationExpression when this.AspectReference.RootNode is InvocationExpressionSyntax { ArgumentList: { Arguments.Count: 1 } argumentList } =>
                     argumentList.Arguments[0].Expression,
                 _ => throw new AssertionFailedException( $"Unsupported form: {this.AspectReference.RootNode}" )
             };
         }
 
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case MemberAccessExpressionSyntax
+            case SyntaxKind.SimpleMemberAccessExpression when currentNode is MemberAccessExpressionSyntax
             {
                 Expression: IdentifierNameSyntax { Identifier.Text: LinkerInjectionHelperProvider.HelperTypeName },
                 Name.Identifier.Text: LinkerInjectionHelperProvider.FinalizeMemberName
             } finalizerMemberAccess:
                 return this.SubstituteFinalizerMemberAccess( finalizerMemberAccess );
 
-            case MemberAccessExpressionSyntax
+            case SyntaxKind.SimpleMemberAccessExpression when currentNode is MemberAccessExpressionSyntax
             {
                 Expression: IdentifierNameSyntax { Identifier.Text: LinkerInjectionHelperProvider.HelperTypeName },
                 Name.Identifier.Text: var operatorName
-            } when OperatorData.GetByName( operatorName ) is { IsStatic: var isStaticOperator }:
+            } && OperatorData.GetByName( operatorName ) is { IsStatic: var isStaticOperator }:
                 // We presume static operators - non-static operators need to change the argument list, not just the name.
                 Invariant.Assert( isStaticOperator );
 
                 return this.SubstituteOperatorMemberAccess( substitutionContext );
 
-            case InvocationExpressionSyntax
+            case SyntaxKind.InvocationExpression when currentNode is InvocationExpressionSyntax
             {
                 Expression: MemberAccessExpressionSyntax
                 {
                     Expression: IdentifierNameSyntax { Identifier.Text: LinkerInjectionHelperProvider.HelperTypeName },
                     Name.Identifier.Text: var operatorName
                 }
-            } invocationExpression when OperatorData.GetByName( operatorName ) is { IsStatic: var isStaticOperator }:
+            } invocationExpression && OperatorData.GetByName( operatorName ) is { IsStatic: var isStaticOperator }:
                 // We presume static operators - non-static operators need to change the argument list, not just the name.
                 Invariant.Assert( !isStaticOperator );
 
                 return this.SubstituteStaticReceiverOperatorInvocation( invocationExpression );
 
-            case ObjectCreationExpressionSyntax:
+            case SyntaxKind.ObjectCreationExpression:
                 return this.SubstituteConstructorMemberAccess();
 
-            case MemberAccessExpressionSyntax memberAccessExpression:
+            case SyntaxKind.SimpleMemberAccessExpression when currentNode is MemberAccessExpressionSyntax memberAccessExpression:
                 return this.SubstituteMemberAccess( memberAccessExpression, substitutionContext );
 
-            case ElementAccessExpressionSyntax elementAccessExpression:
+            case SyntaxKind.ElementAccessExpression when currentNode is ElementAccessExpressionSyntax elementAccessExpression:
                 return this.SubstituteElementAccess( elementAccessExpression );
 
-            case ConditionalAccessExpressionSyntax conditionalAccessExpression:
+            case SyntaxKind.ConditionalAccessExpression when currentNode is ConditionalAccessExpressionSyntax conditionalAccessExpression:
                 return this.SubstituteConditionalAccess( conditionalAccessExpression );
 
             default:
@@ -185,10 +185,10 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
     }
 
     protected static SimpleNameSyntax RewriteName( SimpleNameSyntax name, string targetMemberName )
-        => name switch
+        => name.Kind() switch
         {
-            GenericNameSyntax genericName => genericName.WithIdentifier( SyntaxFactoryEx.WellKnownIdentifier( targetMemberName.AssertNotNull() ) ),
-            IdentifierNameSyntax _ => name.WithIdentifier( SyntaxFactoryEx.WellKnownIdentifier( targetMemberName.AssertNotNull() ) ),
+            SyntaxKind.GenericName when name is GenericNameSyntax genericName => genericName.WithIdentifier( SyntaxFactoryEx.WellKnownIdentifier( targetMemberName.AssertNotNull() ) ),
+            SyntaxKind.IdentifierName => name.WithIdentifier( SyntaxFactoryEx.WellKnownIdentifier( targetMemberName.AssertNotNull() ) ),
             _ => throw new AssertionFailedException( $"Unsupported name: {name}" )
         };
 }

@@ -49,44 +49,45 @@ internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpres
 
     private TypedConstant? GetTypeConstant( ExpressionSyntax expression )
     {
-        switch ( expression )
-        {
+        var expressionKind = expression.Kind();
+
 #pragma warning disable RS1034
-            case PostfixUnaryExpressionSyntax postFix when postFix.OperatorToken.Kind() == SyntaxKind.ExclamationToken:
-#pragma warning restore RS1034
-                return this.GetTypeConstant( postFix.Operand );
-
-            case LiteralExpressionSyntax literal:
-                var value = literal.Token.Value;
-
-                if ( value != null )
-                {
-                    return TypedConstant.Create( value, this.Type.GetCompilationModel().Factory.GetTypeByReflectionType( value.GetType() ) );
-                }
-                else
-                {
-                    return TypedConstant.Default( this.Type );
-                }
-
-            case MemberAccessExpressionSyntax:
-            case IdentifierNameSyntax:
-                var semanticModel = this.Type.GetCompilationContext().SemanticModelProvider.GetSemanticModel( this.Expression.SyntaxTree );
-                var member = semanticModel.GetSymbolInfo( expression ).Symbol;
-
-                if ( member is IFieldSymbol field && field.ContainingType.TypeKind == TypeKind.Enum )
-                {
-                    var enumType = this.Type.GetCompilationModel().Factory.GetTypeByReflectionName( field.ContainingType.GetReflectionFullName() );
-
-                    return TypedConstant.Create( field.ConstantValue, enumType );
-                }
-                else
-                {
-                    return null;
-                }
-
-            default:
-                return null;
+        if ( expressionKind == SyntaxKind.SuppressNullableWarningExpression
+             && expression is PostfixUnaryExpressionSyntax postFix
+             && postFix.OperatorToken.Kind() == SyntaxKind.ExclamationToken )
+        {
+            return this.GetTypeConstant( postFix.Operand );
         }
+#pragma warning restore RS1034
+
+        if ( expressionKind.IsLiteralExpression() )
+        {
+            var literal = (LiteralExpressionSyntax) expression;
+            var value = literal.Token.Value;
+
+            if ( value != null )
+            {
+                return TypedConstant.Create( value, this.Type.GetCompilationModel().Factory.GetTypeByReflectionType( value.GetType() ) );
+            }
+            else
+            {
+                return TypedConstant.Default( this.Type );
+            }
+        }
+        else if ( expressionKind is SyntaxKind.SimpleMemberAccessExpression or SyntaxKind.IdentifierName )
+        {
+            var semanticModel = this.Type.GetCompilationContext().SemanticModelProvider.GetSemanticModel( this.Expression.SyntaxTree );
+            var member = semanticModel.GetSymbolInfo( expression ).Symbol;
+
+            if ( member?.Kind == SymbolKind.Field && member is IFieldSymbol field && field.ContainingType.TypeKind == TypeKind.Enum )
+            {
+                var enumType = this.Type.GetCompilationModel().Factory.GetTypeByReflectionName( field.ContainingType.GetReflectionFullName() );
+
+                return TypedConstant.Create( field.ConstantValue, enumType );
+            }
+        }
+
+        return null;
     }
 
     protected override string ToStringCore() => this.AsString;

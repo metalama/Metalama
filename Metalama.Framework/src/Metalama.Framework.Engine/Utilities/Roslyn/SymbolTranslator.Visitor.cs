@@ -148,7 +148,7 @@ internal sealed partial class SymbolTranslator
 
         public override ISymbol? VisitMethod( IMethodSymbol symbol )
         {
-            if ( symbol.ContainingSymbol is IMethodSymbol )
+            if ( symbol.ContainingSymbol.Kind == SymbolKind.Method && symbol.ContainingSymbol is IMethodSymbol )
             {
                 throw new NotSupportedException( "Translating a local function is not supported." );
             }
@@ -317,17 +317,17 @@ internal sealed partial class SymbolTranslator
 
             ImmutableArray<IParameterSymbol> parameters;
 
-            switch ( containingSymbol )
+            switch ( containingSymbol?.Kind )
             {
                 case null:
                     return null;
 
-                case IMethodSymbol method:
+                case SymbolKind.Method when containingSymbol is IMethodSymbol method:
                     parameters = method.Parameters;
 
                     break;
 
-                case IPropertySymbol property:
+                case SymbolKind.Property when containingSymbol is IPropertySymbol property:
                     parameters = property.Parameters;
 
                     break;
@@ -390,17 +390,17 @@ internal sealed partial class SymbolTranslator
 
             ImmutableArray<ITypeParameterSymbol> parameters;
 
-            switch ( containingSymbol )
+            switch ( containingSymbol?.Kind )
             {
                 case null:
                     return null;
 
-                case IMethodSymbol method:
+                case SymbolKind.Method when containingSymbol is IMethodSymbol method:
                     parameters = method.TypeParameters;
 
                     break;
 
-                case INamedTypeSymbol namedType:
+                case SymbolKind.NamedType when containingSymbol is INamedTypeSymbol namedType:
                     parameters = namedType.TypeParameters;
 
                     break;

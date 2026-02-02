@@ -317,7 +317,7 @@ internal static partial class DocumentationIdHelper
                 index++;
                 var methodTypeParameterIndex = ReadNextInteger( id, ref index );
 
-                if ( typeParameterContext is IMethod methodContext )
+                if ( typeParameterContext?.DeclarationKind == DeclarationKind.Method && typeParameterContext is IMethod methodContext )
                 {
                     var count = methodContext.TypeParameters.Count;
 
@@ -332,7 +332,9 @@ internal static partial class DocumentationIdHelper
                 // regular type parameter
                 var typeParameterIndex = ReadNextInteger( id, ref index );
 
-                var typeContext = typeParameterContext is IMethod methodContext ? methodContext.DeclaringType : typeParameterContext as INamedType;
+                var typeContext = typeParameterContext?.DeclarationKind == DeclarationKind.Method && typeParameterContext is IMethod methodContext
+                    ? methodContext.DeclaringType
+                    : typeParameterContext as INamedType;
 
                 if ( typeContext != null && GetNthTypeParameter( typeContext, typeParameterIndex ) is { } typeParameter )
                 {
@@ -599,7 +601,7 @@ internal static partial class DocumentationIdHelper
 
             foreach ( var container in containers )
             {
-                if ( container is not INamedType type )
+                if ( container.DeclarationKind is not (DeclarationKind.NamedType or DeclarationKind.ExtensionBlock) || container is not INamedType type )
                 {
                     continue;
                 }
@@ -702,7 +704,7 @@ internal static partial class DocumentationIdHelper
 
             foreach ( var container in containers )
             {
-                if ( container is not INamedType type )
+                if ( container.DeclarationKind is not (DeclarationKind.NamedType or DeclarationKind.ExtensionBlock) || container is not INamedType type )
                 {
                     continue;
                 }
@@ -714,7 +716,9 @@ internal static partial class DocumentationIdHelper
                 {
                     index = startIndex;
 
-                    var memberParameters = member is IIndexer indexer ? (IReadOnlyList<IParameter>) indexer.Parameters : Array.Empty<IParameter>();
+                    var memberParameters = member.DeclarationKind == DeclarationKind.Indexer && member is IIndexer indexer
+                        ? (IReadOnlyList<IParameter>) indexer.Parameters
+                        : Array.Empty<IParameter>();
 
                     if ( PeekNextChar( id, index ) == '(' )
                     {
@@ -749,7 +753,7 @@ internal static partial class DocumentationIdHelper
         {
             foreach ( var container in containers )
             {
-                if ( container is not INamedType type )
+                if ( container.DeclarationKind is not (DeclarationKind.NamedType or DeclarationKind.ExtensionBlock) || container is not INamedType type )
                 {
                     continue;
                 }
@@ -764,7 +768,7 @@ internal static partial class DocumentationIdHelper
         {
             foreach ( var container in containers )
             {
-                if ( container is not INamedType type )
+                if ( container.DeclarationKind is not (DeclarationKind.NamedType or DeclarationKind.ExtensionBlock) || container is not INamedType type )
                 {
                     continue;
                 }

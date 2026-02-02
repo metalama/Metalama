@@ -52,9 +52,9 @@ internal sealed partial class LinkerAnalysisStep
                         return;
 
                     default:
-                        switch ( semantic.Symbol )
+                        switch ( semantic.Symbol.Kind )
                         {
-                            case IMethodSymbol methodSymbol:
+                            case SymbolKind.Method when semantic.Symbol is IMethodSymbol methodSymbol:
                                 results.GetOrAdd(
                                     semantic.ToTyped<IMethodSymbol>(),
                                     static ( _, ctx ) => ctx.me.Analyze( ctx.methodSymbol ),
@@ -62,7 +62,7 @@ internal sealed partial class LinkerAnalysisStep
 
                                 break;
 
-                            case IPropertySymbol propertySymbol:
+                            case SymbolKind.Property when semantic.Symbol is IPropertySymbol propertySymbol:
                                 if ( propertySymbol.GetMethod != null )
                                 {
                                     results.GetOrAdd(
@@ -81,7 +81,7 @@ internal sealed partial class LinkerAnalysisStep
 
                                 break;
 
-                            case IEventSymbol eventSymbol:
+                            case SymbolKind.Event when semantic.Symbol is IEventSymbol eventSymbol:
                                 if ( eventSymbol.AddMethod != null )
                                 {
                                     results.GetOrAdd(
@@ -100,7 +100,7 @@ internal sealed partial class LinkerAnalysisStep
 
                                 break;
 
-                            case IFieldSymbol:
+                            case SymbolKind.Field:
                                 break;
 
                             default:

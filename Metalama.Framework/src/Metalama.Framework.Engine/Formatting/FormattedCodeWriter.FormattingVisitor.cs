@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 
@@ -73,7 +74,7 @@ namespace Metalama.Framework.Engine.Formatting
                 {
                     var span = node.Span;
 
-                    if ( node is MethodDeclarationSyntax method )
+                    if ( node.IsKind( SyntaxKind.MethodDeclaration ) && node is MethodDeclarationSyntax method )
                     {
                         span = method.Identifier.Span;
                     }

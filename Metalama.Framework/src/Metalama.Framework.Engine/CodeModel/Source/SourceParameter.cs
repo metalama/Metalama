@@ -69,7 +69,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public bool IsParams => this._parameterSymbol.IsParams;
 
-        public bool IsThis => this.Index == 0 && this._parameterSymbol.ContainingSymbol is IMethodSymbol { IsExtensionMethod: true };
+        public bool IsThis => this.Index == 0 && this._parameterSymbol.ContainingSymbol.Kind == SymbolKind.Method && this._parameterSymbol.ContainingSymbol is IMethodSymbol { IsExtensionMethod: true };
 
         public override IDeclaration ContainingDeclaration => this.DeclaringMember;
 

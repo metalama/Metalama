@@ -186,9 +186,9 @@ namespace Metalama.Compiler
 
         foreach ( var member in node.Members )
         {
-            switch ( member )
+            switch ( member.Kind() )
             {
-                case EventFieldDeclarationSyntax eventFieldDeclaration:
+                case SyntaxKind.EventFieldDeclaration when member is EventFieldDeclarationSyntax eventFieldDeclaration:
                     newMembers.AddRange( this.TransformEventFieldDeclaration( eventFieldDeclaration ) );
 
                     break;

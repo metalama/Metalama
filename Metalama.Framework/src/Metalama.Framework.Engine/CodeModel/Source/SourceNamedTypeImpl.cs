@@ -344,11 +344,11 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
             var syntax = syntaxReference.GetSyntax();
 
-            var modifiers = syntax switch
+            var modifiers = syntax.Kind() switch
             {
-                TypeDeclarationSyntax type => type.Modifiers,
-                EnumDeclarationSyntax e => e.Modifiers,
-                DelegateDeclarationSyntax d => d.Modifiers,
+                var kind when kind.IsTypeDeclaration() && syntax is TypeDeclarationSyntax type => type.Modifiers,
+                SyntaxKind.EnumDeclaration when syntax is EnumDeclarationSyntax e => e.Modifiers,
+                SyntaxKind.DelegateDeclaration when syntax is DelegateDeclarationSyntax d => d.Modifiers,
                 _ => default
             };
 
@@ -389,10 +389,10 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     [Memo]
     public override IDeclaration ContainingDeclaration
-        => this.NamedTypeSymbol.ContainingSymbol switch
+        => this.NamedTypeSymbol.ContainingSymbol?.Kind switch
         {
-            INamespaceSymbol => this.Compilation.Factory.GetAssembly( this.NamedTypeSymbol.ContainingAssembly ),
-            INamedTypeSymbol containingType => this.Compilation.Factory.GetNamedType( containingType, this.GenericContextForSymbolMapping ),
+            SymbolKind.Namespace => this.Compilation.Factory.GetAssembly( this.NamedTypeSymbol.ContainingAssembly ),
+            SymbolKind.NamedType when this.NamedTypeSymbol.ContainingSymbol is INamedTypeSymbol containingType => this.Compilation.Factory.GetNamedType( containingType, this.GenericContextForSymbolMapping ),
             null => this.Compilation, // Empty error type symbol goes here. Other error types return a namespace, which we handle above.
             _ => throw new AssertionFailedException( $"Unexpected containing symbol kind: {this.NamedTypeSymbol.ContainingSymbol.Kind}." )
         };
@@ -581,13 +581,13 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     private static IMember? FindMemberOfSignature( INamedType type, IMember member )
     {
-        IMember? candidate = member switch
+        IMember? candidate = member.DeclarationKind switch
         {
-            IMethod method => type.Methods.OfExactSignature( method ),
-            IConstructor constructor => type.Constructors.OfExactSignature( constructor ),
-            IProperty property => type.Properties.OfName( property.Name ).SingleOrDefault(),
-            IIndexer indexer => type.Indexers.OfExactSignature( indexer ),
-            IEvent @event => type.Events.OfName( @event.Name ).SingleOrDefault(),
+            DeclarationKind.Method when member is IMethod method => type.Methods.OfExactSignature( method ),
+            DeclarationKind.Constructor when member is IConstructor constructor => type.Constructors.OfExactSignature( constructor ),
+            DeclarationKind.Property when member is IProperty property => type.Properties.OfName( property.Name ).SingleOrDefault(),
+            DeclarationKind.Indexer when member is IIndexer indexer => type.Indexers.OfExactSignature( indexer ),
+            DeclarationKind.Event when member is IEvent @event => type.Events.OfName( @event.Name ).SingleOrDefault(),
             _ => throw new AssertionFailedException( $"Unexpected member kind: {member.DeclarationKind}." )
         };
 

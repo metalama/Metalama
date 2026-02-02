@@ -146,27 +146,30 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
                 var syntaxNode = syntaxReference.GetSyntax();
 
-                switch ( syntaxNode )
+                switch ( syntaxNode.Kind() )
                 {
-                    case MemberDeclarationSyntax memberDeclaration:
-                        return memberDeclaration.Modifiers.Any( m => m.IsKind( SyntaxKind.NewKeyword ) );
-
-                    case VariableDeclaratorSyntax { Parent.Parent: EventFieldDeclarationSyntax eventFieldDeclaration }:
+                    case SyntaxKind.VariableDeclarator when syntaxNode is VariableDeclaratorSyntax { Parent.Parent: EventFieldDeclarationSyntax eventFieldDeclaration }:
                         return eventFieldDeclaration.Modifiers.Any( m => m.IsKind( SyntaxKind.NewKeyword ) );
 
-                    case VariableDeclaratorSyntax { Parent.Parent: FieldDeclarationSyntax fieldDeclaration }:
+                    case SyntaxKind.VariableDeclarator when syntaxNode is VariableDeclaratorSyntax { Parent.Parent: FieldDeclarationSyntax fieldDeclaration }:
                         return fieldDeclaration.Modifiers.Any( m => m.IsKind( SyntaxKind.NewKeyword ) );
 
-                    case LocalFunctionStatementSyntax:
+                    case SyntaxKind.LocalFunctionStatement:
                         return false;
 
-                    case ParameterSyntax: // Record positional properties.
+                    case SyntaxKind.Parameter: // Record positional properties.
                         return false;
 
-                    case CompilationUnitSyntax: // Program class generated from global statements and its members.
+                    case SyntaxKind.CompilationUnit: // Program class generated from global statements and its members.
                         return false;
 
                     default:
+                        // Handle all MemberDeclarationSyntax cases
+                        if ( syntaxNode is MemberDeclarationSyntax memberDeclaration )
+                        {
+                            return memberDeclaration.Modifiers.Any( m => m.IsKind( SyntaxKind.NewKeyword ) );
+                        }
+
                         throw new AssertionFailedException( $"Unexpected declaration node kind {syntaxNode.Kind()} at '{syntaxNode.GetLocation()}'." );
                 }
             }

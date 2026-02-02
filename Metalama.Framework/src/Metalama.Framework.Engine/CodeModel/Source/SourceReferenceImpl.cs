@@ -65,25 +65,27 @@ public sealed class SourceReferenceImpl : ISourceReferenceImpl
 
     public bool IsImplementationPart( in SourceReference sourceReference )
     {
-        switch ( sourceReference.NodeOrTokenInternal )
+        var kind = sourceReference.NodeOrTokenInternal is SyntaxNode node ? node.Kind() : default;
+
+        switch ( kind )
         {
-            case MethodDeclarationSyntax { Body: null, ExpressionBody: null } method when
+            case SyntaxKind.MethodDeclaration when sourceReference.NodeOrTokenInternal is MethodDeclarationSyntax { Body: null, ExpressionBody: null } method &&
                 method.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 
 #if ROSLYN_4_12_0_OR_GREATER
-            case PropertyDeclarationSyntax { ExpressionBody: null, AccessorList.Accessors: var accessors } property when
+            case SyntaxKind.PropertyDeclaration when sourceReference.NodeOrTokenInternal is PropertyDeclarationSyntax { ExpressionBody: null, AccessorList.Accessors: var accessors } property &&
                 accessors.All( a => a is { Body: null, ExpressionBody: null } ) &&
                 property.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER
-            case ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor when
+            case SyntaxKind.ConstructorDeclaration when sourceReference.NodeOrTokenInternal is ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor &&
                 constructor.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 
-            case VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax eventField } } when
+            case SyntaxKind.VariableDeclarator when sourceReference.NodeOrTokenInternal is VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax eventField } } &&
                 eventField.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 #endif

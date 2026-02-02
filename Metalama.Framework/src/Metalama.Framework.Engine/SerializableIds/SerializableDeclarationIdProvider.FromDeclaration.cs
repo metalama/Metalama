@@ -27,7 +27,7 @@ public static partial class SerializableDeclarationIdProvider
 
     private static bool TryGetSerializableId( this IDeclaration? declaration, RefTargetKind targetKind, out SerializableDeclarationId id )
     {
-        switch ( declaration )
+        switch ( declaration?.DeclarationKind )
         {
             case null:
 
@@ -35,13 +35,13 @@ public static partial class SerializableDeclarationIdProvider
 
                 return false;
 
-            case IParameter { IsReturnParameter: true } parameter:
+            case DeclarationKind.Parameter when declaration is IParameter { IsReturnParameter: true } parameter:
                 return TryGetSerializableId( parameter.DeclaringMember, RefTargetKind.Return, out id );
 
-            case IParameter { ContainingDeclaration.ContainingDeclaration: IField } parameter:
+            case DeclarationKind.Parameter when declaration is IParameter { ContainingDeclaration.ContainingDeclaration: IField } parameter:
                 return TryGetSerializableId( parameter.ContainingDeclaration, RefTargetKind.Parameter, out id );
 
-            case IParameter parameter:
+            case DeclarationKind.Parameter when declaration is IParameter parameter:
                 {
                     var parentId = DocumentationIdHelper.CreateDeclarationId( parameter.ContainingDeclaration.AssertNotNull() ).AssertNotNull();
 
@@ -50,7 +50,7 @@ public static partial class SerializableDeclarationIdProvider
                     return true;
                 }
 
-            case ITypeParameter typeParameter:
+            case DeclarationKind.TypeParameter when declaration is ITypeParameter typeParameter:
                 {
                     var parentId = DocumentationIdHelper.CreateDeclarationId( typeParameter.ContainingDeclaration! ).AssertNotNull();
 
@@ -59,20 +59,20 @@ public static partial class SerializableDeclarationIdProvider
                     return true;
                 }
 
-            case IAssembly assembly:
+            case DeclarationKind.Compilation or DeclarationKind.AssemblyReference when declaration is IAssembly assembly:
                 {
                     id = new SerializableDeclarationId( $"{_assemblyPrefix}{assembly.Identity}" );
 
                     return true;
                 }
 
-            case IMethod { ContainingDeclaration: IField } fieldPseudoAccessor:
+            case DeclarationKind.Method when declaration is IMethod { ContainingDeclaration: IField } fieldPseudoAccessor:
                 return TryGetSerializableId(
                     fieldPseudoAccessor.DeclaringMember,
                     fieldPseudoAccessor.MethodKind.ToDeclarationRefTargetKind( targetKind ),
                     out id );
 
-            case IMethod { ContainingDeclaration: IEvent, MethodKind: MethodKind.EventRaise } eventRaisePseudoAccessor:
+            case DeclarationKind.Method when declaration is IMethod { ContainingDeclaration: IEvent, MethodKind: MethodKind.EventRaise } eventRaisePseudoAccessor:
                 return TryGetSerializableId( eventRaisePseudoAccessor.DeclaringMember, RefTargetKind.EventRaise, out id );
 
             default:

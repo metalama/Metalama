@@ -12,9 +12,11 @@ internal abstract class PropertyGetInliner : PropertyInliner
     public override bool IsValidForTargetSymbol( ISymbol symbol )
     {
         var property =
-            symbol as IPropertySymbol ?? (symbol is IMethodSymbol { AssociatedSymbol: IPropertySymbol associatedProperty }
-                ? associatedProperty
-                : null);
+            symbol.Kind == SymbolKind.Property && symbol is IPropertySymbol propertySymbol
+                ? propertySymbol
+                : (symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { AssociatedSymbol: IPropertySymbol associatedProperty }
+                    ? associatedProperty
+                    : null);
 
         return property is { GetMethod: not null }
                && !property.GetMethod.IsIteratorMethod();

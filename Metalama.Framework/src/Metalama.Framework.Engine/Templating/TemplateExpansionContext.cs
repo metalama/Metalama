@@ -89,12 +89,12 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
             return true;
         }
 
-        switch ( metaApi.Declaration )
+        switch ( metaApi.Declaration?.DeclarationKind )
         {
-            case IProperty property:
+            case DeclarationKind.Property when metaApi.Declaration is IProperty property:
                 return declaration.Equals( property.GetMethod ) || declaration.Equals( property.SetMethod );
 
-            case IEvent @event:
+            case DeclarationKind.Event when metaApi.Declaration is IEvent @event:
                 return declaration.Equals( @event.AddMethod ) || declaration.Equals( @event.RemoveMethod ) || declaration.Equals( @event.RaiseMethod );
         }
 
@@ -294,27 +294,27 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         {
             // This is a special case where there is no current method.
 
-            switch ( this.MetaApi.Declaration )
+            switch ( this.MetaApi.Declaration?.DeclarationKind )
             {
-                case IField field:
+                case DeclarationKind.Field when this.MetaApi.Declaration is IField field:
                     // This is field initializer template expansion.
                     Invariant.Assert( !awaitResult );
 
                     return this.CreateReturnStatementDefault( returnExpression, this._localFunctionInfo?.ReturnType ?? field.Type, false );
 
-                case IProperty property:
+                case DeclarationKind.Property when this.MetaApi.Declaration is IProperty property:
                     // This is property initializer template expansion.
                     Invariant.Assert( !awaitResult );
 
                     return this.CreateReturnStatementDefault( returnExpression, this._localFunctionInfo?.ReturnType ?? property.Type, false );
 
-                case IEvent @event:
+                case DeclarationKind.Event when this.MetaApi.Declaration is IEvent @event:
                     // This is event initializer template expansion.
                     Invariant.Assert( !awaitResult );
 
                     return this.CreateReturnStatementDefault( returnExpression, this._localFunctionInfo?.ReturnType ?? @event.Type, false );
 
-                case IConstructor:
+                case DeclarationKind.Constructor:
                     // Fallback.
                     break;
 
@@ -490,7 +490,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         ExpressionSyntax? usingExpression;
         IdentifierNameSyntax? enumeratorIdentifier;
 
-        if ( returnExpression is IdentifierNameSyntax returnIdentifier )
+        if ( returnExpression.Kind() == SyntaxKind.IdentifierName && returnExpression is IdentifierNameSyntax returnIdentifier )
         {
             local = null;
             usingExpression = returnExpression;

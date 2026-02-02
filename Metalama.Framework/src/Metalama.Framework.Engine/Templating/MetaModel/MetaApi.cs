@@ -239,14 +239,14 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
             common,
             RootConstructorMarker.Instance )
         {
-            switch ( methodOrConstructor )
+            switch ( methodOrConstructor.DeclarationKind )
             {
-                case IConstructor constructor:
+                case DeclarationKind.Constructor when methodOrConstructor is IConstructor constructor:
                     this._constructor = constructor;
 
                     break;
 
-                case IMethod method:
+                case DeclarationKind.Method when methodOrConstructor is IMethod method:
                     this.MethodOrNull = method;
 
                     if ( method.DeclaringMember is { } propertyOrEvent )

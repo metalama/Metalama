@@ -102,7 +102,7 @@ internal abstract class CompilationElementVisitor
 
                         break;
 
-                    case DeclarationKind.Method or DeclarationKind.Finalizer or DeclarationKind.Operator:
+                    case DeclarationKind.Method:
                         this.VisitMethod( (IMethod) declaration );
 
                         break;

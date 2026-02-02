@@ -29,7 +29,7 @@ internal partial class SymbolRef<T>
             _ => throw new AssertionFailedException()
         };
 
-        if ( this.Symbol is ISourceAssemblySymbol sourceAssemblySymbol )
+        if ( this.Symbol.Kind == SymbolKind.Assembly && this.Symbol is ISourceAssemblySymbol sourceAssemblySymbol )
         {
             // Also add [module:*] attributes.
             attributes = attributes.Concat( sourceAssemblySymbol.Modules.SelectMany( m => m.GetAttributes() ) );
@@ -213,20 +213,15 @@ internal partial class SymbolRef<T>
         => symbol.Kind == SymbolKind.Property && ((IPropertySymbol) symbol).Parameters.Length > 0 && IsValidSymbol( symbol, compilation );
 
     private static bool IsValidMethod( ISymbol symbol, CompilationModel compilation )
-        => symbol.Kind == SymbolKind.Method && IsValidSymbol( symbol, compilation ) && symbol switch
+        => symbol.Kind == SymbolKind.Method && IsValidSymbol( symbol, compilation ) && symbol is IMethodSymbol method && method switch
         {
-            IMethodSymbol method =>
-                method switch
-                {
-                    // Metalama code model represents what can be seen from C#, so it hides "unspeakable" methods, namely Program.<Main>$ and SomeRecord.<Clone>$
-                    { MethodKind: RoslynMethodKind.Ordinary, CanBeReferencedByName: false } => false,
-                    { MethodKind: RoslynMethodKind.Constructor or RoslynMethodKind.StaticConstructor } => false,
-                    { MethodKind: RoslynMethodKind.PropertyGet or RoslynMethodKind.PropertySet } => false,
-                    { MethodKind: RoslynMethodKind.EventAdd or RoslynMethodKind.EventRemove or RoslynMethodKind.EventRaise } => false,
-                    { MethodKind: RoslynMethodKind.Destructor } => false,
-                    _ => true
-                },
-            _ => false
+            // Metalama code model represents what can be seen from C#, so it hides "unspeakable" methods, namely Program.<Main>$ and SomeRecord.<Clone>$
+            { MethodKind: RoslynMethodKind.Ordinary, CanBeReferencedByName: false } => false,
+            { MethodKind: RoslynMethodKind.Constructor or RoslynMethodKind.StaticConstructor } => false,
+            { MethodKind: RoslynMethodKind.PropertyGet or RoslynMethodKind.PropertySet } => false,
+            { MethodKind: RoslynMethodKind.EventAdd or RoslynMethodKind.EventRemove or RoslynMethodKind.EventRaise } => false,
+            { MethodKind: RoslynMethodKind.Destructor } => false,
+            _ => true
         };
 
     private static bool IsValidNamespace( INamespaceSymbol symbol, CompilationModel compilation )
@@ -267,7 +262,7 @@ internal partial class SymbolRef<T>
            && IsValidSymbol( symbol, compilation ) && ((IPropertySymbol) symbol).Parameters.Length == 0;
 
     private static bool IsValidNamedType( ISymbol symbol, CompilationModel compilation )
-        => symbol is INamedTypeSymbol namedTypeSymbol && IsValidNamedType( namedTypeSymbol, compilation );
+        => symbol.Kind == SymbolKind.NamedType && symbol is INamedTypeSymbol namedTypeSymbol && IsValidNamedType( namedTypeSymbol, compilation );
 
     private static bool IsValidNamedType( INamedTypeSymbol symbol, CompilationModel compilation )
     {
@@ -305,7 +300,7 @@ internal partial class SymbolRef<T>
     }
 
     private static bool IsValidExtensionBlock( ISymbol symbol, CompilationModel compilation )
-        => symbol is INamedTypeSymbol namedType && namedType.IsExtensionSafe();
+        => symbol.Kind == SymbolKind.NamedType && symbol is INamedTypeSymbol namedType && namedType.IsExtensionSafe();
 
     private static Func<ISymbol, CompilationModel, bool> GetSymbolPredicate( DeclarationKind kind )
         => kind switch

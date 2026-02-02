@@ -64,15 +64,15 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
 
     private static string FormatSymbol( ISymbol? symbol )
     {
-        switch ( symbol )
+        switch ( symbol?.Kind )
         {
             case null:
                 return "(null)";
 
-            case IParameterSymbol parameterSymbol:
+            case SymbolKind.Parameter when symbol is IParameterSymbol parameterSymbol:
                 return $"{SymbolKind.Parameter}:{parameterSymbol.ContainingSymbol}:{parameterSymbol}{FormatLocations( parameterSymbol.Locations )}";
 
-            case IErrorTypeSymbol errorSymbol:
+            case SymbolKind.ErrorType when symbol is IErrorTypeSymbol errorSymbol:
                 return
                     $"{SymbolKind.ErrorType}:<{errorSymbol.CandidateReason}>({string.Join( ",", errorSymbol.CandidateSymbols.Select( FormatSymbol ) )}){FormatLocations( errorSymbol.Locations )}";
 
@@ -313,16 +313,16 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
             }
 
             var increaseMaskingDepth =
-                node switch
+                node.Kind() switch
                 {
-                    ExpressionStatementSyntax => false,
-                    GenericNameSyntax => false,
-                    QualifiedNameSyntax => false,
-                    AliasQualifiedNameSyntax => false,
-                    AccessorListSyntax => false,
-                    AccessorDeclarationSyntax => false,
-                    BlockSyntax { Parent: ElseClauseSyntax } => false,
-                    IdentifierNameSyntax { Identifier.ValueText: "var" } => false,
+                    SyntaxKind.ExpressionStatement when node is ExpressionStatementSyntax => false,
+                    SyntaxKind.GenericName when node is GenericNameSyntax => false,
+                    SyntaxKind.QualifiedName when node is QualifiedNameSyntax => false,
+                    SyntaxKind.AliasQualifiedName when node is AliasQualifiedNameSyntax => false,
+                    SyntaxKind.AccessorList when node is AccessorListSyntax => false,
+                    SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration when node is AccessorDeclarationSyntax => false,
+                    SyntaxKind.Block when node is BlockSyntax { Parent: ElseClauseSyntax } => false,
+                    SyntaxKind.IdentifierName when node is IdentifierNameSyntax { Identifier.ValueText: "var" } => false,
                     _ => true
                 };
 
@@ -372,14 +372,14 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
 
                 if ( this._currentMaskingDepth > this._maskingDepthLimit )
                 {
-                    switch ( node )
+                    switch ( node.Kind() )
                     {
-                        case TypeDeclarationSyntax typeDeclaration:
+                        case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when node is TypeDeclarationSyntax typeDeclaration:
                             this.EllipsisSpans.Add( typeDeclaration.Members.Span );
 
                             break;
 
-                        case EnumDeclarationSyntax enumDeclaration:
+                        case SyntaxKind.EnumDeclaration when node is EnumDeclarationSyntax enumDeclaration:
                             this.EllipsisSpans.Add( enumDeclaration.Members.Span );
 
                             break;

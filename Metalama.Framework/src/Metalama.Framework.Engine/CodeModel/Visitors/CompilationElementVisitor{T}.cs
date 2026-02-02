@@ -33,7 +33,7 @@ internal abstract class CompilationElementVisitor<T>
                 DeclarationKind.Compilation => this.VisitCompilation( (ICompilation) declaration ),
                 DeclarationKind.NamedType => this.VisitNamedType( (INamedType) declaration ),
                 DeclarationKind.ExtensionBlock => this.VisitExtensionBlock( (IExtensionBlock) declaration ),
-                DeclarationKind.Method or DeclarationKind.Finalizer or DeclarationKind.Operator => this.VisitMethod( (IMethod) declaration ),
+                DeclarationKind.Method => this.VisitMethod( (IMethod) declaration ),
                 DeclarationKind.Property => this.VisitProperty( (IProperty) declaration ),
                 DeclarationKind.Indexer => this.VisitIndexer( (IIndexer) declaration ),
                 DeclarationKind.Field => this.VisitField( (IField) declaration ),

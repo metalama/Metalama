@@ -18,7 +18,7 @@ internal sealed class MethodAssignmentInliner : MethodInliner
         }
 
         // The syntax has to be in form: <local> = <annotated_method_expression( <arguments> );
-        if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
         {
             // Coverage: ignore (hit only when the check in base class is incorrect).
             return false;
@@ -42,7 +42,8 @@ internal sealed class MethodAssignmentInliner : MethodInliner
         }
 
         // Assignment should have a local on the left.
-        if ( assignmentExpression.Left is not IdentifierNameSyntax || semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol is not ILocalSymbol )
+        var leftSymbol = semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol;
+        if ( assignmentExpression.Left is not IdentifierNameSyntax || leftSymbol?.Kind != SymbolKind.Local || leftSymbol is not ILocalSymbol )
         {
             return false;
         }

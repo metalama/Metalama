@@ -44,12 +44,9 @@ public static class DeclarationExtensions
 #endif
             INamedTypeSymbol => DeclarationKind.NamedType,
             IMethodSymbol method =>
-                method.MethodKind switch
-                {
-                    MethodKind.Constructor or MethodKind.StaticConstructor => DeclarationKind.Constructor,
-                    MethodKind.Destructor => DeclarationKind.Finalizer,
-                    _ => DeclarationKind.Method
-                },
+                method.MethodKind is MethodKind.Constructor or MethodKind.StaticConstructor
+                    ? DeclarationKind.Constructor
+                    : DeclarationKind.Method,
             IPropertySymbol { Parameters.Length: var parameters } => parameters == 0 ? DeclarationKind.Property : DeclarationKind.Indexer,
             IFieldSymbol => DeclarationKind.Field,
             ITypeParameterSymbol => DeclarationKind.TypeParameter,
@@ -67,11 +64,11 @@ public static class DeclarationExtensions
     /// </summary>
     internal static IEnumerable<IDeclaration> GetContainedDeclarations( this IDeclaration declaration )
         => declaration.SelectManyRecursive(
-            child => child switch
+            child => child.DeclarationKind switch
             {
-                ICompilation compilation => [compilation.GlobalNamespace],
-                INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
-                INamedType namedType => EnumerableExtensions.Concat<IDeclaration>(
+                DeclarationKind.Compilation when child is ICompilation compilation => [compilation.GlobalNamespace],
+                DeclarationKind.Namespace when child is INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
+                DeclarationKind.NamedType when child is INamedType namedType => EnumerableExtensions.Concat<IDeclaration>(
                         namedType.Types,
                         namedType.Methods,
                         namedType.Constructors,
@@ -82,12 +79,12 @@ public static class DeclarationExtensions
                         namedType.TypeParameters )
                     .ConcatNotNull( namedType.StaticConstructor )
                     .ConcatNotNull( namedType.Finalizer ),
-                IMethod method => Enumerable
+                DeclarationKind.Method when child is IMethod method => Enumerable
                     .Concat<IDeclaration>( method.Parameters, method.TypeParameters )
                     .ConcatNotNull( method.ReturnParameter ),
-                IIndexer indexer => indexer.Parameters.Concat<IDeclaration>( indexer.Accessors ),
-                IConstructor constructor => constructor.Parameters,
-                IHasAccessors member => member.Accessors,
+                DeclarationKind.Indexer when child is IIndexer indexer => indexer.Parameters.Concat<IDeclaration>( indexer.Accessors ),
+                DeclarationKind.Constructor when child is IConstructor constructor => constructor.Parameters,
+                DeclarationKind.Property or DeclarationKind.Event when child is IHasAccessors member => member.Accessors,
                 _ => []
             } );
 
@@ -468,15 +465,15 @@ public static class DeclarationExtensions
 
     internal static IMember GetExplicitInterfaceImplementation( this IMember member )
     {
-        switch ( member )
+        switch ( member.DeclarationKind )
         {
-            case IMethod method:
+            case DeclarationKind.Method when member is IMethod method:
                 return method.ExplicitInterfaceImplementations.Single();
 
-            case IProperty property:
+            case DeclarationKind.Property when member is IProperty property:
                 return property.ExplicitInterfaceImplementations.Single();
 
-            case IEvent @event:
+            case DeclarationKind.Event when member is IEvent @event:
                 return @event.ExplicitInterfaceImplementations.Single();
 
             default:
@@ -567,9 +564,9 @@ public static class DeclarationExtensions
 
         while ( currentType != null )
         {
-            switch ( declaration )
+            switch ( declaration.DeclarationKind )
             {
-                case IFieldOrProperty or IEvent or INamedType:
+                case DeclarationKind.Field or DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.NamedType:
                     // Field/properties/events are matched by name. When a base method is hidden, we ignore it (as it may be still accessible).
                     var candidateMember =
                         currentType.Fields.OfName( declaration.Name ).FirstOrDefault()
@@ -587,7 +584,7 @@ public static class DeclarationExtensions
 
                     break;
 
-                case IIndexer indexer:
+                case DeclarationKind.Indexer when declaration is IIndexer indexer:
                     // Indexers are matched by signature.
                     var candidateIndexer = currentType.Indexers.OfExactSignature( indexer );
 
@@ -602,7 +599,7 @@ public static class DeclarationExtensions
 
                     break;
 
-                case IMethod method:
+                case DeclarationKind.Method when declaration is IMethod method:
                     // Methods are matched by signature.
                     var candidateMethod = currentType.Methods.OfExactSignature( method );
 
@@ -660,7 +657,7 @@ public static class DeclarationExtensions
     /// i.e. returns containing namespace for top-level types.
     /// </summary>
     internal static IDeclaration? GetContainingDeclarationOrNamespace( this IDeclaration declaration )
-        => declaration.ContainingDeclaration is IAssembly && declaration is INamedType namedType
+        => declaration.ContainingDeclaration is IAssembly && declaration.DeclarationKind == DeclarationKind.NamedType && declaration is INamedType namedType
             ? namedType.ContainingNamespace
             : declaration.ContainingDeclaration;
 

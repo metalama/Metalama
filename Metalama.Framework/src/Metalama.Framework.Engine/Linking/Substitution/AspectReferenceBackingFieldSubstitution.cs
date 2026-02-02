@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -34,17 +35,17 @@ internal sealed class AspectReferenceBackingFieldSubstitution : SyntaxNodeSubsti
             // <helper_type>.<helper_member>(<symbol_source_node>);
             // We need to get to symbol source node.
 
-            currentNode = this._aspectReference.RootNode switch
+            currentNode = this._aspectReference.RootNode.Kind() switch
             {
-                InvocationExpressionSyntax { ArgumentList: { Arguments.Count: 1 } argumentList } =>
+                SyntaxKind.InvocationExpression when this._aspectReference.RootNode is InvocationExpressionSyntax { ArgumentList: { Arguments.Count: 1 } argumentList } =>
                     argumentList.Arguments[0].Expression,
                 _ => throw new AssertionFailedException( $"Unsupported form: {this._aspectReference.RootNode}" )
             };
         }
 
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case MemberAccessExpressionSyntax { Name: not null } memberAccessExpression:
+            case SyntaxKind.SimpleMemberAccessExpression when currentNode is MemberAccessExpressionSyntax { Name: not null } memberAccessExpression:
                 var backingFieldName = LinkerRewritingDriver.GetBackingFieldName( this._aspectReference.ResolvedSemantic.Symbol );
 
                 if ( this._aspectReference.OriginalSymbol.IsExplicitInterfaceMemberImplementation() )
