@@ -38,18 +38,18 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         public bool IsExtern => this.Symbol.IsExtern;
 
         public bool HasImplementation
-            => this.Symbol switch
+            => this.Symbol.Kind switch
             {
-                IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
+                SymbolKind.Method when this.Symbol is IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
 #if ROSLYN_4_12_0_OR_GREATER
-                IPropertySymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
+                SymbolKind.Property when this.Symbol is IPropertySymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
 #endif
 #if ROSLYN_5_0_0_OR_GREATER
-                IEventSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
+                SymbolKind.Event when this.Symbol is IEventSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
 #endif
-                IFieldSymbol { IsConst: true } => false,
-                { IsAbstract: true } => false,
-                { IsExtern: true } => false,
+                SymbolKind.Field when this.Symbol is IFieldSymbol { IsConst: true } => false,
+                _ when this.Symbol is { IsAbstract: true } => false,
+                _ when this.Symbol is { IsExtern: true } => false,
                 _ => true
             };
 
