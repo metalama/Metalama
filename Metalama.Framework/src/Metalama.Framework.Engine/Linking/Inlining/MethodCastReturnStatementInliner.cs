@@ -33,7 +33,10 @@ internal sealed class MethodCastReturnStatementInliner : MethodInliner
             return false;
         }
 
-        if ( invocationExpression.Parent is not CastExpressionSyntax castExpression )
+        // The invocation (possibly through parentheses or null-forgiving) should be inside a cast expression.
+        var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+
+        if ( invocationOrWrapped.Parent is not CastExpressionSyntax castExpression )
         {
             return false;
         }
@@ -45,7 +48,10 @@ internal sealed class MethodCastReturnStatementInliner : MethodInliner
             return false;
         }
 
-        if ( castExpression.Parent is not ReturnStatementSyntax )
+        // The cast expression (possibly through parentheses or null-forgiving) should be inside a return statement.
+        var castOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( castExpression );
+
+        if ( castOrWrapped.Parent is not ReturnStatementSyntax )
         {
             return false;
         }
@@ -62,8 +68,14 @@ internal sealed class MethodCastReturnStatementInliner : MethodInliner
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
         var invocationExpression = (InvocationExpressionSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
-        var castExpression = (CastExpressionSyntax) invocationExpression.Parent.AssertNotNull();
-        var returnStatement = (ReturnStatementSyntax) castExpression.Parent.AssertNotNull();
+
+        // Navigate through parentheses and null-forgiving to find the cast expression.
+        var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+        var castExpression = (CastExpressionSyntax) invocationOrWrapped.Parent.AssertNotNull();
+
+        // Navigate through parentheses and null-forgiving to find the return statement.
+        var castOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( castExpression );
+        var returnStatement = (ReturnStatementSyntax) castOrWrapped.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( returnStatement, null );
     }

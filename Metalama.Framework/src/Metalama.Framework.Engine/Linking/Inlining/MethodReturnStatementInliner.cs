@@ -39,7 +39,10 @@ internal sealed class MethodReturnStatementInliner : MethodInliner
             return false;
         }
 
-        if ( invocationExpression.Parent is not ReturnStatementSyntax )
+        // The invocation (possibly through parentheses or null-forgiving) should be inside a return statement.
+        var possibleReturn = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent;
+
+        if ( possibleReturn is not ReturnStatementSyntax )
         {
             return false;
         }
@@ -56,7 +59,9 @@ internal sealed class MethodReturnStatementInliner : MethodInliner
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
         var invocationExpression = (InvocationExpressionSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
-        var returnStatement = (ReturnStatementSyntax) invocationExpression.Parent.AssertNotNull();
+
+        // Navigate through parentheses and null-forgiving to find the return statement.
+        var returnStatement = (ReturnStatementSyntax) InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( returnStatement, null );
     }

@@ -34,8 +34,10 @@ namespace Metalama.Framework.Engine.Linking.Inlining
                 return false;
             }
 
-            // Should be within equals clause.
-            if ( invocationExpression.Parent is not EqualsValueClauseSyntax equalsClause )
+            // The invocation (possibly through parentheses or null-forgiving) should be within equals clause.
+            var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+
+            if ( invocationOrWrapped.Parent is not EqualsValueClauseSyntax equalsClause )
             {
                 return false;
             }
@@ -81,7 +83,11 @@ namespace Metalama.Framework.Engine.Linking.Inlining
         public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
         {
             var invocationExpression = (InvocationExpressionSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
-            var equalsClause = (EqualsValueClauseSyntax) invocationExpression.Parent.AssertNotNull();
+
+            // Navigate through parentheses and null-forgiving to find the equals clause.
+            var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+
+            var equalsClause = (EqualsValueClauseSyntax) invocationOrWrapped.Parent.AssertNotNull();
             var variableDeclarator = (VariableDeclaratorSyntax) equalsClause.Parent.AssertNotNull();
             var variableDeclaration = (VariableDeclarationSyntax) variableDeclarator.Parent.AssertNotNull();
             var localDeclaration = (LocalDeclarationStatementSyntax) variableDeclaration.Parent.AssertNotNull();

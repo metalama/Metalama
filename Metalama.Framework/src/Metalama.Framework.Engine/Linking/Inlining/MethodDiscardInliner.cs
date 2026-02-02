@@ -31,13 +31,16 @@ internal sealed class MethodDiscardInliner : MethodInliner
             return false;
         }
 
-        if ( invocationExpression.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        // The invocation (possibly through parentheses or null-forgiving) should be the right side of an assignment.
+        var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+
+        if ( invocationOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
 
         // Invocation should be on the right.
-        if ( assignmentExpression.Right != invocationExpression )
+        if ( assignmentExpression.Right != invocationOrWrapped )
         {
             // Only incorrect code can get here.
             throw new AssertionFailedException( Justifications.CoverageMissing );
@@ -69,7 +72,11 @@ internal sealed class MethodDiscardInliner : MethodInliner
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
         var invocationExpression = (InvocationExpressionSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
-        var assignmentExpression = (AssignmentExpressionSyntax) invocationExpression.Parent.AssertNotNull();
+
+        // Navigate through parentheses and null-forgiving to find the assignment.
+        var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+
+        var assignmentExpression = (AssignmentExpressionSyntax) invocationOrWrapped.Parent.AssertNotNull();
         var expressionStatement = (ExpressionStatementSyntax) assignmentExpression.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( expressionStatement, null );
