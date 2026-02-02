@@ -43,7 +43,7 @@ internal sealed class MethodAssignmentInliner : MethodInliner
 
         // Assignment should have a local on the left.
         var leftSymbol = semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol;
-        if ( assignmentExpression.Left is not IdentifierNameSyntax || (leftSymbol?.Kind != SymbolKind.Local || leftSymbol is not ILocalSymbol) )
+        if ( assignmentExpression.Left is not IdentifierNameSyntax || leftSymbol?.Kind != SymbolKind.Local || leftSymbol is not ILocalSymbol )
         {
             return false;
         }

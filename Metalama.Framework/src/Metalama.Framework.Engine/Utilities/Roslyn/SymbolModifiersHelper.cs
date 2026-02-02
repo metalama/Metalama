@@ -101,8 +101,8 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
             }
 
             if ( (categories & ModifierCategories.ReadOnly) != 0
-                 && (member.Kind == SymbolKind.Method && member is IMethodSymbol { IsReadOnly: true }
-                     || member.Kind == SymbolKind.Field && member is IFieldSymbol { IsReadOnly: true }) )
+                 && ((member.Kind == SymbolKind.Method && member is IMethodSymbol { IsReadOnly: true })
+                     || (member.Kind == SymbolKind.Field && member is IFieldSymbol { IsReadOnly: true })) )
             {
                 tokens.Add( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReadOnlyKeyword ) );
             }
