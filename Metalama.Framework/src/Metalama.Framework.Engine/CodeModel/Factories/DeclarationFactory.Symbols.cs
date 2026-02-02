@@ -116,15 +116,14 @@ public partial class DeclarationFactory
 
     public IType GetIType( ITypeSymbol typeSymbol, GenericContext? genericContext = null, bool? defaultNullability = false )
     {
-        return typeSymbol switch
+        return typeSymbol.Kind switch
         {
-            // TODO PERF: switch by SymbolKind.
-            INamedTypeSymbol namedType => this.GetNamedType( namedType, genericContext, defaultNullability ),
-            IArrayTypeSymbol arrayType => this.GetArrayType( arrayType, genericContext, defaultNullability ),
-            IPointerTypeSymbol pointerType => this.GetPointerType( pointerType, genericContext ),
-            ITypeParameterSymbol typeParameter => this.GetTypeParameter( typeParameter, genericContext ).ResolvedType,
-            IDynamicTypeSymbol dynamicType => this.GetDynamicType( dynamicType, defaultNullability ),
-            IFunctionPointerTypeSymbol functionPointerType => this.GetFunctionPointerType( functionPointerType, genericContext ),
+            SymbolKind.NamedType when typeSymbol is INamedTypeSymbol namedType => this.GetNamedType( namedType, genericContext, defaultNullability ),
+            SymbolKind.ArrayType when typeSymbol is IArrayTypeSymbol arrayType => this.GetArrayType( arrayType, genericContext, defaultNullability ),
+            SymbolKind.PointerType when typeSymbol is IPointerTypeSymbol pointerType => this.GetPointerType( pointerType, genericContext ),
+            SymbolKind.TypeParameter when typeSymbol is ITypeParameterSymbol typeParameter => this.GetTypeParameter( typeParameter, genericContext ).ResolvedType,
+            SymbolKind.DynamicType when typeSymbol is IDynamicTypeSymbol dynamicType => this.GetDynamicType( dynamicType, defaultNullability ),
+            SymbolKind.FunctionPointerType when typeSymbol is IFunctionPointerTypeSymbol functionPointerType => this.GetFunctionPointerType( functionPointerType, genericContext ),
             _ => throw new NotImplementedException( $"Types of kind {typeSymbol.Kind} are not implemented." )
         };
     }
@@ -567,7 +566,7 @@ public partial class DeclarationFactory
         }
 
 #if ROSLYN_5_0_0_OR_GREATER
-        if ( typeSymbol is INamedTypeSymbol { IsExtension: true } )
+        if ( typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol { IsExtension: true } )
         {
             if ( isNullable == true )
             {

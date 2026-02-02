@@ -200,44 +200,42 @@ public partial class DeclarationFactory
         Invariant.Assert( interfaceType == null || builder.DeclarationKind.GetPossibleDeclarationInterfaceTypes().Any( interfaceType.IsAssignableFrom ) );
 #endif
 
-        return builder switch
+        return builder.DeclarationKind switch
         {
-            // TODO PERF: switch based on DeclarationKind or use an array of delegates.
-
-            MethodBuilderData
+            DeclarationKind.Method or DeclarationKind.Operator or DeclarationKind.Finalizer when builder is MethodBuilderData
             {
                 ContainingDeclaration.DeclarationKind: DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
             } methodBuilder => this.GetMethod(
                 methodBuilder,
                 genericContext ),
-            MethodBuilderData
+            DeclarationKind.Method when builder is MethodBuilderData
             {
                 ContainingDeclaration.DeclarationKind: DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Indexer
             } accessorBuilder => this.GetAccessor( accessorBuilder, genericContext ),
-            FieldBuilderData fieldBuilder when interfaceType == null || interfaceType != typeof(IProperty) => this.GetField( fieldBuilder, genericContext ),
-            FieldBuilderData fieldBuilder when interfaceType == typeof(IProperty) => fieldBuilder.OverridingProperty.AssertNotNull()
+            DeclarationKind.Field when builder is FieldBuilderData fieldBuilder && (interfaceType == null || interfaceType != typeof(IProperty)) => this.GetField( fieldBuilder, genericContext ),
+            DeclarationKind.Field when builder is FieldBuilderData fieldBuilder && interfaceType == typeof(IProperty) => fieldBuilder.OverridingProperty.AssertNotNull()
                 .GetTarget( this._compilationModel, genericContext ),
-            PropertyBuilderData propertyBuilder when interfaceType == null || interfaceType != typeof(IField) =>
+            DeclarationKind.Property when builder is PropertyBuilderData propertyBuilder && (interfaceType == null || interfaceType != typeof(IField)) =>
                 this.GetProperty( propertyBuilder, genericContext ),
-            PropertyBuilderData { OriginalField: { } originalField } when interfaceType == typeof(IField) => (IDeclaration) originalField.GetTarget(
+            DeclarationKind.Property when builder is PropertyBuilderData { OriginalField: { } originalField } => (IDeclaration) originalField.GetTarget(
                 this._compilationModel,
                 genericContext,
                 interfaceType ),
-            IndexerBuilderData indexerBuilder => this.GetIndexer( indexerBuilder, genericContext ),
-            EventBuilderData eventBuilder => this.GetEvent( eventBuilder, genericContext ),
-            ParameterBuilderData parameterBuilder => this.GetParameter( parameterBuilder, genericContext ),
-            AttributeBuilderData attributeBuilder => this.GetAttribute( attributeBuilder, genericContext ),
-            TypeParameterBuilderData genericParameterBuilder => this.GetTypeParameter( genericParameterBuilder, genericContext ),
-            ConstructorBuilderData constructorBuilder => this.GetConstructor( constructorBuilder, genericContext ),
-            NamedTypeBuilderData namedTypeBuilder => this.GetNamedType( namedTypeBuilder, genericContext ),
-            NamespaceBuilderData namespaceBuilder => this.GetNamespace( namespaceBuilder, genericContext ),
+            DeclarationKind.Indexer when builder is IndexerBuilderData indexerBuilder => this.GetIndexer( indexerBuilder, genericContext ),
+            DeclarationKind.Event when builder is EventBuilderData eventBuilder => this.GetEvent( eventBuilder, genericContext ),
+            DeclarationKind.Parameter when builder is ParameterBuilderData parameterBuilder => this.GetParameter( parameterBuilder, genericContext ),
+            DeclarationKind.Attribute when builder is AttributeBuilderData attributeBuilder => this.GetAttribute( attributeBuilder, genericContext ),
+            DeclarationKind.TypeParameter when builder is TypeParameterBuilderData genericParameterBuilder => this.GetTypeParameter( genericParameterBuilder, genericContext ),
+            DeclarationKind.Constructor when builder is ConstructorBuilderData constructorBuilder => this.GetConstructor( constructorBuilder, genericContext ),
+            DeclarationKind.NamedType when builder is NamedTypeBuilderData namedTypeBuilder => this.GetNamedType( namedTypeBuilder, genericContext ),
+            DeclarationKind.Namespace when builder is NamespaceBuilderData namespaceBuilder => this.GetNamespace( namespaceBuilder, genericContext ),
 #if ROSLYN_5_0_0_OR_GREATER
-            ExtensionBlockBuilderData extensionBlockBuilder => this.GetExtensionBlock( extensionBlockBuilder, genericContext ),
+            DeclarationKind.ExtensionBlock when builder is ExtensionBlockBuilderData extensionBlockBuilder => this.GetExtensionBlock( extensionBlockBuilder, genericContext ),
 #endif
 
             // This is for linker tests (fake builders), which resolve to themselves.
             // ReSharper disable once SuspiciousTypeConversion.Global
-            ISdkRef reference => (IDeclaration) reference.GetTarget( this._compilationModel ).AssertNotNull(),
+            _ when builder is ISdkRef reference => (IDeclaration) reference.GetTarget( this._compilationModel ).AssertNotNull(),
             _ => throw new AssertionFailedException( $"Cannot get a declaration for a {builder.GetType()}" )
         };
     }
