@@ -465,15 +465,15 @@ public static class DeclarationExtensions
 
     internal static IMember GetExplicitInterfaceImplementation( this IMember member )
     {
-        switch ( member )
+        switch ( member.DeclarationKind )
         {
-            case IMethod method:
+            case DeclarationKind.Method when member is IMethod method:
                 return method.ExplicitInterfaceImplementations.Single();
 
-            case IProperty property:
+            case DeclarationKind.Property when member is IProperty property:
                 return property.ExplicitInterfaceImplementations.Single();
 
-            case IEvent @event:
+            case DeclarationKind.Event when member is IEvent @event:
                 return @event.ExplicitInterfaceImplementations.Single();
 
             default:
@@ -564,9 +564,9 @@ public static class DeclarationExtensions
 
         while ( currentType != null )
         {
-            switch ( declaration )
+            switch ( declaration.DeclarationKind )
             {
-                case IFieldOrProperty or IEvent or INamedType:
+                case DeclarationKind.Field or DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.NamedType:
                     // Field/properties/events are matched by name. When a base method is hidden, we ignore it (as it may be still accessible).
                     var candidateMember =
                         currentType.Fields.OfName( declaration.Name ).FirstOrDefault()
@@ -584,7 +584,7 @@ public static class DeclarationExtensions
 
                     break;
 
-                case IIndexer indexer:
+                case DeclarationKind.Indexer when declaration is IIndexer indexer:
                     // Indexers are matched by signature.
                     var candidateIndexer = currentType.Indexers.OfExactSignature( indexer );
 
@@ -599,7 +599,7 @@ public static class DeclarationExtensions
 
                     break;
 
-                case IMethod method:
+                case DeclarationKind.Method when declaration is IMethod method:
                     // Methods are matched by signature.
                     var candidateMethod = currentType.Methods.OfExactSignature( method );
 

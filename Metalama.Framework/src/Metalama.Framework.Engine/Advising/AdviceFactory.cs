@@ -518,9 +518,9 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                             ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, tagsReader )
                             .ForOverride( targetMethod, this.GetArgsReader( args ) );
 
-                        switch ( propertyOrIndexer )
+                        switch ( propertyOrIndexer.DeclarationKind )
                         {
-                            case IFieldOrProperty fieldOrProperty:
+                            case DeclarationKind.Field or DeclarationKind.Property when propertyOrIndexer is IFieldOrProperty fieldOrProperty:
                                 return new OverrideFieldOrPropertyAdvice(
                                         this.GetAdviceConstructorParameters( fieldOrProperty ),
                                         getTemplate: template,
@@ -528,7 +528,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                                     .Execute( this._state )
                                     .GetAccessor( p => p.GetMethod );
 
-                            case IIndexer indexer:
+                            case DeclarationKind.Indexer when propertyOrIndexer is IIndexer indexer:
                                 return new OverrideIndexerAdvice(
                                         this.GetAdviceConstructorParameters( indexer ),
                                         getTemplate: template,
@@ -549,9 +549,9 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                             ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, tagsReader )
                             .ForOverride( targetMethod, this.GetArgsReader( args ) );
 
-                        switch ( propertyOrIndexer )
+                        switch ( propertyOrIndexer.DeclarationKind )
                         {
-                            case IFieldOrProperty property:
+                            case DeclarationKind.Field or DeclarationKind.Property when propertyOrIndexer is IFieldOrProperty property:
                                 return new OverrideFieldOrPropertyAdvice(
                                         this.GetAdviceConstructorParameters( property ),
                                         getTemplate: null,
@@ -559,7 +559,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                                     .Execute( this._state )
                                     .GetAccessor( p => p.SetMethod );
 
-                            case IIndexer indexer:
+                            case DeclarationKind.Indexer when propertyOrIndexer is IIndexer indexer:
                                 return new OverrideIndexerAdvice(
                                         this.GetAdviceConstructorParameters( indexer ),
                                         getTemplate: null,
@@ -925,9 +925,9 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 throw new InvalidOperationException( "There is no accessor to override." );
             }
 
-            switch ( targetFieldOrPropertyOrIndexer )
+            switch ( targetFieldOrPropertyOrIndexer.DeclarationKind )
             {
-                case IFieldOrProperty targetFieldOrProperty:
+                case DeclarationKind.Field or DeclarationKind.Property when targetFieldOrPropertyOrIndexer is IFieldOrProperty targetFieldOrProperty:
                     {
                         var advice = new OverrideFieldOrPropertyAdvice(
                             this.GetAdviceConstructorParameters( targetFieldOrProperty ),
@@ -937,7 +937,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                         return advice.Execute( this._state );
                     }
 
-                case IIndexer targetIndexer:
+                case DeclarationKind.Indexer when targetFieldOrPropertyOrIndexer is IIndexer targetIndexer:
                     {
                         var advice = new OverrideIndexerAdvice(
                             this.GetAdviceConstructorParameters( targetIndexer ),

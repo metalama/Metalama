@@ -24,39 +24,39 @@ internal static partial class DocumentationIdHelper
 
         public void Visit( IDeclaration declaration )
         {
-            switch ( declaration )
+            switch ( declaration.DeclarationKind )
             {
-                case IEvent @event:
+                case DeclarationKind.Event when declaration is IEvent @event:
                     this._builder.Append( "E:" );
                     this._generator.Visit( @event );
 
                     break;
 
-                case IField field:
+                case DeclarationKind.Field when declaration is IField field:
                     this._builder.Append( "F:" );
                     this._generator.Visit( field );
 
                     break;
 
-                case IPropertyOrIndexer property:
+                case DeclarationKind.Property or DeclarationKind.Indexer when declaration is IPropertyOrIndexer property:
                     this._builder.Append( "P:" );
                     this._generator.Visit( property );
 
                     break;
 
-                case IMethodBase method:
+                case DeclarationKind.Method or DeclarationKind.Constructor when declaration is IMethodBase method:
                     this._builder.Append( "M:" );
                     this._generator.Visit( method );
 
                     break;
 
-                case INamespace ns:
+                case DeclarationKind.Namespace when declaration is INamespace ns:
                     this._builder.Append( "N:" );
                     this._generator.Visit( ns );
 
                     break;
 
-                case INamedType namedType:
+                case DeclarationKind.NamedType when declaration is INamedType namedType:
                     this._builder.Append( "T:" );
                     this._generator.Visit( namedType );
 

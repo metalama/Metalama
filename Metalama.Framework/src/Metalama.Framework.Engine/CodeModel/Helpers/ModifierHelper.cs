@@ -160,13 +160,16 @@ internal static class ModifierHelper
             }
         }
 
-        if ( (categories & ModifierCategories.ReadOnly) != 0 && member is IMethod { IsReadOnly: true } or
-                IField { Writeability: Writeability.ConstructorOnly } )
+        if ( (categories & ModifierCategories.ReadOnly) != 0
+             && member.DeclarationKind is DeclarationKind.Method or DeclarationKind.Field
+             && member is IMethod { IsReadOnly: true } or IField { Writeability: Writeability.ConstructorOnly } )
         {
             AddToken( SyntaxKind.ReadOnlyKeyword );
         }
 
-        if ( (categories & ModifierCategories.Const) != 0 && member is IField { Writeability: Writeability.None } )
+        if ( (categories & ModifierCategories.Const) != 0
+             && member.DeclarationKind == DeclarationKind.Field
+             && member is IField { Writeability: Writeability.None } )
         {
             AddToken( SyntaxKind.ConstKeyword );
         }
