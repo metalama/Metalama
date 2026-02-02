@@ -63,7 +63,7 @@ public sealed partial class CodeFormatter
                                         var symbol = this._semanticModel.GetSymbolInfo( invocation.Expression ).Symbol;
                                         var argumentIndex = invocation.ArgumentList.Arguments.IndexOf( argument );
 
-                                        if ( symbol is IMethodSymbol invokedMethod
+                                        if ( symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol invokedMethod
                                              && invokedMethod.Parameters[argumentIndex].Type.TypeKind == TypeKind.Delegate )
                                         {
                                             return this.Visit( anonymousFunctionExpression )!;
@@ -82,7 +82,7 @@ public sealed partial class CodeFormatter
                                         var symbol = this._semanticModel.GetSymbolInfo( objectCreation ).Symbol;
                                         var argumentIndex = objectCreation.ArgumentList.Arguments.IndexOf( argument );
 
-                                        if ( symbol is IMethodSymbol invokedMethod
+                                        if ( symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol invokedMethod
                                              && invokedMethod.Parameters[argumentIndex].Type.TypeKind == TypeKind.Delegate )
                                         {
                                             return this.Visit( anonymousFunctionExpression )!;
@@ -118,7 +118,8 @@ public sealed partial class CodeFormatter
                                 var assignmentExpression = (AssignmentExpressionSyntax) node.Parent;
                                 var symbol = this._semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol;
 
-                                if ( symbol is IFieldSymbol { Type.TypeKind: TypeKind.Delegate } or IPropertySymbol { Type.TypeKind: TypeKind.Delegate } )
+                                if ( (symbol?.Kind == SymbolKind.Field && symbol is IFieldSymbol { Type.TypeKind: TypeKind.Delegate })
+                                     || (symbol?.Kind == SymbolKind.Property && symbol is IPropertySymbol { Type.TypeKind: TypeKind.Delegate }) )
                                 {
                                     return this.Visit( anonymousFunctionExpression )!;
                                 }
