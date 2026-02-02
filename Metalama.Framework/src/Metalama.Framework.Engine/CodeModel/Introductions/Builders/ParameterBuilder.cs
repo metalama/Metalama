@@ -142,7 +142,7 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
                     throw new NotSupportedException( "Cannot set the 'this' modifier on a parameter that is not the first one." );
                 }
 
-                if ( this.DeclaringMember is not IMethod method )
+                if ( this.DeclaringMember.DeclarationKind != DeclarationKind.Method || this.DeclaringMember is not IMethod method )
                 {
                     throw new NotSupportedException(
                         MetalamaStringFormatter.Format(

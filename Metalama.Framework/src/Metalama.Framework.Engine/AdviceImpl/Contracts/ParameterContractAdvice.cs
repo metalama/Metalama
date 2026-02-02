@@ -22,9 +22,9 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
     {
         var targetDeclaration = this.TargetDeclaration;
 
-        switch ( targetDeclaration )
+        switch ( targetDeclaration.DeclarationKind )
         {
-            case IParameter { ContainingDeclaration: IExtensionBlock extensionBlock } receiverParameter:
+            case DeclarationKind.Parameter when targetDeclaration is IParameter { ContainingDeclaration: IExtensionBlock extensionBlock } receiverParameter:
                 context.AddTransformation(
                     new ContractExtensionBlockTransformation(
                         this.AspectLayerInstance,
@@ -36,7 +36,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
 
                 return this.CreateSuccessResult( receiverParameter );
 
-            case IParameter { ContainingDeclaration: IIndexer indexer } parameter:
+            case DeclarationKind.Parameter when targetDeclaration is IParameter { ContainingDeclaration: IIndexer indexer } parameter:
                 context.AddTransformation(
                     new ContractIndexerTransformation(
                         this.AspectLayerInstance,
@@ -48,7 +48,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
 
                 return this.CreateSuccessResult( parameter );
 
-            case IParameter { ContainingDeclaration: IMethod method } parameter:
+            case DeclarationKind.Parameter when targetDeclaration is IParameter { ContainingDeclaration: IMethod method } parameter:
                 context.AddTransformation(
                     new ContractMethodTransformation(
                         this.AspectLayerInstance,
@@ -60,7 +60,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
 
                 return this.CreateSuccessResult( parameter );
 
-            case IParameter { ContainingDeclaration: IConstructor constructor } parameter:
+            case DeclarationKind.Parameter when targetDeclaration is IParameter { ContainingDeclaration: IConstructor constructor } parameter:
                 context.AddTransformation(
                     new ContractConstructorTransformation(
                         this.AspectLayerInstance,

@@ -108,8 +108,8 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
     {
         var parameter = this.ContractTarget.GetTarget( this.InitialCompilation ) switch
         {
-            IParameter { IsReturnParameter: true } => "return value",
-            IParameter param => $"parameter '{param.Name}'",
+            { DeclarationKind: DeclarationKind.Parameter } and IParameter { IsReturnParameter: true } => "return value",
+            { DeclarationKind: DeclarationKind.Parameter } and IParameter param => $"parameter '{param.Name}'",
             var target => $"unexpected declaration '{target}'"
         };
 

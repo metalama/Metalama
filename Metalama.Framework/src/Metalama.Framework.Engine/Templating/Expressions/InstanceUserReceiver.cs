@@ -76,7 +76,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
                     return true;
 
                 // Extension method.
-                case IMethod { IsStatic: true, Parameters.Count: > 0 } m when m.Parameters[0].IsThis:
+                case { DeclarationKind: DeclarationKind.Method } and IMethod { IsStatic: true, Parameters.Count: > 0 } m when m.Parameters[0].IsThis:
                     receiver = new ReceiverParameterUserReceiver( m.Parameters[0], aspectReferenceSpecification );
 
                     return true;

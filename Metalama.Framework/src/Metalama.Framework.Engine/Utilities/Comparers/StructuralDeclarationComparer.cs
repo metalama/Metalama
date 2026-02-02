@@ -119,9 +119,10 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
             return result;
         }
 
-        switch (x, y)
+        // At this point, x and y have the same kind (DeclarationKind or TypeKind)
+        switch (x)
         {
-            case (IMethod methodX, IMethod methodY):
+            case IMethod methodX when y is IMethod methodY:
                 result = this.CompareMethods( methodX, methodY, this._options );
 
                 if ( result != 0 )
@@ -131,7 +132,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case (IConstructor constructorX, IConstructor constructorY):
+            case IConstructor constructorX when y is IConstructor constructorY:
                 result = this.CompareConstructors( constructorX, constructorY, this._options );
 
                 if ( result != 0 )
@@ -141,7 +142,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case (IParameter parameterX, IParameter parameterY):
+            case IParameter parameterX when y is IParameter parameterY:
                 result = this.Compare( parameterX.ContainingDeclaration, parameterY.ContainingDeclaration );
 
                 if ( result != 0 )
@@ -151,7 +152,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 return parameterX.Index.CompareTo( parameterY.Index );
 
-            case (IProperty propertyX, IProperty propertyY):
+            case IProperty propertyX when y is IProperty propertyY:
 
                 result = CompareProperties( propertyX, propertyY, this._options );
 
@@ -162,7 +163,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case (IIndexer indexerX, IIndexer indexerY):
+            case IIndexer indexerX when y is IIndexer indexerY:
                 result = this.CompareIndexers( indexerX, indexerY, this._options );
 
                 if ( result != 0 )
@@ -172,7 +173,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case (IEvent eventX, IEvent eventY):
+            case IEvent eventX when y is IEvent eventY:
                 result = CompareEvents( eventX, eventY, this._options );
 
                 if ( result != 0 )
@@ -182,7 +183,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case (IField fieldX, IField fieldY):
+            case IField fieldX when y is IField fieldY:
                 result = CompareFields( fieldX, fieldY, this._options );
 
                 if ( result != 0 )
@@ -192,7 +193,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case (IType typeX, IType typeY):
+            case IType typeX when y is IType typeY:
                 result = this.CompareTypes( typeX, typeY );
 
                 if ( result != 0 )
@@ -202,7 +203,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case (INamespace namespaceX, INamespace namespaceY):
+            case INamespace namespaceX when y is INamespace namespaceY:
                 result = this.CompareNamespaces( namespaceX, namespaceY );
 
                 if ( result != 0 )
@@ -212,7 +213,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case (IAssembly assemblyX, IAssembly assemblyY):
+            case IAssembly assemblyX when y is IAssembly assemblyY:
                 return CompareAssemblies( assemblyX, assemblyY );
 
             default:
@@ -342,7 +343,8 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
                 return result;
             }
 
-            if ( namedTypeX.ContainingDeclaration is not INamedType && namedTypeY.ContainingDeclaration is not INamedType )
+            if ( namedTypeX.ContainingDeclaration?.DeclarationKind is not (DeclarationKind.NamedType or DeclarationKind.ExtensionBlock)
+                 && namedTypeY.ContainingDeclaration?.DeclarationKind is not (DeclarationKind.NamedType or DeclarationKind.ExtensionBlock) )
             {
                 result = this.CompareNamespaces( namedTypeX.ContainingNamespace, namedTypeY.ContainingNamespace );
 
@@ -678,9 +680,9 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
                 return result;
             }
 
-            switch (currentX, currentY)
+            switch (currentX.DeclarationKind)
             {
-                case (IMethod methodX, IMethod methodY):
+                case DeclarationKind.Method when currentX is IMethod methodX && currentY is IMethod methodY:
                     result = this.CompareMethods( methodX, methodY, StructuralComparerOptions.MethodSignature );
 
                     if ( result != 0 )
@@ -690,7 +692,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                     break;
 
-                case (INamedType namedTypeX, INamedType namedTypeY):
+                case DeclarationKind.NamedType when currentX is INamedType namedTypeX && currentY is INamedType namedTypeY:
                     result = this.CompareNamedTypes( namedTypeX, namedTypeY, StructuralComparerOptions.Type );
 
                     if ( result != 0 )
@@ -700,7 +702,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                     break;
 
-                case (INamespace namespaceX, INamespace namespaceY):
+                case DeclarationKind.Namespace when currentX is INamespace namespaceX && currentY is INamespace namespaceY:
                     result = StringComparer.Ordinal.Compare( namespaceX.Name, namespaceY.Name );
 
                     if ( result != 0 )
@@ -710,7 +712,8 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                     break;
 
-                case (IAssembly, IAssembly):
+                case DeclarationKind.AssemblyReference:
+                case DeclarationKind.Compilation:
                     return 0;
 
                 default:

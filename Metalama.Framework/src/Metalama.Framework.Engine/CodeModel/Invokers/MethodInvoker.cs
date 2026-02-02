@@ -63,12 +63,12 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                 return ((IEvent) this.Member.DeclaringMember!).WithObject( this.Target ).WithOptions( this.Options ).Remove( args[0] );
 
             case MethodKind.PropertyGet:
-                switch ( this.Member.DeclaringMember )
+                switch ( this.Member.DeclaringMember!.DeclarationKind )
                 {
-                    case IProperty property:
+                    case DeclarationKind.Property when this.Member.DeclaringMember is IProperty property:
                         return property.WithObject( this.Target ).WithOptions( this.Options ).Value;
 
-                    case IIndexer indexer:
+                    case DeclarationKind.Indexer when this.Member.DeclaringMember is IIndexer indexer:
                         return indexer.WithObject( this.Target! ).WithOptions( this.Options )[args];
 
                     default:
@@ -76,14 +76,14 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                 }
 
             case MethodKind.PropertySet:
-                switch ( this.Member.DeclaringMember )
+                switch ( this.Member.DeclaringMember!.DeclarationKind )
                 {
-                    case IProperty property:
+                    case DeclarationKind.Property when this.Member.DeclaringMember is IProperty property:
                         ((FieldOrPropertyInvoker) property.WithObject( this.Target ).WithOptions( this.Options )).SetValue( args[0] );
 
                         return null;
 
-                    case IIndexer indexer:
+                    case DeclarationKind.Indexer when this.Member.DeclaringMember is IIndexer indexer:
                         ((IndexerInvoker) indexer.WithObject( this.Target! ).WithOptions( this.Options )).SetValue( this.Target, args );
 
                         return null;

@@ -276,14 +276,14 @@ namespace Metalama.Framework.Engine.Queries
                             }
                             else
                             {
-                                switch ( declaration )
+                                switch ( declaration.DeclarationKind )
                                 {
-                                    case INamespace ns:
+                                    case DeclarationKind.Namespace when declaration is INamespace ns:
                                         types = ns.DescendantsAndSelf().SelectMany( x => x.Types );
 
                                         break;
 
-                                    case INamedType type:
+                                    case DeclarationKind.NamedType when declaration is INamedType type:
                                         types = [type];
 
                                         break;

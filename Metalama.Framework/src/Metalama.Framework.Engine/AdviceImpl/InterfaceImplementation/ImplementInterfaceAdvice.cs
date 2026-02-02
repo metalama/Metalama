@@ -367,9 +367,9 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
 
                     var interfaceMember = memberSpec.InterfaceMember.GetTarget( context.MutableCompilation );
 
-                    switch ( interfaceMember )
+                    switch ( interfaceMember.DeclarationKind )
                     {
-                        case IMethod interfaceMethod:
+                        case DeclarationKind.Method when interfaceMember is IMethod interfaceMethod:
                             var existingMethod = targetType.AllMethods.OfName( interfaceMethod.Name )
                                 .SingleOrDefault( m => m.SignatureEquals( interfaceMethod ) );
 
@@ -511,7 +511,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
 
                             break;
 
-                        case IProperty interfaceProperty:
+                        case DeclarationKind.Property when interfaceMember is IProperty interfaceProperty:
                             var existingProperty = targetType.Properties.SingleOrDefault( p => p.SignatureEquals( interfaceProperty ) );
                             var templateProperty = memberSpec.Template?.As<IProperty>();
                             var templatePropertyDeclaration = templateProperty?.GetDeclaration( context.MutableCompilation );
@@ -772,10 +772,10 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
 
                             break;
 
-                        case IIndexer:
+                        case DeclarationKind.Indexer:
                             throw new NotImplementedException( "Implementing interface indexers is not yet supported." );
 
-                        case IEvent interfaceEvent:
+                        case DeclarationKind.Event when interfaceMember is IEvent interfaceEvent:
                             var existingEvent = targetType.Events.SingleOrDefault( p => p.SignatureEquals( interfaceEvent ) );
                             var templateEvent = memberSpec.Template?.As<IEvent>();
                             var redirectionTargetEvent = memberSpec.TargetMember?.AsFullRef<IEvent>();

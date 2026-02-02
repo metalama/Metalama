@@ -56,7 +56,7 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
     public int GetHashCode( IDeclaration obj )
     {
-        if ( obj is IAttribute attribute )
+        if ( obj.DeclarationKind == DeclarationKind.Attribute && obj is IAttribute attribute )
         {
             return RuntimeHelpers.GetHashCode( attribute );
         }

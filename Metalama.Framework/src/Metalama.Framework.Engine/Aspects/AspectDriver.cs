@@ -103,19 +103,19 @@ internal sealed class AspectDriver : IAspectDriver
     {
         var target = aspectInstance.TargetDeclaration.GetTarget( initialCompilationRevision );
 
-        return target switch
+        return target.DeclarationKind switch
         {
-            INamedType type => EvaluateAspectImpl( type ),
-            IMethod method => EvaluateAspectImpl( method ),
-            IField field => EvaluateAspectImpl( field ),
-            IProperty property => EvaluateAspectImpl( property ),
-            IIndexer indexer => EvaluateAspectImpl( indexer ),
-            IConstructor constructor => EvaluateAspectImpl( constructor ),
-            IParameter parameter => EvaluateAspectImpl( parameter ),
-            ITypeParameter genericParameter => EvaluateAspectImpl( genericParameter ),
-            IEvent @event => EvaluateAspectImpl( @event ),
-            ICompilation compilation => EvaluateAspectImpl( compilation ),
-            INamespace @namespace => EvaluateAspectImpl( @namespace ),
+            DeclarationKind.NamedType when target is INamedType type => EvaluateAspectImpl( type ),
+            DeclarationKind.Method when target is IMethod method => EvaluateAspectImpl( method ),
+            DeclarationKind.Field when target is IField field => EvaluateAspectImpl( field ),
+            DeclarationKind.Property when target is IProperty property => EvaluateAspectImpl( property ),
+            DeclarationKind.Indexer when target is IIndexer indexer => EvaluateAspectImpl( indexer ),
+            DeclarationKind.Constructor when target is IConstructor constructor => EvaluateAspectImpl( constructor ),
+            DeclarationKind.Parameter when target is IParameter parameter => EvaluateAspectImpl( parameter ),
+            DeclarationKind.TypeParameter when target is ITypeParameter genericParameter => EvaluateAspectImpl( genericParameter ),
+            DeclarationKind.Event when target is IEvent @event => EvaluateAspectImpl( @event ),
+            DeclarationKind.Compilation when target is ICompilation compilation => EvaluateAspectImpl( compilation ),
+            DeclarationKind.Namespace when target is INamespace @namespace => EvaluateAspectImpl( @namespace ),
             _ => throw new NotSupportedException( $"Cannot add an aspect to a declaration of type {target.DeclarationKind}." )
         };
 

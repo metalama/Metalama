@@ -581,13 +581,13 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     private static IMember? FindMemberOfSignature( INamedType type, IMember member )
     {
-        IMember? candidate = member switch
+        IMember? candidate = member.DeclarationKind switch
         {
-            IMethod method => type.Methods.OfExactSignature( method ),
-            IConstructor constructor => type.Constructors.OfExactSignature( constructor ),
-            IProperty property => type.Properties.OfName( property.Name ).SingleOrDefault(),
-            IIndexer indexer => type.Indexers.OfExactSignature( indexer ),
-            IEvent @event => type.Events.OfName( @event.Name ).SingleOrDefault(),
+            DeclarationKind.Method when member is IMethod method => type.Methods.OfExactSignature( method ),
+            DeclarationKind.Constructor when member is IConstructor constructor => type.Constructors.OfExactSignature( constructor ),
+            DeclarationKind.Property when member is IProperty property => type.Properties.OfName( property.Name ).SingleOrDefault(),
+            DeclarationKind.Indexer when member is IIndexer indexer => type.Indexers.OfExactSignature( indexer ),
+            DeclarationKind.Event when member is IEvent @event => type.Events.OfName( @event.Name ).SingleOrDefault(),
             _ => throw new AssertionFailedException( $"Unexpected member kind: {member.DeclarationKind}." )
         };
 

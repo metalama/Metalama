@@ -117,7 +117,7 @@ internal static partial class DocumentationIdHelper
                 var name = EncodePropertyName( propertyOrIndexer.Name );
                 this._builder.Append( EncodeName( name ) );
 
-                if ( propertyOrIndexer is IIndexer indexer )
+                if ( propertyOrIndexer.DeclarationKind == DeclarationKind.Indexer && propertyOrIndexer is IIndexer indexer )
                 {
                     this.AppendParameters( indexer.Parameters );
                 }
@@ -132,7 +132,7 @@ internal static partial class DocumentationIdHelper
 
                 this._builder.Append( EncodeName( methodBase.Name ) );
 
-                if ( methodBase is IMethod { TypeParameters.Count: > 0 } method )
+                if ( methodBase.DeclarationKind == DeclarationKind.Method && methodBase is IMethod { TypeParameters.Count: > 0 } method )
                 {
                     this._builder.Append( "``" );
                     this._builder.Append( method.TypeParameters.Count );
@@ -140,7 +140,7 @@ internal static partial class DocumentationIdHelper
 
                 this.AppendParameters( methodBase.Parameters );
 
-                if ( methodBase is IMethod method2 && !method2.ReturnType.Equals( SpecialType.Void ) )
+                if ( methodBase.DeclarationKind == DeclarationKind.Method && methodBase is IMethod method2 && !method2.ReturnType.Equals( SpecialType.Void ) )
                 {
                     this._builder.Append( '~' );
                     this.GetReferenceGenerator( method2 ).Visit( method2.ReturnType );

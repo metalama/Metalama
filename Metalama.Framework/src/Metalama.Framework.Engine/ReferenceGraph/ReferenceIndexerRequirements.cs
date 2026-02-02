@@ -23,10 +23,10 @@ public sealed record ReferenceIndexerRequirements(
     {
         var validatedDeclarationKind = validatedDeclaration.DeclarationKind;
 
-        var validatedIdentifier = validatedDeclaration switch
+        var validatedIdentifier = validatedDeclaration.DeclarationKind switch
         {
-            IConstructor constructor => constructor.DeclaringType.Name,
-            INamedDeclaration namedDeclaration => namedDeclaration.Name,
+            DeclarationKind.Constructor when validatedDeclaration is IConstructor constructor => constructor.DeclaringType.Name,
+            _ when validatedDeclaration is INamedDeclaration namedDeclaration => namedDeclaration.Name,
             _ => null
         };
 
@@ -36,7 +36,7 @@ public sealed record ReferenceIndexerRequirements(
         }
 
         // Special handling for methods: check MethodKind to determine reference kinds for finalizers and operators
-        if ( validatedDeclaration is IMethod method )
+        if ( validatedDeclarationKind == DeclarationKind.Method && validatedDeclaration is IMethod method )
         {
             referenceKinds &= method.MethodKind switch
             {
@@ -52,10 +52,10 @@ public sealed record ReferenceIndexerRequirements(
 
         if ( includeDerivedTypes )
         {
-            includeDerivedTypes = validatedDeclaration switch
+            includeDerivedTypes = validatedDeclarationKind switch
             {
-                INamedType namedType => !namedType.IsSealed,
-                INamespace or ICompilation => true,
+                DeclarationKind.NamedType when validatedDeclaration is INamedType namedType => !namedType.IsSealed,
+                DeclarationKind.Namespace or DeclarationKind.Compilation => true,
                 _ => includeDerivedTypes
             };
         }
