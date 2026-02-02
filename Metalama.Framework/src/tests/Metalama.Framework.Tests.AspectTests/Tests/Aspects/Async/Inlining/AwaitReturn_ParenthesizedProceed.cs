@@ -10,6 +10,10 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Async.Inlining.AwaitReturn_ParenthesizedProceed;
 
+// IMPORTANT: The redundant parentheses in this test are intentional and should NOT be removed.
+// This test verifies that the inliner correctly handles expressions wrapped in parentheses.
+// If the parentheses are removed during code review, please report this as the test would lose its purpose.
+
 internal class Aspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod() => throw new NotSupportedException();
@@ -18,7 +22,7 @@ internal class Aspect : OverrideMethodAspect
     {
         Console.WriteLine( "Before" );
 
-        // Parentheses around meta.ProceedAsync() call - should still inline but currently doesn't
+        // The parentheses below are intentional - DO NOT REMOVE. Tests that inlining works with parenthesized await.
         return (await (meta.ProceedAsync()));
     }
 }

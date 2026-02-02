@@ -5,35 +5,48 @@
 using System;
 using Metalama.Framework.Aspects;
 
-#pragma warning disable CS8600 // Null-forgiving operator is intentional for this test
-
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.LocalDeclaration_NullForgiving;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Properties.LocalDeclaration_NullForgiving;
 
 // IMPORTANT: The null-forgiving operator (!) in this test is intentional and should NOT be removed.
 // This test verifies that the inliner correctly handles expressions wrapped in the ! operator.
 // If the ! is removed during code review, please report this as the test would lose its purpose.
 
-internal class Aspect : OverrideMethodAspect
+internal class Aspect : OverrideFieldOrPropertyAspect
 {
-    public override dynamic? OverrideMethod()
+    public override dynamic? OverrideProperty
     {
-        Console.WriteLine( "Before" );
+        get
+        {
+            Console.WriteLine( "Before" );
 
-        // The ! operator below is intentional - DO NOT REMOVE. Tests that inlining works with null-forgiving.
-        string result = meta.Proceed()!;
+            // The ! operator below is intentional - DO NOT REMOVE. Tests that inlining works with null-forgiving.
+            int result = meta.Proceed()!;
 
-        Console.WriteLine( "After" );
+            Console.WriteLine( "After" );
 
-        return result;
+            return result;
+        }
+
+        set => meta.Proceed();
     }
 }
 
 // <target>
 internal class TargetCode
 {
+    private int _field;
+
     [Aspect]
-    private string? Method( string? a )
+    public int Property
     {
-        return a;
+        get
+        {
+            return _field;
+        }
+
+        set
+        {
+            _field = value;
+        }
     }
 }

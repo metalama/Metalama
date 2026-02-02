@@ -26,13 +26,16 @@ internal sealed class EventRemoveAssignmentInliner : EventInliner
             return false;
         }
 
-        if ( aspectReference.RootExpression.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        // The event access (possibly through parentheses) should be the left side of an assignment.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+        if ( expressionOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
 
-        // Property access should be on the left.
-        if ( assignmentExpression.Left != aspectReference.RootExpression )
+        // Event access should be on the left.
+        if ( assignmentExpression.Left != expressionOrWrapped )
         {
             return false;
         }
@@ -64,7 +67,10 @@ internal sealed class EventRemoveAssignmentInliner : EventInliner
 
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
-        var assignmentExpression = (AssignmentExpressionSyntax) aspectReference.RootExpression.Parent.AssertNotNull();
+        // Navigate through parentheses to find the assignment.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+        var assignmentExpression = (AssignmentExpressionSyntax) expressionOrWrapped.Parent.AssertNotNull();
         var expressionStatement = (ExpressionStatementSyntax) assignmentExpression.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( expressionStatement, null );

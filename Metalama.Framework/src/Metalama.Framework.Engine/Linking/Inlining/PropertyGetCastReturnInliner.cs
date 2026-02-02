@@ -25,7 +25,10 @@ internal sealed class PropertyGetCastReturnInliner : PropertyGetInliner
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not CastExpressionSyntax castExpression )
+        // The property access (possibly through parentheses or null-forgiving) should be inside a cast.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression.AssertNotNull() );
+
+        if ( expressionOrWrapped.Parent is not CastExpressionSyntax castExpression )
         {
             return false;
         }
@@ -37,7 +40,10 @@ internal sealed class PropertyGetCastReturnInliner : PropertyGetInliner
             return false;
         }
 
-        if ( castExpression.Parent is not ReturnStatementSyntax )
+        // The cast (possibly through parentheses or null-forgiving) should be inside a return statement.
+        var castOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( castExpression );
+
+        if ( castOrWrapped.Parent is not ReturnStatementSyntax )
         {
             return false;
         }
@@ -47,8 +53,13 @@ internal sealed class PropertyGetCastReturnInliner : PropertyGetInliner
 
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
-        var castExpression = (CastExpressionSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
-        var returnStatement = (ReturnStatementSyntax) castExpression.Parent.AssertNotNull();
+        // Navigate through parentheses and null-forgiving to find the cast.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression.AssertNotNull() );
+        var castExpression = (CastExpressionSyntax) expressionOrWrapped.Parent.AssertNotNull();
+
+        // Navigate through parentheses and null-forgiving to find the return statement.
+        var castOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( castExpression );
+        var returnStatement = (ReturnStatementSyntax) castOrWrapped.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( returnStatement, null );
     }

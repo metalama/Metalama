@@ -27,14 +27,17 @@ internal sealed class PropertySetExpressionBodyInliner : PropertyInliner
             return false;
         }
 
-        if ( aspectReference.RootExpression.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        // The property access (possibly through parentheses) should be the left side of an assignment.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+        if ( expressionOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
 
         // Should be simple assignment and property access should be on the left.
         if ( assignmentExpression.Kind() != SyntaxKind.SimpleAssignmentExpression
-             || assignmentExpression.Left != aspectReference.RootExpression )
+             || assignmentExpression.Left != expressionOrWrapped )
         {
             return false;
         }
@@ -57,7 +60,10 @@ internal sealed class PropertySetExpressionBodyInliner : PropertyInliner
 
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
-        var assignmentExpression = (AssignmentExpressionSyntax) aspectReference.RootExpression.Parent.AssertNotNull();
+        // Navigate through parentheses to find the assignment.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+        var assignmentExpression = (AssignmentExpressionSyntax) expressionOrWrapped.Parent.AssertNotNull();
         var arrowExpressionClause = (ArrowExpressionClauseSyntax) assignmentExpression.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( arrowExpressionClause, null );

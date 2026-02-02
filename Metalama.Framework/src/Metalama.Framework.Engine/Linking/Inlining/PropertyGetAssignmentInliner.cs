@@ -25,7 +25,10 @@ internal sealed class PropertyGetAssignmentInliner : PropertyGetInliner
             return false;
         }
 
-        if ( aspectReference.RootExpression.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        // The property access (possibly through parentheses or null-forgiving) should be the right side of an assignment.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+        if ( expressionOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
@@ -38,7 +41,7 @@ internal sealed class PropertyGetAssignmentInliner : PropertyGetInliner
 
         // Assignment should be simple and property access should be on the right.
         if ( assignmentExpression.Kind() != SyntaxKind.SimpleAssignmentExpression
-             || assignmentExpression.Right != aspectReference.RootExpression )
+             || assignmentExpression.Right != expressionOrWrapped )
         {
             return false;
         }
@@ -54,7 +57,10 @@ internal sealed class PropertyGetAssignmentInliner : PropertyGetInliner
 
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
-        var assignmentExpression = (AssignmentExpressionSyntax) aspectReference.RootExpression.Parent.AssertNotNull();
+        // Navigate through parentheses and null-forgiving to find the assignment.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+        var assignmentExpression = (AssignmentExpressionSyntax) expressionOrWrapped.Parent.AssertNotNull();
         var localVariable = (IdentifierNameSyntax) assignmentExpression.Left.AssertNotNull();
         var expressionStatement = (ExpressionStatementSyntax) assignmentExpression.Parent.AssertNotNull();
 

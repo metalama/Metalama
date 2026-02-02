@@ -35,7 +35,10 @@ internal sealed class PropertyGetReturnInliner : PropertyGetInliner
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not ReturnStatementSyntax )
+        // The property access (possibly through parentheses or null-forgiving) should be inside a return statement.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression.AssertNotNull() );
+
+        if ( expressionOrWrapped.Parent is not ReturnStatementSyntax )
         {
             return false;
         }
@@ -45,7 +48,9 @@ internal sealed class PropertyGetReturnInliner : PropertyGetInliner
 
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
-        var returnStatement = (ReturnStatementSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
+        // Navigate through parentheses and null-forgiving to find the return statement.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression.AssertNotNull() );
+        var returnStatement = (ReturnStatementSyntax) expressionOrWrapped.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( returnStatement, null );
     }

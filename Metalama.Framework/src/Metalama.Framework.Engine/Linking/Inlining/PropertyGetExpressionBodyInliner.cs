@@ -36,7 +36,10 @@ internal sealed class PropertyGetExpressionBodyInliner : PropertyGetInliner
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not ArrowExpressionClauseSyntax )
+        // The property access (possibly through parentheses or null-forgiving) should be inside an arrow expression clause.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression.AssertNotNull() );
+
+        if ( expressionOrWrapped.Parent is not ArrowExpressionClauseSyntax )
         {
             return false;
         }
@@ -46,7 +49,9 @@ internal sealed class PropertyGetExpressionBodyInliner : PropertyGetInliner
 
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
-        var arrowExpressionClause = (ArrowExpressionClauseSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
+        // Navigate through parentheses and null-forgiving to find the arrow expression clause.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression.AssertNotNull() );
+        var arrowExpressionClause = (ArrowExpressionClauseSyntax) expressionOrWrapped.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( arrowExpressionClause, null );
     }

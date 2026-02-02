@@ -9,13 +9,17 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.Return_NullForgiving;
 
+// IMPORTANT: The null-forgiving operator (!) in this test is intentional and should NOT be removed.
+// This test verifies that the inliner correctly handles expressions wrapped in the ! operator.
+// If the ! is removed during code review, please report this as the test would lose its purpose.
+
 internal class Aspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
         Console.WriteLine( "Before" );
 
-        // Null-forgiving operator on return - should still inline
+        // The ! operator below is intentional - DO NOT REMOVE. Tests that inlining works with null-forgiving.
         return meta.Proceed()!;
     }
 }

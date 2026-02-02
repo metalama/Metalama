@@ -32,8 +32,10 @@ namespace Metalama.Framework.Engine.Linking.Inlining
                 aspectReference.ResolvedSemantic.Symbol as IPropertySymbol
                 ?? (IPropertySymbol) ((aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol).AssertNotNull();
 
-            // Should be within equals clause.
-            if ( aspectReference.RootExpression.Parent is not EqualsValueClauseSyntax equalsClause )
+            // The property access (possibly through parentheses or null-forgiving) should be within equals clause.
+            var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+            if ( expressionOrWrapped.Parent is not EqualsValueClauseSyntax equalsClause )
             {
                 return false;
             }
@@ -69,7 +71,10 @@ namespace Metalama.Framework.Engine.Linking.Inlining
 
         public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
         {
-            var equalsClause = (EqualsValueClauseSyntax) aspectReference.RootExpression.Parent.AssertNotNull();
+            // Navigate through parentheses and null-forgiving to find the equals clause.
+            var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+            var equalsClause = (EqualsValueClauseSyntax) expressionOrWrapped.Parent.AssertNotNull();
             var variableDeclarator = (VariableDeclaratorSyntax) equalsClause.Parent.AssertNotNull();
             var variableDeclaration = (VariableDeclarationSyntax) variableDeclarator.Parent.AssertNotNull();
             var localDeclaration = (LocalDeclarationStatementSyntax) variableDeclaration.Parent.AssertNotNull();
