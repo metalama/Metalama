@@ -15,7 +15,7 @@ internal class Aspect : OverrideMethodAspect
     public override async Task<dynamic?> OverrideAsyncMethod()
     {
         Console.WriteLine( "Before" );
-        int result = 10;
+        var result = 10;
         result += await meta.ProceedAsync(); // Compound assignment - NOT inlineable
         Console.WriteLine( "After" );
 

@@ -20,7 +20,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Decl
         {
             Console.WriteLine( "This is introduced method." );
 
-            return meta.Proceed();
+            return meta.Proceed()!;
         }
 
         // Non-async method returning Task - should generate return default(Task);
@@ -29,7 +29,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Decl
         {
             Console.WriteLine( "This is introduced method." );
 
-            return meta.Proceed();
+            return meta.Proceed()!;
         }
     }
 

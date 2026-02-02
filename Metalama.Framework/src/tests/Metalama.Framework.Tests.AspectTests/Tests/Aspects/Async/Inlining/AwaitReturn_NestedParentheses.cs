@@ -6,6 +6,8 @@ using System;
 using System.Threading.Tasks;
 using Metalama.Framework.Aspects;
 
+#pragma warning disable IDE0047 // Parentheses are intentional for this test
+
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Async.Inlining.AwaitReturn_NestedParentheses;
 
 internal class Aspect : OverrideMethodAspect
