@@ -247,7 +247,9 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                 }
 
                 // Implicitly declared record methods have the same span, compare them by signature.
-                if ( x.TargetDeclaration is IMethod xMethod && y.TargetDeclaration is IMethod yMethod )
+                if ( x.TargetDeclaration.DeclarationKind == DeclarationKind.Method
+                     && y.TargetDeclaration.DeclarationKind == DeclarationKind.Method
+                     && x.TargetDeclaration is IMethod xMethod && y.TargetDeclaration is IMethod yMethod )
                 {
                     Invariant.Assert(
                         ReferenceEquals( xMethod.DeclaringType, yMethod.DeclaringType )

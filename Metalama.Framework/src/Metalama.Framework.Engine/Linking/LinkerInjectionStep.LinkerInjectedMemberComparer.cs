@@ -79,7 +79,7 @@ internal sealed partial class LinkerInjectionStep
             var otherDeclaration = GetDeclaration( y );
 
             // Order by signature.
-            if ( declaration is IMethod )
+            if ( declaration.DeclarationKind == DeclarationKind.Method )
             {
                 var signatureComparison = StructuralSymbolComparer.NameOblivious.Compare( declaration.GetSymbol(), otherDeclaration.GetSymbol() );
 
