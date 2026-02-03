@@ -272,38 +272,80 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             // Check if we're in a switch expression arm (handles both direct and when clause cases)
             if ( current is SwitchExpressionArmSyntax arm )
             {
-                // Check if the arm pattern is a constant pattern (Kind enum value) or tuple constant pattern
-                if ( IsKindEnumPattern( arm.Pattern ) )
-                {
-                    // Find the switch expression
-                    var switchExpr = arm.Parent as SwitchExpressionSyntax;
+                // Find the switch expression
+                var switchExpr = arm.Parent as SwitchExpressionSyntax;
 
-                    if ( switchExpr != null && IsKindAccess( switchExpr.GoverningExpression ) )
+                if ( switchExpr != null )
+                {
+                    // If the switch is on Kind access, check if arm has a Kind enum pattern
+                    if ( IsKindAccess( switchExpr.GoverningExpression ) && IsKindEnumPattern( arm.Pattern ) )
+                    {
+                        return true;
+                    }
+
+                    // Also check if the arm pattern itself contains a Kind check (property pattern)
+                    if ( PatternContainsKindCheck( arm.Pattern ) )
                     {
                         return true;
                     }
                 }
 
-                return false;
+                // Don't return false here - continue walking up in case we're nested in another switch
+                current = current.Parent;
+
+                continue;
             }
 
             // Check if we're in a when clause of a switch statement case
             if ( current is CasePatternSwitchLabelSyntax caseLabel )
             {
-                // Check if the case pattern is a constant pattern (Kind enum value) or tuple constant pattern
-                if ( IsKindEnumPattern( caseLabel.Pattern ) )
-                {
-                    // Find the switch statement
-                    var switchSection = caseLabel.Parent;
-                    var switchStatement = switchSection?.Parent as SwitchStatementSyntax;
+                // Find the switch statement
+                var caseLabelSection = caseLabel.Parent;
+                var switchStatement = caseLabelSection?.Parent as SwitchStatementSyntax;
 
-                    if ( switchStatement != null && IsKindAccess( switchStatement.Expression ) )
+                if ( switchStatement != null )
+                {
+                    // If the switch is on Kind access, check if case has a Kind enum pattern
+                    if ( IsKindAccess( switchStatement.Expression ) && IsKindEnumPattern( caseLabel.Pattern ) )
+                    {
+                        return true;
+                    }
+
+                    // Also check if the case pattern itself contains a Kind check (property pattern)
+                    if ( PatternContainsKindCheck( caseLabel.Pattern ) )
                     {
                         return true;
                     }
                 }
 
-                return false;
+                // Don't return false here - continue walking up in case we're nested
+                current = current.Parent;
+
+                continue;
+            }
+
+            // Check if we're inside a switch section (switch statement body)
+            if ( current is SwitchSectionSyntax switchSection )
+            {
+                var switchStatement = switchSection.Parent as SwitchStatementSyntax;
+
+                if ( switchStatement != null && IsKindAccess( switchStatement.Expression ) )
+                {
+                    // Check if any label in this section has a Kind enum pattern
+                    foreach ( var label in switchSection.Labels )
+                    {
+                        if ( label is CasePatternSwitchLabelSyntax patternLabel && IsKindEnumPattern( patternLabel.Pattern ) )
+                        {
+                            return true;
+                        }
+
+                        if ( label is CaseSwitchLabelSyntax )
+                        {
+                            // Simple case label (e.g., case SyntaxKind.X:) - the switch is already on Kind
+                            return true;
+                        }
+                    }
+                }
             }
 
             current = current.Parent;
@@ -428,6 +470,12 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                 var methodName = memberAccess.Name.Identifier.Text;
 
                 if ( methodName.StartsWith( "Is", System.StringComparison.Ordinal ) && IsKindAccess( memberAccess.Expression ) )
+                {
+                    return true;
+                }
+
+                // Check for x.IsKind(SyntaxKind.X) pattern - common for SyntaxNode
+                if ( methodName == "IsKind" && invocation.ArgumentList.Arguments.Count > 0 )
                 {
                     return true;
                 }
