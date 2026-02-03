@@ -234,9 +234,16 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
         // Check for conditional access: x?.Kind, x?.DeclarationKind, x?.TypeKind
         if ( expression is ConditionalAccessExpressionSyntax conditionalAccess )
         {
+            // Handle x?.Kind property access
             if ( conditionalAccess.WhenNotNull is MemberBindingExpressionSyntax memberBinding )
             {
                 return memberBinding.Name.Identifier.Text is "Kind" or "DeclarationKind" or "TypeKind";
+            }
+
+            // Handle x?.Kind() method invocation
+            if ( conditionalAccess.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax invokeBinding } )
+            {
+                return invokeBinding.Name.Identifier.Text == "Kind";
             }
         }
 
