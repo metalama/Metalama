@@ -137,7 +137,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
         var hasNoBody = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
 
         if ( existingMethod?.GetPrimaryDeclarationSyntax() is { } syntax
-             && syntax.Kind() == SyntaxKind.MethodDeclaration
+             && syntax.IsKind( SyntaxKind.MethodDeclaration )
              && syntax is MethodDeclarationSyntax methodDeclaration
              && methodDeclaration.Modifiers.Any( x => x.IsKind( SyntaxKind.PartialKeyword ) )
              && builder.IsPartial )

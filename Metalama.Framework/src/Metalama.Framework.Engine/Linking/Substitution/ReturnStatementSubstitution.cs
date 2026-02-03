@@ -118,7 +118,7 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                 }
 
             default:
-                if ( currentNode.Kind() != SyntaxKind.ReturnStatement && currentNode is ExpressionSyntax returnExpression )
+                if ( !currentNode.IsKind( SyntaxKind.ReturnStatement ) && currentNode is ExpressionSyntax returnExpression )
                 {
                     if ( this._returnLabelIdentifier != null )
                     {

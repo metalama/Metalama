@@ -146,7 +146,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
             public override SyntaxNode? VisitAttributeList( AttributeListSyntax node )
             {
-                if ( node.Parent?.Kind() == SyntaxKind.CompilationUnit && node.Parent is CompilationUnitSyntax )
+                if ( node.Parent?.IsKind( SyntaxKind.CompilationUnit ) == true && node.Parent is CompilationUnitSyntax )
                 {
                     return null;
                 }
@@ -845,15 +845,15 @@ namespace Metalama.Framework.Engine.CompileTime
                     {
                         var templateAccessorCount = 0;
 
-                        var getAccessor = node.AccessorList.Accessors.SingleOrDefault( a => a.Kind() == SyntaxKind.GetAccessorDeclaration );
+                        var getAccessor = node.AccessorList.Accessors.SingleOrDefault( a => a.IsKind( SyntaxKind.GetAccessorDeclaration ) );
 
                         var getterIsTemplate = getAccessor != null
                                                && (propertyIsTemplate || !this.SymbolClassifier.GetTemplateInfo( propertySymbol.GetMethod! ).IsNone);
 
                         var setAccessor =
                             node.AccessorList.Accessors.SingleOrDefault(
-                                a => a.Kind() == SyntaxKind.SetAccessorDeclaration
-                                     || a.Kind() == SyntaxKind.InitAccessorDeclaration );
+                                a => a.IsKind( SyntaxKind.SetAccessorDeclaration )
+                                     || a.IsKind( SyntaxKind.InitAccessorDeclaration ) );
 
                         var setterIsTemplate = setAccessor != null
                                                && (propertyIsTemplate || !this.SymbolClassifier.GetTemplateInfo( propertySymbol.SetMethod! ).IsNone);
@@ -911,7 +911,7 @@ namespace Metalama.Framework.Engine.CompileTime
                             templateAccessorCount++;
                         }
 
-                        if ( propertyIsTemplate && node.Kind() == SyntaxKind.PropertyDeclaration && node is PropertyDeclarationSyntax { Initializer: not null } )
+                        if ( propertyIsTemplate && node.IsKind( SyntaxKind.PropertyDeclaration ) && node is PropertyDeclarationSyntax { Initializer: not null } )
                         {
                             if ( success )
                             {
@@ -947,7 +947,7 @@ namespace Metalama.Framework.Engine.CompileTime
                             }
                         }
                     }
-                    else if ( propertyIsTemplate && node.Kind() == SyntaxKind.PropertyDeclaration && node is PropertyDeclarationSyntax { ExpressionBody: not null } propertyNode )
+                    else if ( propertyIsTemplate && node.IsKind( SyntaxKind.PropertyDeclaration ) && node is PropertyDeclarationSyntax { ExpressionBody: not null } propertyNode )
                     {
                         // Expression bodied property.
                         // TODO: Does this preserve trivia in expression body?
@@ -984,7 +984,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
                         var rewritten = (BasePropertyDeclarationSyntax) this.Visit( node ).AssertNotNull();
 
-                        if ( suppressReadOnly && rewritten.Kind() == SyntaxKind.PropertyDeclaration && rewritten is PropertyDeclarationSyntax rewrittenProperty )
+                        if ( suppressReadOnly && rewritten.IsKind( SyntaxKind.PropertyDeclaration ) && rewritten is PropertyDeclarationSyntax rewrittenProperty )
                         {
                             // If the property needs to have set accessor because of serialization, add it.
                             Invariant.Assert( rewrittenProperty.IsAutoPropertyDeclaration() );
@@ -1279,8 +1279,8 @@ namespace Metalama.Framework.Engine.CompileTime
                 {
                     if ( node.AccessorList != null )
                     {
-                        var addAccessor = node.AccessorList.Accessors.Single( a => a.Kind() == SyntaxKind.AddAccessorDeclaration );
-                        var removeAccessor = node.AccessorList.Accessors.Single( a => a.Kind() == SyntaxKind.RemoveAccessorDeclaration );
+                        var addAccessor = node.AccessorList.Accessors.Single( a => a.IsKind( SyntaxKind.AddAccessorDeclaration ) );
+                        var removeAccessor = node.AccessorList.Accessors.Single( a => a.IsKind( SyntaxKind.RemoveAccessorDeclaration ) );
 
                         RoslynApiVersion? maxApiVersion = null;
 
@@ -1639,7 +1639,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 // Fully qualifies simple identifiers.
                 if ( node.Identifier.IsKind( SyntaxKind.IdentifierToken )
                      && node is { IsVar: false, Parent: not (QualifiedNameSyntax or AliasQualifiedNameSyntax) } &&
-                     !(node.Parent?.Kind() == SyntaxKind.SimpleMemberAccessExpression && node.Parent is MemberAccessExpressionSyntax memberAccessExpressionSyntax
+                     !(node.Parent?.IsKind( SyntaxKind.SimpleMemberAccessExpression ) == true && node.Parent is MemberAccessExpressionSyntax memberAccessExpressionSyntax
                        && node == memberAccessExpressionSyntax.Name) )
                 {
                     switch ( symbol?.Kind )
@@ -1650,8 +1650,8 @@ namespace Metalama.Framework.Engine.CompileTime
 
                         case SymbolKind.Field or SymbolKind.Property or SymbolKind.Event or SymbolKind.Method
                             when symbol is { IsStatic: true }
-                                 && node.Parent?.Kind() != SyntaxKind.SimpleMemberAccessExpression
-                                 && node.Parent?.Kind() != SyntaxKind.AliasQualifiedName
+                                 && !node.Parent?.IsKind( SyntaxKind.SimpleMemberAccessExpression ) == true
+                                 && !node.Parent?.IsKind( SyntaxKind.AliasQualifiedName ) == true
                                  && (symbol.Kind != SymbolKind.Method || symbol is not IMethodSymbol { MethodKind: MethodKind.LocalFunction }):
                             // We have an access to a field or method with a "using static", or a non-qualified static member access.
                             return MemberAccessExpression(

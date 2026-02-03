@@ -179,7 +179,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     var syntaxNode = syntaxReference.GetSyntax();
                     var typeDeclarationSyntax = syntaxNode.GetDeclaringType();
 
-                    if ( syntaxNode.Kind() == SyntaxKind.LocalFunctionStatement && syntaxNode is LocalFunctionStatementSyntax && typeDeclarationSyntax == null )
+                    if ( syntaxNode.IsKind( SyntaxKind.LocalFunctionStatement ) && syntaxNode is LocalFunctionStatementSyntax && typeDeclarationSyntax == null )
                     {
                         throw new AssertionFailedException( "Top-level local functions are not supported: {syntaxNode}" );
                     }
@@ -198,7 +198,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     var declarationSyntax =
                         syntaxReference.GetSyntax() switch
                         {
-                            { Parent: { } parent } when parent.Kind() == SyntaxKind.AccessorList && parent is AccessorListSyntax { Parent: { } grandParent } && grandParent.Kind() == SyntaxKind.IndexerDeclaration && grandParent is IndexerDeclarationSyntax indexer => indexer,
+                            { Parent: { } parent } when parent.IsKind( SyntaxKind.AccessorList ) && parent is AccessorListSyntax { Parent: { } grandParent } && grandParent.IsKind( SyntaxKind.IndexerDeclaration ) && grandParent is IndexerDeclarationSyntax indexer => indexer,
                             { } anything => anything
                         };
 

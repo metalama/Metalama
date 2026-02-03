@@ -63,7 +63,7 @@ public static class SyntaxExtensions
                     or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
                     or SyntaxKind.IncompleteMember or SyntaxKind.GlobalStatement
                     && current is MemberDeclarationSyntax)
-                || (current.Kind() == SyntaxKind.VariableDeclarator && current is VariableDeclaratorSyntax { Parent.Parent: FieldDeclarationSyntax }) )
+                || (current.IsKind( SyntaxKind.VariableDeclarator ) && current is VariableDeclaratorSyntax { Parent.Parent: FieldDeclarationSyntax }) )
             {
                 return current;
             }
@@ -102,8 +102,8 @@ public static class SyntaxExtensions
         };
 
     internal static bool IsNameOf( this InvocationExpressionSyntax node )
-        => node.Expression.Kind() == SyntaxKind.NameOfKeyword ||
-           (node.Expression.Kind() == SyntaxKind.IdentifierName && node.Expression is IdentifierNameSyntax identifierName && string.Equals( identifierName.Identifier.Text, "nameof", StringComparison.Ordinal ));
+        => node.Expression.IsKind( SyntaxKind.NameOfKeyword ) ||
+           (node.Expression.IsKind( SyntaxKind.IdentifierName ) && node.Expression is IdentifierNameSyntax identifierName && string.Equals( identifierName.Identifier.Text, "nameof", StringComparison.Ordinal ));
 
     internal static TypeSyntax GetNamespaceOrType( this UsingDirectiveSyntax usingDirective )
 #if ROSLYN_4_8_0_OR_GREATER

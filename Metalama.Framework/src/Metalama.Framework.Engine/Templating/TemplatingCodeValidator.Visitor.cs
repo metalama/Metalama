@@ -98,7 +98,7 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     return node
                         .AncestorsAndSelf()
-                        .Any( n => n.Kind() == SyntaxKind.TypeOfExpression || (n.Kind() == SyntaxKind.InvocationExpression && n is InvocationExpressionSyntax invocation && invocation.IsNameOf()) );
+                        .Any( n => n.IsKind( SyntaxKind.TypeOfExpression ) || (n.IsKind( SyntaxKind.InvocationExpression ) && n is InvocationExpressionSyntax invocation && invocation.IsNameOf()) );
                 }
 
                 bool AvoidDuplicates( ISymbol symbol )
@@ -108,7 +108,7 @@ namespace Metalama.Framework.Engine.Templating
                              && this._alreadyReportedDiagnostics.Contains( symbol.ContainingSymbol ));
                 }
 
-                if ( node == null || (node.Kind() == SyntaxKind.IdentifierName && node is IdentifierNameSyntax { IsVar: true }) )
+                if ( node == null || (node.IsKind( SyntaxKind.IdentifierName ) && node is IdentifierNameSyntax { IsVar: true }) )
                 {
                     // We skip 'var' because the semantic model sometimes resolve it to dynamic for no reason,
                     // and there is little value in spending more effort coping with this case.
@@ -158,7 +158,7 @@ namespace Metalama.Framework.Engine.Templating
                                             break;
 
                                         case ("Metalama.Framework.Code.IExpression", "Value"):
-                                            var expression = node.Parent.Kind() == SyntaxKind.SimpleMemberAccessExpression && node.Parent is MemberAccessExpressionSyntax memberAccess
+                                            var expression = node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression ) && node.Parent is MemberAccessExpressionSyntax memberAccess
                                                 ? memberAccess.Expression.ToString()
                                                 : "expression";
 
@@ -167,7 +167,7 @@ namespace Metalama.Framework.Engine.Templating
                                             break;
 
                                         case ("Metalama.Framework.Code.SyntaxBuilders.SyntaxBuilder", "AppendExpression"):
-                                            if ( node.Parent?.Parent?.Kind() == SyntaxKind.InvocationExpression && node.Parent.Parent is InvocationExpressionSyntax { ArgumentList.Arguments: [var argument] } )
+                                            if ( node.Parent?.Parent?.IsKind( SyntaxKind.InvocationExpression ) == true && node.Parent.Parent is InvocationExpressionSyntax { ArgumentList.Arguments: [var argument] } )
                                             {
                                                 this._observer?.OnSemanticModelUsed();
                                                 var argumentType = this._semanticModel.GetTypeInfo( argument.Expression ).Type;
@@ -597,7 +597,7 @@ namespace Metalama.Framework.Engine.Templating
             {
                 // For e.g. int P => 42;, there is no node that declares the getter,
                 // so we have to handle it manually to set up the context for the getter method.
-                if ( node.Parent.Kind() == SyntaxKind.PropertyDeclaration && node.Parent is PropertyDeclarationSyntax propertyDeclaration )
+                if ( node.Parent.IsKind( SyntaxKind.PropertyDeclaration ) && node.Parent is PropertyDeclarationSyntax propertyDeclaration )
                 {
                     this._observer?.OnSemanticModelUsed();
                     var getMethod = this._semanticModel.GetDeclaredSymbol( propertyDeclaration ).AssertSymbolNotNull().GetMethod;
@@ -1035,7 +1035,7 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     // Verify the symbol kind.
                     if ( Array.IndexOf( suppression.EligibleSymbolKinds, declaredSymbol.Kind ) < 0
-                         && !(suppression.AppliesToConstructor && node.Kind() == SyntaxKind.ConstructorDeclaration) )
+                         && !(suppression.AppliesToConstructor && node.IsKind( SyntaxKind.ConstructorDeclaration )) )
                     {
                         continue;
                     }

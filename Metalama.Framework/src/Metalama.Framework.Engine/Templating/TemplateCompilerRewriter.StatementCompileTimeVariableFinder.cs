@@ -113,12 +113,12 @@ namespace Metalama.Framework.Engine.Templating
                             // Walk up the parent chain through ParenthesizedVariableDesignation nodes to find the DeclarationExpression
                             var current = parenthesizedDesignation.Parent;
 
-                            while ( current?.Kind() == SyntaxKind.ParenthesizedVariableDesignation && current is ParenthesizedVariableDesignationSyntax nestedParenthesized )
+                            while ( current?.IsKind( SyntaxKind.ParenthesizedVariableDesignation ) == true && current is ParenthesizedVariableDesignationSyntax nestedParenthesized )
                             {
                                 current = nestedParenthesized.Parent;
                             }
 
-                            if ( current?.Kind() == SyntaxKind.DeclarationExpression && current is DeclarationExpressionSyntax tupleDeclaration )
+                            if ( current?.IsKind( SyntaxKind.DeclarationExpression ) == true && current is DeclarationExpressionSyntax tupleDeclaration )
                             {
                                 var scope = tupleDeclaration.GetScopeFromAnnotation();
 

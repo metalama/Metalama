@@ -100,7 +100,7 @@ namespace Metalama.Framework.Engine.Templating
                         }
                         else if ( this.IsPartiallyError( symbol ) )
                         {
-                            if ( node.Kind() == SyntaxKind.IdentifierName && node is IdentifierNameSyntax { IsVar: true } )
+                            if ( node.IsKind( SyntaxKind.IdentifierName ) && node is IdentifierNameSyntax { IsVar: true } )
                             {
                                 // We don't report an error on the 'var' keyword because it is reported on the right side
                                 // of the assignment anyway.

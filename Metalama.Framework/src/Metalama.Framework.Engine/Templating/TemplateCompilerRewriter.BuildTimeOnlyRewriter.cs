@@ -139,7 +139,7 @@ namespace Metalama.Framework.Engine.Templating
 
                 if ( node.Identifier.IsKind( SyntaxKind.IdentifierToken )
                      && node is { IsVar: false, Parent: not (QualifiedNameSyntax or AliasQualifiedNameSyntax) } &&
-                     !(node.Parent.Kind() == SyntaxKind.SimpleMemberAccessExpression && node.Parent is MemberAccessExpressionSyntax memberAccessExpressionSyntax
+                     !(node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression ) && node.Parent is MemberAccessExpressionSyntax memberAccessExpressionSyntax
                        && node == memberAccessExpressionSyntax.Name) )
                 {
                     // Fully qualifies simple identifiers.

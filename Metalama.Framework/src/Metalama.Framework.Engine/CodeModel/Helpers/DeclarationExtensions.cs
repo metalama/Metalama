@@ -465,7 +465,7 @@ public static class DeclarationExtensions
             { IsPartialDefinition: true } => false, // Partial event is not event field (and cannot be when implemented).
 #endif
             { DeclaringSyntaxReferences.Length: > 0 } =>
-                symbol.DeclaringSyntaxReferences.All( sr => sr.GetSyntax().Kind() == SyntaxKind.VariableDeclarator && sr.GetSyntax() is VariableDeclaratorSyntax ),
+                symbol.DeclaringSyntaxReferences.All( sr => sr.GetSyntax().IsKind( SyntaxKind.VariableDeclarator ) && sr.GetSyntax() is VariableDeclaratorSyntax ),
             { AddMethod: { } addMethod, RemoveMethod: { } removeMethod } => addMethod.IsCompilerGenerated() && removeMethod.IsCompilerGenerated(),
             _ => null
         };

@@ -513,7 +513,7 @@ internal sealed class AspectReferenceResolver
             return;
         }
 
-        if ( expression.Parent?.Parent?.Parent?.Parent?.Kind() == SyntaxKind.InvocationExpression
+        if ( expression.Parent?.Parent?.Parent?.Parent.IsKind(SyntaxKind.InvocationExpression) == true
              && expression.Parent?.Parent?.Parent?.Parent is InvocationExpressionSyntax { Expression: { } wrappingExpression }
              && semanticModel.GetSymbolInfo( wrappingExpression ).Symbol?.Kind == SymbolKind.Method
              && semanticModel.GetSymbolInfo( wrappingExpression ).Symbol is IMethodSymbol
@@ -745,10 +745,10 @@ internal sealed class AspectReferenceResolver
                 && expression.Parent is AssignmentExpressionSyntax
                 => AspectReferenceTargetKind.PropertySetAccessor,
             (SymbolKind.Field, _) => AspectReferenceTargetKind.PropertyGetAccessor,
-            (SymbolKind.Event, _) when expression.Parent?.Kind() == SyntaxKind.AddAssignmentExpression
+            (SymbolKind.Event, _) when expression.Parent.IsKind(SyntaxKind.AddAssignmentExpression)
                 && expression.Parent is AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.AddAssignmentExpression }
                 => AspectReferenceTargetKind.EventAddAccessor,
-            (SymbolKind.Event, _) when expression.Parent?.Kind() == SyntaxKind.SubtractAssignmentExpression
+            (SymbolKind.Event, _) when expression.Parent.IsKind(SyntaxKind.SubtractAssignmentExpression)
                 && expression.Parent is AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.SubtractAssignmentExpression }
                 => AspectReferenceTargetKind.EventRemoveAccessor,
             (SymbolKind.Event, _) => AspectReferenceTargetKind.EventRaiseAccessor,

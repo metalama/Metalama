@@ -24,7 +24,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
     {
         this.AspectReference = aspectReference;
 
-        if ( aspectReference.RootNode.Kind() == SyntaxKind.SimpleMemberAccessExpression
+        if ( aspectReference.RootNode.IsKind( SyntaxKind.SimpleMemberAccessExpression )
              && aspectReference.RootNode is
                  MemberAccessExpressionSyntax
                  {
