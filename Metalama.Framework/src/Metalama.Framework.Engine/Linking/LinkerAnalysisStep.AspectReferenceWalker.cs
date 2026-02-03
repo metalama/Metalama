@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 
@@ -65,9 +66,9 @@ internal sealed partial class LinkerAnalysisStep
 
             if ( node.TryGetAspectReference( out var aspectReference ) )
             {
-                var nodeWithSymbol = node switch
+                var nodeWithSymbol = node.Kind() switch
                 {
-                    ConditionalAccessExpressionSyntax conditionalAccess => GetConditionalMemberName( conditionalAccess ),
+                    SyntaxKind.ConditionalAccessExpression when node is ConditionalAccessExpressionSyntax conditionalAccess => GetConditionalMemberName( conditionalAccess ),
                     _ => node
                 };
 

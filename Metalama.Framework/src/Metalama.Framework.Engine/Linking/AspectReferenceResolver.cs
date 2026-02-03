@@ -515,6 +515,7 @@ internal sealed class AspectReferenceResolver
 
         if ( expression.Parent?.Parent?.Parent?.Parent?.Kind() == SyntaxKind.InvocationExpression
              && expression.Parent?.Parent?.Parent?.Parent is InvocationExpressionSyntax { Expression: { } wrappingExpression }
+             && semanticModel.GetSymbolInfo( wrappingExpression ).Symbol?.Kind == SymbolKind.Method
              && semanticModel.GetSymbolInfo( wrappingExpression ).Symbol is IMethodSymbol
              {
                  ContainingType.Name: LinkerInjectionHelperProvider.HelperTypeName

@@ -232,7 +232,8 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
 
         SimpleNameSyntax memberName;
 
-        if ( targetDeclaration is IGeneric { TypeParameters.Count: > 0 } generic )
+        if ( targetDeclaration.DeclarationKind == DeclarationKind.Method
+            && targetDeclaration is IGeneric { TypeParameters.Count: > 0 } generic )
         {
             memberName = GenericName( memberNameString )
                 .WithTypeArgumentList(

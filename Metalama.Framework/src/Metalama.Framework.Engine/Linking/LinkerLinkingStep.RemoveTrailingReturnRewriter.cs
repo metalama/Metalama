@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -17,7 +18,7 @@ internal sealed partial class LinkerLinkingStep
     {
         public override SyntaxNode VisitBlock( BlockSyntax node )
         {
-            if ( node.Statements.Count > 0 && node.Statements.Last() is ReturnStatementSyntax { Expression: null } )
+            if ( node.Statements.Count > 0 && node.Statements.Last().Kind() == SyntaxKind.ReturnStatement && node.Statements.Last() is ReturnStatementSyntax { Expression: null } )
             {
                 // Count return statements to be removed.
                 var returnStatementsToRemove = 0;
@@ -25,10 +26,10 @@ internal sealed partial class LinkerLinkingStep
 
                 for ( var i = node.Statements.Count - 1; i >= 0; i-- )
                 {
-                    if ( node.Statements[i] is ReturnStatementSyntax { Expression: null } returnStatement )
+                    if ( node.Statements[i].Kind() == SyntaxKind.ReturnStatement && node.Statements[i] is ReturnStatementSyntax { Expression: null } returnStatement )
                     {
                         returnStatementsToRemove++;
-                        preserveTrivia = preserveTrivia || SyntaxExtensions.ShouldTriviaBePreserved( returnStatement, generationContext.Options );
+                        preserveTrivia = preserveTrivia || Utilities.Roslyn.SyntaxExtensions.ShouldTriviaBePreserved( returnStatement, generationContext.Options );
                     }
                     else
                     {

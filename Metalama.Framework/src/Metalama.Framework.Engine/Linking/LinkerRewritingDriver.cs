@@ -443,9 +443,9 @@ internal sealed partial class LinkerRewritingDriver
             return [];
         }
 
-        return symbol switch
+        return symbol.Kind switch
         {
-            IMethodSymbol methodSymbol => methodSymbol.GetImplementedMethodKind() switch
+            SymbolKind.Method when symbol is IMethodSymbol methodSymbol => methodSymbol.GetImplementedMethodKind() switch
             {
                 MethodKind.Ordinary => this.RewriteMethod( (MethodDeclarationSyntax) syntax, methodSymbol, generationContext ),
                 MethodKind.Destructor => this.RewriteDestructor( (DestructorDeclarationSyntax) syntax, methodSymbol, generationContext ),
@@ -455,11 +455,11 @@ internal sealed partial class LinkerRewritingDriver
                 MethodKind.UserDefinedOperator => this.RewriteOperator( (OperatorDeclarationSyntax) syntax, methodSymbol, generationContext ),
                 _ => throw new AssertionFailedException( $"Unsupported method kind: {methodSymbol.GetImplementedMethodKind()}." )
             },
-            IPropertySymbol { Parameters.Length: 0 } propertySymbol =>
+            SymbolKind.Property when symbol is IPropertySymbol { Parameters.Length: 0 } propertySymbol =>
                 this.RewriteProperty( (PropertyDeclarationSyntax) syntax, propertySymbol, generationContext ),
-            IPropertySymbol indexerSymbol => this.RewriteIndexer( (IndexerDeclarationSyntax) syntax, indexerSymbol, generationContext ),
-            IFieldSymbol fieldSymbol => this.RewriteField( (FieldDeclarationSyntax) syntax, fieldSymbol, generationContext ),
-            IEventSymbol eventSymbol => syntax.Kind() switch
+            SymbolKind.Property when symbol is IPropertySymbol indexerSymbol => this.RewriteIndexer( (IndexerDeclarationSyntax) syntax, indexerSymbol, generationContext ),
+            SymbolKind.Field when symbol is IFieldSymbol fieldSymbol => this.RewriteField( (FieldDeclarationSyntax) syntax, fieldSymbol, generationContext ),
+            SymbolKind.Event when symbol is IEventSymbol eventSymbol => syntax.Kind() switch
             {
                 SyntaxKind.EventDeclaration when syntax is EventDeclarationSyntax eventSyntax => this.RewriteEvent( eventSyntax, eventSymbol ),
                 SyntaxKind.EventFieldDeclaration when syntax is EventFieldDeclarationSyntax eventFieldSyntax => this.RewriteEventField( eventFieldSyntax, eventSymbol ),
@@ -641,9 +641,9 @@ internal sealed partial class LinkerRewritingDriver
 
     private static string GetSpecialMemberName( ISymbol symbol, string suffix )
     {
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case IMethodSymbol methodSymbol:
+            case SymbolKind.Method when symbol is IMethodSymbol methodSymbol:
                 if ( methodSymbol.ExplicitInterfaceImplementations.Any() )
                 {
                     return CreateName( symbol, GetInterfaceMemberName( methodSymbol.ExplicitInterfaceImplementations.Single() ), suffix );
@@ -653,7 +653,7 @@ internal sealed partial class LinkerRewritingDriver
                     return CreateName( symbol, methodSymbol.Name, suffix );
                 }
 
-            case IPropertySymbol propertySymbol:
+            case SymbolKind.Property when symbol is IPropertySymbol propertySymbol:
                 if ( propertySymbol.ExplicitInterfaceImplementations.Any() )
                 {
                     return CreateName( symbol, GetInterfaceMemberName( propertySymbol.ExplicitInterfaceImplementations.Single() ), suffix );
@@ -663,7 +663,7 @@ internal sealed partial class LinkerRewritingDriver
                     return CreateName( symbol, propertySymbol.Name, suffix );
                 }
 
-            case IEventSymbol eventSymbol:
+            case SymbolKind.Event when symbol is IEventSymbol eventSymbol:
                 if ( eventSymbol.ExplicitInterfaceImplementations.Any() )
                 {
                     return CreateName( symbol, GetInterfaceMemberName( eventSymbol.ExplicitInterfaceImplementations.Single() ), suffix );
@@ -673,7 +673,7 @@ internal sealed partial class LinkerRewritingDriver
                     return CreateName( symbol, eventSymbol.Name, suffix );
                 }
 
-            case IFieldSymbol fieldSymbol:
+            case SymbolKind.Field when symbol is IFieldSymbol fieldSymbol:
                 return CreateName( symbol, fieldSymbol.Name, suffix );
 
             default:
@@ -705,9 +705,9 @@ internal sealed partial class LinkerRewritingDriver
     {
         string name;
 
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case IPropertySymbol propertySymbol:
+            case SymbolKind.Property when symbol is IPropertySymbol propertySymbol:
                 name =
                     propertySymbol.ExplicitInterfaceImplementations.Any()
                         ? propertySymbol.ExplicitInterfaceImplementations.Single().Name
@@ -715,7 +715,7 @@ internal sealed partial class LinkerRewritingDriver
 
                 break;
 
-            case IEventSymbol eventSymbol:
+            case SymbolKind.Event when symbol is IEventSymbol eventSymbol:
                 name =
                     eventSymbol.ExplicitInterfaceImplementations.Any()
                         ? eventSymbol.ExplicitInterfaceImplementations.Single().Name

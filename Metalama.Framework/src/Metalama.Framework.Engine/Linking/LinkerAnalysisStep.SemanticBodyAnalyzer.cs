@@ -380,18 +380,19 @@ internal sealed partial class LinkerAnalysisStep
 
             static SyntaxNode GetDeclarationBody( SyntaxNode declaration )
             {
-                return declaration switch
+                return declaration.Kind() switch
                 {
-                    MethodDeclarationSyntax methodDecl => methodDecl.Body ?? (SyntaxNode?) methodDecl.ExpressionBody ?? methodDecl,
-                    ConstructorDeclarationSyntax constructorDecl => (SyntaxNode?) constructorDecl.Body ?? constructorDecl.ExpressionBody.AssertNotNull(),
-                    DestructorDeclarationSyntax destructorDecl => (SyntaxNode?) destructorDecl.Body ?? destructorDecl.ExpressionBody.AssertNotNull(),
-                    OperatorDeclarationSyntax operatorDecl => (SyntaxNode?) operatorDecl.Body ?? operatorDecl.ExpressionBody.AssertNotNull(),
-                    ConversionOperatorDeclarationSyntax conversionOperatorDecl => (SyntaxNode?) conversionOperatorDecl.Body
+                    SyntaxKind.MethodDeclaration when declaration is MethodDeclarationSyntax methodDecl => methodDecl.Body ?? (SyntaxNode?) methodDecl.ExpressionBody ?? methodDecl,
+                    SyntaxKind.ConstructorDeclaration when declaration is ConstructorDeclarationSyntax constructorDecl => (SyntaxNode?) constructorDecl.Body ?? constructorDecl.ExpressionBody.AssertNotNull(),
+                    SyntaxKind.DestructorDeclaration when declaration is DestructorDeclarationSyntax destructorDecl => (SyntaxNode?) destructorDecl.Body ?? destructorDecl.ExpressionBody.AssertNotNull(),
+                    SyntaxKind.OperatorDeclaration when declaration is OperatorDeclarationSyntax operatorDecl => (SyntaxNode?) operatorDecl.Body ?? operatorDecl.ExpressionBody.AssertNotNull(),
+                    SyntaxKind.ConversionOperatorDeclaration when declaration is ConversionOperatorDeclarationSyntax conversionOperatorDecl => (SyntaxNode?) conversionOperatorDecl.Body
                                                                                   ?? conversionOperatorDecl.ExpressionBody.AssertNotNull(),
-                    AccessorDeclarationSyntax accessorDecl => accessorDecl.Body ?? (SyntaxNode?) accessorDecl.ExpressionBody ?? accessorDecl,
-                    VariableDeclaratorSyntax declarator => declarator,
-                    ArrowExpressionClauseSyntax arrowExpressionClause => arrowExpressionClause,
-                    ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter => recordParameter,
+                    SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                        when declaration is AccessorDeclarationSyntax accessorDecl => accessorDecl.Body ?? (SyntaxNode?) accessorDecl.ExpressionBody ?? accessorDecl,
+                    SyntaxKind.VariableDeclarator when declaration is VariableDeclaratorSyntax declarator => declarator,
+                    SyntaxKind.ArrowExpressionClause when declaration is ArrowExpressionClauseSyntax arrowExpressionClause => arrowExpressionClause,
+                    SyntaxKind.Parameter when declaration is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter => recordParameter,
                     _ => throw new AssertionFailedException( $"Unexpected node: {CSharpExtensions.Kind( declaration )}." )
                 };
             }

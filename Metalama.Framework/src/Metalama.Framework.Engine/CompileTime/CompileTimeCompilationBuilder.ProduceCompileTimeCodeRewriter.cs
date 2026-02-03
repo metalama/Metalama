@@ -1227,10 +1227,10 @@ namespace Metalama.Framework.Engine.CompileTime
                 }
                 else
                 {
-                    var variableType = symbol switch
+                    var variableType = symbol.Kind switch
                     {
-                        IEventSymbol @eventSymbol => @eventSymbol.Type,
-                        IFieldSymbol fieldSymbol => fieldSymbol.Type,
+                        SymbolKind.Event when symbol is IEventSymbol @eventSymbol => @eventSymbol.Type,
+                        SymbolKind.Field when symbol is IFieldSymbol fieldSymbol => fieldSymbol.Type,
                         _ => throw new AssertionFailedException( $"Unexpected symbol kind: {symbol.Kind}." )
                     };
 
@@ -1642,30 +1642,23 @@ namespace Metalama.Framework.Engine.CompileTime
                      !(node.Parent?.Kind() == SyntaxKind.SimpleMemberAccessExpression && node.Parent is MemberAccessExpressionSyntax memberAccessExpressionSyntax
                        && node == memberAccessExpressionSyntax.Name) )
                 {
-                    switch ( symbol )
+                    switch ( symbol?.Kind )
                     {
-                        case INamespaceOrTypeSymbol namespaceOrType:
+                        case SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.TypeParameter or SymbolKind.ErrorType
+                            when symbol is INamespaceOrTypeSymbol namespaceOrType:
                             return this.CreateTypeSyntax( namespaceOrType ).WithTriviaFrom( nodeWithoutPreprocessorDirectives );
 
-                        case { IsStatic: true }
-                            when node.Parent?.Kind() != SyntaxKind.SimpleMemberAccessExpression
+                        case SymbolKind.Field or SymbolKind.Property or SymbolKind.Event or SymbolKind.Method
+                            when symbol is { IsStatic: true }
+                                 && node.Parent?.Kind() != SyntaxKind.SimpleMemberAccessExpression
                                  && node.Parent?.Kind() != SyntaxKind.AliasQualifiedName
                                  && (symbol.Kind != SymbolKind.Method || symbol is not IMethodSymbol { MethodKind: MethodKind.LocalFunction }):
-                            switch ( symbol.Kind )
-                            {
-                                case SymbolKind.Field:
-                                case SymbolKind.Property:
-                                case SymbolKind.Event:
-                                case SymbolKind.Method:
-                                    // We have an access to a field or method with a "using static", or a non-qualified static member access.
-                                    return MemberAccessExpression(
-                                            SyntaxKind.SimpleMemberAccessExpression,
-                                            this.CreateTypeSyntax( symbol.ContainingType ),
-                                            SyntaxFactoryEx.WellKnownIdentifierName( node.Identifier ) )
-                                        .WithTriviaFrom( nodeWithoutPreprocessorDirectives );
-                            }
-
-                            break;
+                            // We have an access to a field or method with a "using static", or a non-qualified static member access.
+                            return MemberAccessExpression(
+                                    SyntaxKind.SimpleMemberAccessExpression,
+                                    this.CreateTypeSyntax( symbol.ContainingType ),
+                                    SyntaxFactoryEx.WellKnownIdentifierName( node.Identifier ) )
+                                .WithTriviaFrom( nodeWithoutPreprocessorDirectives );
                     }
                 }
 

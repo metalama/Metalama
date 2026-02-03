@@ -674,7 +674,7 @@ internal sealed partial class LinkerAnalysisStep
                     returnVariableIdentifier ),
 
                 SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                    when root is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } && targetSymbol.Kind == SymbolKind.Method && targetSymbol is { AssociatedSymbol.Kind: SymbolKind.Property } && targetSymbol.AssociatedSymbol?.Kind == SymbolKind.Property && targetSymbol.AssociatedSymbol is IPropertySymbol property
+                    when root is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } && targetSymbol.Kind == SymbolKind.Method && targetSymbol is { AssociatedSymbol.Kind: SymbolKind.Property } && targetSymbol.AssociatedSymbol is IPropertySymbol property
                          && property.IsAutoProperty() == true =>
                     new PropertyImplicitAccessorSubstitution(
                         this._intermediateCompilationContext,

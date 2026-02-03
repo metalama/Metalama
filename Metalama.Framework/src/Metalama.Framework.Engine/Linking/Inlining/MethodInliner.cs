@@ -40,7 +40,7 @@ internal abstract class MethodInliner : Inliner
     }
 
     public override bool IsValidForTargetSymbol( ISymbol symbol )
-        => symbol is IMethodSymbol { MethodKind: not MethodKind.Constructor, AssociatedSymbol: null, IsAsync: false } methodSymbol
+        => symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: not MethodKind.Constructor, AssociatedSymbol: null, IsAsync: false } methodSymbol
            && !methodSymbol.IsIteratorMethod();
 
     public override bool IsValidForContainingSymbol( ISymbol symbol ) => true;
