@@ -1628,23 +1628,23 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
     /// </summary>
     private static bool IsTargetTypedExpression( ExpressionSyntax expression )
     {
-        return expression switch
+        return expression.Kind() switch
         {
             // Skip parentheses recursively
-            ParenthesizedExpressionSyntax parenthesized => IsTargetTypedExpression( parenthesized.Expression ),
+            SyntaxKind.ParenthesizedExpression => IsTargetTypedExpression( ((ParenthesizedExpressionSyntax) expression).Expression ),
 
             // default literal
-            LiteralExpressionSyntax { RawKind: (int) SyntaxKind.DefaultLiteralExpression } => true,
+            SyntaxKind.DefaultLiteralExpression => true,
 
             // null literal
-            LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression } => true,
+            SyntaxKind.NullLiteralExpression => true,
 
             // throw expression
-            ThrowExpressionSyntax => true,
+            SyntaxKind.ThrowExpression => true,
 
             // stackalloc (can be target-typed in some contexts)
-            StackAllocArrayCreationExpressionSyntax => true,
-            ImplicitStackAllocArrayCreationExpressionSyntax => true,
+            SyntaxKind.StackAllocArrayCreationExpression => true,
+            SyntaxKind.ImplicitStackAllocArrayCreationExpression => true,
 
             _ => false
         };
@@ -1964,7 +1964,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         else
         {
             // Check if the left side is a tuple with var declarations
-            if ( node.Left is TupleExpressionSyntax tupleLeft )
+            if ( node.Left.IsKind( SyntaxKind.TupleExpression ) && node.Left is TupleExpressionSyntax tupleLeft )
             {
                 var varStatus = CheckTupleVarDeclarations( tupleLeft );
 
@@ -2081,15 +2081,15 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
         foreach ( var argument in tuple.Arguments )
         {
-            switch ( argument.Expression )
+            switch ( argument.Expression.Kind() )
             {
-                case DeclarationExpressionSyntax:
+                case SyntaxKind.DeclarationExpression:
                     hasVar = true;
 
                     break;
 
-                case TupleExpressionSyntax nestedTuple:
-                    var nestedStatus = CheckTupleVarDeclarations( nestedTuple );
+                case SyntaxKind.TupleExpression:
+                    var nestedStatus = CheckTupleVarDeclarations( (TupleExpressionSyntax) argument.Expression );
 
                     if ( nestedStatus == TupleVarStatus.AllVar )
                     {
@@ -3347,14 +3347,14 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
         foreach ( var content in node.Contents )
         {
-            switch ( content )
+            switch ( content.Kind() )
             {
-                case InterpolatedStringTextSyntax text:
-                    transformedContents.Add( text );
+                case SyntaxKind.InterpolatedStringText:
+                    transformedContents.Add( content );
 
                     break;
 
-                case InterpolationSyntax interpolation:
+                case SyntaxKind.Interpolation when content is InterpolationSyntax interpolation:
                     var transformedExpression = this.Visit( interpolation.Expression );
                     var expressionScope = transformedExpression.GetScopeFromAnnotation().GetValueOrDefault( RunTimeOrCompileTime );
                     var interpolationScope = expressionScope;

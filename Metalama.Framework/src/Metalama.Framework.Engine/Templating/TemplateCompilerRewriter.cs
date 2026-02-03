@@ -1883,27 +1883,33 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     {
         switch ( node?.Parent?.Kind() )
         {
-            case SyntaxKind.LocalFunctionStatement when node.Parent is LocalFunctionStatementSyntax localFunction:
-                var localFunctionSymbol = (IMethodSymbol?) this._syntaxTreeAnnotationMap.GetDeclaredSymbol( localFunction );
-
-                if ( localFunctionSymbol == null )
+            case SyntaxKind.LocalFunctionStatement:
                 {
-                    return null;
+                    var localFunction = (LocalFunctionStatementSyntax) node.Parent!;
+                    var localFunctionSymbol = (IMethodSymbol?) this._syntaxTreeAnnotationMap.GetDeclaredSymbol( localFunction );
+
+                    if ( localFunctionSymbol == null )
+                    {
+                        return null;
+                    }
+
+                    var returnType = localFunctionSymbol.ReturnType;
+
+                    return new FunctionLikeRunTimeBlockInfo( returnType, localFunctionSymbol.IsAsync );
                 }
 
-                var returnType = localFunctionSymbol.ReturnType;
-
-                return new FunctionLikeRunTimeBlockInfo( returnType, localFunctionSymbol.IsAsync );
-
-            case SyntaxKind.SimpleLambdaExpression or SyntaxKind.ParenthesizedLambdaExpression or SyntaxKind.AnonymousMethodExpression when node.Parent is AnonymousFunctionExpressionSyntax anonymousFunction:
-                var anonymousFunctionSymbol = (IMethodSymbol?) this._syntaxTreeAnnotationMap.GetSymbol( anonymousFunction );
-
-                if ( anonymousFunctionSymbol == null )
+            case SyntaxKind.SimpleLambdaExpression or SyntaxKind.ParenthesizedLambdaExpression or SyntaxKind.AnonymousMethodExpression:
                 {
-                    return null;
-                }
+                    var anonymousFunction = (AnonymousFunctionExpressionSyntax) node.Parent!;
+                    var anonymousFunctionSymbol = (IMethodSymbol?) this._syntaxTreeAnnotationMap.GetSymbol( anonymousFunction );
 
-                return new FunctionLikeRunTimeBlockInfo( anonymousFunctionSymbol.ReturnType, anonymousFunctionSymbol.IsAsync );
+                    if ( anonymousFunctionSymbol == null )
+                    {
+                        return null;
+                    }
+
+                    return new FunctionLikeRunTimeBlockInfo( anonymousFunctionSymbol.ReturnType, anonymousFunctionSymbol.IsAsync );
+                }
 
             default:
                 return null;
