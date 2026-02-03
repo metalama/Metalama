@@ -92,6 +92,16 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // Check the type of the expression being pattern-matched.
+        // Only flag if the expression type is ISymbol, IDeclaration, or SyntaxNode.
+        // If it's object or some other type, pattern matching is the appropriate approach.
+        var expressionType = ctx.SemanticModel.GetTypeInfo( isPattern.Expression ).Type;
+
+        if ( !IsRelevantBaseType( expressionType, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ) )
+        {
+            return;
+        }
+
         // Check if there's a preceding Kind check in the same && chain
         if ( HasPrecedingKindCheck( isPattern ) )
         {
