@@ -41,7 +41,7 @@ public static partial class SyntaxFactoryDebugHelper
                             (a.Parent.IsKind( SyntaxKind.Parameter ) && a.Parent is ParameterSyntax parameter && parameter.Type == a) ||
                             (a.Parent.IsKind( SyntaxKind.PropertyDeclaration ) && a.Parent is PropertyDeclarationSyntax property && property.Type == a) ||
                             (a.Parent.IsKind( SyntaxKind.EventDeclaration ) && a.Parent is EventDeclarationSyntax @event && @event.Type == a) ||
-                            a.Parent.Kind() is SyntaxKind.SimpleBaseType or SyntaxKind.TypeOfExpression ) )
+                            a.Parent?.Kind() is SyntaxKind.SimpleBaseType or SyntaxKind.TypeOfExpression ) )
             {
                 return SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,

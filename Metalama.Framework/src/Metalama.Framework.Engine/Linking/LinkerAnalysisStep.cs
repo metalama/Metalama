@@ -986,7 +986,7 @@ namespace Metalama.Framework.Engine.Linking
                     var declaration = property.GetPrimaryDeclarationSyntax();
 
                     var (get, set) =
-                        declaration.Kind() switch
+                        declaration?.Kind() switch
                         {
                             SyntaxKind.PropertyDeclaration when declaration is PropertyDeclarationSyntax
                                 {

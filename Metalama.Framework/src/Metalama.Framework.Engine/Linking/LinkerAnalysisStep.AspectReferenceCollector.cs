@@ -159,7 +159,7 @@ internal sealed partial class LinkerAnalysisStep
                     var declarationSyntax = containingSemantic.Symbol.GetPrimaryDeclarationSyntax();
 
                     var sourceNode =
-                        declarationSyntax.Kind() switch
+                        declarationSyntax?.Kind() switch
                         {
                             SyntaxKind.ConstructorDeclaration when declarationSyntax is ConstructorDeclarationSyntax constructor
                                 => constructor.Body ?? (SyntaxNode?) constructor.ExpressionBody ?? constructor,

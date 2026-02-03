@@ -12,25 +12,25 @@ internal static class LinkerSymbolHelper
     [return: NotNullIfNotNull( nameof(symbol) )]
     public static ISymbol? GetCanonicalDefinition( this ISymbol? symbol )
     {
-        if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { IsGenericMethod: true, ConstructedFrom: { } genericDefinition } )
+        if ( symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol { IsGenericMethod: true, ConstructedFrom: { } genericDefinition } )
         {
             symbol = genericDefinition;
         }
 
-        if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { PartialDefinitionPart: { } methodPartialDefinition } )
+        if ( symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol { PartialDefinitionPart: { } methodPartialDefinition } )
         {
             symbol = methodPartialDefinition;
         }
 
 #if ROSLYN_4_12_0_OR_GREATER
-        if ( symbol.Kind == SymbolKind.Property && symbol is IPropertySymbol { PartialDefinitionPart: { } propertyPartialDefinition } )
+        if ( symbol?.Kind == SymbolKind.Property && symbol is IPropertySymbol { PartialDefinitionPart: { } propertyPartialDefinition } )
         {
             symbol = propertyPartialDefinition;
         }
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER
-        if ( symbol.Kind == SymbolKind.Event && symbol is IEventSymbol { PartialDefinitionPart: { } eventPartialDefinition } )
+        if ( symbol?.Kind == SymbolKind.Event && symbol is IEventSymbol { PartialDefinitionPart: { } eventPartialDefinition } )
         {
             symbol = eventPartialDefinition;
         }

@@ -18,7 +18,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
 
         public static ExpressionSyntax SerializeParameter( IParameter parameter, SyntaxSerializationContext serializationContext )
         {
-            var memberExpression = parameter.DeclaringMember.DeclarationKind switch
+            var memberExpression = parameter.DeclaringMember?.DeclarationKind switch
             {
                 DeclarationKind.Method when parameter.DeclaringMember is IMethod method => CompileTimeMethodInfoSerializer.SerializeMethodBase( method, serializationContext ),
                 DeclarationKind.Indexer when parameter.DeclaringMember is IIndexer indexer => CompileTimePropertyInfoSerializer.SerializeProperty( indexer, serializationContext ),

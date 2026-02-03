@@ -1733,7 +1733,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
     {
         var symbol = this._syntaxTreeAnnotationMap.GetSymbol( node.Name );
 
-        if ( symbol.Kind == SymbolKind.Method
+        if ( symbol?.Kind == SymbolKind.Method
              && symbol is IMethodSymbol { ContainingNamespace: not null } constructor
              && (constructor.ContainingNamespace.ToString()?.StartsWith( "Metalama.Framework", StringComparison.Ordinal ) ?? false) )
         {

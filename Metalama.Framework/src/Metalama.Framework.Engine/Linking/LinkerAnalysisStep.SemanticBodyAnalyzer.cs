@@ -132,7 +132,7 @@ internal sealed partial class LinkerAnalysisStep
                     var exitFlowingStatements = new HashSet<StatementSyntax>();
                     var returnStatementProperties = new Dictionary<ReturnStatementSyntax, ReturnStatementProperties>();
 
-                    var blocksWithReturnBeforeUsingLocal = GetBlocksWithReturnBeforeUsingLocal( rootBlock, rootBlockCfa.ReturnStatements );
+                    var blocksWithReturnBeforeUsingLocal = GetBlocksWithReturnBeforeUsingLocal( rootBlock, rootBlockCfa!.ReturnStatements );
 
                     // Get all statements that flow to exit (blocks, ifs, trys, etc.).
                     DiscoverExitFlowingStatements( rootBlock, exitFlowingStatements );
