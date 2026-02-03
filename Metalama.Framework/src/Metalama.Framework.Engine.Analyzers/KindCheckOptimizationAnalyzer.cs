@@ -114,6 +114,12 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // Check if the pattern itself contains a Kind check (e.g., IMethod { DeclarationKind: DeclarationKind.Method })
+        if ( PatternContainsKindCheck( isPattern.Pattern ) )
+        {
+            return;
+        }
+
         // Report diagnostic
         ctx.ReportDiagnostic(
             Diagnostic.Create(
@@ -152,28 +158,27 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                 // Check for CasePatternSwitchLabelSyntax with type pattern
                 if ( label is CasePatternSwitchLabelSyntax { Pattern: var pattern } )
                 {
-                    var patternType = pattern switch
-                    {
-                        DeclarationPatternSyntax decl => decl.Type,
-                        RecursivePatternSyntax { Type: not null } rec => rec.Type,
-                        _ => null
-                    };
+                    var (patternTypeNode, typeSymbol) = GetPatternTypeInfo( pattern, ctx.SemanticModel );
 
-                    if ( patternType == null )
+                    if ( typeSymbol == null || patternTypeNode == null )
                     {
                         continue;
                     }
 
-                    var typeSymbol = ctx.SemanticModel.GetTypeInfo( patternType ).Type;
-
                     if ( IsRelevantType( typeSymbol, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ) )
                     {
+                        // Check if the pattern itself contains a Kind check (e.g., IMethod { DeclarationKind: DeclarationKind.Method })
+                        if ( PatternContainsKindCheck( pattern ) )
+                        {
+                            continue;
+                        }
+
                         // Report diagnostic on each type pattern
                         ctx.ReportDiagnostic(
                             Diagnostic.Create(
                                 PatternMatchingWithoutKindCheck,
-                                patternType.GetLocation(),
-                                typeSymbol!.Name ) );
+                                patternTypeNode.GetLocation(),
+                                typeSymbol.Name ) );
                     }
                 }
             }
@@ -205,29 +210,58 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
         // Iterate through each arm
         foreach ( var arm in switchExpr.Arms )
         {
-            var patternType = arm.Pattern switch
-            {
-                DeclarationPatternSyntax decl => decl.Type,
-                RecursivePatternSyntax { Type: not null } rec => rec.Type,
-                _ => null
-            };
+            var (patternTypeNode, typeSymbol) = GetPatternTypeInfo( arm.Pattern, ctx.SemanticModel );
 
-            if ( patternType == null )
+            if ( typeSymbol == null || patternTypeNode == null )
             {
                 continue;
             }
 
-            var typeSymbol = ctx.SemanticModel.GetTypeInfo( patternType ).Type;
-
             if ( IsRelevantType( typeSymbol, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ) )
             {
+                // Check if the pattern itself contains a Kind check (e.g., IMethod { DeclarationKind: DeclarationKind.Method })
+                if ( PatternContainsKindCheck( arm.Pattern ) )
+                {
+                    continue;
+                }
+
                 // Report diagnostic on each type pattern
                 ctx.ReportDiagnostic(
                     Diagnostic.Create(
                         PatternMatchingWithoutKindCheck,
-                        patternType.GetLocation(),
-                        typeSymbol!.Name ) );
+                        patternTypeNode.GetLocation(),
+                        typeSymbol.Name ) );
             }
+        }
+    }
+
+    private static (SyntaxNode?, ITypeSymbol?) GetPatternTypeInfo( PatternSyntax pattern, SemanticModel semanticModel )
+    {
+        switch ( pattern )
+        {
+            case DeclarationPatternSyntax decl:
+                return (decl.Type, semanticModel.GetTypeInfo( decl.Type ).Type);
+
+            case RecursivePatternSyntax { Type: not null } rec:
+                return (rec.Type, semanticModel.GetTypeInfo( rec.Type ).Type);
+
+            case TypePatternSyntax typePattern:
+                return (typePattern.Type, semanticModel.GetTypeInfo( typePattern.Type ).Type);
+
+            case ConstantPatternSyntax constantPattern:
+                // In C# 9+, type patterns without a designator parse as ConstantPatternSyntax
+                // We need to check if the expression resolves to a type
+                var symbolInfo = semanticModel.GetSymbolInfo( constantPattern.Expression );
+
+                if ( symbolInfo.Symbol is INamedTypeSymbol namedType )
+                {
+                    return (constantPattern.Expression, namedType);
+                }
+
+                return (null, null);
+
+            default:
+                return (null, null);
         }
     }
 
@@ -347,6 +381,12 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                     {
                         return true;
                     }
+
+                    // Check if the when clause has a Kind-checking method call (e.g., kind.IsFieldOrProperty())
+                    if ( IsKindAccess( switchStatement.Expression ) && caseLabel.WhenClause != null && WhenClauseContainsKindCheck( caseLabel.WhenClause ) )
+                    {
+                        return true;
+                    }
                 }
 
                 // Don't return false here - continue walking up in case we're nested
@@ -362,12 +402,21 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
 
                 if ( switchStatement != null && IsKindAccess( switchStatement.Expression ) )
                 {
-                    // Check if any label in this section has a Kind enum pattern
+                    // Check if any label in this section has a Kind enum pattern or a when clause with Kind check
                     foreach ( var label in switchSection.Labels )
                     {
-                        if ( label is CasePatternSwitchLabelSyntax patternLabel && IsKindEnumPattern( patternLabel.Pattern ) )
+                        if ( label is CasePatternSwitchLabelSyntax patternLabel )
                         {
-                            return true;
+                            if ( IsKindEnumPattern( patternLabel.Pattern ) )
+                            {
+                                return true;
+                            }
+
+                            // Also check if the when clause has a Kind-checking method call
+                            if ( patternLabel.WhenClause != null && WhenClauseContainsKindCheck( patternLabel.WhenClause ) )
+                            {
+                                return true;
+                            }
                         }
 
                         if ( label is CaseSwitchLabelSyntax )
@@ -497,6 +546,16 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
 
                 // Also recurse into left/right to find IsKind calls like: node.IsKind(X) == true
                 if ( ContainsKindCheck( binaryExpr.Left ) || ContainsKindCheck( binaryExpr.Right ) )
+                {
+                    return true;
+                }
+            }
+
+            // Check for old-style type check: x.Kind is SomeType (parsed as IsExpression)
+            // e.g., decl.DeclarationKind is DeclarationKind.Method
+            if ( binaryExpr.IsKind( SyntaxKind.IsExpression ) )
+            {
+                if ( IsKindAccess( binaryExpr.Left ) )
                 {
                     return true;
                 }
@@ -670,16 +729,24 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        // Check if type implements IDeclaration
-        if ( iDeclaration != null && type.AllInterfaces.Any( i => SymbolEqualityComparer.Default.Equals( i, iDeclaration ) ) )
+        // Check if type implements IDeclaration (directly or via AllInterfaces)
+        if ( iDeclaration != null )
         {
-            return true;
+            if ( SymbolEqualityComparer.Default.Equals( type, iDeclaration ) ||
+                 type.AllInterfaces.Any( i => SymbolEqualityComparer.Default.Equals( i, iDeclaration ) ) )
+            {
+                return true;
+            }
         }
 
-        // Check if type implements ISymbol
-        if ( iSymbol != null && type.AllInterfaces.Any( i => SymbolEqualityComparer.Default.Equals( i, iSymbol ) ) )
+        // Check if type implements ISymbol (directly or via AllInterfaces)
+        if ( iSymbol != null )
         {
-            return true;
+            if ( SymbolEqualityComparer.Default.Equals( type, iSymbol ) ||
+                 type.AllInterfaces.Any( i => SymbolEqualityComparer.Default.Equals( i, iSymbol ) ) )
+            {
+                return true;
+            }
         }
 
         return false;

@@ -47,14 +47,18 @@ public static class DeclarationExtensions
                 method.MethodKind is MethodKind.Constructor or MethodKind.StaticConstructor
                     ? DeclarationKind.Constructor
                     : DeclarationKind.Method,
-            SymbolKind.Property when symbol is IPropertySymbol { Parameters.Length: var parameters } => parameters == 0 ? DeclarationKind.Property : DeclarationKind.Indexer,
+            SymbolKind.Property when symbol is IPropertySymbol { Parameters.Length: var parameters } => parameters == 0
+                ? DeclarationKind.Property
+                : DeclarationKind.Indexer,
             SymbolKind.Field => DeclarationKind.Field,
             SymbolKind.TypeParameter => DeclarationKind.TypeParameter,
-            SymbolKind.Assembly when symbol is IAssemblySymbol assemblySymbol && assemblySymbol.Equals( compilationContext.Compilation.Assembly ) => DeclarationKind.Compilation,
+            SymbolKind.Assembly when symbol is IAssemblySymbol assemblySymbol && assemblySymbol.Equals( compilationContext.Compilation.Assembly ) =>
+                DeclarationKind.Compilation,
             SymbolKind.Assembly => DeclarationKind.AssemblyReference,
             SymbolKind.Parameter => DeclarationKind.Parameter,
             SymbolKind.Event => DeclarationKind.Event,
-            SymbolKind.ArrayType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.FunctionPointerType or SymbolKind.PointerType => DeclarationKind.Type,
+            SymbolKind.ArrayType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.FunctionPointerType or SymbolKind.PointerType =>
+                DeclarationKind.Type,
             SymbolKind.NetModule => DeclarationKind.Compilation,
             _ => throw new ArgumentException( $"Unexpected symbol: {symbol.GetType().Name}.", nameof(symbol) )
         };
@@ -275,7 +279,8 @@ public static class DeclarationExtensions
         => symbol.GetPropertyKind() switch
         {
             PropertyKind.Auto => true,
-            PropertyKind.SemiAuto => true, // Semi-auto properties have compiler-generated backing fields; IsAutoProperty returns true based on backing field existence, not accessor implementation.
+            PropertyKind.SemiAuto =>
+                true, // Semi-auto properties have compiler-generated backing fields; IsAutoProperty returns true based on backing field existence, not accessor implementation.
             PropertyKind.Default => false,
             _ => null
         };
@@ -375,20 +380,17 @@ public static class DeclarationExtensions
     }
 
     private static bool HasExplicitAccessorBody( IPropertySymbol symbol )
-        => symbol.DeclaringSyntaxReferences.Any(
-            sr =>
-            {
-                var syntax = sr.GetSyntax();
-
-                return syntax.Kind() switch
+        => symbol.DeclaringSyntaxReferences
+            .Select( sr => sr.GetSyntax() )
+            .Any(
+                syntax => syntax.Kind() switch
                 {
                     SyntaxKind.PropertyDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.IndexerDeclaration
                         when syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } =>
                         accessors.Any( a => a.Body != null || a.ExpressionBody != null ),
-                    SyntaxKind.PropertyDeclaration when syntax is PropertyDeclarationSyntax { ExpressionBody: { } } => true, // Expression-bodied property
+                    SyntaxKind.PropertyDeclaration when syntax is PropertyDeclarationSyntax { ExpressionBody: not null } => true, // Expression-bodied property
                     _ => false
-                };
-            } );
+                } );
 
     private static bool ContainsFieldKeyword( IPropertySymbol symbol )
     {
@@ -398,7 +400,7 @@ public static class DeclarationExtensions
             var syntax = syntaxRef.GetSyntax();
 
             if ( syntax.Kind() is SyntaxKind.PropertyDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.IndexerDeclaration
-                && syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } )
+                 && syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } )
             {
                 foreach ( var accessor in accessors )
                 {
@@ -418,6 +420,7 @@ public static class DeclarationExtensions
         => symbol switch
         {
             { IsAbstract: true } => false,
+
             // Use GetPropertyKind() instead of IsAutoProperty() to correctly handle semi-auto properties.
             // Semi-auto properties (using C# 14 'field' keyword) have backing fields but explicit accessor bodies,
             // so their accessors should NOT be considered auto accessors.
@@ -467,7 +470,8 @@ public static class DeclarationExtensions
             { IsPartialDefinition: true } => false, // Partial event is not event field (and cannot be when implemented).
 #endif
             { DeclaringSyntaxReferences.Length: > 0 } =>
-                symbol.DeclaringSyntaxReferences.All( sr => sr.GetSyntax().IsKind( SyntaxKind.VariableDeclarator ) && sr.GetSyntax() is VariableDeclaratorSyntax ),
+                symbol.DeclaringSyntaxReferences.All(
+                    sr => sr.GetSyntax().IsKind( SyntaxKind.VariableDeclarator ) && sr.GetSyntax() is VariableDeclaratorSyntax ),
             { AddMethod: { } addMethod, RemoveMethod: { } removeMethod } => addMethod.IsCompilerGenerated() && removeMethod.IsCompilerGenerated(),
             _ => null
         };
@@ -577,8 +581,9 @@ public static class DeclarationExtensions
 
     internal static bool TryGetHiddenDeclaration( this IMemberOrNamedType declaration, [NotNullWhen( true )] out IMemberOrNamedType? hiddenDeclaration )
     {
-        if ( declaration.DeclarationKind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event or DeclarationKind.Indexer or DeclarationKind.Constructor
-            && declaration is IMember { IsOverride: true } )
+        if ( declaration.DeclarationKind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event
+                 or DeclarationKind.Indexer or DeclarationKind.Constructor
+             && declaration is IMember { IsOverride: true } )
         {
             // Override symbol never hides anything.
             hiddenDeclaration = null;
@@ -684,9 +689,9 @@ public static class DeclarationExtensions
     /// </summary>
     internal static IDeclaration? GetContainingDeclarationOrNamespace( this IDeclaration declaration )
         => declaration.ContainingDeclaration?.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.AssemblyReference
-            && declaration.ContainingDeclaration is IAssembly
-            && declaration.DeclarationKind == DeclarationKind.NamedType
-            && declaration is INamedType namedType
+           && declaration.ContainingDeclaration is IAssembly
+           && declaration.DeclarationKind == DeclarationKind.NamedType
+           && declaration is INamedType namedType
             ? namedType.ContainingNamespace
             : declaration.ContainingDeclaration;
 
