@@ -33,12 +33,10 @@ internal sealed class PropertyImplicitAccessorSubstitution : SyntaxNodeSubstitut
     {
         var targetName = LinkerRewritingDriver.GetBackingFieldName( this._targetProperty );
 
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case AccessorDeclarationSyntax
-            {
-                RawKind: (int) SyntaxKind.SetAccessorDeclaration or (int) SyntaxKind.InitAccessorDeclaration, Body: null, ExpressionBody: null
-            } accessorDeclaration:
+            case SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                when currentNode is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } accessorDeclaration:
                 // Replacing a body-less set/init accessor (auto property).
                 return
                     Block(
@@ -49,7 +47,8 @@ internal sealed class PropertyImplicitAccessorSubstitution : SyntaxNodeSubstitut
                                     SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ) )
                         .WithTriviaFromIfNecessary( accessorDeclaration, substitutionContext.SyntaxGenerationContext.Options );
 
-            case AccessorDeclarationSyntax { RawKind: (int) SyntaxKind.GetAccessorDeclaration, Body: null, ExpressionBody: null } accessorDeclaration:
+            case SyntaxKind.GetAccessorDeclaration
+                when currentNode is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } accessorDeclaration:
                 // Replacing a body-less get accessor (auto property).
                 return
                     Block(

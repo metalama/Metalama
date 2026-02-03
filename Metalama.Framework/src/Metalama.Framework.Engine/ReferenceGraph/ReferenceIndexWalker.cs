@@ -605,7 +605,7 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
 
             this._observer?.OnSymbolResolved( expressionType );
 
-            if ( expressionType is IArrayTypeSymbol arrayType )
+            if ( expressionType.Kind == SymbolKind.ArrayType && expressionType is IArrayTypeSymbol arrayType )
             {
                 this._referenceIndexBuilder.AddReference( arrayType.ElementType, this.CurrentDeclarationSymbol, node, ReferenceKinds.ArrayCreation );
             }

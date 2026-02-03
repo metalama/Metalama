@@ -33,5 +33,5 @@ internal sealed class EmptyPartialMethodSubstitution : EmptyPartialMemberSubstit
         };
 
     protected override bool IsVoid
-        => this._rootNode.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind( SyntaxKind.VoidKeyword );
+        => this._rootNode.ReturnType.IsKind( SyntaxKind.PredefinedType ) && this._rootNode.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind( SyntaxKind.VoidKeyword );
 }

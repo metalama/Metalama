@@ -308,7 +308,7 @@ namespace Metalama.Framework.Engine.Formatting
 
                 if ( structure != null )
                 {
-                    if ( structure.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
+                    if ( structure.Kind() == SyntaxKind.SingleLineDocumentationCommentTrivia
                          && structure is DocumentationCommentTriviaSyntax documentationComment )
                     {
                         // Mark each node of a documentation comment trivia separately.

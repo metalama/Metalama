@@ -18,10 +18,10 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
 
         public static ExpressionSyntax SerializeParameter( IParameter parameter, SyntaxSerializationContext serializationContext )
         {
-            var memberExpression = parameter.DeclaringMember switch
+            var memberExpression = parameter.DeclaringMember.DeclarationKind switch
             {
-                IMethod method => CompileTimeMethodInfoSerializer.SerializeMethodBase( method, serializationContext ),
-                IIndexer indexer => CompileTimePropertyInfoSerializer.SerializeProperty( indexer, serializationContext ),
+                DeclarationKind.Method when parameter.DeclaringMember is IMethod method => CompileTimeMethodInfoSerializer.SerializeMethodBase( method, serializationContext ),
+                DeclarationKind.Indexer when parameter.DeclaringMember is IIndexer indexer => CompileTimePropertyInfoSerializer.SerializeProperty( indexer, serializationContext ),
                 _ => throw new AssertionFailedException( $"Unexpected declaration type for '{parameter.DeclaringMember}'." )
             };
 

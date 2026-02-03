@@ -28,7 +28,7 @@ internal sealed partial class SyntaxGeneratorForIType
         {
             IType underlyingType = type;
 
-            while ( underlyingType is IArrayType innerArray )
+            while ( underlyingType.TypeKind == TypeKind.Array && underlyingType is IArrayType innerArray )
             {
                 underlyingType = innerArray.ElementType;
 
@@ -63,7 +63,7 @@ internal sealed partial class SyntaxGeneratorForIType
                     SyntaxFactory.ArrayRankSpecifier(
                         SyntaxFactory.SeparatedList( Enumerable.Repeat<ExpressionSyntax>( SyntaxFactory.OmittedArraySizeExpression(), arrayType.Rank ) ) ) );
 
-                arrayType = arrayType.ElementType as IArrayType;
+                arrayType = arrayType.ElementType.TypeKind == TypeKind.Array ? arrayType.ElementType as IArrayType : null;
             }
 
             TypeSyntax arrayTypeSyntax = SyntaxFactory.ArrayType( elementTypeSyntax, SyntaxFactory.List( ranks ) );
@@ -147,7 +147,7 @@ internal sealed partial class SyntaxGeneratorForIType
         {
             var typeSyntax = this.CreateSimpleTypeSyntax( type );
 
-            if ( typeSyntax is not SimpleNameSyntax simpleNameSyntax )
+            if ( typeSyntax.Kind() is not (SyntaxKind.IdentifierName or SyntaxKind.GenericName) || typeSyntax is not SimpleNameSyntax simpleNameSyntax )
             {
                 return typeSyntax;
             }
@@ -156,7 +156,8 @@ internal sealed partial class SyntaxGeneratorForIType
             {
                 var containingTypeSyntax = this.VisitNamedType( type.DeclaringType );
 
-                if ( containingTypeSyntax is NameSyntax name )
+                if ( containingTypeSyntax.Kind() is SyntaxKind.IdentifierName or SyntaxKind.GenericName or SyntaxKind.QualifiedName or SyntaxKind.AliasQualifiedName
+                    && containingTypeSyntax is NameSyntax name )
                 {
                     typeSyntax = this.AddTriviaAndAnnotations( SyntaxFactory.QualifiedName( name, simpleNameSyntax ), type );
                 }
