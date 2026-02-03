@@ -91,7 +91,7 @@ internal static class RoslynExtensions
 
     public static bool? IsNullable( this ITypeSymbol typeSymbol )
     {
-        if ( typeSymbol is ITypeParameterSymbol typeParameterSymbol )
+        if ( typeSymbol.Kind == SymbolKind.TypeParameter && typeSymbol is ITypeParameterSymbol typeParameterSymbol )
         {
             // Unconstrained, class? constrained and IFoo? constrained are *not* considered nullable,
             // if they have NullableAnnotation.NotAnnotated, because non-nullable types also satify these constraints.

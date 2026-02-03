@@ -212,7 +212,7 @@ namespace Metalama.Framework.Engine.Templating
 
             private void TryAddReferencedSymbol( ISymbol? symbol )
             {
-                if ( symbol is ILocalSymbol localSymbol && this.IsVisibleAfterStatement( localSymbol ) )
+                if ( symbol?.Kind == SymbolKind.Local && symbol is ILocalSymbol localSymbol && this.IsVisibleAfterStatement( localSymbol ) )
                 {
                     this.AssignedVariables.Add( localSymbol );
                 }
