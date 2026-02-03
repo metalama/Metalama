@@ -90,7 +90,10 @@ internal sealed partial class LinkerInjectionStep
             }
 
             // Order by accessibility.
-            if ( declaration is IMemberOrNamedType memberOrNamedType && otherDeclaration is IMemberOrNamedType otherMemberOrNamedType )
+            if ( declaration.DeclarationKind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event or DeclarationKind.Indexer or DeclarationKind.Constructor or DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
+                 && declaration is IMemberOrNamedType memberOrNamedType
+                 && otherDeclaration.DeclarationKind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event or DeclarationKind.Indexer or DeclarationKind.Constructor or DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
+                 && otherDeclaration is IMemberOrNamedType otherMemberOrNamedType )
             {
                 var accessibilityComparison =
                     GetAccessibilityOrder( memberOrNamedType.Accessibility ).CompareTo( GetAccessibilityOrder( otherMemberOrNamedType.Accessibility ) );
@@ -102,7 +105,10 @@ internal sealed partial class LinkerInjectionStep
             }
 
             // Order by implemented interface.
-            if ( declaration is IMember declarationMember && otherDeclaration is IMember otherDeclarationMember )
+            if ( declaration.DeclarationKind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event or DeclarationKind.Indexer or DeclarationKind.Constructor
+                 && declaration is IMember declarationMember
+                 && otherDeclaration.DeclarationKind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event or DeclarationKind.Indexer or DeclarationKind.Constructor
+                 && otherDeclaration is IMember otherDeclarationMember )
             {
                 var isExplicitInterfaceImplementationComparison =
                     declarationMember.IsExplicitInterfaceImplementation.CompareTo( otherDeclarationMember.IsExplicitInterfaceImplementation );

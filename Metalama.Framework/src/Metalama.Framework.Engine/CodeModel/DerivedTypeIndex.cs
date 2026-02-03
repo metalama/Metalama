@@ -203,7 +203,7 @@ public sealed partial class DerivedTypeIndex
     {
         foreach ( var baseType in this._relationships.Keys )
         {
-            if ( baseType.Value is INamedTypeSymbol { OriginalDefinition.DeclaringSyntaxReferences.IsDefaultOrEmpty: false } baseTypeSymbol )
+            if ( baseType.Value is ISymbol { Kind: SymbolKind.NamedType } && baseType.Value is INamedTypeSymbol { OriginalDefinition.DeclaringSyntaxReferences.IsDefaultOrEmpty: false } baseTypeSymbol )
             {
                 this.PopulateDependenciesCore( collector, baseTypeSymbol, baseType );
             }
@@ -214,7 +214,7 @@ public sealed partial class DerivedTypeIndex
     {
         foreach ( var derivedType in this._relationships[baseType] )
         {
-            if ( derivedType.Value is INamedTypeSymbol derivedTypeSymbol )
+            if ( derivedType.Value is ISymbol { Kind: SymbolKind.NamedType } && derivedType.Value is INamedTypeSymbol derivedTypeSymbol )
             {
                 collector.AddDependency( rootType, derivedTypeSymbol );
                 this.PopulateDependenciesCore( collector, rootType, derivedType );

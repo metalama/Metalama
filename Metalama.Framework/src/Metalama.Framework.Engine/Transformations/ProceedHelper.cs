@@ -204,7 +204,8 @@ internal static class ProceedHelper
 
         SimpleNameSyntax memberName;
 
-        if ( targetMember is IGeneric { TypeParameters.Count: > 0 } generic )
+        if ( targetMember.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor or DeclarationKind.NamedType
+            && targetMember is IGeneric { TypeParameters.Count: > 0 } generic )
         {
             memberName = GenericName(
                 SyntaxFactoryEx.SafeIdentifier( memberNameString ),
@@ -229,7 +230,8 @@ internal static class ProceedHelper
                             ThisExpression() ) ),
                     memberName );
             }
-            else if ( targetMember.DeclaringType is IExtensionBlock extensionBlock )
+            else if ( targetMember.DeclaringType.DeclarationKind == DeclarationKind.ExtensionBlock
+                && targetMember.DeclaringType is IExtensionBlock extensionBlock )
             {
                 expression = MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
@@ -246,7 +248,8 @@ internal static class ProceedHelper
         }
         else
         {
-            if ( targetMember.DeclaringType is IExtensionBlock extensionBlock )
+            if ( targetMember.DeclaringType.DeclarationKind == DeclarationKind.ExtensionBlock
+                && targetMember.DeclaringType is IExtensionBlock extensionBlock )
             {
                 expression =
                     MemberAccessExpression(

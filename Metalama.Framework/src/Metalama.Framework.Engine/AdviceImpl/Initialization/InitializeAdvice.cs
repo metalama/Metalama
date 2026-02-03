@@ -65,10 +65,10 @@ internal abstract class InitializeAdvice : Advice<AddInitializerAdviceResult>
         }
 
         var constructors =
-            targetDeclaration switch
+            targetDeclaration.DeclarationKind switch
             {
-                IConstructor constructor => [constructor],
-                INamedType => this._kind switch
+                DeclarationKind.Constructor when targetDeclaration is IConstructor constructor => [constructor],
+                DeclarationKind.NamedType => this._kind switch
                 {
                     InitializerKind.BeforeTypeConstructor =>
                         [staticConstructor.AssertNotNull()],

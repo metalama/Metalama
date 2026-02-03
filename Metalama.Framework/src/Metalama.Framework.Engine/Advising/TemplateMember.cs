@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 using Accessibility = Metalama.Framework.Code.Accessibility;
@@ -293,7 +294,9 @@ internal abstract class TemplateMember
         if ( !attribute.IntroducesBackingField )
         {
             attribute.IntroducesBackingField = declaration.DeclaringSyntaxReferences
-                .Any( syntaxRef => syntaxRef.GetSyntax() is AccessorDeclarationSyntax accessor
+                .Any( syntaxRef => syntaxRef.GetSyntax() is { } syntax
+                                   && syntax.Kind().IsAccessorDeclaration()
+                                   && syntax is AccessorDeclarationSyntax accessor
                                    && SyntaxHelpers.ContainsFieldExpression( accessor ) );
         }
 
@@ -301,7 +304,9 @@ internal abstract class TemplateMember
         if ( !attribute.IsBackingFieldAssigned )
         {
             attribute.IsBackingFieldAssigned = declaration.DeclaringSyntaxReferences
-                .Any( syntaxRef => syntaxRef.GetSyntax() is AccessorDeclarationSyntax accessor
+                .Any( syntaxRef => syntaxRef.GetSyntax() is { } syntax
+                                   && syntax.Kind().IsAccessorDeclaration()
+                                   && syntax is AccessorDeclarationSyntax accessor
                                    && SyntaxHelpers.ContainsFieldAssignment( accessor ) );
         }
 

@@ -22,36 +22,74 @@ internal static class LinkerSyntaxHandler
         {
             switch ( declaration?.Kind() )
             {
-                case SyntaxKind.MethodDeclaration when declaration is MethodDeclarationSyntax methodDecl:
-                    // Partial methods without declared body have the whole declaration as body.
-                    return methodDecl.Body ?? (SyntaxNode?) methodDecl.ExpressionBody ?? methodDecl;
+                case SyntaxKind.MethodDeclaration:
+                    {
+                        var methodDecl = (MethodDeclarationSyntax) declaration!;
 
-                case SyntaxKind.ConstructorDeclaration when declaration is ConstructorDeclarationSyntax constructorDecl:
-                    return constructorDecl.Body ?? (SyntaxNode?) constructorDecl.ExpressionBody ?? constructorDecl;
+                        // Partial methods without declared body have the whole declaration as body.
+                        return methodDecl.Body ?? (SyntaxNode?) methodDecl.ExpressionBody ?? methodDecl;
+                    }
 
-                case SyntaxKind.DestructorDeclaration or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration
-                    when declaration is BaseMethodDeclarationSyntax otherMethodDecl:
-                    return (SyntaxNode?) otherMethodDecl.Body
-                           ?? otherMethodDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
+                case SyntaxKind.ConstructorDeclaration:
+                    {
+                        var constructorDecl = (ConstructorDeclarationSyntax) declaration!;
 
-                case SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                    when declaration is AccessorDeclarationSyntax accessorDecl:
-                    // Accessors with no body are auto-properties or partial properties, in which case we have a substitution for the whole accessor declaration.
-                    Invariant.Assert( !symbol.IsAbstract );
+                        return constructorDecl.Body ?? (SyntaxNode?) constructorDecl.ExpressionBody ?? constructorDecl;
+                    }
 
-                    return accessorDecl.Body ?? (SyntaxNode?) accessorDecl.ExpressionBody ?? accessorDecl;
+                case SyntaxKind.DestructorDeclaration:
+                case SyntaxKind.OperatorDeclaration:
+                case SyntaxKind.ConversionOperatorDeclaration:
+                    {
+                        var otherMethodDecl = (BaseMethodDeclarationSyntax) declaration!;
 
-                case SyntaxKind.ArrowExpressionClause when declaration is ArrowExpressionClauseSyntax arrowExpressionClause:
-                    // Expression-bodied property.
-                    return arrowExpressionClause;
+                        return (SyntaxNode?) otherMethodDecl.Body
+                               ?? otherMethodDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
+                    }
 
-                case SyntaxKind.VariableDeclarator when declaration is VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax } } variableDecl:
-                    // Event field accessors start replacement as variableDecls.
-                    return variableDecl;
+                case SyntaxKind.GetAccessorDeclaration:
+                case SyntaxKind.SetAccessorDeclaration:
+                case SyntaxKind.InitAccessorDeclaration:
+                case SyntaxKind.AddAccessorDeclaration:
+                case SyntaxKind.RemoveAccessorDeclaration:
+                    {
+                        var accessorDecl = (AccessorDeclarationSyntax) declaration!;
 
-                case SyntaxKind.Parameter when declaration is ParameterSyntax { Parent.Parent: RecordDeclarationSyntax } positionalProperty:
-                    // Record positional property.
-                    return positionalProperty;
+                        // Accessors with no body are auto-properties or partial properties, in which case we have a substitution for the whole accessor declaration.
+                        Invariant.Assert( !symbol.IsAbstract );
+
+                        return accessorDecl.Body ?? (SyntaxNode?) accessorDecl.ExpressionBody ?? accessorDecl;
+                    }
+
+                case SyntaxKind.ArrowExpressionClause:
+                    {
+                        var arrowExpressionClause = (ArrowExpressionClauseSyntax) declaration!;
+
+                        // Expression-bodied property.
+                        return arrowExpressionClause;
+                    }
+
+                case SyntaxKind.VariableDeclarator:
+                    {
+                        if ( declaration is VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax } } variableDecl )
+                        {
+                            // Event field accessors start replacement as variableDecls.
+                            return variableDecl;
+                        }
+
+                        goto default;
+                    }
+
+                case SyntaxKind.Parameter:
+                    {
+                        if ( declaration is ParameterSyntax { Parent.Parent: RecordDeclarationSyntax } positionalProperty )
+                        {
+                            // Record positional property.
+                            return positionalProperty;
+                        }
+
+                        goto default;
+                    }
 
                 default:
                     throw new AssertionFailedException( $"Unexpected override target symbol: '{symbol}'." );
@@ -62,17 +100,28 @@ internal static class LinkerSyntaxHandler
         {
             switch ( declaration?.Kind() )
             {
-                case SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration
-                    when declaration is BaseMethodDeclarationSyntax methodDecl:
-                    Invariant.Assert( methodDecl is MethodDeclarationSyntax or ConstructorDeclarationSyntax or DestructorDeclarationSyntax );
+                case SyntaxKind.MethodDeclaration:
+                case SyntaxKind.ConstructorDeclaration:
+                case SyntaxKind.DestructorDeclaration:
+                    {
+                        var methodDecl = (BaseMethodDeclarationSyntax) declaration!;
+                        Invariant.Assert( methodDecl is MethodDeclarationSyntax or ConstructorDeclarationSyntax or DestructorDeclarationSyntax );
 
-                    return (SyntaxNode?) methodDecl.Body
-                           ?? methodDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
+                        return (SyntaxNode?) methodDecl.Body
+                               ?? methodDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
+                    }
 
-                case SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                    when declaration is AccessorDeclarationSyntax accessorDecl:
-                    return (SyntaxNode?) accessorDecl.Body
-                           ?? accessorDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
+                case SyntaxKind.GetAccessorDeclaration:
+                case SyntaxKind.SetAccessorDeclaration:
+                case SyntaxKind.InitAccessorDeclaration:
+                case SyntaxKind.AddAccessorDeclaration:
+                case SyntaxKind.RemoveAccessorDeclaration:
+                    {
+                        var accessorDecl = (AccessorDeclarationSyntax) declaration!;
+
+                        return (SyntaxNode?) accessorDecl.Body
+                               ?? accessorDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
+                    }
 
                 default:
                     throw new AssertionFailedException( $"Unexpected symbol: {symbol}" );

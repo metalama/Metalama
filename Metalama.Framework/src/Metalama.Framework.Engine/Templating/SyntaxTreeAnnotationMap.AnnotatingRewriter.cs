@@ -94,13 +94,13 @@ namespace Metalama.Framework.Engine.Templating
                     if ( symbol != null )
                     {
                         // Report invalid symbols.
-                        if ( symbol is IErrorTypeSymbol )
+                        if ( symbol.Kind == SymbolKind.ErrorType && symbol is IErrorTypeSymbol )
                         {
                             // Do not report this error because it is reported by Roslyn anyway.
                         }
                         else if ( this.IsPartiallyError( symbol ) )
                         {
-                            if ( node is IdentifierNameSyntax { IsVar: true } )
+                            if ( node.Kind() == SyntaxKind.IdentifierName && node is IdentifierNameSyntax { IsVar: true } )
                             {
                                 // We don't report an error on the 'var' keyword because it is reported on the right side
                                 // of the assignment anyway.
@@ -182,14 +182,14 @@ namespace Metalama.Framework.Engine.Templating
 
             // Determines if the type of the symbol of a parameter is unresolved.
             private bool IsPartiallyError( ISymbol symbol )
-                => symbol switch
+                => symbol.Kind switch
                 {
-                    IErrorTypeSymbol => true,
-                    INamedTypeSymbol { IsUnboundGenericType: false } namedType => namedType.TypeArguments.Any( this.IsPartiallyError ),
-                    IMethodSymbol method => this.IsPartiallyError( method.ReturnType ) || method.Parameters.Any( p => this.IsPartiallyError( p.Type ) ),
-                    IPropertySymbol property => this.IsPartiallyError( property.Type ) || property.Parameters.Any( p => this.IsPartiallyError( p.Type ) ),
-                    IEventSymbol @event => this.IsPartiallyError( @event.Type ),
-                    IFieldSymbol field => this.IsPartiallyError( field.Type ),
+                    SymbolKind.ErrorType when symbol is IErrorTypeSymbol => true,
+                    SymbolKind.NamedType when symbol is INamedTypeSymbol { IsUnboundGenericType: false } namedType => namedType.TypeArguments.Any( this.IsPartiallyError ),
+                    SymbolKind.Method when symbol is IMethodSymbol method => this.IsPartiallyError( method.ReturnType ) || method.Parameters.Any( p => this.IsPartiallyError( p.Type ) ),
+                    SymbolKind.Property when symbol is IPropertySymbol property => this.IsPartiallyError( property.Type ) || property.Parameters.Any( p => this.IsPartiallyError( p.Type ) ),
+                    SymbolKind.Event when symbol is IEventSymbol @event => this.IsPartiallyError( @event.Type ),
+                    SymbolKind.Field when symbol is IFieldSymbol field => this.IsPartiallyError( field.Type ),
                     _ => false
                 };
         }

@@ -57,7 +57,7 @@ public sealed partial class CodeFormatter
 
                             switch ( node.Parent.Parent?.Parent )
                             {
-                                case InvocationExpressionSyntax invocation:
+                                case var parent when parent?.Kind() == SyntaxKind.InvocationExpression && parent is InvocationExpressionSyntax invocation:
                                     if ( this._semanticModel != null )
                                     {
                                         var symbol = this._semanticModel.GetSymbolInfo( invocation.Expression ).Symbol;
@@ -76,7 +76,7 @@ public sealed partial class CodeFormatter
 
                                     break;
 
-                                case ObjectCreationExpressionSyntax { ArgumentList: not null } objectCreation:
+                                case var parent when parent?.Kind() == SyntaxKind.ObjectCreationExpression && parent is ObjectCreationExpressionSyntax { ArgumentList: not null } objectCreation:
                                     if ( this._semanticModel != null )
                                     {
                                         var symbol = this._semanticModel.GetSymbolInfo( objectCreation ).Symbol;
@@ -106,7 +106,7 @@ public sealed partial class CodeFormatter
 
                             break;
 
-                        case SyntaxKind.EqualsValueClause when anonymousFunctionExpression is ParenthesizedLambdaExpressionSyntax
+                        case SyntaxKind.EqualsValueClause when anonymousFunctionExpression.Kind() == SyntaxKind.ParenthesizedLambdaExpression && anonymousFunctionExpression is ParenthesizedLambdaExpressionSyntax
                         {
                             ParameterList.Parameters.Count: 0
                         }:

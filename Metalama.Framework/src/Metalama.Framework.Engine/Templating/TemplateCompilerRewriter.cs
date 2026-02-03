@@ -239,7 +239,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             // which have special interpretation.
             var parent = node.Parent;
 
-            switch ( parent )
+            switch ( parent?.Kind() )
             {
                 case null:
                     // This situation seems to happen only when Transform is called from a newly created syntax node,
@@ -248,12 +248,13 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
                     return false;
 
-                case IfStatementSyntax:
-                case ElseClauseSyntax:
-                case SwitchSectionSyntax:
-                case ForEachStatementSyntax:
-                case WhileStatementSyntax:
-                case DoStatementSyntax:
+                case SyntaxKind.IfStatement:
+                case SyntaxKind.ElseClause:
+                case SyntaxKind.SwitchSection:
+                case SyntaxKind.ForEachStatement:
+                case SyntaxKind.ForEachVariableStatement:
+                case SyntaxKind.WhileStatement:
+                case SyntaxKind.DoStatement:
                     throw new AssertionFailedException( $"The node '{node}' must be annotated." );
 
                 default:
@@ -347,7 +348,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
             // Skip adding NameColon for DeclarationExpression (e.g., var first) because the name is already in the declaration.
             // Tuple element names are not permitted on the left side of a deconstruction.
-            if ( node.Arguments[i].Expression is DeclarationExpressionSyntax )
+            if ( node.Arguments[i].Expression.Kind() == SyntaxKind.DeclarationExpression )
             {
                 arg = node.Arguments[i];
             }
@@ -503,7 +504,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
     protected override ExpressionSyntax TransformNullableType( NullableTypeSyntax node )
     {
-        if ( node.ElementType is IdentifierNameSyntax identifier )
+        if ( node.ElementType.Kind() == SyntaxKind.IdentifierName && node.ElementType is IdentifierNameSyntax identifier )
         {
             if ( string.Equals( identifier.Identifier.Text, "dynamic", StringComparison.Ordinal ) )
             {
@@ -692,7 +693,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 // Find a meaningful parent exception.
                 var parentExpression = expression
                                            .Ancestors()
-                                           .FirstOrDefault( n => n is InvocationExpressionSyntax or BinaryExpressionSyntax )
+                                           .FirstOrDefault( n => n.Kind() is SyntaxKind.InvocationExpression or SyntaxKind.AddExpression or SyntaxKind.SubtractExpression or SyntaxKind.MultiplyExpression or SyntaxKind.DivideExpression or SyntaxKind.ModuloExpression or SyntaxKind.LeftShiftExpression or SyntaxKind.RightShiftExpression or SyntaxKind.UnsignedRightShiftExpression or SyntaxKind.LogicalOrExpression or SyntaxKind.LogicalAndExpression or SyntaxKind.BitwiseOrExpression or SyntaxKind.BitwiseAndExpression or SyntaxKind.ExclusiveOrExpression or SyntaxKind.EqualsExpression or SyntaxKind.NotEqualsExpression or SyntaxKind.LessThanExpression or SyntaxKind.LessThanOrEqualExpression or SyntaxKind.GreaterThanExpression or SyntaxKind.GreaterThanOrEqualExpression or SyntaxKind.IsExpression or SyntaxKind.AsExpression or SyntaxKind.CoalesceExpression )
                                        ?? expression;
 
                 this.Report( TemplatingDiagnosticDescriptors.CannotUseThisInRunTimeContext.CreateRoslynDiagnostic( location, parentExpression.ToString() ) );
@@ -1012,7 +1013,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
     protected override ExpressionSyntax TransformExpressionStatement( ExpressionStatementSyntax node )
     {
-        if ( node.Expression is AssignmentExpressionSyntax { Left: IdentifierNameSyntax identifier } assignment )
+        if ( node.Expression.Kind() is SyntaxKind.SimpleAssignmentExpression or SyntaxKind.AddAssignmentExpression or SyntaxKind.SubtractAssignmentExpression or SyntaxKind.MultiplyAssignmentExpression or SyntaxKind.DivideAssignmentExpression or SyntaxKind.ModuloAssignmentExpression or SyntaxKind.AndAssignmentExpression or SyntaxKind.ExclusiveOrAssignmentExpression or SyntaxKind.OrAssignmentExpression or SyntaxKind.LeftShiftAssignmentExpression or SyntaxKind.RightShiftAssignmentExpression or SyntaxKind.UnsignedRightShiftAssignmentExpression or SyntaxKind.CoalesceAssignmentExpression && node.Expression is AssignmentExpressionSyntax { Left: IdentifierNameSyntax identifier } assignment )
         {
             var identifierSymbol = this._syntaxTreeAnnotationMap.GetSymbol( identifier );
 
@@ -1032,7 +1033,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
                     return this.WithCallToAddSimplifierAnnotation( invocationExpression );
                 }
-                else if ( assignment.Right is AwaitExpressionSyntax awaitExpression && this.IsCompileTimeDynamic( awaitExpression.Expression ) )
+                else if ( assignment.Right.Kind() == SyntaxKind.AwaitExpression && assignment.Right is AwaitExpressionSyntax awaitExpression && this.IsCompileTimeDynamic( awaitExpression.Expression ) )
                 {
                     // Process the statement "<local_or_discard> = await meta.XXX()", where "meta.XXX()" is a call to a compile-time dynamic method. 
 
@@ -1050,7 +1051,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
 
         // Expand conditional access extension methods.
-        if ( node.Expression is ConditionalAccessExpressionSyntax conditionalAccessExpression
+        if ( node.Expression.Kind() == SyntaxKind.ConditionalAccessExpression && node.Expression is ConditionalAccessExpressionSyntax conditionalAccessExpression
              && this.ProcessConditionalAccessExtensionMethod( conditionalAccessExpression ) is { } expressions )
         {
             // Turns e.g. `a?.Foo();` into `if (a is {} x) x.Foo();`. 
@@ -1275,7 +1276,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                     receiver = SyntaxFactoryEx.WellKnownIdentifierName( variableIdentifier );
                 }
 
-                if ( name is GenericNameSyntax genericName )
+                if ( name.Kind() == SyntaxKind.GenericName && name is GenericNameSyntax genericName )
                 {
                     var i = 0;
 
@@ -1411,7 +1412,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         {
             if ( symbol is IMethodSymbol { ReducedFrom: not null } method )
             {
-                if ( node.Expression is MemberAccessExpressionSyntax memberAccessExpression )
+                if ( node.Expression.Kind() == SyntaxKind.SimpleMemberAccessExpression && node.Expression is MemberAccessExpressionSyntax memberAccessExpression )
                 {
                     var receiver = memberAccessExpression.Expression;
 
@@ -1600,7 +1601,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
         else if ( node.ExpressionBody != null )
         {
-            var isVoid = node.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind( SyntaxKind.VoidKeyword );
+            var isVoid = node.ReturnType.Kind() == SyntaxKind.PredefinedType && node.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind( SyntaxKind.VoidKeyword );
 
             body = (BlockSyntax) this.BuildRunTimeBlock(
                 node.ExpressionBody.AssertNotNull().Expression,
@@ -1849,7 +1850,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     {
         StatementSyntax statement;
 
-        if ( node is ThrowExpressionSyntax throwExpression )
+        if ( node.Kind() == SyntaxKind.ThrowExpression && node is ThrowExpressionSyntax throwExpression )
         {
             statement = ThrowStatement( throwExpression.ThrowKeyword, throwExpression.Expression, Token( SyntaxKind.SemicolonToken ) );
         }
@@ -1877,9 +1878,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
     private FunctionLikeRunTimeBlockInfo? GetFunctionLikeRunTimeBlockInfo( SyntaxNode? node )
     {
-        switch ( node?.Parent )
+        switch ( node?.Parent?.Kind() )
         {
-            case LocalFunctionStatementSyntax localFunction:
+            case SyntaxKind.LocalFunctionStatement when node.Parent is LocalFunctionStatementSyntax localFunction:
                 var localFunctionSymbol = (IMethodSymbol?) this._syntaxTreeAnnotationMap.GetDeclaredSymbol( localFunction );
 
                 if ( localFunctionSymbol == null )
@@ -1891,7 +1892,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
                 return new FunctionLikeRunTimeBlockInfo( returnType, localFunctionSymbol.IsAsync );
 
-            case AnonymousFunctionExpressionSyntax anonymousFunction:
+            case SyntaxKind.SimpleLambdaExpression or SyntaxKind.ParenthesizedLambdaExpression or SyntaxKind.AnonymousMethodExpression when node.Parent is AnonymousFunctionExpressionSyntax anonymousFunction:
                 var anonymousFunctionSymbol = (IMethodSymbol?) this._syntaxTreeAnnotationMap.GetSymbol( anonymousFunction );
 
                 if ( anonymousFunctionSymbol == null )
@@ -2093,7 +2094,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     {
         MetaContext newContext;
 
-        if ( statement is BlockSyntax block )
+        if ( statement.Kind() == SyntaxKind.Block && statement is BlockSyntax block )
         {
             // Push the compile-time template block.
             newContext = MetaContext.CreateForCompileTimeBlock( this._currentMetaContext!, isConditionalBlock );
@@ -2130,7 +2131,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
         void ProcessStatement( StatementSyntax singleStatement )
         {
-            var isLocalFunction = singleStatement is LocalFunctionStatementSyntax;
+            var isLocalFunction = singleStatement.Kind() == SyntaxKind.LocalFunctionStatement;
             var skipCompileTimeLogicVariable = this._currentMetaContext!.SkipCompileTimeLogicVariable;
             var skipMightBeSetBeforeProcessing = skipCompileTimeLogicVariable.MightBeTrue;
             var olsIsSkipVariableKnownFalse = skipCompileTimeLogicVariable.IsKnownFalse;
@@ -2274,7 +2275,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             .NormalizeWhitespace();
 
         // If the statement is `return` with an expression, we must also return.
-        if ( statement is ReturnStatementSyntax { Expression: not null } )
+        if ( statement.Kind() == SyntaxKind.ReturnStatement && statement is ReturnStatementSyntax { Expression: not null } )
         {
             yield return ReturnStatement( SyntaxFactoryEx.Default );
         }
@@ -2307,14 +2308,14 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
         foreach ( var content in node.Contents )
         {
-            switch ( content )
+            switch ( content.Kind() )
             {
-                case InterpolatedStringTextSyntax text:
+                case SyntaxKind.InterpolatedStringText when content is InterpolatedStringTextSyntax text:
                     transformedContents.Add( this.TransformInterpolatedStringText( text ) );
 
                     break;
 
-                case InterpolationSyntax interpolation:
+                case SyntaxKind.Interpolation when content is InterpolationSyntax interpolation:
                     if ( this.GetTransformationKind( interpolation ) == TransformationKind.None &&
                          !interpolation.Expression.IsKind( SyntaxKind.TypeOfExpression ) )
                     {
@@ -2391,7 +2392,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     {
         var transformedNode = base.VisitInterpolation( node );
 
-        if ( transformedNode is InterpolationSyntax transformedInterpolation )
+        if ( transformedNode?.Kind() == SyntaxKind.Interpolation && transformedNode is InterpolationSyntax transformedInterpolation )
         {
             return InterpolationSyntaxHelper.Fix( transformedInterpolation );
         }
@@ -2475,12 +2476,12 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             var condition = (ExpressionSyntax) this.Visit( node.Condition )!;
 
             // If the statement is not a block, wrap it in a block, to ensure chains of if-else-if statements are properly nested.
-            if ( transformedStatement is not BlockSyntax )
+            if ( transformedStatement.Kind() != SyntaxKind.Block )
             {
                 transformedStatement = Block( transformedStatement );
             }
 
-            if ( transformedElseStatement is not null and not BlockSyntax )
+            if ( transformedElseStatement is not null && transformedElseStatement.Kind() != SyntaxKind.Block )
             {
                 transformedElseStatement = Block( transformedElseStatement );
             }
@@ -2509,8 +2510,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         // condition has to be preserved if one of the expressions is throw
         var runTimeCondition = this.GetTransformationKind( node.Condition ) == TransformationKind.Transform ||
                                node.Condition.GetScopeFromAnnotation().GetValueOrDefault().GetExpressionValueScope() == TemplatingScope.RunTimeOnly ||
-                               node.WhenTrue is ThrowExpressionSyntax ||
-                               node.WhenFalse is ThrowExpressionSyntax;
+                               node.WhenTrue.Kind() == SyntaxKind.ThrowExpression ||
+                               node.WhenFalse.Kind() == SyntaxKind.ThrowExpression;
 
         if ( runTimeCondition )
         {
@@ -2643,7 +2644,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             // itself and not the syntax.
             invocationExpression = CreateInvocationExpression( node.Expression.AssertNotNull(), false );
         }
-        else if ( node.Expression is AwaitExpressionSyntax awaitExpression && this.IsCompileTimeDynamic( awaitExpression.Expression ) )
+        else if ( node.Expression?.Kind() == SyntaxKind.AwaitExpression && node.Expression is AwaitExpressionSyntax awaitExpression && this.IsCompileTimeDynamic( awaitExpression.Expression ) )
         {
             invocationExpression = CreateInvocationExpression( awaitExpression.Expression, true );
         }
@@ -2752,7 +2753,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 {
                     return this.Transform( this.MetaSyntaxFactory.SyntaxGenerationContext.SyntaxGenerator.TypeOrNamespace( namespaceOrType ) );
                 }
-                else if ( symbol is { IsStatic: true } && node.Parent is not MemberAccessExpressionSyntax && node.Parent is not AliasQualifiedNameSyntax )
+                else if ( symbol is { IsStatic: true } && node.Parent?.Kind() != SyntaxKind.SimpleMemberAccessExpression && node.Parent?.Kind() != SyntaxKind.AliasQualifiedName )
                 {
                     switch ( symbol.Kind )
                     {
@@ -2825,9 +2826,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     {
         var symbol = this._syntaxTreeAnnotationMap.GetSymbol( node );
 
-        switch ( symbol )
+        switch ( symbol?.Kind )
         {
-            case INamespaceOrTypeSymbol namespaceOrType:
+            case SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.FunctionPointerType or SymbolKind.PointerType or SymbolKind.TypeParameter when symbol is INamespaceOrTypeSymbol namespaceOrType:
                 // If we have a generic type, we do not write the generic arguments.
                 var nameExpression = this.MetaSyntaxFactory.SyntaxGenerationContext.SyntaxGenerator.TypeOrNamespace( namespaceOrType );
 
@@ -2902,7 +2903,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
     protected override ExpressionSyntax TransformConditionalExpression( ConditionalExpressionSyntax node )
     {
-        if ( node.WhenFalse is ThrowExpressionSyntax || node.WhenTrue is ThrowExpressionSyntax )
+        if ( node.WhenFalse.Kind() == SyntaxKind.ThrowExpression || node.WhenTrue.Kind() == SyntaxKind.ThrowExpression )
         {
             // If any of the expressions if a throw exception, we cannot reduce it at compile time because it would generate incorrect syntax.
             return base.TransformConditionalExpression( node );
@@ -2919,7 +2920,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
     protected override ExpressionSyntax TransformYieldStatement( YieldStatementSyntax node )
     {
-        if ( node.Kind() == SyntaxKind.YieldReturnStatement && node.Expression is InvocationExpressionSyntax invocation
+        if ( node.Kind() == SyntaxKind.YieldReturnStatement && node.Expression?.Kind() == SyntaxKind.InvocationExpression && node.Expression is InvocationExpressionSyntax invocation
                                                             && this._templateMemberClassifier.GetMetaMemberKind( invocation.Expression )
                                                             == MetaMemberKind.Proceed )
         {

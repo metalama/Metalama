@@ -123,9 +123,9 @@ internal sealed class LinkerLateTransformationRegistry
 #if ROSLYN_4_8_0_OR_GREATER
         var typeSyntax =
             (TypeDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )
-                .Single( d => d is TypeDeclarationSyntax { ParameterList: not null } );
+                .Single( d => (d.IsKind( SyntaxKind.ClassDeclaration ) || d.IsKind( SyntaxKind.StructDeclaration ) || d.IsKind( SyntaxKind.RecordDeclaration ) || d.IsKind( SyntaxKind.RecordStructDeclaration )) && d is TypeDeclarationSyntax { ParameterList: not null } );
 
-        if ( typeSyntax is RecordDeclarationSyntax )
+        if ( (typeSyntax.IsKind( SyntaxKind.RecordDeclaration ) || typeSyntax.IsKind( SyntaxKind.RecordStructDeclaration )) && typeSyntax is RecordDeclarationSyntax )
         {
             return Array.Empty<IFieldSymbol>();
         }
@@ -144,7 +144,7 @@ internal sealed class LinkerLateTransformationRegistry
     public IReadOnlyList<IPropertySymbol> GetPrimaryConstructorProperties( INamedTypeSymbol type )
 #pragma warning restore CA1822 // Mark members as static
     {
-        return type.GetMembers().OfType<IPropertySymbol>().Where( p => p.GetPrimaryDeclarationSyntax() is ParameterSyntax ).ToArray();
+        return type.GetMembers().OfType<IPropertySymbol>().Where( p => p.GetPrimaryDeclarationSyntax()?.IsKind( SyntaxKind.Parameter ) == true && p.GetPrimaryDeclarationSyntax() is ParameterSyntax ).ToArray();
     }
 
     public bool IsPrimaryConstructorInitializedMember( ISymbol symbol ) => this._primaryConstructorInitializedMembers.Contains( symbol );
@@ -158,11 +158,11 @@ internal sealed class LinkerLateTransformationRegistry
 #if ROSLYN_4_8_0_OR_GREATER
         var typeSyntax =
             (TypeDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )
-                .Single( d => d is TypeDeclarationSyntax { ParameterList: not null } );
+                .Single( d => (d.IsKind( SyntaxKind.ClassDeclaration ) || d.IsKind( SyntaxKind.StructDeclaration ) || d.IsKind( SyntaxKind.RecordDeclaration ) || d.IsKind( SyntaxKind.RecordStructDeclaration )) && d is TypeDeclarationSyntax { ParameterList: not null } );
 #else
         var typeSyntax =
             (RecordDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )
-            .Single( d => d is RecordDeclarationSyntax { ParameterList: not null } );
+            .Single( d => (d.IsKind( SyntaxKind.RecordDeclaration ) || d.IsKind( SyntaxKind.RecordStructDeclaration )) && d is RecordDeclarationSyntax { ParameterList: not null } );
 #endif
 
         var primaryConstructorBase = typeSyntax.BaseList?.Types.OfType<PrimaryConstructorBaseTypeSyntax>().SingleOrDefault();

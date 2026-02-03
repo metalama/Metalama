@@ -52,15 +52,15 @@ namespace Metalama.Framework.Engine.Templating
 
             public override void VisitAssignmentExpression( AssignmentExpressionSyntax node )
             {
-                switch ( node.Left )
+                switch ( node.Left.Kind() )
                 {
                     // Handle regular assignments (=, +=, -=, etc.) to local variables
-                    case IdentifierNameSyntax identifier:
+                    case SyntaxKind.IdentifierName when node.Left is IdentifierNameSyntax identifier:
                         this.TryAddReferencedSymbol( identifier );
 
                         break;
 
-                    case TupleExpressionSyntax tupleExpression:
+                    case SyntaxKind.TupleExpression when node.Left is TupleExpressionSyntax tupleExpression:
                         // Handle tuple assignments: (x, y) = tuple;
                         this.VisitTupleElements( tupleExpression );
 
@@ -74,14 +74,14 @@ namespace Metalama.Framework.Engine.Templating
             {
                 foreach ( var argument in tupleExpression.Arguments )
                 {
-                    switch ( argument.Expression )
+                    switch ( argument.Expression.Kind() )
                     {
-                        case IdentifierNameSyntax identifier:
+                        case SyntaxKind.IdentifierName when argument.Expression is IdentifierNameSyntax identifier:
                             this.TryAddReferencedSymbol( identifier );
 
                             break;
 
-                        case TupleExpressionSyntax nestedTuple:
+                        case SyntaxKind.TupleExpression when argument.Expression is TupleExpressionSyntax nestedTuple:
                             // Handle nested tuples
                             this.VisitTupleElements( nestedTuple );
 
@@ -93,9 +93,9 @@ namespace Metalama.Framework.Engine.Templating
             public override void VisitSingleVariableDesignation( SingleVariableDesignationSyntax node )
             {
                 // This handles 'out var' declarations and pattern matching
-                switch ( node.Parent )
+                switch ( node.Parent?.Kind() )
                 {
-                    case DeclarationExpressionSyntax declarationExpression:
+                    case SyntaxKind.DeclarationExpression when node.Parent is DeclarationExpressionSyntax declarationExpression:
                         {
                             var scope = declarationExpression.GetScopeFromAnnotation();
 
@@ -107,18 +107,18 @@ namespace Metalama.Framework.Engine.Templating
                             break;
                         }
 
-                    case ParenthesizedVariableDesignationSyntax parenthesizedDesignation:
+                    case SyntaxKind.ParenthesizedVariableDesignation when node.Parent is ParenthesizedVariableDesignationSyntax parenthesizedDesignation:
                         {
                             // Handle tuple deconstruction: var (x, y) = tuple; or nested: var (a, (b, c)) = tuple;
                             // Walk up the parent chain through ParenthesizedVariableDesignation nodes to find the DeclarationExpression
                             var current = parenthesizedDesignation.Parent;
 
-                            while ( current is ParenthesizedVariableDesignationSyntax nestedParenthesized )
+                            while ( current?.Kind() == SyntaxKind.ParenthesizedVariableDesignation && current is ParenthesizedVariableDesignationSyntax nestedParenthesized )
                             {
                                 current = nestedParenthesized.Parent;
                             }
 
-                            if ( current is DeclarationExpressionSyntax tupleDeclaration )
+                            if ( current?.Kind() == SyntaxKind.DeclarationExpression && current is DeclarationExpressionSyntax tupleDeclaration )
                             {
                                 var scope = tupleDeclaration.GetScopeFromAnnotation();
 
@@ -131,7 +131,7 @@ namespace Metalama.Framework.Engine.Templating
                             break;
                         }
 
-                    case DeclarationPatternSyntax declarationPattern:
+                    case SyntaxKind.DeclarationPattern when node.Parent is DeclarationPatternSyntax declarationPattern:
                         {
                             var scope = declarationPattern.GetScopeFromAnnotation();
 
@@ -165,8 +165,12 @@ namespace Metalama.Framework.Engine.Templating
                           currentNode = currentNode.Parent )
                     {
                         // Detect situations where the variable declaration is not visible by the parent.
-                        if ( currentNode.Kind() is SyntaxKind.Block or SyntaxKind.SwitchSection or SyntaxKind.ParenthesizedExpression
-                             || currentNode is StatementSyntax )
+                        if ( currentNode.Kind() is SyntaxKind.Block or SyntaxKind.SwitchSection or SyntaxKind.ParenthesizedExpression )
+                        {
+                            return false;
+                        }
+
+                        if ( currentNode is StatementSyntax )
                         {
                             return false;
                         }

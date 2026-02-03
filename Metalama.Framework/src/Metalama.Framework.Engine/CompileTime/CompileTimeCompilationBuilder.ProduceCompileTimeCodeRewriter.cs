@@ -146,7 +146,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
             public override SyntaxNode? VisitAttributeList( AttributeListSyntax node )
             {
-                if ( node.Parent is CompilationUnitSyntax )
+                if ( node.Parent?.Kind() == SyntaxKind.CompilationUnit && node.Parent is CompilationUnitSyntax )
                 {
                     return null;
                 }
@@ -269,9 +269,9 @@ namespace Metalama.Framework.Engine.CompileTime
                     var childSymbol = this.RunTimeSemanticModelProvider.GetSemanticModel( child.SyntaxTree ).GetDeclaredSymbol( child )
                         as ITypeSymbol;
 
-                    switch ( child )
+                    switch ( child.Kind() )
                     {
-                        case ClassDeclarationSyntax childType:
+                        case SyntaxKind.ClassDeclaration when child is ClassDeclarationSyntax childType:
                             {
                                 Invariant.Assert( childSymbol != null );
 
@@ -353,7 +353,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                 break;
                             }
 
-                        case BaseTypeDeclarationSyntax or DelegateDeclarationSyntax:
+                        case SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration:
                             Invariant.Assert( childSymbol != null );
 
                             if ( this.SymbolClassifier.GetTemplatingScope( childSymbol ).GetExpressionExecutionScope() == TemplatingScope.CompileTimeOnly )
@@ -504,34 +504,34 @@ namespace Metalama.Framework.Engine.CompileTime
                 {
                     foreach ( var member in node.Members )
                     {
-                        switch ( member )
+                        switch ( member.Kind() )
                         {
-                            case MethodDeclarationSyntax method:
+                            case SyntaxKind.MethodDeclaration when member is MethodDeclarationSyntax method:
                                 members.AddRange( this.TransformMethodDeclaration( method ).AssertNoneNull() );
 
                                 break;
 
-                            case IndexerDeclarationSyntax:
+                            case SyntaxKind.IndexerDeclaration:
                                 throw new NotImplementedException( "Indexers are not implemented." );
 
                             // members.AddRange( this.VisitBasePropertyDeclaration( indexer ).AssertNoneNull() );
 
-                            case PropertyDeclarationSyntax property:
+                            case SyntaxKind.PropertyDeclaration when member is PropertyDeclarationSyntax property:
                                 members.AddRange( this.TransformPropertyDeclaration( property ).AssertNoneNull() );
 
                                 break;
 
-                            case EventDeclarationSyntax @event:
+                            case SyntaxKind.EventDeclaration when member is EventDeclarationSyntax @event:
                                 members.AddRange( this.TransformEventDeclaration( @event ).AssertNoneNull() );
 
                                 break;
 
-                            case FieldDeclarationSyntax field:
+                            case SyntaxKind.FieldDeclaration when member is FieldDeclarationSyntax field:
                                 members.AddRange( this.TransformFieldDeclaration( field ).AssertNoneNull() );
 
                                 break;
 
-                            case EventFieldDeclarationSyntax eventField:
+                            case SyntaxKind.EventFieldDeclaration when member is EventFieldDeclarationSyntax eventField:
                                 members.AddRange( this.TransformEventFieldDeclaration( eventField ).AssertNoneNull() );
 
                                 break;
@@ -911,7 +911,7 @@ namespace Metalama.Framework.Engine.CompileTime
                             templateAccessorCount++;
                         }
 
-                        if ( propertyIsTemplate && node is PropertyDeclarationSyntax { Initializer: not null } )
+                        if ( propertyIsTemplate && node.Kind() == SyntaxKind.PropertyDeclaration && node is PropertyDeclarationSyntax { Initializer: not null } )
                         {
                             if ( success )
                             {
@@ -947,7 +947,7 @@ namespace Metalama.Framework.Engine.CompileTime
                             }
                         }
                     }
-                    else if ( propertyIsTemplate && node is PropertyDeclarationSyntax { ExpressionBody: not null } propertyNode )
+                    else if ( propertyIsTemplate && node.Kind() == SyntaxKind.PropertyDeclaration && node is PropertyDeclarationSyntax { ExpressionBody: not null } propertyNode )
                     {
                         // Expression bodied property.
                         // TODO: Does this preserve trivia in expression body?
@@ -984,7 +984,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
                         var rewritten = (BasePropertyDeclarationSyntax) this.Visit( node ).AssertNotNull();
 
-                        if ( suppressReadOnly && rewritten is PropertyDeclarationSyntax rewrittenProperty )
+                        if ( suppressReadOnly && rewritten.Kind() == SyntaxKind.PropertyDeclaration && rewritten is PropertyDeclarationSyntax rewrittenProperty )
                         {
                             // If the property needs to have set accessor because of serialization, add it.
                             Invariant.Assert( rewrittenProperty.IsAutoPropertyDeclaration() );
@@ -1358,9 +1358,9 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 foreach ( var member in members )
                 {
-                    switch ( member )
+                    switch ( member.Kind() )
                     {
-                        case TypeDeclarationSyntax type:
+                        case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when member is TypeDeclarationSyntax type:
                             resultingMembers.AddRange( this.VisitTypeDeclaration( type ) );
 
                             break;
@@ -1431,8 +1431,8 @@ namespace Metalama.Framework.Engine.CompileTime
                 // Get the list of members that are not statements, local variables, local functions,...
                 var nonTopLevelMembers = node.Members
                     .Where(
-                        m => m is BaseTypeDeclarationSyntax or NamespaceDeclarationSyntax or DelegateDeclarationSyntax
-                            or FileScopedNamespaceDeclarationSyntax )
+                        m => m.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.DelegateDeclaration
+                            or SyntaxKind.FileScopedNamespaceDeclaration )
                     .ToReadOnlyList();
 
                 var transformedMembers = this.VisitTypeOrNamespaceMembers( nonTopLevelMembers );
@@ -1545,11 +1545,11 @@ namespace Metalama.Framework.Engine.CompileTime
                 => InterpolationSyntaxHelper.Fix( (InterpolationSyntax) base.VisitInterpolation( node ).AssertNotNull() );
 
             private static SyntaxToken GetConstructorNameToken( NameSyntax typeName )
-                => typeName switch
+                => typeName.Kind() switch
                 {
-                    AliasQualifiedNameSyntax aliasQualifiedNameSyntax => aliasQualifiedNameSyntax.Name.Identifier,
-                    QualifiedNameSyntax qualifiedNameSyntax => qualifiedNameSyntax.Right.Identifier,
-                    SimpleNameSyntax simpleNameSyntax => simpleNameSyntax.Identifier,
+                    SyntaxKind.AliasQualifiedName when typeName is AliasQualifiedNameSyntax aliasQualifiedNameSyntax => aliasQualifiedNameSyntax.Name.Identifier,
+                    SyntaxKind.QualifiedName when typeName is QualifiedNameSyntax qualifiedNameSyntax => qualifiedNameSyntax.Right.Identifier,
+                    SyntaxKind.IdentifierName or SyntaxKind.GenericName when typeName is SimpleNameSyntax simpleNameSyntax => simpleNameSyntax.Identifier,
                     _ => throw new AssertionFailedException( $"Unexpected syntax kind {typeName.Kind()} at '{typeName.GetLocation()}'." )
                 };
 
@@ -1559,21 +1559,21 @@ namespace Metalama.Framework.Engine.CompileTime
                 var type = this._syntaxGenerationContext.SyntaxGenerator.TypeOrNamespace( symbol );
 
                 static NameSyntax RenameType( NameSyntax syntax, string newIdentifier, int nestingLevel )
-                    => syntax switch
+                    => syntax.Kind() switch
                     {
-                        AliasQualifiedNameSyntax aliasQualifiedNameSyntax => aliasQualifiedNameSyntax.WithName( SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ) ),
-                        QualifiedNameSyntax qualifiedNameSyntax when nestingLevel > 0 => RenameType(
+                        SyntaxKind.AliasQualifiedName when syntax is AliasQualifiedNameSyntax aliasQualifiedNameSyntax => aliasQualifiedNameSyntax.WithName( SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ) ),
+                        SyntaxKind.QualifiedName when nestingLevel > 0 && syntax is QualifiedNameSyntax qualifiedNameSyntax => RenameType(
                             qualifiedNameSyntax.Left,
                             newIdentifier,
                             nestingLevel - 1 ),
-                        QualifiedNameSyntax qualifiedNameSyntax when nestingLevel == 0 => qualifiedNameSyntax.WithRight( SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ) ),
-                        SimpleNameSyntax => SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ),
+                        SyntaxKind.QualifiedName when nestingLevel == 0 && syntax is QualifiedNameSyntax qualifiedNameSyntax => qualifiedNameSyntax.WithRight( SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ) ),
+                        SyntaxKind.IdentifierName or SyntaxKind.GenericName => SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ),
                         _ => throw new AssertionFailedException( $"Unexpected syntax kind {syntax.Kind()} at '{syntax.GetDiagnosticLocation()}'." )
                     };
 
                 if ( symbol.Equals( unnestedType ) )
                 {
-                    if ( type is not NameSyntax typeName )
+                    if ( type.Kind() is not (SyntaxKind.IdentifierName or SyntaxKind.GenericName or SyntaxKind.QualifiedName or SyntaxKind.AliasQualifiedName) || type is not NameSyntax typeName )
                     {
                         throw new AssertionFailedException( $"Attempting to rename type '{type}' that doesn't have a name." );
                     }
@@ -1639,7 +1639,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 // Fully qualifies simple identifiers.
                 if ( node.Identifier.IsKind( SyntaxKind.IdentifierToken )
                      && node is { IsVar: false, Parent: not (QualifiedNameSyntax or AliasQualifiedNameSyntax) } &&
-                     !(node.Parent is MemberAccessExpressionSyntax memberAccessExpressionSyntax
+                     !(node.Parent?.Kind() == SyntaxKind.SimpleMemberAccessExpression && node.Parent is MemberAccessExpressionSyntax memberAccessExpressionSyntax
                        && node == memberAccessExpressionSyntax.Name) )
                 {
                     switch ( symbol )
@@ -1648,9 +1648,9 @@ namespace Metalama.Framework.Engine.CompileTime
                             return this.CreateTypeSyntax( namespaceOrType ).WithTriviaFrom( nodeWithoutPreprocessorDirectives );
 
                         case { IsStatic: true }
-                            when node.Parent is not MemberAccessExpressionSyntax
-                                 && node.Parent is not AliasQualifiedNameSyntax
-                                 && symbol is not IMethodSymbol { MethodKind: MethodKind.LocalFunction }:
+                            when node.Parent?.Kind() != SyntaxKind.SimpleMemberAccessExpression
+                                 && node.Parent?.Kind() != SyntaxKind.AliasQualifiedName
+                                 && (symbol.Kind != SymbolKind.Method || symbol is not IMethodSymbol { MethodKind: MethodKind.LocalFunction }):
                             switch ( symbol.Kind )
                             {
                                 case SymbolKind.Field:

@@ -55,10 +55,10 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
         this.TypeKind = typeKind;
         this.IsRecord = isRecord;
 
-        this.ContainingNamespace = declaringNamespaceOrType switch
+        this.ContainingNamespace = declaringNamespaceOrType.DeclarationKind switch
         {
-            INamespace @namespace => @namespace,
-            INamedType namedType => namedType.ContainingNamespace,
+            DeclarationKind.Namespace when declaringNamespaceOrType is INamespace @namespace => @namespace,
+            DeclarationKind.NamedType when declaringNamespaceOrType is INamedType namedType => namedType.ContainingNamespace,
             _ => throw new AssertionFailedException( $"Unsupported: {declaringNamespaceOrType}" )
         };
 

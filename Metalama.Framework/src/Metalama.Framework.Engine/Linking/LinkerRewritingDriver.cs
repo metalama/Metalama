@@ -86,15 +86,15 @@ internal sealed partial class LinkerRewritingDriver
         else
         {
             var (openBraceLeadingTrivia, openBraceTrailingTrivia, closeBraceLeadingTrivia, closeBraceTrailingTrivia) =
-                triviaSource switch
+                triviaSource.Kind() switch
                 {
-                    BlockSyntax blockSyntax => (
+                    SyntaxKind.Block when triviaSource is BlockSyntax blockSyntax => (
                         blockSyntax.OpenBraceToken.LeadingTrivia,
                         blockSyntax.OpenBraceToken.TrailingTrivia,
                         blockSyntax.CloseBraceToken.LeadingTrivia,
                         blockSyntax.CloseBraceToken.TrailingTrivia
                     ),
-                    ArrowExpressionClauseSyntax arrowExpression => (
+                    SyntaxKind.ArrowExpressionClause when triviaSource is ArrowExpressionClauseSyntax arrowExpression => (
                         arrowExpression.ArrowToken.LeadingTrivia,
                         arrowExpression.ArrowToken.TrailingTrivia,
                         TriviaList(),
@@ -459,10 +459,10 @@ internal sealed partial class LinkerRewritingDriver
                 this.RewriteProperty( (PropertyDeclarationSyntax) syntax, propertySymbol, generationContext ),
             IPropertySymbol indexerSymbol => this.RewriteIndexer( (IndexerDeclarationSyntax) syntax, indexerSymbol, generationContext ),
             IFieldSymbol fieldSymbol => this.RewriteField( (FieldDeclarationSyntax) syntax, fieldSymbol, generationContext ),
-            IEventSymbol eventSymbol => syntax switch
+            IEventSymbol eventSymbol => syntax.Kind() switch
             {
-                EventDeclarationSyntax eventSyntax => this.RewriteEvent( eventSyntax, eventSymbol ),
-                EventFieldDeclarationSyntax eventFieldSyntax => this.RewriteEventField( eventFieldSyntax, eventSymbol ),
+                SyntaxKind.EventDeclaration when syntax is EventDeclarationSyntax eventSyntax => this.RewriteEvent( eventSyntax, eventSymbol ),
+                SyntaxKind.EventFieldDeclaration when syntax is EventFieldDeclarationSyntax eventFieldSyntax => this.RewriteEventField( eventFieldSyntax, eventSymbol ),
                 _ => throw new InvalidOperationException( $"Unsupported event syntax: {syntax}." )
             },
             _ => throw new AssertionFailedException( $"Unsupported symbol kind: {symbol}." )

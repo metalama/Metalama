@@ -510,10 +510,10 @@ internal static partial class DocumentationIdHelper
 
         private static void GetMatchingTypes( IDeclaration container, string memberName, int arity, List<INamedType> results )
         {
-            var types = container switch
+            var types = container.DeclarationKind switch
             {
-                INamespace ns => ns.Types.OfName( memberName ),
-                INamedType namedType => namedType.Types.OfName( memberName ),
+                DeclarationKind.Namespace when container is INamespace ns => ns.Types.OfName( memberName ),
+                DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when container is INamedType namedType => namedType.Types.OfName( memberName ),
                 _ => []
             };
 
@@ -536,11 +536,11 @@ internal static partial class DocumentationIdHelper
 
         private static void GetMatchingNamespaceOrTypes( IDeclaration container, string memberName, List<IDeclaration> results )
         {
-            var members = container switch
+            var members = container.DeclarationKind switch
             {
-                INamespace ns => ns.Types.OfName( memberName )
+                DeclarationKind.Namespace when container is INamespace ns => ns.Types.OfName( memberName )
                     .ConcatNotNull<IDeclaration>( ns.Namespaces.OfName( memberName ) ),
-                INamedType namedType => namedType.Types.OfName( memberName ),
+                DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when container is INamedType namedType => namedType.Types.OfName( memberName ),
                 _ => []
             };
 
@@ -565,10 +565,12 @@ internal static partial class DocumentationIdHelper
 
         private static void GetMatchingNamespaces( IDeclaration container, string memberName, List<IDeclaration> results )
         {
-            if ( container is not INamespace ns )
+            if ( container.DeclarationKind != DeclarationKind.Namespace )
             {
                 return;
             }
+
+            var ns = (INamespace) container;
 
             if ( memberName == string.Empty )
             {
@@ -641,7 +643,7 @@ internal static partial class DocumentationIdHelper
                 {
                     index = startIndex;
 
-                    var memberArity = member is IMethod method ? method.TypeParameters.Count : 0;
+                    var memberArity = member.DeclarationKind == DeclarationKind.Method && member is IMethod method ? method.TypeParameters.Count : 0;
 
                     if ( memberArity == arity )
                     {
@@ -667,7 +669,7 @@ internal static partial class DocumentationIdHelper
                             index++;
                             var returnType = this.ParseTypeSymbol( id, ref index, member );
 
-                            var memberReturnType = member is IMethod method2 ? method2.ReturnType : null;
+                            var memberReturnType = member.DeclarationKind == DeclarationKind.Method && member is IMethod method2 ? method2.ReturnType : null;
 
                             // if return type is specified, then it must match
                             if ( returnType != null && returnType.Equals( memberReturnType, TypeComparison.Default ) )

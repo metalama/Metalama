@@ -268,19 +268,19 @@ internal static class SymbolSignatureMatcher
     {
         // See https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-13.0/params-collections#method-parameters.
 
-        return type switch
+        return type.Kind switch
         {
-            IArrayTypeSymbol { Rank: 1 } arrayType => arrayType.ElementType,
-            INamedTypeSymbol namedType when namedType.GetFullName() is "System.Span" or "System.ReadOnlySpan"
+            SymbolKind.ArrayType when type is IArrayTypeSymbol { Rank: 1 } arrayType => arrayType.ElementType,
+            SymbolKind.NamedType when type is INamedTypeSymbol namedType && namedType.GetFullName() is "System.Span" or "System.ReadOnlySpan"
                 => namedType.TypeArguments[0],
-            INamedTypeSymbol namedType when namedType.GetAttributes()
+            SymbolKind.NamedType when type is INamedTypeSymbol namedType && namedType.GetAttributes()
                     .Any( a => a.AttributeClass.GetFullName() == "System.Runtime.CompilerServices.CollectionBuilderAttribute" )
                 => GetIterationType( namedType, compilation ),
-            INamedTypeSymbol { TypeKind: TypeKind.Struct or TypeKind.Class } namedType when
-                namedType.AllInterfaces.Any( i => i.GetFullName() == "System.Collections.Generic.IEnumerable" )
+            SymbolKind.NamedType when type is INamedTypeSymbol { TypeKind: TypeKind.Struct or TypeKind.Class } namedType
+                && namedType.AllInterfaces.Any( i => i.GetFullName() == "System.Collections.Generic.IEnumerable" )
                 => GetIterationType( namedType, compilation ),
-            INamedTypeSymbol { TypeKind: TypeKind.Interface } namedType when
-                namedType.GetFullName() is "System.Collections.Generic.IEnumerable" or "System.Collections.Generic.IReadOnlyCollection"
+            SymbolKind.NamedType when type is INamedTypeSymbol { TypeKind: TypeKind.Interface } namedType
+                && namedType.GetFullName() is "System.Collections.Generic.IEnumerable" or "System.Collections.Generic.IReadOnlyCollection"
                     or "System.Collections.Generic.IReadOnlyList" or "System.Collections.Generic.ICollection" or "System.Collections.Generic.IList"
                 => namedType.TypeArguments[0],
             _ => null

@@ -98,7 +98,7 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     return node
                         .AncestorsAndSelf()
-                        .Any( n => n is TypeOfExpressionSyntax || (n is InvocationExpressionSyntax invocation && invocation.IsNameOf()) );
+                        .Any( n => n.Kind() == SyntaxKind.TypeOfExpression || (n.Kind() == SyntaxKind.InvocationExpression && n is InvocationExpressionSyntax invocation && invocation.IsNameOf()) );
                 }
 
                 bool AvoidDuplicates( ISymbol symbol )
@@ -108,7 +108,7 @@ namespace Metalama.Framework.Engine.Templating
                              && this._alreadyReportedDiagnostics.Contains( symbol.ContainingSymbol ));
                 }
 
-                if ( node is null or IdentifierNameSyntax { IsVar: true } )
+                if ( node == null || (node.Kind() == SyntaxKind.IdentifierName && node is IdentifierNameSyntax { IsVar: true }) )
                 {
                     // We skip 'var' because the semantic model sometimes resolve it to dynamic for no reason,
                     // and there is little value in spending more effort coping with this case.
@@ -158,7 +158,7 @@ namespace Metalama.Framework.Engine.Templating
                                             break;
 
                                         case ("Metalama.Framework.Code.IExpression", "Value"):
-                                            var expression = node.Parent is MemberAccessExpressionSyntax memberAccess
+                                            var expression = node.Parent.Kind() == SyntaxKind.SimpleMemberAccessExpression && node.Parent is MemberAccessExpressionSyntax memberAccess
                                                 ? memberAccess.Expression.ToString()
                                                 : "expression";
 
@@ -167,7 +167,7 @@ namespace Metalama.Framework.Engine.Templating
                                             break;
 
                                         case ("Metalama.Framework.Code.SyntaxBuilders.SyntaxBuilder", "AppendExpression"):
-                                            if ( node.Parent?.Parent is InvocationExpressionSyntax { ArgumentList.Arguments: [var argument] } )
+                                            if ( node.Parent?.Parent?.Kind() == SyntaxKind.InvocationExpression && node.Parent.Parent is InvocationExpressionSyntax { ArgumentList.Arguments: [var argument] } )
                                             {
                                                 this._observer?.OnSemanticModelUsed();
                                                 var argumentType = this._semanticModel.GetTypeInfo( argument.Expression ).Type;
@@ -378,7 +378,8 @@ namespace Metalama.Framework.Engine.Templating
 #if ROSLYN_4_8_0_OR_GREATER
                 if ( symbol is not null
                      && this._currentScope is TemplatingScope.RunTimeOrCompileTime or TemplatingScope.CompileTimeOnly
-                     && node is TypeDeclarationSyntax { ParameterList: not null } and (ClassDeclarationSyntax or StructDeclarationSyntax) )
+                     && node.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration
+                     && node is TypeDeclarationSyntax { ParameterList: not null } )
                 {
                     // C#12 primary constructors (non-record types) are not supported.
                     this.Report(
@@ -406,7 +407,7 @@ namespace Metalama.Framework.Engine.Templating
                                 symbol.GetDiagnosticLocation(),
                                 symbol ) );
                     }
-                    else if ( serializerType == null && node is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } )
+                    else if ( serializerType == null && node.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration && node is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } )
                     {
                         // Generated serializers for positional records are not supported.
                         this.Report(
@@ -594,7 +595,7 @@ namespace Metalama.Framework.Engine.Templating
             {
                 // For e.g. int P => 42;, there is no node that declares the getter,
                 // so we have to handle it manually to set up the context for the getter method.
-                if ( node.Parent is PropertyDeclarationSyntax propertyDeclaration )
+                if ( node.Parent.Kind() == SyntaxKind.PropertyDeclaration && node.Parent is PropertyDeclarationSyntax propertyDeclaration )
                 {
                     this._observer?.OnSemanticModelUsed();
                     var getMethod = this._semanticModel.GetDeclaredSymbol( propertyDeclaration ).AssertSymbolNotNull().GetMethod;
@@ -1032,7 +1033,7 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     // Verify the symbol kind.
                     if ( Array.IndexOf( suppression.EligibleSymbolKinds, declaredSymbol.Kind ) < 0
-                         && !(suppression.AppliesToConstructor && node is ConstructorDeclarationSyntax) )
+                         && !(suppression.AppliesToConstructor && node.Kind() == SyntaxKind.ConstructorDeclaration) )
                     {
                         continue;
                     }
@@ -1040,21 +1041,22 @@ namespace Metalama.Framework.Engine.Templating
                     // Verify that the template has a body, if required.
                     if ( suppression.RequiresBody )
                     {
-                        var hasBody = node switch
+                        var hasBody = node.Kind() switch
                         {
-                            ConstructorDeclarationSyntax => true,
-                            MethodDeclarationSyntax method => method.Body != null || method.ExpressionBody != null,
-                            VariableDeclaratorSyntax variable => variable.Initializer != null,
-                            EventDeclarationSyntax => true,
-                            OperatorDeclarationSyntax => true,
-                            DestructorDeclarationSyntax => true,
-                            ConversionOperatorDeclarationSyntax => true,
-                            IndexerDeclarationSyntax => true,
-                            AccessorDeclarationSyntax accessor => accessor.Body != null || accessor.ExpressionBody != null,
-                            PropertyDeclarationSyntax property => property.Initializer != null ||
+                            SyntaxKind.ConstructorDeclaration => true,
+                            SyntaxKind.MethodDeclaration when node is MethodDeclarationSyntax method => method.Body != null || method.ExpressionBody != null,
+                            SyntaxKind.VariableDeclarator when node is VariableDeclaratorSyntax variable => variable.Initializer != null,
+                            SyntaxKind.EventDeclaration => true,
+                            SyntaxKind.OperatorDeclaration => true,
+                            SyntaxKind.DestructorDeclaration => true,
+                            SyntaxKind.ConversionOperatorDeclaration => true,
+                            SyntaxKind.IndexerDeclaration => true,
+                            SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                                when node is AccessorDeclarationSyntax accessor => accessor.Body != null || accessor.ExpressionBody != null,
+                            SyntaxKind.PropertyDeclaration when node is PropertyDeclarationSyntax property => property.Initializer != null ||
                                                                   (property.AccessorList != null && property.AccessorList.Accessors.Any(
                                                                       a => a.Body != null || a.ExpressionBody != null )),
-                            ArrowExpressionClauseSyntax => true,
+                            SyntaxKind.ArrowExpressionClause => true,
                             _ => throw new AssertionFailedException()
                         };
 

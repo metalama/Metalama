@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -178,7 +179,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     var syntaxNode = syntaxReference.GetSyntax();
                     var typeDeclarationSyntax = syntaxNode.GetDeclaringType();
 
-                    if ( syntaxNode is LocalFunctionStatementSyntax && typeDeclarationSyntax == null )
+                    if ( syntaxNode.Kind() == SyntaxKind.LocalFunctionStatement && syntaxNode is LocalFunctionStatementSyntax && typeDeclarationSyntax == null )
                     {
                         throw new AssertionFailedException( "Top-level local functions are not supported: {syntaxNode}" );
                     }
@@ -197,7 +198,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     var declarationSyntax =
                         syntaxReference.GetSyntax() switch
                         {
-                            { Parent: AccessorListSyntax { Parent: IndexerDeclarationSyntax indexer } } => indexer,
+                            { Parent: { } parent } when parent.Kind() == SyntaxKind.AccessorList && parent is AccessorListSyntax { Parent: { } grandParent } && grandParent.Kind() == SyntaxKind.IndexerDeclaration && grandParent is IndexerDeclarationSyntax indexer => indexer,
                             { } anything => anything
                         };
 

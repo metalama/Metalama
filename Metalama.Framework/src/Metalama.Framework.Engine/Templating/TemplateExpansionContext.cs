@@ -211,7 +211,8 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
                 methodTemplate.TemplateArguments.OfType<TemplateTypeArgumentFactory>().Select( x => new KeyValuePair<string, IType>( x.Name, x.Type ) ) );
         }
 
-        if ( metaApi.Target.Declaration is IMethod { TypeParameters.Count: > 0 } targetMethod )
+        if ( metaApi.Target.Declaration.DeclarationKind == DeclarationKind.Method
+             && metaApi.Target.Declaration is IMethod { TypeParameters.Count: > 0 } targetMethod )
         {
             // Generic method - we need to add type parameters as named arguments for correct serializable id resolution.
             // Any target method type parameter that matches name of template argument can be skipped - template will not have a runtime type parameter of that name.
@@ -547,17 +548,17 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         // However, we have an expression, and it may have a side effect, therefore we cannot just drop X.
         // We try to detect if the can have a side effect. If yes, we add it as an expression statement.
 
-        switch ( returnExpression )
+        switch ( returnExpression?.Kind() )
         {
-            case PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.SuppressNullableWarningExpression, Operand: var operand }:
+            case SyntaxKind.SuppressNullableWarningExpression when returnExpression is PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.SuppressNullableWarningExpression, Operand: var operand }:
                 // We're ignoring the value, so we don't care about its nullability and removing the ! operator might bring further opportunities for simplification.
                 return CreateReturnStatementVoid( operand );
 
-            case ConditionalAccessExpressionSyntax { WhenNotNull: InvocationExpressionSyntax }:
-            case InvocationExpressionSyntax:
+            case SyntaxKind.ConditionalAccessExpression when returnExpression is ConditionalAccessExpressionSyntax { WhenNotNull: InvocationExpressionSyntax }:
+            case SyntaxKind.InvocationExpression:
             // Do not use discard on invocations, because it may be void.
 
-            case AwaitExpressionSyntax:
+            case SyntaxKind.AwaitExpression:
                 // We have to await in a statement, then return in another statement.
                 return
                     Block(
@@ -566,9 +567,15 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
                         .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
 
             case null:
-            case LiteralExpressionSyntax:
-            case IdentifierNameSyntax:
-                // No need to call the expression  because we are guaranteed to have no side effect and we don't 
+            case SyntaxKind.CharacterLiteralExpression:
+            case SyntaxKind.StringLiteralExpression:
+            case SyntaxKind.NumericLiteralExpression:
+            case SyntaxKind.TrueLiteralExpression:
+            case SyntaxKind.FalseLiteralExpression:
+            case SyntaxKind.NullLiteralExpression:
+            case SyntaxKind.DefaultLiteralExpression:
+            case SyntaxKind.IdentifierName:
+                // No need to call the expression  because we are guaranteed to have no side effect and we don't
                 // care about the value.
                 return ReturnStatement().WithAdditionalAnnotations( FormattingAnnotations.PossibleRedundantAnnotation );
 
@@ -709,7 +716,38 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         {
             foreach ( var child in node.ChildNodesAndTokens() )
             {
-                if ( child.AsNode() is StatementSyntax statement )
+                var childNode = child.AsNode();
+
+                if ( childNode?.Kind() is
+                    SyntaxKind.Block or
+                    SyntaxKind.LocalFunctionStatement or
+                    SyntaxKind.ExpressionStatement or
+                    SyntaxKind.IfStatement or
+                    SyntaxKind.WhileStatement or
+                    SyntaxKind.DoStatement or
+                    SyntaxKind.ForStatement or
+                    SyntaxKind.ForEachStatement or
+                    SyntaxKind.ForEachVariableStatement or
+                    SyntaxKind.UsingStatement or
+                    SyntaxKind.FixedStatement or
+                    SyntaxKind.CheckedStatement or
+                    SyntaxKind.UncheckedStatement or
+                    SyntaxKind.LockStatement or
+                    SyntaxKind.TryStatement or
+                    SyntaxKind.SwitchStatement or
+                    SyntaxKind.LocalDeclarationStatement or
+                    SyntaxKind.ReturnStatement or
+                    SyntaxKind.ThrowStatement or
+                    SyntaxKind.BreakStatement or
+                    SyntaxKind.ContinueStatement or
+                    SyntaxKind.GotoStatement or
+                    SyntaxKind.GotoCaseStatement or
+                    SyntaxKind.GotoDefaultStatement or
+                    SyntaxKind.LabeledStatement or
+                    SyntaxKind.YieldReturnStatement or
+                    SyntaxKind.YieldBreakStatement or
+                    SyntaxKind.EmptyStatement
+                    && childNode is StatementSyntax statement )
                 {
                     if ( this.Visit( statement ) )
                     {

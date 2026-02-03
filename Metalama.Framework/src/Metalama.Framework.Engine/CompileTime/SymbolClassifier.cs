@@ -477,7 +477,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 }
 
                 // If the return type is marked [CompileTime] (as in meta.CompileTime), enforce that.
-                if ( symbol is IMethodSymbol methodSymbol
+                if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol methodSymbol
                      && methodSymbol.GetReturnTypeAttributes().Any( a => a.AttributeClass?.Name == nameof(CompileTimeAttribute) ) )
                 {
                     scope = scope.Value.Scope == TemplatingScope.CompileTimeOnlyReturningRuntimeOnly
@@ -485,7 +485,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         : (TemplatingScope.CompileTimeOnly, TemplatingRule.Other);
                 }
             }
-            else if ( symbol is ITypeParameterSymbol { DeclaringMethod: { } declaringMethod } && !this.GetTemplateInfo( declaringMethod ).IsNone )
+            else if ( symbol.Kind == SymbolKind.TypeParameter && symbol is ITypeParameterSymbol { DeclaringMethod: { } declaringMethod } && !this.GetTemplateInfo( declaringMethod ).IsNone )
             {
                 // Compile-time template parameters always represent run-time types.
                 scope = (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingRule.Other);
@@ -509,18 +509,18 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 return scopeFromWellKnown;
             }
 
-            switch ( symbol )
+            switch ( symbol.Kind )
             {
                 // Dynamic.
-                case IDynamicTypeSymbol:
+                case SymbolKind.DynamicType when symbol is IDynamicTypeSymbol:
                     return (TemplatingScope.Dynamic, TemplatingRule.Other);
 
                 // Type parameters.
-                case ITypeParameterSymbol typeParameterSymbol:
+                case SymbolKind.TypeParameter when symbol is ITypeParameterSymbol typeParameterSymbol:
                     var scopeFromAttribute = GetScopeFromAttributes( tracer, typeParameterSymbol );
 
-                    if ( scopeFromAttribute?.Scope == TemplatingScope.CompileTimeOnly && typeParameterSymbol.ContainingSymbol is IMethodSymbol m
-                                                                                      && !this.GetTemplateInfo( m ).IsNone )
+                    if ( scopeFromAttribute?.Scope == TemplatingScope.CompileTimeOnly && typeParameterSymbol.ContainingSymbol.Kind == SymbolKind.Method
+                         && typeParameterSymbol.ContainingSymbol is IMethodSymbol m && !this.GetTemplateInfo( m ).IsNone )
                     {
                         return (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingRule.Attribute);
                     }
@@ -554,13 +554,13 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                     }
 
                 // Error (unresolved types).
-                case IErrorTypeSymbol:
+                case SymbolKind.ErrorType when symbol is IErrorTypeSymbol:
                     // We treat all error symbols as run-time to avoid including error types in the compile-time compilations,
                     // which may cause a high number of errors during the solution load at design time.
                     return (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
 
                 // Array.
-                case IArrayTypeSymbol array:
+                case SymbolKind.ArrayType when symbol is IArrayTypeSymbol array:
                     {
                         var elementScope = this.GetTemplatingScopeCore( array.ElementType, options, symbolsBeingProcessedIncludingCurrent, tracer );
 
@@ -579,11 +579,11 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                     }
 
                 // Pointers.
-                case IPointerTypeSymbol pointer:
+                case SymbolKind.PointerType when symbol is IPointerTypeSymbol pointer:
                     return this.GetTemplatingScopeCore( pointer.PointedAtType, options, symbolsBeingProcessedIncludingCurrent, tracer );
 
                 // Generic type instances.
-                case INamedTypeSymbol { IsGenericType: true } namedType when !namedType.IsGenericTypeDefinition():
+                case SymbolKind.NamedType when symbol is INamedTypeSymbol { IsGenericType: true } namedType && !namedType.IsGenericTypeDefinition():
                     {
                         List<TemplatingScopeAndRule?> scopes = new( namedType.TypeArguments.Length + 1 );
 
@@ -695,7 +695,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                     }
 
                 // Anonymous types.
-                case INamedTypeSymbol { IsAnonymousType: true } anonymousType:
+                case SymbolKind.NamedType when symbol is INamedTypeSymbol { IsAnonymousType: true } anonymousType:
                     {
                         TemplatingScope? combinedScope = TemplatingScope.RunTimeOrCompileTime;
 
@@ -716,7 +716,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                     }
 
                 // Type definitions
-                case INamedTypeSymbol namedType:
+                case SymbolKind.NamedType when symbol is INamedTypeSymbol namedType:
                     {
                         // Note: Type with [CompileTime] on a base type or an interface should be considered compile-time,
                         // even if it has a generic argument from an external assembly (which makes it run-time). So generic arguments should come last.
@@ -803,11 +803,11 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         return (combinedScope ?? declaringTypeScope?.Scope ?? TemplatingScope.RunTimeOnly, TemplatingRule.Other);
                     }
 
-                case INamespaceSymbol:
+                case SymbolKind.Namespace when symbol is INamespaceSymbol:
                     // Namespace can be either run-time, build-time or both. We don't do more now but we may have to do it based on assemblies defining the namespace.
                     return (TemplatingScope.RunTimeOrCompileTime, TemplatingRule.Other);
 
-                case IParameterSymbol parameter:
+                case SymbolKind.Parameter when symbol is IParameterSymbol parameter:
                     {
                         var parameterScope = GetScopeFromAttributes( tracer, parameter );
 
@@ -831,17 +831,17 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         return parameterScope;
                     }
 
-                case ILocalSymbol:
-                case IRangeVariableSymbol:
+                case SymbolKind.Local when symbol is ILocalSymbol:
+                case SymbolKind.RangeVariable when symbol is IRangeVariableSymbol:
                     // Local variables are classified by the template annotator. The SymbolClassifier can be called by other components
                     // for a local variable, but then it cannot give any answer. We could return null, but then the RunTime fallback would be
                     // applied. So we use RunTimeOrCompileTime.
                     return (TemplatingScope.RunTimeOrCompileTime, TemplatingRule.Other);
 
-                case IDiscardSymbol:
+                case SymbolKind.Discard when symbol is IDiscardSymbol:
                     return (TemplatingScope.RunTimeOrCompileTime, TemplatingRule.Other);
 
-                case IFunctionPointerTypeSymbol:
+                case SymbolKind.FunctionPointerType when symbol is IFunctionPointerTypeSymbol:
                     return (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
 
                 // The default case covers all members.
@@ -1189,13 +1189,13 @@ internal sealed class SymbolClassifier : ISymbolClassifier
     {
         scope = null;
 
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case IErrorTypeSymbol:
+            case SymbolKind.ErrorType:
                 // Coverage: ignore
                 return false;
 
-            case INamedTypeSymbol namedType when !namedType.IsGenericType || namedType.IsGenericTypeDefinition():
+            case SymbolKind.NamedType when symbol is INamedTypeSymbol namedType && (!namedType.IsGenericType || namedType.IsGenericTypeDefinition()):
 
                 // Check well-known types and ancestors.
                 for ( var t = namedType; t != null && t.SpecialType != SpecialType.System_Object; t = t.BaseType )
@@ -1241,21 +1241,19 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
                 return false;
 
-            case { ContainingType: { } namedType }:
+            default:
+                // Check well-known members for symbols with a containing type.
+                if ( symbol.ContainingType is { } containingType )
                 {
-                    // Check well-known members.
-                    if ( _wellKnownMembers.TryGetValue( (namedType.MetadataName, symbol.MetadataName), out var config ) &&
-                         config.Namespace == namedType.ContainingNamespace.GetFullName() )
+                    if ( _wellKnownMembers.TryGetValue( (containingType.MetadataName, symbol.MetadataName), out var config ) &&
+                         config.Namespace == containingType.ContainingNamespace.GetFullName() )
                     {
                         scope = (config.Scope!.Value, TemplatingRule.WellKnown);
 
                         return true;
                     }
-
-                    return false;
                 }
 
-            default:
                 return false;
         }
     }

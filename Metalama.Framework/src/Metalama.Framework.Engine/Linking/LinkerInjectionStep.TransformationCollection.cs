@@ -14,6 +14,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
@@ -253,9 +254,9 @@ internal sealed partial class LinkerInjectionStep
 
         public void AddRemovedSyntax( SyntaxNode removedSyntax )
         {
-            switch ( removedSyntax )
+            switch ( removedSyntax.Kind() )
             {
-                case VariableDeclaratorSyntax variableDeclarator:
+                case SyntaxKind.VariableDeclarator when removedSyntax is VariableDeclaratorSyntax variableDeclarator:
                     lock ( this._removedVariableDeclaratorSyntax )
                     {
                         this._removedVariableDeclaratorSyntax.Add( variableDeclarator );
@@ -522,9 +523,9 @@ internal sealed partial class LinkerInjectionStep
             statements.AddRange(
                 orderedInputContractStatements.Select(
                     s =>
-                        s.Statement switch
+                        s.Statement.Kind() switch
                         {
-                            BlockSyntax block => block.WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            SyntaxKind.Block when s.Statement is BlockSyntax block => block.WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
                             _ => s.Statement
                         } ) );
 
@@ -592,9 +593,9 @@ internal sealed partial class LinkerInjectionStep
             statements.AddRange(
                 orderedOutputContractStatements.Select(
                     s =>
-                        s.Statement switch
+                        s.Statement.Kind() switch
                         {
-                            BlockSyntax block => block.WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            SyntaxKind.Block when s.Statement is BlockSyntax block => block.WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
                             _ => s.Statement
                         } ) );
 

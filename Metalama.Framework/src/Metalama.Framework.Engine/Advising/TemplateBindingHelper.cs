@@ -655,8 +655,9 @@ internal static class TemplateBindingHelper
             }
         }
 
-        if ( fromType is ITypeParameter fromGenericParameter && toType is ITypeParameter toGenericParameter
-                                                             && fromGenericParameter.Name == toGenericParameter.Name )
+        if ( fromType.TypeKind == TypeKind.TypeParameter && fromType is ITypeParameter fromGenericParameter
+             && toType.TypeKind == TypeKind.TypeParameter && toType is ITypeParameter toGenericParameter
+             && fromGenericParameter.Name == toGenericParameter.Name )
         {
             // If we are comparing two generic parameters, we only compare the name here. The caller will then check
             // the compatibility of constraints, so we don't have to do it here.
@@ -678,7 +679,9 @@ internal static class TemplateBindingHelper
             // Return types of template and target match.
             return true;
         }
-        else if ( toMethodAsyncInfo != null && fromType is INamedType fromNamedType && toType is INamedType toNamedType )
+        else if ( toMethodAsyncInfo != null
+                  && fromType.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Enum or TypeKind.Delegate && fromType is INamedType fromNamedType
+                  && toType.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Enum or TypeKind.Delegate && toType is INamedType toNamedType )
         {
             // Special rules for matching async-related return types.
 

@@ -25,18 +25,28 @@ internal static class SymbolExtensions
             case SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration
                 or SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
                 or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
-                or SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
-                when declaration is MemberDeclarationSyntax memberDeclaration:
-                return memberDeclaration.GetLinkerDeclarationFlags();
+                or SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration:
+                return ((MemberDeclarationSyntax) declaration!).GetLinkerDeclarationFlags();
 
-            case SyntaxKind.VariableDeclarator when declaration is VariableDeclaratorSyntax variableDeclarator:
+            case SyntaxKind.VariableDeclarator:
+                var variableDeclarator = (VariableDeclaratorSyntax) declaration!;
                 return ((MemberDeclarationSyntax?) variableDeclarator.Parent?.Parent).AssertNotNull().GetLinkerDeclarationFlags();
 
-            case SyntaxKind.Parameter when declaration is ParameterSyntax { Parent.Parent: RecordDeclarationSyntax }:
-                return default;
+            case SyntaxKind.Parameter:
+                var parameter = (ParameterSyntax) declaration!;
+                var grandParent = parameter.Parent?.Parent;
 
-            case SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                when declaration is AccessorDeclarationSyntax accessorDeclaration:
+                if ( grandParent != null
+                     && (grandParent.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration)
+                     && grandParent is RecordDeclarationSyntax )
+                {
+                    return default;
+                }
+
+                throw new AssertionFailedException( $"Unexpected declaration syntax for parameter: {declaration}" );
+
+            case SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration:
+                var accessorDeclaration = (AccessorDeclarationSyntax) declaration!;
                 return accessorDeclaration.Parent.AssertNotNull().GetLinkerDeclarationFlags();
 
             case SyntaxKind.ArrowExpressionClause:

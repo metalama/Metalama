@@ -49,4 +49,13 @@ internal static class SyntaxKindExtensions
             or SyntaxKind.NumericLiteralExpression or SyntaxKind.TrueLiteralExpression
             or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression
             or SyntaxKind.DefaultLiteralExpression;
+
+    /// <summary>
+    /// Determines whether the syntax kind represents an accessor declaration
+    /// (get, set, init, add, or remove accessor).
+    /// </summary>
+    public static bool IsAccessorDeclaration( this SyntaxKind kind )
+        => kind is SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration
+            or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration
+            or SyntaxKind.RemoveAccessorDeclaration;
 }

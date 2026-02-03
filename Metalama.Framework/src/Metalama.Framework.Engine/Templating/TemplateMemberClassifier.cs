@@ -37,7 +37,7 @@ namespace Metalama.Framework.Engine.Templating
         {
             var symbol = this._syntaxTreeAnnotationMap.GetSymbol( expression );
 
-            if ( symbol is IParameterSymbol parameter )
+            if ( symbol?.Kind == SymbolKind.Parameter && symbol is IParameterSymbol parameter )
             {
                 return IsTemplateParameter( parameter );
             }
@@ -48,7 +48,11 @@ namespace Metalama.Framework.Engine.Templating
         }
 
         public bool IsRunTimeMethod( SyntaxNode node )
-            => this._syntaxTreeAnnotationMap.GetSymbol( node ) is IMethodSymbol symbol && this.IsRunTimeMethod( symbol );
+        {
+            var symbol = this._syntaxTreeAnnotationMap.GetSymbol( node );
+
+            return symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol methodSymbol && this.IsRunTimeMethod( methodSymbol );
+        }
 
         public bool IsNodeOfDynamicType( SyntaxNode originalNode ) => originalNode is ExpressionSyntax expression && this.IsNodeOfDynamicType( expression );
 
@@ -61,7 +65,7 @@ namespace Metalama.Framework.Engine.Templating
         {
             var expressionType = this._syntaxTreeAnnotationMap.GetExpressionType( originalNode );
 
-            if ( expressionType is IDynamicTypeSymbol )
+            if ( expressionType?.Kind == SymbolKind.DynamicType && expressionType is IDynamicTypeSymbol )
             {
                 // Roslyn returns a dynamic type even for methods returning a non-dynamic type, as long as they have at least
                 // one dynamic argument. We don't want to fix the Roslyn type resolution, but in the specific case of void methods,
@@ -70,7 +74,7 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     var symbols = this._syntaxTreeAnnotationMap.GetCandidateSymbols( originalNode ).ToReadOnlyList();
 
-                    if ( symbols.Count > 0 && symbols.All( symbol => symbol is IMethodSymbol { ReturnsVoid: true } ) )
+                    if ( symbols.Count > 0 && symbols.All( symbol => symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { ReturnsVoid: true } ) )
                     {
                         return false;
                     }
@@ -84,8 +88,8 @@ namespace Metalama.Framework.Engine.Templating
 
             var nodeSymbol = this._syntaxTreeAnnotationMap.GetSymbol( originalNode );
 
-            return (nodeSymbol is IMethodSymbol method && this.SymbolClassifier.GetTemplatingScope( method.ReturnType ) == TemplatingScope.Dynamic) ||
-                   (nodeSymbol is IPropertySymbol property && this.SymbolClassifier.GetTemplatingScope( property.Type ) == TemplatingScope.Dynamic);
+            return (nodeSymbol?.Kind == SymbolKind.Method && nodeSymbol is IMethodSymbol method && this.SymbolClassifier.GetTemplatingScope( method.ReturnType ) == TemplatingScope.Dynamic) ||
+                   (nodeSymbol?.Kind == SymbolKind.Property && nodeSymbol is IPropertySymbol property && this.SymbolClassifier.GetTemplatingScope( property.Type ) == TemplatingScope.Dynamic);
         }
 
         /// <summary>

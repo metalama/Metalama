@@ -115,7 +115,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
             foreach ( var t in namedType.TypeArguments )
             {
-                if ( t is ITypeParameterSymbol p )
+                if ( t.Kind == SymbolKind.TypeParameter && t is ITypeParameterSymbol p )
                 {
                     if ( !p.ContainingSymbol.Equals( namedType ) )
                     {
@@ -338,7 +338,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
             };
 
         internal static bool IsTaskConfigureAwait( this ISymbol? symbol )
-            => symbol is IMethodSymbol
+            => symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol
             {
                 Name: "ConfigureAwait",
                 ContainingType: var containingType

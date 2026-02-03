@@ -151,7 +151,8 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
 
                             var isPublic = memberTemplate.Accessibility == Accessibility.Public;
 
-                            if ( interfaceMember is IPropertyOrIndexer property )
+                            if ( interfaceMember.DeclarationKind is DeclarationKind.Property or DeclarationKind.Indexer
+                                 && interfaceMember is IPropertyOrIndexer property )
                             {
                                 if ( property.GetMethod != null )
                                 {

@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
@@ -124,9 +125,9 @@ internal sealed partial class LinkerAnalysisStep
 
             var body = GetDeclarationBody( declaration );
 
-            switch ( body )
+            switch ( body.Kind() )
             {
-                case BlockSyntax rootBlock:
+                case SyntaxKind.Block when body is BlockSyntax rootBlock:
                     var rootBlockCfa = semanticModel.AnalyzeControlFlow( rootBlock );
                     var exitFlowingStatements = new HashSet<StatementSyntax>();
                     var returnStatementProperties = new Dictionary<ReturnStatementSyntax, ReturnStatementProperties>();
@@ -139,44 +140,44 @@ internal sealed partial class LinkerAnalysisStep
                     // Go through all return statements.
                     foreach ( var returnStatement in rootBlockCfa.ReturnStatements.OfType<ReturnStatementSyntax>() )
                     {
-                        switch ( returnStatement )
+                        switch ( returnStatement.Parent?.Kind() )
                         {
-                            case { Parent: BlockSyntax parentBlock }:
+                            case SyntaxKind.Block when returnStatement.Parent is BlockSyntax parentBlock:
                                 AddIfExitFlowing( parentBlock, false, GetLastFlowStatement( parentBlock.Statements ) != returnStatement );
 
                                 break;
 
-                            case { Parent: IfStatementSyntax ifStatement }:
+                            case SyntaxKind.IfStatement when returnStatement.Parent is IfStatementSyntax ifStatement:
                                 AddIfExitFlowing( ifStatement, false, false );
 
                                 break;
 
-                            case { Parent: ElseClauseSyntax { Parent: IfStatementSyntax ifStatement } }:
+                            case SyntaxKind.ElseClause when returnStatement.Parent is ElseClauseSyntax { Parent: IfStatementSyntax ifStatement }:
                                 AddIfExitFlowing( ifStatement, false, false );
 
                                 break;
 
-                            case { Parent: SwitchSectionSyntax { Parent: SwitchStatementSyntax switchStatement } switchSection }:
+                            case SyntaxKind.SwitchSection when returnStatement.Parent is SwitchSectionSyntax { Parent: SwitchStatementSyntax switchStatement } switchSection:
                                 AddIfExitFlowing( switchStatement, true, GetLastFlowStatement( switchSection.Statements ) != returnStatement );
 
                                 break;
 
-                            case { Parent: LockStatementSyntax lockStatement }:
+                            case SyntaxKind.LockStatement when returnStatement.Parent is LockStatementSyntax lockStatement:
                                 AddIfExitFlowing( lockStatement, false, false );
 
                                 break;
 
-                            case { Parent: FixedStatementSyntax fixedStatement }:
+                            case SyntaxKind.FixedStatement when returnStatement.Parent is FixedStatementSyntax fixedStatement:
                                 AddIfExitFlowing( fixedStatement, false, false );
 
                                 break;
 
-                            case { Parent: LabeledStatementSyntax labeledStatement }:
+                            case SyntaxKind.LabeledStatement when returnStatement.Parent is LabeledStatementSyntax labeledStatement:
                                 AddIfExitFlowing( labeledStatement, false, false );
 
                                 break;
 
-                            case { Parent: UsingStatementSyntax usingStatement }:
+                            case SyntaxKind.UsingStatement when returnStatement.Parent is UsingStatementSyntax usingStatement:
                                 AddIfExitFlowing( usingStatement, false, false );
 
                                 break;
@@ -202,31 +203,33 @@ internal sealed partial class LinkerAnalysisStep
 
                     return new SemanticBodyAnalysisResult( returnStatementProperties, rootBlockCfa.EndPointIsReachable, blocksWithReturnBeforeUsingLocal );
 
-                case ArrowExpressionClauseSyntax:
+                case SyntaxKind.ArrowExpressionClause:
                     return new SemanticBodyAnalysisResult(
                         new Dictionary<ReturnStatementSyntax, ReturnStatementProperties>(),
                         false,
                         Array.Empty<BlockSyntax>() );
 
-                case MethodDeclarationSyntax { Body: null, ExpressionBody: null }:
+                case SyntaxKind.MethodDeclaration when body is MethodDeclarationSyntax { Body: null, ExpressionBody: null }:
                     return new SemanticBodyAnalysisResult(
                         new Dictionary<ReturnStatementSyntax, ReturnStatementProperties>(),
                         false,
                         Array.Empty<BlockSyntax>() );
 
-                case AccessorDeclarationSyntax { Body: null, ExpressionBody: null }:
+                case SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                    or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                    when body is AccessorDeclarationSyntax { Body: null, ExpressionBody: null }:
                     return new SemanticBodyAnalysisResult(
                         new Dictionary<ReturnStatementSyntax, ReturnStatementProperties>(),
                         false,
                         Array.Empty<BlockSyntax>() );
 
-                case VariableDeclaratorSyntax { Parent.Parent: EventFieldDeclarationSyntax }:
+                case SyntaxKind.VariableDeclarator when body is VariableDeclaratorSyntax { Parent.Parent: EventFieldDeclarationSyntax }:
                     return new SemanticBodyAnalysisResult(
                         new Dictionary<ReturnStatementSyntax, ReturnStatementProperties>(),
                         false,
                         Array.Empty<BlockSyntax>() );
 
-                case ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } }:
+                case SyntaxKind.Parameter when body is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } }:
                     return new SemanticBodyAnalysisResult(
                         new Dictionary<ReturnStatementSyntax, ReturnStatementProperties>(),
                         false,
@@ -250,21 +253,21 @@ internal sealed partial class LinkerAnalysisStep
                  *   * Labeled statements.
                  */
 
-                switch ( statement )
+                switch ( statement.Kind() )
                 {
-                    case ReturnStatementSyntax returnStatement:
+                    case SyntaxKind.ReturnStatement when statement is ReturnStatementSyntax returnStatement:
                         exitFlowingStatements.Add( returnStatement );
 
                         break;
 
-                    case BlockSyntax block:
+                    case SyntaxKind.Block when statement is BlockSyntax block:
                         exitFlowingStatements.Add( block );
 
                         ProcessStatementList( block.Statements );
 
                         break;
 
-                    case IfStatementSyntax ifStatement:
+                    case SyntaxKind.IfStatement when statement is IfStatementSyntax ifStatement:
                         // It is necessary to track if statements because return can be directly under the if/else instead of in a block.
                         exitFlowingStatements.Add( ifStatement );
 
@@ -277,7 +280,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case SwitchStatementSyntax switchStatement:
+                    case SyntaxKind.SwitchStatement when statement is SwitchStatementSyntax switchStatement:
                         // It is necessary to track switch statements because return can be directly under one of the sections.
                         exitFlowingStatements.Add( switchStatement );
 
@@ -291,7 +294,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case LockStatementSyntax lockStatement:
+                    case SyntaxKind.LockStatement when statement is LockStatementSyntax lockStatement:
                         // It is necessary to track fixed statements because return can be directly under it.
                         exitFlowingStatements.Add( lockStatement );
 
@@ -299,7 +302,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case FixedStatementSyntax fixedStatement:
+                    case SyntaxKind.FixedStatement when statement is FixedStatementSyntax fixedStatement:
                         // It is necessary to track fixed statements because return can be directly under it.
                         exitFlowingStatements.Add( fixedStatement );
 
@@ -307,12 +310,12 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case CheckedStatementSyntax checkedStatement:
+                    case SyntaxKind.CheckedStatement when statement is CheckedStatementSyntax checkedStatement:
                         DiscoverExitFlowingStatements( checkedStatement.Block, exitFlowingStatements );
 
                         break;
 
-                    case LabeledStatementSyntax labeledStatement:
+                    case SyntaxKind.LabeledStatement when statement is LabeledStatementSyntax labeledStatement:
                         // It is necessary to track labeled statements because return can be directly under it.
                         exitFlowingStatements.Add( labeledStatement );
 
@@ -320,12 +323,12 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case UnsafeStatementSyntax unsafeStatement:
+                    case SyntaxKind.UnsafeStatement when statement is UnsafeStatementSyntax unsafeStatement:
                         DiscoverExitFlowingStatements( unsafeStatement.Block, exitFlowingStatements );
 
                         break;
 
-                    case UsingStatementSyntax usingStatement:
+                    case SyntaxKind.UsingStatement when statement is UsingStatementSyntax usingStatement:
                         // It is necessary to track using statements because return can be directly under it.
                         exitFlowingStatements.Add( usingStatement );
 
@@ -333,7 +336,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case TryStatementSyntax tryStatement:
+                    case SyntaxKind.TryStatement when statement is TryStatementSyntax tryStatement:
                         DiscoverExitFlowingStatements( tryStatement.Block, exitFlowingStatements );
 
                         foreach ( var catchClause in tryStatement.Catches )
@@ -359,7 +362,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         for ( var i = statements.Count - 1; i >= 0; i-- )
                         {
-                            if ( statements[i] is not LocalFunctionStatementSyntax )
+                            if ( statements[i].Kind() != SyntaxKind.LocalFunctionStatement )
                             {
                                 lastNonIgnoredStatement = statements[i];
 
@@ -398,9 +401,9 @@ internal sealed partial class LinkerAnalysisStep
         {
             for ( var i = statements.Count - 1; i >= 0; i-- )
             {
-                switch ( statements[i] )
+                switch ( statements[i].Kind() )
                 {
-                    case LocalFunctionStatementSyntax:
+                    case SyntaxKind.LocalFunctionStatement:
                         // Local function statement does not affect flow, so we ignore it.
                         continue;
 
@@ -464,7 +467,8 @@ internal sealed partial class LinkerAnalysisStep
                         encounteredStatementContainingReturnStatement = true;
                     }
 
-                    if ( statement is LocalDeclarationStatementSyntax localDeclarationStatement
+                    if ( statement.Kind() == SyntaxKind.LocalDeclarationStatement
+                         && statement is LocalDeclarationStatementSyntax localDeclarationStatement
                          && localDeclarationStatement.UsingKeyword != default
                          && encounteredStatementContainingReturnStatement )
                     {

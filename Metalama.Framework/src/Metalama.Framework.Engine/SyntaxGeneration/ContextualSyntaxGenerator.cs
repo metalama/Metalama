@@ -75,7 +75,7 @@ public sealed partial class ContextualSyntaxGenerator
     {
         var typeSyntax = this.TypeSyntax( type );
 
-        if ( type is INamedTypeSymbol { IsGenericType: true } namedType )
+        if ( type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol { IsGenericType: true } namedType )
         {
             if ( namedType.IsGenericTypeDefinition() )
             {
@@ -95,10 +95,10 @@ public sealed partial class ContextualSyntaxGenerator
         // In any typeof, we must change dynamic to object.
         typeSyntax = (TypeSyntax) dynamicToVarRewriter.Visit( typeSyntax ).AssertNotNull();
 
-        SafeSyntaxRewriter rewriter = type switch
+        SafeSyntaxRewriter rewriter = type.Kind switch
         {
-            INamedTypeSymbol { IsGenericType: true } genericType when genericType.IsGenericTypeDefinition() => new RemoveTypeArgumentsRewriter(),
-            INamedTypeSymbol { IsGenericType: true } => new RemoveReferenceNullableAnnotationsRewriterForSymbol( type ),
+            SymbolKind.NamedType when type is INamedTypeSymbol { IsGenericType: true } genericType && genericType.IsGenericTypeDefinition() => new RemoveTypeArgumentsRewriter(),
+            SymbolKind.NamedType when type is INamedTypeSymbol { IsGenericType: true } => new RemoveReferenceNullableAnnotationsRewriterForSymbol( type ),
             _ => dynamicToVarRewriter
         };
 
@@ -498,12 +498,12 @@ public sealed partial class ContextualSyntaxGenerator
 
         foreach ( var content in interpolatedString.Contents )
         {
-            switch ( content )
+            switch ( content.Kind() )
             {
-                case InterpolatedStringTextSyntax text:
+                case SyntaxKind.InterpolatedStringText when content is InterpolatedStringTextSyntax text:
                     var previousIndex = contents.Count - 1;
 
-                    if ( contents.Count > 0 && contents[previousIndex] is InterpolatedStringTextSyntax previousText )
+                    if ( contents.Count > 0 && contents[previousIndex].Kind() == SyntaxKind.InterpolatedStringText && contents[previousIndex] is InterpolatedStringTextSyntax previousText )
                     {
                         // If we have two adjacent text tokens, we need to merge them, otherwise reformatting will add a white space.
 
@@ -524,7 +524,7 @@ public sealed partial class ContextualSyntaxGenerator
 
                     break;
 
-                case InterpolationSyntax interpolation:
+                case SyntaxKind.Interpolation when content is InterpolationSyntax interpolation:
                     contents.Add( interpolation );
 
                     break;
@@ -1008,36 +1008,40 @@ public sealed partial class ContextualSyntaxGenerator
 
     internal CastExpressionSyntax SafeCastExpression( TypeSyntax type, ExpressionSyntax syntax )
     {
-        if ( syntax is CastExpressionSyntax cast && cast.Type.IsEquivalentTo( type, topLevel: false ) )
+        if ( syntax.Kind() == SyntaxKind.CastExpression && syntax is CastExpressionSyntax cast && cast.Type.IsEquivalentTo( type, topLevel: false ) )
         {
             // It's already a cast to the same type, no need to cast again.
             return cast;
         }
 
-        var requiresParenthesis = syntax switch
+        var requiresParenthesis = syntax.Kind() switch
         {
-            CastExpressionSyntax => false,
-            InvocationExpressionSyntax => false,
-            MemberAccessExpressionSyntax => false,
-            ElementAccessExpressionSyntax => false,
-            IdentifierNameSyntax => false,
-            LiteralExpressionSyntax => false,
-            DefaultExpressionSyntax => false,
-            TypeOfExpressionSyntax => false,
-            ParenthesizedExpressionSyntax => false,
-            ConditionalAccessExpressionSyntax => false,
-            ObjectCreationExpressionSyntax => false,
-            ArrayCreationExpressionSyntax => false,
-            PostfixUnaryExpressionSyntax => false,
+            SyntaxKind.CastExpression => false,
+            SyntaxKind.InvocationExpression => false,
+            SyntaxKind.SimpleMemberAccessExpression => false,
+            SyntaxKind.ElementAccessExpression => false,
+            SyntaxKind.IdentifierName => false,
+            SyntaxKind.NumericLiteralExpression or SyntaxKind.StringLiteralExpression or SyntaxKind.CharacterLiteralExpression
+                or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression
+                or SyntaxKind.DefaultLiteralExpression => false,
+            SyntaxKind.DefaultExpression => false,
+            SyntaxKind.TypeOfExpression => false,
+            SyntaxKind.ParenthesizedExpression => false,
+            SyntaxKind.ConditionalAccessExpression => false,
+            SyntaxKind.ObjectCreationExpression => false,
+            SyntaxKind.ArrayCreationExpression or SyntaxKind.ImplicitArrayCreationExpression => false,
+            SyntaxKind.PostIncrementExpression or SyntaxKind.PostDecrementExpression or SyntaxKind.SuppressNullableWarningExpression => false,
 
 #if ROSLYN_4_8_0_OR_GREATER
-            CollectionExpressionSyntax => false,
+            SyntaxKind.CollectionExpression => false,
 #endif
 
             // The syntax (T)-x is ambiguous and interpreted as binary minus, not cast of unary minus.
-            PrefixUnaryExpressionSyntax { RawKind: not (int) SyntaxKind.UnaryMinusExpression } => false,
-            TupleExpressionSyntax => false,
-            ThisExpressionSyntax => false,
+            SyntaxKind.UnaryPlusExpression or SyntaxKind.LogicalNotExpression or SyntaxKind.BitwiseNotExpression
+                or SyntaxKind.PreIncrementExpression or SyntaxKind.PreDecrementExpression or SyntaxKind.AddressOfExpression
+                or SyntaxKind.PointerIndirectionExpression or SyntaxKind.IndexExpression => false,
+            SyntaxKind.TupleExpression => false,
+            SyntaxKind.ThisExpression => false,
             _ => true
         };
 
@@ -1137,11 +1141,11 @@ public sealed partial class ContextualSyntaxGenerator
         }
 
         static string? GetRightMostIdentifier( ExpressionSyntax expression )
-            => expression switch
+            => expression.Kind() switch
             {
-                IdentifierNameSyntax identifierName => identifierName.Identifier.Text,
-                MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
-                ConditionalAccessExpressionSyntax conditionalAccess => GetRightMostIdentifier( conditionalAccess.WhenNotNull ),
+                SyntaxKind.IdentifierName when expression is IdentifierNameSyntax identifierName => identifierName.Identifier.Text,
+                SyntaxKind.SimpleMemberAccessExpression when expression is MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
+                SyntaxKind.ConditionalAccessExpression when expression is ConditionalAccessExpressionSyntax conditionalAccess => GetRightMostIdentifier( conditionalAccess.WhenNotNull ),
                 _ => null
             };
     }

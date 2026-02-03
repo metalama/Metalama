@@ -26,7 +26,15 @@ public static class SyntaxExtensions
 
         while ( current != null )
         {
-            if ( current is MemberDeclarationSyntax memberDeclaration )
+            if ( current.Kind() is SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration
+                    or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration
+                    or SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration
+                    or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
+                    or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                    or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
+                    or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
+                    or SyntaxKind.IncompleteMember or SyntaxKind.GlobalStatement
+                && current is MemberDeclarationSyntax memberDeclaration )
             {
                 return memberDeclaration;
             }
@@ -46,7 +54,16 @@ public static class SyntaxExtensions
 
         while ( current != null )
         {
-            if ( current is MemberDeclarationSyntax or VariableDeclaratorSyntax { Parent.Parent: FieldDeclarationSyntax } )
+            if ( (current.Kind() is SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration
+                    or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration
+                    or SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration
+                    or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
+                    or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                    or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
+                    or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
+                    or SyntaxKind.IncompleteMember or SyntaxKind.GlobalStatement
+                    && current is MemberDeclarationSyntax)
+                || (current.Kind() == SyntaxKind.VariableDeclarator && current is VariableDeclaratorSyntax { Parent.Parent: FieldDeclarationSyntax }) )
             {
                 return current;
             }
@@ -69,22 +86,24 @@ public static class SyntaxExtensions
     internal static bool IsAccessModifierKeyword( this SyntaxToken token ) => SyntaxFacts.IsAccessibilityModifier( token.Kind() );
 
     internal static ExpressionSyntax RemoveParenthesis( this ExpressionSyntax node )
-        => node switch
+        => node.Kind() switch
         {
-            ParenthesizedExpressionSyntax parenthesized => parenthesized.Expression.RemoveParenthesis(),
+            SyntaxKind.ParenthesizedExpression when node is ParenthesizedExpressionSyntax parenthesized => parenthesized.Expression.RemoveParenthesis(),
             _ => node
         };
 
     internal static TypeDeclarationSyntax? GetDeclaringType( this SyntaxNode node )
-        => node switch
+        => node.Kind() switch
         {
-            TypeDeclarationSyntax type => type,
+            SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
+                when node is TypeDeclarationSyntax type => type,
             _ => node.Parent?.GetDeclaringType()
         };
 
     internal static bool IsNameOf( this InvocationExpressionSyntax node )
         => node.Expression.Kind() == SyntaxKind.NameOfKeyword ||
-           (node.Expression is IdentifierNameSyntax identifierName && string.Equals( identifierName.Identifier.Text, "nameof", StringComparison.Ordinal ));
+           (node.Expression.Kind() == SyntaxKind.IdentifierName && node.Expression is IdentifierNameSyntax identifierName && string.Equals( identifierName.Identifier.Text, "nameof", StringComparison.Ordinal ));
 
     internal static TypeSyntax GetNamespaceOrType( this UsingDirectiveSyntax usingDirective )
 #if ROSLYN_4_8_0_OR_GREATER
@@ -98,9 +117,9 @@ public static class SyntaxExtensions
 #if ROSLYN_4_8_0_OR_GREATER
         return typeDeclaration.ParameterList;
 #else
-        return typeDeclaration switch
+        return typeDeclaration.Kind() switch
         {
-            RecordDeclarationSyntax record => record.ParameterList,
+            SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when typeDeclaration is RecordDeclarationSyntax record => record.ParameterList,
             _ => null
         };
 #endif
@@ -108,7 +127,7 @@ public static class SyntaxExtensions
 
 #if !ROSLYN_4_8_0_OR_GREATER
     internal static TypeDeclarationSyntax WithParameterList( this TypeDeclarationSyntax typeDeclaration, ParameterListSyntax? parameterList )
-        => typeDeclaration is RecordDeclarationSyntax record ? record.WithParameterList( parameterList ) :
+        => typeDeclaration.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration && typeDeclaration is RecordDeclarationSyntax record ? record.WithParameterList( parameterList ) :
             parameterList == null ? typeDeclaration :
             throw new InvalidOperationException( $"Can't add parameter list to a non-record type before C# 12." );
 #endif
@@ -388,9 +407,9 @@ public static class SyntaxExtensions
     public static bool ContainsGlobalAttributes( this SyntaxTree tree ) => tree.GetCompilationUnitRoot().AttributeLists.Any( list => list.Attributes.Any() );
 
     internal static ExpressionSyntax IgnoreSuppressNullWarning( this ExpressionSyntax expression )
-        => expression switch
+        => expression.Kind() switch
         {
-            PostfixUnaryExpressionSyntax postfix when postfix.IsKind( SyntaxKind.SuppressNullableWarningExpression ) => postfix.Operand,
+            SyntaxKind.SuppressNullableWarningExpression when expression is PostfixUnaryExpressionSyntax postfix => postfix.Operand,
             _ => expression
         };
 }

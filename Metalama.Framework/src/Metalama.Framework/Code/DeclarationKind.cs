@@ -85,13 +85,13 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// An <see cref="IMethod"/> that is a finalizer (historically referred to as destructors).
         /// </summary>
-        [Obsolete( "Use DeclarationKind.Method and check IMethod.MethodKind == MethodKind.Finalizer instead." )]
+        [Obsolete( "Use DeclarationKind.Method and check IMethod.MethodKind == MethodKind.Finalizer instead.", true )]
         Finalizer,
 
         /// <summary>
         /// An <see cref="IMethod"/> that is an operator.
         /// </summary>
-        [Obsolete( "Use DeclarationKind.Method and check IMethod.MethodKind == MethodKind.Operator instead." )]
+        [Obsolete( "Use DeclarationKind.Method and check IMethod.MethodKind == MethodKind.Operator instead.", true )]
         Operator,
 
         /// <summary>

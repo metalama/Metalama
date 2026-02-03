@@ -69,24 +69,32 @@ public sealed class SourceReferenceImpl : ISourceReferenceImpl
 
         switch ( kind )
         {
-            case SyntaxKind.MethodDeclaration when sourceReference.NodeOrTokenInternal is MethodDeclarationSyntax { Body: null, ExpressionBody: null } method &&
-                method.Modifiers.Any( SyntaxKind.PartialKeyword ):
+            case SyntaxKind.MethodDeclaration when sourceReference.NodeOrTokenInternal is SyntaxNode nodeInternal
+                && nodeInternal.Kind() == SyntaxKind.MethodDeclaration
+                && nodeInternal is MethodDeclarationSyntax { Body: null, ExpressionBody: null } method
+                && method.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 
 #if ROSLYN_4_12_0_OR_GREATER
-            case SyntaxKind.PropertyDeclaration when sourceReference.NodeOrTokenInternal is PropertyDeclarationSyntax { ExpressionBody: null, AccessorList.Accessors: var accessors } property &&
-                accessors.All( a => a is { Body: null, ExpressionBody: null } ) &&
-                property.Modifiers.Any( SyntaxKind.PartialKeyword ):
+            case SyntaxKind.PropertyDeclaration when sourceReference.NodeOrTokenInternal is SyntaxNode nodeInternal
+                && nodeInternal.Kind() == SyntaxKind.PropertyDeclaration
+                && nodeInternal is PropertyDeclarationSyntax { ExpressionBody: null, AccessorList.Accessors: var accessors } property
+                && accessors.All( a => a is { Body: null, ExpressionBody: null } )
+                && property.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER
-            case SyntaxKind.ConstructorDeclaration when sourceReference.NodeOrTokenInternal is ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor &&
-                constructor.Modifiers.Any( SyntaxKind.PartialKeyword ):
+            case SyntaxKind.ConstructorDeclaration when sourceReference.NodeOrTokenInternal is SyntaxNode nodeInternal
+                && nodeInternal.Kind() == SyntaxKind.ConstructorDeclaration
+                && nodeInternal is ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor
+                && constructor.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 
-            case SyntaxKind.VariableDeclarator when sourceReference.NodeOrTokenInternal is VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax eventField } } &&
-                eventField.Modifiers.Any( SyntaxKind.PartialKeyword ):
+            case SyntaxKind.VariableDeclarator when sourceReference.NodeOrTokenInternal is SyntaxNode nodeInternal
+                && nodeInternal.Kind() == SyntaxKind.VariableDeclarator
+                && nodeInternal is VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax eventField } }
+                && eventField.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 #endif
 

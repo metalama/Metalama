@@ -111,17 +111,17 @@ internal sealed partial class LinkerLinkingStep
                 //  * Otherwise create a stub that calls the last override.
 
                 var symbols =
-                    member switch
+                    member.Kind() switch
                     {
-                        ConstructorDeclarationSyntax ctorDecl => [semanticModel.GetDeclaredSymbol( ctorDecl )],
-                        OperatorDeclarationSyntax operatorDecl => [semanticModel.GetDeclaredSymbol( operatorDecl )],
-                        ConversionOperatorDeclarationSyntax destructorDecl => [semanticModel.GetDeclaredSymbol( destructorDecl )],
-                        DestructorDeclarationSyntax destructorDecl => [semanticModel.GetDeclaredSymbol( destructorDecl )],
-                        MethodDeclarationSyntax methodDecl => [semanticModel.GetDeclaredSymbol( methodDecl )],
-                        BasePropertyDeclarationSyntax basePropertyDecl => [semanticModel.GetDeclaredSymbol( basePropertyDecl )],
-                        FieldDeclarationSyntax fieldDecl =>
+                        SyntaxKind.ConstructorDeclaration when member is ConstructorDeclarationSyntax ctorDecl => [semanticModel.GetDeclaredSymbol( ctorDecl )],
+                        SyntaxKind.OperatorDeclaration when member is OperatorDeclarationSyntax operatorDecl => [semanticModel.GetDeclaredSymbol( operatorDecl )],
+                        SyntaxKind.ConversionOperatorDeclaration when member is ConversionOperatorDeclarationSyntax destructorDecl => [semanticModel.GetDeclaredSymbol( destructorDecl )],
+                        SyntaxKind.DestructorDeclaration when member is DestructorDeclarationSyntax destructorDecl => [semanticModel.GetDeclaredSymbol( destructorDecl )],
+                        SyntaxKind.MethodDeclaration when member is MethodDeclarationSyntax methodDecl => [semanticModel.GetDeclaredSymbol( methodDecl )],
+                        SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration when member is BasePropertyDeclarationSyntax basePropertyDecl => [semanticModel.GetDeclaredSymbol( basePropertyDecl )],
+                        SyntaxKind.FieldDeclaration when member is FieldDeclarationSyntax fieldDecl =>
                             fieldDecl.Declaration.Variables.SelectAsArray( v => semanticModel.GetDeclaredSymbol( v ) ),
-                        EventFieldDeclarationSyntax eventFieldDecl =>
+                        SyntaxKind.EventFieldDeclaration when member is EventFieldDeclarationSyntax eventFieldDecl =>
                             eventFieldDecl.Declaration.Variables.SelectAsArray( v => semanticModel.GetDeclaredSymbol( v ) ),
                         _ => []
                     };
@@ -182,9 +182,9 @@ internal sealed partial class LinkerLinkingStep
                     else if ( remainingSymbols.Count > 0 )
                     {
                         // Remove declarators that were rewritten.
-                        switch ( member )
+                        switch ( member.Kind() )
                         {
-                            case EventFieldDeclarationSyntax eventFieldDecl:
+                            case SyntaxKind.EventFieldDeclaration when member is EventFieldDeclarationSyntax eventFieldDecl:
                                 newMembers.Add(
                                     eventFieldDecl.WithDeclaration(
                                         eventFieldDecl.Declaration.WithVariables(

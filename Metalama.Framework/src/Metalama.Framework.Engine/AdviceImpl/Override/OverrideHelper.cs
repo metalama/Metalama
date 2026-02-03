@@ -46,11 +46,11 @@ internal static class OverrideHelper
             Invariant.Assert( mutableCompilation != null, "mutableCompilation is required when template introduces a backing field" );
 
             // Compute a unique backing field name using the mutable compilation for collision checking.
-            var property = targetDeclaration switch
+            var property = targetDeclaration.DeclarationKind switch
             {
-                IField { OverridingProperty: { } overridingProperty } => overridingProperty,
-                IField => null, // Will be computed later after promotion
-                IProperty p => p,
+                DeclarationKind.Field when targetDeclaration is IField { OverridingProperty: { } overridingProperty } => overridingProperty,
+                DeclarationKind.Field => null, // Will be computed later after promotion
+                DeclarationKind.Property when targetDeclaration is IProperty p => p,
                 _ => null
             };
 
