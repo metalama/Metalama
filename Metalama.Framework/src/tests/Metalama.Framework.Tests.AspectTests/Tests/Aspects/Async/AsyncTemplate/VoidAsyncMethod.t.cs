@@ -11,13 +11,9 @@ internal class TargetCode
   private async void AsyncMethod()
   {
     await global::System.Threading.Tasks.Task.Yield();
-    await this.AsyncMethod_Source();
+    await Task.Yield();
     object result = null;
     global::System.Console.WriteLine($"result={result}");
     return;
-  }
-  private async global::System.Threading.Tasks.ValueTask AsyncMethod_Source()
-  {
-    await Task.Yield();
   }
 }

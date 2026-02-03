@@ -42,7 +42,9 @@ public class OrderAsyncResponseProcessor<TCommand> : AsyncResponseProcessor<Resp
     global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug30840.ParamsStacks.Push(__metalma_currentThreadId, __metalama_result.ToString());
     try
     {
-      await this.HandleFailureAsync_Source(response, context);
+      _logger.WriteInfo($"Handling failure response");
+      await base.HandleFailureAsync(response, context);
+      _logger.WriteInfo($"Handled failure response ");
       object result = null;
       return;
     }
@@ -50,11 +52,5 @@ public class OrderAsyncResponseProcessor<TCommand> : AsyncResponseProcessor<Resp
     {
       global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug30840.ParamsStacks.Pop(__metalma_currentThreadId);
     }
-  }
-  private async Task HandleFailureAsync_Source(OrderResponse response, ICommandExecutionContext context)
-  {
-    _logger.WriteInfo($"Handling failure response");
-    await base.HandleFailureAsync(response, context);
-    _logger.WriteInfo($"Handled failure response ");
   }
 }

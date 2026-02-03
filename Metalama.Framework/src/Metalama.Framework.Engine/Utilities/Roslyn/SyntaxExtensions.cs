@@ -68,10 +68,27 @@ public static class SyntaxExtensions
 
     internal static bool IsAccessModifierKeyword( this SyntaxToken token ) => SyntaxFacts.IsAccessibilityModifier( token.Kind() );
 
+    /// <summary>
+    /// Unwraps parentheses from an expression, walking down through children.
+    /// </summary>
+    /// <seealso cref="Metalama.Framework.Engine.Linking.Inlining.InlinerHelper.SkipParenthesizedExpressionAncestors"/>
     internal static ExpressionSyntax RemoveParenthesis( this ExpressionSyntax node )
         => node switch
         {
             ParenthesizedExpressionSyntax parenthesized => parenthesized.Expression.RemoveParenthesis(),
+            _ => node
+        };
+
+    /// <summary>
+    /// Unwraps parentheses and null-forgiving operators from an expression, walking down through children.
+    /// </summary>
+    /// <seealso cref="Metalama.Framework.Engine.Linking.Inlining.InlinerHelper.SkipParenthesizedExpressionAncestors"/>
+    internal static ExpressionSyntax RemoveParenthesisAndNullForgiving( this ExpressionSyntax node )
+        => node switch
+        {
+            ParenthesizedExpressionSyntax parenthesized => parenthesized.Expression.RemoveParenthesisAndNullForgiving(),
+            PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.SuppressNullableWarningExpression } nullForgiving
+                => nullForgiving.Operand.RemoveParenthesisAndNullForgiving(),
             _ => node
         };
 

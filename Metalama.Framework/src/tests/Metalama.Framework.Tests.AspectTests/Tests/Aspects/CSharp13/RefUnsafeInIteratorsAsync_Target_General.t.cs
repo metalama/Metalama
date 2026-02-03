@@ -6,7 +6,19 @@ internal class Target
     global::System.Console.WriteLine("Entering Target.Async().");
     try
     {
-      await this.Async_Source();
+      await Task.Yield();
+      // unsafe
+      unsafe
+      {
+        fixed (int* p = new int[1])
+        {
+        }
+      }
+      // ref
+      ref var r = ref (new int[1])[0];
+      // ref struct
+      Span<int> s = stackalloc int[1];
+      await Task.Yield();
       object result = null;
       global::System.Console.WriteLine($"Target.Async() succeeded with result {result}.");
       return;
@@ -16,22 +28,6 @@ internal class Target
       global::System.Console.WriteLine($"Target.Async() failed with exception {ex}.");
       throw;
     }
-  }
-  private async Task Async_Source()
-  {
-    await Task.Yield();
-    // unsafe
-    unsafe
-    {
-      fixed (int* p = new int[1])
-      {
-      }
-    }
-    // ref
-    ref var r = ref (new int[1])[0];
-    // ref struct
-    Span<int> s = stackalloc int[1];
-    await Task.Yield();
   }
   [TheAspect]
   private IEnumerable<int> Iterator()

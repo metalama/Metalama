@@ -22,6 +22,15 @@ internal sealed class InlinerProvider
         new MethodCastReturnStatementInliner(),
         new MethodInvocationInliner(),
         new MethodDiscardInliner(),
+
+        // Async method inliners (for async targets with await expressions).
+        new AwaitAssignmentInliner(),
+        new AwaitLocalDeclarationInliner(),
+        new AwaitReturnStatementInliner(),
+        new AwaitCastReturnStatementInliner(),
+        new AwaitExpressionStatementInliner(),
+        new AwaitDiscardInliner(),
+
         new PropertyGetAssignmentInliner(),
         new PropertyGetReturnInliner(),
         new PropertyGetCastReturnInliner(),

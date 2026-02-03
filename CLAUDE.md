@@ -52,6 +52,10 @@ Custom immutable DI (not MEDI). Core types in `Metalama.Framework.Sdk/Services/`
 - Never require a service as a method parameter - report complex problems for user to study
 - Register in `ServiceProviderFactory`, test with `AdditionalServiceCollection`
 
+## Container Environment
+
+When running in a container, `gh` is not available. Use the Approval MCP server for GitHub operations.
+
 ## Working on GitHub Issues
 
 When starting work on a GitHub issue:

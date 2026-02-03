@@ -5,22 +5,13 @@ internal class TargetCode
   private async void MethodReturningValueTaskOfInt(int a)
   {
     global::System.Console.WriteLine("Aspect1.Before");
-    await this.MethodReturningValueTaskOfInt_Aspect2(a);
-    object result_1 = null;
-    global::System.Console.WriteLine("Aspect1.After");
-    return;
-  }
-  private async global::System.Threading.Tasks.ValueTask MethodReturningValueTaskOfInt_Source(int a)
-  {
+    global::System.Console.WriteLine("Aspect2.Before");
     await Task.Yield();
     Console.WriteLine("Oops");
-  }
-  private async global::System.Threading.Tasks.ValueTask MethodReturningValueTaskOfInt_Aspect2(global::System.Int32 a)
-  {
-    global::System.Console.WriteLine("Aspect2.Before");
-    await this.MethodReturningValueTaskOfInt_Source(a);
     object result = null;
     global::System.Console.WriteLine("Aspect2.After");
+    object result_1 = null;
+    global::System.Console.WriteLine("Aspect1.After");
     return;
   }
 }
