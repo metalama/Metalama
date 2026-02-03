@@ -771,11 +771,11 @@ namespace Metalama.Framework.Engine.Linking
             foreach ( var nonInlinedSemantic in nonInlinedSemantics )
             {
                 if ( nonInlinedSemantic.Symbol.Kind is SymbolKind.Property or SymbolKind.Method
-                     && (nonInlinedSemantic.Symbol.Kind == SymbolKind.Property && nonInlinedSemantic.Symbol is IPropertySymbol { Parameters.Length: > 0 }
-                         || nonInlinedSemantic.Symbol.Kind == SymbolKind.Method && nonInlinedSemantic.Symbol is IMethodSymbol
+                     && ((nonInlinedSemantic.Symbol.Kind == SymbolKind.Property && nonInlinedSemantic.Symbol is IPropertySymbol { Parameters.Length: > 0 })
+                         || (nonInlinedSemantic.Symbol.Kind == SymbolKind.Method && nonInlinedSemantic.Symbol is IMethodSymbol
                          {
                              MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor
-                         }) )
+                         })) )
                 {
                     // We only handle indexer symbol. Accessors are also not inlineable, but we don't want three messages.
                     ISymbol overrideTarget;

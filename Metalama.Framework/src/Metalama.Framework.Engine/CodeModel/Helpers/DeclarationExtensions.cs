@@ -94,11 +94,13 @@ public static class DeclarationExtensions
             : null;
 
     internal static Location? GetDiagnosticLocation( this IDeclaration declaration )
+#pragma warning disable LAMA0860 // ISdkDeclaration is a marker interface not tied to a specific DeclarationKind
         => declaration switch
         {
             ISdkDeclaration hasLocation => hasLocation.DiagnosticLocation,
             _ => null
         };
+#pragma warning restore LAMA0860
 
     private static void CheckArguments( this IDeclaration declaration, IReadOnlyList<IParameter> parameters, IReadOnlyList<IExpression> arguments )
     {

@@ -104,10 +104,10 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                 {
                     var declaration = declarationRef.Definition;
 
-                    var contextType = declaration switch
+                    var contextType = declaration.DeclarationKind switch
                     {
-                        IMemberOrNamedType { DeclaringType: { } declaringType } => declaringType,
-                        INamedType type => type,
+                        var kind when kind.IsMemberOrNamedTypeKind() && declaration is IMemberOrNamedType { DeclaringType: { } declaringType } => declaringType,
+                        DeclarationKind.NamedType when declaration is INamedType type => type,
                         _ => throw new AssertionFailedException( $"Declarations without declaring type are not supported {declaration}." )
                     };
 
@@ -150,7 +150,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                         switch ( symbol )
                         {
                             // For accessors, look at the associated symbol.
-                            case IMethodSymbol { AssociatedSymbol: { } associatedSymbol }:
+                            case { Kind: SymbolKind.Method } and IMethodSymbol { AssociatedSymbol: { } associatedSymbol }:
                                 syntaxReference = associatedSymbol.GetPrimarySyntaxReference();
 
                                 if ( syntaxReference == null )
@@ -187,7 +187,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     var builder = this.GetIdentifiersInTypeScope( typeDeclarationSyntax.AssertNotNull() ).ToBuilder();
 
                     // Accessors have implicit "value" parameter.
-                    if ( symbol is IMethodSymbol { MethodKind: RoslynMethodKind.PropertySet or RoslynMethodKind.EventAdd or RoslynMethodKind.EventRemove } )
+                    if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: RoslynMethodKind.PropertySet or RoslynMethodKind.EventAdd or RoslynMethodKind.EventRemove } )
                     {
                         builder.Add( "value" );
                     }

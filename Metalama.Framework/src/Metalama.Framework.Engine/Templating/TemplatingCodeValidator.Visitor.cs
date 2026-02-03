@@ -167,7 +167,7 @@ namespace Metalama.Framework.Engine.Templating
                                             break;
 
                                         case ("Metalama.Framework.Code.SyntaxBuilders.SyntaxBuilder", "AppendExpression"):
-                                            if ( node.Parent?.Parent?.IsKind( SyntaxKind.InvocationExpression ) == true && node.Parent.Parent is InvocationExpressionSyntax { ArgumentList.Arguments: [var argument] } )
+                                            if ( node.Parent?.Parent is { RawKind: (int) SyntaxKind.InvocationExpression } and InvocationExpressionSyntax { ArgumentList.Arguments: [var argument] } )
                                             {
                                                 this._observer?.OnSemanticModelUsed();
                                                 var argumentType = this._semanticModel.GetTypeInfo( argument.Expression ).Type;

@@ -241,6 +241,14 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             return name is "Kind" or "DeclarationKind" or "TypeKind";
         }
 
+        // Check for identifiers containing "Kind" (e.g., validatedDeclarationKind, symbolKind)
+        if ( expression is IdentifierNameSyntax identifier )
+        {
+            var name = identifier.Identifier.Text;
+
+            return name.IndexOf( "Kind", System.StringComparison.OrdinalIgnoreCase ) >= 0;
+        }
+
         // Check for conditional access: x?.Kind, x?.DeclarationKind, x?.TypeKind
         if ( expression is ConditionalAccessExpressionSyntax conditionalAccess )
         {
@@ -296,6 +304,12 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                 {
                     // If the switch is on Kind access, check if arm has a Kind enum pattern
                     if ( IsKindAccess( switchExpr.GoverningExpression ) && IsKindEnumPattern( arm.Pattern ) )
+                    {
+                        return true;
+                    }
+
+                    // If switch is on Kind and when clause has a Kind-checking method call, it's fine
+                    if ( IsKindAccess( switchExpr.GoverningExpression ) && arm.WhenClause != null && WhenClauseContainsKindCheck( arm.WhenClause ) )
                     {
                         return true;
                     }
@@ -394,6 +408,45 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
+    private static bool WhenClauseContainsKindCheck( WhenClauseSyntax whenClause )
+    {
+        // Check if the when clause contains a Kind-checking method call like:
+        // kind.Value.IsTypeDeclaration(), kind.IsMemberKind(), kind.IsMemberOrNamedTypeKind()
+        return ContainsKindCheckingMethodCall( whenClause.Condition );
+    }
+
+    private static bool ContainsKindCheckingMethodCall( ExpressionSyntax expression )
+    {
+        // Check for method invocations that are Kind checks
+        if ( expression is InvocationExpressionSyntax invocation )
+        {
+            if ( invocation.Expression is MemberAccessExpressionSyntax memberAccess )
+            {
+                var methodName = memberAccess.Name.Identifier.Text;
+
+                // Check for methods like IsTypeDeclaration(), IsMemberKind(), IsMemberOrNamedTypeKind()
+                if ( methodName.StartsWith( "Is", System.StringComparison.Ordinal ) )
+                {
+                    return true;
+                }
+            }
+        }
+
+        // Check for binary && expressions
+        if ( expression is BinaryExpressionSyntax binaryExpr && binaryExpr.IsKind( SyntaxKind.LogicalAndExpression ) )
+        {
+            return ContainsKindCheckingMethodCall( binaryExpr.Left ) || ContainsKindCheckingMethodCall( binaryExpr.Right );
+        }
+
+        // Check for parenthesized expressions
+        if ( expression is ParenthesizedExpressionSyntax parenExpr )
+        {
+            return ContainsKindCheckingMethodCall( parenExpr.Expression );
+        }
+
+        return false;
+    }
+
     private static bool HasPrecedingKindCheck( IsPatternExpressionSyntax isPattern )
     {
         // Walk up the syntax tree to find the containing binary expression (if any)
@@ -438,6 +491,12 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             if ( binaryExpr.IsKind( SyntaxKind.EqualsExpression ) || binaryExpr.IsKind( SyntaxKind.NotEqualsExpression ) )
             {
                 if ( IsKindAccess( binaryExpr.Left ) || IsKindAccess( binaryExpr.Right ) )
+                {
+                    return true;
+                }
+
+                // Also recurse into left/right to find IsKind calls like: node.IsKind(X) == true
+                if ( ContainsKindCheck( binaryExpr.Left ) || ContainsKindCheck( binaryExpr.Right ) )
                 {
                     return true;
                 }
@@ -498,6 +557,19 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                 }
             }
         }
+        else if ( expression is ConditionalAccessExpressionSyntax conditionalAccess )
+        {
+            // Handle x?.IsKind(SyntaxKind.X) pattern
+            if ( conditionalAccess.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax invokeBinding } )
+            {
+                var methodName = invokeBinding.Name.Identifier.Text;
+
+                if ( methodName == "IsKind" )
+                {
+                    return true;
+                }
+            }
+        }
 
         return false;
     }
@@ -505,16 +577,23 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
     private static bool PatternContainsKindCheck( PatternSyntax pattern )
     {
         // Check for property patterns like { Kind: X } or { DeclarationKind: X } or { TypeKind: X }
+        // Also handles nested patterns like { ResolvedSemantic.Symbol.Kind: X }
         if ( pattern is RecursivePatternSyntax recursivePattern )
         {
             if ( recursivePattern.PropertyPatternClause is { } propertyClause )
             {
                 foreach ( var subpattern in propertyClause.Subpatterns )
                 {
-                    // Check if this is a Kind property check
+                    // Check if this is a Kind property check via simple name (e.g., { Kind: X })
                     var propertyName = subpattern.NameColon?.Name.Identifier.Text;
 
                     if ( propertyName is "Kind" or "DeclarationKind" or "TypeKind" )
+                    {
+                        return true;
+                    }
+
+                    // Check if this is a Kind property check via member access (e.g., { Symbol.Kind: X } or { ResolvedSemantic.Symbol.Kind: X })
+                    if ( subpattern.ExpressionColon?.Expression is { } expr && EndsWithKindProperty( expr ) )
                     {
                         return true;
                     }
@@ -537,6 +616,19 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
+    private static bool EndsWithKindProperty( ExpressionSyntax expression )
+    {
+        // Check if the expression ends with .Kind, .DeclarationKind, or .TypeKind
+        if ( expression is MemberAccessExpressionSyntax memberAccess )
+        {
+            var name = memberAccess.Name.Identifier.Text;
+
+            return name is "Kind" or "DeclarationKind" or "TypeKind";
+        }
+
+        return false;
+    }
+
     private static bool IsRelevantType(
         ITypeSymbol? type,
         INamedTypeSymbol? iDeclaration,
@@ -553,8 +645,15 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
         if ( type.TypeKind != TypeKind.Interface )
         {
             // Exception: SyntaxNode subtypes (which are classes) do benefit from Kind() checks
+            // But not abstract base classes like ExpressionSyntax, StatementSyntax - those are type hierarchy checks
             if ( syntaxNode != null )
             {
+                // Skip abstract classes - they are type hierarchy checks, not specific type checks
+                if ( type.IsAbstract )
+                {
+                    return false;
+                }
+
                 var baseType = type.BaseType;
 
                 while ( baseType != null )

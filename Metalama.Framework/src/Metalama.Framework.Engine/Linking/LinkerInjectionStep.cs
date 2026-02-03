@@ -234,7 +234,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                             pair.Value.ReturnValueVariableName );
                 }
             }
-            else if ( pair.Key.Definition is IExtensionBlock extensionBlock && pair.Value.WasUsedForOutputContracts )
+            else if ( pair.Key.Definition.DeclarationKind == DeclarationKind.ExtensionBlock && pair.Key.Definition is IExtensionBlock extensionBlock && pair.Value.WasUsedForOutputContracts )
             {
                 // Extension block with output contracts - create auxiliary contract members for each instance member.
                 pair.Value.Complete();
