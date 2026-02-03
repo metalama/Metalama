@@ -45,7 +45,8 @@ namespace Metalama.Backstage.Infrastructure
 
                 if ( !string.IsNullOrEmpty( applicationDataParentDirectory ) )
                 {
-                    return Path.Combine( applicationDataParentDirectory, metalamaDirectoryName );
+                    // Normalize the path to ensure consistent path separators.
+                    return Path.GetFullPath( Path.Combine( applicationDataParentDirectory, metalamaDirectoryName ) );
                 }
                 else
                 {
@@ -61,7 +62,8 @@ namespace Metalama.Backstage.Infrastructure
                     }
 
                     // We use the name ".metalama" here, because in this case the settings go to the user's home directory.
-                    return Path.Combine( applicationDataParentDirectory, ".metalama" );
+                    // Normalize the path to ensure consistent path separators.
+                    return Path.GetFullPath( Path.Combine( applicationDataParentDirectory, ".metalama" ) );
                 }
             }
 
