@@ -762,7 +762,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                             Literal( expressionType.GetSerializableTypeId().Id ) ) ) );
         }
 
-        if ( expressionType is IErrorTypeSymbol )
+        if ( expressionType.Kind == SymbolKind.ErrorType && expressionType is IErrorTypeSymbol )
         {
             // There is a compile-time error. Return default.
             return LiteralExpression( SyntaxKind.DefaultLiteralExpression, Token( SyntaxKind.DefaultKeyword ) );
@@ -770,7 +770,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
         bool ExpressionTypeIsGenericDynamic()
         {
-            return expressionType is INamedTypeSymbol { TypeArguments: [IDynamicTypeSymbol] };
+            return expressionType.Kind == SymbolKind.NamedType && expressionType is INamedTypeSymbol { TypeArguments: [IDynamicTypeSymbol] };
         }
 
         // ReSharper disable once ConstantConditionalAccessQualifier
@@ -893,8 +893,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             return transformedNode;
         }
 
-        if ( this._syntaxTreeAnnotationMap.GetExpressionType( node.Expression ) is IDynamicTypeSymbol &&
-             !this._templateMemberClassifier.IsTemplateParameter( node.Expression ) )
+        if ( this._syntaxTreeAnnotationMap.GetExpressionType( node.Expression )?.Kind == SymbolKind.DynamicType
+             && this._syntaxTreeAnnotationMap.GetExpressionType( node.Expression ) is IDynamicTypeSymbol
+             && !this._templateMemberClassifier.IsTemplateParameter( node.Expression ) )
         {
             // We have a member access of a dynamic expression.
             return InvocationExpression(
@@ -925,7 +926,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     {
         var transformationKind = this.GetTransformationKind( node.Expression );
 
-        if ( transformationKind != TransformationKind.Transform && this._syntaxTreeAnnotationMap.GetExpressionType( node.Expression ) is IDynamicTypeSymbol )
+        if ( transformationKind != TransformationKind.Transform
+             && this._syntaxTreeAnnotationMap.GetExpressionType( node.Expression )?.Kind == SymbolKind.DynamicType
+             && this._syntaxTreeAnnotationMap.GetExpressionType( node.Expression ) is IDynamicTypeSymbol )
         {
             return InvocationExpression(
                 this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.ConditionalAccessExpression) ),
@@ -1017,7 +1020,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         {
             var identifierSymbol = this._syntaxTreeAnnotationMap.GetSymbol( identifier );
 
-            if ( IsLocalSymbol( identifierSymbol ) || identifierSymbol is IDiscardSymbol )
+            if ( IsLocalSymbol( identifierSymbol ) || (identifierSymbol?.Kind == SymbolKind.Discard && identifierSymbol is IDiscardSymbol) )
             {
                 if ( this.IsCompileTimeDynamic( assignment.Right ) )
                 {
@@ -2621,11 +2624,13 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         return expression.GetScopeFromAnnotation() == TemplatingScope.CompileTimeOnlyReturningRuntimeOnly
                && !this._templateMemberClassifier.IsTemplateParameter( expression )
                && this.GetTransformationKind( expression ) != TransformationKind.Transform
-               && (this._syntaxTreeAnnotationMap.GetExpressionType( expression ) is IDynamicTypeSymbol
-                   || this._syntaxTreeAnnotationMap.GetExpressionType( expression ) is INamedTypeSymbol
-                   {
-                       Name: "Task" or "ConfiguredTaskAwaitable" or "IEnumerable" or "IAsyncEnumerator", TypeArguments: [IDynamicTypeSymbol]
-                   });
+               && ((this._syntaxTreeAnnotationMap.GetExpressionType( expression )?.Kind == SymbolKind.DynamicType
+                    && this._syntaxTreeAnnotationMap.GetExpressionType( expression ) is IDynamicTypeSymbol)
+                   || (this._syntaxTreeAnnotationMap.GetExpressionType( expression )?.Kind == SymbolKind.NamedType
+                       && this._syntaxTreeAnnotationMap.GetExpressionType( expression ) is INamedTypeSymbol
+                       {
+                           Name: "Task" or "ConfiguredTaskAwaitable" or "IEnumerable" or "IAsyncEnumerator", TypeArguments: [IDynamicTypeSymbol]
+                       }));
     }
 
     public override SyntaxNode VisitReturnStatement( ReturnStatementSyntax node )
@@ -2749,7 +2754,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             {
                 // Fully qualifies simple identifiers.
 
-                if ( symbol is INamespaceOrTypeSymbol namespaceOrType )
+                if ( symbol?.Kind is SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.FunctionPointerType or SymbolKind.PointerType or SymbolKind.TypeParameter
+                     && symbol is INamespaceOrTypeSymbol namespaceOrType )
                 {
                     return this.Transform( this.MetaSyntaxFactory.SyntaxGenerationContext.SyntaxGenerator.TypeOrNamespace( namespaceOrType ) );
                 }
@@ -3036,7 +3042,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         {
             var targetType = (ITypeSymbol?) this._syntaxTreeAnnotationMap.GetSymbol( node.Type );
 
-            if ( targetType is INamedTypeSymbol { Name: nameof(IExpression) } )
+            if ( targetType?.Kind == SymbolKind.NamedType && targetType is INamedTypeSymbol { Name: nameof(IExpression) } )
             {
                 var expressionScope = node.Expression.GetScopeFromAnnotation();
                 var transformedExpression = (ExpressionSyntax) this.Visit( node.Expression )!;
@@ -3068,7 +3074,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         {
             var leftType = this._syntaxTreeAnnotationMap.GetExpressionType( node.Left );
 
-            if ( leftType is INamedTypeSymbol { Name: nameof(IExpression) } )
+            if ( leftType?.Kind == SymbolKind.NamedType && leftType is INamedTypeSymbol { Name: nameof(IExpression) } )
             {
                 var transformedRight = this.Transform( node.Right );
 

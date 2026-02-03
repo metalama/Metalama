@@ -346,7 +346,9 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
             var modifiers = syntax.Kind() switch
             {
-                var kind when kind.IsTypeDeclaration() && syntax is TypeDeclarationSyntax type => type.Modifiers,
+                SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                    or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                    when syntax is TypeDeclarationSyntax type => type.Modifiers,
                 SyntaxKind.EnumDeclaration when syntax is EnumDeclarationSyntax e => e.Modifiers,
                 SyntaxKind.DelegateDeclaration when syntax is DelegateDeclarationSyntax d => d.Modifiers,
                 _ => default

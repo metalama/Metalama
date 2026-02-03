@@ -189,7 +189,13 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
             }
 
             return symbol.DeclaringSyntaxReferences.Any(
-                r => r.GetSyntax() is MemberDeclarationSyntax member
+                r => r.GetSyntax().Kind() is SyntaxKind.MethodDeclaration or SyntaxKind.PropertyDeclaration or SyntaxKind.FieldDeclaration
+                    or SyntaxKind.EventDeclaration or SyntaxKind.EventFieldDeclaration or SyntaxKind.IndexerDeclaration
+                    or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration or SyntaxKind.OperatorDeclaration
+                    or SyntaxKind.ConversionOperatorDeclaration or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration
+                    or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                    or SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration
+                    && r.GetSyntax() is MemberDeclarationSyntax member
                      && member.Modifiers.Any( m => m.IsKind( kind ) ) );
         }
 
@@ -278,10 +284,13 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 #if ROSLYN_4_8_0_OR_GREATER
             return
                 constructorSymbol is { MethodKind: MethodKind.Constructor }
+                && declarationSyntax?.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                    or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
                 && declarationSyntax is TypeDeclarationSyntax { ParameterList: not null };
 #else
             return
                 constructorSymbol is { MethodKind: MethodKind.Constructor }
+                && declarationSyntax?.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
                 && declarationSyntax is RecordDeclarationSyntax { ParameterList: not null };
 #endif
         }
