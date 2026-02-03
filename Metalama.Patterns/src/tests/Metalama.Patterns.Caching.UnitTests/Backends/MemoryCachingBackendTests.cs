@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Patterns.Caching.TestHelpers;
 using Xunit.Abstractions;
 
-namespace Metalama.Patterns.Caching.Tests.Backends.Single
+namespace Metalama.Patterns.Caching.Tests.Backends
 {
     [UsedImplicitly]
     public sealed class MemoryCachingBackendTests : BaseCacheBackendTests
