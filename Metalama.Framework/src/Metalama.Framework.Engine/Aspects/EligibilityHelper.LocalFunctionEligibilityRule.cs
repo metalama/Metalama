@@ -17,7 +17,9 @@ internal partial class EligibilityHelper
         private LocalFunctionEligibilityRule() { }
 
         public EligibleScenarios GetEligibility( IDeclaration obj )
-            => obj is IMethod { MethodKind: MethodKind.LocalFunction or MethodKind.Lambda } ? EligibleScenarios.None : EligibleScenarios.All;
+            => obj.DeclarationKind == DeclarationKind.Method && obj is IMethod { MethodKind: MethodKind.LocalFunction or MethodKind.Lambda }
+                ? EligibleScenarios.None
+                : EligibleScenarios.All;
 
         public FormattableString? GetIneligibilityJustification( EligibleScenarios requestedEligibility, IDescribedObject<IDeclaration> describedObject )
             => ((IMethod) describedObject.Object).MethodKind switch
@@ -35,7 +37,8 @@ internal partial class EligibilityHelper
         private LocalFunctionParameterEligibilityRule() { }
 
         public EligibleScenarios GetEligibility( IDeclaration obj )
-            => obj is IParameter { DeclaringMember: IMethod { MethodKind: MethodKind.LocalFunction or MethodKind.Lambda } }
+            => obj.DeclarationKind == DeclarationKind.Parameter
+               && obj is IParameter { DeclaringMember: IMethod { MethodKind: MethodKind.LocalFunction or MethodKind.Lambda } }
                 ? EligibleScenarios.None
                 : EligibleScenarios.All;
 

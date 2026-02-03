@@ -84,7 +84,7 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
 
         if ( existingDeclaration != null )
         {
-            if ( existingDeclaration is not IField )
+            if ( existingDeclaration.DeclarationKind != DeclarationKind.Field )
             {
                 return
                     this.CreateFailedResult(

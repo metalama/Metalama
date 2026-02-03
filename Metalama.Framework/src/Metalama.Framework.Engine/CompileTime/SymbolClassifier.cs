@@ -204,7 +204,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             }
         }
 
-        if ( symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol }
+        if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol }
              && this.GetTemplateInfo( associatedSymbol, isInherited ) is { IsNone: false } associatedTemplateInfo )
         {
             return associatedTemplateInfo;
@@ -344,12 +344,12 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         }
 
         // Check whether any type in the symbol signature is dynamic.
-        var types = symbol switch
+        var types = symbol.Kind switch
         {
-            IMethodSymbol method => method.Parameters.Select( p => p.Type ).Append( method.ReturnType ),
-            IPropertySymbol property => property.Parameters.Select( p => p.Type ).Append( property.Type ),
-            IFieldSymbol field => [field.Type],
-            IEventSymbol @event => [@event.Type],
+            SymbolKind.Method when symbol is IMethodSymbol method => method.Parameters.Select( p => p.Type ).Append( method.ReturnType ),
+            SymbolKind.Property when symbol is IPropertySymbol property => property.Parameters.Select( p => p.Type ).Append( property.Type ),
+            SymbolKind.Field when symbol is IFieldSymbol field => [field.Type],
+            SymbolKind.Event when symbol is IEventSymbol @event => [@event.Type],
             _ => []
         };
 
@@ -701,7 +701,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
                         foreach ( var member in anonymousType.GetMembers() )
                         {
-                            if ( member is IPropertySymbol property )
+                            if ( member.Kind == SymbolKind.Property && member is IPropertySymbol property )
                             {
                                 this.CombineScope(
                                     property.Type,
@@ -867,7 +867,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         var memberScope = GetScopeFromAttributes( tracer, symbol );
 
                         // If we have no attribute, look at the associated symbol (property/event).
-                        if ( memberScope == null && symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol } )
+                        if ( memberScope == null && symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol } )
                         {
                             memberScope = this.GetTemplatingScopeCore( associatedSymbol, options, symbolsBeingProcessedIncludingCurrent, tracer );
                         }
@@ -937,9 +937,9 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             }
                         }
 
-                        switch ( symbol )
+                        switch ( symbol.Kind )
                         {
-                            case IMethodSymbol method:
+                            case SymbolKind.Method when symbol is IMethodSymbol method:
                                 {
                                     // If we have an extension method, process the parameters of the definition.
                                     if ( method.ReducedFrom != null )
@@ -984,7 +984,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                     return ApplyDefaultScope( signatureScope );
                                 }
 
-                            case IPropertySymbol property:
+                            case SymbolKind.Property when symbol is IPropertySymbol property:
                                 {
                                     TemplatingScope? signatureScope = null;
 
@@ -998,14 +998,14 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                     return ApplyDefaultScope( signatureScope );
                                 }
 
-                            case IFieldSymbol field:
+                            case SymbolKind.Field when symbol is IFieldSymbol field:
                                 {
                                     var typeScope = this.GetTemplatingScopeCore( field.Type, signatureMemberOptions, symbolsBeingProcessed, tracer );
 
                                     return ApplyDefaultScopeAndRule( typeScope );
                                 }
 
-                            case IEventSymbol @event:
+                            case SymbolKind.Event when symbol is IEventSymbol @event:
                                 {
                                     var eventScope = this.GetTemplatingScopeCore( @event.Type, signatureMemberOptions, symbolsBeingProcessed, tracer );
 

@@ -363,8 +363,8 @@ internal static class TemplateBindingHelper
                 {
                     var expectedParameterCount = targetMethod switch
                     {
-                        { MethodKind: OurMethodKind.PropertyGet, ContainingDeclaration: IIndexer { Parameters.Count: var parameterCount } } => parameterCount,
-                        { MethodKind: OurMethodKind.PropertySet, ContainingDeclaration: IIndexer { Parameters.Count: var parameterCount } } => parameterCount
+                        { MethodKind: OurMethodKind.PropertyGet, ContainingDeclaration: { DeclarationKind: DeclarationKind.Indexer } and IIndexer { Parameters.Count: var parameterCount } } => parameterCount,
+                        { MethodKind: OurMethodKind.PropertySet, ContainingDeclaration: { DeclarationKind: DeclarationKind.Indexer } and IIndexer { Parameters.Count: var parameterCount } } => parameterCount
                             + 1,
                         { MethodKind: OurMethodKind.PropertyGet } => 0,
                         { MethodKind: OurMethodKind.PropertySet or OurMethodKind.EventAdd or OurMethodKind.EventRemove or OurMethodKind.EventRaise } => 1,

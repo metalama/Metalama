@@ -438,7 +438,8 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
         int CompareParameterTypes( ITypeSymbol? parameterTypeX, ITypeSymbol? parameterTypeY )
         {
             // Prevent infinite recursion.
-            var comparer = parameterTypeX?.ContainingSymbol is IMethodSymbol && parameterTypeY?.ContainingSymbol is IMethodSymbol ? NonRecursive : this;
+            var comparer = parameterTypeX?.ContainingSymbol?.Kind == SymbolKind.Method && parameterTypeX.ContainingSymbol is IMethodSymbol
+                           && parameterTypeY?.ContainingSymbol?.Kind == SymbolKind.Method && parameterTypeY.ContainingSymbol is IMethodSymbol ? NonRecursive : this;
 
             return comparer.Compare( parameterTypeX, parameterTypeY );
         }

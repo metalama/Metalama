@@ -277,7 +277,7 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
         }
         else
         {
-            if ( existingDeclaration is not IProperty existingProperty )
+            if ( existingDeclaration.DeclarationKind != DeclarationKind.Property || existingDeclaration is not IProperty existingProperty )
             {
                 return
                     this.CreateFailedResult(

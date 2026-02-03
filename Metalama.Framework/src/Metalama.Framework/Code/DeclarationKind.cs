@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using System;
 
 namespace Metalama.Framework.Code
 {
@@ -32,7 +33,7 @@ namespace Metalama.Framework.Code
         NamedType,
 
         /// <summary>
-        /// An <see cref="IMethod"/>, but not a finalizer nor an operator.
+        /// An <see cref="IMethod"/>, including finalizers and operators. Use <see cref="IMethod.MethodKind"/> to distinguish.
         /// </summary>
         Method,
 
@@ -84,11 +85,13 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// An <see cref="IMethod"/> that is a finalizer (historically referred to as destructors).
         /// </summary>
+        [Obsolete( "Use DeclarationKind.Method and check IMethod.MethodKind == MethodKind.Finalizer instead." )]
         Finalizer,
 
         /// <summary>
         /// An <see cref="IMethod"/> that is an operator.
         /// </summary>
+        [Obsolete( "Use DeclarationKind.Method and check IMethod.MethodKind == MethodKind.Operator instead." )]
         Operator,
 
         /// <summary>

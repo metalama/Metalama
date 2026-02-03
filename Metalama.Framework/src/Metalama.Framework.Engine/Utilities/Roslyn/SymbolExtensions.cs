@@ -180,7 +180,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         {
             if ( symbol.DeclaringSyntaxReferences.IsEmpty )
             {
-                if ( symbol is IMethodSymbol { MethodKind: MethodKind.Constructor, IsImplicitlyDeclared: true } && kind == SyntaxKind.UnsafeKeyword )
+                if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.Constructor, IsImplicitlyDeclared: true } && kind == SyntaxKind.UnsafeKeyword )
                 {
                     return false;
                 }
@@ -194,11 +194,11 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         }
 
         private static ImmutableArray<ISymbol> ExplicitInterfaceImplementations( this ISymbol symbol )
-            => symbol switch
+            => symbol.Kind switch
             {
-                IEventSymbol @event => ImmutableArray<ISymbol>.CastUp( @event.ExplicitInterfaceImplementations ),
-                IMethodSymbol method => ImmutableArray<ISymbol>.CastUp( method.ExplicitInterfaceImplementations ),
-                IPropertySymbol property => ImmutableArray<ISymbol>.CastUp( property.ExplicitInterfaceImplementations ),
+                SymbolKind.Event when symbol is IEventSymbol @event => ImmutableArray<ISymbol>.CastUp( @event.ExplicitInterfaceImplementations ),
+                SymbolKind.Method when symbol is IMethodSymbol method => ImmutableArray<ISymbol>.CastUp( method.ExplicitInterfaceImplementations ),
+                SymbolKind.Property when symbol is IPropertySymbol property => ImmutableArray<ISymbol>.CastUp( property.ExplicitInterfaceImplementations ),
                 _ => ImmutableArray<ISymbol>.Empty
             };
 
@@ -250,10 +250,10 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
             => null;
 
         internal static ImmutableArray<IParameterSymbol> GetParameters( this ISymbol symbol )
-            => symbol switch
+            => symbol.Kind switch
             {
-                IMethodSymbol method => method.Parameters,
-                IPropertySymbol property => property.Parameters,
+                SymbolKind.Method when symbol is IMethodSymbol method => method.Parameters,
+                SymbolKind.Property when symbol is IPropertySymbol property => property.Parameters,
                 _ => ImmutableArray<IParameterSymbol>.Empty
             };
 
@@ -265,9 +265,9 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         internal static bool IsVisibleTo( this ISymbol symbol, Compilation compilation, ISymbol otherSymbol )
             => compilation.IsSymbolAccessibleWithin(
                 symbol,
-                otherSymbol switch
+                otherSymbol.Kind switch
                 {
-                    INamedTypeSymbol type => type,
+                    SymbolKind.NamedType when otherSymbol is INamedTypeSymbol type => type,
                     _ => otherSymbol.ContainingType
                 } );
 
@@ -319,21 +319,21 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         public static INamedTypeSymbol GetTopmostContainingType( this INamedTypeSymbol type ) => type.ContainingType?.GetTopmostContainingType() ?? type;
 
         public static INamedTypeSymbol? GetClosestContainingType( this ISymbol symbol )
-            => symbol switch
+            => symbol.Kind switch
             {
-                INamedTypeSymbol type => type,
+                SymbolKind.NamedType when symbol is INamedTypeSymbol type => type,
                 _ => symbol.ContainingType
             };
 
         public static ISymbol? GetClosestContainingMember( this ISymbol symbol )
-            => symbol switch
+            => symbol.Kind switch
             {
-                INamedTypeSymbol type => type,
-                IMethodSymbol method => method,
-                IFieldSymbol field => field,
-                IPropertySymbol property => property,
-                IEventSymbol @event => @event,
-                INamespaceSymbol => null,
+                SymbolKind.NamedType when symbol is INamedTypeSymbol type => type,
+                SymbolKind.Method when symbol is IMethodSymbol method => method,
+                SymbolKind.Field when symbol is IFieldSymbol field => field,
+                SymbolKind.Property when symbol is IPropertySymbol property => property,
+                SymbolKind.Event when symbol is IEventSymbol @event => @event,
+                SymbolKind.Namespace => null,
                 _ => symbol.ContainingSymbol?.GetClosestContainingMember()
             };
 
@@ -444,21 +444,21 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 }
             }
 
-            switch ( symbol )
+            switch ( symbol.Kind )
             {
-                case IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
+                case SymbolKind.Method when symbol is IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
                     return GetReferenceOfShortestPath( partialImplementationSymbol );
 
-                case IMethodSymbol { AssociatedSymbol: { } associatedSymbol }:
+                case SymbolKind.Method when symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol }:
                     return GetReferenceOfShortestPath( symbol ) ?? GetReferenceOfShortestPath( associatedSymbol );
 
 #if ROSLYN_4_12_0_OR_GREATER
-                case IPropertySymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
+                case SymbolKind.Property when symbol is IPropertySymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
                     return GetReferenceOfShortestPath( partialImplementationSymbol );
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER
-                case IEventSymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
+                case SymbolKind.Event when symbol is IEventSymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
                     return GetReferenceOfShortestPath( partialImplementationSymbol );
 #endif
 

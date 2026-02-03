@@ -5,6 +5,7 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.CompileTime;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 
@@ -65,7 +66,7 @@ namespace Metalama.Framework.Engine.Templating
                 // Roslyn returns a dynamic type even for methods returning a non-dynamic type, as long as they have at least
                 // one dynamic argument. We don't want to fix the Roslyn type resolution, but in the specific case of void methods,
                 // we can do it without a chance of being ever wrong. It allows meta.DefineExpression to work.
-                if ( originalNode is InvocationExpressionSyntax )
+                if ( originalNode.Kind() == SyntaxKind.InvocationExpression )
                 {
                     var symbols = this._syntaxTreeAnnotationMap.GetCandidateSymbols( originalNode ).ToReadOnlyList();
 

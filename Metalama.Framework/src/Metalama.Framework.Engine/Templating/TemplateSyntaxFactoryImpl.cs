@@ -752,8 +752,9 @@ namespace Metalama.Framework.Engine.Templating
 
         public string EscapeIdentifier( string name )
         {
-            return name == "field" &&
-                   this._templateExpansionContext.TargetDeclaration is IMethod { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet }
+            return name == "field"
+                   && this._templateExpansionContext.TargetDeclaration?.DeclarationKind == DeclarationKind.Method
+                   && this._templateExpansionContext.TargetDeclaration is IMethod { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet }
                 ? "@field"
                 : name;
         }

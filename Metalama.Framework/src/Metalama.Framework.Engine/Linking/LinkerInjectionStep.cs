@@ -655,9 +655,9 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         var syntaxGenerationContext
             = this._compilationContext.GetSyntaxGenerationContext( this._syntaxGenerationOptions, targetMemberOrNamedType );
 
-        switch ( targetMemberOrNamedType )
+        switch ( targetMemberOrNamedType.DeclarationKind )
         {
-            case IPropertyOrIndexer propertyOrIndexer:
+            case DeclarationKind.Property or DeclarationKind.Indexer when targetMemberOrNamedType is IPropertyOrIndexer propertyOrIndexer:
                 {
                     var insertedStatements = GetInsertedStatements();
 
@@ -692,7 +692,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     break;
                 }
 
-            case IMethodBase methodBase:
+            case DeclarationKind.Method or DeclarationKind.Constructor when targetMemberOrNamedType is IMethodBase methodBase:
                 {
                     var insertedStatements = GetInsertedStatements();
 
@@ -701,7 +701,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     break;
                 }
 
-            case IExtensionBlock extensionBlock:
+            case DeclarationKind.ExtensionBlock when targetMemberOrNamedType is IExtensionBlock extensionBlock:
                 {
                     // For extension blocks, statements are generated per-method (each with a ContextDeclaration
                     // that is a parameter whose ContainingDeclaration is the target method).

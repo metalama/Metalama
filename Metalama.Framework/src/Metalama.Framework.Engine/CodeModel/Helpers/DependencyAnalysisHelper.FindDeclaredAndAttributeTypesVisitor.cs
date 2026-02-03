@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 
@@ -35,11 +36,11 @@ public static partial class DependencyAnalysisHelper
             }
 
             // Also index nested types.
-            if ( node is TypeDeclarationSyntax typeDeclaration )
+            if ( node.Kind().IsTypeDeclaration() && node is TypeDeclarationSyntax typeDeclaration )
             {
                 foreach ( var child in typeDeclaration.Members )
                 {
-                    if ( child is BaseTypeDeclarationSyntax )
+                    if ( child.Kind().IsBaseTypeDeclaration() && child is BaseTypeDeclarationSyntax )
                     {
                         this.VisitType( child );
                     }

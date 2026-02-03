@@ -54,14 +54,14 @@ internal sealed partial class LinkerAnalysisStep
             // Run DFS from each overridden member's final semantic.
             void ProcessOverriddenMember( ISymbol overriddenMember )
             {
-                switch ( overriddenMember )
+                switch ( overriddenMember.Kind )
                 {
-                    case IMethodSymbol method:
+                    case SymbolKind.Method when overriddenMember is IMethodSymbol method:
                         DepthFirstSearch( method.ToSemantic( IntermediateSymbolSemanticKind.Final ) );
 
                         break;
 
-                    case IPropertySymbol property:
+                    case SymbolKind.Property when overriddenMember is IPropertySymbol property:
                         if ( property.GetMethod != null )
                         {
                             DepthFirstSearch( property.GetMethod.ToSemantic( IntermediateSymbolSemanticKind.Final ) );
@@ -82,7 +82,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IEventSymbol @event:
+                    case SymbolKind.Event when overriddenMember is IEventSymbol @event:
                         DepthFirstSearch( @event.AddMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ) );
                         DepthFirstSearch( @event.RemoveMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ) );
 
@@ -97,14 +97,16 @@ internal sealed partial class LinkerAnalysisStep
             {
                 if ( injectedMember.Syntax.GetLinkerDeclarationFlags().HasFlagFast( AspectLinkerDeclarationFlags.NotDiscardable ) )
                 {
-                    switch ( this._injectionRegistry.GetSymbolForInjectedMember( injectedMember ) )
+                    var symbol = this._injectionRegistry.GetSymbolForInjectedMember( injectedMember );
+
+                    switch ( symbol.Kind )
                     {
-                        case IMethodSymbol method:
+                        case SymbolKind.Method when symbol is IMethodSymbol method:
                             DepthFirstSearch( method.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
 
                             break;
 
-                        case IPropertySymbol property:
+                        case SymbolKind.Property when symbol is IPropertySymbol property:
                             if ( property.GetMethod != null )
                             {
                                 DepthFirstSearch( property.GetMethod.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
@@ -117,7 +119,7 @@ internal sealed partial class LinkerAnalysisStep
 
                             break;
 
-                        case IEventSymbol @event:
+                        case SymbolKind.Event when symbol is IEventSymbol @event:
                             DepthFirstSearch( @event.AddMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ) );
                             DepthFirstSearch( @event.RemoveMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ) );
 
@@ -161,29 +163,29 @@ internal sealed partial class LinkerAnalysisStep
                 }
 
                 // Implicit edges between accessors and method group.
-                switch ( current.Symbol )
+                switch ( current.Symbol.Kind )
                 {
-                    case IMethodSymbol { AssociatedSymbol: IPropertySymbol property }:
+                    case SymbolKind.Method when current.Symbol is IMethodSymbol { AssociatedSymbol: IPropertySymbol property }:
                         DepthFirstSearch( new IntermediateSymbolSemantic( property, current.Kind ) );
 
                         break;
 
-                    case IMethodSymbol { AssociatedSymbol: IEventSymbol @event }:
+                    case SymbolKind.Method when current.Symbol is IMethodSymbol { AssociatedSymbol: IEventSymbol @event }:
                         DepthFirstSearch( new IntermediateSymbolSemantic( @event, current.Kind ) );
 
                         break;
 
-                    case IMethodSymbol eventBrokerMethod when this._injectionRegistry.IsEventRaiseOverride( eventBrokerMethod ):
+                    case SymbolKind.Method when current.Symbol is IMethodSymbol eventBrokerMethod && this._injectionRegistry.IsEventRaiseOverride( eventBrokerMethod ):
                         var eventBrokerEvent = (IEventSymbol) this._injectionRegistry.GetMainOverrideForSatelliteOverride( eventBrokerMethod ).AssertNotNull();
 
                         DepthFirstSearch( new IntermediateSymbolSemantic( eventBrokerEvent, current.Kind ) );
 
                         break;
 
-                    case IMethodSymbol:
-                    case IEventSymbol:
-                    case IPropertySymbol:
-                    case IFieldSymbol:
+                    case SymbolKind.Method:
+                    case SymbolKind.Event:
+                    case SymbolKind.Property:
+                    case SymbolKind.Field:
                         // Do nothing on properties and fields as these do not have implicit references.
                         break;
 
@@ -192,7 +194,8 @@ internal sealed partial class LinkerAnalysisStep
                 }
 
                 // If the method contains aspect references, visit them.
-                if ( current.Symbol is IMethodSymbol
+                if ( current.Symbol.Kind == SymbolKind.Method
+                     && current.Symbol is IMethodSymbol
                      && this._aspectReferencesBySemantic.TryGetValue( current.ToTyped<IMethodSymbol>(), out var aspectReferences ) )
                 {
                     // Edges representing resolved aspect references.

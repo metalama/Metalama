@@ -50,9 +50,9 @@ namespace Metalama.Framework.Engine.Linking.Substitution
         {
             var syntaxGenerator = substitutionContext.SyntaxGenerationContext.SyntaxGenerator;
 
-            switch ( currentNode )
+            switch ( currentNode.Kind() )
             {
-                case ArrowExpressionClauseSyntax { Expression: ThrowExpressionSyntax throwExpressionSyntax }:
+                case SyntaxKind.ArrowExpressionClause when currentNode is ArrowExpressionClauseSyntax { Expression: ThrowExpressionSyntax throwExpressionSyntax }:
                     {
                         return
                             syntaxGenerator.FormattedBlock(
@@ -63,7 +63,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                                 .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
                     }
 
-                case ArrowExpressionClauseSyntax arrowExpressionClause:
+                case SyntaxKind.ArrowExpressionClause when currentNode is ArrowExpressionClauseSyntax arrowExpressionClause:
                     if ( this._usingSimpleInlining )
                     {
                         // Uses the simple inlining, i.e. generating simple return statement without any changes for non-void methods.

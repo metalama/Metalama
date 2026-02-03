@@ -121,7 +121,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
 
                     var identifiers = this.GetIdentifiersInTypeScope( typeDeclaration ).ToBuilder();
 
-                    if ( declaration is IMethod method )
+                    if ( declaration.DeclarationKind == DeclarationKind.Method && declaration is IMethod method )
                     {
                         identifiers.AddRange( method.Parameters.SelectAsReadOnlyList( p => p.Name ) );
                         identifiers.AddRange( method.TypeParameters.SelectAsReadOnlyList( p => p.Name ) );

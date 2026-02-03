@@ -36,7 +36,7 @@ internal sealed class IntroduceFinalizerAdvice : IntroduceMemberAdvice<IMethod, 
 
     protected override MethodBuilder CreateBuilder()
     {
-        return new MethodBuilder( this.AspectLayerInstance, this.TargetDeclaration, "Finalize", DeclarationKind.Finalizer );
+        return new MethodBuilder( this.AspectLayerInstance, this.TargetDeclaration, "Finalize", MethodKind.Finalizer );
     }
 
     protected override void InitializeBuilderCore(

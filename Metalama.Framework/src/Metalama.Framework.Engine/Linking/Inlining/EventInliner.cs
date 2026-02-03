@@ -8,7 +8,7 @@ namespace Metalama.Framework.Engine.Linking.Inlining;
 
 internal abstract class EventInliner : Inliner
 {
-    public override bool IsValidForTargetSymbol( ISymbol symbol ) => symbol is IEventSymbol or IMethodSymbol { AssociatedSymbol: IEventSymbol };
+    public override bool IsValidForTargetSymbol( ISymbol symbol ) => (symbol.Kind == SymbolKind.Event && symbol is IEventSymbol) || (symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { AssociatedSymbol: IEventSymbol });
 
     public override bool IsValidForContainingSymbol( ISymbol symbol ) => true;
 }

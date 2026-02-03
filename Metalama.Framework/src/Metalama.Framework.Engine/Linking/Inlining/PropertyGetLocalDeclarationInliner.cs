@@ -21,16 +21,18 @@ namespace Metalama.Framework.Engine.Linking.Inlining
             }
 
             // The syntax has to be in form: <type> <local> = <annotated_property_expression>;
-            if ( aspectReference.ResolvedSemantic.Symbol is not IPropertySymbol
-                 && (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol is not IPropertySymbol )
+            if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Property
+                 && (aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method
+                     || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol is not IPropertySymbol) )
             {
                 // Coverage: ignore (hit only when the check in base class is incorrect).
                 return false;
             }
 
             var propertySymbol =
-                aspectReference.ResolvedSemantic.Symbol as IPropertySymbol
-                ?? (IPropertySymbol) ((aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol).AssertNotNull();
+                aspectReference.ResolvedSemantic.Symbol.Kind == SymbolKind.Property && aspectReference.ResolvedSemantic.Symbol is IPropertySymbol property
+                    ? property
+                    : (IPropertySymbol) ((aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol).AssertNotNull();
 
             // The property access (possibly through parentheses or null-forgiving) should be within equals clause.
             var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );

@@ -31,35 +31,35 @@ namespace Metalama.Framework.Engine.CodeModel.Comparers
 
         public bool Equals( ISymbol? left, ISymbol? right )
         {
-            switch (left, right)
+            switch (left?.Kind, right?.Kind)
             {
-                case (IArrayTypeSymbol leftArray, IArrayTypeSymbol rightArray):
+                case (SymbolKind.ArrayType, SymbolKind.ArrayType) when left is IArrayTypeSymbol leftArray && right is IArrayTypeSymbol rightArray:
                     return leftArray.Rank == rightArray.Rank
                            && this.Equals( leftArray.ElementType, rightArray.ElementType );
 
-                case (IDynamicTypeSymbol, IDynamicTypeSymbol):
+                case (SymbolKind.DynamicType, SymbolKind.DynamicType):
                     return true;
 
-                case (ITypeParameterSymbol leftTypeParameter, ITypeParameterSymbol rightTypeParameter):
+                case (SymbolKind.TypeParameter, SymbolKind.TypeParameter) when left is ITypeParameterSymbol leftTypeParameter && right is ITypeParameterSymbol rightTypeParameter:
                     // TODO: Interpret compile-time parameters for generic interfaces.
                     return
                         leftTypeParameter.TypeParameterKind == rightTypeParameter.TypeParameterKind
                         && leftTypeParameter.Ordinal == rightTypeParameter.Ordinal;
 
-                case (IPointerTypeSymbol leftPointerType, IPointerTypeSymbol rightPointerType):
+                case (SymbolKind.PointerType, SymbolKind.PointerType) when left is IPointerTypeSymbol leftPointerType && right is IPointerTypeSymbol rightPointerType:
                     // TODO: Constraints.
                     return this.Equals( leftPointerType.PointedAtType, rightPointerType.PointedAtType );
 
-                case (IFunctionPointerTypeSymbol leftFunctionPointerType, IFunctionPointerTypeSymbol rightFunctionPointerType):
+                case (SymbolKind.FunctionPointerType, SymbolKind.FunctionPointerType) when left is IFunctionPointerTypeSymbol leftFunctionPointerType && right is IFunctionPointerTypeSymbol rightFunctionPointerType:
                     return
                         this.Equals( leftFunctionPointerType.Signature, rightFunctionPointerType.Signature );
 
-                case (IParameterSymbol leftParameter, IParameterSymbol rightParameter):
+                case (SymbolKind.Parameter, SymbolKind.Parameter) when left is IParameterSymbol leftParameter && right is IParameterSymbol rightParameter:
                     return
                         this.Equals( leftParameter.Type, rightParameter.Type )
                         && leftParameter.RefKind == rightParameter.RefKind;
 
-                case (IMethodSymbol leftMethod, IMethodSymbol rightMethod):
+                case (SymbolKind.Method, SymbolKind.Method) when left is IMethodSymbol leftMethod && right is IMethodSymbol rightMethod:
                     // Whole method signature matching.
                     return
                         StringComparer.Ordinal.Equals( leftMethod.Name, rightMethod.Name )
@@ -67,18 +67,18 @@ namespace Metalama.Framework.Engine.CodeModel.Comparers
                         && this.Equals( leftMethod.ReturnType, rightMethod.ReturnType )
                         && leftMethod.Parameters.SequenceEqual( rightMethod.Parameters, ( l, r ) => this.Equals( l, r ) );
 
-                case (IEventSymbol leftEvent, IEventSymbol rightEvent):
+                case (SymbolKind.Event, SymbolKind.Event) when left is IEventSymbol leftEvent && right is IEventSymbol rightEvent:
                     return
                         StringComparer.Ordinal.Equals( leftEvent.Name, rightEvent.Name )
                         && this.Equals( leftEvent.Type, rightEvent.Type );
 
-                case (IPropertySymbol leftProperty, IPropertySymbol rightProperty):
+                case (SymbolKind.Property, SymbolKind.Property) when left is IPropertySymbol leftProperty && right is IPropertySymbol rightProperty:
                     return
                         StringComparer.Ordinal.Equals( leftProperty.Name, rightProperty.Name )
                         && this.Equals( leftProperty.Type, rightProperty.Type )
                         && leftProperty.Parameters.SequenceEqual( rightProperty.Parameters, ( l, r ) => this.Equals( l, r ) );
 
-                case (INamedTypeSymbol leftNamedType, INamedTypeSymbol rightNamedType):
+                case (SymbolKind.NamedType, SymbolKind.NamedType) when left is INamedTypeSymbol leftNamedType && right is INamedTypeSymbol rightNamedType:
                     return
                         this._inner.Equals( leftNamedType.OriginalDefinition, rightNamedType.OriginalDefinition )
                         && leftNamedType.TypeArguments.SequenceEqual(
@@ -92,31 +92,31 @@ namespace Metalama.Framework.Engine.CodeModel.Comparers
 
         public int GetHashCode( ISymbol? obj )
         {
-            switch ( obj )
+            switch ( obj?.Kind )
             {
                 case null:
                     return 0;
 
-                case IArrayTypeSymbol array:
+                case SymbolKind.ArrayType when obj is IArrayTypeSymbol array:
                     return HashCode.Combine( this.GetHashCode( array ) );
 
-                case IDynamicTypeSymbol:
+                case SymbolKind.DynamicType:
                     return HashCode.Combine( 0x57446317 );
 
-                case ITypeParameterSymbol typeParameter:
+                case SymbolKind.TypeParameter when obj is ITypeParameterSymbol typeParameter:
                     return HashCode.Combine( typeParameter.TypeParameterKind, typeParameter.Ordinal );
 
-                case IPointerTypeSymbol pointerType:
+                case SymbolKind.PointerType when obj is IPointerTypeSymbol pointerType:
                     return HashCode.Combine( this.GetHashCode( pointerType.PointedAtType ) );
 
-                case IFunctionPointerTypeSymbol functionPointerType:
+                case SymbolKind.FunctionPointerType when obj is IFunctionPointerTypeSymbol functionPointerType:
                     return
                         HashCode.Combine( this.GetHashCode( functionPointerType.Signature ) );
 
-                case IParameterSymbol parameterSymbol:
+                case SymbolKind.Parameter when obj is IParameterSymbol parameterSymbol:
                     return HashCode.Combine( parameterSymbol.Ordinal );
 
-                case IMethodSymbol method:
+                case SymbolKind.Method when obj is IMethodSymbol method:
                     // Whole method signature matching.
                     return
                         HashCode.Combine(
@@ -124,7 +124,7 @@ namespace Metalama.Framework.Engine.CodeModel.Comparers
                             method.TypeParameters.Length,
                             method.Parameters.Length );
 
-                case INamedTypeSymbol namedType:
+                case SymbolKind.NamedType when obj is INamedTypeSymbol namedType:
                     return
                         HashCode.Combine( namedType.MetadataName );
 

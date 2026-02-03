@@ -40,9 +40,9 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
         var targetIndexer = this._targetIndexer.GetTarget( context.FinalCompilation );
         var targetDeclaration = this.ContractTarget.GetTarget( this.InitialCompilation );
 
-        switch ( targetDeclaration )
+        switch ( targetDeclaration?.DeclarationKind )
         {
-            case IIndexer:
+            case DeclarationKind.Indexer:
                 {
                     Invariant.Assert( this.ContractTarget.Equals( this.TargetMemberOrNamedType ) );
 
@@ -117,7 +117,7 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
                     return statements;
                 }
 
-            case IParameter parameter:
+            case DeclarationKind.Parameter when targetDeclaration is IParameter parameter:
                 {
                     Invariant.Assert( this.ContractDirection is ContractDirection.Output or ContractDirection.Input or ContractDirection.Both );
 
@@ -188,7 +188,7 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
 
     public override FormattableString ToDisplayString()
     {
-        if ( this.ContractTarget.GetTarget( this.InitialCompilation ) is IIndexer )
+        if ( this.ContractTarget.GetTarget( this.InitialCompilation )?.DeclarationKind == DeclarationKind.Indexer )
         {
             return $"Add contract to indexer '{this._targetIndexer}'";
         }

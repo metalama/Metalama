@@ -10,6 +10,9 @@ internal class C
   }
   private global::System.Int32 _field;
   private global::System.Int32 Property { get; set; }
+  ~C()
+  {
+  }
   private static global::System.String[] GetAllBuiltIds()
   {
     return (global::System.String[])new global::System.String[]
@@ -106,10 +109,6 @@ internal class C
   private void M<T>((global::System.Int32 x, global::System.Int32 y) p)
   {
   }
-  private event global::System.EventHandler? Event;
-  ~C()
-  {
-  }
   public static global::System.Int32 operator +(global::Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C x, global::Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C y)
   {
     return (global::System.Int32)0;
@@ -122,6 +121,7 @@ internal class C
   {
     return (global::System.Boolean)false;
   }
+  private event global::System.EventHandler? Event;
   private global::System.Int32 this[global::System.Int32 index]
   {
     get

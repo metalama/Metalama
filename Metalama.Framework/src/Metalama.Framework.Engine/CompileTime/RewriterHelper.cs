@@ -45,9 +45,9 @@ internal sealed class RewriterHelper
             return member;
         }
 
-        switch ( member )
+        switch ( member.Kind() )
         {
-            case MethodDeclarationSyntax { Body: { } } method:
+            case SyntaxKind.MethodDeclaration when member is MethodDeclarationSyntax { Body: { } } method:
                 return (T) (MemberDeclarationSyntax) method
                     .WithLeadingTrivia(
                         method
@@ -57,7 +57,7 @@ internal sealed class RewriterHelper
                         TriviaList( Trivia( GetPragmaTrivia( false ) ) )
                             .AddRange( method.GetTrailingTrivia() ) );
 
-            case MethodDeclarationSyntax { ExpressionBody: { } } method:
+            case SyntaxKind.MethodDeclaration when member is MethodDeclarationSyntax { ExpressionBody: { } } method:
                 return (T) (MemberDeclarationSyntax) method
                     .WithLeadingTrivia(
                         method
@@ -67,7 +67,7 @@ internal sealed class RewriterHelper
                         TriviaList( Trivia( GetPragmaTrivia( false ) ) )
                             .AddRange( method.GetTrailingTrivia() ) );
 
-            case MethodDeclarationSyntax method:
+            case SyntaxKind.MethodDeclaration when member is MethodDeclarationSyntax method:
                 return (T) (MemberDeclarationSyntax) method
                     .WithLeadingTrivia(
                         method
@@ -154,9 +154,9 @@ internal sealed class RewriterHelper
             throw new ArgumentOutOfRangeException( nameof(memberDeclaration) );
         }
 
-        switch ( memberDeclaration )
+        switch ( memberDeclaration.Kind() )
         {
-            case PropertyDeclarationSyntax { ExpressionBody: { } } property:
+            case SyntaxKind.PropertyDeclaration when memberDeclaration is PropertyDeclarationSyntax { ExpressionBody: { } } property:
                 // Expression bodied property - change the expression to throw exception.
                 return this.RewriteThrowNotSupported(
                     property
@@ -166,7 +166,7 @@ internal sealed class RewriterHelper
                         .WithLeadingTrivia( property.GetLeadingTrivia() )
                         .WithTrailingTrivia( LineFeed, LineFeed ) );
 
-            case PropertyDeclarationSyntax { AccessorList: { } } property:
+            case SyntaxKind.PropertyDeclaration when memberDeclaration is PropertyDeclarationSyntax { AccessorList: { } } property:
                 // Property with accessor list - change all accessors to expression bodied which do throw exception, remove initializer.
 
                 return this.RewriteThrowNotSupported(
@@ -185,7 +185,7 @@ internal sealed class RewriterHelper
                         .WithLeadingTrivia( property.GetLeadingTrivia() )
                         .WithTrailingTrivia( LineFeed, LineFeed ) );
 
-            case IndexerDeclarationSyntax { AccessorList: { } }:
+            case SyntaxKind.IndexerDeclaration when memberDeclaration is IndexerDeclarationSyntax { AccessorList: { } }:
                 throw new AssertionFailedException( "Build-time indexers are not supported." );
             /*
             // Property with accessor list - change all accessors to expression bodied which do throw exception, remove initializer.
@@ -204,7 +204,7 @@ internal sealed class RewriterHelper
                 .WithTrailingTrivia( LineFeed, LineFeed );
                 */
 
-            case EventDeclarationSyntax @event:
+            case SyntaxKind.EventDeclaration when memberDeclaration is EventDeclarationSyntax @event:
                 // Event with accessor list.
 
                 return this.RewriteThrowNotSupported(

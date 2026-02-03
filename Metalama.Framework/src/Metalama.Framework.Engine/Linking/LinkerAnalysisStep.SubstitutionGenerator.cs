@@ -148,7 +148,7 @@ internal sealed partial class LinkerAnalysisStep
             // Add substitutions to non-inlined semantics (these are always roots of inlining).
             void ProcessNonInlinedSemantic( IntermediateSymbolSemantic nonInlinedSemantic )
             {
-                if ( nonInlinedSemantic.Symbol is not IMethodSymbol )
+                if ( nonInlinedSemantic.Symbol.Kind != SymbolKind.Method )
                 {
                     // Skip non-body semantics.
                     return;
@@ -428,7 +428,7 @@ internal sealed partial class LinkerAnalysisStep
 
                     case
                     {
-                        ResolvedSemantic.Symbol: IEventSymbol,
+                        ResolvedSemantic.Symbol.Kind: SymbolKind.Event,
                         ContainingBody.MethodKind: MethodKind.EventAdd or MethodKind.EventRemove,
                         ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final,
                         TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
@@ -438,11 +438,11 @@ internal sealed partial class LinkerAnalysisStep
 
                     case
                     {
-                        ResolvedSemantic.Symbol: IEventSymbol @event,
+                        ResolvedSemantic.Symbol.Kind: SymbolKind.Event,
                         ContainingBody.MethodKind: MethodKind.EventAdd,
                         ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final,
                         TargetKind: AspectReferenceTargetKind.EventAddAccessor
-                    } when this._injectionRegistry.HasEventRaiseOverride( @event ):
+                    } when nonInlinedReference.ResolvedSemantic.Symbol is IEventSymbol @event && this._injectionRegistry.HasEventRaiseOverride( @event ):
 
                         AddSubstitution(
                             context,
@@ -452,11 +452,11 @@ internal sealed partial class LinkerAnalysisStep
 
                     case
                     {
-                        ResolvedSemantic.Symbol: IEventSymbol @event,
+                        ResolvedSemantic.Symbol.Kind: SymbolKind.Event,
                         ContainingBody.MethodKind: MethodKind.EventRemove,
                         ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final,
                         TargetKind: AspectReferenceTargetKind.EventRemoveAccessor
-                    } when this._injectionRegistry.HasEventRaiseOverride( @event ):
+                    } when nonInlinedReference.ResolvedSemantic.Symbol is IEventSymbol @event && this._injectionRegistry.HasEventRaiseOverride( @event ):
 
                         AddSubstitution(
                             context,
@@ -467,9 +467,10 @@ internal sealed partial class LinkerAnalysisStep
                     // Unified case for non-inlined references to event add/remove accessors when target has event raise overrides
                     case
                         {
-                            ResolvedSemantic.Symbol: IEventSymbol @event,
+                            ResolvedSemantic.Symbol.Kind: SymbolKind.Event,
                             TargetKind: AspectReferenceTargetKind.EventAddAccessor or AspectReferenceTargetKind.EventRemoveAccessor
-                        } when this._injectionRegistry.HasEventRaiseOverride( @event )
+                        } when nonInlinedReference.ResolvedSemantic.Symbol is IEventSymbol @event
+                               && this._injectionRegistry.HasEventRaiseOverride( @event )
                                && this._eventBrokerSemanticIndex.TryGetValue(
                                    nonInlinedReference.ResolvedSemantic.ToTyped<IEventSymbol>(),
                                    out var proxyEventBrokerInfo )
@@ -487,9 +488,9 @@ internal sealed partial class LinkerAnalysisStep
                     case
                     {
                         ContainingBody: var method,
-                        ResolvedSemantic.Symbol: IEventSymbol @event,
+                        ResolvedSemantic.Symbol.Kind: SymbolKind.Event,
                         TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
-                    }:
+                    } when nonInlinedReference.ResolvedSemantic.Symbol is IEventSymbol @event:
                         var eventBrokerInfo =
                             this._eventBrokerSemanticIndex.TryGetValue( nonInlinedReference.ResolvedSemantic.ToTyped<IEventSymbol>(), out var info )
                                 ? info
@@ -545,10 +546,10 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IPropertySymbol property } }
-                        when property.IsAutoProperty() == true && this._injectionRegistry.IsOverrideTarget( property ):
-                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event } }
-                        when @event.IsEventFieldIntroduction() && this._injectionRegistry.IsOverrideTarget( @event ):
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol.Kind: SymbolKind.Property } }
+                        when nonInlinedReference.ResolvedSemantic.Symbol is IPropertySymbol property && property.IsAutoProperty() == true && this._injectionRegistry.IsOverrideTarget( property ):
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol.Kind: SymbolKind.Event } }
+                        when nonInlinedReference.ResolvedSemantic.Symbol is IEventSymbol @event && @event.IsEventFieldIntroduction() && this._injectionRegistry.IsOverrideTarget( @event ):
                         // For default semantic of auto properties and event fields, generate substitution that redirects to the backing field..
                         AddSubstitution(
                             context,
@@ -556,13 +557,13 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base, Symbol: { IsVirtual: true } baseSymbol } }
+                    case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base, ResolvedSemantic.Symbol: { IsVirtual: true } baseSymbol }
                         when !this._intermediateCompilationContext.SymbolComparer.Equals(
                             nonInlinedReference.ContainingSemantic.Symbol.ContainingType,
                             baseSymbol.ContainingType ):
-                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base, Symbol.IsOverride: true } }
+                    case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base, ResolvedSemantic.Symbol.IsOverride: true }
                         when this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
-                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base, Symbol: var potentiallyHidingSymbol } }
+                    case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base, ResolvedSemantic.Symbol: var potentiallyHidingSymbol }
                         when potentiallyHidingSymbol.TryGetHiddenSymbol( this._intermediateCompilationContext.Compilation, out _ )
                              && this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
                         // Base reference to a virtual member of the parent that is not overridden.
@@ -582,7 +583,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base, Symbol: var symbol } }
+                    case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base, ResolvedSemantic.Symbol: var symbol }
                         when !this._intermediateCompilationContext.SymbolComparer.IsConvertibleTo(
                             nonInlinedReference.ContainingSemantic.Symbol.ContainingType,
                             symbol.ContainingType ):
@@ -598,8 +599,8 @@ internal sealed partial class LinkerAnalysisStep
 
                     case
                         {
-                            ResolvedSemantic:
-                            { Kind: IntermediateSymbolSemanticKind.Base, Symbol: { IsOverride: true, IsSealed: false } or { IsVirtual: true } }
+                            ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base,
+                            ResolvedSemantic.Symbol: { IsOverride: true, IsSealed: false } or { IsVirtual: true }
                         }
                         when !this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
                     case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Default }
@@ -664,7 +665,7 @@ internal sealed partial class LinkerAnalysisStep
                     usingSimpleInlining,
                     returnVariableIdentifier ),
 
-                AccessorDeclarationSyntax { Body: null, ExpressionBody: null } when targetSymbol is { AssociatedSymbol: IPropertySymbol property }
+                AccessorDeclarationSyntax { Body: null, ExpressionBody: null } when targetSymbol.Kind == SymbolKind.Method && targetSymbol is { AssociatedSymbol.Kind: SymbolKind.Property } && targetSymbol.AssociatedSymbol is IPropertySymbol property
                                                                                     && property.IsAutoProperty() == true =>
                     new PropertyImplicitAccessorSubstitution(
                         this._intermediateCompilationContext,

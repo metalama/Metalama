@@ -43,7 +43,8 @@ internal static class GenericContextHelper
         {
             for ( var i = 0; i < methodSymbol.TypeArguments.Length; i++ )
             {
-                if ( methodSymbol.TypeArguments[i] is not ITypeParameterSymbol { TypeParameterKind: TypeParameterKind.Method } typeParameterSymbol
+                if ( methodSymbol.TypeArguments[i].Kind != SymbolKind.TypeParameter
+                     || methodSymbol.TypeArguments[i] is not ITypeParameterSymbol { TypeParameterKind: TypeParameterKind.Method } typeParameterSymbol
                      || typeParameterSymbol.Ordinal != i )
                 {
                     return false;

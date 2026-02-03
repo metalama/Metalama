@@ -56,7 +56,7 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
     public int GetHashCode( IDeclaration obj )
     {
-        if ( obj is IAttribute attribute )
+        if ( obj.DeclarationKind == DeclarationKind.Attribute && obj is IAttribute attribute )
         {
             return RuntimeHelpers.GetHashCode( attribute );
         }
@@ -190,7 +190,7 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
         // Evaluate the current type.
 
-        if ( SymbolEqualityComparer.Default.Equals( (type as INamedTypeSymbol)?.ConstructedFrom, typeDefinition ) )
+        if ( type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol namedType && SymbolEqualityComparer.Default.Equals( namedType.ConstructedFrom, typeDefinition ) )
         {
             return true;
         }
@@ -214,7 +214,7 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
         // Evaluate the current type.
 
-        if ( this.Equals( (type as INamedType)?.Definition, typeDefinition ) )
+        if ( type.DeclarationKind == DeclarationKind.NamedType && type is INamedType namedType && this.Equals( namedType.Definition, typeDefinition ) )
         {
             return true;
         }

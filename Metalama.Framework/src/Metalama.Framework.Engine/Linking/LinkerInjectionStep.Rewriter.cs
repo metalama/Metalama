@@ -106,9 +106,9 @@ internal sealed partial class LinkerInjectionStep
                 outputTrivias,
                 ref syntaxGenerationContext );
 
-            switch ( symbol )
+            switch ( symbol.Kind )
             {
-                case IMethodSymbol method:
+                case SymbolKind.Method when symbol is IMethodSymbol method:
                     this.RewriteAttributeLists(
                         this.RefFactory.FromReturnParameter( method ),
                         SyntaxKind.ReturnKeyword,

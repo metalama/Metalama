@@ -138,7 +138,7 @@ internal sealed partial class LinkerRewritingDriver
             // TODO: Convert to block.
             if ( symbol.ReturnsVoid )
             {
-                switch ( node )
+                switch ( node?.Kind() )
                 {
                     case null:
                         throw new AssertionFailedException( Justifications.CoverageMissing );
@@ -147,10 +147,10 @@ internal sealed partial class LinkerRewritingDriver
                     //     SyntaxFactoryEx.FormattedBlock()
                     //         .AddLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
 
-                    case BlockSyntax rewrittenBlock:
+                    case SyntaxKind.Block when node is BlockSyntax rewrittenBlock:
                         return rewrittenBlock;
 
-                    case ArrowExpressionClauseSyntax rewrittenArrowClause:
+                    case SyntaxKind.ArrowExpressionClause when node is ArrowExpressionClauseSyntax rewrittenArrowClause:
                         return
                             Block( ExpressionStatement( rewrittenArrowClause.Expression ) )
                                 .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
@@ -161,7 +161,7 @@ internal sealed partial class LinkerRewritingDriver
             }
             else
             {
-                switch ( node )
+                switch ( node?.Kind() )
                 {
                     case null:
                         throw new AssertionFailedException( Justifications.CoverageMissing );
@@ -174,7 +174,7 @@ internal sealed partial class LinkerRewritingDriver
                     //                 Token( SyntaxKind.SemicolonToken ) ) )
                     //         .AddLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
 
-                    case ArrowExpressionClauseSyntax rewrittenArrowClause:
+                    case SyntaxKind.ArrowExpressionClause when node is ArrowExpressionClauseSyntax rewrittenArrowClause:
                         return
                             substitutionContext.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock(
                                     ReturnStatement(
@@ -183,7 +183,7 @@ internal sealed partial class LinkerRewritingDriver
                                         Token( SyntaxKind.SemicolonToken ) ) )
                                 .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
 
-                    case BlockSyntax rewrittenBlock:
+                    case SyntaxKind.Block when node is BlockSyntax rewrittenBlock:
                         return rewrittenBlock;
 
                     default:
@@ -212,34 +212,35 @@ internal sealed partial class LinkerRewritingDriver
         {
             var declaration = symbol.GetPrimaryDeclarationSyntax();
 
-            switch ( declaration )
+            switch ( declaration?.Kind() )
             {
-                case ConstructorDeclarationSyntax constructorDecl:
+                case SyntaxKind.ConstructorDeclaration when declaration is ConstructorDeclarationSyntax constructorDecl:
                     return (SyntaxNode?) constructorDecl.Body
                            ?? constructorDecl.ExpressionBody
                            ?? throw new AssertionFailedException( $"Constructor is expected to have body or expression body: {constructorDecl}" );
 
-                case DestructorDeclarationSyntax destructorDecl:
+                case SyntaxKind.DestructorDeclaration when declaration is DestructorDeclarationSyntax destructorDecl:
                     return (SyntaxNode?) destructorDecl.Body
                            ?? destructorDecl.ExpressionBody
                            ?? throw new AssertionFailedException( $"Destructor is expected to have body or expression body: {destructorDecl}" );
 
-                case MethodDeclarationSyntax methodDecl:
+                case SyntaxKind.MethodDeclaration when declaration is MethodDeclarationSyntax methodDecl:
                     return (SyntaxNode?) methodDecl.Body
                            ?? methodDecl.ExpressionBody
                            ?? throw new AssertionFailedException( $"Method is expected to have body or expression body: {methodDecl}" );
 
-                case ConversionOperatorDeclarationSyntax conversionOperatorDecl:
+                case SyntaxKind.ConversionOperatorDeclaration when declaration is ConversionOperatorDeclarationSyntax conversionOperatorDecl:
                     return (SyntaxNode?) conversionOperatorDecl.Body
                            ?? conversionOperatorDecl.ExpressionBody
                            ?? throw new AssertionFailedException( $"ConversionOperator is expected to have body or expression body: {conversionOperatorDecl}" );
 
-                case OperatorDeclarationSyntax operatorDecl:
+                case SyntaxKind.OperatorDeclaration when declaration is OperatorDeclarationSyntax operatorDecl:
                     return (SyntaxNode?) operatorDecl.Body
                            ?? operatorDecl.ExpressionBody
                            ?? throw new AssertionFailedException( $"Operator is expected to have body or expression body: {operatorDecl}" );
 
-                case AccessorDeclarationSyntax accessorDecl:
+                case SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                    when declaration is AccessorDeclarationSyntax accessorDecl:
                     return (SyntaxNode?) accessorDecl.Body
                            ?? accessorDecl.ExpressionBody
                            ?? throw new AssertionFailedException( $"Operator is expected to have body or expression body: {accessorDecl}" );
@@ -283,33 +284,34 @@ internal sealed partial class LinkerRewritingDriver
     {
         var rewriter = new SubstitutingRewriter( context );
 
-        switch ( bodyRootNode )
+        switch ( bodyRootNode.Kind() )
         {
-            case BlockSyntax block:
+            case SyntaxKind.Block when bodyRootNode is BlockSyntax block:
                 return (BlockSyntax) rewriter.Visit( block ).AssertNotNull();
 
-            case AccessorDeclarationSyntax accessorDecl:
+            case SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                when bodyRootNode is AccessorDeclarationSyntax accessorDecl:
                 return (BlockSyntax) rewriter.Visit( accessorDecl ).AssertNotNull();
 
-            case MethodDeclarationSyntax partialMethodDeclaration:
+            case SyntaxKind.MethodDeclaration when bodyRootNode is MethodDeclarationSyntax partialMethodDeclaration:
                 return (BlockSyntax) rewriter.Visit( partialMethodDeclaration ).AssertNotNull();
 
-            case ConstructorDeclarationSyntax partialConstructorDeclaration:
+            case SyntaxKind.ConstructorDeclaration when bodyRootNode is ConstructorDeclarationSyntax partialConstructorDeclaration:
                 return (BlockSyntax) rewriter.Visit( partialConstructorDeclaration ).AssertNotNull();
 
-            case VariableDeclaratorSyntax { Parent.Parent: EventFieldDeclarationSyntax } eventFieldVariable:
+            case SyntaxKind.VariableDeclarator when bodyRootNode is VariableDeclaratorSyntax { Parent.Parent: EventFieldDeclarationSyntax } eventFieldVariable:
                 return (BlockSyntax) rewriter.Visit( eventFieldVariable ).AssertNotNull();
 
-            case ParameterSyntax { Parent.Parent: RecordDeclarationSyntax } positionalProperty:
+            case SyntaxKind.Parameter when bodyRootNode is ParameterSyntax { Parent.Parent: RecordDeclarationSyntax } positionalProperty:
                 return (BlockSyntax) rewriter.Visit( positionalProperty ).AssertNotNull();
 
-            case ArrowExpressionClauseSyntax arrowExpressionClause:
+            case SyntaxKind.ArrowExpressionClause when bodyRootNode is ArrowExpressionClauseSyntax arrowExpressionClause:
                 var rewrittenNode = rewriter.Visit( arrowExpressionClause );
 
                 // TODO: This may be useless.
                 if ( symbol.ReturnsVoid )
                 {
-                    switch ( rewrittenNode )
+                    switch ( rewrittenNode?.Kind() )
                     {
                         case null:
                             throw new AssertionFailedException( Justifications.CoverageMissing );
@@ -318,10 +320,10 @@ internal sealed partial class LinkerRewritingDriver
                         //     SyntaxFactoryEx.FormattedBlock()
                         //         .AddLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
 
-                        case BlockSyntax rewrittenBlock:
+                        case SyntaxKind.Block when rewrittenNode is BlockSyntax rewrittenBlock:
                             return rewrittenBlock;
 
-                        case ArrowExpressionClauseSyntax rewrittenArrowClause:
+                        case SyntaxKind.ArrowExpressionClause when rewrittenNode is ArrowExpressionClauseSyntax rewrittenArrowClause:
                             return rewrittenArrowClause;
 
                         default:
@@ -330,7 +332,7 @@ internal sealed partial class LinkerRewritingDriver
                 }
                 else
                 {
-                    switch ( rewrittenNode )
+                    switch ( rewrittenNode?.Kind() )
                     {
                         case null:
                             throw new AssertionFailedException( Justifications.CoverageMissing );
@@ -343,10 +345,10 @@ internal sealed partial class LinkerRewritingDriver
                         //                 Token( SyntaxKind.SemicolonToken ) ) )
                         //         .AddLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
 
-                        case ArrowExpressionClauseSyntax rewrittenArrowClause:
+                        case SyntaxKind.ArrowExpressionClause when rewrittenNode is ArrowExpressionClauseSyntax rewrittenArrowClause:
                             return rewrittenArrowClause;
 
-                        case BlockSyntax rewrittenBlock:
+                        case SyntaxKind.Block when rewrittenNode is BlockSyntax rewrittenBlock:
                             return rewrittenBlock;
 
                         default:
@@ -524,18 +526,21 @@ internal sealed partial class LinkerRewritingDriver
             throw new AssertionFailedException( $"{semantic} is not expected for trivia source resolution." );
         }
 
-        return symbol?.GetPrimaryDeclarationSyntax() switch
+        var declaration = symbol?.GetPrimaryDeclarationSyntax();
+
+        return declaration?.Kind() switch
         {
             null => null,
-            MethodDeclarationSyntax methodDeclaration => (SyntaxNode?) methodDeclaration.Body ?? methodDeclaration.ExpressionBody,
-            AccessorDeclarationSyntax accessorDeclaration => (SyntaxNode?) accessorDeclaration.Body ?? accessorDeclaration.ExpressionBody,
-            ConstructorDeclarationSyntax constructorDeclaration => (SyntaxNode?) constructorDeclaration.Body ?? constructorDeclaration.ExpressionBody,
-            DestructorDeclarationSyntax destructorDeclaration => (SyntaxNode?) destructorDeclaration.Body ?? destructorDeclaration.ExpressionBody,
-            ConversionOperatorDeclarationSyntax conversionOperatorDeclaration => (SyntaxNode?) conversionOperatorDeclaration.Body
+            SyntaxKind.MethodDeclaration when declaration is MethodDeclarationSyntax methodDeclaration => (SyntaxNode?) methodDeclaration.Body ?? methodDeclaration.ExpressionBody,
+            SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                when declaration is AccessorDeclarationSyntax accessorDeclaration => (SyntaxNode?) accessorDeclaration.Body ?? accessorDeclaration.ExpressionBody,
+            SyntaxKind.ConstructorDeclaration when declaration is ConstructorDeclarationSyntax constructorDeclaration => (SyntaxNode?) constructorDeclaration.Body ?? constructorDeclaration.ExpressionBody,
+            SyntaxKind.DestructorDeclaration when declaration is DestructorDeclarationSyntax destructorDeclaration => (SyntaxNode?) destructorDeclaration.Body ?? destructorDeclaration.ExpressionBody,
+            SyntaxKind.ConversionOperatorDeclaration when declaration is ConversionOperatorDeclarationSyntax conversionOperatorDeclaration => (SyntaxNode?) conversionOperatorDeclaration.Body
                                                                                  ?? conversionOperatorDeclaration.ExpressionBody,
-            OperatorDeclarationSyntax operatorDeclaration => (SyntaxNode?) operatorDeclaration.Body ?? operatorDeclaration.ExpressionBody,
-            ArrowExpressionClauseSyntax arrowExpression => arrowExpression,
-            var declaration => throw new AssertionFailedException( $"Unexpected primary declaration: {declaration}" )
+            SyntaxKind.OperatorDeclaration when declaration is OperatorDeclarationSyntax operatorDeclaration => (SyntaxNode?) operatorDeclaration.Body ?? operatorDeclaration.ExpressionBody,
+            SyntaxKind.ArrowExpressionClause when declaration is ArrowExpressionClauseSyntax arrowExpression => arrowExpression,
+            _ => throw new AssertionFailedException( $"Unexpected primary declaration: {declaration}" )
         };
     }
 

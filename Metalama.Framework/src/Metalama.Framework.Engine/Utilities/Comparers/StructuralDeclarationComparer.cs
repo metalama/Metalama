@@ -78,145 +78,146 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
         {
             return 1;
         }
+        
+        var xKind = x.DeclarationKind;
+        var compareDeclarationKind = ((int) y.DeclarationKind).CompareTo( (int) xKind );
+
+        if ( compareDeclarationKind != 0 )
+        {
+            return compareDeclarationKind;
+        }
 
         int result;
 
-        // PERF: Cast enum to int otherwise it will be boxed on .NET Framework.
-        if ( x is IType xType && y is IType yType )
+        // At this point, x and y have the same DeclarationKind.
+        // Use DeclarationKind to determine if they're IType or IDeclaration.
+        if ( xKind.IsTypeKind() )
         {
+            // Both are IType since they have the same type-related DeclarationKind
+            var xType = (IType) x;
+            var yType = (IType) y;
+
             if ( xType.GetSymbol() is { } xSymbol && yType.GetSymbol() is { } ySymbol && this._symbolComparer != null )
             {
                 return this._symbolComparer.Compare( xSymbol, ySymbol );
             }
 
+            // PERF: Cast enum to int otherwise it will be boxed on .NET Framework.
             result = ((int) xType.TypeKind).CompareTo( (int) yType.TypeKind );
+
+            if ( result != 0 )
+            {
+                return result;
+            }
+
+            result = this.CompareTypes( xType, yType );
+
+            if ( result != 0 )
+            {
+                return result;
+            }
         }
-        else if ( x is IDeclaration xDeclaration && y is IDeclaration yDeclaration )
+        else
         {
-            if ( xDeclaration.GetSymbol() is { } xSymbol && yDeclaration.GetSymbol() is { } ySymbol && this._symbolComparer != null )
+            // Both are IDeclaration since they have the same non-type DeclarationKind
+            var xDecl = (IDeclaration) x;
+            var yDecl = (IDeclaration) y;
+
+            if ( xDecl.GetSymbol() is { } xSymbol && yDecl.GetSymbol() is { } ySymbol && this._symbolComparer != null )
             {
                 return this._symbolComparer.Compare( xSymbol, ySymbol );
             }
 
-            result = ((int) xDeclaration.DeclarationKind).CompareTo( (int) yDeclaration.DeclarationKind );
-        }
-        else if ( x is IType && y is IDeclaration )
-        {
-            return -1;
-        }
-        else if ( x is IDeclaration && y is IType )
-        {
-            return 1;
-        }
-        else
-        {
-            throw new NotImplementedException( $"Unsupported declarations: {x.GetType()} and {y.GetType()}." );
-        }
+            switch ( xKind )
+            {
+                case DeclarationKind.Method:
+                    result = this.CompareMethods( (IMethod) xDecl, (IMethod) yDecl, this._options );
 
-        if ( result != 0 )
-        {
-            // Unequal kinds.
-            return result;
-        }
+                    if ( result != 0 )
+                    {
+                        return result;
+                    }
 
-        switch (x, y)
-        {
-            case (IMethod methodX, IMethod methodY):
-                result = this.CompareMethods( methodX, methodY, this._options );
+                    break;
 
-                if ( result != 0 )
-                {
-                    return result;
-                }
+                case DeclarationKind.Constructor:
+                    result = this.CompareConstructors( (IConstructor) xDecl, (IConstructor) yDecl, this._options );
 
-                break;
+                    if ( result != 0 )
+                    {
+                        return result;
+                    }
 
-            case (IConstructor constructorX, IConstructor constructorY):
-                result = this.CompareConstructors( constructorX, constructorY, this._options );
+                    break;
 
-                if ( result != 0 )
-                {
-                    return result;
-                }
+                case DeclarationKind.Parameter:
+                    var parameterX = (IParameter) xDecl;
+                    var parameterY = (IParameter) yDecl;
+                    result = this.Compare( parameterX.ContainingDeclaration, parameterY.ContainingDeclaration );
 
-                break;
+                    if ( result != 0 )
+                    {
+                        return result;
+                    }
 
-            case (IParameter parameterX, IParameter parameterY):
-                result = this.Compare( parameterX.ContainingDeclaration, parameterY.ContainingDeclaration );
+                    return parameterX.Index.CompareTo( parameterY.Index );
 
-                if ( result != 0 )
-                {
-                    return result;
-                }
+                case DeclarationKind.Property:
+                    result = CompareProperties( (IProperty) xDecl, (IProperty) yDecl, this._options );
 
-                return parameterX.Index.CompareTo( parameterY.Index );
+                    if ( result != 0 )
+                    {
+                        return result;
+                    }
 
-            case (IProperty propertyX, IProperty propertyY):
+                    break;
 
-                result = CompareProperties( propertyX, propertyY, this._options );
+                case DeclarationKind.Indexer:
+                    result = this.CompareIndexers( (IIndexer) xDecl, (IIndexer) yDecl, this._options );
 
-                if ( result != 0 )
-                {
-                    return result;
-                }
+                    if ( result != 0 )
+                    {
+                        return result;
+                    }
 
-                break;
+                    break;
 
-            case (IIndexer indexerX, IIndexer indexerY):
-                result = this.CompareIndexers( indexerX, indexerY, this._options );
+                case DeclarationKind.Event:
+                    result = CompareEvents( (IEvent) xDecl, (IEvent) yDecl, this._options );
 
-                if ( result != 0 )
-                {
-                    return result;
-                }
+                    if ( result != 0 )
+                    {
+                        return result;
+                    }
 
-                break;
+                    break;
 
-            case (IEvent eventX, IEvent eventY):
-                result = CompareEvents( eventX, eventY, this._options );
+                case DeclarationKind.Field:
+                    result = CompareFields( (IField) xDecl, (IField) yDecl, this._options );
 
-                if ( result != 0 )
-                {
-                    return result;
-                }
+                    if ( result != 0 )
+                    {
+                        return result;
+                    }
 
-                break;
+                    break;
 
-            case (IField fieldX, IField fieldY):
-                result = CompareFields( fieldX, fieldY, this._options );
+                case DeclarationKind.Namespace:
+                    result = this.CompareNamespaces( (INamespace) xDecl, (INamespace) yDecl );
 
-                if ( result != 0 )
-                {
-                    return result;
-                }
+                    if ( result != 0 )
+                    {
+                        return result;
+                    }
 
-                break;
+                    break;
 
-            case (IType typeX, IType typeY):
-                result = this.CompareTypes( typeX, typeY );
+                case DeclarationKind.AssemblyReference or DeclarationKind.Compilation:
+                    return CompareAssemblies( (IAssembly) xDecl, (IAssembly) yDecl );
 
-                if ( result != 0 )
-                {
-                    return result;
-                }
-
-                break;
-
-            case (INamespace namespaceX, INamespace namespaceY):
-                result = this.CompareNamespaces( namespaceX, namespaceY );
-
-                if ( result != 0 )
-                {
-                    return result;
-                }
-
-                break;
-
-            case (IAssembly assemblyX, IAssembly assemblyY):
-                return CompareAssemblies( assemblyX, assemblyY );
-
-            default:
-                throw new NotImplementedException( $"Unexpected declarations: {x.GetType()}, {y.GetType()}." );
+                default:
+                    throw new NotImplementedException( $"Unexpected DeclarationKind: {xKind}." );
+            }
         }
 
         if ( this._options.HasFlagFast( StructuralComparerOptions.ContainingDeclaration ) )
@@ -342,7 +343,8 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
                 return result;
             }
 
-            if ( namedTypeX.ContainingDeclaration is not INamedType && namedTypeY.ContainingDeclaration is not INamedType )
+            if ( namedTypeX.ContainingDeclaration?.DeclarationKind is not (DeclarationKind.NamedType or DeclarationKind.ExtensionBlock)
+                 && namedTypeY.ContainingDeclaration?.DeclarationKind is not (DeclarationKind.NamedType or DeclarationKind.ExtensionBlock) )
             {
                 result = this.CompareNamespaces( namedTypeX.ContainingNamespace, namedTypeY.ContainingNamespace );
 
@@ -678,9 +680,9 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
                 return result;
             }
 
-            switch (currentX, currentY)
+            switch (currentX.DeclarationKind)
             {
-                case (IMethod methodX, IMethod methodY):
+                case DeclarationKind.Method when currentX is IMethod methodX && currentY is IMethod methodY:
                     result = this.CompareMethods( methodX, methodY, StructuralComparerOptions.MethodSignature );
 
                     if ( result != 0 )
@@ -690,7 +692,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                     break;
 
-                case (INamedType namedTypeX, INamedType namedTypeY):
+                case DeclarationKind.NamedType when currentX is INamedType namedTypeX && currentY is INamedType namedTypeY:
                     result = this.CompareNamedTypes( namedTypeX, namedTypeY, StructuralComparerOptions.Type );
 
                     if ( result != 0 )
@@ -700,7 +702,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                     break;
 
-                case (INamespace namespaceX, INamespace namespaceY):
+                case DeclarationKind.Namespace when currentX is INamespace namespaceX && currentY is INamespace namespaceY:
                     result = StringComparer.Ordinal.Compare( namespaceX.Name, namespaceY.Name );
 
                     if ( result != 0 )
@@ -710,7 +712,8 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                     break;
 
-                case (IAssembly, IAssembly):
+                case DeclarationKind.AssemblyReference:
+                case DeclarationKind.Compilation:
                     return 0;
 
                 default:

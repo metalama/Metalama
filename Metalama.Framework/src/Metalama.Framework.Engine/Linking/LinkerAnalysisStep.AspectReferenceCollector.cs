@@ -57,9 +57,9 @@ internal sealed partial class LinkerAnalysisStep
 
             void ProcessOverriddenMember( ISymbol overriddenMember )
             {
-                switch ( overriddenMember )
+                switch ( overriddenMember.Kind )
                 {
-                    case IMethodSymbol method:
+                    case SymbolKind.Method when overriddenMember is IMethodSymbol method:
                         AddImplicitReference(
                             method.ToSemantic( IntermediateSymbolSemanticKind.Final ),
                             method,
@@ -68,7 +68,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IPropertySymbol property:
+                    case SymbolKind.Property when overriddenMember is IPropertySymbol property:
                         if ( property.GetMethod != null )
                         {
                             AddImplicitReference(
@@ -89,7 +89,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IEventSymbol @event:
+                    case SymbolKind.Event when overriddenMember is IEventSymbol @event:
                         var lastOverride = this._injectionRegistry.GetLastOverride( @event );
 
                         AddImplicitReference(
@@ -218,14 +218,14 @@ internal sealed partial class LinkerAnalysisStep
             {
                 var symbol = this._injectionRegistry.GetSymbolForInjectedMember( injectedMember );
 
-                switch ( symbol )
+                switch ( symbol.Kind )
                 {
-                    case IMethodSymbol methodSymbol:
+                    case SymbolKind.Method when symbol is IMethodSymbol methodSymbol:
                         AnalyzeIntroducedBody( methodSymbol );
 
                         break;
 
-                    case IPropertySymbol propertySymbol:
+                    case SymbolKind.Property when symbol is IPropertySymbol propertySymbol:
                         if ( propertySymbol.GetMethod != null )
                         {
                             AnalyzeIntroducedBody( propertySymbol.GetMethod );
@@ -238,21 +238,21 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IEventSymbol eventSymbol:
+                    case SymbolKind.Event when symbol is IEventSymbol eventSymbol:
                         AnalyzeIntroducedBody( eventSymbol.AddMethod.AssertNotNull() );
                         AnalyzeIntroducedBody( eventSymbol.RemoveMethod.AssertNotNull() );
 
                         break;
 
-                    case IFieldSymbol:
+                    case SymbolKind.Field:
                         // NOP.
                         break;
 
-                    case INamedTypeSymbol:
+                    case SymbolKind.NamedType:
                         // NOP.
                         break;
 
-                    case INamespaceSymbol:
+                    case SymbolKind.Namespace:
                         // NOP.
                         break;
 

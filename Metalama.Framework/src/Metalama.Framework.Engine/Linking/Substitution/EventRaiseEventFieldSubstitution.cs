@@ -30,15 +30,15 @@ internal sealed class EventRaiseEventFieldSubstitution : SyntaxNodeSubstitution
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case IdentifierNameSyntax identifierName:
+            case SyntaxKind.IdentifierName when currentNode is IdentifierNameSyntax identifierName:
                 // Replacing the direct invocation.
                 return SyntaxFactoryEx.SafeIdentifierName( this._targetEvent.Name )
                     .WithOptionalLeadingTrivia( identifierName.Identifier.LeadingTrivia, substitutionContext.SyntaxGenerationContext )
                     .WithOptionalTrailingTrivia( identifierName.Identifier.TrailingTrivia, substitutionContext.SyntaxGenerationContext );
 
-            case MemberAccessExpressionSyntax { Expression: { }, Name: IdentifierNameSyntax identifierName } simpleMemberAccess:
+            case SyntaxKind.SimpleMemberAccessExpression when currentNode is MemberAccessExpressionSyntax { Expression: { }, Name: IdentifierNameSyntax identifierName } simpleMemberAccess:
                 // Replacing the this expression invocation.
                 return
                     simpleMemberAccess.WithName(
@@ -46,7 +46,7 @@ internal sealed class EventRaiseEventFieldSubstitution : SyntaxNodeSubstitution
                             .WithOptionalLeadingTrivia( identifierName.Identifier.LeadingTrivia, substitutionContext.SyntaxGenerationContext )
                             .WithOptionalTrailingTrivia( identifierName.Identifier.TrailingTrivia, substitutionContext.SyntaxGenerationContext ) );
 
-            case InvocationExpressionSyntax
+            case SyntaxKind.InvocationExpression when currentNode is InvocationExpressionSyntax
             {
                 Expression: MemberAccessExpressionSyntax
                 {

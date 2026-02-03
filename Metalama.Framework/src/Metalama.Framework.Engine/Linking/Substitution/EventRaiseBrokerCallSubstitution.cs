@@ -26,7 +26,7 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
     public EventRaiseBrokerCallSubstitution( CompilationContext compilationContext, ResolvedAspectReference aspectReference ) : base( compilationContext )
     {
         Invariant.Assert( aspectReference.TargetKind == AspectReferenceTargetKind.EventRaiseAccessor );
-        Invariant.Assert( aspectReference.ResolvedSemantic.Symbol is IEventSymbol );
+        Invariant.Assert( aspectReference.ResolvedSemantic.Symbol.Kind == SymbolKind.Event && aspectReference.ResolvedSemantic.Symbol is IEventSymbol );
 
         Invariant.Implies(
             aspectReference.ResolvedSemantic.Kind == IntermediateSymbolSemanticKind.Base,
@@ -39,7 +39,7 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
     public EventRaiseBrokerCallSubstitution( CompilationContext compilationContext, SyntaxNode rootNode, IntermediateSymbolSemantic targetSemantic ) : base(
         compilationContext )
     {
-        Invariant.Assert( targetSemantic.Symbol is IEventSymbol );
+        Invariant.Assert( targetSemantic.Symbol.Kind == SymbolKind.Event && targetSemantic.Symbol is IEventSymbol );
         Invariant.Implies( targetSemantic.Kind == IntermediateSymbolSemanticKind.Base, ((IEventSymbol) targetSemantic.Symbol).IsEventField() == true );
 
         this._rootNode = rootNode;
@@ -64,9 +64,9 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                     ThisExpression( Token( TriviaList( leadingTrivia ), SyntaxKind.ThisKeyword, TriviaList() ) ),
                     SyntaxFactoryEx.SafeIdentifierName( currentEventBrokerInfo.EventBrokerFieldName ) );
 
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case InvocationExpressionSyntax
+            case SyntaxKind.InvocationExpression when currentNode is InvocationExpressionSyntax
             {
                 Expression: MemberAccessExpressionSyntax
                 {
@@ -98,7 +98,7 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                             SingletonSeparatedList( Argument( TupleExpression( invokeArguments ) ) ),
                             Token( TriviaList(), SyntaxKind.CloseParenToken, trailingTrivia ) ) );
 
-            case InvocationExpressionSyntax
+            case SyntaxKind.InvocationExpression when currentNode is InvocationExpressionSyntax
             {
                 Expression: { },
                 ArgumentList.Arguments: var arguments,

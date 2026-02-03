@@ -19,8 +19,9 @@ internal sealed class PropertySetValueAssignmentInliner : PropertyInliner
         }
 
         // The syntax needs to be in form: <annotated_property_expression> = value;
-        if ( aspectReference.ResolvedSemantic.Symbol is not IPropertySymbol
-             && (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol is not IPropertySymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Property && aspectReference.ResolvedSemantic.Symbol is not IPropertySymbol
+             && !(aspectReference.ResolvedSemantic.Symbol.Kind == SymbolKind.Method && aspectReference.ResolvedSemantic.Symbol is IMethodSymbol methodSymbol
+                  && methodSymbol.AssociatedSymbol?.Kind == SymbolKind.Property && methodSymbol.AssociatedSymbol is IPropertySymbol) )
         {
             // Coverage: ignore (hit only when the check in base class is incorrect).
             return false;

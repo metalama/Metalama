@@ -19,7 +19,7 @@ public static class SourceGeneratorHelper
     {
         if ( symbol.DeclaringSyntaxReferences.IsEmpty )
         {
-            if ( symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol } )
+            if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol } )
             {
                 return IsGeneratedSymbol( associatedSymbol );
             }

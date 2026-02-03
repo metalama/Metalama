@@ -107,7 +107,7 @@ namespace Metalama.Framework.Engine.Queries
                         {
                             var baseType = getBaseType( declaration.GetCompilationModel() );
 
-                            if ( declaration is CompilationModel compilation )
+                            if ( declaration.DeclarationKind == DeclarationKind.Compilation && declaration is CompilationModel compilation )
                             {
                                 var types = compilation.GetDerivedTypes( baseType, options );
 
@@ -125,14 +125,14 @@ namespace Metalama.Framework.Engine.Queries
                             {
                                 IEnumerable<INamedType> types;
 
-                                switch ( declaration )
+                                switch ( declaration.DeclarationKind )
                                 {
-                                    case INamespace ns:
+                                    case DeclarationKind.Namespace when declaration is INamespace ns:
                                         types = ns.DescendantsAndSelf().SelectMany( x => x.Types ).SelectManyRecursive( x => x.NestedTypesAndSelf() );
 
                                         break;
 
-                                    case INamedType namedType:
+                                    case DeclarationKind.NamedType when declaration is INamedType namedType:
                                         types = namedType.NestedTypesAndSelf();
 
                                         break;
@@ -270,20 +270,20 @@ namespace Metalama.Framework.Engine.Queries
                         {
                             IEnumerable<INamedType> types;
 
-                            if ( declaration is IAssembly assembly )
+                            if ( declaration.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.AssemblyReference && declaration is IAssembly assembly )
                             {
                                 types = includeNestedTypes ? assembly.AllTypes : assembly.Types;
                             }
                             else
                             {
-                                switch ( declaration )
+                                switch ( declaration.DeclarationKind )
                                 {
-                                    case INamespace ns:
+                                    case DeclarationKind.Namespace when declaration is INamespace ns:
                                         types = ns.DescendantsAndSelf().SelectMany( x => x.Types );
 
                                         break;
 
-                                    case INamedType type:
+                                    case DeclarationKind.NamedType when declaration is INamedType type:
                                         types = [type];
 
                                         break;

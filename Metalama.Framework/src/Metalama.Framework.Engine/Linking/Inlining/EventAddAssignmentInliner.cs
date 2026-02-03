@@ -19,8 +19,9 @@ internal sealed class EventAddAssignmentInliner : EventInliner
         }
 
         // The syntax needs to be in form: <annotated_property_expression> += value;
-        if ( aspectReference.ResolvedSemantic.Symbol is not IEventSymbol
-             && (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol is not IEventSymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Event && aspectReference.ResolvedSemantic.Symbol is not IEventSymbol
+             && (aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method
+                 || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol?.Kind != SymbolKind.Event) )
         {
             // Coverage: ignore (hit only when the check in base class is incorrect).
             return false;

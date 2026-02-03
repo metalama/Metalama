@@ -25,9 +25,9 @@ internal sealed class BlockWithReturnBeforeUsingLocalSubstitution : SyntaxNodeSu
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case BlockSyntax rootBlock:
+            case SyntaxKind.Block when currentNode is BlockSyntax rootBlock:
                 var gotoStatementWalker = new GotoAndLabeledStatementWalker();
 
                 // PERF: Visits already inlined bodies (which may have been processed by another instance), leading to O(n^2) time complexity in extreme cases.
