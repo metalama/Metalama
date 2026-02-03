@@ -24,7 +24,7 @@ internal sealed class MethodAssignmentInliner : MethodInliner
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -32,7 +32,7 @@ internal sealed class MethodAssignmentInliner : MethodInliner
         // The invocation (possibly through parentheses or null-forgiving) should be the right side of an assignment.
         var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
 
-        if ( invocationOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        if ( !invocationOrWrapped.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) || invocationOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
@@ -46,13 +46,13 @@ internal sealed class MethodAssignmentInliner : MethodInliner
 
         // Assignment should have a local on the left.
         var leftSymbol = semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol;
-        if ( assignmentExpression.Left is not IdentifierNameSyntax || leftSymbol?.Kind != SymbolKind.Local || leftSymbol is not ILocalSymbol )
+        if ( !assignmentExpression.Left.IsKind( SyntaxKind.IdentifierName ) || assignmentExpression.Left is not IdentifierNameSyntax || leftSymbol?.Kind != SymbolKind.Local || leftSymbol is not ILocalSymbol )
         {
             return false;
         }
 
         // The assignment should be part of expression statement.
-        if ( assignmentExpression.Parent is not ExpressionStatementSyntax )
+        if ( !assignmentExpression.Parent.IsKind( SyntaxKind.ExpressionStatement ) || assignmentExpression.Parent is not ExpressionStatementSyntax )
         {
             return false;
         }

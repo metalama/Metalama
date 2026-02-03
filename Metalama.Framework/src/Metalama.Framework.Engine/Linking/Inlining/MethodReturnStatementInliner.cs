@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.CodeModel.Comparers;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Linking.Inlining;
@@ -27,7 +28,7 @@ internal sealed class MethodReturnStatementInliner : MethodInliner
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -42,7 +43,7 @@ internal sealed class MethodReturnStatementInliner : MethodInliner
         // The invocation (possibly through parentheses or null-forgiving) should be inside a return statement.
         var possibleReturn = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent;
 
-        if ( possibleReturn is not ReturnStatementSyntax )
+        if ( !possibleReturn.IsKind( SyntaxKind.ReturnStatement ) || possibleReturn is not ReturnStatementSyntax )
         {
             return false;
         }

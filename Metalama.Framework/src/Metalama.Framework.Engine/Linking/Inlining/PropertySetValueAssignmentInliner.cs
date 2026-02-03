@@ -30,7 +30,7 @@ internal sealed class PropertySetValueAssignmentInliner : PropertyInliner
         // The property access (possibly through parentheses) should be the left side of an assignment.
         var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
 
-        if ( expressionOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        if ( !expressionOrWrapped.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) || expressionOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
@@ -43,14 +43,14 @@ internal sealed class PropertySetValueAssignmentInliner : PropertyInliner
         }
 
         // Assignment should have a "value" identifier on the right (TODO: ref returns).
-        if ( assignmentExpression.Right is not IdentifierNameSyntax rightIdentifier ||
+        if ( !assignmentExpression.Right.IsKind( SyntaxKind.IdentifierName ) || assignmentExpression.Right is not IdentifierNameSyntax rightIdentifier ||
              !string.Equals( rightIdentifier.Identifier.ValueText, "value", StringComparison.Ordinal ) )
         {
             return false;
         }
 
         // The assignment should be part of expression statement.
-        if ( assignmentExpression.Parent is not ExpressionStatementSyntax )
+        if ( !assignmentExpression.Parent.IsKind( SyntaxKind.ExpressionStatement ) || assignmentExpression.Parent is not ExpressionStatementSyntax )
         {
             return false;
         }

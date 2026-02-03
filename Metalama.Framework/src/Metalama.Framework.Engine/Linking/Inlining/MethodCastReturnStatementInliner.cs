@@ -28,7 +28,7 @@ internal sealed class MethodCastReturnStatementInliner : MethodInliner
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -36,7 +36,7 @@ internal sealed class MethodCastReturnStatementInliner : MethodInliner
         // The invocation (possibly through parentheses or null-forgiving) should be inside a cast expression.
         var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
 
-        if ( invocationOrWrapped.Parent is not CastExpressionSyntax castExpression )
+        if ( !invocationOrWrapped.Parent.IsKind( SyntaxKind.CastExpression ) || invocationOrWrapped.Parent is not CastExpressionSyntax castExpression )
         {
             return false;
         }
@@ -51,7 +51,7 @@ internal sealed class MethodCastReturnStatementInliner : MethodInliner
         // The cast expression (possibly through parentheses or null-forgiving) should be inside a return statement.
         var castOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( castExpression );
 
-        if ( castOrWrapped.Parent is not ReturnStatementSyntax )
+        if ( !castOrWrapped.Parent.IsKind( SyntaxKind.ReturnStatement ) || castOrWrapped.Parent is not ReturnStatementSyntax )
         {
             return false;
         }

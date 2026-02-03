@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.CodeModel.Comparers;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Linking.Inlining;
@@ -22,12 +23,12 @@ internal sealed class AwaitReturnStatementInliner : AsyncMethodInliner
 
         // The syntax has to be in form: return await <annotated_method_expression>( <arguments> );
         // or: return (await <annotated_method_expression>( <arguments> ));
-        if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol methodSymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol methodSymbol )
         {
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -35,7 +36,7 @@ internal sealed class AwaitReturnStatementInliner : AsyncMethodInliner
         // The invocation should be inside an await expression, possibly through parentheses.
         var possibleAwait = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent;
 
-        if ( possibleAwait is not AwaitExpressionSyntax awaitExpression )
+        if ( !possibleAwait.IsKind( SyntaxKind.AwaitExpression ) || possibleAwait is not AwaitExpressionSyntax awaitExpression )
         {
             return false;
         }
@@ -43,7 +44,7 @@ internal sealed class AwaitReturnStatementInliner : AsyncMethodInliner
         // The await expression should be inside a return statement, possibly through parentheses.
         var possibleReturn = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression ).Parent;
 
-        if ( possibleReturn is not ReturnStatementSyntax )
+        if ( !possibleReturn.IsKind( SyntaxKind.ReturnStatement ) || possibleReturn is not ReturnStatementSyntax )
         {
             return false;
         }

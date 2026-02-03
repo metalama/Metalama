@@ -22,12 +22,12 @@ internal sealed class AwaitAssignmentInliner : AsyncMethodInliner
 
         // The syntax has to be in form: <local> = await <annotated_method_expression>( <arguments> );
         // or: <local> = (await <annotated_method_expression>( <arguments> ));
-        if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
         {
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -35,7 +35,7 @@ internal sealed class AwaitAssignmentInliner : AsyncMethodInliner
         // The invocation should be inside an await expression, possibly through parentheses.
         var possibleAwait = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent;
 
-        if ( possibleAwait is not AwaitExpressionSyntax awaitExpression )
+        if ( !possibleAwait.IsKind( SyntaxKind.AwaitExpression ) || possibleAwait is not AwaitExpressionSyntax awaitExpression )
         {
             return false;
         }
@@ -43,7 +43,7 @@ internal sealed class AwaitAssignmentInliner : AsyncMethodInliner
         // The await expression (possibly parenthesized) should be the right side of an assignment.
         var awaitOrParenthesized = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
-        if ( awaitOrParenthesized.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        if ( !awaitOrParenthesized.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) || awaitOrParenthesized.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
@@ -56,13 +56,13 @@ internal sealed class AwaitAssignmentInliner : AsyncMethodInliner
         }
 
         // Assignment should have a local on the left.
-        if ( assignmentExpression.Left is not IdentifierNameSyntax || semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol is not ILocalSymbol )
+        if ( !assignmentExpression.Left.IsKind( SyntaxKind.IdentifierName ) || assignmentExpression.Left is not IdentifierNameSyntax || semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol?.Kind != SymbolKind.Local || semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol is not ILocalSymbol )
         {
             return false;
         }
 
         // The assignment should be part of expression statement.
-        if ( assignmentExpression.Parent is not ExpressionStatementSyntax )
+        if ( !assignmentExpression.Parent.IsKind( SyntaxKind.ExpressionStatement ) || assignmentExpression.Parent is not ExpressionStatementSyntax )
         {
             return false;
         }

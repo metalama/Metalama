@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Linking.Inlining;
@@ -21,12 +22,12 @@ internal sealed class AwaitExpressionStatementInliner : AsyncMethodInliner
         }
 
         // The syntax has to be in form: await <annotated_method_expression>( <arguments> );
-        if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
         {
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -35,14 +36,14 @@ internal sealed class AwaitExpressionStatementInliner : AsyncMethodInliner
         // Note: await (M()); is valid, but (await M()); is not valid C# as a statement.
         var possibleAwait = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent;
 
-        if ( possibleAwait is not AwaitExpressionSyntax awaitExpression )
+        if ( !possibleAwait.IsKind( SyntaxKind.AwaitExpression ) || possibleAwait is not AwaitExpressionSyntax awaitExpression )
         {
             return false;
         }
 
         // The await expression should be directly inside an expression statement.
         // Note: (await M()); is not valid C# - a parenthesized expression cannot be a statement.
-        if ( awaitExpression.Parent is not ExpressionStatementSyntax )
+        if ( !awaitExpression.Parent.IsKind( SyntaxKind.ExpressionStatement ) || awaitExpression.Parent is not ExpressionStatementSyntax )
         {
             return false;
         }

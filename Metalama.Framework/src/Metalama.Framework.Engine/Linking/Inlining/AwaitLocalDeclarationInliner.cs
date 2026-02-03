@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -27,12 +28,12 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
 
         // The syntax has to be in form: <type> <local> = await <annotated_method_expression>( <arguments> );
         // or: <type> <local> = (await <annotated_method_expression>( <arguments> ));
-        if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol methodSymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol methodSymbol )
         {
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -40,7 +41,7 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
         // The invocation should be inside an await expression, possibly through parentheses.
         var possibleAwait = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent;
 
-        if ( possibleAwait is not AwaitExpressionSyntax awaitExpression )
+        if ( !possibleAwait.IsKind( SyntaxKind.AwaitExpression ) || possibleAwait is not AwaitExpressionSyntax awaitExpression )
         {
             return false;
         }
@@ -48,7 +49,7 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
         // The await expression (possibly parenthesized) should be inside an equals value clause.
         var awaitOrParenthesized = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
-        if ( awaitOrParenthesized.Parent is not EqualsValueClauseSyntax equalsClause )
+        if ( !awaitOrParenthesized.Parent.IsKind( SyntaxKind.EqualsValueClause ) || awaitOrParenthesized.Parent is not EqualsValueClauseSyntax equalsClause )
         {
             return false;
         }
@@ -82,7 +83,7 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
         }
 
         // Should be within local declaration.
-        if ( variableDeclaration.Parent is not LocalDeclarationStatementSyntax )
+        if ( !variableDeclaration.Parent.IsKind( SyntaxKind.LocalDeclarationStatement ) || variableDeclaration.Parent is not LocalDeclarationStatementSyntax )
         {
             return false;
         }

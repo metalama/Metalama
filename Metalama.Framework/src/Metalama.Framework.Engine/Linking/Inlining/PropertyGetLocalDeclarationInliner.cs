@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -23,6 +24,8 @@ namespace Metalama.Framework.Engine.Linking.Inlining
             // The syntax has to be in form: <type> <local> = <annotated_property_expression>;
             if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Property
                  && (aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method
+                     || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol
+                     || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol?.Kind != SymbolKind.Property
                      || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol is not IPropertySymbol) )
             {
                 // Coverage: ignore (hit only when the check in base class is incorrect).
@@ -37,7 +40,7 @@ namespace Metalama.Framework.Engine.Linking.Inlining
             // The property access (possibly through parentheses or null-forgiving) should be within equals clause.
             var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
 
-            if ( expressionOrWrapped.Parent is not EqualsValueClauseSyntax equalsClause )
+            if ( !expressionOrWrapped.Parent.IsKind( SyntaxKind.EqualsValueClause ) || expressionOrWrapped.Parent is not EqualsValueClauseSyntax equalsClause )
             {
                 return false;
             }
@@ -62,7 +65,7 @@ namespace Metalama.Framework.Engine.Linking.Inlining
             }
 
             // Should be within local declaration.
-            if ( variableDeclaration.Parent is not LocalDeclarationStatementSyntax )
+            if ( !variableDeclaration.Parent.IsKind( SyntaxKind.LocalDeclarationStatement ) || variableDeclaration.Parent is not LocalDeclarationStatementSyntax )
             {
                 // Coverage: ignore (only incorrect code can get here).
                 return false;

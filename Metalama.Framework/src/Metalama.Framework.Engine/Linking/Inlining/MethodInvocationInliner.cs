@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Linking.Inlining;
@@ -26,12 +27,12 @@ internal sealed class MethodInvocationInliner : MethodInliner
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
 
-        if ( invocationExpression.Parent is not ExpressionStatementSyntax )
+        if ( !invocationExpression.Parent.IsKind( SyntaxKind.ExpressionStatement ) || invocationExpression.Parent is not ExpressionStatementSyntax )
         {
             return false;
         }

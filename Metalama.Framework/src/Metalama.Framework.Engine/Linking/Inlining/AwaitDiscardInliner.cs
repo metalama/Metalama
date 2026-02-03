@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Linking.Inlining;
@@ -21,12 +22,12 @@ internal sealed class AwaitDiscardInliner : AsyncMethodInliner
 
         // The syntax has to be in form: _ = await <annotated_method_expression>( <arguments> );
         // or: _ = (await <annotated_method_expression>( <arguments> ));
-        if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
         {
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -34,7 +35,7 @@ internal sealed class AwaitDiscardInliner : AsyncMethodInliner
         // The invocation should be inside an await expression, possibly through parentheses.
         var possibleAwait = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent;
 
-        if ( possibleAwait is not AwaitExpressionSyntax awaitExpression )
+        if ( !possibleAwait.IsKind( SyntaxKind.AwaitExpression ) || possibleAwait is not AwaitExpressionSyntax awaitExpression )
         {
             return false;
         }
@@ -42,7 +43,7 @@ internal sealed class AwaitDiscardInliner : AsyncMethodInliner
         // The await expression (possibly parenthesized) should be the right side of an assignment.
         var awaitOrParenthesized = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
-        if ( awaitOrParenthesized.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        if ( !awaitOrParenthesized.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) || awaitOrParenthesized.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
@@ -60,7 +61,7 @@ internal sealed class AwaitDiscardInliner : AsyncMethodInliner
         }
 
         // The assignment should be part of expression statement.
-        if ( assignmentExpression.Parent is not ExpressionStatementSyntax )
+        if ( !assignmentExpression.Parent.IsKind( SyntaxKind.ExpressionStatement ) || assignmentExpression.Parent is not ExpressionStatementSyntax )
         {
             return false;
         }

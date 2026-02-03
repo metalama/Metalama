@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.CodeModel.Comparers;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Linking.Inlining;
@@ -23,12 +24,12 @@ internal sealed class AwaitCastReturnStatementInliner : AsyncMethodInliner
 
         // The syntax has to be in form: return (<type>)await <annotated_method_expression>( <arguments> );
         // or: return (<type>)(await <annotated_method_expression>( <arguments> ));
-        if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
         {
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -36,7 +37,7 @@ internal sealed class AwaitCastReturnStatementInliner : AsyncMethodInliner
         // The invocation should be inside an await expression, possibly through parentheses.
         var possibleAwait = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression ).Parent;
 
-        if ( possibleAwait is not AwaitExpressionSyntax awaitExpression )
+        if ( !possibleAwait.IsKind( SyntaxKind.AwaitExpression ) || possibleAwait is not AwaitExpressionSyntax awaitExpression )
         {
             return false;
         }
@@ -44,7 +45,7 @@ internal sealed class AwaitCastReturnStatementInliner : AsyncMethodInliner
         // The await expression (possibly parenthesized) should be inside a cast expression.
         var awaitOrParenthesized = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
-        if ( awaitOrParenthesized.Parent is not CastExpressionSyntax castExpression )
+        if ( !awaitOrParenthesized.Parent.IsKind( SyntaxKind.CastExpression ) || awaitOrParenthesized.Parent is not CastExpressionSyntax castExpression )
         {
             return false;
         }
@@ -67,12 +68,12 @@ internal sealed class AwaitCastReturnStatementInliner : AsyncMethodInliner
         // Skip through any outer cast expressions (e.g., when template has (int) and framework adds (global::System.Int32)).
         SyntaxNode castOrOuter = castExpression;
 
-        while ( castOrOuter.Parent is CastExpressionSyntax )
+        while ( castOrOuter.Parent.IsKind( SyntaxKind.CastExpression ) && castOrOuter.Parent is CastExpressionSyntax )
         {
             castOrOuter = castOrOuter.Parent;
         }
 
-        if ( castOrOuter.Parent is not ReturnStatementSyntax )
+        if ( !castOrOuter.Parent.IsKind( SyntaxKind.ReturnStatement ) || castOrOuter.Parent is not ReturnStatementSyntax )
         {
             return false;
         }

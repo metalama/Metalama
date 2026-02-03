@@ -15,7 +15,7 @@ namespace Metalama.Framework.Engine.Linking.Inlining;
 internal abstract class AsyncMethodInliner : Inliner
 {
     public override bool IsValidForTargetSymbol( ISymbol symbol )
-        => symbol is IMethodSymbol { MethodKind: not MethodKind.Constructor, AssociatedSymbol: null, IsAsync: true } methodSymbol
+        => symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: not MethodKind.Constructor, AssociatedSymbol: null, IsAsync: true } methodSymbol
            && !methodSymbol.IsIteratorMethod();
 
     public override bool IsValidForContainingSymbol( ISymbol symbol ) => true;

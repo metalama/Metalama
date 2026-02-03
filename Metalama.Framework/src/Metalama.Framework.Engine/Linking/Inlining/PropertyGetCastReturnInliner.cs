@@ -20,6 +20,8 @@ internal sealed class PropertyGetCastReturnInliner : PropertyGetInliner
         // The syntax needs to be in form: return <annotated_property_expression>;
         if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Property
              && (aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method
+                 || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol
+                 || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol?.Kind != SymbolKind.Property
                  || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol is not IPropertySymbol) )
         {
             // Coverage: ignore (hit only when the check in base class is incorrect).
@@ -29,7 +31,7 @@ internal sealed class PropertyGetCastReturnInliner : PropertyGetInliner
         // The property access (possibly through parentheses or null-forgiving) should be inside a cast.
         var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression.AssertNotNull() );
 
-        if ( expressionOrWrapped.Parent is not CastExpressionSyntax castExpression )
+        if ( !expressionOrWrapped.Parent.IsKind( SyntaxKind.CastExpression ) || expressionOrWrapped.Parent is not CastExpressionSyntax castExpression )
         {
             return false;
         }
@@ -44,7 +46,7 @@ internal sealed class PropertyGetCastReturnInliner : PropertyGetInliner
         // The cast (possibly through parentheses or null-forgiving) should be inside a return statement.
         var castOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( castExpression );
 
-        if ( castOrWrapped.Parent is not ReturnStatementSyntax )
+        if ( !castOrWrapped.Parent.IsKind( SyntaxKind.ReturnStatement ) || castOrWrapped.Parent is not ReturnStatementSyntax )
         {
             return false;
         }

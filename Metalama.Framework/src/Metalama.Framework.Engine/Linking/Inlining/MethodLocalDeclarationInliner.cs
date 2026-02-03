@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -29,7 +30,7 @@ namespace Metalama.Framework.Engine.Linking.Inlining
             }
 
             // Should be within invocation expression.
-            if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+            if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
             {
                 return false;
             }
@@ -37,7 +38,7 @@ namespace Metalama.Framework.Engine.Linking.Inlining
             // The invocation (possibly through parentheses or null-forgiving) should be within equals clause.
             var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
 
-            if ( invocationOrWrapped.Parent is not EqualsValueClauseSyntax equalsClause )
+            if ( !invocationOrWrapped.Parent.IsKind( SyntaxKind.EqualsValueClause ) || invocationOrWrapped.Parent is not EqualsValueClauseSyntax equalsClause )
             {
                 return false;
             }
@@ -66,7 +67,7 @@ namespace Metalama.Framework.Engine.Linking.Inlining
             }
 
             // Should be within local declaration.
-            if ( variableDeclaration.Parent is not LocalDeclarationStatementSyntax )
+            if ( !variableDeclaration.Parent.IsKind( SyntaxKind.LocalDeclarationStatement ) || variableDeclaration.Parent is not LocalDeclarationStatementSyntax )
             {
                 return false;
             }
