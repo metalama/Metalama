@@ -13,10 +13,10 @@ namespace Metalama.Patterns.Caching.Tests.Backends;
 
 public sealed partial class CachingBackendDisposalTests : IDisposable
 {
+    private const int _timeout = 30_000;
+
     private readonly ITestOutputHelper _testOutput;
     private readonly ServiceProvider _serviceProvider;
-
-    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds( 30 );
 
     public CachingBackendDisposalTests( ITestOutputHelper testOutputHelper )
     {
@@ -33,14 +33,6 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
     private CachingBackend CreateBackend( string debugName = "test" )
     {
         return MemoryCacheFactory.CreateBackend( this._serviceProvider, debugName );
-    }
-
-    private static async Task WaitWithTimeoutAsync( Task task, string message = "Timeout exceeded" )
-    {
-        if ( !await task.WithTimeout( _timeout ) )
-        {
-            throw new TimeoutException( message );
-        }
     }
 
     #region Multiple Dispose Calls
@@ -131,14 +123,14 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
             } );
 
         // Wait for both threads to be ready
-        await WaitWithTimeoutAsync( thread1Ready.Task );
-        await WaitWithTimeoutAsync( thread2Ready.Task );
+        await thread1Ready.Task.WaitWithTimeoutAsync();
+        await thread2Ready.Task.WaitWithTimeoutAsync();
 
         // Release both threads simultaneously
         startSignal.Release( 2 );
 
         // Wait for both to complete
-        await WaitWithTimeoutAsync( Task.WhenAll( task1, task2 ) );
+        await Task.WhenAll( task1, task2 ).WaitWithTimeoutAsync();
 
         Assert.Null( thread1Exception );
         Assert.Null( thread2Exception );
@@ -187,14 +179,14 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         // Wait for all callers to be ready
         foreach ( var signal in readySignals )
         {
-            await WaitWithTimeoutAsync( signal.Task );
+            await signal.Task.WaitWithTimeoutAsync();
         }
 
         // Release all callers simultaneously
         barrier.Release( callerCount );
 
         // Wait for all to complete
-        await WaitWithTimeoutAsync( Task.WhenAll( tasks ) );
+        await Task.WhenAll( tasks ).WaitWithTimeoutAsync();
 
         foreach ( var exception in exceptions )
         {
@@ -222,7 +214,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         var initTask = Task.Run( async () => await backend.InitializeAsync( CancellationToken.None ) );
 
         // Wait for initialization to start
-        await WaitWithTimeoutAsync( initStarted.Task );
+        await initStarted.Task.WaitWithTimeoutAsync();
 
         // Now try to dispose with a cancelled token while initialization is in progress
         cts.Cancel();
@@ -233,7 +225,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         // Complete initialization so tests don't hang
         initComplete.SetResult( true );
 
-        await WaitWithTimeoutAsync( Task.WhenAll( initTask, disposeTask ) );
+        await Task.WhenAll( initTask, disposeTask ).WaitWithTimeoutAsync();
     }
 
     [Fact]
@@ -411,14 +403,14 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
             } );
 
         // Wait for both to be ready
-        await WaitWithTimeoutAsync( syncReady.Task );
-        await WaitWithTimeoutAsync( asyncReady.Task );
+        await syncReady.Task.WaitWithTimeoutAsync();
+        await asyncReady.Task.WaitWithTimeoutAsync();
 
         // Release both simultaneously
         startSignal.Release( 2 );
 
         // Wait for both to complete
-        await WaitWithTimeoutAsync( Task.WhenAll( syncTask, asyncTask ) );
+        await Task.WhenAll( syncTask, asyncTask ).WaitWithTimeoutAsync();
 
         Assert.Null( syncException );
         Assert.Null( asyncException );
