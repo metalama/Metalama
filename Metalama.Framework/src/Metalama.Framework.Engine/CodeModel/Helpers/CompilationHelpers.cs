@@ -215,7 +215,9 @@ internal sealed class CompilationHelpers : ICompilationHelpers
 
     private bool IsAccessibleFromOutsideAssemblyCore( IDeclaration declaration, bool honorInternalVisibleToAttributes )
     {
-        if ( declaration is IMemberOrNamedType memberOrType )
+        if ( declaration.DeclarationKind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Indexer or DeclarationKind.Field
+                or DeclarationKind.Event or DeclarationKind.Constructor or DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
+            && declaration is IMemberOrNamedType memberOrType )
         {
             if ( memberOrType is { Accessibility: Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedInternal } )
             {

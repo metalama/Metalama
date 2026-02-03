@@ -554,7 +554,7 @@ namespace Metalama.Framework.Engine.CompileTime
                     {
                         foreach ( var member in implementedInterface.GetMembers() )
                         {
-                            if ( member is not IMethodSymbol method )
+                            if ( member.Kind != SymbolKind.Method || member is not IMethodSymbol method )
                             {
                                 // IAspect and IEligible have only methods.
                                 throw new AssertionFailedException( $"Unexpected member '{member}'." );
@@ -727,7 +727,7 @@ namespace Metalama.Framework.Engine.CompileTime
                      && this.SymbolClassifier.GetTemplateInfo( symbol ).IsNone )
                 {
                     if ( symbol.DeclaredAccessibility is Accessibility.Internal or Accessibility.Public or Accessibility.ProtectedOrInternal &&
-                         symbol is not (IFieldSymbol or IPropertySymbol)
+                         symbol.Kind is not (SymbolKind.Field or SymbolKind.Property)
                          && this.SymbolClassifier.GetTemplatingScope( symbol.ContainingType ) == TemplatingScope.RunTimeOrCompileTime )
                     {
                         // TODO
@@ -1015,7 +1015,7 @@ namespace Metalama.Framework.Engine.CompileTime
                             if ( this._currentTypeImplicitInterfaceImplementations.AssertNotNull()
                                 .TryGetValue( propertySymbol, out var implicitlyImplementedInterfaceMembers ) )
                             {
-                                foreach ( var interfaceProperty in implicitlyImplementedInterfaceMembers.OfType<IPropertySymbol>() )
+                                foreach ( var interfaceProperty in implicitlyImplementedInterfaceMembers.Where( m => m.Kind == SymbolKind.Property ).OfType<IPropertySymbol>() )
                                 {
                                     var interfaceScope = this.SymbolClassifier.GetTemplatingScope( interfaceProperty.ContainingType );
 

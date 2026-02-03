@@ -148,10 +148,12 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
                 switch ( syntaxNode.Kind() )
                 {
-                    case SyntaxKind.VariableDeclarator when syntaxNode is VariableDeclaratorSyntax { Parent.Parent: EventFieldDeclarationSyntax eventFieldDeclaration }:
+                    case SyntaxKind.VariableDeclarator when syntaxNode.Parent?.Parent?.Kind() == SyntaxKind.EventFieldDeclaration
+                        && syntaxNode is VariableDeclaratorSyntax { Parent.Parent: EventFieldDeclarationSyntax eventFieldDeclaration }:
                         return eventFieldDeclaration.Modifiers.Any( m => m.IsKind( SyntaxKind.NewKeyword ) );
 
-                    case SyntaxKind.VariableDeclarator when syntaxNode is VariableDeclaratorSyntax { Parent.Parent: FieldDeclarationSyntax fieldDeclaration }:
+                    case SyntaxKind.VariableDeclarator when syntaxNode.Parent?.Parent?.Kind() == SyntaxKind.FieldDeclaration
+                        && syntaxNode is VariableDeclaratorSyntax { Parent.Parent: FieldDeclarationSyntax fieldDeclaration }:
                         return fieldDeclaration.Modifiers.Any( m => m.IsKind( SyntaxKind.NewKeyword ) );
 
                     case SyntaxKind.LocalFunctionStatement:

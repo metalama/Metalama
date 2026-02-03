@@ -36,26 +36,26 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers;
 public static class DeclarationExtensions
 {
     internal static DeclarationKind GetDeclarationKind( this ISymbol symbol, CompilationContext compilationContext )
-        => symbol switch
+        => symbol.Kind switch
         {
-            INamespaceSymbol => DeclarationKind.Namespace,
+            SymbolKind.Namespace => DeclarationKind.Namespace,
 #if ROSLYN_5_0_0_OR_GREATER
-            INamedTypeSymbol { IsExtension: true } => DeclarationKind.ExtensionBlock,
+            SymbolKind.NamedType when symbol is INamedTypeSymbol { IsExtension: true } => DeclarationKind.ExtensionBlock,
 #endif
-            INamedTypeSymbol => DeclarationKind.NamedType,
-            IMethodSymbol method =>
+            SymbolKind.NamedType => DeclarationKind.NamedType,
+            SymbolKind.Method when symbol is IMethodSymbol method =>
                 method.MethodKind is MethodKind.Constructor or MethodKind.StaticConstructor
                     ? DeclarationKind.Constructor
                     : DeclarationKind.Method,
-            IPropertySymbol { Parameters.Length: var parameters } => parameters == 0 ? DeclarationKind.Property : DeclarationKind.Indexer,
-            IFieldSymbol => DeclarationKind.Field,
-            ITypeParameterSymbol => DeclarationKind.TypeParameter,
-            IAssemblySymbol assemblySymbol when assemblySymbol.Equals( compilationContext.Compilation.Assembly ) => DeclarationKind.Compilation,
-            IAssemblySymbol => DeclarationKind.AssemblyReference,
-            IParameterSymbol => DeclarationKind.Parameter,
-            IEventSymbol => DeclarationKind.Event,
-            ITypeSymbol => DeclarationKind.Type,
-            IModuleSymbol => DeclarationKind.Compilation,
+            SymbolKind.Property when symbol is IPropertySymbol { Parameters.Length: var parameters } => parameters == 0 ? DeclarationKind.Property : DeclarationKind.Indexer,
+            SymbolKind.Field => DeclarationKind.Field,
+            SymbolKind.TypeParameter => DeclarationKind.TypeParameter,
+            SymbolKind.Assembly when symbol is IAssemblySymbol assemblySymbol && assemblySymbol.Equals( compilationContext.Compilation.Assembly ) => DeclarationKind.Compilation,
+            SymbolKind.Assembly => DeclarationKind.AssemblyReference,
+            SymbolKind.Parameter => DeclarationKind.Parameter,
+            SymbolKind.Event => DeclarationKind.Event,
+            SymbolKind.ArrayType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.FunctionPointerType or SymbolKind.PointerType => DeclarationKind.Type,
+            SymbolKind.NetModule => DeclarationKind.Compilation,
             _ => throw new ArgumentException( $"Unexpected symbol: {symbol.GetType().Name}.", nameof(symbol) )
         };
 
@@ -330,12 +330,18 @@ public static class DeclarationExtensions
 
             // Check if all accessors are empty (pure auto-property).
             var allAccessorsEmpty = symbol.DeclaringSyntaxReferences.All(
-                sr => sr.GetSyntax() switch
+                sr =>
                 {
-                    BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } =>
-                        accessors.All( a => a.Body == null && a.ExpressionBody == null ),
-                    ParameterSyntax => true, // Primary constructor parameter
-                    _ => false
+                    var syntax = sr.GetSyntax();
+
+                    return syntax.Kind() switch
+                    {
+                        SyntaxKind.PropertyDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.IndexerDeclaration
+                            when syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } =>
+                            accessors.All( a => a.Body == null && a.ExpressionBody == null ),
+                        SyntaxKind.Parameter => true, // Primary constructor parameter
+                        _ => false
+                    };
                 } );
 
             if ( allAccessorsEmpty )
@@ -368,12 +374,18 @@ public static class DeclarationExtensions
 
     private static bool HasExplicitAccessorBody( IPropertySymbol symbol )
         => symbol.DeclaringSyntaxReferences.Any(
-            sr => sr.GetSyntax() switch
+            sr =>
             {
-                BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } =>
-                    accessors.Any( a => a.Body != null || a.ExpressionBody != null ),
-                PropertyDeclarationSyntax { ExpressionBody: { } } => true, // Expression-bodied property
-                _ => false
+                var syntax = sr.GetSyntax();
+
+                return syntax.Kind() switch
+                {
+                    SyntaxKind.PropertyDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.IndexerDeclaration
+                        when syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } =>
+                        accessors.Any( a => a.Body != null || a.ExpressionBody != null ),
+                    SyntaxKind.PropertyDeclaration when syntax is PropertyDeclarationSyntax { ExpressionBody: { } } => true, // Expression-bodied property
+                    _ => false
+                };
             } );
 
     private static bool ContainsFieldKeyword( IPropertySymbol symbol )
@@ -383,7 +395,8 @@ public static class DeclarationExtensions
         {
             var syntax = syntaxRef.GetSyntax();
 
-            if ( syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } )
+            if ( syntax.Kind() is SyntaxKind.PropertyDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.IndexerDeclaration
+                && syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } )
             {
                 foreach ( var accessor in accessors )
                 {
@@ -425,12 +438,22 @@ public static class DeclarationExtensions
             { IsAbstract: true } => false,
             { DeclaringSyntaxReferences.Length: > 0 } =>
                 method.DeclaringSyntaxReferences.Any(
-                    m => m.GetSyntax() is
-                        BaseMethodDeclarationSyntax { Body: { } }
-                        or BaseMethodDeclarationSyntax { ExpressionBody: { } }
-                        or PropertyDeclarationSyntax { ExpressionBody: { } }
-                        or AccessorDeclarationSyntax { Body: { } }
-                        or AccessorDeclarationSyntax { ExpressionBody: { } } ),
+                    m =>
+                    {
+                        var syntax = m.GetSyntax();
+
+                        return syntax.Kind() switch
+                        {
+                            SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration
+                                or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration
+                                when syntax is BaseMethodDeclarationSyntax { Body: { } } or BaseMethodDeclarationSyntax { ExpressionBody: { } } => true,
+                            SyntaxKind.PropertyDeclaration when syntax is PropertyDeclarationSyntax { ExpressionBody: { } } => true,
+                            SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                                or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                                when syntax is AccessorDeclarationSyntax { Body: { } } or AccessorDeclarationSyntax { ExpressionBody: { } } => true,
+                            _ => false
+                        };
+                    } ),
             _ => null
         };
 
@@ -442,7 +465,7 @@ public static class DeclarationExtensions
             { IsPartialDefinition: true } => false, // Partial event is not event field (and cannot be when implemented).
 #endif
             { DeclaringSyntaxReferences.Length: > 0 } =>
-                symbol.DeclaringSyntaxReferences.All( sr => sr.GetSyntax() is VariableDeclaratorSyntax ),
+                symbol.DeclaringSyntaxReferences.All( sr => sr.GetSyntax().Kind() == SyntaxKind.VariableDeclarator && sr.GetSyntax() is VariableDeclaratorSyntax ),
             { AddMethod: { } addMethod, RemoveMethod: { } removeMethod } => addMethod.IsCompilerGenerated() && removeMethod.IsCompilerGenerated(),
             _ => null
         };
@@ -552,7 +575,8 @@ public static class DeclarationExtensions
 
     internal static bool TryGetHiddenDeclaration( this IMemberOrNamedType declaration, [NotNullWhen( true )] out IMemberOrNamedType? hiddenDeclaration )
     {
-        if ( declaration is IMember { IsOverride: true } )
+        if ( declaration.DeclarationKind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event or DeclarationKind.Indexer or DeclarationKind.Constructor
+            && declaration is IMember { IsOverride: true } )
         {
             // Override symbol never hides anything.
             hiddenDeclaration = null;
@@ -657,7 +681,10 @@ public static class DeclarationExtensions
     /// i.e. returns containing namespace for top-level types.
     /// </summary>
     internal static IDeclaration? GetContainingDeclarationOrNamespace( this IDeclaration declaration )
-        => declaration.ContainingDeclaration is IAssembly && declaration.DeclarationKind == DeclarationKind.NamedType && declaration is INamedType namedType
+        => declaration.ContainingDeclaration?.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.AssemblyReference
+            && declaration.ContainingDeclaration is IAssembly
+            && declaration.DeclarationKind == DeclarationKind.NamedType
+            && declaration is INamedType namedType
             ? namedType.ContainingNamespace
             : declaration.ContainingDeclaration;
 
