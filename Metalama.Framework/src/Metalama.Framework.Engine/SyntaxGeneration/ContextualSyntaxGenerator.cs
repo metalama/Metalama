@@ -127,7 +127,8 @@ public sealed partial class ContextualSyntaxGenerator
 
         var typeSyntax = this.TypeSyntax( type );
 
-        if ( type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } )
+        if ( type.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
+            && type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } )
         {
             // In generic definitions, we must remove type arguments.
             typeSyntax = (TypeSyntax) new RemoveTypeArgumentsRewriter().Visit( typeSyntax ).AssertNotNull();
@@ -144,10 +145,12 @@ public sealed partial class ContextualSyntaxGenerator
         // In any typeof, we must change dynamic to object.
         typeSyntax = (TypeSyntax) dynamicToVarRewriter.Visit( typeSyntax ).AssertNotNull();
 
-        SafeSyntaxRewriter rewriter = type switch
+        SafeSyntaxRewriter rewriter = type.TypeKind switch
         {
-            INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } => new RemoveTypeArgumentsRewriter(),
-            INamedType { TypeParameters.Count: > 0 } => new RemoveReferenceNullableAnnotationsRewriter( type ),
+            TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
+                when type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } => new RemoveTypeArgumentsRewriter(),
+            TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
+                when type is INamedType { TypeParameters.Count: > 0 } => new RemoveReferenceNullableAnnotationsRewriter( type ),
             _ => dynamicToVarRewriter
         };
 
@@ -821,12 +824,12 @@ public sealed partial class ContextualSyntaxGenerator
                 return Null;
             }
 
-            switch ( type )
+            switch ( type.TypeKind )
             {
-                case INamedType { TypeKind: TypeKind.Enum } enumType:
+                case TypeKind.Enum when type is INamedType enumType:
                     return this.EnumValueExpression( enumType, value );
 
-                case IArrayType arrayType:
+                case TypeKind.Array when type is IArrayType arrayType:
                     return this.ArrayCreationExpression(
                         this.TypeSyntax( arrayType.ElementType ),
                         ((ImmutableArray<TypedConstant>) value).Select( x => GetValue( x.RawValue, x.Type ) ) );

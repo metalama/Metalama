@@ -74,11 +74,15 @@ namespace Metalama.Framework.Engine.CompileTime
                     this.HasCompileTimeCode = true;
                 }
 
-                if ( node is TypeDeclarationSyntax typeWithMembers )
+                if ( node.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                         or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                     && node is TypeDeclarationSyntax typeWithMembers )
                 {
                     foreach ( var childType in typeWithMembers.Members )
                     {
-                        if ( childType is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax )
+                        if ( childType.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                                 or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
+                                 or SyntaxKind.DelegateDeclaration )
                         {
                             this.VisitTypeDeclaration( childType );
                         }

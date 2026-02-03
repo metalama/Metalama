@@ -57,7 +57,7 @@ namespace Metalama.Framework.Engine.CompileTime
                         return true;
                     }
 
-                    if ( node.Name is QualifiedNameSyntax qualifiedName &&
+                    if ( node.Name?.Kind() == SyntaxKind.QualifiedName && node.Name is QualifiedNameSyntax qualifiedName &&
                          _frameworkSubNamespaces.Contains( qualifiedName.Right.Identifier.ValueText ) &&
                          IsMetalamaFramework( qualifiedName.Left ) )
                     {
@@ -67,7 +67,7 @@ namespace Metalama.Framework.Engine.CompileTime
                     return false;
 
                     static bool IsMetalamaFramework( NameSyntax nameSyntax )
-                        => nameSyntax is QualifiedNameSyntax
+                        => nameSyntax.Kind() == SyntaxKind.QualifiedName && nameSyntax is QualifiedNameSyntax
                         {
                             Right.Identifier.ValueText: "Framework", Left: IdentifierNameSyntax { Identifier.ValueText: "Metalama" }
                         };

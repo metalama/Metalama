@@ -129,7 +129,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     }
 
                     // Accessors have implicit "value" parameter.
-                    if ( declaration is IMethod { MethodKind: MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove } )
+                    if ( declaration.DeclarationKind == DeclarationKind.Method && declaration is IMethod { MethodKind: MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove } )
                     {
                         identifiers.Add( "value" );
                     }

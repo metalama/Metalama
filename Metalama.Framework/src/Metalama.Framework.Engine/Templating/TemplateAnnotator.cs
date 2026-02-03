@@ -135,7 +135,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
         if ( scope == CompileTimeOnly )
         {
-            if ( symbol is ILocalSymbol local )
+            if ( symbol.Kind == SymbolKind.Local && symbol is ILocalSymbol local )
             {
                 this._currentScopeContext.RunTimeConditionalBlockVariables?.Add( local );
             }
@@ -222,10 +222,10 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                 return RunTimeOnly;
         }
 
-        if ( symbol is IParameterSymbol )
+        if ( symbol.Kind == SymbolKind.Parameter && symbol is IParameterSymbol )
         {
             // Local functions in templates are considered run-time-only, so their parameters are also run-time-only.
-            if ( symbol.ContainingSymbol is IMethodSymbol { MethodKind: MethodKind.LocalFunction } )
+            if ( symbol.ContainingSymbol.Kind == SymbolKind.Method && symbol.ContainingSymbol is IMethodSymbol { MethodKind: MethodKind.LocalFunction } )
             {
                 return RunTimeOnly;
             }
@@ -1088,6 +1088,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
             if ( (symbol!.IsVirtual || symbol.IsAbstract || symbol.IsOverride)
                  && !symbol.IsSealed
+                 && symbol.Kind == SymbolKind.Method
                  && symbol is IMethodSymbol { Parameters: var parameters }
                  && parameters.Length > node.ArgumentList.Arguments.Count )
             {
@@ -1097,7 +1098,8 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                     node.ToString() );
             }
 
-            if ( symbol is IMethodSymbol { TypeParameters: var typeParameters }
+            if ( symbol.Kind == SymbolKind.Method
+                 && symbol is IMethodSymbol { TypeParameters: var typeParameters }
                  && typeParameters.Any( tp => this.GetSymbolScope( tp ) == RunTimeOnly ) )
             {
                 this.ReportDiagnostic(
@@ -1527,7 +1529,8 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
             // Detect if the current member is a template.
             var isTemplate = !this._symbolScopeClassifier.GetTemplateInfo( symbol ).IsNone
-                             || (symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol }
+                             || (symbol.Kind == SymbolKind.Method
+                                 && symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol }
                                  && !this._symbolScopeClassifier.GetTemplateInfo( associatedSymbol ).IsNone);
 
             // If it is a template, update the currentTemplateMember field.
@@ -1730,7 +1733,8 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
     {
         var symbol = this._syntaxTreeAnnotationMap.GetSymbol( node.Name );
 
-        if ( symbol is IMethodSymbol { ContainingNamespace: not null } constructor
+        if ( symbol.Kind == SymbolKind.Method
+             && symbol is IMethodSymbol { ContainingNamespace: not null } constructor
              && (constructor.ContainingNamespace.ToString()?.StartsWith( "Metalama.Framework", StringComparison.Ordinal ) ?? false) )
         {
             node = node.AddColoringAnnotation( TextSpanClassification.CompileTime );
@@ -1770,10 +1774,11 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
             if ( templateInfo.AttributeType == TemplateAttributeType.Template )
             {
-                var isVoid = symbol is IMethodSymbol methodSymbol &&
-                             (methodSymbol.ReturnsVoid ||
-                              (AsyncHelper.TryGetAsyncInfo( methodSymbol.ReturnType, out var resultType, out _ ) &&
-                               resultType.SpecialType == SpecialType.System_Void));
+                var isVoid = symbol.Kind == SymbolKind.Method
+                             && symbol is IMethodSymbol methodSymbol
+                             && (methodSymbol.ReturnsVoid
+                                 || (AsyncHelper.TryGetAsyncInfo( methodSymbol.ReturnType, out var resultType, out _ )
+                                     && resultType.SpecialType == SpecialType.System_Void));
 
                 if ( isVoid && node is MethodDeclarationSyntax { Body: { } body } )
                 {
@@ -1820,7 +1825,9 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
         if ( this._currentTemplateMember != null )
         {
-            if ( this._syntaxTreeAnnotationMap.GetDeclaredSymbol( node ) is IParameterSymbol symbol )
+            var declaredSymbol = this._syntaxTreeAnnotationMap.GetDeclaredSymbol( node );
+
+            if ( declaredSymbol?.Kind == SymbolKind.Parameter && declaredSymbol is IParameterSymbol symbol )
             {
                 var scope = this.GetSymbolScope( symbol );
 
@@ -2033,8 +2040,11 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
             }
 
             // If we have a discard assignment, take the scope from the right.
+            var leftSymbol = this._syntaxTreeAnnotationMap.GetSymbol( node.Left );
+
             if ( classicalLeftNodeScope == RunTimeOrCompileTime
-                 && this._syntaxTreeAnnotationMap.GetSymbol( node.Left ) is IDiscardSymbol )
+                 && leftSymbol?.Kind == SymbolKind.Discard
+                 && leftSymbol is IDiscardSymbol )
             {
                 classicalLeftNodeScope = this.GetNodeScope( classicalTransformedRight ).GetExpressionExecutionScope();
             }

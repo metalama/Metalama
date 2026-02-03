@@ -258,13 +258,13 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
                     {
                         switch ( propertyOrEvent.DeclarationKind )
                         {
-                            case DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Indexer:
-                                this._fieldOrPropertyOrIndexer = (IFieldOrPropertyOrIndexer) method.DeclaringMember;
+                            case DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Indexer when propertyOrEvent is IFieldOrPropertyOrIndexer fieldOrPropOrIdx:
+                                this._fieldOrPropertyOrIndexer = fieldOrPropOrIdx;
 
                                 break;
 
-                            case DeclarationKind.Event:
-                                this._event = (IEvent) method.DeclaringMember;
+                            case DeclarationKind.Event when propertyOrEvent is IEvent evt:
+                                this._event = evt;
 
                                 break;
 
@@ -311,13 +311,17 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         public static MetaApi ForContract( IDeclaration declaration, IMethodBase method, MetaApiProperties common, ContractDirection contractDirection )
             => declaration.DeclarationKind switch
             {
-                DeclarationKind.Field or DeclarationKind.Property or DeclarationKind.Indexer when declaration is IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer => new MetaApi( fieldOrPropertyOrIndexer, (IMethod) method, common )
-                {
-                    ContractDirection = contractDirection
-                },
-                DeclarationKind.Event when declaration is IEvent @event => new MetaApi( @event, (IMethod) method, common ) { ContractDirection = contractDirection },
-                DeclarationKind.Constructor when declaration is IConstructor constructor => new MetaApi( constructor, common ) { ContractDirection = contractDirection },
-                DeclarationKind.Parameter when declaration is IParameter parameter => new MetaApi( parameter, method, common ) { ContractDirection = contractDirection },
+                DeclarationKind.Field or DeclarationKind.Property or DeclarationKind.Indexer when declaration is IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer
+                    => new MetaApi( fieldOrPropertyOrIndexer, (IMethod) method, common )
+                    {
+                        ContractDirection = contractDirection
+                    },
+                DeclarationKind.Event when declaration is IEvent @event
+                    => new MetaApi( @event, (IMethod) method, common ) { ContractDirection = contractDirection },
+                DeclarationKind.Constructor when declaration is IConstructor constructor
+                    => new MetaApi( constructor, common ) { ContractDirection = contractDirection },
+                DeclarationKind.Parameter when declaration is IParameter parameter
+                    => new MetaApi( parameter, method, common ) { ContractDirection = contractDirection },
                 _ => throw new AssertionFailedException( $"Unexpected type: {declaration.GetType()}." )
             };
 
@@ -331,8 +335,10 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         public static MetaApi ForInitializer( IMember initializedDeclaration, MetaApiProperties common )
             => initializedDeclaration.DeclarationKind switch
             {
-                DeclarationKind.Field or DeclarationKind.Property when initializedDeclaration is IFieldOrProperty fieldOrProperty => new MetaApi( common.Translate( fieldOrProperty ), null, common ),
-                DeclarationKind.Event when initializedDeclaration is IEvent eventField => new MetaApi( common.Translate( eventField ), null, common ),
+                DeclarationKind.Field or DeclarationKind.Property when initializedDeclaration is IFieldOrProperty fieldOrProperty
+                    => new MetaApi( common.Translate( fieldOrProperty ), null, common ),
+                DeclarationKind.Event when initializedDeclaration is IEvent eventField
+                    => new MetaApi( common.Translate( eventField ), null, common ),
                 _ => throw new AssertionFailedException( $"Unexpected type: {initializedDeclaration.GetType()}." )
             };
 

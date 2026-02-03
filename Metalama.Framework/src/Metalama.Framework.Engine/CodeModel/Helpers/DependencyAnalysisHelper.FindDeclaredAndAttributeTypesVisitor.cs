@@ -30,7 +30,9 @@ public static partial class DependencyAnalysisHelper
 
         private void VisitType( SyntaxNode node )
         {
-            if ( this._semanticModel.GetDeclaredSymbol( node ) is INamedTypeSymbol type )
+            var symbol = this._semanticModel.GetDeclaredSymbol( node );
+
+            if ( symbol?.Kind == SymbolKind.NamedType && symbol is INamedTypeSymbol type )
             {
                 this._addDeclaredType( type );
             }

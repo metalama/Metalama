@@ -132,7 +132,7 @@ namespace Metalama.Framework.Engine.Templating
                 this._observer?.OnSemanticModelUsed();
                 var referencedSymbol = this._semanticModel.GetSymbolInfo( node ).Symbol;
 
-                if ( referencedSymbol is not null and not ITypeParameterSymbol )
+                if ( referencedSymbol != null && referencedSymbol.Kind != SymbolKind.TypeParameter )
                 {
                     this._observer?.OnSymbolClassifierUsed( this._symbolClassificationContext == SymbolClassificationContext.RunTimeOnly );
                     var referencedScope = this._classifier.GetTemplatingScope( referencedSymbol, this._symbolClassificationContext );
@@ -234,7 +234,8 @@ namespace Metalama.Framework.Engine.Templating
                 }
 
                 this._observer?.OnSemanticModelUsed();
-                var attributeSymbol = (this._semanticModel.GetSymbolInfo( node ).Symbol as IMethodSymbol)?.ContainingType;
+                var symbol = this._semanticModel.GetSymbolInfo( node ).Symbol;
+                var attributeSymbol = (symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol method) ? method.ContainingType : null;
                 var iAspectSymbol = this._compilationContext.ReflectionMapper.GetTypeSymbol( typeof(IAspect) );
 
                 var compilation = this._compilationContext.SourceCompilation;
@@ -331,8 +332,9 @@ namespace Metalama.Framework.Engine.Templating
                     foreach ( var baseTypeNode in node.BaseList.Types )
                     {
                         this._observer?.OnSemanticModelUsed();
+                        var baseTypeSymbol = ModelExtensions.GetSymbolInfo( this._semanticModel, baseTypeNode.Type ).Symbol;
 
-                        if ( ModelExtensions.GetSymbolInfo( this._semanticModel, baseTypeNode.Type ).Symbol is not INamedTypeSymbol baseType )
+                        if ( baseTypeSymbol?.Kind != SymbolKind.NamedType || baseTypeSymbol is not INamedTypeSymbol baseType )
                         {
                             continue;
                         }
@@ -838,7 +840,7 @@ namespace Metalama.Framework.Engine.Templating
                 }
 
                 // Report an error for advice attribute on an accessor.
-                if ( declaredSymbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol } )
+                if ( declaredSymbol.Kind == SymbolKind.Method && declaredSymbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol } )
                 {
                     var adviceAttribute = declaredSymbol.GetAttributes()
                         .FirstOrDefault(
@@ -856,7 +858,7 @@ namespace Metalama.Framework.Engine.Templating
                 // Report an error for multiple advice attributes.
                 IEnumerable<(ISymbol Member, INamedTypeSymbol AttributeClass)> GetAdviceAttributes( ISymbol? member )
                 {
-                    if ( member is null or ITypeSymbol )
+                    if ( member == null || member.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter )
                     {
                         return [];
                     }
@@ -865,7 +867,7 @@ namespace Metalama.Framework.Engine.Templating
                         .Where( a => this._compilationContext.SourceCompilation.HasImplicitConversion( a.AttributeClass, this._iAdviceAttributeType ) )
                         .Select( a => (member, a.AttributeClass!) );
 
-                    var baseAttributesSource = member is IMethodSymbol { AssociatedSymbol: { } memberAssociatedSymbol }
+                    var baseAttributesSource = member.Kind == SymbolKind.Method && member is IMethodSymbol { AssociatedSymbol: { } memberAssociatedSymbol }
                         ? memberAssociatedSymbol
                         : member.GetOverriddenMember();
 
@@ -887,7 +889,7 @@ namespace Metalama.Framework.Engine.Templating
                 var reflectionMapper = this._compilationContext.ReflectionMapper;
 
                 // Report an error for struct aspect.
-                if ( declaredSymbol is INamedTypeSymbol { IsValueType: true } typeSymbol && IsAspect( typeSymbol ) )
+                if ( declaredSymbol.Kind == SymbolKind.NamedType && declaredSymbol is INamedTypeSymbol { IsValueType: true } typeSymbol && IsAspect( typeSymbol ) )
                 {
                     this.Report(
                         TemplatingDiagnosticDescriptors.AspectCantBeStruct.CreateRoslynDiagnostic(
@@ -896,7 +898,7 @@ namespace Metalama.Framework.Engine.Templating
                 }
 
                 // Get the type scope.
-                var typeScope = declaredSymbol is INamedTypeSymbol ? scope : this._currentTypeScope;
+                var typeScope = declaredSymbol.Kind == SymbolKind.NamedType ? scope : this._currentTypeScope;
 
                 // Get the template info.
                 var templateInfo = this._currentTemplateInfo;
@@ -921,7 +923,7 @@ namespace Metalama.Framework.Engine.Templating
                                 declaredSymbol.GetDiagnosticLocation(),
                                 declaredSymbol ) );
                     }
-                    else if ( declaredSymbol is IMethodSymbol { IsExtensionMethod: true } )
+                    else if ( declaredSymbol.Kind == SymbolKind.Method && declaredSymbol is IMethodSymbol { IsExtensionMethod: true } )
                     {
                         this.Report(
                             TemplatingDiagnosticDescriptors.ExtensionMethodTemplateNotSupported.CreateRoslynDiagnostic(
@@ -987,7 +989,7 @@ namespace Metalama.Framework.Engine.Templating
                 // Skip when: run-time member, validation disabled, not a type, and not a template.
                 var skipImplementation = scope == TemplatingScope.RunTimeOnly
                                          && !this._validateRunTimeCode
-                                         && declaredSymbol is not INamedTypeSymbol
+                                         && declaredSymbol.Kind != SymbolKind.NamedType
                                          && templateInfo.IsNone;
 
                 // Assign the new context.
@@ -1071,10 +1073,11 @@ namespace Metalama.Framework.Engine.Templating
             }
 
             private static bool IsSupportedTemplateDeclaration( ISymbol declaredSymbol )
-                => declaredSymbol is not IMethodSymbol
-                {
-                    MethodKind: MethodKind.Constructor or MethodKind.Destructor or MethodKind.Conversion or MethodKind.UserDefinedOperator
-                };
+                => declaredSymbol.Kind != SymbolKind.Method
+                   || declaredSymbol is not IMethodSymbol
+                   {
+                       MethodKind: MethodKind.Constructor or MethodKind.Destructor or MethodKind.Conversion or MethodKind.UserDefinedOperator
+                   };
 
             private readonly struct Context : IDisposable
             {

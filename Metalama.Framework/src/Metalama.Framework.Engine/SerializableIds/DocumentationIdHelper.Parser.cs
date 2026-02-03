@@ -334,7 +334,9 @@ internal static partial class DocumentationIdHelper
 
                 var typeContext = typeParameterContext?.DeclarationKind == DeclarationKind.Method && typeParameterContext is IMethod methodContext
                     ? methodContext.DeclaringType
-                    : typeParameterContext as INamedType;
+                    : typeParameterContext?.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
+                        ? typeParameterContext as INamedType
+                        : null;
 
                 if ( typeContext != null && GetNthTypeParameter( typeContext, typeParameterIndex ) is { } typeParameter )
                 {
