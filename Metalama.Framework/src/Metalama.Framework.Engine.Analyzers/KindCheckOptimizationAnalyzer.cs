@@ -250,10 +250,10 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                 return memberBinding.Name.Identifier.Text is "Kind" or "DeclarationKind" or "TypeKind";
             }
 
-            // Handle x?.Kind() method invocation
+            // Handle x?.Kind() or x?.IsKind() method invocation
             if ( conditionalAccess.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax invokeBinding } )
             {
-                return invokeBinding.Name.Identifier.Text == "Kind";
+                return invokeBinding.Name.Identifier.Text is "Kind" or "IsKind";
             }
         }
 

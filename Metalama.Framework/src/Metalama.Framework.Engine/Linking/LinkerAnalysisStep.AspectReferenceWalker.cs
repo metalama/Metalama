@@ -42,7 +42,7 @@ internal sealed partial class LinkerAnalysisStep
 
         public override void VisitLocalFunctionStatement( LocalFunctionStatementSyntax node )
         {
-            var symbol = (IMethodSymbol) this._semanticModel.GetDeclaredSymbol( node ).AssertNotNull();
+            var symbol = this._semanticModel.GetDeclaredSymbol( node ).AssertNotNull();
 
             try
             {
