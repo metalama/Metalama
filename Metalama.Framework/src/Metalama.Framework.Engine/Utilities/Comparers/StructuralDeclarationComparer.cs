@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.Utilities.Comparers;
 
@@ -78,7 +79,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
         {
             return 1;
         }
-        
+
         var xKind = x.DeclarationKind;
         var compareDeclarationKind = ((int) y.DeclarationKind).CompareTo( (int) xKind );
 
@@ -91,7 +92,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
         // At this point, x and y have the same DeclarationKind.
         // Use DeclarationKind to determine if they're IType or IDeclaration.
-        if ( xKind.IsTypeKind() )
+        if ( xKind.IsType )
         {
             // Both are IType since they have the same type-related DeclarationKind
             var xType = (IType) x;
@@ -212,7 +213,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                     break;
 
-                case DeclarationKind.AssemblyReference or DeclarationKind.Compilation:
+                case { IsAssembly: true }:
                     return CompareAssemblies( (IAssembly) xDecl, (IAssembly) yDecl );
 
                 default:
@@ -611,9 +612,9 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
             }
         }
 
-        switch (typeX.TypeKind)
+        switch ( typeX.TypeKind )
         {
-            case Code.TypeKind.TypeParameter when typeX is ITypeParameter typeParamX && typeY is ITypeParameter typeParamY:
+            case TypeKind.TypeParameter when typeX is ITypeParameter typeParamX && typeY is ITypeParameter typeParamY:
                 result = StringComparer.Ordinal.Compare( typeParamX.Name, typeParamY.Name );
 
                 if ( result != 0 )
@@ -628,11 +629,11 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 return result;
 
-            case Code.TypeKind.Class or Code.TypeKind.Struct or Code.TypeKind.Interface or Code.TypeKind.Delegate or Code.TypeKind.Enum or Code.TypeKind.Error
+            case TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Error
                 when typeX is INamedType namedTypeX && typeY is INamedType namedTypeY:
                 return this.CompareNamedTypes( namedTypeX, namedTypeY, this._options );
 
-            case Code.TypeKind.Array when typeX is IArrayType arrayTypeX && typeY is IArrayType arrayTypeY:
+            case TypeKind.Array when typeX is IArrayType arrayTypeX && typeY is IArrayType arrayTypeY:
                 result = arrayTypeX.Rank.CompareTo( arrayTypeY.Rank );
 
                 if ( result != 0 )
@@ -642,10 +643,10 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 return this.CompareTypes( arrayTypeX.ElementType, arrayTypeY.ElementType );
 
-            case Code.TypeKind.Dynamic when typeX is IDynamicType && typeY is IDynamicType:
+            case TypeKind.Dynamic when typeX is IDynamicType && typeY is IDynamicType:
                 return 0;
 
-            case Code.TypeKind.Pointer when typeX is IPointerType xPointerType && typeY is IPointerType yPointerType:
+            case TypeKind.Pointer when typeX is IPointerType xPointerType && typeY is IPointerType yPointerType:
                 return this.CompareTypes( xPointerType.PointedAtType, yPointerType.PointedAtType );
 
             default:
@@ -683,7 +684,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
                 return result;
             }
 
-            switch (currentX.DeclarationKind)
+            switch ( currentX.DeclarationKind )
             {
                 case DeclarationKind.Method when currentX is IMethod methodX && currentY is IMethod methodY:
                     result = this.CompareMethods( methodX, methodY, StructuralComparerOptions.MethodSignature );
@@ -715,8 +716,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                     break;
 
-                case DeclarationKind.AssemblyReference:
-                case DeclarationKind.Compilation:
+                case { IsAssembly: true }:
                     return 0;
 
                 default:
@@ -879,7 +879,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case IAssembly assembly when compilationElement.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.AssemblyReference:
+            case IAssembly assembly when compilationElement.DeclarationKind.IsAssembly:
                 return HashCode.Combine( h, AssemblyIdentityComparer.SimpleNameComparer.GetHashCode( assembly.Identity.Name ), assembly.Identity.Version );
 
             case IPointerType pointerType:
@@ -939,8 +939,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                         break;
 
-                    case DeclarationKind.Compilation:
-                    case DeclarationKind.AssemblyReference:
+                    case { IsAssembly: true }:
                         // This is included below if required.
                         break;
 

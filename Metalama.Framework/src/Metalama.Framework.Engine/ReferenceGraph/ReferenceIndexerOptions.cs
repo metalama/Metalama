@@ -77,8 +77,7 @@ public sealed class ReferenceIndexerOptions
 
                     break;
 
-                case DeclarationKind.AssemblyReference:
-                case DeclarationKind.Compilation:
+                case { IsAssembly: true }:
                     this._kindsRequiringDescentIntoReferencedAssembly |= validatorReferenceKinds;
                     this._kindsSupportingIdentifierFiltering &= ~validatorReferenceKinds;
 

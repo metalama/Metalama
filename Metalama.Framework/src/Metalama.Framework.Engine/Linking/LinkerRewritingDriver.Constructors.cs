@@ -42,7 +42,10 @@ internal sealed partial class LinkerRewritingDriver
                                 .WithOptionalTrailingTrivia( ElasticSpace, context.Options ),
                             SingletonSeparatedList(
                                 VariableDeclarator(
-                                    WellKnownIdentifier( TriviaList( ElasticSpace ), GetCleanPrimaryConstructorFieldName( primaryConstructorField ), default ) ) ) ),
+                                    WellKnownIdentifier(
+                                        TriviaList( ElasticSpace ),
+                                        GetCleanPrimaryConstructorFieldName( primaryConstructorField ),
+                                        default ) ) ) ),
                         Token( SyntaxKind.SemicolonToken ).WithOptionalTrailingLineFeed( context ) ) );
             }
 
@@ -54,7 +57,7 @@ internal sealed partial class LinkerRewritingDriver
                         TokenList( TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
                         context.SyntaxGenerator.TypeSyntax( primaryConstructorProperty.Type ),
                         null,
-                        SyntaxFactoryEx.SafeIdentifier( TriviaList( ElasticSpace ), primaryConstructorProperty.Name, default ),
+                        SafeIdentifier( TriviaList( ElasticSpace ), primaryConstructorProperty.Name, default ),
                         AccessorList(
                             List(
                             [
@@ -80,8 +83,8 @@ internal sealed partial class LinkerRewritingDriver
                         default ) );
             }
 
-            if ( constructorDeclaration.Parent?.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
-                && constructorDeclaration.Parent is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } recordDeclaration )
+            if ( constructorDeclaration.Parent?.Kind().IsRecordDeclaration == true
+                 && constructorDeclaration.Parent is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } recordDeclaration )
             {
                 members.Add(
                     MethodDeclaration(

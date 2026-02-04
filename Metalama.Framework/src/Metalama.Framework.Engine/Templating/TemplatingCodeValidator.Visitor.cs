@@ -98,7 +98,9 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     return node
                         .AncestorsAndSelf()
-                        .Any( n => n.IsKind( SyntaxKind.TypeOfExpression ) || (n.IsKind( SyntaxKind.InvocationExpression ) && n is InvocationExpressionSyntax invocation && invocation.IsNameOf()) );
+                        .Any(
+                            n => n.IsKind( SyntaxKind.TypeOfExpression ) || (n.IsKind( SyntaxKind.InvocationExpression )
+                                                                             && n is InvocationExpressionSyntax invocation && invocation.IsNameOf()) );
                 }
 
                 bool AvoidDuplicates( ISymbol symbol )
@@ -158,7 +160,8 @@ namespace Metalama.Framework.Engine.Templating
                                             break;
 
                                         case ("Metalama.Framework.Code.IExpression", "Value"):
-                                            var expression = node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression ) && node.Parent is MemberAccessExpressionSyntax memberAccess
+                                            var expression = node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression )
+                                                             && node.Parent is MemberAccessExpressionSyntax memberAccess
                                                 ? memberAccess.Expression.ToString()
                                                 : "expression";
 
@@ -167,7 +170,10 @@ namespace Metalama.Framework.Engine.Templating
                                             break;
 
                                         case ("Metalama.Framework.Code.SyntaxBuilders.SyntaxBuilder", "AppendExpression"):
-                                            if ( node.Parent?.Parent is { RawKind: (int) SyntaxKind.InvocationExpression } and InvocationExpressionSyntax { ArgumentList.Arguments: [var argument] } )
+                                            if ( node.Parent?.Parent is { RawKind: (int) SyntaxKind.InvocationExpression } and InvocationExpressionSyntax
+                                                {
+                                                    ArgumentList.Arguments: [var argument]
+                                                } )
                                             {
                                                 this._observer?.OnSemanticModelUsed();
                                                 var argumentType = this._semanticModel.GetTypeInfo( argument.Expression ).Type;
@@ -409,7 +415,8 @@ namespace Metalama.Framework.Engine.Templating
                                 symbol.GetDiagnosticLocation(),
                                 symbol ) );
                     }
-                    else if ( serializerType == null && node.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration && node is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } )
+                    else if ( serializerType == null && node.Kind().IsRecordDeclaration
+                                                     && node is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } )
                     {
                         // Generated serializers for positional records are not supported.
                         this.Report(
@@ -858,7 +865,8 @@ namespace Metalama.Framework.Engine.Templating
                 // Report an error for multiple advice attributes.
                 IEnumerable<(ISymbol Member, INamedTypeSymbol AttributeClass)> GetAdviceAttributes( ISymbol? member )
                 {
-                    if ( member == null || member.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter )
+                    if ( member == null || member.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType
+                            or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter )
                     {
                         return [];
                     }
@@ -889,7 +897,8 @@ namespace Metalama.Framework.Engine.Templating
                 var reflectionMapper = this._compilationContext.ReflectionMapper;
 
                 // Report an error for struct aspect.
-                if ( declaredSymbol.Kind == SymbolKind.NamedType && declaredSymbol is INamedTypeSymbol { IsValueType: true } typeSymbol && IsAspect( typeSymbol ) )
+                if ( declaredSymbol.Kind == SymbolKind.NamedType && declaredSymbol is INamedTypeSymbol { IsValueType: true } typeSymbol
+                                                                 && IsAspect( typeSymbol ) )
                 {
                     this.Report(
                         TemplatingDiagnosticDescriptors.AspectCantBeStruct.CreateRoslynDiagnostic(
@@ -1053,11 +1062,11 @@ namespace Metalama.Framework.Engine.Templating
                             SyntaxKind.DestructorDeclaration => true,
                             SyntaxKind.ConversionOperatorDeclaration => true,
                             SyntaxKind.IndexerDeclaration => true,
-                            SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                            SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                                or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
                                 when node is AccessorDeclarationSyntax accessor => accessor.Body != null || accessor.ExpressionBody != null,
                             SyntaxKind.PropertyDeclaration when node is PropertyDeclarationSyntax property => property.Initializer != null ||
-                                                                  (property.AccessorList != null && property.AccessorList.Accessors.Any(
-                                                                      a => a.Body != null || a.ExpressionBody != null )),
+                                (property.AccessorList != null && property.AccessorList.Accessors.Any( a => a.Body != null || a.ExpressionBody != null )),
                             SyntaxKind.ArrowExpressionClause => true,
                             _ => throw new AssertionFailedException()
                         };

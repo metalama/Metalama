@@ -1118,4 +1118,153 @@ public class KindCheckOptimizationAnalyzerTests
     }
 
     #endregion
+
+    #region New Extension Property Tests (IsRecordDeclaration, IsSimpleName, IsName, IsAssembly, IsClassOrStruct)
+
+    [Fact]
+    public async Task IsPattern_SyntaxKindExtensionProperty_IsRecordDeclaration_ShouldNotWarn()
+    {
+        // Pattern: { SyntaxKind.IsRecordDeclaration: true }
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(SyntaxNode node)
+                {
+                    if (node is { SyntaxKind.IsRecordDeclaration: true } and RecordDeclarationSyntax record) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_SyntaxKindExtensionProperty_IsSimpleName_ShouldNotWarn()
+    {
+        // Pattern: { SyntaxKind.IsSimpleName: true }
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(SyntaxNode node)
+                {
+                    if (node is { SyntaxKind.IsSimpleName: true } and SimpleNameSyntax simpleName) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_SyntaxKindExtensionProperty_IsName_ShouldNotWarn()
+    {
+        // Pattern: { SyntaxKind.IsName: true }
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(SyntaxNode node)
+                {
+                    if (node is { SyntaxKind.IsName: true } and NameSyntax name) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_DeclarationKindExtensionProperty_IsAssembly_ShouldNotWarn()
+    {
+        // Pattern: { DeclarationKind.IsAssembly: true }
+        var code = """
+            using Metalama.Framework.Code;
+            using Metalama.Framework.Engine.Utilities;
+            class Test
+            {
+                void M(IDeclaration decl)
+                {
+                    if (decl is { DeclarationKind.IsAssembly: true } and IAssembly assembly) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_TypeKindExtensionProperty_IsClassOrStruct_ShouldNotWarn()
+    {
+        // Pattern: { TypeKind.IsClassOrStruct: true }
+        var code = """
+            using Metalama.Framework.Code;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(IType type)
+                {
+                    if (type is { TypeKind.IsClassOrStruct: true } and INamedType namedType) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_PrecedingConditionalKindExtensionPropertyCheck_ShouldNotWarn()
+    {
+        // Pattern: node?.Kind().IsRecordDeclaration == true && node is RecordDeclarationSyntax
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(SyntaxNode? node)
+                {
+                    if (node?.Kind().IsRecordDeclaration == true && node is RecordDeclarationSyntax record) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task SwitchExpression_NewExtensionPropertyPatterns_ShouldNotWarn()
+    {
+        // Test multiple new extension properties in switch expression
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                int M(SyntaxNode node) => node switch
+                {
+                    { SyntaxKind.IsRecordDeclaration: true } and RecordDeclarationSyntax record => 1,
+                    { SyntaxKind.IsSimpleName: true } and SimpleNameSyntax simpleName => 2,
+                    _ => 0
+                };
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    #endregion
 }

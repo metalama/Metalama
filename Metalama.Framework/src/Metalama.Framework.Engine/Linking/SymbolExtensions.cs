@@ -22,14 +22,18 @@ internal static class SymbolExtensions
 
         switch ( declaration?.Kind() )
         {
-            case SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration
-                or SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
-                or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+            case SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration or SyntaxKind.OperatorDeclaration
+                or SyntaxKind.ConversionOperatorDeclaration
+                or SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.FieldDeclaration
+                or SyntaxKind.EventFieldDeclaration
+                or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
+                or SyntaxKind.RecordStructDeclaration
                 or SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration:
                 return ((MemberDeclarationSyntax) declaration!).GetLinkerDeclarationFlags();
 
             case SyntaxKind.VariableDeclarator:
                 var variableDeclarator = (VariableDeclaratorSyntax) declaration!;
+
                 return ((MemberDeclarationSyntax?) variableDeclarator.Parent?.Parent).AssertNotNull().GetLinkerDeclarationFlags();
 
             case SyntaxKind.Parameter:
@@ -37,7 +41,7 @@ internal static class SymbolExtensions
                 var grandParent = parameter.Parent?.Parent;
 
                 if ( grandParent != null
-                     && (grandParent.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration)
+                     && grandParent.Kind().IsRecordDeclaration
                      && grandParent is RecordDeclarationSyntax )
                 {
                     return default;
@@ -45,8 +49,9 @@ internal static class SymbolExtensions
 
                 throw new AssertionFailedException( $"Unexpected declaration syntax for parameter: {declaration}" );
 
-            case SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration:
+            case { IsAccessorDeclaration: true }:
                 var accessorDeclaration = (AccessorDeclarationSyntax) declaration!;
+
                 return accessorDeclaration.Parent.AssertNotNull().GetLinkerDeclarationFlags();
 
             case SyntaxKind.ArrowExpressionClause:

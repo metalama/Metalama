@@ -84,5 +84,25 @@ public static class SyntaxKindExtensions
         public bool IsPropertyOrEventDeclaration
             => kind is SyntaxKind.PropertyDeclaration or SyntaxKind.EventDeclaration
                 or SyntaxKind.IndexerDeclaration;
+
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents a simple name
+        /// (identifier name or generic name).
+        /// </summary>
+        public bool IsSimpleName => kind is SyntaxKind.IdentifierName or SyntaxKind.GenericName;
+
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents a record declaration
+        /// (record or record struct).
+        /// </summary>
+        public bool IsRecordDeclaration => kind is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration;
+
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents a name
+        /// (simple name, qualified name, or alias qualified name).
+        /// </summary>
+        public bool IsName
+            => kind is SyntaxKind.IdentifierName or SyntaxKind.GenericName
+                or SyntaxKind.QualifiedName or SyntaxKind.AliasQualifiedName;
     }
 }

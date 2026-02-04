@@ -1281,7 +1281,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
                 var (receiver, name) = node.Expression.Kind() switch
                 {
-                    SyntaxKind.IdentifierName or SyntaxKind.GenericName when node.Expression is SimpleNameSyntax simpleName => (null, simpleName),
+                    { IsSimpleName: true } when node.Expression is SimpleNameSyntax simpleName => (null, simpleName),
                     SyntaxKind.SimpleMemberAccessExpression when node.Expression is MemberAccessExpressionSyntax memberAccess => (
                         this.Visit( memberAccess.Expression ).AssertCast<ExpressionSyntax>().AssertNotNull(), memberAccess.Name),
                     _ => throw new AssertionFailedException( $"Expression '{node.Expression}' has unexpected expression type {node.Expression.GetType()}." )

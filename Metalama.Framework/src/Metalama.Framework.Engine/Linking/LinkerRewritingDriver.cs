@@ -178,7 +178,7 @@ internal sealed partial class LinkerRewritingDriver
                         return
                             substitutionContext.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock(
                                     ReturnStatement(
-                                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                                        TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
                                         rewrittenArrowClause.Expression,
                                         Token( SyntaxKind.SemicolonToken ) ) )
                                 .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
@@ -239,8 +239,7 @@ internal sealed partial class LinkerRewritingDriver
                            ?? operatorDecl.ExpressionBody
                            ?? throw new AssertionFailedException( $"Operator is expected to have body or expression body: {operatorDecl}" );
 
-                case SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                    when declaration is AccessorDeclarationSyntax accessorDecl:
+                case { IsAccessorDeclaration: true } when declaration is AccessorDeclarationSyntax accessorDecl:
                     return (SyntaxNode?) accessorDecl.Body
                            ?? accessorDecl.ExpressionBody
                            ?? throw new AssertionFailedException( $"Operator is expected to have body or expression body: {accessorDecl}" );
@@ -289,8 +288,7 @@ internal sealed partial class LinkerRewritingDriver
             case SyntaxKind.Block when bodyRootNode is BlockSyntax block:
                 return (BlockSyntax) rewriter.Visit( block ).AssertNotNull();
 
-            case SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                when bodyRootNode is AccessorDeclarationSyntax accessorDecl:
+            case { IsAccessorDeclaration: true } when bodyRootNode is AccessorDeclarationSyntax accessorDecl:
                 return (BlockSyntax) rewriter.Visit( accessorDecl ).AssertNotNull();
 
             case SyntaxKind.MethodDeclaration when bodyRootNode is MethodDeclarationSyntax partialMethodDeclaration:
@@ -457,12 +455,17 @@ internal sealed partial class LinkerRewritingDriver
             },
             SymbolKind.Property when symbol is IPropertySymbol { Parameters.Length: 0 } propertySymbol =>
                 this.RewriteProperty( (PropertyDeclarationSyntax) syntax, propertySymbol, generationContext ),
-            SymbolKind.Property when symbol is IPropertySymbol indexerSymbol => this.RewriteIndexer( (IndexerDeclarationSyntax) syntax, indexerSymbol, generationContext ),
+            SymbolKind.Property when symbol is IPropertySymbol indexerSymbol => this.RewriteIndexer(
+                (IndexerDeclarationSyntax) syntax,
+                indexerSymbol,
+                generationContext ),
             SymbolKind.Field when symbol is IFieldSymbol fieldSymbol => this.RewriteField( (FieldDeclarationSyntax) syntax, fieldSymbol, generationContext ),
             SymbolKind.Event when symbol is IEventSymbol eventSymbol => syntax.Kind() switch
             {
                 SyntaxKind.EventDeclaration when syntax is EventDeclarationSyntax eventSyntax => this.RewriteEvent( eventSyntax, eventSymbol ),
-                SyntaxKind.EventFieldDeclaration when syntax is EventFieldDeclarationSyntax eventFieldSyntax => this.RewriteEventField( eventFieldSyntax, eventSymbol ),
+                SyntaxKind.EventFieldDeclaration when syntax is EventFieldDeclarationSyntax eventFieldSyntax => this.RewriteEventField(
+                    eventFieldSyntax,
+                    eventSymbol ),
                 _ => throw new InvalidOperationException( $"Unsupported event syntax: {syntax}." )
             },
             _ => throw new AssertionFailedException( $"Unsupported symbol kind: {symbol}." )
@@ -531,14 +534,19 @@ internal sealed partial class LinkerRewritingDriver
         return declaration?.Kind() switch
         {
             null => null,
-            SyntaxKind.MethodDeclaration when declaration is MethodDeclarationSyntax methodDeclaration => (SyntaxNode?) methodDeclaration.Body ?? methodDeclaration.ExpressionBody,
-            SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                when declaration is AccessorDeclarationSyntax accessorDeclaration => (SyntaxNode?) accessorDeclaration.Body ?? accessorDeclaration.ExpressionBody,
-            SyntaxKind.ConstructorDeclaration when declaration is ConstructorDeclarationSyntax constructorDeclaration => (SyntaxNode?) constructorDeclaration.Body ?? constructorDeclaration.ExpressionBody,
-            SyntaxKind.DestructorDeclaration when declaration is DestructorDeclarationSyntax destructorDeclaration => (SyntaxNode?) destructorDeclaration.Body ?? destructorDeclaration.ExpressionBody,
-            SyntaxKind.ConversionOperatorDeclaration when declaration is ConversionOperatorDeclarationSyntax conversionOperatorDeclaration => (SyntaxNode?) conversionOperatorDeclaration.Body
-                                                                                 ?? conversionOperatorDeclaration.ExpressionBody,
-            SyntaxKind.OperatorDeclaration when declaration is OperatorDeclarationSyntax operatorDeclaration => (SyntaxNode?) operatorDeclaration.Body ?? operatorDeclaration.ExpressionBody,
+            SyntaxKind.MethodDeclaration when declaration is MethodDeclarationSyntax methodDeclaration => (SyntaxNode?) methodDeclaration.Body
+                ?? methodDeclaration.ExpressionBody,
+            { IsAccessorDeclaration: true } when declaration is AccessorDeclarationSyntax accessorDeclaration
+                => (SyntaxNode?) accessorDeclaration.Body ?? accessorDeclaration.ExpressionBody,
+            SyntaxKind.ConstructorDeclaration when declaration is ConstructorDeclarationSyntax constructorDeclaration =>
+                (SyntaxNode?) constructorDeclaration.Body ?? constructorDeclaration.ExpressionBody,
+            SyntaxKind.DestructorDeclaration when declaration is DestructorDeclarationSyntax destructorDeclaration => (SyntaxNode?) destructorDeclaration.Body
+                ?? destructorDeclaration.ExpressionBody,
+            SyntaxKind.ConversionOperatorDeclaration when declaration is ConversionOperatorDeclarationSyntax conversionOperatorDeclaration =>
+                (SyntaxNode?) conversionOperatorDeclaration.Body
+                ?? conversionOperatorDeclaration.ExpressionBody,
+            SyntaxKind.OperatorDeclaration when declaration is OperatorDeclarationSyntax operatorDeclaration => (SyntaxNode?) operatorDeclaration.Body
+                ?? operatorDeclaration.ExpressionBody,
             SyntaxKind.ArrowExpressionClause when declaration is ArrowExpressionClauseSyntax arrowExpression => arrowExpression,
             _ => throw new AssertionFailedException( $"Unexpected primary declaration: {declaration}" )
         };
@@ -562,11 +570,13 @@ internal sealed partial class LinkerRewritingDriver
 
         // Fast path: if input only contains whitespace, return it as-is
         var hasNonWhitespace = false;
+
         for ( var i = 0; i < trivia.Count; i++ )
         {
             if ( !trivia[i].IsKind( SyntaxKind.WhitespaceTrivia ) )
             {
                 hasNonWhitespace = true;
+
                 break;
             }
         }
@@ -578,11 +588,13 @@ internal sealed partial class LinkerRewritingDriver
 
         // Find the last line break
         var lastLineBreakIndex = -1;
+
         for ( var i = trivia.Count - 1; i >= 0; i-- )
         {
             if ( trivia[i].IsKind( SyntaxKind.EndOfLineTrivia ) )
             {
                 lastLineBreakIndex = i;
+
                 break;
             }
         }
@@ -595,9 +607,11 @@ internal sealed partial class LinkerRewritingDriver
 
         // Collect whitespace trivia after the last line break (lazy allocation)
         List<SyntaxTrivia>? indentation = null;
+
         for ( var i = lastLineBreakIndex + 1; i < trivia.Count; i++ )
         {
             var t = trivia[i];
+
             if ( t.IsKind( SyntaxKind.WhitespaceTrivia ) )
             {
                 indentation ??= new List<SyntaxTrivia>();
@@ -622,22 +636,22 @@ internal sealed partial class LinkerRewritingDriver
             QualifiedName(
                 QualifiedName(
                     AliasQualifiedName(
-                        SyntaxFactoryEx.WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
-                        SyntaxFactoryEx.WellKnownIdentifierName( "Metalama" ) ),
-                    SyntaxFactoryEx.WellKnownIdentifierName( "Framework" ) ),
-                SyntaxFactoryEx.WellKnownIdentifierName( "RunTime" ) ),
-            SyntaxFactoryEx.WellKnownIdentifierName( "Source" ) );
+                        WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+                        WellKnownIdentifierName( "Metalama" ) ),
+                    WellKnownIdentifierName( "Framework" ) ),
+                WellKnownIdentifierName( "RunTime" ) ),
+            WellKnownIdentifierName( "Source" ) );
 
     private static TypeSyntax GetEmptyImplParameterType()
         => QualifiedName(
             QualifiedName(
                 QualifiedName(
                     AliasQualifiedName(
-                        SyntaxFactoryEx.WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
-                        SyntaxFactoryEx.WellKnownIdentifierName( "Metalama" ) ),
-                    SyntaxFactoryEx.WellKnownIdentifierName( "Framework" ) ),
-                SyntaxFactoryEx.WellKnownIdentifierName( "RunTime" ) ),
-            SyntaxFactoryEx.WellKnownIdentifierName( "Empty" ) );
+                        WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+                        WellKnownIdentifierName( "Metalama" ) ),
+                    WellKnownIdentifierName( "Framework" ) ),
+                WellKnownIdentifierName( "RunTime" ) ),
+            WellKnownIdentifierName( "Empty" ) );
 
     private static string GetSpecialMemberName( ISymbol symbol, string suffix )
     {
@@ -875,18 +889,18 @@ internal sealed partial class LinkerRewritingDriver
         {
             sharedMembers.Add(
                 FieldDeclaration(
-                    List<AttributeListSyntax>(),
-                    TokenList(
-                        Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ),
-                        Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( ElasticSpace ) ),
-                        Token( TriviaList(), SyntaxKind.ReadOnlyKeyword, TriviaList( ElasticSpace ) ) ),
-                    VariableDeclaration(
-                        syntaxGenerationContext.SyntaxGenerator.TypeSyntax( staticDelegateField.FieldType ),
-                        SingletonSeparatedList(
-                            VariableDeclarator(
-                                WellKnownIdentifier( staticDelegateField.FieldName ),
-                                null,
-                                EqualsValueClause( staticDelegateField.InitializeExpressionFunc( syntaxGenerationContext ) ) ) ) ) )
+                        List<AttributeListSyntax>(),
+                        TokenList(
+                            Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ),
+                            Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( ElasticSpace ) ),
+                            Token( TriviaList(), SyntaxKind.ReadOnlyKeyword, TriviaList( ElasticSpace ) ) ),
+                        VariableDeclaration(
+                            syntaxGenerationContext.SyntaxGenerator.TypeSyntax( staticDelegateField.FieldType ),
+                            SingletonSeparatedList(
+                                VariableDeclarator(
+                                    WellKnownIdentifier( staticDelegateField.FieldName ),
+                                    null,
+                                    EqualsValueClause( staticDelegateField.InitializeExpressionFunc( syntaxGenerationContext ) ) ) ) ) )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) );
         }
 

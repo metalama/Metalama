@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -30,7 +31,7 @@ internal sealed class RedirectionSubstitution : SyntaxNodeSubstitution
 
         switch ( currentNode.Kind() )
         {
-            case SyntaxKind.IdentifierName or SyntaxKind.GenericName when currentNode is SimpleNameSyntax name:
+            case { IsSimpleName: true } when currentNode is SimpleNameSyntax name:
                 return name.WithIdentifier( SyntaxFactoryEx.SafeIdentifier( this._targetSemantic.Symbol.Name ) );
 
             case SyntaxKind.SimpleMemberAccessExpression:

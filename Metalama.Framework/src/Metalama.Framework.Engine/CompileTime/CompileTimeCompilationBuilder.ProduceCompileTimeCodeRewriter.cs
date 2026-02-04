@@ -1562,7 +1562,7 @@ namespace Metalama.Framework.Engine.CompileTime
                     SyntaxKind.AliasQualifiedName when typeName is AliasQualifiedNameSyntax aliasQualifiedNameSyntax =>
                         aliasQualifiedNameSyntax.Name.Identifier,
                     SyntaxKind.QualifiedName when typeName is QualifiedNameSyntax qualifiedNameSyntax => qualifiedNameSyntax.Right.Identifier,
-                    SyntaxKind.IdentifierName or SyntaxKind.GenericName when typeName is SimpleNameSyntax simpleNameSyntax => simpleNameSyntax.Identifier,
+                    { IsSimpleName: true } when typeName is SimpleNameSyntax simpleNameSyntax => simpleNameSyntax.Identifier,
                     _ => throw new AssertionFailedException( $"Unexpected syntax kind {typeName.Kind()} at '{typeName.GetLocation()}'." )
                 };
 
@@ -1582,13 +1582,13 @@ namespace Metalama.Framework.Engine.CompileTime
                             nestingLevel - 1 ),
                         SyntaxKind.QualifiedName when nestingLevel == 0 && syntax is QualifiedNameSyntax qualifiedNameSyntax => qualifiedNameSyntax.WithRight(
                             SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ) ),
-                        SyntaxKind.IdentifierName or SyntaxKind.GenericName => SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ),
+                        { IsSimpleName: true } => SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ),
                         _ => throw new AssertionFailedException( $"Unexpected syntax kind {syntax.Kind()} at '{syntax.GetDiagnosticLocation()}'." )
                     };
 
                 if ( symbol.Equals( unnestedType ) )
                 {
-                    if ( type.Kind() is not (SyntaxKind.IdentifierName or SyntaxKind.GenericName or SyntaxKind.QualifiedName or SyntaxKind.AliasQualifiedName)
+                    if ( !type.Kind().IsName
                          || type is not NameSyntax typeName )
                     {
                         throw new AssertionFailedException( $"Attempting to rename type '{type}' that doesn't have a name." );

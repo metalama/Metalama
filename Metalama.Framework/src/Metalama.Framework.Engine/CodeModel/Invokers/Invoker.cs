@@ -144,8 +144,10 @@ internal abstract partial class Invoker<T>
         => TemplateExpansionContext.CurrentTargetDeclaration?.DeclarationKind switch
         {
             DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when TemplateExpansionContext.CurrentTargetDeclaration is INamedType type => type,
-            { } kind when kind.IsMemberKind() && TemplateExpansionContext.CurrentTargetDeclaration is IMember member => member.DeclaringType,
-            DeclarationKind.Parameter when TemplateExpansionContext.CurrentTargetDeclaration is IParameter parameter => parameter.DeclaringMember.AssertNotNull().DeclaringType,
+            { IsMember: true } when TemplateExpansionContext.CurrentTargetDeclaration is IMember member => member.DeclaringType,
+            DeclarationKind.Parameter when TemplateExpansionContext.CurrentTargetDeclaration is IParameter parameter => parameter.DeclaringMember
+                .AssertNotNull()
+                .DeclaringType,
             null => null,
             _ => throw new AssertionFailedException( $"Unexpected target declaration: '{TemplateExpansionContext.CurrentTargetDeclaration}'." )
         };

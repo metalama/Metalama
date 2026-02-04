@@ -298,6 +298,20 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             {
                 return invokeBinding.Name.Identifier.Text is "Kind" or "IsKind";
             }
+
+            // Handle x?.Kind().IsRecordDeclaration - extension property on Kind() result
+            if ( conditionalAccess.WhenNotNull is MemberAccessExpressionSyntax extensionPropertyAccess )
+            {
+                var extensionPropertyName = extensionPropertyAccess.Name.Identifier.Text;
+
+                // Check if this is an extension property on a Kind() call
+                if ( extensionPropertyName.StartsWith( "Is", StringComparison.Ordinal ) &&
+                     extensionPropertyAccess.Expression is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax kindBinding } &&
+                     kindBinding.Name.Identifier.Text == "Kind" )
+                {
+                    return true;
+                }
+            }
         }
 
         // Check for method invocation: node.Kind()
@@ -672,8 +686,9 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                     // This handles patterns like { IsMember: true } where IsMember is an extension property on DeclarationKind
                     if ( propertyName != null && propertyName.StartsWith( "Is", StringComparison.Ordinal ) )
                     {
-                        // Known DeclarationKind extension properties
-                        if ( propertyName is "IsMember" or "IsMemberOrNamedType" )
+                        // Known DeclarationKind extension properties (from DeclarationKindExtensions in Engine)
+                        // and DeclarationExtensions in Framework.Code
+                        if ( propertyName is "IsMember" or "IsMemberOrNamedType" or "IsAssembly" or "IsType" )
                         {
                             return true;
                         }
@@ -686,14 +701,15 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
 
                         // Known SyntaxKind extension properties
                         if ( propertyName is "IsTypeDeclaration" or "IsBaseTypeDeclaration" or "IsLambdaExpression"
-                             or "IsBaseFieldDeclaration" or "IsLiteralExpression" or "IsAccessorDeclaration"
-                             or "IsBaseMethodDeclaration" or "IsPropertyOrEventDeclaration" )
+                            or "IsBaseFieldDeclaration" or "IsLiteralExpression" or "IsAccessorDeclaration"
+                            or "IsBaseMethodDeclaration" or "IsPropertyOrEventDeclaration"
+                            or "IsSimpleName" or "IsRecordDeclaration" or "IsName" )
                         {
                             return true;
                         }
 
                         // Known TypeKind extension properties
-                        if ( propertyName is "IsNamedType" )
+                        if ( propertyName is "IsNamedType" or "IsClassOrStruct" )
                         {
                             return true;
                         }

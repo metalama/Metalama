@@ -106,7 +106,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
 
                     var contextType = declaration.DeclarationKind switch
                     {
-                        var kind when kind.IsMemberOrNamedTypeKind() && declaration is IMemberOrNamedType { DeclaringType: { } declaringType } => declaringType,
+                        { IsMemberOrNamedType: true } when declaration is IMemberOrNamedType { DeclaringType: { } declaringType } => declaringType,
                         DeclarationKind.NamedType when declaration is INamedType type => type,
                         _ => throw new AssertionFailedException( $"Declarations without declaring type are not supported {declaration}." )
                     };
@@ -129,7 +129,10 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     }
 
                     // Accessors have implicit "value" parameter.
-                    if ( declaration.DeclarationKind == DeclarationKind.Method && declaration is IMethod { MethodKind: MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove } )
+                    if ( declaration.DeclarationKind == DeclarationKind.Method && declaration is IMethod
+                        {
+                            MethodKind: MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove
+                        } )
                     {
                         identifiers.Add( "value" );
                     }
@@ -187,7 +190,10 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     var builder = this.GetIdentifiersInTypeScope( typeDeclarationSyntax.AssertNotNull() ).ToBuilder();
 
                     // Accessors have implicit "value" parameter.
-                    if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: RoslynMethodKind.PropertySet or RoslynMethodKind.EventAdd or RoslynMethodKind.EventRemove } )
+                    if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol
+                        {
+                            MethodKind: RoslynMethodKind.PropertySet or RoslynMethodKind.EventAdd or RoslynMethodKind.EventRemove
+                        } )
                     {
                         builder.Add( "value" );
                     }
@@ -198,7 +204,9 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     var declarationSyntax =
                         syntaxReference.GetSyntax() switch
                         {
-                            { Parent: { } parent } when parent.IsKind( SyntaxKind.AccessorList ) && parent is AccessorListSyntax { Parent: { } grandParent } && grandParent.IsKind( SyntaxKind.IndexerDeclaration ) && grandParent is IndexerDeclarationSyntax indexer => indexer,
+                            { Parent: { } parent } when parent.IsKind( SyntaxKind.AccessorList ) && parent is AccessorListSyntax { Parent: { } grandParent }
+                                                                                                 && grandParent.IsKind( SyntaxKind.IndexerDeclaration )
+                                                                                                 && grandParent is IndexerDeclarationSyntax indexer => indexer,
                             { } anything => anything
                         };
 

@@ -220,8 +220,7 @@ internal sealed class CompilationHelpers : ICompilationHelpers
         {
             switch ( memberOrType )
             {
-                case { Accessibility: Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedInternal }
-                    when memberOrType.DeclaringType != null:
+                case { Accessibility: Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedInternal, DeclaringType: not null }:
                     return this.IsAccessibleFromOutsideAssemblyCore(
                         memberOrType.DeclaringType,
                         honorInternalVisibleToAttributes );

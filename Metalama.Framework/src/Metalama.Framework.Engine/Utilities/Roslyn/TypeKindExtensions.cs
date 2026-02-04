@@ -20,5 +20,10 @@ public static class TypeKindExtensions
         public bool IsNamedType
             => kind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface
                 or TypeKind.Enum or TypeKind.Delegate;
+
+        /// <summary>
+        /// Gets a value indicating whether the type kind represents a class or struct.
+        /// </summary>
+        public bool IsClassOrStruct => kind is TypeKind.Class or TypeKind.Struct;
     }
 }

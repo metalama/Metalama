@@ -27,14 +27,14 @@ public static class SyntaxExtensions
         while ( current != null )
         {
             if ( current.Kind() is SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration
-                    or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration
-                    or SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration
-                    or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
-                    or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
-                    or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
-                    or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
-                    or SyntaxKind.IncompleteMember or SyntaxKind.GlobalStatement
-                && current is MemberDeclarationSyntax memberDeclaration )
+                     or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration
+                     or SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration
+                     or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
+                     or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                     or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
+                     or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
+                     or SyntaxKind.IncompleteMember or SyntaxKind.GlobalStatement
+                 && current is MemberDeclarationSyntax memberDeclaration )
             {
                 return memberDeclaration;
             }
@@ -55,15 +55,15 @@ public static class SyntaxExtensions
         while ( current != null )
         {
             if ( (current.Kind() is SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration
-                    or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration
-                    or SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration
-                    or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
-                    or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
-                    or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
-                    or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
-                    or SyntaxKind.IncompleteMember or SyntaxKind.GlobalStatement
-                    && current is MemberDeclarationSyntax)
-                || (current.IsKind( SyntaxKind.VariableDeclarator ) && current is VariableDeclaratorSyntax { Parent.Parent: FieldDeclarationSyntax }) )
+                      or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration
+                      or SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration
+                      or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
+                      or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                      or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
+                      or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
+                      or SyntaxKind.IncompleteMember or SyntaxKind.GlobalStatement
+                  && current is MemberDeclarationSyntax)
+                 || (current.IsKind( SyntaxKind.VariableDeclarator ) && current is VariableDeclaratorSyntax { Parent.Parent: FieldDeclarationSyntax }) )
             {
                 return current;
             }
@@ -120,7 +120,10 @@ public static class SyntaxExtensions
 
     internal static bool IsNameOf( this InvocationExpressionSyntax node )
         => node.Expression.IsKind( SyntaxKind.NameOfKeyword ) ||
-           (node.Expression.IsKind( SyntaxKind.IdentifierName ) && node.Expression is IdentifierNameSyntax identifierName && string.Equals( identifierName.Identifier.Text, "nameof", StringComparison.Ordinal ));
+           (node.Expression.IsKind( SyntaxKind.IdentifierName ) && node.Expression is IdentifierNameSyntax identifierName && string.Equals(
+               identifierName.Identifier.Text,
+               "nameof",
+               StringComparison.Ordinal ));
 
     internal static TypeSyntax GetNamespaceOrType( this UsingDirectiveSyntax usingDirective )
 #if ROSLYN_4_8_0_OR_GREATER
@@ -136,7 +139,7 @@ public static class SyntaxExtensions
 #else
         return typeDeclaration.Kind() switch
         {
-            SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when typeDeclaration is RecordDeclarationSyntax record => record.ParameterList,
+            { IsRecordDeclaration: true } when typeDeclaration is RecordDeclarationSyntax record => record.ParameterList,
             _ => null
         };
 #endif
@@ -144,7 +147,7 @@ public static class SyntaxExtensions
 
 #if !ROSLYN_4_8_0_OR_GREATER
     internal static TypeDeclarationSyntax WithParameterList( this TypeDeclarationSyntax typeDeclaration, ParameterListSyntax? parameterList )
-        => typeDeclaration.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration && typeDeclaration is RecordDeclarationSyntax record ? record.WithParameterList( parameterList ) :
+        => typeDeclaration.Kind().IsRecordDeclaration && typeDeclaration is RecordDeclarationSyntax record ? record.WithParameterList( parameterList ) :
             parameterList == null ? typeDeclaration :
             throw new InvalidOperationException( $"Can't add parameter list to a non-record type before C# 12." );
 #endif

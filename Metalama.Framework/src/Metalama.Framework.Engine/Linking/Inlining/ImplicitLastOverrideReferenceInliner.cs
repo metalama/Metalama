@@ -26,28 +26,41 @@ internal sealed class ImplicitLastOverrideReferenceInliner : Inliner
             {
                 SyntaxKind.MethodDeclaration when declarationSyntax is MethodDeclarationSyntax { Body: { } methodBody } => methodBody,
                 SyntaxKind.MethodDeclaration when declarationSyntax is MethodDeclarationSyntax { ExpressionBody: { } methodBody } => methodBody,
-                SyntaxKind.MethodDeclaration when declarationSyntax is MethodDeclarationSyntax { Body: null, ExpressionBody: null } partialMethodDeclaration => partialMethodDeclaration,
+                SyntaxKind.MethodDeclaration when declarationSyntax is MethodDeclarationSyntax
+                {
+                    Body: null, ExpressionBody: null
+                } partialMethodDeclaration => partialMethodDeclaration,
                 SyntaxKind.DestructorDeclaration when declarationSyntax is DestructorDeclarationSyntax { Body: { } destructorBody } => destructorBody,
                 SyntaxKind.DestructorDeclaration when declarationSyntax is DestructorDeclarationSyntax { ExpressionBody: { } destructorBody } => destructorBody,
                 SyntaxKind.ConstructorDeclaration when declarationSyntax is ConstructorDeclarationSyntax { Body: { } constructorBody } => constructorBody,
-                SyntaxKind.ConstructorDeclaration when declarationSyntax is ConstructorDeclarationSyntax { ExpressionBody: { } constructorBody } => constructorBody,
-                SyntaxKind.ConstructorDeclaration when declarationSyntax is ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor => constructor,
+                SyntaxKind.ConstructorDeclaration when declarationSyntax is ConstructorDeclarationSyntax { ExpressionBody: { } constructorBody } =>
+                    constructorBody,
+                SyntaxKind.ConstructorDeclaration when declarationSyntax is ConstructorDeclarationSyntax
+                {
+                    Body: null, ExpressionBody: null
+                } constructor => constructor,
                 SyntaxKind.OperatorDeclaration when declarationSyntax is OperatorDeclarationSyntax { Body: { } operatorBody } => operatorBody,
                 SyntaxKind.OperatorDeclaration when declarationSyntax is OperatorDeclarationSyntax { ExpressionBody: { } operatorBody } => operatorBody,
-                SyntaxKind.ConversionOperatorDeclaration when declarationSyntax is ConversionOperatorDeclarationSyntax { Body: { } conversionOperatorBody } => conversionOperatorBody,
-                SyntaxKind.ConversionOperatorDeclaration when declarationSyntax is ConversionOperatorDeclarationSyntax { ExpressionBody: { } conversionOperatorBody } => conversionOperatorBody,
-                SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                    when declarationSyntax is AccessorDeclarationSyntax { Body: { } accessorBody } => accessorBody,
-                SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                    when declarationSyntax is AccessorDeclarationSyntax { ExpressionBody: { } accessorBody } => accessorBody,
-                SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                    when declarationSyntax is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } accessor => accessor,
+                SyntaxKind.ConversionOperatorDeclaration when declarationSyntax is ConversionOperatorDeclarationSyntax { Body: { } conversionOperatorBody } =>
+                    conversionOperatorBody,
+                SyntaxKind.ConversionOperatorDeclaration when declarationSyntax is ConversionOperatorDeclarationSyntax
+                {
+                    ExpressionBody: { } conversionOperatorBody
+                } => conversionOperatorBody,
+                { IsAccessorDeclaration: true } when declarationSyntax is AccessorDeclarationSyntax { Body: { } accessorBody } => accessorBody,
+                { IsAccessorDeclaration: true } when declarationSyntax is AccessorDeclarationSyntax { ExpressionBody: { } accessorBody } => accessorBody,
+                { IsAccessorDeclaration: true } when declarationSyntax is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } accessor => accessor,
                 SyntaxKind.ArrowExpressionClause when declarationSyntax is ArrowExpressionClauseSyntax arrowExpressionClause => arrowExpressionClause,
-                SyntaxKind.VariableDeclarator when declarationSyntax is VariableDeclaratorSyntax { Parent.Parent: EventFieldDeclarationSyntax } eventFieldVariable => eventFieldVariable,
-                SyntaxKind.Parameter when declarationSyntax is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter => recordParameter,
+                SyntaxKind.VariableDeclarator when declarationSyntax is VariableDeclaratorSyntax
+                {
+                    Parent.Parent: EventFieldDeclarationSyntax
+                } eventFieldVariable => eventFieldVariable,
+                SyntaxKind.Parameter when declarationSyntax is ParameterSyntax
+                {
+                    Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax }
+                } recordParameter => recordParameter,
 #if ROSLYN_4_8_0_OR_GREATER
-                SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
-                    when declarationSyntax is TypeDeclarationSyntax { ParameterList: { } parameterList } => parameterList,
+                { IsTypeDeclaration: true } when declarationSyntax is TypeDeclarationSyntax { ParameterList: { } parameterList } => parameterList,
 #endif
                 _ => throw new AssertionFailedException( $"Declaration '{aspectReference.ContainingSemantic.Symbol}' has an unexpected declaration node." )
             };

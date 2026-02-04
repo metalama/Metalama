@@ -15,7 +15,6 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
-using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -450,9 +449,11 @@ public static class DeclarationExtensions
 
                         return syntax switch
                         {
-                            { SyntaxKind.IsBaseMethodDeclaration: true } and (BaseMethodDeclarationSyntax { Body: { } } or BaseMethodDeclarationSyntax { ExpressionBody: { } }) => true,
+                            { SyntaxKind.IsBaseMethodDeclaration: true }
+                                and (BaseMethodDeclarationSyntax { Body: { } } or BaseMethodDeclarationSyntax { ExpressionBody: { } }) => true,
                             { SyntaxKind: SyntaxKind.PropertyDeclaration } and PropertyDeclarationSyntax { ExpressionBody: { } } => true,
-                            { SyntaxKind.IsAccessorDeclaration: true } and (AccessorDeclarationSyntax { Body: { } } or AccessorDeclarationSyntax { ExpressionBody: { } }) => true,
+                            { SyntaxKind.IsAccessorDeclaration: true }
+                                and (AccessorDeclarationSyntax { Body: { } } or AccessorDeclarationSyntax { ExpressionBody: { } }) => true,
                             _ => false
                         };
                     } ),

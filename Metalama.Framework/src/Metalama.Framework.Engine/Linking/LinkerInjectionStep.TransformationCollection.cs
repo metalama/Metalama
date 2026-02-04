@@ -609,7 +609,7 @@ internal sealed partial class LinkerInjectionStep
                 .OrderBy(
                     s => s.ContextDeclaration.DeclarationKind switch
                     {
-                        var kind when kind.IsMemberKind() && s.ContextDeclaration is IMember => 0,
+                        { IsMember: true } when s.ContextDeclaration is IMember => 0,
                         DeclarationKind.NamedType when s.ContextDeclaration is INamedType => 1,
                         _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                     } )
@@ -641,8 +641,12 @@ internal sealed partial class LinkerInjectionStep
                             {
                                 // Extension block receiver parameters are ordered first.
                                 DeclarationKind.Parameter when s.ContextDeclaration is IParameter { ContainingDeclaration: IExtensionBlock } => -1,
-                                DeclarationKind.Parameter when s.ContextDeclaration is IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
-                                DeclarationKind.Parameter when s.ContextDeclaration is IParameter { IsReturnParameter: true, ContainingDeclaration: IMethod method } =>
+                                DeclarationKind.Parameter when s.ContextDeclaration is IParameter { IsReturnParameter: false } parameter =>
+                                    parameter.Index, // Parameters are checked in order they appear in code.
+                                DeclarationKind.Parameter when s.ContextDeclaration is IParameter
+                                    {
+                                        IsReturnParameter: true, ContainingDeclaration: IMethod method
+                                    } =>
                                     method.Parameters.Count, // Return parameter contracts are ordered after other parameters.
                                 _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                             };

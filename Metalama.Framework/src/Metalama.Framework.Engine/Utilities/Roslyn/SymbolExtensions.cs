@@ -180,7 +180,8 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         {
             if ( symbol.DeclaringSyntaxReferences.IsEmpty )
             {
-                if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.Constructor, IsImplicitlyDeclared: true } && kind == SyntaxKind.UnsafeKeyword )
+                if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.Constructor, IsImplicitlyDeclared: true }
+                                                      && kind == SyntaxKind.UnsafeKeyword )
                 {
                     return false;
                 }
@@ -190,12 +191,12 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
             return symbol.DeclaringSyntaxReferences.Any(
                 r => r.GetSyntax().Kind() is SyntaxKind.MethodDeclaration or SyntaxKind.PropertyDeclaration or SyntaxKind.FieldDeclaration
-                    or SyntaxKind.EventDeclaration or SyntaxKind.EventFieldDeclaration or SyntaxKind.IndexerDeclaration
-                    or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration or SyntaxKind.OperatorDeclaration
-                    or SyntaxKind.ConversionOperatorDeclaration or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration
-                    or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
-                    or SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration
-                    && r.GetSyntax() is MemberDeclarationSyntax member
+                         or SyntaxKind.EventDeclaration or SyntaxKind.EventFieldDeclaration or SyntaxKind.IndexerDeclaration
+                         or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration or SyntaxKind.OperatorDeclaration
+                         or SyntaxKind.ConversionOperatorDeclaration or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration
+                         or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                         or SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration
+                     && r.GetSyntax() is MemberDeclarationSyntax member
                      && member.Modifiers.Any( m => m.IsKind( kind ) ) );
         }
 
@@ -284,13 +285,12 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 #if ROSLYN_4_8_0_OR_GREATER
             return
                 constructorSymbol is { MethodKind: MethodKind.Constructor }
-                && declarationSyntax?.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
-                    or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                && declarationSyntax?.Kind().IsTypeDeclaration == true
                 && declarationSyntax is TypeDeclarationSyntax { ParameterList: not null };
 #else
             return
                 constructorSymbol is { MethodKind: MethodKind.Constructor }
-                && declarationSyntax?.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                && declarationSyntax?.Kind().IsRecordDeclaration == true
                 && declarationSyntax is RecordDeclarationSyntax { ParameterList: not null };
 #endif
         }
@@ -462,7 +462,10 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                     return GetReferenceOfShortestPath( symbol ) ?? GetReferenceOfShortestPath( associatedSymbol );
 
 #if ROSLYN_4_12_0_OR_GREATER
-                case SymbolKind.Property when symbol is IPropertySymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
+                case SymbolKind.Property when symbol is IPropertySymbol
+                {
+                    IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol
+                }:
                     return GetReferenceOfShortestPath( partialImplementationSymbol );
 #endif
 
