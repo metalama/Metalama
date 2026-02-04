@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -39,8 +38,7 @@ public class KindCheckOptimizationAnalyzerTests
         // Metalama.Framework reference (for IDeclaration)
         references.Add( MetadataReference.CreateFromFile( typeof( Metalama.Framework.Code.IDeclaration ).Assembly.Location ) );
 
-        // Metalama.Framework.Engine reference (for extension properties like DeclarationKindExtensions.IsMember)
-        references.Add( MetadataReference.CreateFromFile( typeof( DeclarationKindExtensions ).Assembly.Location ) );
+        // Metalama.Framework.Engine reference (for extension properties like SyntaxKindExtensions)
         references.Add( MetadataReference.CreateFromFile( typeof( SyntaxKindExtensions ).Assembly.Location ) );
 
         _references = references.ToArray();
@@ -855,7 +853,6 @@ public class KindCheckOptimizationAnalyzerTests
         // Pattern: { DeclarationKind.IsMember: true } - uses extension property on DeclarationKind
         var code = """
             using Metalama.Framework.Code;
-            using Metalama.Framework.Engine.Utilities;
             class Test
             {
                 void M(IDeclaration decl)
@@ -874,7 +871,6 @@ public class KindCheckOptimizationAnalyzerTests
         // Pattern: { DeclarationKind.IsMemberOrNamedType: true } - uses extension property on DeclarationKind
         var code = """
             using Metalama.Framework.Code;
-            using Metalama.Framework.Engine.Utilities;
             class Test
             {
                 void M(IDeclaration decl)
@@ -893,7 +889,6 @@ public class KindCheckOptimizationAnalyzerTests
         // Pattern: case { DeclarationKind.IsMember: true } when declaration is IMember member
         var code = """
             using Metalama.Framework.Code;
-            using Metalama.Framework.Engine.Utilities;
             class Test
             {
                 int M(IDeclaration decl) => decl switch
@@ -913,7 +908,6 @@ public class KindCheckOptimizationAnalyzerTests
         // Pattern in switch statement: case { DeclarationKind.IsMember: true } and IMember member:
         var code = """
             using Metalama.Framework.Code;
-            using Metalama.Framework.Engine.Utilities;
             class Test
             {
                 void M(IDeclaration decl)
@@ -1061,7 +1055,6 @@ public class KindCheckOptimizationAnalyzerTests
         // This tests direct extension property access in a pattern (without Kind. prefix)
         var code = """
             using Metalama.Framework.Code;
-            using Metalama.Framework.Engine.Utilities;
             class Test
             {
                 void M(IDeclaration decl)
@@ -1085,7 +1078,6 @@ public class KindCheckOptimizationAnalyzerTests
         // This tests extension property access in a preceding && expression
         var code = """
             using Metalama.Framework.Code;
-            using Metalama.Framework.Engine.Utilities;
             class Test
             {
                 void M(IDeclaration decl)
@@ -1104,7 +1096,6 @@ public class KindCheckOptimizationAnalyzerTests
         // Pattern: declaration.DeclarationKind.IsMember && declaration is IMember
         var code = """
             using Metalama.Framework.Code;
-            using Metalama.Framework.Engine.Utilities;
             class Test
             {
                 void M(IDeclaration decl)
@@ -1190,7 +1181,6 @@ public class KindCheckOptimizationAnalyzerTests
         // Pattern: { DeclarationKind.IsAssembly: true }
         var code = """
             using Metalama.Framework.Code;
-            using Metalama.Framework.Engine.Utilities;
             class Test
             {
                 void M(IDeclaration decl)
@@ -1258,6 +1248,186 @@ public class KindCheckOptimizationAnalyzerTests
                 {
                     { SyntaxKind.IsRecordDeclaration: true } and RecordDeclarationSyntax record => 1,
                     { SyntaxKind.IsSimpleName: true } and SimpleNameSyntax simpleName => 2,
+                    _ => 0
+                };
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    #endregion
+
+    #region SyntaxKind Extension Property Tests (node.SyntaxKind.IsXxx pattern)
+
+    [Fact]
+    public async Task IsPattern_SyntaxKindExtensionProperty_PrecedingCheck_ShouldNotWarn()
+    {
+        // Pattern: node.SyntaxKind.IsRecordDeclaration && node is RecordDeclarationSyntax
+        // The SyntaxKind extension property on SyntaxNode returns node.Kind()
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(SyntaxNode node)
+                {
+                    if (node.SyntaxKind.IsRecordDeclaration && node is RecordDeclarationSyntax record) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_SyntaxKindExtensionProperty_ConditionalAccess_ShouldNotWarn()
+    {
+        // Pattern: parent?.SyntaxKind.IsRecordDeclaration == true && parent is RecordDeclarationSyntax
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(SyntaxNode node)
+                {
+                    if (node.Parent?.SyntaxKind.IsRecordDeclaration == true && node.Parent is RecordDeclarationSyntax record) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_SyntaxKindExtensionProperty_IsTypeDeclaration_PrecedingCheck_ShouldNotWarn()
+    {
+        // Pattern: node.SyntaxKind.IsTypeDeclaration && node is TypeDeclarationSyntax
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(SyntaxNode node)
+                {
+                    if (node.SyntaxKind.IsTypeDeclaration && node is TypeDeclarationSyntax typeDecl) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_SyntaxKindExtensionProperty_IsBaseMethodDeclaration_PrecedingCheck_ShouldNotWarn()
+    {
+        // Pattern: node.SyntaxKind.IsBaseMethodDeclaration && node is BaseMethodDeclarationSyntax
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(SyntaxNode node)
+                {
+                    if (node.SyntaxKind.IsBaseMethodDeclaration && node is BaseMethodDeclarationSyntax method) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task SwitchExpression_GoverningOnSyntaxKindProperty_ShouldNotWarn()
+    {
+        // Pattern: switch on node.SyntaxKind (extension property that returns Kind())
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                int M(SyntaxNode node) => node.SyntaxKind switch
+                {
+                    SyntaxKind.ClassDeclaration => 1,
+                    SyntaxKind.RecordDeclaration => 2,
+                    _ => 0
+                };
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task SwitchExpression_GoverningOnConditionalSyntaxKindProperty_ShouldNotWarn()
+    {
+        // Pattern: switch on node?.SyntaxKind (conditional extension property access)
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                int M(SyntaxNode? node) => node?.SyntaxKind switch
+                {
+                    SyntaxKind.ClassDeclaration => 1,
+                    SyntaxKind.RecordDeclaration => 2,
+                    _ => 0
+                };
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    #endregion
+
+    #region RawKind Property Tests
+
+    [Fact]
+    public async Task IsPattern_RawKindPropertyPattern_ShouldNotWarn()
+    {
+        // Pattern: { RawKind: (int) SyntaxKind.X } - uses RawKind property pattern
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            class Test
+            {
+                void M(SyntaxNode node)
+                {
+                    if (node is PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.SuppressNullableWarningExpression } nullForgiving) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task SwitchExpression_RawKindPropertyPattern_ShouldNotWarn()
+    {
+        // Pattern in switch expression with RawKind property pattern
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            class Test
+            {
+                int M(SyntaxNode node) => node switch
+                {
+                    PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.SuppressNullableWarningExpression } => 1,
                     _ => 0
                 };
             }

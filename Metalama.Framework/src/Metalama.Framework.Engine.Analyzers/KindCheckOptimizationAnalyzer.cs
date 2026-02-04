@@ -268,12 +268,13 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
 
     private static bool IsKindAccess( ExpressionSyntax expression )
     {
-        // Check for property access: x.Kind, x.DeclarationKind, x.TypeKind
+        // Check for property access: x.Kind, x.DeclarationKind, x.TypeKind, x.SyntaxKind
+        // Note: SyntaxKind is an extension property on SyntaxNode that returns node.Kind()
         if ( expression is MemberAccessExpressionSyntax memberAccess )
         {
             var name = memberAccess.Name.Identifier.Text;
 
-            return name is "Kind" or "DeclarationKind" or "TypeKind";
+            return name is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind";
         }
 
         // Check for identifiers containing "Kind" (e.g., validatedDeclarationKind, symbolKind)
@@ -287,10 +288,10 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
         // Check for conditional access: x?.Kind, x?.DeclarationKind, x?.TypeKind
         if ( expression is ConditionalAccessExpressionSyntax conditionalAccess )
         {
-            // Handle x?.Kind property access
+            // Handle x?.Kind or x?.SyntaxKind property access
             if ( conditionalAccess.WhenNotNull is MemberBindingExpressionSyntax memberBinding )
             {
-                return memberBinding.Name.Identifier.Text is "Kind" or "DeclarationKind" or "TypeKind";
+                return memberBinding.Name.Identifier.Text is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind";
             }
 
             // Handle x?.Kind() or x?.IsKind() method invocation
@@ -299,15 +300,23 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                 return invokeBinding.Name.Identifier.Text is "Kind" or "IsKind";
             }
 
-            // Handle x?.Kind().IsRecordDeclaration - extension property on Kind() result
+            // Handle x?.SyntaxKind.IsRecordDeclaration - extension property on Kind property access
             if ( conditionalAccess.WhenNotNull is MemberAccessExpressionSyntax extensionPropertyAccess )
             {
                 var extensionPropertyName = extensionPropertyAccess.Name.Identifier.Text;
 
-                // Check if this is an extension property on a Kind() call
+                // Check if this is an extension property on a Kind() call (e.g., x?.Kind().IsXxx)
                 if ( extensionPropertyName.StartsWith( "Is", StringComparison.Ordinal ) &&
                      extensionPropertyAccess.Expression is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax kindBinding } &&
                      kindBinding.Name.Identifier.Text == "Kind" )
+                {
+                    return true;
+                }
+
+                // Check if this is an extension property on a Kind property access (e.g., x?.SyntaxKind.IsXxx)
+                if ( extensionPropertyName.StartsWith( "Is", StringComparison.Ordinal ) &&
+                     extensionPropertyAccess.Expression is MemberBindingExpressionSyntax kindPropertyBinding &&
+                     kindPropertyBinding.Name.Identifier.Text is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind" )
                 {
                     return true;
                 }
@@ -674,10 +683,10 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             {
                 foreach ( var subpattern in propertyClause.Subpatterns )
                 {
-                    // Check if this is a Kind property check via simple name (e.g., { Kind: X })
+                    // Check if this is a Kind property check via simple name (e.g., { Kind: X } or { RawKind: X })
                     var propertyName = subpattern.NameColon?.Name.Identifier.Text;
 
-                    if ( propertyName is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind" )
+                    if ( propertyName is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind" or "RawKind" )
                     {
                         return true;
                     }
@@ -688,7 +697,7 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                     {
                         // Known DeclarationKind extension properties (from DeclarationKindExtensions in Engine)
                         // and DeclarationExtensions in Framework.Code
-                        if ( propertyName is "IsMember" or "IsMemberOrNamedType" or "IsAssembly" or "IsType" )
+                        if ( propertyName is "IsMember" or "IsMemberOrNamedType" or "IsAssembly" or "IsType" or "IsNamedDeclaration" )
                         {
                             return true;
                         }
@@ -703,7 +712,7 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                         if ( propertyName is "IsTypeDeclaration" or "IsBaseTypeDeclaration" or "IsLambdaExpression"
                             or "IsBaseFieldDeclaration" or "IsLiteralExpression" or "IsAccessorDeclaration"
                             or "IsBaseMethodDeclaration" or "IsPropertyOrEventDeclaration"
-                            or "IsSimpleName" or "IsRecordDeclaration" or "IsName" )
+                            or "IsSimpleName" or "IsRecordDeclaration" or "IsName" or "IsNamespaceDeclaration" )
                         {
                             return true;
                         }
@@ -784,12 +793,12 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
 
     private static bool EndsWithKindProperty( ExpressionSyntax expression )
     {
-        // Check if the expression ends with .Kind, .DeclarationKind, or .TypeKind
+        // Check if the expression ends with .Kind, .DeclarationKind, .TypeKind, or .SyntaxKind
         if ( expression is MemberAccessExpressionSyntax memberAccess )
         {
             var name = memberAccess.Name.Identifier.Text;
 
-            return name is "Kind" or "DeclarationKind" or "TypeKind";
+            return name is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind";
         }
 
         return false;

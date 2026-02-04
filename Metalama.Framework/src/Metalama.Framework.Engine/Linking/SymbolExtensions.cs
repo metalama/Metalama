@@ -40,9 +40,7 @@ internal static class SymbolExtensions
                 var parameter = (ParameterSyntax) declaration!;
                 var grandParent = parameter.Parent?.Parent;
 
-                if ( grandParent != null
-                     && grandParent.Kind().IsRecordDeclaration
-                     && grandParent is RecordDeclarationSyntax )
+                if ( grandParent is { SyntaxKind.IsRecordDeclaration: true } and RecordDeclarationSyntax )
                 {
                     return default;
                 }

@@ -1367,10 +1367,9 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 foreach ( var member in members )
                 {
-                    switch ( member.Kind() )
+                    switch ( member )
                     {
-                        case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
-                            or SyntaxKind.RecordStructDeclaration when member is TypeDeclarationSyntax type:
+                        case { SyntaxKind.IsTypeDeclaration: true } and TypeDeclarationSyntax type:
                             resultingMembers.AddRange( this.VisitTypeDeclaration( type ) );
 
                             break;
@@ -1440,11 +1439,7 @@ namespace Metalama.Framework.Engine.CompileTime
             {
                 // Get the list of members that are not statements, local variables, local functions,...
                 var nonTopLevelMembers = node.Members
-                    .Where(
-                        m => m.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
-                            or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
-                            or SyntaxKind.NamespaceDeclaration or SyntaxKind.DelegateDeclaration
-                            or SyntaxKind.FileScopedNamespaceDeclaration )
+                    .Where( m => m.SyntaxKind.IsBaseTypeDeclaration || m.SyntaxKind.IsNamespaceDeclaration )
                     .ToReadOnlyList();
 
                 var transformedMembers = this.VisitTypeOrNamespaceMembers( nonTopLevelMembers );
@@ -1588,7 +1583,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 if ( symbol.Equals( unnestedType ) )
                 {
-                    if ( !type.Kind().IsName
+                    if ( !type.SyntaxKind.IsName
                          || type is not NameSyntax typeName )
                     {
                         throw new AssertionFailedException( $"Attempting to rename type '{type}' that doesn't have a name." );
@@ -1606,8 +1601,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 var symbol = this.RunTimeSemanticModelProvider.GetSemanticModel( node.SyntaxTree ).GetSymbolInfo( node ).Symbol;
 
-                if ( symbol?.Kind is SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType
-                         or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.TypeParameter or SymbolKind.ErrorType
+                if ( symbol?.Kind is SymbolKind.Namespace or { IsType: true }
                      && symbol is INamespaceOrTypeSymbol namespaceOrType )
                 {
                     var nodeWithoutPreprocessorDirectives = base.VisitQualifiedName( node ).AssertNotNull();
@@ -1624,8 +1618,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 var symbol = this.RunTimeSemanticModelProvider.GetSemanticModel( node.SyntaxTree ).GetSymbolInfo( node ).Symbol;
 
-                if ( symbol?.Kind is SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType
-                         or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.TypeParameter or SymbolKind.ErrorType
+                if ( symbol?.Kind is SymbolKind.Namespace or { IsType: true }
                      && symbol is INamespaceOrTypeSymbol namespaceOrType )
                 {
                     var nodeWithoutPreprocessorDirectives = base.VisitMemberAccessExpression( node ).AssertNotNull();
@@ -1663,8 +1656,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 {
                     switch ( symbol?.Kind )
                     {
-                        case SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType
-                            or SymbolKind.DynamicType or SymbolKind.TypeParameter or SymbolKind.ErrorType
+                        case SymbolKind.Namespace or { IsType: true }
                             when symbol is INamespaceOrTypeSymbol namespaceOrType:
                             return this.CreateTypeSyntax( namespaceOrType ).WithTriviaFrom( nodeWithoutPreprocessorDirectives );
 

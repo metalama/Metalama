@@ -103,8 +103,9 @@ public static class SyntaxExtensions
     internal static ExpressionSyntax RemoveParenthesisAndNullForgiving( this ExpressionSyntax node )
         => node switch
         {
-            ParenthesizedExpressionSyntax parenthesized => parenthesized.Expression.RemoveParenthesisAndNullForgiving(),
-            PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.SuppressNullableWarningExpression } nullForgiving
+            { SyntaxKind: SyntaxKind.ParenthesizedExpression } and ParenthesizedExpressionSyntax parenthesized
+                => parenthesized.Expression.RemoveParenthesisAndNullForgiving(),
+            { SyntaxKind: SyntaxKind.SuppressNullableWarningExpression } and PostfixUnaryExpressionSyntax nullForgiving
                 => nullForgiving.Operand.RemoveParenthesisAndNullForgiving(),
             _ => node
         };
@@ -147,7 +148,7 @@ public static class SyntaxExtensions
 
 #if !ROSLYN_4_8_0_OR_GREATER
     internal static TypeDeclarationSyntax WithParameterList( this TypeDeclarationSyntax typeDeclaration, ParameterListSyntax? parameterList )
-        => typeDeclaration.Kind().IsRecordDeclaration && typeDeclaration is RecordDeclarationSyntax record ? record.WithParameterList( parameterList ) :
+        => typeDeclaration.SyntaxKind.IsRecordDeclaration && typeDeclaration is RecordDeclarationSyntax record ? record.WithParameterList( parameterList ) :
             parameterList == null ? typeDeclaration :
             throw new InvalidOperationException( $"Can't add parameter list to a non-record type before C# 12." );
 #endif

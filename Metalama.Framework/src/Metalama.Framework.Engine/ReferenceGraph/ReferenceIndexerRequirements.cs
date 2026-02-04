@@ -26,10 +26,7 @@ public sealed record ReferenceIndexerRequirements(
         var validatedIdentifier = validatedDeclaration.DeclarationKind switch
         {
             DeclarationKind.Constructor when validatedDeclaration is IConstructor constructor => constructor.DeclaringType.Name,
-            DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event
-                or DeclarationKind.Parameter or DeclarationKind.TypeParameter or DeclarationKind.NamedType
-                or DeclarationKind.Namespace
-                when validatedDeclaration is INamedDeclaration namedDeclaration => namedDeclaration.Name,
+            { IsNamedDeclaration: true } when validatedDeclaration is INamedDeclaration namedDeclaration => namedDeclaration.Name,
             _ => null
         };
 
