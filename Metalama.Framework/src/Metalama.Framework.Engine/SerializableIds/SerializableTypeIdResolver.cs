@@ -318,12 +318,12 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
 
         private ResolverResult LookupName( NameSyntax name, TTypeOrNamespace? ns )
         {
-            switch ( name )
+            switch ( name.Kind() )
             {
-                case IdentifierNameSyntax identifierName:
+                case SyntaxKind.IdentifierName when name is IdentifierNameSyntax identifierName:
                     return this.LookupName( identifierName.Identifier.Text, 0, ns );
 
-                case QualifiedNameSyntax qualifiedName:
+                case SyntaxKind.QualifiedName when name is QualifiedNameSyntax qualifiedName:
                     var leftResult = this.LookupName( qualifiedName.Left, ns );
 
                     if ( !leftResult.IsSuccess )
@@ -335,7 +335,7 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
 
                     return this.LookupName( qualifiedName.Right, left );
 
-                case GenericNameSyntax genericName:
+                case SyntaxKind.GenericName when name is GenericNameSyntax genericName:
                     var definitionResult = this.LookupName( genericName.Identifier.Text, genericName.Arity, ns );
 
                     if ( !definitionResult.IsSuccess )
@@ -373,7 +373,7 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
                         return ResolverResult.Success( this._parent.ConstructGenericType( definition, typeArgumentResults.SelectAsArray( r => r.Type ) ) );
                     }
 
-                case AliasQualifiedNameSyntax aliasQualifiedName:
+                case SyntaxKind.AliasQualifiedName when name is AliasQualifiedNameSyntax aliasQualifiedName:
                     return this.LookupName( aliasQualifiedName.Name, ns );
 
                 default:

@@ -18,43 +18,47 @@ internal sealed class MethodAssignmentInliner : MethodInliner
         }
 
         // The syntax has to be in form: <local> = <annotated_method_expression( <arguments> );
-        if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol )
         {
             // Coverage: ignore (hit only when the check in base class is incorrect).
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
 
-        if ( invocationExpression.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        // The invocation (possibly through parentheses or null-forgiving) should be the right side of an assignment.
+        var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+
+        if ( !invocationOrWrapped.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) || invocationOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
 
         // Assignment should be simple and Invocation should be on the right.
         if ( assignmentExpression.Kind() != SyntaxKind.SimpleAssignmentExpression
-             || assignmentExpression.Right != invocationExpression )
+             || assignmentExpression.Right != invocationOrWrapped )
         {
             return false;
         }
 
         // Assignment should have a local on the left.
-        if ( assignmentExpression.Left is not IdentifierNameSyntax || semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol is not ILocalSymbol )
+        var leftSymbol = semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol;
+        if ( !assignmentExpression.Left.IsKind( SyntaxKind.IdentifierName ) || assignmentExpression.Left is not IdentifierNameSyntax || leftSymbol?.Kind != SymbolKind.Local || leftSymbol is not ILocalSymbol )
         {
             return false;
         }
 
         // The assignment should be part of expression statement.
-        if ( assignmentExpression.Parent is not ExpressionStatementSyntax )
+        if ( !assignmentExpression.Parent.IsKind( SyntaxKind.ExpressionStatement ) || assignmentExpression.Parent is not ExpressionStatementSyntax )
         {
             return false;
         }
 
         // The invocation needs to be inlineable in itself.
-        if ( !IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
+        if ( !InlinerHelper.IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
         {
             return false;
         }
@@ -65,7 +69,11 @@ internal sealed class MethodAssignmentInliner : MethodInliner
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
         var invocationExpression = (InvocationExpressionSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
-        var assignmentExpression = (AssignmentExpressionSyntax) invocationExpression.Parent.AssertNotNull();
+
+        // Navigate through parentheses and null-forgiving to find the assignment.
+        var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+
+        var assignmentExpression = (AssignmentExpressionSyntax) invocationOrWrapped.Parent.AssertNotNull();
         var localVariable = (IdentifierNameSyntax) assignmentExpression.Left.AssertNotNull();
         var expressionStatement = (ExpressionStatementSyntax) assignmentExpression.Parent.AssertNotNull();
 

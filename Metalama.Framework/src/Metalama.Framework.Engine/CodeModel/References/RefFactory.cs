@@ -98,8 +98,6 @@ namespace Metalama.Framework.Engine.CodeModel.References
                         DeclarationKind.Attribute => new SymbolRef<IAttribute>( key.Symbol, key.GenericContext, me ),
                         DeclarationKind.ManagedResource => new SymbolRef<IManagedResource>( key.Symbol, key.GenericContext, me ),
                         DeclarationKind.Constructor => new SymbolRef<IConstructor>( key.Symbol, key.GenericContext, me ),
-                        DeclarationKind.Finalizer => new SymbolRef<IMethod>( key.Symbol, key.GenericContext, me ),
-                        DeclarationKind.Operator => new SymbolRef<IMethod>( key.Symbol, key.GenericContext, me ),
                         DeclarationKind.AssemblyReference => new SymbolRef<IAssembly>( key.Symbol, key.GenericContext, me ),
                         DeclarationKind.Namespace => new SymbolRef<INamespace>( key.Symbol, key.GenericContext, me ),
                         DeclarationKind.Type => new SymbolRef<IType>( key.Symbol, key.GenericContext, me ),

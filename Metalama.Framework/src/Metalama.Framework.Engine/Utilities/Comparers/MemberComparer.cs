@@ -44,7 +44,8 @@ namespace Metalama.Framework.Engine.Utilities.Comparers
                 return false;
             }
 
-            if ( x is IHasParameters xHasParameters )
+            if ( x.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor or DeclarationKind.Indexer
+                && x is IHasParameters xHasParameters )
             {
                 var yHasParameters = (IHasParameters) y;
 
@@ -73,7 +74,8 @@ namespace Metalama.Framework.Engine.Utilities.Comparers
             var hashCode = default(HashCode);
             hashCode.Add( obj.Name );
 
-            if ( obj is IHasParameters hasParameters )
+            if ( obj.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor or DeclarationKind.Indexer
+                && obj is IHasParameters hasParameters )
             {
                 foreach ( var parameter in hasParameters.Parameters )
                 {

@@ -52,9 +52,11 @@ internal sealed class CompilationAspectSource : IAspectSource
                     a => a.ConstructorArguments[0]
                         .Values.Select( arg => (TargetDeclaration: a.ContainingDeclaration, AspectType: (IType) arg.Value!) ) )
                 .SelectMany(
-                    x => x.TargetDeclaration switch
+                    x => x.TargetDeclaration.DeclarationKind switch
                     {
-                        IHasAccessors hasAccessors => hasAccessors.Accessors.Select( a => x with { TargetDeclaration = a } ).Concat( x ),
+                        DeclarationKind.Property or DeclarationKind.Indexer or DeclarationKind.Event
+                            when x.TargetDeclaration is IHasAccessors hasAccessors
+                            => hasAccessors.Accessors.Select( a => x with { TargetDeclaration = a } ).Concat( x ),
                         _ => [x]
                     } );
 

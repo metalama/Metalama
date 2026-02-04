@@ -25,9 +25,9 @@ internal sealed class BlockWithReturnBeforeUsingLocalSubstitution : SyntaxNodeSu
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case BlockSyntax rootBlock:
+            case SyntaxKind.Block when currentNode is BlockSyntax rootBlock:
                 var gotoStatementWalker = new GotoAndLabeledStatementWalker();
 
                 // PERF: Visits already inlined bodies (which may have been processed by another instance), leading to O(n^2) time complexity in extreme cases.
@@ -38,7 +38,7 @@ internal sealed class BlockWithReturnBeforeUsingLocalSubstitution : SyntaxNodeSu
 
                 var gotoStatements =
                     gotoStatementWalker.GotoStatements
-                        .Where( g => g.Expression is IdentifierNameSyntax identifierName && !containedLabels.Contains( identifierName.Identifier.Text ) )
+                        .Where( g => g.Expression != null && g.Expression.IsKind( SyntaxKind.IdentifierName ) && g.Expression is IdentifierNameSyntax identifierName && !containedLabels.Contains( identifierName.Identifier.Text ) )
                         .ToArray();
 
                 var statementsContainingOutgoingGoto = GetStatementsContainingOutgoingGotoStatement( rootBlock, gotoStatements );
@@ -54,7 +54,7 @@ internal sealed class BlockWithReturnBeforeUsingLocalSubstitution : SyntaxNodeSu
                         encounteredStatementContainingGotoStatement = true;
                     }
 
-                    if ( statement is LocalDeclarationStatementSyntax localDeclaration
+                    if ( statement.IsKind( SyntaxKind.LocalDeclarationStatement ) && statement is LocalDeclarationStatementSyntax localDeclaration
                          && localDeclaration.UsingKeyword != default
                          && encounteredStatementContainingGotoStatement )
                     {
@@ -190,7 +190,7 @@ internal sealed class BlockWithReturnBeforeUsingLocalSubstitution : SyntaxNodeSu
 
         public override void Visit( SyntaxNode? node )
         {
-            if ( node is not ExpressionSyntax and not LocalFunctionStatementSyntax )
+            if ( node is not ExpressionSyntax && !node.IsKind( SyntaxKind.LocalFunctionStatement ) )
             {
                 // Skip expressions and local functions.
                 base.Visit( node );

@@ -11,7 +11,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -54,7 +54,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             => this.Symbol.IsImplicitlyDeclared ||
 
                // We consider the Program.Main from top-level statements to be implicit.
-               (!this.Symbol.DeclaringSyntaxReferences.IsEmpty && this.Symbol.DeclaringSyntaxReferences[0].GetSyntax() is CompilationUnitSyntax);
+               (!this.Symbol.DeclaringSyntaxReferences.IsEmpty && this.Symbol.DeclaringSyntaxReferences[0].GetSyntax().IsKind( SyntaxKind.CompilationUnit ));
 
         [Memo]
         public override IDeclarationOrigin Origin => this.GetOrigin();

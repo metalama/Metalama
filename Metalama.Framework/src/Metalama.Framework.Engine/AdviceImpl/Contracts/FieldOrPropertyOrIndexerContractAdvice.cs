@@ -26,22 +26,22 @@ internal sealed class FieldOrPropertyOrIndexerContractAdvice : ContractAdvice<IF
         var contextCopy = context;
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 
-        switch ( targetDeclaration )
+        switch ( targetDeclaration.DeclarationKind )
         {
-            case IProperty property:
+            case DeclarationKind.Property when targetDeclaration is IProperty property:
                 return AddContractToProperty( property );
 
-            case IField { OverridingProperty: { } overridingProperty }:
+            case DeclarationKind.Field when targetDeclaration is IField { OverridingProperty: { } overridingProperty }:
                 return AddContractToProperty( overridingProperty );
 
-            case IField field:
+            case DeclarationKind.Field when targetDeclaration is IField field:
                 var transformation = PromoteFieldTransformation.Create( serviceProvider, field, this.AspectLayerInstance );
                 context.AddTransformation( transformation );
                 OverrideHelper.AddTransformationsForStructField( field.DeclaringType, this.AspectLayerInstance, context.AddTransformation );
 
                 return AddContractToProperty( transformation.OverridingProperty );
 
-            case IIndexer indexer:
+            case DeclarationKind.Indexer when targetDeclaration is IIndexer indexer:
                 context.AddTransformation(
                     new ContractIndexerTransformation(
                         this.AspectLayerInstance,

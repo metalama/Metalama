@@ -67,7 +67,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
                         var tokenSyntax = TypedExpressionSyntaxImpl.FromValue( token.Expression, syntaxSerializationContext ).Syntax;
 
-                        if ( tokenSyntax is LiteralExpressionSyntax literal && literal.Token.IsKind( SyntaxKind.StringLiteralToken ) &&
+                        if ( tokenSyntax.Kind() == SyntaxKind.StringLiteralExpression && tokenSyntax is LiteralExpressionSyntax literal && literal.Token.IsKind( SyntaxKind.StringLiteralToken ) &&
                              token.Alignment is null && token.Format is null )
                         {
                             textAccumulator.Append( literal.Token.Text.Substring( 1, literal.Token.Text.Length - 2 ) );

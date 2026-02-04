@@ -250,10 +250,8 @@ internal sealed class SerializationWriter
 
                 break;
 
-            case SerializationIntrinsicType.Array:
+            case SerializationIntrinsicType.Array when typeSymbol.Kind == SymbolKind.ArrayType && typeSymbol is IArrayTypeSymbol arrayTypeSymbol:
                 {
-                    var arrayTypeSymbol = (IArrayTypeSymbol) typeSymbol;
-
                     this._binaryWriter.WriteByte( (byte) intrinsicType );
                     this._binaryWriter.WriteCompressedInteger( arrayTypeSymbol.Rank );
                     this.WriteType( arrayTypeSymbol.ElementType, cause );
@@ -267,7 +265,7 @@ internal sealed class SerializationWriter
                     var genericTypeDefinition = typeSymbol.OriginalDefinition;
                     this._binaryWriter.WriteByte( (byte) intrinsicType );
 
-                    if ( typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol && namedTypeSymbol.OriginalDefinition != namedTypeSymbol )
+                    if ( typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol && namedTypeSymbol.OriginalDefinition != namedTypeSymbol )
                     {
                         this._binaryWriter.WriteByte( (byte) SerializationIntrinsicTypeFlags.Generic );
                         this.WriteTypeName( genericTypeDefinition );
@@ -290,8 +288,8 @@ internal sealed class SerializationWriter
 
                 break;
 
-            case SerializationIntrinsicType.GenericTypeParameter:
-                this.WriteGenericTypeParameter( (ITypeParameterSymbol) typeSymbol, cause );
+            case SerializationIntrinsicType.GenericTypeParameter when typeSymbol.Kind == SymbolKind.TypeParameter && typeSymbol is ITypeParameterSymbol typeParameterSymbol:
+                this.WriteGenericTypeParameter( typeParameterSymbol, cause );
 
                 break;
 
@@ -326,7 +324,7 @@ internal sealed class SerializationWriter
 
     private void WriteTypeName( ITypeSymbol typeSymbol )
     {
-        if ( typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol && namedTypeSymbol.ConstructedFrom != namedTypeSymbol )
+        if ( typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol && namedTypeSymbol.ConstructedFrom != namedTypeSymbol )
         {
             throw new ArgumentOutOfRangeException( nameof(typeSymbol) );
         }

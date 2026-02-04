@@ -18,33 +18,40 @@ internal sealed class PropertyGetAssignmentInliner : PropertyGetInliner
         }
 
         // The syntax needs to be in form: <variable> = <annotated_property_expression>;
-        if ( aspectReference.ResolvedSemantic.Symbol is not IPropertySymbol
-             && (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol is not IPropertySymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Property
+             && (aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method
+                 || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol
+                 || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol?.Kind != SymbolKind.Property
+                 || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol is not IPropertySymbol) )
         {
             // Coverage: ignore (hit only when the check in base class is incorrect).
             return false;
         }
 
-        if ( aspectReference.RootExpression.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        // The property access (possibly through parentheses or null-forgiving) should be the right side of an assignment.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+        if ( !expressionOrWrapped.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) || expressionOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
 
         // The assignment should be part of expression statement.
-        if ( assignmentExpression.Parent is not ExpressionStatementSyntax )
+        if ( !assignmentExpression.Parent.IsKind( SyntaxKind.ExpressionStatement ) || assignmentExpression.Parent is not ExpressionStatementSyntax )
         {
             return false;
         }
 
         // Assignment should be simple and property access should be on the right.
         if ( assignmentExpression.Kind() != SyntaxKind.SimpleAssignmentExpression
-             || assignmentExpression.Right != aspectReference.RootExpression )
+             || assignmentExpression.Right != expressionOrWrapped )
         {
             return false;
         }
 
         // Assignment should have a local on the left (TODO: ref returns).
-        if ( assignmentExpression.Left is not IdentifierNameSyntax || semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol is not ILocalSymbol )
+        if ( !assignmentExpression.Left.IsKind( SyntaxKind.IdentifierName ) || assignmentExpression.Left is not IdentifierNameSyntax
+             || semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol?.Kind != SymbolKind.Local )
         {
             return false;
         }
@@ -54,7 +61,10 @@ internal sealed class PropertyGetAssignmentInliner : PropertyGetInliner
 
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
-        var assignmentExpression = (AssignmentExpressionSyntax) aspectReference.RootExpression.Parent.AssertNotNull();
+        // Navigate through parentheses and null-forgiving to find the assignment.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+        var assignmentExpression = (AssignmentExpressionSyntax) expressionOrWrapped.Parent.AssertNotNull();
         var localVariable = (IdentifierNameSyntax) assignmentExpression.Left.AssertNotNull();
         var expressionStatement = (ExpressionStatementSyntax) assignmentExpression.Parent.AssertNotNull();
 

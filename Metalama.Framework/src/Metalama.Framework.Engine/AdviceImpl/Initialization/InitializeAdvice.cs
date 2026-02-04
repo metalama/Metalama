@@ -34,7 +34,7 @@ internal abstract class InitializeAdvice : Advice<AddInitializerAdviceResult>
 
         var containingType = targetDeclaration.GetClosestNamedType().AssertNotNull();
 
-        if ( targetDeclaration is INamedType && containingType.IsRecord )
+        if ( (targetDeclaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock) && containingType.IsRecord )
         {
             return this.CreateFailedResult(
                 AdviceDiagnosticDescriptors.CannotAddInitializerToRecord.CreateRoslynDiagnostic(
@@ -65,10 +65,10 @@ internal abstract class InitializeAdvice : Advice<AddInitializerAdviceResult>
         }
 
         var constructors =
-            targetDeclaration switch
+            targetDeclaration.DeclarationKind switch
             {
-                IConstructor constructor => [constructor],
-                INamedType => this._kind switch
+                DeclarationKind.Constructor when targetDeclaration is IConstructor constructor => [constructor],
+                DeclarationKind.NamedType => this._kind switch
                 {
                     InitializerKind.BeforeTypeConstructor =>
                         [staticConstructor.AssertNotNull()],

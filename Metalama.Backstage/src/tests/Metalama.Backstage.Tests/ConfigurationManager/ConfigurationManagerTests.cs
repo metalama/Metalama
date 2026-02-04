@@ -79,7 +79,7 @@ public sealed class ConfigurationManagerTests : TestsBase
         var jsonService = this.ServiceProvider.GetRequiredBackstageService<IJsonSerializationService>();
         this.FileSystem.WriteAllText( path, jsonService.Serialize( newValue, typeof(TestConfigurationFile) ) );
 
-        Assert.True( gotEvent.WaitOne( 180000 ) );
+        Assert.True( gotEvent.WaitOne( 30000 ) );
 
         var newValueFromManager = configurationManager.Get<TestConfigurationFile>();
 

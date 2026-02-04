@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Linq;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 
 namespace Metalama.Framework.Engine.CodeModel.Source;
 
@@ -20,8 +21,8 @@ public sealed class SourceReferenceImpl : ISourceReferenceImpl
     string ISourceReferenceImpl.GetKind( in SourceReference sourceReference )
         => sourceReference.NodeOrTokenInternal switch
         {
-            SyntaxNode node => node.Kind().ToString(),
-            SyntaxToken token => token.Kind().ToString(),
+            SyntaxNode node => node.SyntaxKind.ToString(),
+            SyntaxToken token => token.SyntaxKind.ToString(),
             _ => throw new AssertionFailedException( $"{sourceReference.NodeOrTokenInternal} is not supported" )
         };
 
@@ -65,26 +66,42 @@ public sealed class SourceReferenceImpl : ISourceReferenceImpl
 
     public bool IsImplementationPart( in SourceReference sourceReference )
     {
-        switch ( sourceReference.NodeOrTokenInternal )
+        var kind = sourceReference.NodeOrTokenInternal is SyntaxNode node ? node.Kind() : default;
+
+        switch ( kind )
         {
-            case MethodDeclarationSyntax { Body: null, ExpressionBody: null } method when
-                method.Modifiers.Any( SyntaxKind.PartialKeyword ):
+            case SyntaxKind.MethodDeclaration when sourceReference.NodeOrTokenInternal is SyntaxNode nodeInternal
+                                                   && nodeInternal.IsKind( SyntaxKind.MethodDeclaration )
+                                                   && nodeInternal is MethodDeclarationSyntax { Body: null, ExpressionBody: null } method
+                                                   && method.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 
 #if ROSLYN_4_12_0_OR_GREATER
-            case PropertyDeclarationSyntax { ExpressionBody: null, AccessorList.Accessors: var accessors } property when
-                accessors.All( a => a is { Body: null, ExpressionBody: null } ) &&
-                property.Modifiers.Any( SyntaxKind.PartialKeyword ):
+            case SyntaxKind.PropertyDeclaration when sourceReference.NodeOrTokenInternal is SyntaxNode nodeInternal
+                                                     && nodeInternal.IsKind( SyntaxKind.PropertyDeclaration )
+                                                     && nodeInternal is PropertyDeclarationSyntax
+                                                     {
+                                                         ExpressionBody: null, AccessorList.Accessors: var accessors
+                                                     } property
+                                                     && accessors.All( a => a is { Body: null, ExpressionBody: null } )
+                                                     && property.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER
-            case ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor when
-                constructor.Modifiers.Any( SyntaxKind.PartialKeyword ):
+            case SyntaxKind.ConstructorDeclaration when sourceReference.NodeOrTokenInternal is SyntaxNode nodeInternal
+                                                        && nodeInternal.IsKind( SyntaxKind.ConstructorDeclaration )
+                                                        && nodeInternal is ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor
+                                                        && constructor.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 
-            case VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax eventField } } when
-                eventField.Modifiers.Any( SyntaxKind.PartialKeyword ):
+            case SyntaxKind.VariableDeclarator when sourceReference.NodeOrTokenInternal is SyntaxNode nodeInternal
+                                                    && nodeInternal.IsKind( SyntaxKind.VariableDeclarator )
+                                                    && nodeInternal is VariableDeclaratorSyntax
+                                                    {
+                                                        Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax eventField }
+                                                    }
+                                                    && eventField.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 #endif
 

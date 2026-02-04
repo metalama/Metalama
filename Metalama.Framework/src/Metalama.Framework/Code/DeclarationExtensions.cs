@@ -68,7 +68,7 @@ namespace Metalama.Framework.Code
                     return containedDeclarationKind is not (DeclarationKind.Compilation or DeclarationKind.Namespace);
 
                 case DeclarationKind.ExtensionBlock:
-                    return containedDeclarationKind is DeclarationKind.Method or DeclarationKind.Indexer or DeclarationKind.Operator
+                    return containedDeclarationKind is DeclarationKind.Method or DeclarationKind.Indexer
                         or DeclarationKind.Property or DeclarationKind.Parameter or DeclarationKind.Attribute or DeclarationKind.TypeParameter;
 
                 case DeclarationKind.Parameter:
@@ -76,9 +76,7 @@ namespace Metalama.Framework.Code
                 case DeclarationKind.Field:
                     return containedDeclarationKind == DeclarationKind.Attribute;
 
-                case DeclarationKind.Operator:
                 case DeclarationKind.Constructor:
-                case DeclarationKind.Finalizer:
                     return containedDeclarationKind is DeclarationKind.Parameter or DeclarationKind.Attribute;
 
                 case DeclarationKind.Method:
@@ -95,15 +93,54 @@ namespace Metalama.Framework.Code
             }
         }
 
-        /// <summary>
-        /// Determines whether a <see cref="DeclarationKind"/> represents an <see cref="IMember"/> (event, field, finalizer, property, indexer, constructor, operator, or method).
-        /// </summary>
-        /// <param name="declarationKind">The declaration kind to check.</param>
-        /// <returns><c>true</c> if the declaration kind represents a member; otherwise, <c>false</c>.</returns>
-        public static bool IsMemberKind( this DeclarationKind declarationKind )
-            => declarationKind is DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Finalizer or DeclarationKind.Property
-                or DeclarationKind.Indexer
-                or DeclarationKind.Constructor or DeclarationKind.Operator or DeclarationKind.Method;
+        /// <param name="kind">The declaration kind to check.</param>
+        extension( DeclarationKind kind )
+        {
+            /// <summary>
+            /// Determines whether a <see cref="DeclarationKind"/> represents an <see cref="IMember"/> (event, field, finalizer, property, indexer, constructor, operator, or method).
+            /// </summary>
+            /// <value>
+            ///     <c>true</c> if the declaration kind represents a member; otherwise, <c>false</c>.
+            /// </value>
+            public bool IsMember
+            {
+                get
+                    => kind is DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Property
+                        or DeclarationKind.Indexer
+                        or DeclarationKind.Constructor or DeclarationKind.Method;
+            }
+
+            /// <summary>
+            /// Determines whether a <see cref="DeclarationKind"/> represents an <see cref="IMember"/> or a <see cref="INamedType"/>.
+            /// </summary>
+            /// <value>
+            ///     <c>true</c> if the declaration kind represents a member or named type; otherwise, <c>false</c>.
+            /// </value>
+            public bool IsMemberOrNamedType => kind.IsMember || kind == DeclarationKind.NamedType;
+
+            /// <summary>
+            /// Determines whether a <see cref="DeclarationKind"/> represents an <see cref="IType"/>.
+            /// </summary>
+            /// <value>
+            ///     <c>true</c> if the declaration kind represents a type; otherwise, <c>false</c>.
+            /// </value>
+            public bool IsType => kind is DeclarationKind.NamedType or DeclarationKind.TypeParameter or DeclarationKind.Type;
+
+            /// <summary>
+            /// Gets a value indicating whether the declaration kind represents an assembly
+            /// (compilation or assembly reference).
+            /// </summary>
+            public bool IsAssembly => kind is DeclarationKind.Compilation or DeclarationKind.AssemblyReference;
+
+            /// <summary>
+            /// Gets a value indicating whether the declaration kind represents a named declaration
+            /// (method, property, field, event, parameter, type parameter, named type, or namespace).
+            /// </summary>
+            public bool IsNamedDeclaration
+                => kind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field
+                    or DeclarationKind.Event or DeclarationKind.Parameter or DeclarationKind.TypeParameter
+                    or DeclarationKind.NamedType or DeclarationKind.Namespace;
+        }
 
         /// <summary>
         /// Gets all containing ancestors, i.e. <c>declaration.ContainingDeclaration</c>, <c>declaration.ContainingDeclaration.ContainingDeclaration</c>,

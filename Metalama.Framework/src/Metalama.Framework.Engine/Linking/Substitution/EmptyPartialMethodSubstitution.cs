@@ -26,12 +26,12 @@ internal sealed class EmptyPartialMethodSubstitution : EmptyPartialMemberSubstit
     public override SyntaxNode ReplacedNode => this._rootNode;
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
-        => currentNode switch
+        => currentNode.Kind() switch
         {
-            MethodDeclarationSyntax => this.Substitute( substitutionContext ),
+            SyntaxKind.MethodDeclaration => this.Substitute( substitutionContext ),
             _ => throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" )
         };
 
     protected override bool IsVoid
-        => this._rootNode.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind( SyntaxKind.VoidKeyword );
+        => this._rootNode.ReturnType.IsKind( SyntaxKind.PredefinedType ) && this._rootNode.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind( SyntaxKind.VoidKeyword );
 }

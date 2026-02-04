@@ -25,9 +25,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         [Memo]
         public override IDeclaration? ContainingDeclaration
-            => this.Symbol switch
+            => this.Symbol.Kind switch
             {
-                IMethodSymbol
+                SymbolKind.Method when this.Symbol is IMethodSymbol
                 {
                     MethodKind: SymbolMethodKind.PropertyGet or SymbolMethodKind.PropertySet or SymbolMethodKind.EventAdd or SymbolMethodKind.EventRemove
                     or SymbolMethodKind.EventRaise

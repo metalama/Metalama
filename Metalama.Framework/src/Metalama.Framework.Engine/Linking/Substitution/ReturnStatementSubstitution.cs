@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Compiler;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
@@ -48,9 +49,9 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
     {
         var syntaxGenerator = substitutionContext.SyntaxGenerationContext.SyntaxGenerator;
 
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case ReturnStatementSyntax returnStatement:
+            case SyntaxKind.ReturnStatement when currentNode is ReturnStatementSyntax returnStatement:
                 if ( this._returnLabelIdentifier != null )
                 {
                     if ( returnStatement.Expression != null )
@@ -117,52 +118,54 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                     }
                 }
 
-            case ExpressionSyntax returnExpression:
-                if ( this._returnLabelIdentifier != null )
-                {
-                    if ( this._referencingSymbol.ReturnsVoid )
-                    {
-                        return
-                            syntaxGenerator.FormattedBlock(
-                                    ExpressionStatement( returnExpression ).WithOriginalLocationAnnotationFrom( returnExpression ),
-                                    CreateGotoStatement() )
-                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
-                    }
-                    else
-                    {
-                        return
-                            syntaxGenerator.FormattedBlock(
-                                    CreateAssignmentStatement( returnExpression ).WithOriginalLocationAnnotationFrom( returnExpression ),
-                                    CreateGotoStatement() )
-                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
-                    }
-                }
-                else
-                {
-                    var assignmentStatement =
-                        CreateAssignmentStatement( returnExpression )
-                            .WithOriginalLocationAnnotationFrom( returnExpression );
-
-                    if ( this._replaceByBreakIfOmitted )
-                    {
-                        return
-                            syntaxGenerator.FormattedBlock(
-                                    assignmentStatement,
-                                    BreakStatement(
-                                        Token( SyntaxKind.BreakKeyword ),
-                                        Token(
-                                            TriviaList(),
-                                            SyntaxKind.SemicolonToken,
-                                            substitutionContext.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) ) )
-                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
-                    }
-                    else
-                    {
-                        return assignmentStatement;
-                    }
-                }
-
             default:
+                if ( !currentNode.IsKind( SyntaxKind.ReturnStatement ) && currentNode is ExpressionSyntax returnExpression )
+                {
+                    if ( this._returnLabelIdentifier != null )
+                    {
+                        if ( this._referencingSymbol.ReturnsVoid )
+                        {
+                            return
+                                syntaxGenerator.FormattedBlock(
+                                        ExpressionStatement( returnExpression ).WithOriginalLocationAnnotationFrom( returnExpression ),
+                                        CreateGotoStatement() )
+                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+                        }
+                        else
+                        {
+                            return
+                                syntaxGenerator.FormattedBlock(
+                                        CreateAssignmentStatement( returnExpression ).WithOriginalLocationAnnotationFrom( returnExpression ),
+                                        CreateGotoStatement() )
+                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+                        }
+                    }
+                    else
+                    {
+                        var assignmentStatement =
+                            CreateAssignmentStatement( returnExpression )
+                                .WithOriginalLocationAnnotationFrom( returnExpression );
+
+                        if ( this._replaceByBreakIfOmitted )
+                        {
+                            return
+                                syntaxGenerator.FormattedBlock(
+                                        assignmentStatement,
+                                        BreakStatement(
+                                            Token( SyntaxKind.BreakKeyword ),
+                                            Token(
+                                                TriviaList(),
+                                                SyntaxKind.SemicolonToken,
+                                                substitutionContext.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) ) )
+                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+                        }
+                        else
+                        {
+                            return assignmentStatement;
+                        }
+                    }
+                }
+
                 throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" );
         }
 
@@ -176,10 +179,31 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
             }
             else
             {
+                // For async methods (with the async modifier), use the result type (the inner type
+                // of Task<T>/ValueTask<T>) instead of the full return type, because when inlining
+                // with await, the return expression should have the awaited type.
+                // For non-async methods that return Task<T>/ValueTask<T>, we must use the full
+                // return type since their return expressions are of type Task<T>.
+                var returnType = this._originalContainingSymbol.ReturnType;
+
+                if ( this._originalContainingSymbol.IsAsyncSafe() &&
+                     AsyncHelper.TryGetAsyncInfo( returnType, out var resultType, out _ ) )
+                {
+                    returnType = resultType;
+                }
+
+                // For void-returning methods (including void-like async methods like Task/ValueTask),
+                // we can't assign to a discard, so just use the expression as a statement.
+                if ( returnType.SpecialType == SpecialType.System_Void )
+                {
+                    return ExpressionStatement( expression )
+                        .WithOptionalTrailingLineFeed( substitutionContext.SyntaxGenerationContext );
+                }
+
                 identifier = SyntaxFactoryEx.DiscardIdentifierName();
 
                 expression = syntaxGenerator.SafeCastExpression(
-                    syntaxGenerator.TypeSyntax( this._originalContainingSymbol.ReturnType ),
+                    syntaxGenerator.TypeSyntax( returnType ),
                     expression );
             }
 

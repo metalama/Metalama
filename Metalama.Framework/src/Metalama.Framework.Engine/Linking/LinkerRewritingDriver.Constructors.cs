@@ -42,7 +42,10 @@ internal sealed partial class LinkerRewritingDriver
                                 .WithOptionalTrailingTrivia( ElasticSpace, context.Options ),
                             SingletonSeparatedList(
                                 VariableDeclarator(
-                                    WellKnownIdentifier( TriviaList( ElasticSpace ), GetCleanPrimaryConstructorFieldName( primaryConstructorField ), default ) ) ) ),
+                                    WellKnownIdentifier(
+                                        TriviaList( ElasticSpace ),
+                                        GetCleanPrimaryConstructorFieldName( primaryConstructorField ),
+                                        default ) ) ) ),
                         Token( SyntaxKind.SemicolonToken ).WithOptionalTrailingLineFeed( context ) ) );
             }
 
@@ -54,7 +57,7 @@ internal sealed partial class LinkerRewritingDriver
                         TokenList( TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
                         context.SyntaxGenerator.TypeSyntax( primaryConstructorProperty.Type ),
                         null,
-                        SyntaxFactoryEx.SafeIdentifier( TriviaList( ElasticSpace ), primaryConstructorProperty.Name, default ),
+                        SafeIdentifier( TriviaList( ElasticSpace ), primaryConstructorProperty.Name, default ),
                         AccessorList(
                             List(
                             [
@@ -80,7 +83,8 @@ internal sealed partial class LinkerRewritingDriver
                         default ) );
             }
 
-            if ( constructorDeclaration.Parent is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } recordDeclaration )
+            if ( constructorDeclaration.Parent?.SyntaxKind.IsRecordDeclaration == true
+                 && constructorDeclaration.Parent is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } recordDeclaration )
             {
                 members.Add(
                     MethodDeclaration(
@@ -237,9 +241,9 @@ internal sealed partial class LinkerRewritingDriver
                     string name;
                     ExpressionSyntax expression;
 
-                    switch ( member )
+                    switch ( member.Kind )
                     {
-                        case IFieldSymbol field:
+                        case SymbolKind.Field when member is IFieldSymbol field:
                             var fieldDeclaration = (VariableDeclaratorSyntax) field.GetPrimaryDeclarationSyntax().AssertNotNull();
 
                             name = field.Name;
@@ -247,7 +251,7 @@ internal sealed partial class LinkerRewritingDriver
 
                             break;
 
-                        case IEventSymbol eventField:
+                        case SymbolKind.Event when member is IEventSymbol eventField:
                             var eventFieldDeclaration = (VariableDeclaratorSyntax) eventField.GetPrimaryDeclarationSyntax().AssertNotNull();
 
                             name = eventField.Name;
@@ -255,18 +259,18 @@ internal sealed partial class LinkerRewritingDriver
 
                             break;
 
-                        case IPropertySymbol property:
+                        case SymbolKind.Property when member is IPropertySymbol property:
                             var primaryDeclaration = property.GetPrimaryDeclarationSyntax().AssertNotNull();
 
-                            switch ( primaryDeclaration )
+                            switch ( primaryDeclaration.Kind() )
                             {
-                                case PropertyDeclarationSyntax propertyDeclaration:
+                                case SyntaxKind.PropertyDeclaration when primaryDeclaration is PropertyDeclarationSyntax propertyDeclaration:
                                     name = propertyDeclaration.Identifier.ValueText;
                                     expression = propertyDeclaration.Initializer.AssertNotNull().Value;
 
                                     break;
 
-                                case ParameterSyntax parameterDeclaration:
+                                case SyntaxKind.Parameter when primaryDeclaration is ParameterSyntax parameterDeclaration:
                                     name = parameterDeclaration.Identifier.ValueText;
                                     expression = WellKnownIdentifierName( parameterDeclaration.Identifier );
 

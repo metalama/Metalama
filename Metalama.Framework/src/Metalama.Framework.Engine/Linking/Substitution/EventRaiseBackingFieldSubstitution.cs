@@ -36,15 +36,15 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
                 ? LinkerRewritingDriver.GetBackingFieldName( this._targetEvent )
                 : LinkerRewritingDriver.GetOriginalImplMemberName( this._targetEvent );
 
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case IdentifierNameSyntax identifierName:
+            case SyntaxKind.IdentifierName when currentNode is IdentifierNameSyntax identifierName:
                 // Replacing the direct invocation.
                 return SyntaxFactoryEx.SafeIdentifierName( targetName )
                     .WithOptionalLeadingTrivia( identifierName.Identifier.LeadingTrivia, substitutionContext.SyntaxGenerationContext )
                     .WithOptionalTrailingTrivia( identifierName.Identifier.TrailingTrivia, substitutionContext.SyntaxGenerationContext );
 
-            case MemberAccessExpressionSyntax { Expression: { }, Name: IdentifierNameSyntax identifierName } simpleMemberAccess:
+            case SyntaxKind.SimpleMemberAccessExpression when currentNode is MemberAccessExpressionSyntax { Expression: { }, Name: IdentifierNameSyntax identifierName } simpleMemberAccess:
                 // Replacing the this expression invocation.
                 return
                     simpleMemberAccess.WithName(
@@ -52,7 +52,7 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
                             .WithOptionalLeadingTrivia( identifierName.Identifier.LeadingTrivia, substitutionContext.SyntaxGenerationContext )
                             .WithOptionalTrailingTrivia( identifierName.Identifier.TrailingTrivia, substitutionContext.SyntaxGenerationContext ) );
 
-            case InvocationExpressionSyntax
+            case SyntaxKind.InvocationExpression when currentNode is InvocationExpressionSyntax
             {
                 Expression: MemberAccessExpressionSyntax
                 {

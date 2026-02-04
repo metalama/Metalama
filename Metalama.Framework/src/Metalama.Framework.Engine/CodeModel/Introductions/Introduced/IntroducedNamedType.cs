@@ -67,10 +67,10 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     {
         var containingDeclaration = this.ContainingDeclaration;
 
-        return containingDeclaration switch
+        return containingDeclaration.DeclarationKind switch
         {
-            INamespace ns => ns,
-            INamedType type => type.ContainingNamespace,
+            DeclarationKind.Namespace when containingDeclaration is INamespace ns => ns,
+            DeclarationKind.NamedType when containingDeclaration is INamedType type => type.ContainingNamespace,
             _ => throw new AssertionFailedException()
         };
     }

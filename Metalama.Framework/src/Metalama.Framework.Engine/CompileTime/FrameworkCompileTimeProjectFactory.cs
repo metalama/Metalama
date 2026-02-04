@@ -69,9 +69,9 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
                         }
                     }
 
-                    switch ( member )
+                    switch ( member.Kind )
                     {
-                        case IMethodSymbol method:
+                        case SymbolKind.Method when member is IMethodSymbol method:
                             // Mark parameters as run-time.
                             foreach ( var parameter in method.Parameters )
                             {
@@ -80,13 +80,13 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
 
                             break;
 
-                        case IPropertySymbol property:
+                        case SymbolKind.Property when member is IPropertySymbol property:
                             AddAccessor( property.GetMethod );
                             AddAccessor( property.SetMethod );
 
                             break;
 
-                        case IEventSymbol @event:
+                        case SymbolKind.Event when member is IEventSymbol @event:
                             AddAccessor( @event.AddMethod );
                             AddAccessor( @event.RemoveMethod );
 

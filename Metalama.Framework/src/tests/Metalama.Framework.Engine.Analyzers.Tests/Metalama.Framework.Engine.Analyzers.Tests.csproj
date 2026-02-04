@@ -1,0 +1,26 @@
+<!-- Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors. All rights reserved. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../../../eng/RoslynVersions/Latest.props" />
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Metalama.Framework.Engine.Analyzers.Tests</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.runner.visualstudio" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(ThisRoslynVersion)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" />
+        <ProjectReference Include="../../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" />
+        <ProjectReference Include="../../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" />
+    </ItemGroup>
+
+</Project>

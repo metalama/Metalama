@@ -503,26 +503,26 @@ namespace Metalama.Framework.Engine.CodeModel
                 return value;
             }
 
-            switch ( declaration )
+            switch ( declaration.DeclarationKind )
             {
-                case INamedType namedType:
+                case DeclarationKind.NamedType when declaration is INamedType namedType:
                     return this.GetDepth( namedType );
 
-                case ICompilation:
+                case DeclarationKind.Compilation:
                     return 0;
 
-                case IAssembly:
+                case DeclarationKind.AssemblyReference:
                     // Order with Compilation matters. We want the root compilation to be ordered first.
                     return 1;
 
-                case INamespace { DeclaringAssembly.IsExternal: true } ns:
+                case DeclarationKind.Namespace when declaration is INamespace { DeclaringAssembly.IsExternal: true } ns:
                     throw new InvalidOperationException( $"Cannot compute the depth of '{ns.FullName}' because it is an external namespace." );
 
-                case INamespace { IsGlobalNamespace: true }:
+                case DeclarationKind.Namespace when declaration is INamespace { IsGlobalNamespace: true }:
                     // We want the global namespace to be processed after all assembly references.
                     return 2;
 
-                case INamespace ns:
+                case DeclarationKind.Namespace when declaration is INamespace ns:
                     {
                         // Then, we just count the number of components in the namespace, and we add the depth of the global namespace.
                         var depth = 3;

@@ -106,9 +106,9 @@ internal sealed partial class LinkerInjectionStep
                 outputTrivias,
                 ref syntaxGenerationContext );
 
-            switch ( symbol )
+            switch ( symbol.Kind )
             {
-                case IMethodSymbol method:
+                case SymbolKind.Method when symbol is IMethodSymbol method:
                     this.RewriteAttributeLists(
                         this.RefFactory.FromReturnParameter( method ),
                         SyntaxKind.ReturnKeyword,
@@ -443,9 +443,9 @@ internal sealed partial class LinkerInjectionStep
                 // IMPORTANT: This need to be here and cannot be in injectedMember.Syntax, result of TrackNodes is not trackable!
                 var injectedNode = injectedMember.Syntax.TrackNodes( injectedMember.Syntax );
 
-                switch ( injectedMember.Declaration )
+                switch ( injectedMember.Declaration.DeclarationKind )
                 {
-                    case IFullRef<IMethodBase> methodBase:
+                    case DeclarationKind.Method or DeclarationKind.Constructor when injectedMember.Declaration is IFullRef<IMethodBase> methodBase:
                         // TODO: AssertNotNull is needed due to some weird bug in Roslyn.
                         var entryStatements = this._transformationCollection.GetInjectedEntryStatements( injectedMember );
                         var exitStatements = this._transformationCollection.GetInjectedExitStatements( injectedMember );
@@ -458,7 +458,7 @@ internal sealed partial class LinkerInjectionStep
 
                         break;
 
-                    case IFullRef<IPropertyOrIndexer> propertyOrIndexerRef:
+                    case DeclarationKind.Property or DeclarationKind.Indexer when injectedMember.Declaration is IFullRef<IPropertyOrIndexer> propertyOrIndexerRef:
                         var propertyOrIndexer = propertyOrIndexerRef.Definition;
 
                         if ( propertyOrIndexer.GetMethod != null )
@@ -508,9 +508,9 @@ internal sealed partial class LinkerInjectionStep
                         injectedMember.Transformation?.AspectInstance.AspectClass.GeneratedCodeAnnotation
                         ?? FormattingAnnotations.SystemGeneratedCodeAnnotation );
 
-                switch ( injectedNode )
+                switch ( injectedNode.Kind() )
                 {
-                    case ConstructorDeclarationSyntax constructorDeclaration:
+                    case SyntaxKind.ConstructorDeclaration when injectedNode is ConstructorDeclarationSyntax constructorDeclaration:
                         {
                             if ( injectedMember.BuilderData != null &&
                                  this._transformationCollection.TryGetMemberLevelTransformations(
@@ -526,7 +526,7 @@ internal sealed partial class LinkerInjectionStep
                             break;
                         }
 
-                    case PropertyDeclarationSyntax propertyDeclaration:
+                    case SyntaxKind.PropertyDeclaration when injectedNode is PropertyDeclarationSyntax propertyDeclaration:
                         if ( injectedMember.BuilderData is PropertyBuilderData propertyBuilder
                              && this._transformationCollection.IsAutoPropertyWithSynthesizedSetter( propertyBuilder ) )
                         {
@@ -553,7 +553,7 @@ internal sealed partial class LinkerInjectionStep
                         break;
 
 #if ROSLYN_5_0_0_OR_GREATER
-                    case ExtensionBlockDeclarationSyntax extensionBlockDeclaration:
+                    case SyntaxKind.ExtensionBlockDeclaration when injectedNode is ExtensionBlockDeclarationSyntax extensionBlockDeclaration:
                         {
                             // Extension blocks need separate handling because their builder data is ExtensionBlockBuilderData, not NamedTypeBuilderData.
                             var extensionBlockBuilder = (ExtensionBlockBuilderData) injectedMember.BuilderData.AssertNotNull();
@@ -573,7 +573,7 @@ internal sealed partial class LinkerInjectionStep
                         }
 #endif
 
-                    case TypeDeclarationSyntax typeDeclaration:
+                    case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when injectedNode is TypeDeclarationSyntax typeDeclaration:
 
                         var typeBuilder = (NamedTypeBuilderData) injectedMember.BuilderData.AssertNotNull();
                         var injectedTypeMembers = new List<MemberDeclarationSyntax>();
@@ -589,7 +589,7 @@ internal sealed partial class LinkerInjectionStep
 
                         break;
 
-                    case NamespaceDeclarationSyntax namespaceDeclaration:
+                    case SyntaxKind.NamespaceDeclaration when injectedNode is NamespaceDeclarationSyntax namespaceDeclaration:
                         // This handles named types injected into a namespace.
 
                         var namespaceTypeBuilder = (NamedTypeBuilderData) injectedMember.BuilderData.AssertNotNull();
@@ -642,19 +642,19 @@ internal sealed partial class LinkerInjectionStep
                 return currentNode;
             }
 
-            switch ( currentNode )
+            switch ( currentNode.Kind() )
             {
-                case ConstructorDeclarationSyntax { Body: { } body } constructor:
+                case SyntaxKind.ConstructorDeclaration when currentNode is ConstructorDeclarationSyntax { Body: { } body } constructor:
                     return constructor.WithBody( ReplaceBlock( contextDeclaration, entryStatements, exitStatements, body ) );
 
-                case ConstructorDeclarationSyntax { ExpressionBody: { } expressionBody } constructor:
+                case SyntaxKind.ConstructorDeclaration when currentNode is ConstructorDeclarationSyntax { ExpressionBody: { } expressionBody } constructor:
                     return
                         constructor.PartialUpdate(
                             expressionBody: null,
                             semicolonToken: default(SyntaxToken),
                             body: ReplaceExpression( entryStatements, exitStatements, expressionBody.Expression, true ) );
 
-                case ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor:
+                case SyntaxKind.ConstructorDeclaration when currentNode is ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor:
                     Invariant.Assert( constructor.Modifiers.All( m => !m.IsKind( SyntaxKind.ExternKeyword ) ) );
 
                     return constructor.PartialUpdate(
@@ -662,15 +662,15 @@ internal sealed partial class LinkerInjectionStep
                         semicolonToken: default(SyntaxToken) );
 
                 // Static constructor overrides also go here.
-                case MethodDeclarationSyntax { Body: { } body } method:
+                case SyntaxKind.MethodDeclaration when currentNode is MethodDeclarationSyntax { Body: { } body } method:
                     return method.WithBody( ReplaceBlock( contextDeclaration, entryStatements, exitStatements, body ) );
 
-                case MethodDeclarationSyntax { ExpressionBody: { } expressionBody } method:
+                case SyntaxKind.MethodDeclaration when currentNode is MethodDeclarationSyntax { ExpressionBody: { } expressionBody } method:
                     var returnsVoid =
-                        contextDeclaration switch
+                        contextDeclaration.DeclarationKind switch
                         {
-                            IFullRef<IConstructor> => true,
-                            IFullRef<IMethod> methodRef => methodRef.DoReturnStatementsRequireArgument(),
+                            DeclarationKind.Constructor when contextDeclaration is IFullRef<IConstructor> => true,
+                            DeclarationKind.Method when contextDeclaration is IFullRef<IMethod> methodRef => methodRef.DoReturnStatementsRequireArgument(),
                             _ => throw new InvalidOperationException( $"Not supported: {contextDeclaration}" )
                         };
 
@@ -680,24 +680,24 @@ internal sealed partial class LinkerInjectionStep
                             semicolonToken: default(SyntaxToken),
                             body: ReplaceExpression( entryStatements, exitStatements, expressionBody.Expression, returnsVoid ) );
 
-                case MethodDeclarationSyntax { Body: null, ExpressionBody: null } method:
+                case SyntaxKind.MethodDeclaration when currentNode is MethodDeclarationSyntax { Body: null, ExpressionBody: null } method:
                     Invariant.Assert( method.Modifiers.All( m => !m.IsKind( SyntaxKind.AbstractKeyword ) && !m.IsKind( SyntaxKind.ExternKeyword ) ) );
 
                     return method.PartialUpdate(
                         body: Block( entryStatements.Concat( exitStatements ) ),
                         semicolonToken: default(SyntaxToken) );
 
-                case OperatorDeclarationSyntax { Body: { } body } @operator:
+                case SyntaxKind.OperatorDeclaration when currentNode is OperatorDeclarationSyntax { Body: { } body } @operator:
                     return @operator.WithBody( ReplaceBlock( contextDeclaration, entryStatements, exitStatements, body ) );
 
-                case OperatorDeclarationSyntax { ExpressionBody: { } expressionBody } @operator:
+                case SyntaxKind.OperatorDeclaration when currentNode is OperatorDeclarationSyntax { ExpressionBody: { } expressionBody } @operator:
                     return
                         @operator.PartialUpdate(
                             expressionBody: null,
                             semicolonToken: default(SyntaxToken),
                             body: ReplaceExpression( entryStatements, exitStatements, expressionBody.Expression, false ) );
 
-                case PropertyDeclarationSyntax { ExpressionBody: { } expressionBody } property:
+                case SyntaxKind.PropertyDeclaration when currentNode is PropertyDeclarationSyntax { ExpressionBody: { } expressionBody } property:
                     {
                         Invariant.Assert( contextDeclaration is IFullRef<IMethod> { Definition.MethodKind: MethodKind.PropertyGet } );
 
@@ -712,7 +712,7 @@ internal sealed partial class LinkerInjectionStep
                                             ReplaceExpression( entryStatements, exitStatements, expressionBody.Expression, false ) ) ) ) );
                     }
 
-                case IndexerDeclarationSyntax { ExpressionBody: { } expressionBody } indexer:
+                case SyntaxKind.IndexerDeclaration when currentNode is IndexerDeclarationSyntax { ExpressionBody: { } expressionBody } indexer:
                     {
                         Invariant.Assert( contextDeclaration is IFullRef<IMethod> { Definition.MethodKind: MethodKind.PropertyGet } );
 
@@ -727,7 +727,7 @@ internal sealed partial class LinkerInjectionStep
                                             ReplaceExpression( entryStatements, exitStatements, expressionBody.Expression, false ) ) ) ) );
                     }
 
-                case BasePropertyDeclarationSyntax { AccessorList: { } accessorList } propertyOrIndexer:
+                case SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration when currentNode is BasePropertyDeclarationSyntax { AccessorList: { } accessorList } propertyOrIndexer:
                     {
                         var methodRef = contextDeclaration.As<IMethod>();
                         var methodKind = methodRef.Definition.MethodKind;
@@ -883,9 +883,9 @@ internal sealed partial class LinkerInjectionStep
                 Invariant.Assert( exitStatements.Count == 0 );
 
                 StatementSyntax statement =
-                    targetExpression switch
+                    targetExpression.Kind() switch
                     {
-                        ThrowExpressionSyntax throwExpression =>
+                        SyntaxKind.ThrowExpression when targetExpression is ThrowExpressionSyntax throwExpression =>
                             ThrowStatement(
                                     throwExpression.ThrowKeyword,
                                     throwExpression.Expression,
@@ -915,16 +915,16 @@ internal sealed partial class LinkerInjectionStep
                 return [m];
             }
 
-            return member switch
+            return member.Kind() switch
             {
-                ConstructorDeclarationSyntax constructor => Singleton( this.VisitConstructorDeclarationCore( constructor ) ),
-                MethodDeclarationSyntax method => Singleton( this.VisitMethodDeclarationCore( method ) ),
-                PropertyDeclarationSyntax property => Singleton( this.VisitPropertyDeclarationCore( property ) ),
-                IndexerDeclarationSyntax indexer => Singleton( this.VisitIndexerDeclarationCore( indexer ) ),
-                OperatorDeclarationSyntax @operator => Singleton( this.VisitOperatorDeclarationCore( @operator ) ),
-                EventDeclarationSyntax @event => Singleton( this.VisitEventDeclarationCore( @event ) ),
-                FieldDeclarationSyntax field => this.VisitFieldDeclarationCore( field ),
-                EventFieldDeclarationSyntax @eventField => this.VisitEventFieldDeclarationCore( @eventField ),
+                SyntaxKind.ConstructorDeclaration when member is ConstructorDeclarationSyntax constructor => Singleton( this.VisitConstructorDeclarationCore( constructor ) ),
+                SyntaxKind.MethodDeclaration when member is MethodDeclarationSyntax method => Singleton( this.VisitMethodDeclarationCore( method ) ),
+                SyntaxKind.PropertyDeclaration when member is PropertyDeclarationSyntax property => Singleton( this.VisitPropertyDeclarationCore( property ) ),
+                SyntaxKind.IndexerDeclaration when member is IndexerDeclarationSyntax indexer => Singleton( this.VisitIndexerDeclarationCore( indexer ) ),
+                SyntaxKind.OperatorDeclaration when member is OperatorDeclarationSyntax @operator => Singleton( this.VisitOperatorDeclarationCore( @operator ) ),
+                SyntaxKind.EventDeclaration when member is EventDeclarationSyntax @event => Singleton( this.VisitEventDeclarationCore( @event ) ),
+                SyntaxKind.FieldDeclaration when member is FieldDeclarationSyntax field => this.VisitFieldDeclarationCore( field ),
+                SyntaxKind.EventFieldDeclaration when member is EventFieldDeclarationSyntax @eventField => this.VisitEventFieldDeclarationCore( @eventField ),
                 _ => Singleton( (MemberDeclarationSyntax) this.Visit( member )! )
             };
         }
@@ -966,9 +966,9 @@ internal sealed partial class LinkerInjectionStep
 
                 BaseTypeSyntax newBaseTypeSyntax;
 
-                switch ( baseTypeSyntax )
+                switch ( baseTypeSyntax.Kind() )
                 {
-                    case SimpleBaseTypeSyntax simpleBaseType:
+                    case SyntaxKind.SimpleBaseType when baseTypeSyntax is SimpleBaseTypeSyntax simpleBaseType:
                         newBaseTypeSyntax =
                             PrimaryConstructorBaseType(
                                 simpleBaseType.Type,
@@ -976,7 +976,7 @@ internal sealed partial class LinkerInjectionStep
 
                         break;
 
-                    case PrimaryConstructorBaseTypeSyntax primaryCtorBaseType:
+                    case SyntaxKind.PrimaryConstructorBaseType when baseTypeSyntax is PrimaryConstructorBaseTypeSyntax primaryCtorBaseType:
                         newBaseTypeSyntax =
                             primaryCtorBaseType
                                 .WithArgumentList(

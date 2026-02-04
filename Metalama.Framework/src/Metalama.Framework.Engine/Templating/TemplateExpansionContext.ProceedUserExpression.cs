@@ -39,7 +39,7 @@ namespace Metalama.Framework.Engine.Templating
             {
                 switch ( this._parent.MetaApi.Target.Declaration )
                 {
-                    case IMethod targetMethod:
+                    case { DeclarationKind: DeclarationKind.Method } and IMethod targetMethod:
                         var isValid = this._methodName switch
                         {
                             nameof(meta.Proceed) => true,

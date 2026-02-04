@@ -29,20 +29,26 @@ public static partial class SerializableDeclarationIdProvider
 
     private static bool TryGetSerializableId( this ISymbol? symbol, RefTargetKind targetKind, out SerializableDeclarationId id )
     {
-        switch ( symbol )
+        if ( symbol == null )
         {
-            case null:
-            case ILocalSymbol:
-            case IMethodSymbol
-            {
-                MethodKind: MethodKind.LocalFunction or MethodKind.AnonymousFunction
-            }:
+            id = default;
 
+            return false;
+        }
+
+        switch ( symbol.Kind )
+        {
+            case SymbolKind.Local when symbol is ILocalSymbol:
                 id = default;
 
                 return false;
 
-            case IParameterSymbol parameterSymbol:
+            case SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.LocalFunction or MethodKind.AnonymousFunction }:
+                id = default;
+
+                return false;
+
+            case SymbolKind.Parameter when symbol is IParameterSymbol parameterSymbol:
                 {
                     var parentId = DocumentationCommentId.CreateDeclarationId( parameterSymbol.ContainingSymbol ).AssertNotNull();
 
@@ -51,7 +57,7 @@ public static partial class SerializableDeclarationIdProvider
                     return true;
                 }
 
-            case ITypeParameterSymbol typeParameterSymbol:
+            case SymbolKind.TypeParameter when symbol is ITypeParameterSymbol typeParameterSymbol:
                 {
                     var parentId = DocumentationCommentId.CreateDeclarationId( typeParameterSymbol.ContainingSymbol ).AssertNotNull();
 
@@ -60,24 +66,25 @@ public static partial class SerializableDeclarationIdProvider
                     return true;
                 }
 
-            case IAssemblySymbol assemblySymbol:
+            case SymbolKind.Assembly when symbol is IAssemblySymbol assemblySymbol:
                 {
                     id = new SerializableDeclarationId( $"{_assemblyPrefix}{assemblySymbol.Identity}" );
 
                     return true;
                 }
 
-            case IModuleSymbol:
+            case SymbolKind.NetModule when symbol is IModuleSymbol:
                 {
                     id = default;
 
                     return false;
                 }
 
-            case INamedTypeSymbol:
+            case SymbolKind.NamedType when symbol is INamedTypeSymbol:
                 goto default;
 
-            case ITypeSymbol typeSymbol:
+            case SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType
+                when symbol is ITypeSymbol typeSymbol:
                 id = new SerializableDeclarationId( typeSymbol.GetSerializableTypeId().Id );
 
                 return true;

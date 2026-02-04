@@ -75,10 +75,10 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
     {
         switch ( this.TargetKind )
         {
-            case RefTargetKind.Return when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is IMethodSymbol method:
+            case RefTargetKind.Return when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind: SymbolKind.Method } and IMethodSymbol method:
                 return new ResolvedAttributeRef( method.GetReturnTypeAttributes(), method, RefTargetKind.Return );
 
-            case RefTargetKind.Field when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is IEventSymbol @event:
+            case RefTargetKind.Field when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind: SymbolKind.Event } and IEventSymbol @event:
                 // Roslyn does not expose the backing field of an event, so we don't have access to its attributes.
                 return new ResolvedAttributeRef( ImmutableArray<AttributeData>.Empty, @event, RefTargetKind.Field );
 
@@ -86,7 +86,7 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
                 var symbol = this.GetSymbol( this.CompilationContext, true );
                 var attributes = symbol.GetAttributes();
 
-                if ( symbol is IAssemblySymbol assemblySymbol )
+                if ( symbol.Kind == SymbolKind.Assembly && symbol is IAssemblySymbol assemblySymbol )
                 {
                     // Also return module-level attributes.
                     attributes = attributes.AddRange( assemblySymbol.Modules.SelectMany( m => m.GetAttributes() ) );
@@ -122,18 +122,18 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
     public abstract SyntaxTree? PrimarySyntaxTree { get; }
 
     private ISymbol ApplyRefKind( ISymbol symbol )
-        => this.TargetKind switch
+        => (this.TargetKind, symbol.Kind) switch
         {
-            RefTargetKind.Assembly when symbol is IAssemblySymbol => symbol,
-            RefTargetKind.Module when symbol is IModuleSymbol => symbol,
-            RefTargetKind.NamedType or RefTargetKind.ExtensionBlock when symbol is INamedTypeSymbol => symbol,
-            RefTargetKind.Default => symbol,
-            RefTargetKind.Return => throw new InvalidOperationException( "Cannot get a symbol for the method return parameter." ),
-            RefTargetKind.Field when symbol is IPropertySymbol property => property.GetBackingField().AssertSymbolNotNull(),
-            RefTargetKind.Field when symbol is IEventSymbol => throw new InvalidOperationException( "Cannot get the underlying field of an event." ),
-            RefTargetKind.Parameter when symbol is IPropertySymbol property => property.SetMethod.AssertSymbolNotNull().Parameters[0],
-            RefTargetKind.Parameter when symbol is IMethodSymbol method => method.Parameters[0],
-            RefTargetKind.Property when symbol is IParameterSymbol parameter => parameter.ContainingType.GetMembers( symbol.Name )
+            (RefTargetKind.Assembly, SymbolKind.Assembly) when symbol is IAssemblySymbol => symbol,
+            (RefTargetKind.Module, SymbolKind.NetModule) when symbol is IModuleSymbol => symbol,
+            (RefTargetKind.NamedType or RefTargetKind.ExtensionBlock, SymbolKind.NamedType) when symbol is INamedTypeSymbol => symbol,
+            (RefTargetKind.Default, _) => symbol,
+            (RefTargetKind.Return, _) => throw new InvalidOperationException( "Cannot get a symbol for the method return parameter." ),
+            (RefTargetKind.Field, SymbolKind.Property) when symbol is IPropertySymbol property => property.GetBackingField().AssertSymbolNotNull(),
+            (RefTargetKind.Field, SymbolKind.Event) when symbol is IEventSymbol => throw new InvalidOperationException( "Cannot get the underlying field of an event." ),
+            (RefTargetKind.Parameter, SymbolKind.Property) when symbol is IPropertySymbol property => property.SetMethod.AssertSymbolNotNull().Parameters[0],
+            (RefTargetKind.Parameter, SymbolKind.Method) when symbol is IMethodSymbol method => method.Parameters[0],
+            (RefTargetKind.Property, SymbolKind.Parameter) when symbol is IParameterSymbol parameter => parameter.ContainingType.GetMembers( symbol.Name )
                 .OfType<IPropertySymbol>()
                 .Single(),
             _ => throw new AssertionFailedException( $"Don't know how to get the symbol kind {this.TargetKind} for a {symbol.Kind}." )

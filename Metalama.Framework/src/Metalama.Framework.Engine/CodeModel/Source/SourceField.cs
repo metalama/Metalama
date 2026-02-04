@@ -17,6 +17,7 @@ using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -130,10 +131,12 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         private IExpression? GetInitializerExpressionCore()
         {
-            var expression = this.FieldSymbol.GetPrimaryDeclarationSyntax() switch
+            var declarationSyntax = this.FieldSymbol.GetPrimaryDeclarationSyntax();
+
+            var expression = declarationSyntax?.Kind() switch
             {
-                VariableDeclaratorSyntax variable => variable.Initializer?.Value,
-                EnumMemberDeclarationSyntax enumMember => enumMember.EqualsValue?.Value,
+                SyntaxKind.VariableDeclarator when declarationSyntax is VariableDeclaratorSyntax variable => variable.Initializer?.Value,
+                SyntaxKind.EnumMemberDeclaration when declarationSyntax is EnumMemberDeclarationSyntax enumMember => enumMember.EqualsValue?.Value,
                 _ => null
             };
 

@@ -27,21 +27,21 @@ public static partial class SyntaxFactoryDebugHelper
             if ( !node.AncestorsAndSelf()
                     .Any(
                         a =>
-                            a is GenericNameSyntax or UsingDirectiveSyntax ||
-                            (a.Parent is NamespaceDeclarationSyntax namespaceDeclaration && namespaceDeclaration.Name == a) ||
-                            (a.Parent is FileScopedNamespaceDeclarationSyntax fileScopeNamespaceDeclaration && fileScopeNamespaceDeclaration.Name == a) ||
-                            (a.Parent is MethodDeclarationSyntax methodDeclaration && methodDeclaration.ReturnType == a) ||
-                            (a.Parent is VariableDeclarationSyntax variable && variable.Type == a) ||
-                            (a.Parent is TypeConstraintSyntax typeConstraint && typeConstraint.Type == a) ||
-                            (a.Parent is ArrayTypeSyntax arrayType && arrayType.ElementType == a) ||
-                            (a.Parent is ObjectCreationExpressionSyntax objectCreation && objectCreation.Type == a) ||
-                            (a.Parent is DefaultExpressionSyntax defaultExpression && defaultExpression.Type == a) ||
-                            (a.Parent is CastExpressionSyntax castExpression && castExpression.Type == a) ||
-                            (a.Parent is ExplicitInterfaceSpecifierSyntax explicitInterfaceSpecifier && explicitInterfaceSpecifier.Name == a) ||
-                            (a.Parent is ParameterSyntax parameter && parameter.Type == a) ||
-                            (a.Parent is PropertyDeclarationSyntax property && property.Type == a) ||
-                            (a.Parent is EventDeclarationSyntax @event && @event.Type == a) ||
-                            a.Parent is SimpleBaseTypeSyntax or TypeOfExpressionSyntax ) )
+                            a.Kind() is SyntaxKind.GenericName or SyntaxKind.UsingDirective ||
+                            (a.Parent.IsKind( SyntaxKind.NamespaceDeclaration ) && a.Parent is NamespaceDeclarationSyntax namespaceDeclaration && namespaceDeclaration.Name == a) ||
+                            (a.Parent.IsKind( SyntaxKind.FileScopedNamespaceDeclaration ) && a.Parent is FileScopedNamespaceDeclarationSyntax fileScopeNamespaceDeclaration && fileScopeNamespaceDeclaration.Name == a) ||
+                            (a.Parent.IsKind( SyntaxKind.MethodDeclaration ) && a.Parent is MethodDeclarationSyntax methodDeclaration && methodDeclaration.ReturnType == a) ||
+                            (a.Parent.IsKind( SyntaxKind.VariableDeclaration ) && a.Parent is VariableDeclarationSyntax variable && variable.Type == a) ||
+                            (a.Parent.IsKind( SyntaxKind.TypeConstraint ) && a.Parent is TypeConstraintSyntax typeConstraint && typeConstraint.Type == a) ||
+                            (a.Parent.IsKind( SyntaxKind.ArrayType ) && a.Parent is ArrayTypeSyntax arrayType && arrayType.ElementType == a) ||
+                            (a.Parent.IsKind( SyntaxKind.ObjectCreationExpression ) && a.Parent is ObjectCreationExpressionSyntax objectCreation && objectCreation.Type == a) ||
+                            (a.Parent.IsKind( SyntaxKind.DefaultExpression ) && a.Parent is DefaultExpressionSyntax defaultExpression && defaultExpression.Type == a) ||
+                            (a.Parent.IsKind( SyntaxKind.CastExpression ) && a.Parent is CastExpressionSyntax castExpression && castExpression.Type == a) ||
+                            (a.Parent.IsKind( SyntaxKind.ExplicitInterfaceSpecifier ) && a.Parent is ExplicitInterfaceSpecifierSyntax explicitInterfaceSpecifier && explicitInterfaceSpecifier.Name == a) ||
+                            (a.Parent.IsKind( SyntaxKind.Parameter ) && a.Parent is ParameterSyntax parameter && parameter.Type == a) ||
+                            (a.Parent.IsKind( SyntaxKind.PropertyDeclaration ) && a.Parent is PropertyDeclarationSyntax property && property.Type == a) ||
+                            (a.Parent.IsKind( SyntaxKind.EventDeclaration ) && a.Parent is EventDeclarationSyntax @event && @event.Type == a) ||
+                            a.Parent?.Kind() is SyntaxKind.SimpleBaseType or SyntaxKind.TypeOfExpression ) )
             {
                 return SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,

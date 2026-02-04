@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -54,9 +55,9 @@ internal sealed class LinkerLateTransformationRegistry
                         continue;
                     }
 
-                    switch ( symbol )
+                    switch ( symbol.Kind )
                     {
-                        case IFieldSymbol { IsStatic: false } fieldSymbol:
+                        case SymbolKind.Field when symbol is IFieldSymbol { IsStatic: false } fieldSymbol:
                             var declarator = (VariableDeclaratorSyntax) fieldSymbol.GetPrimaryDeclarationSyntax().AssertNotNull();
 
                             if ( declarator.Initializer == null )
@@ -68,12 +69,14 @@ internal sealed class LinkerLateTransformationRegistry
 
                             break;
 
-                        case IPropertySymbol { IsStatic: false } propertySymbol:
+                        case SymbolKind.Property when symbol is IPropertySymbol { IsStatic: false } propertySymbol:
                             var primaryDeclaration = propertySymbol.GetPrimaryDeclarationSyntax().AssertNotNull();
 
-                            switch ( primaryDeclaration )
+                            switch ( primaryDeclaration.Kind() )
                             {
-                                case PropertyDeclarationSyntax propertyDeclaration:
+                                case SyntaxKind.PropertyDeclaration:
+                                    var propertyDeclaration = (PropertyDeclarationSyntax) primaryDeclaration;
+
                                     if ( propertyDeclaration.Initializer == null )
                                     {
                                         continue;
@@ -83,7 +86,7 @@ internal sealed class LinkerLateTransformationRegistry
 
                                     break;
 
-                                case ParameterSyntax:
+                                case SyntaxKind.Parameter:
                                     primaryConstructorInitializedMembers.Add( propertySymbol );
 
                                     break;
@@ -91,11 +94,13 @@ internal sealed class LinkerLateTransformationRegistry
 
                             break;
 
-                        case IEventSymbol { IsStatic: false } eventSymbol:
+                        case SymbolKind.Event when symbol is IEventSymbol { IsStatic: false } eventSymbol:
                             var eventDeclaration = eventSymbol.GetPrimaryDeclarationSyntax().AssertNotNull();
 
-                            if ( eventDeclaration is VariableDeclaratorSyntax eventFieldDeclarator )
+                            if ( eventDeclaration.IsKind( SyntaxKind.VariableDeclarator ) )
                             {
+                                var eventFieldDeclarator = (VariableDeclaratorSyntax) eventDeclaration;
+
                                 if ( eventFieldDeclarator.Initializer == null )
                                 {
                                     continue;
@@ -122,9 +127,9 @@ internal sealed class LinkerLateTransformationRegistry
 #if ROSLYN_4_8_0_OR_GREATER
         var typeSyntax =
             (TypeDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )
-                .Single( d => d is TypeDeclarationSyntax { ParameterList: not null } );
+                .Single( d => (d.IsKind( SyntaxKind.ClassDeclaration ) || d.IsKind( SyntaxKind.StructDeclaration ) || d.IsKind( SyntaxKind.RecordDeclaration ) || d.IsKind( SyntaxKind.RecordStructDeclaration )) && ((TypeDeclarationSyntax) d).ParameterList != null );
 
-        if ( typeSyntax is RecordDeclarationSyntax )
+        if ( typeSyntax.IsKind( SyntaxKind.RecordDeclaration ) || typeSyntax.IsKind( SyntaxKind.RecordStructDeclaration ) )
         {
             return Array.Empty<IFieldSymbol>();
         }
@@ -143,7 +148,7 @@ internal sealed class LinkerLateTransformationRegistry
     public IReadOnlyList<IPropertySymbol> GetPrimaryConstructorProperties( INamedTypeSymbol type )
 #pragma warning restore CA1822 // Mark members as static
     {
-        return type.GetMembers().OfType<IPropertySymbol>().Where( p => p.GetPrimaryDeclarationSyntax() is ParameterSyntax ).ToArray();
+        return type.GetMembers().OfType<IPropertySymbol>().Where( p => p.GetPrimaryDeclarationSyntax()?.IsKind( SyntaxKind.Parameter ) == true ).ToArray();
     }
 
     public bool IsPrimaryConstructorInitializedMember( ISymbol symbol ) => this._primaryConstructorInitializedMembers.Contains( symbol );
@@ -157,11 +162,11 @@ internal sealed class LinkerLateTransformationRegistry
 #if ROSLYN_4_8_0_OR_GREATER
         var typeSyntax =
             (TypeDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )
-                .Single( d => d is TypeDeclarationSyntax { ParameterList: not null } );
+                .Single( d => (d.IsKind( SyntaxKind.ClassDeclaration ) || d.IsKind( SyntaxKind.StructDeclaration ) || d.IsKind( SyntaxKind.RecordDeclaration ) || d.IsKind( SyntaxKind.RecordStructDeclaration )) && ((TypeDeclarationSyntax) d).ParameterList != null );
 #else
         var typeSyntax =
             (RecordDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )
-            .Single( d => d is RecordDeclarationSyntax { ParameterList: not null } );
+            .Single( d => (d.IsKind( SyntaxKind.RecordDeclaration ) || d.IsKind( SyntaxKind.RecordStructDeclaration )) && ((RecordDeclarationSyntax) d).ParameterList != null );
 #endif
 
         var primaryConstructorBase = typeSyntax.BaseList?.Types.OfType<PrimaryConstructorBaseTypeSyntax>().SingleOrDefault();

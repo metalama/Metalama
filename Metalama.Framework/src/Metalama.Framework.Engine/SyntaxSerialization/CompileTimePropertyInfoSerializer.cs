@@ -35,9 +35,9 @@ internal sealed class CompileTimePropertyInfoSerializer : ObjectSerializer<Compi
 
         ExpressionSyntax result;
 
-        switch ( propertyOrIndexer )
+        switch ( propertyOrIndexer.DeclarationKind )
         {
-            case IProperty:
+            case DeclarationKind.Property when propertyOrIndexer is IProperty:
                 result = InvocationExpression(
                     MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
@@ -55,7 +55,7 @@ internal sealed class CompileTimePropertyInfoSerializer : ObjectSerializer<Compi
 
                 break;
 
-            case IIndexer indexer:
+            case DeclarationKind.Indexer when propertyOrIndexer is IIndexer indexer:
                 {
                     var returnTypeCreation = TypeSerializationHelper.SerializeTypeSymbolRecursive(
                         propertyOrIndexer.Type.GetSymbol().AssertSymbolNullNotImplemented( UnsupportedFeatures.IntroducedTypeReflectionWrappers ),

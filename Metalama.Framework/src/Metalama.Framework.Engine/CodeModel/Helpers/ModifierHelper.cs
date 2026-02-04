@@ -21,34 +21,33 @@ internal static class ModifierHelper
 {
     public static SyntaxTokenList GetSyntaxModifierList( this IDeclaration declaration, ModifierCategories categories = ModifierCategories.All )
     {
-        // TODO Perf: switch by DeclarationKind.
-        switch ( declaration )
+        switch ( declaration.DeclarationKind )
         {
-            case IMethodImpl accessor when accessor.IsAccessor():
+            case DeclarationKind.Method when declaration is IMethodImpl accessor && accessor.IsAccessor():
                 return GetAccessorSyntaxModifierList( accessor, categories );
 
-            case IMethodImpl method:
+            case DeclarationKind.Method when declaration is IMethodImpl method:
                 return GetMemberSyntaxModifierList( method, categories );
 
-            case IConstructorImpl constructor:
+            case DeclarationKind.Constructor when declaration is IConstructorImpl constructor:
                 return GetMemberSyntaxModifierList( constructor, categories );
 
-            case IPropertyImpl property:
+            case DeclarationKind.Property when declaration is IPropertyImpl property:
                 return GetMemberSyntaxModifierList( property, categories );
 
-            case IIndexerImpl indexer:
+            case DeclarationKind.Indexer when declaration is IIndexerImpl indexer:
                 return GetMemberSyntaxModifierList( indexer, categories );
 
-            case IEventImpl @event:
+            case DeclarationKind.Event when declaration is IEventImpl @event:
                 return GetMemberSyntaxModifierList( @event, categories );
 
-            case IParameterImpl parameter:
+            case DeclarationKind.Parameter when declaration is IParameterImpl parameter:
                 return GetParameterSyntaxModifierList( parameter );
 
-            case IFieldImpl field:
+            case DeclarationKind.Field when declaration is IFieldImpl field:
                 return GetMemberSyntaxModifierList( field, categories );
 
-            case INamedTypeImpl namedType:
+            case DeclarationKind.NamedType when declaration is INamedTypeImpl namedType:
                 return GetTypeSyntaxModifierList( namedType, categories );
 
             default:
@@ -91,7 +90,9 @@ internal static class ModifierHelper
             AddAccessibilityTokens( member, tokens );
         }
 
-        if ( (categories & ModifierCategories.Required) != 0 && member is IFieldOrProperty { IsRequired: true } )
+        if ( (categories & ModifierCategories.Required) != 0
+            && member.DeclarationKind is DeclarationKind.Field or DeclarationKind.Property
+            && member is IFieldOrProperty { IsRequired: true } )
         {
             AddToken( SyntaxKind.RequiredKeyword );
         }
@@ -160,13 +161,16 @@ internal static class ModifierHelper
             }
         }
 
-        if ( (categories & ModifierCategories.ReadOnly) != 0 && member is IMethod { IsReadOnly: true } or
-                IField { Writeability: Writeability.ConstructorOnly } )
+        if ( (categories & ModifierCategories.ReadOnly) != 0
+             && member.DeclarationKind is DeclarationKind.Method or DeclarationKind.Field
+             && member is IMethod { IsReadOnly: true } or IField { Writeability: Writeability.ConstructorOnly } )
         {
             AddToken( SyntaxKind.ReadOnlyKeyword );
         }
 
-        if ( (categories & ModifierCategories.Const) != 0 && member is IField { Writeability: Writeability.None } )
+        if ( (categories & ModifierCategories.Const) != 0
+             && member.DeclarationKind == DeclarationKind.Field
+             && member is IField { Writeability: Writeability.None } )
         {
             AddToken( SyntaxKind.ConstKeyword );
         }
@@ -176,7 +180,9 @@ internal static class ModifierHelper
             AddToken( SyntaxKind.UnsafeKeyword );
         }
 
-        if ( (categories & ModifierCategories.Volatile) != 0 && member.GetSymbol() is IFieldSymbol { IsVolatile: true } )
+        if ( (categories & ModifierCategories.Volatile) != 0
+            && member.GetSymbol()?.Kind == SymbolKind.Field
+            && member.GetSymbol() is IFieldSymbol { IsVolatile: true } )
         {
             AddToken( SyntaxKind.VolatileKeyword );
         }
@@ -237,9 +243,9 @@ internal static class ModifierHelper
         }
 
         // If the target is explicit interface implementation, skip accessibility modifiers.
-        switch ( member )
+        switch ( member.DeclarationKind )
         {
-            case IMethod method:
+            case DeclarationKind.Method when member is IMethod method:
                 if ( method.ExplicitInterfaceImplementations.Count > 0 )
                 {
                     return;
@@ -247,7 +253,7 @@ internal static class ModifierHelper
 
                 break;
 
-            case IProperty property:
+            case DeclarationKind.Property when member is IProperty property:
                 if ( property.ExplicitInterfaceImplementations.Count > 0 )
                 {
                     return;
@@ -255,7 +261,7 @@ internal static class ModifierHelper
 
                 break;
 
-            case IEvent @event:
+            case DeclarationKind.Event when member is IEvent @event:
                 if ( @event.ExplicitInterfaceImplementations.Count > 0 )
                 {
                     return;

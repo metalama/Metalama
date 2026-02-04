@@ -739,10 +739,10 @@ internal sealed class SerializerGenerator : ISerializerGenerator
         foreach ( var member in deserializedLocationSelector( serializedType ) )
         {
             var memberType =
-                member switch
+                member.Kind switch
                 {
-                    IFieldSymbol field => field.Type,
-                    IPropertySymbol property => property.Type,
+                    SymbolKind.Field when member is IFieldSymbol field => field.Type,
+                    SymbolKind.Property when member is IPropertySymbol property => property.Type,
                     _ => throw new AssertionFailedException( $"Invalid member type: {member.Kind}." )
                 };
 
@@ -834,12 +834,12 @@ internal sealed class SerializerGenerator : ISerializerGenerator
             return false;
         }
 
-        if ( fieldOrProperty is IFieldSymbol { IsImplicitlyDeclared: false } )
+        if ( fieldOrProperty.Kind == SymbolKind.Field && fieldOrProperty is IFieldSymbol { IsImplicitlyDeclared: false } )
         {
             return true;
         }
 
-        if ( fieldOrProperty is IPropertySymbol p && p.IsAutoProperty().GetValueOrDefault() )
+        if ( fieldOrProperty.Kind == SymbolKind.Property && fieldOrProperty is IPropertySymbol p && p.IsAutoProperty().GetValueOrDefault() )
         {
             return true;
         }
@@ -863,10 +863,10 @@ internal sealed class SerializerGenerator : ISerializerGenerator
     {
         // TODO: Cache?
 
-        var (containingType, type, isReadOnly) = symbol switch
+        var (containingType, type, isReadOnly) = symbol.Kind switch
         {
-            IFieldSymbol field => (field.ContainingType, field.Type, field.IsReadOnly),
-            IPropertySymbol property => (property.ContainingType, property.Type, property.IsReadOnly || property.SetMethod?.IsInitOnly == true),
+            SymbolKind.Field when symbol is IFieldSymbol field => (field.ContainingType, field.Type, field.IsReadOnly),
+            SymbolKind.Property when symbol is IPropertySymbol property => (property.ContainingType, property.Type, property.IsReadOnly || property.SetMethod?.IsInitOnly == true),
             _ => throw new AssertionFailedException( $"Unexpected symbol kind: {symbol.Kind}." )
         };
 
@@ -917,7 +917,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                 continue;
             }
 
-            if ( member is IFieldSymbol field )
+            if ( member.Kind == SymbolKind.Field && member is IFieldSymbol field )
             {
                 // System.Int32 (and similar types) contains a private field of type Int32
                 // skip it to avoid stack overflow
@@ -932,7 +932,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                 }
             }
 
-            if ( member is IPropertySymbol property )
+            if ( member.Kind == SymbolKind.Property && member is IPropertySymbol property )
             {
                 if ( this.ContainsAnySerializableReferences( property.Type ) )
                 {

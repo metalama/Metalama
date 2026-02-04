@@ -26,7 +26,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Attribute = System.Attribute;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
-using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 #if NET8_0_OR_GREATER
 using System.Runtime.CompilerServices;
@@ -374,17 +373,17 @@ public sealed class AspectClass : TemplateClass, IBoundAspectClass
     /// </summary>
     public bool IsEligibleFast( ISymbol symbol )
     {
-        var ourDeclarationInterface = symbol switch
+        var ourDeclarationInterface = symbol.Kind switch
         {
-            IMethodSymbol method when IsMethod( method.MethodKind ) => method.MethodKind != MethodKind.LocalFunction ? typeof(IMethod) : null,
-            IMethodSymbol method when IsConstructor( method.MethodKind ) => typeof(IConstructor),
-            IPropertySymbol => typeof(IProperty),
-            IEventSymbol => typeof(IEvent),
-            IFieldSymbol => typeof(IField),
-            ITypeSymbol { TypeKind: TypeKind.TypeParameter } => typeof(ITypeParameter),
-            INamedTypeSymbol => typeof(INamedType),
-            IParameterSymbol => typeof(IParameter),
-            IAssemblySymbol => typeof(ICompilation),
+            SymbolKind.Method when symbol is IMethodSymbol method && IsMethod( method.MethodKind ) => method.MethodKind != MethodKind.LocalFunction ? typeof(IMethod) : null,
+            SymbolKind.Method when symbol is IMethodSymbol method && IsConstructor( method.MethodKind ) => typeof(IConstructor),
+            SymbolKind.Property when symbol is IPropertySymbol => typeof(IProperty),
+            SymbolKind.Event when symbol is IEventSymbol => typeof(IEvent),
+            SymbolKind.Field when symbol is IFieldSymbol => typeof(IField),
+            SymbolKind.TypeParameter when symbol is ITypeSymbol => typeof(ITypeParameter),
+            SymbolKind.NamedType when symbol is INamedTypeSymbol => typeof(INamedType),
+            SymbolKind.Parameter when symbol is IParameterSymbol => typeof(IParameter),
+            SymbolKind.Assembly when symbol is IAssemblySymbol => typeof(ICompilation),
             _ => null
         };
 

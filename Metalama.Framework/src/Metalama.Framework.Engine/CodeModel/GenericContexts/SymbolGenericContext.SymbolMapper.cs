@@ -73,10 +73,10 @@ internal partial class SymbolGenericContext
         {
             var parent = this.Visit( symbol.ContainingSymbol );
 
-            return parent switch
+            return parent?.Kind switch
             {
-                IMethodSymbol method => method.Parameters[symbol.Ordinal],
-                IPropertySymbol property => property.Parameters[symbol.Ordinal],
+                SymbolKind.Method when parent is IMethodSymbol method => method.Parameters[symbol.Ordinal],
+                SymbolKind.Property when parent is IPropertySymbol property => property.Parameters[symbol.Ordinal],
                 _ => throw new AssertionFailedException()
             };
         }

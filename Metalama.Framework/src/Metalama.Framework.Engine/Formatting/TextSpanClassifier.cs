@@ -304,10 +304,13 @@ namespace Metalama.Framework.Engine.Formatting
                     continue;
                 }
 
-                switch ( trivia.GetStructure() )
-                {
-                    case DocumentationCommentTriviaSyntax documentationComment:
+                var structure = trivia.GetStructure();
 
+                if ( structure != null )
+                {
+                    if ( structure.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
+                         && structure is DocumentationCommentTriviaSyntax documentationComment )
+                    {
                         // Mark each node of a documentation comment trivia separately.
                         foreach ( var node in documentationComment.ChildNodes() )
                         {
@@ -315,11 +318,10 @@ namespace Metalama.Framework.Engine.Formatting
                         }
 
                         continue;
+                    }
 
-                    case not null:
-
-                        // Don't highlight #directives and skipped tokens.
-                        continue;
+                    // Don't highlight #directives and skipped tokens.
+                    continue;
                 }
 
                 var triviaStart = trivia.FullSpan.Start;

@@ -40,9 +40,9 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
         var targetDeclaration = this.ContractTarget.GetTarget( this.InitialCompilation );
         var targetMethod = this._targetMethod.GetTarget( context.FinalCompilation );
 
-        switch ( targetDeclaration )
+        switch ( targetDeclaration.DeclarationKind )
         {
-            case IParameter { IsReturnParameter: true } returnValueParam:
+            case DeclarationKind.Parameter when targetDeclaration is IParameter { IsReturnParameter: true } returnValueParam:
                 {
                     Invariant.Assert( this.ContractDirection == ContractDirection.Output );
 
@@ -58,7 +58,7 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
                     }
                 }
 
-            case IParameter param:
+            case DeclarationKind.Parameter when targetDeclaration is IParameter param:
                 {
                     Invariant.Assert( this.ContractDirection is ContractDirection.Output or ContractDirection.Input or ContractDirection.Both );
 

@@ -51,9 +51,9 @@ internal abstract class CompileTimeTypeResolver : ICompilationService
 
     private Type? GetCompileTimeTypeCore( ITypeSymbol typeSymbol, CancellationToken cancellationToken = default )
     {
-        switch ( typeSymbol )
+        switch ( typeSymbol.Kind )
         {
-            case IArrayTypeSymbol arrayType:
+            case SymbolKind.ArrayType when typeSymbol is IArrayTypeSymbol arrayType:
                 {
                     var elementType = this.GetCompileTimeType( arrayType.ElementType, false, cancellationToken );
 
@@ -72,7 +72,7 @@ internal abstract class CompileTimeTypeResolver : ICompilationService
                     }
                 }
 
-            case INamedTypeSymbol { IsGenericType: true } genericType when !genericType.IsGenericTypeDefinition():
+            case SymbolKind.NamedType when typeSymbol is INamedTypeSymbol { IsGenericType: true } genericType && !genericType.IsGenericTypeDefinition():
                 {
                     var typeDefinition = this.GetCompileTimeNamedType( genericType.OriginalDefinition );
 
@@ -93,13 +93,13 @@ internal abstract class CompileTimeTypeResolver : ICompilationService
                     return typeDefinition.MakeGenericType( typeArguments.AssertNoneNull() );
                 }
 
-            case INamedTypeSymbol namedType:
+            case SymbolKind.NamedType when typeSymbol is INamedTypeSymbol namedType:
                 return this.GetCompileTimeNamedType( namedType, cancellationToken ) ?? null;
 
-            case IDynamicTypeSymbol:
+            case SymbolKind.DynamicType:
                 return typeof(object);
 
-            case IPointerTypeSymbol pointerType:
+            case SymbolKind.PointerType when typeSymbol is IPointerTypeSymbol pointerType:
                 {
                     var elementType = this.GetCompileTimeType( pointerType.PointedAtType, false, cancellationToken );
 
@@ -113,7 +113,7 @@ internal abstract class CompileTimeTypeResolver : ICompilationService
                     }
                 }
 
-            case ITypeParameterSymbol:
+            case SymbolKind.TypeParameter:
                 {
                     // It would be complex to properly map a type parameter, so we will use a mock. It works in most cases, and if we
                     // need it (because of type equality issues), we can implement the logic.

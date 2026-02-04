@@ -81,10 +81,10 @@ internal sealed class IntroducedExtensionBlock : IntroducedMemberOrNamedType, IE
     public INamespace ContainingNamespace => this.GetContainingNamespace();
 
     private INamespace GetContainingNamespace()
-        => this.ContainingDeclaration switch
+        => this.ContainingDeclaration.DeclarationKind switch
         {
-            INamespace ns => ns,
-            INamedType type => type.ContainingNamespace,
+            DeclarationKind.Namespace when this.ContainingDeclaration is INamespace ns => ns,
+            DeclarationKind.NamedType when this.ContainingDeclaration is INamedType type => type.ContainingNamespace,
             _ => throw new AssertionFailedException()
         };
 

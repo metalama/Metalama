@@ -25,15 +25,15 @@ internal sealed class CompileTimeParameterInfoSerializer : ObjectSerializer<Comp
         ExpressionSyntax memberExpression;
         string getParametersMethodName;
 
-        switch ( declaringMember )
+        switch ( declaringMember?.DeclarationKind )
         {
-            case IMethodBase method:
+            case DeclarationKind.Method or DeclarationKind.Constructor when declaringMember is IMethodBase method:
                 memberExpression = CompileTimeMethodInfoSerializer.SerializeMethodBase( method, serializationContext );
                 getParametersMethodName = nameof(MethodBase.GetParameters);
 
                 break;
 
-            case IIndexer indexer:
+            case DeclarationKind.Indexer when declaringMember is IIndexer indexer:
                 memberExpression = CompileTimePropertyInfoSerializer.SerializeProperty( indexer, serializationContext );
                 getParametersMethodName = nameof(PropertyInfo.GetIndexParameters);
 

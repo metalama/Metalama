@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -92,7 +93,7 @@ internal static class TypeAnnotationMapper
 
     private static ExpressionSyntax AddAnnotationRecursive( ExpressionSyntax n, SyntaxAnnotation syntaxAnnotation )
     {
-        if ( n is ParenthesizedExpressionSyntax parenthesizedExpression )
+        if ( n.Kind() == SyntaxKind.ParenthesizedExpression && n is ParenthesizedExpressionSyntax parenthesizedExpression )
         {
             return parenthesizedExpression.WithExpression( AddAnnotationRecursive( parenthesizedExpression.Expression, syntaxAnnotation ) )
                 .WithoutAnnotations( syntaxAnnotation.Kind! )

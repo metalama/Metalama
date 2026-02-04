@@ -37,9 +37,9 @@ internal static class AdviceSyntaxGenerator
             context.FinalCompilation,
             attributeTargetSyntaxKind );
 
-        switch ( declaration )
+        switch ( declaration.DeclarationKind )
         {
-            case IMethod method:
+            case DeclarationKind.Method when declaration is IMethod method:
                 attributes = attributes.AddRange(
                     context.SyntaxGenerator.AttributesForDeclaration(
                         method.ReturnParameter.ToFullRef(),
@@ -57,7 +57,7 @@ internal static class AdviceSyntaxGenerator
 
                 break;
 
-            case IProperty { IsAutoPropertyOrField: true }:
+            case DeclarationKind.Property when declaration is IProperty { IsAutoPropertyOrField: true }:
                 // TODO: field-level attributes
                 break;
         }

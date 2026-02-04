@@ -113,11 +113,11 @@ internal sealed class TemplateAttributeFactory : IProjectService, IDisposable
 
             if ( member.IsOverride )
             {
-                var overriddenMember = member switch
+                var overriddenMember = member.Kind switch
                 {
-                    IMethodSymbol method => (ISymbol?) method.OverriddenMethod,
-                    IPropertySymbol property => property.OverriddenProperty,
-                    IEventSymbol @event => @event.OverriddenEvent,
+                    SymbolKind.Method when member is IMethodSymbol method => (ISymbol?) method.OverriddenMethod,
+                    SymbolKind.Property when member is IPropertySymbol property => property.OverriddenProperty,
+                    SymbolKind.Event when member is IEventSymbol @event => @event.OverriddenEvent,
                     _ => throw new AssertionFailedException( $"Unexpected symbol: '{member}'." )
                 };
 
@@ -126,7 +126,7 @@ internal sealed class TemplateAttributeFactory : IProjectService, IDisposable
                     return this.TryGetTemplateAttributeBySymbol( overriddenMember, compilationContext, diagnosticAdder, out adviceAttribute );
                 }
             }
-            else if ( member is IMethodSymbol { AssociatedSymbol: { } associatedSymbol } )
+            else if ( member.Kind == SymbolKind.Method && member is IMethodSymbol { AssociatedSymbol: { } associatedSymbol } )
             {
                 return this.TryGetTemplateAttributeBySymbol( associatedSymbol, compilationContext, diagnosticAdder, out adviceAttribute );
             }

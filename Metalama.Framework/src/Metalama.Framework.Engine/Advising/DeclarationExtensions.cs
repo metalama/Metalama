@@ -11,13 +11,13 @@ namespace Metalama.Framework.Engine.Advising;
 internal static class DeclarationExtensions
 {
     public static bool SignatureEquals( this IMember declaration, IMember other )
-        => (declaration, other) switch
+        => (declaration.DeclarationKind, other.DeclarationKind) switch
         {
-            (IMethod x, IMethod y) => SignatureEquals( x, y ),
-            (IIndexer x, IIndexer y) => SignatureEquals( x, y ),
-            (IField x, IField y) => SignatureEquals( x, y ),
-            (IProperty x, IProperty y) => SignatureEquals( x, y ),
-            (IEvent x, IEvent y) => SignatureEquals( x, y ),
+            (DeclarationKind.Method, DeclarationKind.Method) when declaration is IMethod x && other is IMethod y => SignatureEquals( x, y ),
+            (DeclarationKind.Indexer, DeclarationKind.Indexer) when declaration is IIndexer x && other is IIndexer y => SignatureEquals( x, y ),
+            (DeclarationKind.Field, DeclarationKind.Field) when declaration is IField x && other is IField y => SignatureEquals( x, y ),
+            (DeclarationKind.Property, DeclarationKind.Property) when declaration is IProperty x && other is IProperty y => SignatureEquals( x, y ),
+            (DeclarationKind.Event, DeclarationKind.Event) when declaration is IEvent x && other is IEvent y => SignatureEquals( x, y ),
             _ => throw new AssertionFailedException( $"Not expected ({declaration.DeclarationKind}, {other.DeclarationKind})" )
         };
 

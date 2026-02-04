@@ -42,7 +42,7 @@ public abstract class ReferenceIndexBuilder
                 return false;
         }
 
-        if ( symbol is IMethodSymbol { MethodKind: MethodKind.LocalFunction } )
+        if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.LocalFunction } )
         {
             return false;
         }

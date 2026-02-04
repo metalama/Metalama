@@ -97,7 +97,8 @@ internal sealed partial class LinkerAnalysisStep
                     return false;
                 }
 
-                if ( semantic.Symbol is IPropertySymbol { SetMethod: null, OverriddenProperty: not null } getOnlyOverrideProperty
+                if ( semantic.Symbol.Kind == SymbolKind.Property
+                     && semantic.Symbol is IPropertySymbol { SetMethod: null, OverriddenProperty: not null } getOnlyOverrideProperty
                      && getOnlyOverrideProperty.IsAutoProperty().GetValueOrDefault() )
                 {
                     // TODO: Temporary limitation, we need virtualized IntermediateSymbolSemantics.
@@ -124,18 +125,18 @@ internal sealed partial class LinkerAnalysisStep
                     return false;
                 }
 
-                switch ( semantic.Symbol )
+                switch ( semantic.Symbol.Kind )
                 {
-                    case IMethodSymbol:
+                    case SymbolKind.Method when semantic.Symbol is IMethodSymbol:
                         return IsInlineableMethod( semantic.ToTyped<IMethodSymbol>() );
 
-                    case IPropertySymbol:
+                    case SymbolKind.Property when semantic.Symbol is IPropertySymbol:
                         return IsInlineableProperty( semantic.ToTyped<IPropertySymbol>() );
 
-                    case IEventSymbol:
+                    case SymbolKind.Event when semantic.Symbol is IEventSymbol:
                         return IsInlineableEvent( semantic.ToTyped<IEventSymbol>() );
 
-                    case IFieldSymbol:
+                    case SymbolKind.Field when semantic.Symbol is IFieldSymbol:
                         // Fields are never inlineable.
                         return false;
 
@@ -375,22 +376,22 @@ internal sealed partial class LinkerAnalysisStep
 
             bool IsInlinedSemantic( IntermediateSymbolSemantic semantic )
             {
-                switch ( semantic.Symbol )
+                switch ( semantic.Symbol.Kind )
                 {
-                    case IMethodSymbol
+                    case SymbolKind.Method when semantic.Symbol is IMethodSymbol
                     {
                         MethodKind: MethodKind.Ordinary or MethodKind.ExplicitInterfaceImplementation or MethodKind.UserDefinedOperator
                         or MethodKind.Conversion or MethodKind.Destructor or MethodKind.Constructor or MethodKind.StaticConstructor
                     }:
                         return IsInlinedSemanticBody( semantic.ToTyped<IMethodSymbol>() );
 
-                    case IMethodSymbol { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet } propertyAccessor:
+                    case SymbolKind.Method when semantic.Symbol is IMethodSymbol { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet } propertyAccessor:
                         return IsInlinedSemantic( semantic.WithSymbol( propertyAccessor.AssociatedSymbol.AssertNotNull() ) );
 
-                    case IMethodSymbol { MethodKind: MethodKind.EventAdd or MethodKind.EventRemove } eventAccessor:
+                    case SymbolKind.Method when semantic.Symbol is IMethodSymbol { MethodKind: MethodKind.EventAdd or MethodKind.EventRemove } eventAccessor:
                         return IsInlinedSemantic( semantic.WithSymbol( eventAccessor.AssociatedSymbol.AssertNotNull() ) );
 
-                    case IPropertySymbol property:
+                    case SymbolKind.Property when semantic.Symbol is IPropertySymbol property:
                         // Property is inlined if at least one of the accessors is reachable and not inlineable.
                         var hasNonInlinedGet =
                             property.GetMethod != null
@@ -404,7 +405,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         return inlineableSemantics.Contains( semantic ) && !hasNonInlinedGet && !hasNonInlinedSet;
 
-                    case IEventSymbol @event:
+                    case SymbolKind.Event when semantic.Symbol is IEventSymbol @event:
                         // Event is inlined if at least one of the accessors is reachable and not inlineable.
                         var hasNonInlinedAdd =
                             !IsInlinedSemanticBody( semantic.WithSymbol( @event.AddMethod.AssertNotNull() ) )

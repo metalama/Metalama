@@ -24,39 +24,39 @@ internal static partial class DocumentationIdHelper
 
         public void Visit( IDeclaration declaration )
         {
-            switch ( declaration )
+            switch ( declaration.DeclarationKind )
             {
-                case IEvent @event:
+                case DeclarationKind.Event when declaration is IEvent @event:
                     this._builder.Append( "E:" );
                     this._generator.Visit( @event );
 
                     break;
 
-                case IField field:
+                case DeclarationKind.Field when declaration is IField field:
                     this._builder.Append( "F:" );
                     this._generator.Visit( field );
 
                     break;
 
-                case IPropertyOrIndexer property:
+                case DeclarationKind.Property or DeclarationKind.Indexer when declaration is IPropertyOrIndexer property:
                     this._builder.Append( "P:" );
                     this._generator.Visit( property );
 
                     break;
 
-                case IMethodBase method:
+                case DeclarationKind.Method or DeclarationKind.Constructor when declaration is IMethodBase method:
                     this._builder.Append( "M:" );
                     this._generator.Visit( method );
 
                     break;
 
-                case INamespace ns:
+                case DeclarationKind.Namespace when declaration is INamespace ns:
                     this._builder.Append( "N:" );
                     this._generator.Visit( ns );
 
                     break;
 
-                case INamedType namedType:
+                case DeclarationKind.NamedType when declaration is INamedType namedType:
                     this._builder.Append( "T:" );
                     this._generator.Visit( namedType );
 
@@ -117,7 +117,7 @@ internal static partial class DocumentationIdHelper
                 var name = EncodePropertyName( propertyOrIndexer.Name );
                 this._builder.Append( EncodeName( name ) );
 
-                if ( propertyOrIndexer is IIndexer indexer )
+                if ( propertyOrIndexer.DeclarationKind == DeclarationKind.Indexer && propertyOrIndexer is IIndexer indexer )
                 {
                     this.AppendParameters( indexer.Parameters );
                 }
@@ -132,7 +132,7 @@ internal static partial class DocumentationIdHelper
 
                 this._builder.Append( EncodeName( methodBase.Name ) );
 
-                if ( methodBase is IMethod { TypeParameters.Count: > 0 } method )
+                if ( methodBase.DeclarationKind == DeclarationKind.Method && methodBase is IMethod { TypeParameters.Count: > 0 } method )
                 {
                     this._builder.Append( "``" );
                     this._builder.Append( method.TypeParameters.Count );
@@ -140,7 +140,7 @@ internal static partial class DocumentationIdHelper
 
                 this.AppendParameters( methodBase.Parameters );
 
-                if ( methodBase is IMethod method2 && !method2.ReturnType.Equals( SpecialType.Void ) )
+                if ( methodBase.DeclarationKind == DeclarationKind.Method && methodBase is IMethod method2 && !method2.ReturnType.Equals( SpecialType.Void ) )
                 {
                     this._builder.Append( '~' );
                     this.GetReferenceGenerator( method2 ).Visit( method2.ReturnType );
@@ -192,7 +192,8 @@ internal static partial class DocumentationIdHelper
 
             public bool Visit( INamedType namedType )
             {
-                var success = namedType.ContainingDeclaration is INamedType containingType
+                var success = namedType.ContainingDeclaration?.DeclarationKind == DeclarationKind.NamedType
+                              && namedType.ContainingDeclaration is INamedType containingType
                     ? this.Visit( containingType )
                     : this.Visit( namedType.ContainingNamespace );
 

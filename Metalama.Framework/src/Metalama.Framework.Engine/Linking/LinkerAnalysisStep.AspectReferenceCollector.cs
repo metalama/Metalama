@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -57,9 +58,9 @@ internal sealed partial class LinkerAnalysisStep
 
             void ProcessOverriddenMember( ISymbol overriddenMember )
             {
-                switch ( overriddenMember )
+                switch ( overriddenMember.Kind )
                 {
-                    case IMethodSymbol method:
+                    case SymbolKind.Method when overriddenMember is IMethodSymbol method:
                         AddImplicitReference(
                             method.ToSemantic( IntermediateSymbolSemanticKind.Final ),
                             method,
@@ -68,7 +69,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IPropertySymbol property:
+                    case SymbolKind.Property when overriddenMember is IPropertySymbol property:
                         if ( property.GetMethod != null )
                         {
                             AddImplicitReference(
@@ -89,7 +90,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IEventSymbol @event:
+                    case SymbolKind.Event when overriddenMember is IEventSymbol @event:
                         var lastOverride = this._injectionRegistry.GetLastOverride( @event );
 
                         AddImplicitReference(
@@ -155,30 +156,43 @@ internal sealed partial class LinkerAnalysisStep
                     bool? isInlineable = null,
                     bool? isVirtual = null )
                 {
+                    var declarationSyntax = containingSemantic.Symbol.GetPrimaryDeclarationSyntax();
+
                     var sourceNode =
-                        containingSemantic.Symbol.GetPrimaryDeclarationSyntax() switch
+                        declarationSyntax?.Kind() switch
                         {
-                            ConstructorDeclarationSyntax constructor => constructor.Body ?? (SyntaxNode?) constructor.ExpressionBody ?? constructor,
-                            MethodDeclarationSyntax method => method.Body ?? (SyntaxNode?) method.ExpressionBody ?? method,
-                            DestructorDeclarationSyntax destructor => destructor.Body
-                                                                      ?? (SyntaxNode?) destructor.ExpressionBody
-                                                                      ?? throw new AssertionFailedException(
-                                                                          $"'{containingSemantic.Symbol}' has no implementation." ),
-                            OperatorDeclarationSyntax @operator => @operator.Body
-                                                                   ?? (SyntaxNode?) @operator.ExpressionBody
-                                                                   ?? @operator,
-                            ConversionOperatorDeclarationSyntax conversionOperator => conversionOperator.Body
-                                                                                      ?? (SyntaxNode?) conversionOperator.ExpressionBody
-                                                                                      ?? conversionOperator,
-                            AccessorDeclarationSyntax accessor => accessor.Body
-                                                                  ?? (SyntaxNode?) accessor.ExpressionBody
-                                                                  ?? accessor ?? throw new AssertionFailedException(
-                                                                      $"'{containingSemantic.Symbol}' has no implementation." ),
-                            VariableDeclaratorSyntax declarator => declarator
-                                                                   ?? throw new AssertionFailedException(
-                                                                       $"'{containingSemantic.Symbol}' has no implementation." ),
-                            ArrowExpressionClauseSyntax arrowExpressionClause => arrowExpressionClause,
-                            ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter => recordParameter,
+                            SyntaxKind.ConstructorDeclaration when declarationSyntax is ConstructorDeclarationSyntax constructor
+                                => constructor.Body ?? (SyntaxNode?) constructor.ExpressionBody ?? constructor,
+                            SyntaxKind.MethodDeclaration when declarationSyntax is MethodDeclarationSyntax method
+                                => method.Body ?? (SyntaxNode?) method.ExpressionBody ?? method,
+                            SyntaxKind.DestructorDeclaration when declarationSyntax is DestructorDeclarationSyntax destructor
+                                => destructor.Body
+                                   ?? (SyntaxNode?) destructor.ExpressionBody
+                                   ?? throw new AssertionFailedException(
+                                       $"'{containingSemantic.Symbol}' has no implementation." ),
+                            SyntaxKind.OperatorDeclaration when declarationSyntax is OperatorDeclarationSyntax @operator
+                                => @operator.Body
+                                   ?? (SyntaxNode?) @operator.ExpressionBody
+                                   ?? @operator,
+                            SyntaxKind.ConversionOperatorDeclaration when declarationSyntax is ConversionOperatorDeclarationSyntax conversionOperator
+                                => conversionOperator.Body
+                                   ?? (SyntaxNode?) conversionOperator.ExpressionBody
+                                   ?? conversionOperator,
+                            SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                                or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                                when declarationSyntax is AccessorDeclarationSyntax accessor
+                                => accessor.Body
+                                   ?? (SyntaxNode?) accessor.ExpressionBody
+                                   ?? accessor ?? throw new AssertionFailedException(
+                                       $"'{containingSemantic.Symbol}' has no implementation." ),
+                            SyntaxKind.VariableDeclarator when declarationSyntax is VariableDeclaratorSyntax declarator
+                                => declarator
+                                   ?? throw new AssertionFailedException(
+                                       $"'{containingSemantic.Symbol}' has no implementation." ),
+                            SyntaxKind.ArrowExpressionClause when declarationSyntax is ArrowExpressionClauseSyntax arrowExpressionClause
+                                => arrowExpressionClause,
+                            SyntaxKind.Parameter when declarationSyntax is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter
+                                => recordParameter,
                             _ => throw new AssertionFailedException( $"Unexpected syntax for '{containingSemantic.Symbol}'." )
                         };
 
@@ -218,14 +232,14 @@ internal sealed partial class LinkerAnalysisStep
             {
                 var symbol = this._injectionRegistry.GetSymbolForInjectedMember( injectedMember );
 
-                switch ( symbol )
+                switch ( symbol.Kind )
                 {
-                    case IMethodSymbol methodSymbol:
+                    case SymbolKind.Method when symbol is IMethodSymbol methodSymbol:
                         AnalyzeIntroducedBody( methodSymbol );
 
                         break;
 
-                    case IPropertySymbol propertySymbol:
+                    case SymbolKind.Property when symbol is IPropertySymbol propertySymbol:
                         if ( propertySymbol.GetMethod != null )
                         {
                             AnalyzeIntroducedBody( propertySymbol.GetMethod );
@@ -238,21 +252,21 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IEventSymbol eventSymbol:
+                    case SymbolKind.Event when symbol is IEventSymbol eventSymbol:
                         AnalyzeIntroducedBody( eventSymbol.AddMethod.AssertNotNull() );
                         AnalyzeIntroducedBody( eventSymbol.RemoveMethod.AssertNotNull() );
 
                         break;
 
-                    case IFieldSymbol:
+                    case SymbolKind.Field:
                         // NOP.
                         break;
 
-                    case INamedTypeSymbol:
+                    case SymbolKind.NamedType:
                         // NOP.
                         break;
 
-                    case INamespaceSymbol:
+                    case SymbolKind.Namespace:
                         // NOP.
                         break;
 

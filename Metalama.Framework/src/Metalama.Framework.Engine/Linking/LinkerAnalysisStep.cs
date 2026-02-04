@@ -95,7 +95,7 @@ namespace Metalama.Framework.Engine.Linking
 
             // TODO: This is temporary to keep event field storage alive even when not referenced. May be removed after event raise transformations are implemented.
             var overriddenEventFields = input.InjectionRegistry.GetOverriddenMembers()
-                .Where( s => s is IEventSymbol eventSymbol && eventSymbol.IsEventField() == true )
+                .Where( s => s.Kind == SymbolKind.Event && s is IEventSymbol eventSymbol && eventSymbol.IsEventField() == true )
                 .Cast<IEventSymbol>()
                 .ToArray();
 
@@ -186,7 +186,7 @@ namespace Metalama.Framework.Engine.Linking
             var inliningSpecifications = await inliningAlgorithm.RunAsync( cancellationToken );
 
             var overriddenHybridAutoProperties = input.InjectionRegistry.GetOverriddenMembers()
-                .Where( s => s is IPropertySymbol propertySymbol && propertySymbol.IsAutoProperty() == true && propertySymbol.HasBody() == true )
+                .Where( s => s.Kind == SymbolKind.Property && s is IPropertySymbol propertySymbol && propertySymbol.IsAutoProperty() == true && propertySymbol.HasBody() == true )
                 .Cast<IPropertySymbol>()
                 .ToArray();
 
@@ -291,9 +291,9 @@ namespace Metalama.Framework.Engine.Linking
 
                         var overrideEventSymbol = injectionRegistry.GetSymbolForInjectedMember( overrideMember ).AssertNotNull();
 
-                        var overrideName = overrideMember.Syntax switch
+                        var overrideName = overrideMember.Syntax.Kind() switch
                         {
-                            EventDeclarationSyntax eventDeclaration => eventDeclaration.Identifier.ValueText,
+                            SyntaxKind.EventDeclaration when overrideMember.Syntax is EventDeclarationSyntax eventDeclaration => eventDeclaration.Identifier.ValueText,
                             _ => throw new NotSupportedException( $"Unsupported syntax for event override: {overrideMember.Syntax}." )
                         };
 
@@ -306,9 +306,9 @@ namespace Metalama.Framework.Engine.Linking
                         var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
 
                         var raiseMethodName =
-                            injectedMember.Syntax switch
+                            injectedMember.Syntax.Kind() switch
                             {
-                                MethodDeclarationSyntax methodDeclaration => methodDeclaration.Identifier.ValueText,
+                                SyntaxKind.MethodDeclaration when injectedMember.Syntax is MethodDeclarationSyntax methodDeclaration => methodDeclaration.Identifier.ValueText,
                                 _ => throw new NotSupportedException( $"Unsupported syntax for event raise override: {injectedMember.Syntax}." )
                             };
 
@@ -770,10 +770,12 @@ namespace Metalama.Framework.Engine.Linking
 
             foreach ( var nonInlinedSemantic in nonInlinedSemantics )
             {
-                if ( nonInlinedSemantic.Symbol is IPropertySymbol { Parameters.Length: > 0 } or IMethodSymbol
-                    {
-                        MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor
-                    } )
+                if ( nonInlinedSemantic.Symbol.Kind is SymbolKind.Property or SymbolKind.Method
+                     && ((nonInlinedSemantic.Symbol.Kind == SymbolKind.Property && nonInlinedSemantic.Symbol is IPropertySymbol { Parameters.Length: > 0 })
+                         || (nonInlinedSemantic.Symbol.Kind == SymbolKind.Method && nonInlinedSemantic.Symbol is IMethodSymbol
+                         {
+                             MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor
+                         })) )
                 {
                     // We only handle indexer symbol. Accessors are also not inlineable, but we don't want three messages.
                     ISymbol overrideTarget;
@@ -836,14 +838,14 @@ namespace Metalama.Framework.Engine.Linking
                          Symbol: { IsStatic: false, ContainingType: { TypeKind: TypeKind.Struct, IsReadOnly: true } }
                      } )
                 {
-                    switch ( semantic.Symbol )
+                    switch ( semantic.Symbol.Kind )
                     {
-                        case IPropertySymbol property when property.IsAutoProperty() == true && property.HasInitializer() != true:
+                        case SymbolKind.Property when semantic.Symbol is IPropertySymbol property && property.IsAutoProperty() == true && property.HasInitializer() != true:
                             forcefullyInitializedSymbols.Add( property );
 
                             break;
 
-                        case IEventSymbol @event when @event.IsEventField() == true && @event.HasInitializer() != true:
+                        case SymbolKind.Event when semantic.Symbol is IEventSymbol @event && @event.IsEventField() == true && @event.HasInitializer() != true:
                             forcefullyInitializedSymbols.Add( @event );
 
                             break;
@@ -909,7 +911,7 @@ namespace Metalama.Framework.Engine.Linking
 
             foreach ( var reference in allGetOnlyAutoPropertyReferences )
             {
-                if ( reference.ContainingSemantic.Symbol is { MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor } )
+                if ( reference.ContainingSemantic.Symbol.Kind == SymbolKind.Method && reference.ContainingSemantic.Symbol is IMethodSymbol { MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor } )
                 {
                     list.Add( reference );
                 }
@@ -984,9 +986,9 @@ namespace Metalama.Framework.Engine.Linking
                     var declaration = property.GetPrimaryDeclarationSyntax();
 
                     var (get, set) =
-                        declaration switch
+                        declaration?.Kind() switch
                         {
-                            PropertyDeclarationSyntax
+                            SyntaxKind.PropertyDeclaration when declaration is PropertyDeclarationSyntax
                                 {
                                     AccessorList.Accessors:
                                     [
@@ -995,7 +997,7 @@ namespace Metalama.Framework.Engine.Linking
                                     ]
                                 }
                                 => (getAccessor, setAccessor),
-                            PropertyDeclarationSyntax
+                            SyntaxKind.PropertyDeclaration when declaration is PropertyDeclarationSyntax
                                 {
                                     AccessorList.Accessors:
                                     [
@@ -1004,7 +1006,7 @@ namespace Metalama.Framework.Engine.Linking
                                     ]
                                 }
                                 => (getAccessor, setAccessor),
-                            PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
+                            SyntaxKind.PropertyDeclaration when declaration is PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
                                 => (getAccessor, null),
                             _ => throw new InvalidOperationException( "Auto property expected." )
                         };
@@ -1070,13 +1072,13 @@ namespace Metalama.Framework.Engine.Linking
                             x.GetMembers()
                                 .Select(
                                     member =>
-                                        member switch
+                                        member.Kind switch
                                         {
-                                            IMethodSymbol method => method,
-                                            IPropertySymbol => null,
-                                            IEventSymbol => null,
-                                            IFieldSymbol => null,
-                                            INamedTypeSymbol => null,
+                                            SymbolKind.Method when member is IMethodSymbol method => method,
+                                            SymbolKind.Property => null,
+                                            SymbolKind.Event => null,
+                                            SymbolKind.Field => null,
+                                            SymbolKind.NamedType => null,
                                             _ => throw new AssertionFailedException( $"Symbol not supported: {member}." )
                                         } )
                                 .OfType<IMethodSymbol>() )
@@ -1087,13 +1089,16 @@ namespace Metalama.Framework.Engine.Linking
 
             foreach ( var reference in allContainedReferences )
             {
-                if ( reference.TargetSemantic.Symbol is not IMethodSymbol methodSymbol
+                // The Kind check is already done above, so we can safely cast if Kind == Method
+                if ( reference.TargetSemantic.Symbol.Kind != SymbolKind.Method
                      || reference.TargetSemantic.Kind != IntermediateSymbolSemanticKind.Default
                      || injectionRegistry.IsOverride( reference.TargetSemantic.Symbol ) )
                 {
                     // References to non-methods or non-source semantics are skipped.
                     continue;
                 }
+
+                var methodSymbol = (IMethodSymbol) reference.TargetSemantic.Symbol;
 
                 if ( !injectionRegistry.IsOverrideTarget( reference.ContainingSemantic.Symbol ) )
                 {
@@ -1108,9 +1113,9 @@ namespace Metalama.Framework.Engine.Linking
                     continue;
                 }
 
-                switch ( reference.ReferencingNode )
+                switch ( reference.ReferencingNode.Kind() )
                 {
-                    case InvocationExpressionSyntax invocationExpression:
+                    case SyntaxKind.InvocationExpression when reference.ReferencingNode is InvocationExpressionSyntax invocationExpression:
                         ProcessReference( reference, invocationExpression );
 
                         break;

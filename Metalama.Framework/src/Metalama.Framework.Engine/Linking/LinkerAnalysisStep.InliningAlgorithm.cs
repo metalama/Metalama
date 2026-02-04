@@ -6,7 +6,7 @@ using Metalama.Framework.Engine.Linking.Inlining;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,7 +51,7 @@ internal sealed partial class LinkerAnalysisStep
 
             void ProcessSemantic( IntermediateSymbolSemantic semantic )
             {
-                if ( semantic.Symbol is not IMethodSymbol )
+                if ( semantic.Symbol.Kind != SymbolKind.Method || semantic.Symbol is not IMethodSymbol )
                 {
                     return;
                 }
@@ -75,9 +75,9 @@ internal sealed partial class LinkerAnalysisStep
             void VisitSemantic( IntermediateSymbolSemantic semantic, InliningAnalysisContext context )
             {
                 // Follow edges between method groups and accessors.
-                switch ( semantic.Symbol )
+                switch ( semantic.Symbol.Kind )
                 {
-                    case IMethodSymbol method:
+                    case SymbolKind.Method when semantic.Symbol is IMethodSymbol method:
                         VisitSemanticBody(
                             method.ToSemantic( semantic.Kind ),
                             method.ToSemantic( semantic.Kind ),
@@ -85,7 +85,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IPropertySymbol property:
+                    case SymbolKind.Property when semantic.Symbol is IPropertySymbol property:
                         Invariant.Assert( false ); // temp.
 
                         if ( property.GetMethod != null! )
@@ -106,7 +106,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IEventSymbol @event:
+                    case SymbolKind.Event when semantic.Symbol is IEventSymbol @event:
                         Invariant.Assert( false ); // temp.
 
                         VisitSemanticBody(
@@ -146,7 +146,7 @@ internal sealed partial class LinkerAnalysisStep
                         var targetSemantic = aspectReference.ResolvedSemanticBody;
                         var info = inliner.GetInliningAnalysisInfo( aspectReference );
 
-                        if ( context.UsingSimpleInlining && (info.ReplacedRootNode is ReturnStatementSyntax or EqualsValueClauseSyntax
+                        if ( context.UsingSimpleInlining && (info.ReplacedRootNode.Kind() is SyntaxKind.ReturnStatement or SyntaxKind.EqualsValueClause
                                                              || currentSemantic.Kind == IntermediateSymbolSemanticKind.Final) )
                         {
                             // Possible cases:
@@ -171,7 +171,7 @@ internal sealed partial class LinkerAnalysisStep
                             VisitSemanticBody( destinationSemantic, targetSemantic, context.Recurse() );
                         }
                         else if ( !SymbolEqualityComparer.Default.Equals( currentSemantic.Symbol, aspectReference.ContainingBody )
-                                  && info.ReplacedRootNode is ReturnStatementSyntax or EqualsValueClauseSyntax )
+                                  && info.ReplacedRootNode.Kind() is SyntaxKind.ReturnStatement or SyntaxKind.EqualsValueClause )
                         {
                             // If inlining into a local function, revert to simple inlining.
                             inliningSpecifications.Enqueue(

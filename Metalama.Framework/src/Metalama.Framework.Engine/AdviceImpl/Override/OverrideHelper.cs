@@ -46,11 +46,11 @@ internal static class OverrideHelper
             Invariant.Assert( mutableCompilation != null, "mutableCompilation is required when template introduces a backing field" );
 
             // Compute a unique backing field name using the mutable compilation for collision checking.
-            var property = targetDeclaration switch
+            var property = targetDeclaration.DeclarationKind switch
             {
-                IField { OverridingProperty: { } overridingProperty } => overridingProperty,
-                IField => null, // Will be computed later after promotion
-                IProperty p => p,
+                DeclarationKind.Field when targetDeclaration is IField { OverridingProperty: { } overridingProperty } => overridingProperty,
+                DeclarationKind.Field => null, // Will be computed later after promotion
+                DeclarationKind.Property when targetDeclaration is IProperty p => p,
                 _ => null
             };
 
@@ -60,9 +60,9 @@ internal static class OverrideHelper
             }
         }
 
-        switch ( targetDeclaration )
+        switch ( targetDeclaration.DeclarationKind )
         {
-            case IField { OverridingProperty: { } overridingProperty }:
+            case DeclarationKind.Field when targetDeclaration is IField { OverridingProperty: { } overridingProperty }:
                 return OverrideProperty(
                     serviceProvider,
                     aspectLayerInstance,
@@ -72,7 +72,7 @@ internal static class OverrideHelper
                     addTransformation,
                     mutableCompilation );
 
-            case IField field:
+            case DeclarationKind.Field when targetDeclaration is IField field:
                 {
                     var transformation = PromoteFieldTransformation.Create( serviceProvider, field, aspectLayerInstance );
 
@@ -108,7 +108,7 @@ internal static class OverrideHelper
                     return transformation.OverridingProperty;
                 }
 
-            case IProperty property:
+            case DeclarationKind.Property when targetDeclaration is IProperty property:
                 {
                     // Introduce the backing field if needed.
                     if ( introducesBackingField && backingFieldName != null )
