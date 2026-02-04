@@ -274,11 +274,24 @@ public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
     }
 
     /// <summary>
-    /// Hashes a buffer using <see cref="HashingAlgorithm"/>.
+    /// Gets the maximum length of the hash string for the specified algorithm.
     /// </summary>
+    /// <param name="algorithm">The hashing algorithm.</param>
+    /// <returns>The maximum hash string length (XxHash64 = 11, XxHash128 = 22).</returns>
+    public static int GetHashLength( CacheKeyHashingAlgorithm algorithm )
+        => algorithm switch
+        {
+            CacheKeyHashingAlgorithm.XxHash64 => 11,
+            CacheKeyHashingAlgorithm.XxHash128 => 22,
+            _ => 0
+        };
+
+    /// <summary>
+    /// Hashes a buffer using <see cref="HashingAlgorithm"/> and appends the result to a <see cref="StringBuilder"/>.
+    /// </summary>
+    /// <param name="stringBuilder">The <see cref="StringBuilder"/> to append the hash to.</param>
     /// <param name="buffer">The buffer to hash.</param>
-    /// <returns>The hashed value as a base64 string.</returns>
-    protected virtual string HashBuffer( ReadOnlySpan<byte> buffer )
+    protected virtual void AppendBufferHash( StringBuilder stringBuilder, ReadOnlySpan<byte> buffer )
     {
         switch ( this.HashingAlgorithm )
         {
@@ -286,21 +299,38 @@ public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
                 {
                     var hash = new byte[8];
                     XxHash64.Hash( buffer, hash );
+                    AppendBase64( stringBuilder, hash );
 
-                    return Convert.ToBase64String( hash ).TrimEnd( '=' );
+                    break;
                 }
 
             case CacheKeyHashingAlgorithm.XxHash128:
                 {
                     var hash = new byte[16];
                     XxHash128.Hash( buffer, hash );
+                    AppendBase64( stringBuilder, hash );
 
-                    return Convert.ToBase64String( hash ).TrimEnd( '=' );
+                    break;
                 }
 
             default:
                 throw new InvalidOperationException( $"Unsupported hashing algorithm: {this.HashingAlgorithm}" );
         }
+    }
+
+    private static void AppendBase64( StringBuilder stringBuilder, byte[] bytes )
+    {
+        var base64 = Convert.ToBase64String( bytes );
+
+        // Append without trailing '=' padding
+        var length = base64.Length;
+
+        while ( length > 0 && base64[length - 1] == '=' )
+        {
+            length--;
+        }
+
+        stringBuilder.Append( base64, 0, length );
     }
 
     /// <summary>
@@ -315,7 +345,7 @@ public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
     {
         if ( this.HashingAlgorithm != CacheKeyHashingAlgorithm.None && stringBuilder.Length > threshold )
         {
-            var hash = this.HashBuffer( new ReadOnlySpan<byte>( (byte*) stringBuilder.Buffer, stringBuilder.Length * 2 ) );
+            var buffer = new ReadOnlySpan<byte>( (byte*) stringBuilder.Buffer, stringBuilder.Length * 2 );
 
             // Get the string to find the opening parenthesis.
             var keyString = stringBuilder.ToString()!;
@@ -323,7 +353,7 @@ public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
 
             if ( useMethodNameAsPrefix && indexOfParenthesis > 0 )
             {
-                var hashedString = new StringBuilder( indexOfParenthesis + hash.Length );
+                var hashedString = new StringBuilder( indexOfParenthesis + 1 + GetHashLength( this.HashingAlgorithm ) );
 
                 var genericDepthLevel = 0;
 
@@ -354,7 +384,7 @@ public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
                 }
 
                 hashedString.Append( '~' );
-                hashedString.Append( hash );
+                this.AppendBufferHash( hashedString, buffer );
 
                 return hashedString.ToString();
             }
@@ -362,7 +392,10 @@ public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
             {
                 // For custom dependencies, we cannot automatically find a meaningful prefix because the string is freeform.
                 // So we just return the hash without prefix.
-                return hash;
+                var hashedString = new StringBuilder( GetHashLength( this.HashingAlgorithm ) );
+                this.AppendBufferHash( hashedString, buffer );
+
+                return hashedString.ToString();
             }
         }
         else

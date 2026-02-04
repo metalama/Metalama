@@ -34,17 +34,6 @@ public sealed class CacheCleanupOptions
     public bool Dry { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the cleanup operation should process items sequentially. By default,
-    /// it processes them concurrently.
-    /// </summary>
-    [Obsolete( "Use MaxConcurrency." )]
-    public bool Sequential
-    {
-        get => this.MaxConcurrency == 1;
-        set => this.MaxConcurrency = value ? 1 : int.MaxValue;
-    }
-
-    /// <summary>
     /// Gets or sets the maximum number of keys being analyzed and cleaned up concurrently. The default value is 20.
     /// </summary>
     public int MaxConcurrency { get; set; } = 20;

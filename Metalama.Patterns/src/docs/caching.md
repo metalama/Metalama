@@ -54,6 +54,15 @@ Each enhancer can intercept operations before delegating to the underlying backe
 | `NullCachingBackend` | No-op backend for disabling caching |
 | `UninitializedCachingBackend` | Placeholder for uninitialized state |
 
+### Premium Backends
+
+Additional backends are available in the `Metalama.Premium` repository:
+
+| Backend | Description |
+|---------|-------------|
+| `RedisCachingBackend` | Redis-based distributed caching with dependency support |
+| `AzureCacheSynchronizer` | Cache synchronization via Azure Service Bus |
+
 ## Key Enhancers
 
 ### `LayeredCachingBackendEnhancer`
