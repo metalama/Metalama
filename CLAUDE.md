@@ -89,3 +89,8 @@ For creating extension packages (like HtmlWriter or Validation), see `Metalama.F
 - Service registration via `IProjectServiceFactory` and `PipelineExtension`
 - Test framework plugins (`MetalamaTestPlugIn`)
 - Roslyn-version-specific builds
+
+## Patterns Documentation
+
+Implementation documentation for patterns built on Metalama:
+- **Caching**: See `Metalama.Patterns/src/docs/caching.md` for backend architecture, enhancers, background task scheduling, serialization, and synchronization

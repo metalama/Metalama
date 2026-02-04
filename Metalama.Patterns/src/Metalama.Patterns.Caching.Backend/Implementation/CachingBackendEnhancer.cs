@@ -28,27 +28,36 @@ public abstract class CachingBackendEnhancer : CachingBackend
     {
         this.UnderlyingBackend = underlyingBackend;
 
-        if ( underlyingBackend.SupportedFeatures.Events )
-        {
-            this.UnderlyingBackend.ItemRemoved += this.OnBackendItemRemoved;
-
-            if ( underlyingBackend.SupportedFeatures.Dependencies )
-            {
-                this.UnderlyingBackend.DependencyInvalidated += this.OnBackendDependencyInvalidated;
-            }
-        }
+        // Note: Event subscription is deferred to initialization time because the underlying backend's
+        // SupportedFeatures.Events may not be correctly set until after initialization (e.g., RedisCachingBackend
+        // creates its notification queue during initialization).
     }
 
     protected override void InitializeCore()
     {
         base.InitializeCore();
         this.UnderlyingBackend.Initialize();
+        this.SubscribeToUnderlyingBackendEvents();
     }
 
     protected override async Task InitializeCoreAsync( CancellationToken cancellationToken = default )
     {
         await base.InitializeCoreAsync( cancellationToken );
         await this.UnderlyingBackend.InitializeAsync( cancellationToken );
+        this.SubscribeToUnderlyingBackendEvents();
+    }
+
+    private void SubscribeToUnderlyingBackendEvents()
+    {
+        if ( this.UnderlyingBackend.SupportedFeatures.Events )
+        {
+            this.UnderlyingBackend.ItemRemoved += this.OnBackendItemRemoved;
+
+            if ( this.UnderlyingBackend.SupportedFeatures.Dependencies )
+            {
+                this.UnderlyingBackend.DependencyInvalidated += this.OnBackendDependencyInvalidated;
+            }
+        }
     }
 
     /// <summary>
