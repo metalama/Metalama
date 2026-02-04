@@ -6,6 +6,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
@@ -49,9 +50,7 @@ internal static class ExtensionImplementationLookup
             isStatic: true );
 
         // Verify it's an implicit declaration (introduced by us).
-        if ( matchingMethod is IntroducedMethod introducedMethod &&
-             introducedMethod.BuilderData is MethodBuilderData methodData &&
-             methodData.IsImplicitlyDeclared )
+        if ( matchingMethod is IntroducedMethod { BuilderData: MethodBuilderData { IsImplicitlyDeclared: true } } )
         {
             return matchingMethod;
         }
@@ -60,9 +59,7 @@ internal static class ExtensionImplementationLookup
         // This handles the case where SignatureMatcher returns a non-implicit method.
         foreach ( var method in parentType.Methods.OfName( implicitMethodName ) )
         {
-            if ( method is IntroducedMethod introduced &&
-                 introduced.BuilderData is MethodBuilderData data &&
-                 data.IsImplicitlyDeclared &&
+            if ( method is IntroducedMethod { BuilderData: MethodBuilderData { IsImplicitlyDeclared: true } } &&
                  method.Parameters.Count == expectedParameterCount &&
                  ParametersMatch( method.Parameters, sourceParameters, receiverType, receiverRefKind, isSourceMemberStatic, comparers ) )
             {
@@ -95,7 +92,7 @@ internal static class ExtensionImplementationLookup
         IType receiverType,
         RefKind receiverRefKind,
         bool isSourceMemberStatic,
-        Code.Comparers.ICompilationComparers comparers )
+        ICompilationComparers comparers )
     {
         var offset = isSourceMemberStatic ? 0 : 1;
 

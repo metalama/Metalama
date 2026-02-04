@@ -47,8 +47,8 @@ public partial class DerivedTypeIndex
 
         public bool Equals( NamedTypeRef other )
         {
-            if ( this.Value is ISymbol { Kind: SymbolKind.NamedType } && this.Value is INamedTypeSymbol thisNamedTypeSymbol
-                 && other.Value is ISymbol { Kind: SymbolKind.NamedType } && other.Value is INamedTypeSymbol otherNamedTypeSymbol )
+            if ( this.Value is ISymbol { Kind: SymbolKind.NamedType } and INamedTypeSymbol thisNamedTypeSymbol
+                 && other.Value is ISymbol { Kind: SymbolKind.NamedType } and INamedTypeSymbol otherNamedTypeSymbol )
             {
                 return thisNamedTypeSymbol.Equals( otherNamedTypeSymbol );
             }

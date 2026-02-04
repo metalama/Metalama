@@ -60,7 +60,7 @@ internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpres
         }
 #pragma warning restore RS1034
 
-        if ( expressionKind.IsLiteralExpression() )
+        if ( expressionKind.IsLiteralExpression )
         {
             var literal = (LiteralExpressionSyntax) expression;
             var value = literal.Token.Value;

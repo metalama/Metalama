@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
@@ -46,8 +47,7 @@ internal sealed class ThisInstanceUserReceiver : InstanceUserReceiver
                 return TryCreate( m, aspectReferenceSpecification, throwOnError, out receiver );
 
             // Instance member.
-            case DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Indexer or DeclarationKind.Constructor
-                when currentDeclaration is IMember { IsStatic: false, DeclaringType: { } type }:
+            case { IsMember: true } when currentDeclaration is IMember { IsStatic: false, DeclaringType: { } type }:
                 receiver = new ThisInstanceUserReceiver( type, aspectReferenceSpecification );
 
                 return true;

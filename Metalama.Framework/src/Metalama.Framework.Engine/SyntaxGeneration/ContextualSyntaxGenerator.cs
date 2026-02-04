@@ -97,7 +97,8 @@ public sealed partial class ContextualSyntaxGenerator
 
         SafeSyntaxRewriter rewriter = type.Kind switch
         {
-            SymbolKind.NamedType when type is INamedTypeSymbol { IsGenericType: true } genericType && genericType.IsGenericTypeDefinition() => new RemoveTypeArgumentsRewriter(),
+            SymbolKind.NamedType when type is INamedTypeSymbol { IsGenericType: true } genericType && genericType.IsGenericTypeDefinition() =>
+                new RemoveTypeArgumentsRewriter(),
             SymbolKind.NamedType when type is INamedTypeSymbol { IsGenericType: true } => new RemoveReferenceNullableAnnotationsRewriterForSymbol( type ),
             _ => dynamicToVarRewriter
         };
@@ -128,7 +129,7 @@ public sealed partial class ContextualSyntaxGenerator
         var typeSyntax = this.TypeSyntax( type );
 
         if ( type.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
-            && type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } )
+             && type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } )
         {
             // In generic definitions, we must remove type arguments.
             typeSyntax = (TypeSyntax) new RemoveTypeArgumentsRewriter().Visit( typeSyntax ).AssertNotNull();
@@ -210,8 +211,6 @@ public sealed partial class ContextualSyntaxGenerator
     {
         TypeSyntax expression;
 
-      
-
         switch ( symbol.Kind )
         {
             case SymbolKind.Namespace when symbol is INamespaceSymbol namespaceSymbol:
@@ -220,8 +219,8 @@ public sealed partial class ContextualSyntaxGenerator
                 break;
 
             default:
-                return symbol.Kind.IsType() 
-                    ? this.TypeSyntax( (ITypeSymbol) symbol ) 
+                return symbol.Kind.IsType
+                    ? this.TypeSyntax( (ITypeSymbol) symbol )
                     : throw new AssertionFailedException( $"Unexpected symbol kind: {symbol.Kind}." );
         }
 
@@ -297,15 +296,13 @@ public sealed partial class ContextualSyntaxGenerator
                 case TypeKindConstraint.Unmanaged:
                     constraints ??= [];
 
-                    constraints.Add(
-                        TypeConstraint(
-                            SyntaxFactoryEx.WellKnownIdentifierName( "unmanaged" ) ) );
+                    constraints.Add( TypeConstraint( WellKnownIdentifierName( "unmanaged" ) ) );
 
                     break;
 
                 case TypeKindConstraint.NotNull:
                     constraints ??= [];
-                    constraints.Add( TypeConstraint( SyntaxFactoryEx.WellKnownIdentifierName( "notnull" ) ) );
+                    constraints.Add( TypeConstraint( WellKnownIdentifierName( "notnull" ) ) );
 
                     break;
 
@@ -351,7 +348,7 @@ public sealed partial class ContextualSyntaxGenerator
                 clauses.Add(
                     TypeParameterConstraintClause(
                         TokenWithTrailingSpace( SyntaxKind.WhereKeyword ),
-                        SyntaxFactoryEx.SafeIdentifierName( genericParameter.Name ),
+                        SafeIdentifierName( genericParameter.Name ),
                         Token( SyntaxKind.ColonToken ),
                         SeparatedList( constraints ) ) );
             }
@@ -416,8 +413,7 @@ public sealed partial class ContextualSyntaxGenerator
                 .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
     }
 
-    private ExpressionSyntax FieldReference( IFullRef<IField> fieldRef ) 
-        => this.FieldReference( fieldRef.Definition );
+    private ExpressionSyntax FieldReference( IFullRef<IField> fieldRef ) => this.FieldReference( fieldRef.Definition );
 
     internal ExpressionSyntax TypedConstant( in TypedConstant typedConstant )
     {
@@ -427,7 +423,7 @@ public sealed partial class ContextualSyntaxGenerator
 
             if ( typedConstant.HasNullForgivingOperator )
             {
-                expression = SyntaxFactory.PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
+                expression = PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
             }
 
             return expression;
@@ -464,7 +460,7 @@ public sealed partial class ContextualSyntaxGenerator
 
             if ( typedConstant.HasNullForgivingOperator )
             {
-                expression = SyntaxFactory.PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
+                expression = PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
             }
 
             return expression;
@@ -506,7 +502,8 @@ public sealed partial class ContextualSyntaxGenerator
                 case SyntaxKind.InterpolatedStringText when content is InterpolatedStringTextSyntax text:
                     var previousIndex = contents.Count - 1;
 
-                    if ( contents.Count > 0 && contents[previousIndex].Kind() == SyntaxKind.InterpolatedStringText && contents[previousIndex] is InterpolatedStringTextSyntax previousText )
+                    if ( contents.Count > 0 && contents[previousIndex].Kind() == SyntaxKind.InterpolatedStringText
+                                            && contents[previousIndex] is InterpolatedStringTextSyntax previousText )
                     {
                         // If we have two adjacent text tokens, we need to merge them, otherwise reformatting will add a white space.
 
@@ -941,7 +938,7 @@ public sealed partial class ContextualSyntaxGenerator
             this.AttributesForDeclaration( parameter.ToFullRef(), compilation ),
             parameter.GetSyntaxModifierList(),
             this.TypeSyntax( parameter.Type ).WithOptionalTrailingTrivia( ElasticSpace, this.Options ),
-            SyntaxFactoryEx.SafeIdentifier( parameter.Name ),
+            SafeIdentifier( parameter.Name ),
             equalsValueClause );
     }
 
@@ -962,7 +959,7 @@ public sealed partial class ContextualSyntaxGenerator
 
             if ( parameter.HasNotNullConstraint )
             {
-                constraints = constraints.Add( TypeConstraint( SyntaxFactoryEx.WellKnownIdentifierName( "notnull" ) ) );
+                constraints = constraints.Add( TypeConstraint( WellKnownIdentifierName( "notnull" ) ) );
             }
             else if ( parameter.HasReferenceTypeConstraint )
             {
@@ -976,9 +973,7 @@ public sealed partial class ContextualSyntaxGenerator
             {
                 if ( parameter.HasUnmanagedTypeConstraint )
                 {
-                    constraints = constraints.Add(
-                        TypeConstraint(
-                            SyntaxFactoryEx.WellKnownIdentifierName( "unmanaged" ) ) );
+                    constraints = constraints.Add( TypeConstraint( WellKnownIdentifierName( "unmanaged" ) ) );
                 }
                 else
                 {
@@ -1140,7 +1135,7 @@ public sealed partial class ContextualSyntaxGenerator
             return MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
                 this.TypeSyntax( tupleType.Compilation.Factory.GetSpecialType( Code.SpecialType.ValueTuple ) ),
-                SyntaxFactoryEx.WellKnownIdentifierName( "Create" ) );
+                WellKnownIdentifierName( "Create" ) );
         }
 
         static string? GetRightMostIdentifier( ExpressionSyntax expression )
@@ -1148,7 +1143,8 @@ public sealed partial class ContextualSyntaxGenerator
             {
                 SyntaxKind.IdentifierName when expression is IdentifierNameSyntax identifierName => identifierName.Identifier.Text,
                 SyntaxKind.SimpleMemberAccessExpression when expression is MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
-                SyntaxKind.ConditionalAccessExpression when expression is ConditionalAccessExpressionSyntax conditionalAccess => GetRightMostIdentifier( conditionalAccess.WhenNotNull ),
+                SyntaxKind.ConditionalAccessExpression when expression is ConditionalAccessExpressionSyntax conditionalAccess => GetRightMostIdentifier(
+                    conditionalAccess.WhenNotNull ),
                 _ => null
             };
     }

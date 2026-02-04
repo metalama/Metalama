@@ -53,11 +53,11 @@ namespace Metalama.Framework.Engine.CodeModel
                         this._builder.Add( attributeType, new SyntaxAttributeRef( attributeType, node, realDeclaration, this._compilation.RefFactory, kind ) );
                     }
 
-                    if ( parentDeclaration.IsKind( SyntaxKind.IncompleteMember) )
+                    if ( parentDeclaration.IsKind( SyntaxKind.IncompleteMember ) )
                     {
                         // This happens at design time when we have an invalid syntax.
                     }
-                    else if ( parentDeclaration.Kind().IsBaseFieldDeclaration() && parentDeclaration is BaseFieldDeclarationSyntax field )
+                    else if ( parentDeclaration.SyntaxKind.IsBaseFieldDeclaration && parentDeclaration is BaseFieldDeclarationSyntax field )
                     {
                         // In case of fields and field-like events, add the attribute to all defined fields.
                         foreach ( var variable in field.Declaration.Variables )
@@ -117,7 +117,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
                         case SyntaxKind.MethodKeyword:
                             if ( declaration.Kind() is SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration
-                                && declaration is BasePropertyDeclarationSyntax { AccessorList: { } } property )
+                                 && declaration is BasePropertyDeclarationSyntax { AccessorList: { } } property )
                             {
                                 foreach ( var accessor in property.AccessorList.Accessors )
                                 {

@@ -55,7 +55,7 @@ internal sealed partial class SyntaxRef<T> : FullRef<T>
             this.CompilationContext.SemanticModelProvider.GetSemanticModel( this._syntaxNode.SyntaxTree )
             ?? throw new AssertionFailedException( $"Cannot get a semantic model for '{this._syntaxNode.SyntaxTree.FilePath}'." );
 
-        return (this._syntaxNode.Kind().IsLambdaExpression() && this._syntaxNode is LambdaExpressionSyntax
+        return (this._syntaxNode.SyntaxKind.IsLambdaExpression && this._syntaxNode is LambdaExpressionSyntax
                    ? semanticModel.GetSymbolInfo( this._syntaxNode ).Symbol
                    : semanticModel.GetDeclaredSymbol( this._syntaxNode ))
                ?? throw new AssertionFailedException( $"Cannot get a symbol for {this._syntaxNode.GetType().Name}." );

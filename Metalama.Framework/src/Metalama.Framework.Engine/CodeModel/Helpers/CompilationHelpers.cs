@@ -215,36 +215,34 @@ internal sealed class CompilationHelpers : ICompilationHelpers
 
     private bool IsAccessibleFromOutsideAssemblyCore( IDeclaration declaration, bool honorInternalVisibleToAttributes )
     {
-        if ( declaration.DeclarationKind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Indexer or DeclarationKind.Field
-                or DeclarationKind.Event or DeclarationKind.Constructor or DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
-            && declaration is IMemberOrNamedType memberOrType )
+        if ( declaration.DeclarationKind.IsMemberOrNamedType
+             && declaration is IMemberOrNamedType memberOrType )
         {
-            if ( memberOrType is { Accessibility: Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedInternal } )
+            switch ( memberOrType )
             {
-                if ( memberOrType.DeclaringType != null )
-                {
+                case { Accessibility: Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedInternal }
+                    when memberOrType.DeclaringType != null:
                     return this.IsAccessibleFromOutsideAssemblyCore(
                         memberOrType.DeclaringType,
                         honorInternalVisibleToAttributes );
-                }
-                else
-                {
+
+                case { Accessibility: Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedInternal }:
                     return true;
-                }
-            }
-            else if ( memberOrType is { Accessibility: Accessibility.Internal or Accessibility.PrivateProtected }
-                      && this.HasAnyInternalsVisibleTo( honorInternalVisibleToAttributes ) )
-            {
-                if ( memberOrType.DeclaringType != null )
-                {
-                    return this.IsAccessibleFromOutsideAssemblyCore(
-                        memberOrType.DeclaringType,
-                        honorInternalVisibleToAttributes );
-                }
-                else
-                {
-                    return this.HasAnyInternalsVisibleTo( honorInternalVisibleToAttributes );
-                }
+
+                case { Accessibility: Accessibility.Internal or Accessibility.PrivateProtected }
+                    when this.HasAnyInternalsVisibleTo( honorInternalVisibleToAttributes ):
+                    {
+                        if ( memberOrType.DeclaringType != null )
+                        {
+                            return this.IsAccessibleFromOutsideAssemblyCore(
+                                memberOrType.DeclaringType,
+                                honorInternalVisibleToAttributes );
+                        }
+                        else
+                        {
+                            return this.HasAnyInternalsVisibleTo( honorInternalVisibleToAttributes );
+                        }
+                    }
             }
         }
         else if ( declaration.ContainingDeclaration != null )

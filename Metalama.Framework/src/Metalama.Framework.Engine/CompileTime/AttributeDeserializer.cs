@@ -322,7 +322,7 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
 
                 return false;
 
-            case ISymbol symbol when symbol.Kind.IsType() && value is ITypeSymbol type:
+            case ISymbol { Kind.IsType: true } and ITypeSymbol type:
 
                 var compileTimeTime = this._compileTimeTypeResolver.GetCompileTimeType( type, true );
 

@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Options;
 using System;
@@ -141,7 +142,7 @@ public sealed partial class HierarchicalOptionsManager
 
                     break;
 
-                case DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event or DeclarationKind.Indexer or DeclarationKind.Constructor when declaration is IMember member:
+                case { IsMember: true } when declaration is IMember member:
                     if ( this.Metadata.InheritedByOverridingMembers && member.GetBase()?.Definition is { } baseDeclaration )
                     {
                         baseDeclarationOptions = this.GetOptions( baseDeclaration );
