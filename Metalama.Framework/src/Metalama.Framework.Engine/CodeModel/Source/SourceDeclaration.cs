@@ -48,7 +48,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 : this.Symbol switch
                 {
                     // Error types sometimes do and sometimes don't have a containing assembly. If they don't, we use the current compilation.
-                    IErrorTypeSymbol => this.Compilation,
+                    { Kind: SymbolKind.ErrorType } => this.Compilation,
 
                     _ => throw new AssertionFailedException( $"Unexpected symbol '{this.Symbol}' without a declaring assembly." )
                 };

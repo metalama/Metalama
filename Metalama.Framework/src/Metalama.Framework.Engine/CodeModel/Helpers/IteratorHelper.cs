@@ -59,7 +59,7 @@ internal static partial class IteratorHelper
         var isIterator = method.DeclaringSyntaxReferences.Any(
             r => r.GetSyntax() switch
             {
-                MethodDeclarationSyntax { Body: { } body } => FindYieldVisitor.Instance.VisitBlock( body ),
+                { SyntaxKind: SyntaxKind.MethodDeclaration } and MethodDeclarationSyntax { Body: { } body } => FindYieldVisitor.Instance.VisitBlock( body ),
                 { SyntaxKind.IsAccessorDeclaration: true } and AccessorDeclarationSyntax { Body: { } body } => FindYieldVisitor.Instance.VisitBlock( body ),
                 _ => false
             } );

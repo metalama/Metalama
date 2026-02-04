@@ -451,7 +451,7 @@ public static class DeclarationExtensions
                         return syntax switch
                         {
                             { SyntaxKind.IsBaseMethodDeclaration: true } and (BaseMethodDeclarationSyntax { Body: { } } or BaseMethodDeclarationSyntax { ExpressionBody: { } }) => true,
-                            PropertyDeclarationSyntax { ExpressionBody: { } } => true,
+                            { SyntaxKind: SyntaxKind.PropertyDeclaration } and PropertyDeclarationSyntax { ExpressionBody: { } } => true,
                             { SyntaxKind.IsAccessorDeclaration: true } and (AccessorDeclarationSyntax { Body: { } } or AccessorDeclarationSyntax { ExpressionBody: { } }) => true,
                             _ => false
                         };

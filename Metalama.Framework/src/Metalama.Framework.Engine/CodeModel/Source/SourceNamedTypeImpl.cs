@@ -347,8 +347,8 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
             var modifiers = syntax switch
             {
                 { SyntaxKind.IsTypeDeclaration: true } and TypeDeclarationSyntax type => type.Modifiers,
-                EnumDeclarationSyntax e => e.Modifiers,
-                DelegateDeclarationSyntax d => d.Modifiers,
+                { SyntaxKind: SyntaxKind.EnumDeclaration } and EnumDeclarationSyntax e => e.Modifiers,
+                { SyntaxKind: SyntaxKind.DelegateDeclaration } and DelegateDeclarationSyntax d => d.Modifiers,
                 _ => default
             };
 

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -27,7 +28,7 @@ internal sealed class EmptyPartialAccessorSubstitution : EmptyPartialMemberSubst
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
         => currentNode switch
         {
-            AccessorDeclarationSyntax => this.Substitute( substitutionContext ),
+            { SyntaxKind.IsAccessorDeclaration: true } => this.Substitute( substitutionContext ),
             _ => throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" )
         };
 
