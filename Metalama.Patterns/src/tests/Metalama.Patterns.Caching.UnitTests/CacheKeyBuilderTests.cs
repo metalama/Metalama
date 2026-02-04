@@ -940,7 +940,7 @@ namespace Metalama.Patterns.Caching.Tests
             this.TestOutputHelper.WriteLine( $"Key: {key}" );
 
             Assert.Equal( "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.StaticMethodWithHashing~ao+90DFkieM", key );
-            Assert.DoesNotContain( "this=", key );
+            Assert.DoesNotContain( "this=", key, StringComparison.Ordinal );
         }
 
         #endregion
@@ -963,7 +963,7 @@ namespace Metalama.Patterns.Caching.Tests
 
             // Generic arguments should be stripped from the prefix
             Assert.Equal( "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.GenericMethodWithHashing~NLzohCwEu3U", key );
-            Assert.DoesNotContain( "<string>", key );
+            Assert.DoesNotContain( "<string>", key, StringComparison.Ordinal );
         }
 
         #endregion
@@ -998,7 +998,7 @@ namespace Metalama.Patterns.Caching.Tests
             this.TestOutputHelper.WriteLine( $"Key: {key}" );
 
             Assert.Equal( "+xzXcfxonoE", key );
-            Assert.DoesNotContain( "~", key );
+            Assert.DoesNotContain( "~", key, StringComparison.Ordinal );
         }
 
         [Fact]
@@ -1014,7 +1014,7 @@ namespace Metalama.Patterns.Caching.Tests
             this.TestOutputHelper.WriteLine( $"Key: {key}" );
 
             Assert.Equal( "XvAena8w0848u3Se8hp2mg", key );
-            Assert.DoesNotContain( "~", key );
+            Assert.DoesNotContain( "~", key, StringComparison.Ordinal );
         }
 
         [Fact]
