@@ -285,12 +285,12 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 #if ROSLYN_4_8_0_OR_GREATER
             return
                 constructorSymbol is { MethodKind: MethodKind.Constructor }
-                && declarationSyntax?.Kind().IsTypeDeclaration == true
+                && declarationSyntax?.SyntaxKind.IsTypeDeclaration == true
                 && declarationSyntax is TypeDeclarationSyntax { ParameterList: not null };
 #else
             return
                 constructorSymbol is { MethodKind: MethodKind.Constructor }
-                && declarationSyntax?.Kind().IsRecordDeclaration == true
+                && declarationSyntax?.SyntaxKind.IsRecordDeclaration == true
                 && declarationSyntax is RecordDeclarationSyntax { ParameterList: not null };
 #endif
         }

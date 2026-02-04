@@ -293,16 +293,9 @@ internal sealed partial class LinkerAnalysisStep
                     var referencedSymbol = inliningSpecification.TargetSemantic.Symbol;
                     var root = LinkerSyntaxHandler.GetCanonicalRootNode( referencedSymbol, this._injectionRegistry );
 
-                    switch ( root.Kind() )
+                    switch ( root )
                     {
-                        case SyntaxKind.ArrowExpressionClause:
-                        case SyntaxKind.GetAccessorDeclaration:
-                        case SyntaxKind.SetAccessorDeclaration:
-                        case SyntaxKind.InitAccessorDeclaration:
-                        case SyntaxKind.AddAccessorDeclaration:
-                        case SyntaxKind.RemoveAccessorDeclaration:
-                        case SyntaxKind.MethodDeclaration:
-                        case SyntaxKind.Parameter:
+                        case not StatementSyntax:
                             AddSubstitution(
                                 inliningSpecification.ContextIdentifier,
                                 this.CreateOriginalBodySubstitution(

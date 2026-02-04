@@ -131,6 +131,15 @@ namespace Metalama.Framework.Code
             /// (compilation or assembly reference).
             /// </summary>
             public bool IsAssembly => kind is DeclarationKind.Compilation or DeclarationKind.AssemblyReference;
+
+            /// <summary>
+            /// Gets a value indicating whether the declaration kind represents a named declaration
+            /// (method, property, field, event, parameter, type parameter, named type, or namespace).
+            /// </summary>
+            public bool IsNamedDeclaration
+                => kind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field
+                    or DeclarationKind.Event or DeclarationKind.Parameter or DeclarationKind.TypeParameter
+                    or DeclarationKind.NamedType or DeclarationKind.Namespace;
         }
 
         /// <summary>

@@ -42,7 +42,10 @@ internal sealed partial class LinkerAnalysisStep
 
         public override void VisitLocalFunctionStatement( LocalFunctionStatementSyntax node )
         {
-            var symbol = this._semanticModel.GetDeclaredSymbol( node ).AssertNotNull();
+            // Cast is required for Roslyn 4.8.0 where GetDeclaredSymbol returns ISymbol? instead of IMethodSymbol?
+#pragma warning disable IDE0004 // Remove unnecessary cast
+            var symbol = (IMethodSymbol) this._semanticModel.GetDeclaredSymbol( node ).AssertNotNull();
+#pragma warning restore IDE0004
 
             try
             {

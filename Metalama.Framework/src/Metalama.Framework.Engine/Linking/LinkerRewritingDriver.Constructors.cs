@@ -83,7 +83,7 @@ internal sealed partial class LinkerRewritingDriver
                         default ) );
             }
 
-            if ( constructorDeclaration.Parent?.Kind().IsRecordDeclaration == true
+            if ( constructorDeclaration.Parent?.SyntaxKind.IsRecordDeclaration == true
                  && constructorDeclaration.Parent is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } recordDeclaration )
             {
                 members.Add(
