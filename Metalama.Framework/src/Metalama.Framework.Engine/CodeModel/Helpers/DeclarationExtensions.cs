@@ -15,6 +15,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -57,7 +58,7 @@ public static class DeclarationExtensions
             SymbolKind.Assembly => DeclarationKind.AssemblyReference,
             SymbolKind.Parameter => DeclarationKind.Parameter,
             SymbolKind.Event => DeclarationKind.Event,
-            SymbolKind.ArrayType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.FunctionPointerType or SymbolKind.PointerType =>
+            { IsNonNamedType: true } =>
                 DeclarationKind.Type,
             SymbolKind.NetModule => DeclarationKind.Compilation,
             _ => throw new ArgumentException( $"Unexpected symbol: {symbol.GetType().Name}.", nameof(symbol) )
@@ -447,15 +448,11 @@ public static class DeclarationExtensions
                     {
                         var syntax = m.GetSyntax();
 
-                        return syntax.Kind() switch
+                        return syntax switch
                         {
-                            SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration
-                                or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration
-                                when syntax is BaseMethodDeclarationSyntax { Body: { } } or BaseMethodDeclarationSyntax { ExpressionBody: { } } => true,
-                            SyntaxKind.PropertyDeclaration when syntax is PropertyDeclarationSyntax { ExpressionBody: { } } => true,
-                            SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
-                                or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                                when syntax is AccessorDeclarationSyntax { Body: { } } or AccessorDeclarationSyntax { ExpressionBody: { } } => true,
+                            { SyntaxKind.IsBaseMethodDeclaration: true } and (BaseMethodDeclarationSyntax { Body: { } } or BaseMethodDeclarationSyntax { ExpressionBody: { } }) => true,
+                            PropertyDeclarationSyntax { ExpressionBody: { } } => true,
+                            { SyntaxKind.IsAccessorDeclaration: true } and (AccessorDeclarationSyntax { Body: { } } or AccessorDeclarationSyntax { ExpressionBody: { } }) => true,
                             _ => false
                         };
                     } ),
@@ -581,8 +578,7 @@ public static class DeclarationExtensions
 
     internal static bool TryGetHiddenDeclaration( this IMemberOrNamedType declaration, [NotNullWhen( true )] out IMemberOrNamedType? hiddenDeclaration )
     {
-        if ( declaration.DeclarationKind is DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event
-                 or DeclarationKind.Indexer or DeclarationKind.Constructor
+        if ( declaration.DeclarationKind.IsMember
              && declaration is IMember { IsOverride: true } )
         {
             // Override symbol never hides anything.
@@ -689,9 +685,7 @@ public static class DeclarationExtensions
     /// </summary>
     internal static IDeclaration? GetContainingDeclarationOrNamespace( this IDeclaration declaration )
         => declaration.ContainingDeclaration?.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.AssemblyReference
-           && declaration.ContainingDeclaration is IAssembly
-           && declaration.DeclarationKind == DeclarationKind.NamedType
-           && declaration is INamedType namedType
+           && declaration is { ContainingDeclaration: IAssembly, DeclarationKind: DeclarationKind.NamedType } and INamedType namedType
             ? namedType.ContainingNamespace
             : declaration.ContainingDeclaration;
 

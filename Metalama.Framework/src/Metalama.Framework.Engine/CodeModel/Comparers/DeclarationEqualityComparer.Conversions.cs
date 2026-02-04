@@ -107,7 +107,7 @@ internal partial class DeclarationEqualityComparer
                             return true;
                         }
 
-                        if ( right.TypeKind is TypeKind.Class or TypeKind.Interface or TypeKind.Struct or TypeKind.Enum or TypeKind.Delegate
+                        if ( right.TypeKind.IsNamedType
                              && right is INamedType rightNamedType && this.HasVarianceConversion( (INamedType) left, rightNamedType ) )
                         {
                             return true;
@@ -312,7 +312,7 @@ internal partial class DeclarationEqualityComparer
                 return this.HasBoxingConversion( ((INamedType) left).TypeArguments[0], right );
             }
 
-            if ( left.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Enum or TypeKind.Delegate
+            if ( left.TypeKind.IsNamedType
                  && left is INamedType { IsRef: true } )
             {
                 return false;
@@ -484,7 +484,7 @@ internal partial class DeclarationEqualityComparer
             }
 
             static bool IsValidNullableValueTypeArgument( IType type )
-                => type.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Enum or TypeKind.Delegate
+                => type.TypeKind.IsNamedType
                    && type is INamedType { IsReferenceType: false, IsNullable: false, IsRef: false };
         }
 

@@ -680,8 +680,8 @@ internal static class TemplateBindingHelper
             return true;
         }
         else if ( toMethodAsyncInfo != null
-                  && fromType.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Enum or TypeKind.Delegate && fromType is INamedType fromNamedType
-                  && toType.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Enum or TypeKind.Delegate && toType is INamedType toNamedType )
+                  && fromType.TypeKind.IsNamedType && fromType is INamedType fromNamedType
+                  && toType.TypeKind.IsNamedType && toType is INamedType toNamedType )
         {
             // Special rules for matching async-related return types.
 

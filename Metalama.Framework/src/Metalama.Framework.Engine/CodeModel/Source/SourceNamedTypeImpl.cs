@@ -344,13 +344,11 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
             var syntax = syntaxReference.GetSyntax();
 
-            var modifiers = syntax.Kind() switch
+            var modifiers = syntax switch
             {
-                SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
-                    or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
-                    when syntax is TypeDeclarationSyntax type => type.Modifiers,
-                SyntaxKind.EnumDeclaration when syntax is EnumDeclarationSyntax e => e.Modifiers,
-                SyntaxKind.DelegateDeclaration when syntax is DelegateDeclarationSyntax d => d.Modifiers,
+                { SyntaxKind.IsTypeDeclaration: true } and TypeDeclarationSyntax type => type.Modifiers,
+                EnumDeclarationSyntax e => e.Modifiers,
+                DelegateDeclarationSyntax d => d.Modifiers,
                 _ => default
             };
 
