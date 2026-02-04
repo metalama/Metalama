@@ -17,6 +17,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
@@ -296,10 +297,10 @@ internal sealed class LinkerInjectionRegistry
             var intermediateSyntaxTree = this._transformedSyntaxTreeMap[injectedMember.GetTargetSyntaxTree()];
             var intermediateSyntax = intermediateSyntaxTree.GetRoot().GetCurrentNode( injectedMember.Syntax ).AssertNotNull();
 
-            SyntaxNode symbolSyntax = intermediateSyntax switch
+            SyntaxNode symbolSyntax = intermediateSyntax.Kind() switch
             {
-                EventFieldDeclarationSyntax eventFieldSyntax => eventFieldSyntax.Declaration.Variables.First(),
-                FieldDeclarationSyntax fieldSyntax => fieldSyntax.Declaration.Variables.First(),
+                SyntaxKind.EventFieldDeclaration when intermediateSyntax is EventFieldDeclarationSyntax eventFieldSyntax => eventFieldSyntax.Declaration.Variables.First(),
+                SyntaxKind.FieldDeclaration when intermediateSyntax is FieldDeclarationSyntax fieldSyntax => fieldSyntax.Declaration.Variables.First(),
                 _ => intermediateSyntax
             };
 
@@ -365,9 +366,9 @@ internal sealed class LinkerInjectionRegistry
                 var intermediateSemanticModel =
                     this._intermediateCompilation.CompilationContext.SemanticModelProvider.GetSemanticModel( intermediateSyntaxTree );
 
-                var symbolNode = intermediateNode.AssertNotNull() switch
+                var symbolNode = intermediateNode.AssertNotNull().Kind() switch
                 {
-                    EventFieldDeclarationSyntax eventFieldNode => (SyntaxNode) eventFieldNode.Declaration.Variables.First(),
+                    SyntaxKind.EventFieldDeclaration when intermediateNode is EventFieldDeclarationSyntax eventFieldNode => (SyntaxNode) eventFieldNode.Declaration.Variables.First(),
                     _ => intermediateNode
                 };
 

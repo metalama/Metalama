@@ -7,6 +7,7 @@
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -33,9 +34,9 @@ internal sealed class PropertyBackingFieldReferenceSubstitution : SyntaxNodeSubs
     {
         var targetName = LinkerRewritingDriver.GetBackingFieldName( this._targetProperty );
 
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case FieldExpressionSyntax fieldExpression:
+            case SyntaxKind.FieldExpression when currentNode is FieldExpressionSyntax fieldExpression:
                 // Replacing the direct invocation.
                 return SyntaxFactoryEx.WellKnownIdentifierName(
                     TriviaList( fieldExpression.Token.LeadingTrivia ),

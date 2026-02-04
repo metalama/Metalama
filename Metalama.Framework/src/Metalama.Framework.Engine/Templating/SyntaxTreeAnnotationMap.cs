@@ -177,10 +177,12 @@ namespace Metalama.Framework.Engine.Templating
 
             // We have some ambiguity.
             // We never have ambiguities with anything else than methods, so let's end here if we don't have a method.
-            if ( firstSymbol is not IMethodSymbol firstMethod )
+            if ( firstSymbol.Kind != SymbolKind.Method )
             {
                 return null;
             }
+
+            var firstMethod = (IMethodSymbol) firstSymbol;
 
             // Get all symbols.
             var symbols = new List<IMethodSymbol> { firstMethod };
@@ -261,10 +263,10 @@ namespace Metalama.Framework.Engine.Templating
 
             var invocationSymbol = this.GetInvocableSymbol( argument.Parent.Parent.AssertCast<ExpressionSyntax>() );
 
-            var parameters = invocationSymbol switch
+            var parameters = invocationSymbol?.Kind switch
             {
-                IMethodSymbol methodSymbol => methodSymbol.Parameters,
-                IPropertySymbol propertySymbol => propertySymbol.Parameters,
+                SymbolKind.Method when invocationSymbol is IMethodSymbol methodSymbol => methodSymbol.Parameters,
+                SymbolKind.Property when invocationSymbol is IPropertySymbol propertySymbol => propertySymbol.Parameters,
                 _ => ImmutableArray<IParameterSymbol>.Empty
             };
 
@@ -310,7 +312,7 @@ namespace Metalama.Framework.Engine.Templating
                 // The lookup is not reliable, Roslyn does not return the proper nullability.
                 var collectionType = this.GetExpressionType( ((ElementAccessExpressionSyntax) node).Expression );
 
-                if ( collectionType is IArrayTypeSymbol arrayType )
+                if ( collectionType?.Kind == SymbolKind.ArrayType && collectionType is IArrayTypeSymbol arrayType )
                 {
                     return arrayType.ElementType;
                 }

@@ -57,7 +57,7 @@ public sealed partial class CodeFormatter
 
                             switch ( node.Parent.Parent?.Parent )
                             {
-                                case InvocationExpressionSyntax invocation:
+                                case var parent when parent.IsKind( SyntaxKind.InvocationExpression ) && parent is InvocationExpressionSyntax invocation:
                                     if ( this._semanticModel != null )
                                     {
                                         var symbol = this._semanticModel.GetSymbolInfo( invocation.Expression ).Symbol;
@@ -76,7 +76,7 @@ public sealed partial class CodeFormatter
 
                                     break;
 
-                                case ObjectCreationExpressionSyntax { ArgumentList: not null } objectCreation:
+                                case var parent when parent.IsKind( SyntaxKind.ObjectCreationExpression ) && parent is ObjectCreationExpressionSyntax { ArgumentList: not null } objectCreation:
                                     if ( this._semanticModel != null )
                                     {
                                         var symbol = this._semanticModel.GetSymbolInfo( objectCreation ).Symbol;
@@ -106,7 +106,7 @@ public sealed partial class CodeFormatter
 
                             break;
 
-                        case SyntaxKind.EqualsValueClause when anonymousFunctionExpression is ParenthesizedLambdaExpressionSyntax
+                        case SyntaxKind.EqualsValueClause when anonymousFunctionExpression.IsKind( SyntaxKind.ParenthesizedLambdaExpression ) && anonymousFunctionExpression is ParenthesizedLambdaExpressionSyntax
                         {
                             ParameterList.Parameters.Count: 0
                         }:
@@ -139,7 +139,7 @@ public sealed partial class CodeFormatter
 
         public override SyntaxNode? VisitCastExpression( CastExpressionSyntax node )
         {
-            if ( node.Type.Kind() == SyntaxKind.TupleType && node.HasAnnotation( Simplifier.Annotation ) )
+            if ( node.Type.IsKind( SyntaxKind.TupleType ) && node.HasAnnotation( Simplifier.Annotation ) )
             {
                 var tupleType = (TupleTypeSyntax) node.Type;
 

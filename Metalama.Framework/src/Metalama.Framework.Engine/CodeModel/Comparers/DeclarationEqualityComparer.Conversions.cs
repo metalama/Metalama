@@ -107,7 +107,8 @@ internal partial class DeclarationEqualityComparer
                             return true;
                         }
 
-                        if ( right is INamedType rightNamedType && this.HasVarianceConversion( (INamedType) left, rightNamedType ) )
+                        if ( right.TypeKind.IsNamedType
+                             && right is INamedType rightNamedType && this.HasVarianceConversion( (INamedType) left, rightNamedType ) )
                         {
                             return true;
                         }
@@ -285,7 +286,7 @@ internal partial class DeclarationEqualityComparer
 
         private bool HasBoxingConversion( IType left, IType right )
         {
-            if ( left is ITypeParameter leftTypeParameter && left.IsReferenceType == true )
+            if ( left.TypeKind == TypeKind.TypeParameter && left is ITypeParameter leftTypeParameter && left.IsReferenceType == true )
             {
                 if ( right.SpecialType == SpecialType.Object || right is IDynamicType )
                 {
@@ -311,7 +312,8 @@ internal partial class DeclarationEqualityComparer
                 return this.HasBoxingConversion( ((INamedType) left).TypeArguments[0], right );
             }
 
-            if ( left is INamedType { IsRef: true } )
+            if ( left.TypeKind.IsNamedType
+                 && left is INamedType { IsRef: true } )
             {
                 return false;
             }
@@ -362,7 +364,7 @@ internal partial class DeclarationEqualityComparer
         {
             type = type.ToNonNullable();
 
-            if ( type is ITypeParameter typeParameter )
+            if ( type.TypeKind == TypeKind.TypeParameter && type is ITypeParameter typeParameter )
             {
                 foreach ( var constraint in typeParameter.TypeConstraints )
                 {
@@ -481,7 +483,9 @@ internal partial class DeclarationEqualityComparer
                 }
             }
 
-            static bool IsValidNullableValueTypeArgument( IType type ) => type is INamedType { IsReferenceType: false, IsNullable: false, IsRef: false };
+            static bool IsValidNullableValueTypeArgument( IType type )
+                => type.TypeKind.IsNamedType
+                   && type is INamedType { IsReferenceType: false, IsNullable: false, IsRef: false };
         }
 
         private IType? MostSpecificSourceType( IType type, ImmutableArray<UserDefinedImplicitConversion> conversions )

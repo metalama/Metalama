@@ -25,7 +25,7 @@ internal static partial class DocumentationIdHelper
 
         private void BuildDottedName( INamedType namedType )
         {
-            var success = namedType.ContainingDeclaration is INamedType containingType
+            var success = namedType.ContainingDeclaration?.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock && namedType.ContainingDeclaration is INamedType containingType
                 ? this.Visit( containingType )
                 : this.Visit( namedType.ContainingNamespace );
 
@@ -184,8 +184,7 @@ internal static partial class DocumentationIdHelper
                 this._builder.Append( ':' );
             }
 
-            if ( typeParameter.ContainingDeclaration?.DeclarationKind == DeclarationKind.Method
-                 && typeParameter.ContainingDeclaration is IMethod )
+            if ( typeParameter.ContainingDeclaration?.DeclarationKind == DeclarationKind.Method )
             {
                 this._builder.Append( "``" );
                 this._builder.Append( typeParameter.Index );

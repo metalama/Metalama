@@ -123,9 +123,9 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
             return result;
         }
 
-        switch (x, y)
+        switch ( x.Kind )
         {
-            case (IMethodSymbol methodX, IMethodSymbol methodY):
+            case SymbolKind.Method when x is IMethodSymbol methodX && y is IMethodSymbol methodY:
                 result = this.CompareMethods( methodX, methodY, this.Options );
 
                 if ( result != 0 )
@@ -135,7 +135,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case (IParameterSymbol parameterX, IParameterSymbol parameterY):
+            case SymbolKind.Parameter when x is IParameterSymbol parameterX && y is IParameterSymbol parameterY:
                 result = this.Compare( parameterX.ContainingSymbol, parameterY.ContainingSymbol );
 
                 if ( result != 0 )
@@ -145,7 +145,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 return parameterX.Ordinal.CompareTo( parameterY.Ordinal );
 
-            case (IPropertySymbol propertyX, IPropertySymbol propertyY):
+            case SymbolKind.Property when x is IPropertySymbol propertyX && y is IPropertySymbol propertyY:
                 result = this.CompareProperties( propertyX, propertyY, this.Options );
 
                 if ( result != 0 )
@@ -155,7 +155,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case (IEventSymbol eventX, IEventSymbol eventY):
+            case SymbolKind.Event when x is IEventSymbol eventX && y is IEventSymbol eventY:
                 result = CompareEvents( eventX, eventY, this.Options );
 
                 if ( result != 0 )
@@ -165,7 +165,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case (IFieldSymbol fieldX, IFieldSymbol fieldY):
+            case SymbolKind.Field when x is IFieldSymbol fieldX && y is IFieldSymbol fieldY:
                 result = CompareFields( fieldX, fieldY, this.Options );
 
                 if ( result != 0 )
@@ -175,8 +175,14 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case (ITypeSymbol typeX, ITypeSymbol typeY):
-                result = this.CompareTypes( typeX, typeY );
+            case SymbolKind.NamedType:
+            case SymbolKind.ArrayType:
+            case SymbolKind.PointerType:
+            case SymbolKind.FunctionPointerType:
+            case SymbolKind.TypeParameter:
+            case SymbolKind.DynamicType:
+            case SymbolKind.ErrorType:
+                result = this.CompareTypes( (ITypeSymbol) x, (ITypeSymbol) y );
 
                 if ( result != 0 )
                 {
@@ -185,7 +191,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case (INamespaceSymbol namespaceX, INamespaceSymbol namespaceY):
+            case SymbolKind.Namespace when x is INamespaceSymbol namespaceX && y is INamespaceSymbol namespaceY:
                 result = this.CompareNamespaces( namespaceX, namespaceY );
 
                 if ( result != 0 )
@@ -195,10 +201,10 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case (IAssemblySymbol assemblyX, IAssemblySymbol assemblyY):
+            case SymbolKind.Assembly when x is IAssemblySymbol assemblyX && y is IAssemblySymbol assemblyY:
                 return CompareAssemblies( assemblyX, assemblyY );
 
-            case (ILocalSymbol localSymbolX, ILocalSymbol localSymbolY):
+            case SymbolKind.Local when x is ILocalSymbol localSymbolX && y is ILocalSymbol localSymbolY:
                 // TODO: Is this correct in all options?
                 result = StringComparer.Ordinal.Compare( localSymbolX.Name, localSymbolY.Name );
 
@@ -550,9 +556,9 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
             }
         }
 
-        switch (typeX, typeY)
+        switch ( typeX.TypeKind )
         {
-            case (ITypeParameterSymbol typeParamX, ITypeParameterSymbol typeParamY):
+            case TypeKind.TypeParameter when typeX is ITypeParameterSymbol typeParamX && typeY is ITypeParameterSymbol typeParamY:
                 result = StringComparer.Ordinal.Compare( typeParamX.Name, typeParamY.Name );
 
                 if ( result != 0 )
@@ -567,10 +573,15 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 return result;
 
-            case (INamedTypeSymbol namedTypeX, INamedTypeSymbol namedTypeY):
-                return this.CompareNamedTypes( namedTypeX, namedTypeY, this.Options );
+            case TypeKind.Class:
+            case TypeKind.Struct:
+            case TypeKind.Interface:
+            case TypeKind.Enum:
+            case TypeKind.Delegate:
+            case TypeKind.Error:
+                return this.CompareNamedTypes( (INamedTypeSymbol) typeX, (INamedTypeSymbol) typeY, this.Options );
 
-            case (IArrayTypeSymbol arrayTypeX, IArrayTypeSymbol arrayTypeY):
+            case TypeKind.Array when typeX is IArrayTypeSymbol arrayTypeX && typeY is IArrayTypeSymbol arrayTypeY:
                 result = arrayTypeX.Rank.CompareTo( arrayTypeY.Rank );
 
                 if ( result != 0 )
@@ -580,13 +591,13 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 return this.CompareTypes( arrayTypeX.ElementType, arrayTypeY.ElementType );
 
-            case (IDynamicTypeSymbol, IDynamicTypeSymbol):
+            case TypeKind.Dynamic when typeX is IDynamicTypeSymbol && typeY is IDynamicTypeSymbol:
                 return 0;
 
-            case (IPointerTypeSymbol xPointerType, IPointerTypeSymbol yPointerType):
+            case TypeKind.Pointer when typeX is IPointerTypeSymbol xPointerType && typeY is IPointerTypeSymbol yPointerType:
                 return this.CompareTypes( xPointerType.PointedAtType, yPointerType.PointedAtType );
 
-            case (IFunctionPointerTypeSymbol xFunctionPointerType, IFunctionPointerTypeSymbol yFunctionPointerType):
+            case TypeKind.FunctionPointer when typeX is IFunctionPointerTypeSymbol xFunctionPointerType && typeY is IFunctionPointerTypeSymbol yFunctionPointerType:
                 return this.CompareMethods(
                     xFunctionPointerType.Signature,
                     yFunctionPointerType.Signature,
@@ -627,9 +638,9 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
                 return result;
             }
 
-            switch (currentX, currentY)
+            switch ( currentX.Kind )
             {
-                case (IMethodSymbol methodX, IMethodSymbol methodY):
+                case SymbolKind.Method when currentX is IMethodSymbol methodX && currentY is IMethodSymbol methodY:
                     result = this.CompareMethods( methodX, methodY, StructuralComparerOptions.MethodSignature );
 
                     if ( result != 0 )
@@ -639,7 +650,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                     break;
 
-                case (INamedTypeSymbol namedTypeX, INamedTypeSymbol namedTypeY):
+                case SymbolKind.NamedType when currentX is INamedTypeSymbol namedTypeX && currentY is INamedTypeSymbol namedTypeY:
                     result = this.CompareNamedTypes( namedTypeX, namedTypeY, StructuralComparerOptions.Type );
 
                     if ( result != 0 )
@@ -649,7 +660,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                     break;
 
-                case (INamespaceSymbol namespaceX, INamespaceSymbol namespaceY):
+                case SymbolKind.Namespace when currentX is INamespaceSymbol namespaceX && currentY is INamespaceSymbol namespaceY:
                     result = StringComparer.Ordinal.Compare( namespaceX.Name, namespaceY.Name );
 
                     if ( result != 0 )
@@ -659,7 +670,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                     break;
 
-                case (IModuleSymbol _, IModuleSymbol _):
+                case SymbolKind.NetModule when currentX is IModuleSymbol && currentY is IModuleSymbol:
                     return 0;
 
                 default:
@@ -708,17 +719,17 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
         // PERF: Cast enum to int otherwise it will be boxed on .NET Framework.
         h = HashCode.Combine( h, (int) symbol.Kind );
 
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case null:
+            case var _ when symbol is null:
                 throw new ArgumentNullException( nameof(symbol) );
 
-            case IParameterSymbol parameter:
+            case SymbolKind.Parameter when symbol is IParameterSymbol parameter:
                 h = HashCode.Combine( h, GetHashCode( symbol.ContainingSymbol, options ), parameter.Ordinal );
 
                 break;
 
-            case INamedTypeSymbol type:
+            case SymbolKind.NamedType when symbol is INamedTypeSymbol type:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, type.Name );
@@ -731,7 +742,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case IMethodSymbol method:
+            case SymbolKind.Method when symbol is IMethodSymbol method:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, method.Name );
@@ -759,7 +770,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case IPropertySymbol property:
+            case SymbolKind.Property when symbol is IPropertySymbol property:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, property.Name );
@@ -786,7 +797,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case IFieldSymbol field:
+            case SymbolKind.Field when symbol is IFieldSymbol field:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, field.Name );
@@ -794,7 +805,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case IEventSymbol @event:
+            case SymbolKind.Event when symbol is IEventSymbol @event:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, @event.Name );
@@ -802,7 +813,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case INamespaceSymbol @namespace:
+            case SymbolKind.Namespace when symbol is INamespaceSymbol @namespace:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, @namespace.Name );
@@ -810,34 +821,34 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case IModuleSymbol _:
+            case SymbolKind.NetModule when symbol is IModuleSymbol _:
                 break;
 
-            case ITypeParameterSymbol typeParameter:
+            case SymbolKind.TypeParameter when symbol is ITypeParameterSymbol typeParameter:
                 h = HashCode.Combine( h, typeParameter.Ordinal );
 
                 break;
 
-            case IArrayTypeSymbol arrayType:
+            case SymbolKind.ArrayType when symbol is IArrayTypeSymbol arrayType:
                 h = HashCode.Combine( h, arrayType.Rank, GetHashCode( arrayType.ElementType, StructuralComparerOptions.Type ) );
 
                 break;
 
-            case IDynamicTypeSymbol:
+            case SymbolKind.DynamicType:
                 h = 41574;
 
                 break;
 
-            case IAssemblySymbol assembly:
+            case SymbolKind.Assembly when symbol is IAssemblySymbol assembly:
                 return HashCode.Combine( h, AssemblyIdentityComparer.SimpleNameComparer.GetHashCode( assembly.Identity.Name ), assembly.Identity.Version );
 
-            case IPointerTypeSymbol pointerType:
+            case SymbolKind.PointerType when symbol is IPointerTypeSymbol pointerType:
                 return GetHashCode( pointerType.PointedAtType, StructuralComparerOptions.Type );
 
-            case IFunctionPointerTypeSymbol functionPointerType:
+            case SymbolKind.FunctionPointerType when symbol is IFunctionPointerTypeSymbol functionPointerType:
                 return GetHashCode( functionPointerType.Signature, StructuralComparerOptions.FunctionPointer );
 
-            case ILocalSymbol local:
+            case SymbolKind.Local when symbol is ILocalSymbol local:
                 // TODO: Is this correct in all options?
                 h = HashCode.Combine( h, local.Name );
 
@@ -853,19 +864,19 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
             while ( current != null )
             {
-                switch ( current )
+                switch ( current.Kind )
                 {
-                    case INamedTypeSymbol namedType:
+                    case SymbolKind.NamedType when current is INamedTypeSymbol namedType:
                         h = HashCode.Combine( h, namedType.Name, namedType.Arity );
 
                         break;
 
-                    case INamespaceSymbol @namespace:
+                    case SymbolKind.Namespace when current is INamespaceSymbol @namespace:
                         h = HashCode.Combine( h, @namespace.Name );
 
                         break;
 
-                    case IMethodSymbol method:
+                    case SymbolKind.Method when current is IMethodSymbol method:
                         h = HashCode.Combine( h, method.Name, method.Arity, method.Parameters.Length );
 
                         // This runs only if the original symbol was a local function.
@@ -876,7 +887,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                         break;
 
-                    case IPropertySymbol property:
+                    case SymbolKind.Property when current is IPropertySymbol property:
                         h = HashCode.Combine( h, property.Name, property.Parameters.Length );
 
                         // This runs only if the original symbol was a local function.
@@ -887,14 +898,14 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                         break;
 
-                    case IFieldSymbol:
-                    case IEventSymbol:
+                    case SymbolKind.Field:
+                    case SymbolKind.Event:
                         h = HashCode.Combine( h, current.Name );
 
                         break;
 
-                    case IAssemblySymbol:
-                    case IModuleSymbol:
+                    case SymbolKind.Assembly:
+                    case SymbolKind.NetModule:
                         // These are included below if required.
                         break;
 

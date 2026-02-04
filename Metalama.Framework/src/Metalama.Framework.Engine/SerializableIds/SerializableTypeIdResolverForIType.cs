@@ -86,10 +86,10 @@ public sealed class SerializableTypeIdResolverForIType : SerializableTypeIdResol
     {
         ns ??= this._compilation.GetMergedGlobalNamespace();
 
-        var candidates = ns switch
+        var candidates = ns.DeclarationKind switch
         {
-            INamespace iNamespace => iNamespace.Types.OfName( name ).ConcatNotNull<INamespaceOrNamedType>( iNamespace.Namespaces.OfName( name ) ),
-            INamedType iNamedType => iNamedType.Types.OfName( name ),
+            DeclarationKind.Namespace when ns is INamespace iNamespace => iNamespace.Types.OfName( name ).ConcatNotNull<INamespaceOrNamedType>( iNamespace.Namespaces.OfName( name ) ),
+            DeclarationKind.NamedType when ns is INamedType iNamedType => iNamedType.Types.OfName( name ),
             _ => throw new AssertionFailedException( $"Unexpected type {ns.GetType()}." )
         };
 

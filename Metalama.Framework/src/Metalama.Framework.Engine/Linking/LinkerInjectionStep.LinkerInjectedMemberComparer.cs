@@ -90,7 +90,9 @@ internal sealed partial class LinkerInjectionStep
             }
 
             // Order by accessibility.
-            if ( declaration is IMemberOrNamedType memberOrNamedType && otherDeclaration is IMemberOrNamedType otherMemberOrNamedType )
+            if ( declaration.DeclarationKind.IsMemberOrNamedType && declaration is IMemberOrNamedType memberOrNamedType
+                                                                 && otherDeclaration.DeclarationKind.IsMemberOrNamedType
+                                                                 && otherDeclaration is IMemberOrNamedType otherMemberOrNamedType )
             {
                 var accessibilityComparison =
                     GetAccessibilityOrder( memberOrNamedType.Accessibility ).CompareTo( GetAccessibilityOrder( otherMemberOrNamedType.Accessibility ) );
@@ -102,7 +104,8 @@ internal sealed partial class LinkerInjectionStep
             }
 
             // Order by implemented interface.
-            if ( declaration is IMember declarationMember && otherDeclaration is IMember otherDeclarationMember )
+            if ( declaration.DeclarationKind.IsMember && declaration is IMember declarationMember
+                                                      && otherDeclaration.DeclarationKind.IsMember && otherDeclaration is IMember otherDeclarationMember )
             {
                 var isExplicitInterfaceImplementationComparison =
                     declarationMember.IsExplicitInterfaceImplementation.CompareTo( otherDeclarationMember.IsExplicitInterfaceImplementation );

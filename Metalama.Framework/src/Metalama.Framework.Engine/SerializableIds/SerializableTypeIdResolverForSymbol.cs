@@ -47,10 +47,10 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
         for ( var d = declaration; d != null; d = d.ContainingSymbol )
         {
             var typeParameters
-                = d switch
+                = d.Kind switch
                 {
-                    IMethodSymbol methodSymbol => methodSymbol.TypeArguments,
-                    INamedTypeSymbol namedTypeSymbol => namedTypeSymbol.TypeArguments,
+                    SymbolKind.Method when d is IMethodSymbol methodSymbol => methodSymbol.TypeArguments,
+                    SymbolKind.NamedType when d is INamedTypeSymbol namedTypeSymbol => namedTypeSymbol.TypeArguments,
                     _ => default
                 };
 
@@ -111,7 +111,21 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
 
         foreach ( var member in candidates )
         {
-            var memberArity = member.Kind == SymbolKind.Namespace ? 0 : ((INamedTypeSymbol) member).Arity;
+            int memberArity;
+
+            if ( member.Kind == SymbolKind.Namespace )
+            {
+                memberArity = 0;
+            }
+            else if ( member.Kind == SymbolKind.NamedType && member is INamedTypeSymbol namedType )
+            {
+                memberArity = namedType.Arity;
+            }
+            else
+            {
+                // Unreachable: INamespaceOrTypeSymbol only includes Namespace and NamedType
+                throw new AssertionFailedException( $"Unexpected symbol kind: {member.Kind}" );
+            }
 
             if ( arity == memberArity )
             {

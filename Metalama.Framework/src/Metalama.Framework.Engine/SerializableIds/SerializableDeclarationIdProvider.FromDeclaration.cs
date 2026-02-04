@@ -72,7 +72,10 @@ public static partial class SerializableDeclarationIdProvider
                     fieldPseudoAccessor.MethodKind.ToDeclarationRefTargetKind( targetKind ),
                     out id );
 
-            case DeclarationKind.Method when declaration is IMethod { ContainingDeclaration: IEvent, MethodKind: MethodKind.EventRaise } eventRaisePseudoAccessor:
+            case DeclarationKind.Method when declaration is IMethod
+            {
+                ContainingDeclaration: IEvent, MethodKind: MethodKind.EventRaise
+            } eventRaisePseudoAccessor:
                 return TryGetSerializableId( eventRaisePseudoAccessor.DeclaringMember, RefTargetKind.EventRaise, out id );
 
             default:

@@ -135,7 +135,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
         if ( scope == CompileTimeOnly )
         {
-            if ( symbol is ILocalSymbol local )
+            if ( symbol.Kind == SymbolKind.Local && symbol is ILocalSymbol local )
             {
                 this._currentScopeContext.RunTimeConditionalBlockVariables?.Add( local );
             }
@@ -197,7 +197,8 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                 return GetMoreSpecificScope( this.GetSymbolScope( containingType ) );
 
             // Template parameters are always evaluated at compile-time, but run-time template parameters return a run-time value.
-            case IParameterSymbol templateParameter when TemplateMemberSymbolClassifier.IsTemplateParameter( templateParameter ):
+            case { Kind: SymbolKind.Parameter } and IParameterSymbol templateParameter
+                when TemplateMemberSymbolClassifier.IsTemplateParameter( templateParameter ):
                 var parameterScope = this._symbolScopeClassifier.GetTemplatingScope( templateParameter );
 
                 return parameterScope.GetExpressionExecutionScope() == CompileTimeOnly
@@ -205,27 +206,28 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                     : RunTimeTemplateParameter;
 
             // Template type parameters can be run-time or compile-time. If a template type parameter is not marked as compile-time, it is run-time (there is no scope-neutral).
-            case ITypeParameterSymbol typeParameter when TemplateMemberSymbolClassifier.IsTemplateTypeParameter( typeParameter ):
+            case { Kind: SymbolKind.TypeParameter } and ITypeParameterSymbol typeParameter
+                when TemplateMemberSymbolClassifier.IsTemplateTypeParameter( typeParameter ):
                 var typeParameterScope = this._symbolScopeClassifier.GetTemplatingScope( typeParameter );
 
                 return typeParameterScope.GetExpressionExecutionScope() == CompileTimeOnly
                     ? typeParameterScope
                     : RunTimeOnly;
 
-            case IMethodSymbol { MethodKind: MethodKind.LocalFunction }:
+            case { Kind: SymbolKind.Method } and IMethodSymbol { MethodKind: MethodKind.LocalFunction }:
                 return RunTimeOnly;
 
-            case IMethodSymbol method when this._templateMemberClassifier.IsRunTimeMethod( method ):
+            case { Kind: SymbolKind.Method } and IMethodSymbol method when this._templateMemberClassifier.IsRunTimeMethod( method ):
                 // The TemplateContext.runTime method must be processed separately. It is a compile-time-only method whose
                 // return is run-time-only.
 
                 return RunTimeOnly;
         }
 
-        if ( symbol is IParameterSymbol )
+        if ( symbol.Kind == SymbolKind.Parameter && symbol is IParameterSymbol )
         {
             // Local functions in templates are considered run-time-only, so their parameters are also run-time-only.
-            if ( symbol.ContainingSymbol is IMethodSymbol { MethodKind: MethodKind.LocalFunction } )
+            if ( symbol.ContainingSymbol.Kind == SymbolKind.Method && symbol.ContainingSymbol is IMethodSymbol { MethodKind: MethodKind.LocalFunction } )
             {
                 return RunTimeOnly;
             }
@@ -269,7 +271,8 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
             {
                 if ( this._currentScopeContext.PreferRunTimeExpression )
                 {
-                    if ( symbol is ITypeSymbol typeSymbol )
+                    if ( symbol.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.DynamicType
+                            or SymbolKind.TypeParameter or SymbolKind.FunctionPointerType && symbol is ITypeSymbol typeSymbol )
                     {
                         if ( !this._serializableTypes.IsSerializable( typeSymbol ) )
                         {
@@ -362,7 +365,10 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
             // this is to ensure that meta.ProceedAsync().ConfigureAwait(false) is classified as CompileTimeOnlyReturningRuntimeOnly,
             // so that it's treated like a Proceed expression
-            if ( symbol.IsTaskConfigureAwait() && node is MemberAccessExpressionSyntax { Expression: var configuredExpression } )
+            if ( symbol.IsTaskConfigureAwait() && node.IsKind( SyntaxKind.SimpleMemberAccessExpression ) && node is MemberAccessExpressionSyntax
+                {
+                    Expression: var configuredExpression
+                } )
             {
                 symbol = this._syntaxTreeAnnotationMap.GetSymbol( configuredExpression );
             }
@@ -378,6 +384,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
             }
         }
 
+#pragma warning disable LAMA0860 // NameSyntax and TupleTypeSyntax are abstract base types - type check is the discriminator
         switch ( node )
         {
             case NameSyntax:
@@ -396,6 +403,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                 // visitor or the previous algorithm iteration.
                 return node.GetScopeFromAnnotation().GetValueOrDefault();
         }
+#pragma warning restore LAMA0860
     }
 
     private void ReportScopeError( SyntaxNode node )
@@ -818,7 +826,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                 // Coverage: ignore.
                 break;
 
-            case ILocalSymbol when scope.GetExpressionExecutionScope() == CompileTimeOnly:
+            case { Kind: SymbolKind.Local } when scope.GetExpressionExecutionScope() == CompileTimeOnly:
                 nodeOrToken = nodeOrToken.AddColoringAnnotation( TextSpanClassification.CompileTimeVariable );
 
                 break;
@@ -867,7 +875,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
             out var transformedOperator,
             out var scope );
 
-        if ( this._syntaxTreeAnnotationMap.GetSymbol( transformedExpression ) is ITypeParameterSymbol typeParameter
+        if ( this._syntaxTreeAnnotationMap.GetSymbol( transformedExpression ) is { Kind: SymbolKind.TypeParameter } and ITypeParameterSymbol typeParameter
              && this.GetNodeScope( transformedExpression ) == CompileTimeOnlyReturningRuntimeOnly )
         {
             this.ReportDiagnostic(
@@ -1087,8 +1095,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
             }
 
             if ( (symbol!.IsVirtual || symbol.IsAbstract || symbol.IsOverride)
-                 && !symbol.IsSealed
-                 && symbol is IMethodSymbol { Parameters: var parameters }
+                 && symbol is { IsSealed: false, Kind: SymbolKind.Method } and IMethodSymbol { Parameters: var parameters }
                  && parameters.Length > node.ArgumentList.Arguments.Count )
             {
                 this.ReportDiagnostic(
@@ -1097,7 +1104,8 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                     node.ToString() );
             }
 
-            if ( symbol is IMethodSymbol { TypeParameters: var typeParameters }
+            if ( symbol.Kind == SymbolKind.Method
+                 && symbol is IMethodSymbol { TypeParameters: var typeParameters }
                  && typeParameters.Any( tp => this.GetSymbolScope( tp ) == RunTimeOnly ) )
             {
                 this.ReportDiagnostic(
@@ -1271,7 +1279,8 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         }
 
         // To make sure the expression `meta.RunTime( compileTimeExpression )` is correctly highlighted, the parentheses need to be explicitly colored as compile-time.
-        if ( updatedInvocation.Expression is MemberAccessExpressionSyntax { Name: var invokedMemberName }
+        if ( updatedInvocation.Expression.IsKind( SyntaxKind.SimpleMemberAccessExpression )
+             && updatedInvocation.Expression is MemberAccessExpressionSyntax { Name: var invokedMemberName }
              && invokedMemberName.GetColorFromAnnotation() == TextSpanClassification.TemplateKeyword
              && updatedInvocation.ArgumentList.Arguments.All(
                  arg => arg.Expression.GetScopeFromAnnotation()?.GetExpressionExecutionScope() == CompileTimeOnly ) )
@@ -1527,7 +1536,8 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
             // Detect if the current member is a template.
             var isTemplate = !this._symbolScopeClassifier.GetTemplateInfo( symbol ).IsNone
-                             || (symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol }
+                             || (symbol.Kind == SymbolKind.Method
+                                 && symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol }
                                  && !this._symbolScopeClassifier.GetTemplateInfo( associatedSymbol ).IsNone);
 
             // If it is a template, update the currentTemplateMember field.
@@ -1625,23 +1635,23 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
     /// </summary>
     private static bool IsTargetTypedExpression( ExpressionSyntax expression )
     {
-        return expression switch
+        return expression.Kind() switch
         {
             // Skip parentheses recursively
-            ParenthesizedExpressionSyntax parenthesized => IsTargetTypedExpression( parenthesized.Expression ),
+            SyntaxKind.ParenthesizedExpression => IsTargetTypedExpression( ((ParenthesizedExpressionSyntax) expression).Expression ),
 
             // default literal
-            LiteralExpressionSyntax { RawKind: (int) SyntaxKind.DefaultLiteralExpression } => true,
+            SyntaxKind.DefaultLiteralExpression => true,
 
             // null literal
-            LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression } => true,
+            SyntaxKind.NullLiteralExpression => true,
 
             // throw expression
-            ThrowExpressionSyntax => true,
+            SyntaxKind.ThrowExpression => true,
 
             // stackalloc (can be target-typed in some contexts)
-            StackAllocArrayCreationExpressionSyntax => true,
-            ImplicitStackAllocArrayCreationExpressionSyntax => true,
+            SyntaxKind.StackAllocArrayCreationExpression => true,
+            SyntaxKind.ImplicitStackAllocArrayCreationExpression => true,
 
             _ => false
         };
@@ -1730,7 +1740,8 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
     {
         var symbol = this._syntaxTreeAnnotationMap.GetSymbol( node.Name );
 
-        if ( symbol is IMethodSymbol { ContainingNamespace: not null } constructor
+        if ( symbol?.Kind == SymbolKind.Method
+             && symbol is IMethodSymbol { ContainingNamespace: not null } constructor
              && (constructor.ContainingNamespace.ToString()?.StartsWith( "Metalama.Framework", StringComparison.Ordinal ) ?? false) )
         {
             node = node.AddColoringAnnotation( TextSpanClassification.CompileTime );
@@ -1770,10 +1781,11 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
             if ( templateInfo.AttributeType == TemplateAttributeType.Template )
             {
-                var isVoid = symbol is IMethodSymbol methodSymbol &&
-                             (methodSymbol.ReturnsVoid ||
-                              (AsyncHelper.TryGetAsyncInfo( methodSymbol.ReturnType, out var resultType, out _ ) &&
-                               resultType.SpecialType == SpecialType.System_Void));
+                var isVoid = symbol.Kind == SymbolKind.Method
+                             && symbol is IMethodSymbol methodSymbol
+                             && (methodSymbol.ReturnsVoid
+                                 || (AsyncHelper.TryGetAsyncInfo( methodSymbol.ReturnType, out var resultType, out _ )
+                                     && resultType.SpecialType == SpecialType.System_Void));
 
                 if ( isVoid && node is MethodDeclarationSyntax { Body: { } body } )
                 {
@@ -1820,7 +1832,9 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
         if ( this._currentTemplateMember != null )
         {
-            if ( this._syntaxTreeAnnotationMap.GetDeclaredSymbol( node ) is IParameterSymbol symbol )
+            var declaredSymbol = this._syntaxTreeAnnotationMap.GetDeclaredSymbol( node );
+
+            if ( declaredSymbol?.Kind == SymbolKind.Parameter && declaredSymbol is IParameterSymbol symbol )
             {
                 var scope = this.GetSymbolScope( symbol );
 
@@ -1957,7 +1971,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         else
         {
             // Check if the left side is a tuple with var declarations
-            if ( node.Left is TupleExpressionSyntax tupleLeft )
+            if ( node.Left.IsKind( SyntaxKind.TupleExpression ) && node.Left is TupleExpressionSyntax tupleLeft )
             {
                 var varStatus = CheckTupleVarDeclarations( tupleLeft );
 
@@ -2015,7 +2029,10 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
             {
                 this.CheckForMutatingCompileTimeExpressionInRunTimeConditionalBlock( node.Left );
 
-                if ( this._syntaxTreeAnnotationMap.GetExpressionType( node.Left ) is INamedTypeSymbol { Name: nameof(IExpression) } )
+                if ( this._syntaxTreeAnnotationMap.GetExpressionType( node.Left ) is { TypeKind: TypeKind.Interface } and INamedTypeSymbol
+                    {
+                        Name: nameof(IExpression)
+                    } )
                 {
                     // Assigning a run-time expression to an IExpression is allowed but requires special processing.
                     // It is similar to the case with a cast to IExpression, but the cast is not required.
@@ -2033,8 +2050,11 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
             }
 
             // If we have a discard assignment, take the scope from the right.
+            var leftSymbol = this._syntaxTreeAnnotationMap.GetSymbol( node.Left );
+
             if ( classicalLeftNodeScope == RunTimeOrCompileTime
-                 && this._syntaxTreeAnnotationMap.GetSymbol( node.Left ) is IDiscardSymbol )
+                 && leftSymbol?.Kind == SymbolKind.Discard
+                 && leftSymbol is IDiscardSymbol )
             {
                 classicalLeftNodeScope = this.GetNodeScope( classicalTransformedRight ).GetExpressionExecutionScope();
             }
@@ -2071,15 +2091,15 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
         foreach ( var argument in tuple.Arguments )
         {
-            switch ( argument.Expression )
+            switch ( argument.Expression.Kind() )
             {
-                case DeclarationExpressionSyntax:
+                case SyntaxKind.DeclarationExpression:
                     hasVar = true;
 
                     break;
 
-                case TupleExpressionSyntax nestedTuple:
-                    var nestedStatus = CheckTupleVarDeclarations( nestedTuple );
+                case SyntaxKind.TupleExpression:
+                    var nestedStatus = CheckTupleVarDeclarations( (TupleExpressionSyntax) argument.Expression );
 
                     if ( nestedStatus == TupleVarStatus.AllVar )
                     {
@@ -2185,7 +2205,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         else
         {
             var type = this._syntaxTreeAnnotationMap.GetSymbol( node.Type );
-            var typeIsIExpression = type is INamedTypeSymbol { Name: nameof(IExpression) };
+            var typeIsIExpression = type is { Kind: SymbolKind.NamedType } and INamedTypeSymbol { TypeKind: TypeKind.Interface, Name: nameof(IExpression) };
 
             if ( typeIsIExpression && this._syntaxTreeAnnotationMap.GetExpressionType( node.Expression ) is IDynamicTypeSymbol )
             {
@@ -3337,14 +3357,14 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
         foreach ( var content in node.Contents )
         {
-            switch ( content )
+            switch ( content.Kind() )
             {
-                case InterpolatedStringTextSyntax text:
-                    transformedContents.Add( text );
+                case SyntaxKind.InterpolatedStringText:
+                    transformedContents.Add( content );
 
                     break;
 
-                case InterpolationSyntax interpolation:
+                case SyntaxKind.Interpolation when content is InterpolationSyntax interpolation:
                     var transformedExpression = this.Visit( interpolation.Expression );
                     var expressionScope = transformedExpression.GetScopeFromAnnotation().GetValueOrDefault( RunTimeOrCompileTime );
                     var interpolationScope = expressionScope;

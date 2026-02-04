@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 
@@ -22,7 +23,7 @@ internal sealed partial class LinkerLinkingStep
 
         public override void VisitGotoStatement( GotoStatementSyntax node )
         {
-            if ( node.Expression is IdentifierNameSyntax identifierName )
+            if ( node.Expression?.Kind() == SyntaxKind.IdentifierName && node.Expression is IdentifierNameSyntax identifierName )
             {
                 this.ObservedLabelCounters.TryGetValue( identifierName.Identifier.ValueText, out var counter );
                 this.ObservedLabelCounters[identifierName.Identifier.ValueText] = counter + 1;

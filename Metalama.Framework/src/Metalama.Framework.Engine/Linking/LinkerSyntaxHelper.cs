@@ -13,12 +13,12 @@ internal static class LinkerSyntaxHelper
 {
     public static bool IsUnsupportedMemberSyntax( MemberDeclarationSyntax syntax )
     {
-        return syntax switch
+        return syntax.Kind() switch
         {
-            PropertyDeclarationSyntax { AccessorList.Accessors: { } accessors }
-                when accessors.Any( a => a.IsKind( SyntaxKind.UnknownAccessorDeclaration ) ) => true,
-            IndexerDeclarationSyntax { AccessorList.Accessors: { } accessors }
-                when accessors.Any( a => a.IsKind( SyntaxKind.UnknownAccessorDeclaration ) ) => true,
+            SyntaxKind.PropertyDeclaration when syntax is PropertyDeclarationSyntax { AccessorList.Accessors: { } accessors }
+                && accessors.Any( a => a.IsKind( SyntaxKind.UnknownAccessorDeclaration ) ) => true,
+            SyntaxKind.IndexerDeclaration when syntax is IndexerDeclarationSyntax { AccessorList.Accessors: { } accessors }
+                && accessors.Any( a => a.IsKind( SyntaxKind.UnknownAccessorDeclaration ) ) => true,
             _ => false
         };
     }

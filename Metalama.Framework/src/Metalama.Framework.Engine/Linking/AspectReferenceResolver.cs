@@ -513,7 +513,9 @@ internal sealed class AspectReferenceResolver
             return;
         }
 
-        if ( expression.Parent?.Parent?.Parent?.Parent is InvocationExpressionSyntax { Expression: { } wrappingExpression }
+        if ( expression.Parent?.Parent?.Parent?.Parent.IsKind(SyntaxKind.InvocationExpression) == true
+             && expression.Parent?.Parent?.Parent?.Parent is InvocationExpressionSyntax { Expression: { } wrappingExpression }
+             && semanticModel.GetSymbolInfo( wrappingExpression ).Symbol?.Kind == SymbolKind.Method
              && semanticModel.GetSymbolInfo( wrappingExpression ).Symbol is IMethodSymbol
              {
                  ContainingType.Name: LinkerInjectionHelperProvider.HelperTypeName
@@ -553,9 +555,9 @@ internal sealed class AspectReferenceResolver
 
                 case { Name: LinkerInjectionHelperProvider.StaticConstructorMemberName }:
                     // Referencing type's constructor.
-                    switch ( expression.Parent )
+                    switch ( expression.Parent?.Kind() )
                     {
-                        case InvocationExpressionSyntax { ArgumentList.Arguments: [] }:
+                        case SyntaxKind.InvocationExpression when expression.Parent is InvocationExpressionSyntax { ArgumentList.Arguments: [] }:
                             rootNode = expression;
                             targetSymbol = containingSymbol.ContainingType.StaticConstructors.FirstOrDefault().AssertNotNull();
                             targetSymbolSource = expression;
@@ -568,12 +570,13 @@ internal sealed class AspectReferenceResolver
 
                 case { Name: LinkerInjectionHelperProvider.ConstructorMemberName }:
                     // Referencing type's constructor.
-                    switch ( expression.Parent )
+                    switch ( expression.Parent?.Kind() )
                     {
-                        case InvocationExpressionSyntax
-                        {
-                            ArgumentList.Arguments: [{ Expression: ObjectCreationExpressionSyntax objectCreation }]
-                        } invocationExpression:
+                        case SyntaxKind.InvocationExpression
+                            when expression.Parent is InvocationExpressionSyntax
+                            {
+                                ArgumentList.Arguments: [{ Expression: ObjectCreationExpressionSyntax objectCreation }]
+                            } invocationExpression:
 
                             rootNode = invocationExpression;
 
@@ -596,12 +599,13 @@ internal sealed class AspectReferenceResolver
 
                 case { Name: LinkerInjectionHelperProvider.PropertyMemberName }:
                     // Referencing a property.
-                    switch ( expression.Parent )
+                    switch ( expression.Parent?.Kind() )
                     {
-                        case InvocationExpressionSyntax
-                        {
-                            ArgumentList.Arguments: [{ Expression: MemberAccessExpressionSyntax memberAccess }]
-                        } invocationExpression:
+                        case SyntaxKind.InvocationExpression
+                            when expression.Parent is InvocationExpressionSyntax
+                            {
+                                ArgumentList.Arguments: [{ Expression: MemberAccessExpressionSyntax memberAccess }]
+                            } invocationExpression:
                             var symbolInfo = semanticModel.GetSymbolInfo( memberAccess );
 
                             rootNode = invocationExpression;
@@ -613,7 +617,7 @@ internal sealed class AspectReferenceResolver
                                     // Normal situation with valid symbol.
                                     { Symbol: { } symbol } => symbol,
 
-                                    // When the code is invalid, there are usually 
+                                    // When the code is invalid, there are usually
                                     { CandidateSymbols: [{ } symbol] } => symbol,
 
                                     // We should not get here because this reference would be skipped by AspectReferenceWalker.
@@ -629,24 +633,25 @@ internal sealed class AspectReferenceResolver
                     }
 
                 case { Name: LinkerInjectionHelperProvider.EventRaiseMemberName }:
-                    switch ( expression.Parent )
+                    switch ( expression.Parent?.Kind() )
                     {
-                        case InvocationExpressionSyntax
-                        {
-                            ArgumentList.Arguments:
-                            [
-                                {
-                                    Expression: ParenthesizedLambdaExpressionSyntax
+                        case SyntaxKind.InvocationExpression
+                            when expression.Parent is InvocationExpressionSyntax
+                            {
+                                ArgumentList.Arguments:
+                                [
                                     {
-                                        ExpressionBody: AssignmentExpressionSyntax
+                                        Expression: ParenthesizedLambdaExpressionSyntax
                                         {
-                                            RawKind: (int) SyntaxKind.AddAssignmentExpression, Left: { } eventExpression
+                                            ExpressionBody: AssignmentExpressionSyntax
+                                            {
+                                                RawKind: (int) SyntaxKind.AddAssignmentExpression, Left: { } eventExpression
+                                            }
                                         }
-                                    }
-                                },
-                                ..
-                            ]
-                        } invocationExpression:
+                                    },
+                                    ..
+                                ]
+                            } invocationExpression:
                             var symbolInfo = semanticModel.GetSymbolInfo( eventExpression );
 
                             rootNode = invocationExpression;
@@ -657,7 +662,7 @@ internal sealed class AspectReferenceResolver
                                     // Normal situation with valid symbol.
                                     { Symbol: { } symbol } => symbol,
 
-                                    // When the code is invalid, there are usually 
+                                    // When the code is invalid, there are usually
                                     { CandidateSymbols: [{ } symbol] } => symbol,
 
                                     // We should not get here because this reference would be skipped by AspectReferenceWalker.
@@ -724,13 +729,27 @@ internal sealed class AspectReferenceResolver
     {
         return (referencedSymbol.Kind, expression) switch
         {
-            (SymbolKind.Property, { Parent: AssignmentExpressionSyntax }) => AspectReferenceTargetKind.PropertySetAccessor,
+            (SymbolKind.Property, _) when expression.Parent?.Kind() is SyntaxKind.SimpleAssignmentExpression or SyntaxKind.AddAssignmentExpression
+                or SyntaxKind.SubtractAssignmentExpression or SyntaxKind.MultiplyAssignmentExpression or SyntaxKind.DivideAssignmentExpression
+                or SyntaxKind.ModuloAssignmentExpression or SyntaxKind.AndAssignmentExpression or SyntaxKind.OrAssignmentExpression
+                or SyntaxKind.ExclusiveOrAssignmentExpression or SyntaxKind.LeftShiftAssignmentExpression or SyntaxKind.RightShiftAssignmentExpression
+                or SyntaxKind.UnsignedRightShiftAssignmentExpression or SyntaxKind.CoalesceAssignmentExpression
+                && expression.Parent is AssignmentExpressionSyntax
+                => AspectReferenceTargetKind.PropertySetAccessor,
             (SymbolKind.Property, _) => AspectReferenceTargetKind.PropertyGetAccessor,
-            (SymbolKind.Field, { Parent: AssignmentExpressionSyntax }) => AspectReferenceTargetKind.PropertySetAccessor,
+            (SymbolKind.Field, _) when expression.Parent?.Kind() is SyntaxKind.SimpleAssignmentExpression or SyntaxKind.AddAssignmentExpression
+                or SyntaxKind.SubtractAssignmentExpression or SyntaxKind.MultiplyAssignmentExpression or SyntaxKind.DivideAssignmentExpression
+                or SyntaxKind.ModuloAssignmentExpression or SyntaxKind.AndAssignmentExpression or SyntaxKind.OrAssignmentExpression
+                or SyntaxKind.ExclusiveOrAssignmentExpression or SyntaxKind.LeftShiftAssignmentExpression or SyntaxKind.RightShiftAssignmentExpression
+                or SyntaxKind.UnsignedRightShiftAssignmentExpression or SyntaxKind.CoalesceAssignmentExpression
+                && expression.Parent is AssignmentExpressionSyntax
+                => AspectReferenceTargetKind.PropertySetAccessor,
             (SymbolKind.Field, _) => AspectReferenceTargetKind.PropertyGetAccessor,
-            (SymbolKind.Event, { Parent: AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.AddAssignmentExpression } })
+            (SymbolKind.Event, _) when expression.Parent.IsKind(SyntaxKind.AddAssignmentExpression)
+                && expression.Parent is AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.AddAssignmentExpression }
                 => AspectReferenceTargetKind.EventAddAccessor,
-            (SymbolKind.Event, { Parent: AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.SubtractAssignmentExpression } })
+            (SymbolKind.Event, _) when expression.Parent.IsKind(SyntaxKind.SubtractAssignmentExpression)
+                && expression.Parent is AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.SubtractAssignmentExpression }
                 => AspectReferenceTargetKind.EventRemoveAccessor,
             (SymbolKind.Event, _) => AspectReferenceTargetKind.EventRaiseAccessor,
             _ => throw new AssertionFailedException( $"Unexpected referenced symbol: '{referencedSymbol}'" )

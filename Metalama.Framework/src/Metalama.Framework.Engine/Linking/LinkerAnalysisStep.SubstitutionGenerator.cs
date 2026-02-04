@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
@@ -577,7 +578,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case { ResolvedSemantic.Symbol: IPropertySymbol { Parameters.Length: > 0 } }:
+                    case { ResolvedSemantic.Symbol.Kind: SymbolKind.Property } when nonInlinedReference.ResolvedSemantic.Symbol is IPropertySymbol { Parameters.Length: > 0 }:
                         // Indexers (and in future constructors), adds aspect parameter to the target.
                         // TODO: Currently unused because indexer inlining is not supported. See AspectReferenceParameterSubstitution in history.
 
@@ -655,9 +656,9 @@ internal sealed partial class LinkerAnalysisStep
             IMethodSymbol targetSymbol,
             bool usingSimpleInlining,
             string? returnVariableIdentifier )
-            => root switch
+            => root.Kind() switch
             {
-                ArrowExpressionClauseSyntax arrowExpressionClause => new ExpressionBodySubstitution(
+                SyntaxKind.ArrowExpressionClause when root is ArrowExpressionClauseSyntax arrowExpressionClause => new ExpressionBodySubstitution(
                     this._intermediateCompilationContext,
                     arrowExpressionClause,
                     referencingSymbol,
@@ -665,28 +666,30 @@ internal sealed partial class LinkerAnalysisStep
                     usingSimpleInlining,
                     returnVariableIdentifier ),
 
-                AccessorDeclarationSyntax { Body: null, ExpressionBody: null } when targetSymbol.Kind == SymbolKind.Method && targetSymbol is { AssociatedSymbol.Kind: SymbolKind.Property } && targetSymbol.AssociatedSymbol is IPropertySymbol property
-                                                                                    && property.IsAutoProperty() == true =>
+                SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                    when root is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } && targetSymbol.Kind == SymbolKind.Method && targetSymbol is { AssociatedSymbol.Kind: SymbolKind.Property } && targetSymbol.AssociatedSymbol is IPropertySymbol property
+                         && property.IsAutoProperty() == true =>
                     new PropertyImplicitAccessorSubstitution(
                         this._intermediateCompilationContext,
                         root,
                         property ),
 
-                MethodDeclarationSyntax { Body: null, ExpressionBody: null } emptyPartialMethod
+                SyntaxKind.MethodDeclaration when root is MethodDeclarationSyntax { Body: null, ExpressionBody: null } emptyPartialMethod
                     => new EmptyPartialMethodSubstitution(
                         this._intermediateCompilationContext,
                         emptyPartialMethod,
                         usingSimpleInlining,
                         returnVariableIdentifier ),
 
-                AccessorDeclarationSyntax { Body: null, ExpressionBody: null } emptyPartialAccessor
+                SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                    when root is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } emptyPartialAccessor
                     => new EmptyPartialAccessorSubstitution(
                         this._intermediateCompilationContext,
                         emptyPartialAccessor,
                         usingSimpleInlining,
                         returnVariableIdentifier ),
 
-                ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter
+                SyntaxKind.Parameter when root is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter
                     => new RecordParameterSubstitution( this._intermediateCompilationContext, recordParameter, targetSymbol, returnVariableIdentifier ),
 
                 _ => throw new AssertionFailedException( $"Unexpected syntax: '{root}'." )

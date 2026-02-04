@@ -114,7 +114,7 @@ namespace Metalama.Testing.AspectTesting
             {
                 var attributeSymbol = this._semanticModel.GetSymbolInfo( node ).Symbol;
 
-                if ( attributeSymbol is IMethodSymbol attributeConstructor && attributeConstructor.ContainingType.Name == nameof(TestLiveTemplateAttribute) )
+                if ( attributeSymbol?.Kind == SymbolKind.Method && attributeSymbol is IMethodSymbol attributeConstructor && attributeConstructor.ContainingType.Name == nameof(TestLiveTemplateAttribute) )
                 {
                     var parent = node.Parent?.Parent;
 

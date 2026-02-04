@@ -49,9 +49,9 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
     {
         var syntaxGenerator = substitutionContext.SyntaxGenerationContext.SyntaxGenerator;
 
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case ReturnStatementSyntax returnStatement:
+            case SyntaxKind.ReturnStatement when currentNode is ReturnStatementSyntax returnStatement:
                 if ( this._returnLabelIdentifier != null )
                 {
                     if ( returnStatement.Expression != null )
@@ -118,52 +118,54 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                     }
                 }
 
-            case ExpressionSyntax returnExpression:
-                if ( this._returnLabelIdentifier != null )
-                {
-                    if ( this._referencingSymbol.ReturnsVoid )
-                    {
-                        return
-                            syntaxGenerator.FormattedBlock(
-                                    ExpressionStatement( returnExpression ).WithOriginalLocationAnnotationFrom( returnExpression ),
-                                    CreateGotoStatement() )
-                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
-                    }
-                    else
-                    {
-                        return
-                            syntaxGenerator.FormattedBlock(
-                                    CreateAssignmentStatement( returnExpression ).WithOriginalLocationAnnotationFrom( returnExpression ),
-                                    CreateGotoStatement() )
-                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
-                    }
-                }
-                else
-                {
-                    var assignmentStatement =
-                        CreateAssignmentStatement( returnExpression )
-                            .WithOriginalLocationAnnotationFrom( returnExpression );
-
-                    if ( this._replaceByBreakIfOmitted )
-                    {
-                        return
-                            syntaxGenerator.FormattedBlock(
-                                    assignmentStatement,
-                                    BreakStatement(
-                                        Token( SyntaxKind.BreakKeyword ),
-                                        Token(
-                                            TriviaList(),
-                                            SyntaxKind.SemicolonToken,
-                                            substitutionContext.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) ) )
-                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
-                    }
-                    else
-                    {
-                        return assignmentStatement;
-                    }
-                }
-
             default:
+                if ( !currentNode.IsKind( SyntaxKind.ReturnStatement ) && currentNode is ExpressionSyntax returnExpression )
+                {
+                    if ( this._returnLabelIdentifier != null )
+                    {
+                        if ( this._referencingSymbol.ReturnsVoid )
+                        {
+                            return
+                                syntaxGenerator.FormattedBlock(
+                                        ExpressionStatement( returnExpression ).WithOriginalLocationAnnotationFrom( returnExpression ),
+                                        CreateGotoStatement() )
+                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+                        }
+                        else
+                        {
+                            return
+                                syntaxGenerator.FormattedBlock(
+                                        CreateAssignmentStatement( returnExpression ).WithOriginalLocationAnnotationFrom( returnExpression ),
+                                        CreateGotoStatement() )
+                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+                        }
+                    }
+                    else
+                    {
+                        var assignmentStatement =
+                            CreateAssignmentStatement( returnExpression )
+                                .WithOriginalLocationAnnotationFrom( returnExpression );
+
+                        if ( this._replaceByBreakIfOmitted )
+                        {
+                            return
+                                syntaxGenerator.FormattedBlock(
+                                        assignmentStatement,
+                                        BreakStatement(
+                                            Token( SyntaxKind.BreakKeyword ),
+                                            Token(
+                                                TriviaList(),
+                                                SyntaxKind.SemicolonToken,
+                                                substitutionContext.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) ) )
+                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+                        }
+                        else
+                        {
+                            return assignmentStatement;
+                        }
+                    }
+                }
+
                 throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" );
         }
 

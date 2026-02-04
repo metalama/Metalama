@@ -157,7 +157,7 @@ internal abstract class TemplateMember
         this.Tags = tags;
 
         if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove }
-             && templateClassMember.Parameters.Length != 1 )
+                                              && templateClassMember.Parameters.Length != 1 )
         {
             throw new AssertionFailedException(
                 $"'{symbol}' is an accessor but the template '{templateClassMember.Name}' has {templateClassMember.Parameters.Length} parameters." );
@@ -293,16 +293,18 @@ internal abstract class TemplateMember
         if ( !attribute.IntroducesBackingField )
         {
             attribute.IntroducesBackingField = declaration.DeclaringSyntaxReferences
-                .Any( syntaxRef => syntaxRef.GetSyntax() is AccessorDeclarationSyntax accessor
-                                   && SyntaxHelpers.ContainsFieldExpression( accessor ) );
+                .Any(
+                    syntaxRef => syntaxRef.GetSyntax() is { SyntaxKind.IsAccessorDeclaration: true } and AccessorDeclarationSyntax accessor
+                                 && SyntaxHelpers.ContainsFieldExpression( accessor ) );
         }
 
         // For same-project scenarios, also detect if the accessor assigns to the field keyword.
         if ( !attribute.IsBackingFieldAssigned )
         {
             attribute.IsBackingFieldAssigned = declaration.DeclaringSyntaxReferences
-                .Any( syntaxRef => syntaxRef.GetSyntax() is AccessorDeclarationSyntax accessor
-                                   && SyntaxHelpers.ContainsFieldAssignment( accessor ) );
+                .Any(
+                    syntaxRef => syntaxRef.GetSyntax() is { SyntaxKind.IsAccessorDeclaration: true } and AccessorDeclarationSyntax accessor
+                                 && SyntaxHelpers.ContainsFieldAssignment( accessor ) );
         }
 
         return attribute;

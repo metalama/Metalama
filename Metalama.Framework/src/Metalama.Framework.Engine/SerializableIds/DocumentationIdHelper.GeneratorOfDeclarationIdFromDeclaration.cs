@@ -192,7 +192,8 @@ internal static partial class DocumentationIdHelper
 
             public bool Visit( INamedType namedType )
             {
-                var success = namedType.ContainingDeclaration is INamedType containingType
+                var success = namedType.ContainingDeclaration?.DeclarationKind == DeclarationKind.NamedType
+                              && namedType.ContainingDeclaration is INamedType containingType
                     ? this.Visit( containingType )
                     : this.Visit( namedType.ContainingNamespace );
 

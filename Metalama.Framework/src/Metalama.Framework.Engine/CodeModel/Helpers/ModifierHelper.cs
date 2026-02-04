@@ -90,7 +90,9 @@ internal static class ModifierHelper
             AddAccessibilityTokens( member, tokens );
         }
 
-        if ( (categories & ModifierCategories.Required) != 0 && member is IFieldOrProperty { IsRequired: true } )
+        if ( (categories & ModifierCategories.Required) != 0
+            && member.DeclarationKind is DeclarationKind.Field or DeclarationKind.Property
+            && member is IFieldOrProperty { IsRequired: true } )
         {
             AddToken( SyntaxKind.RequiredKeyword );
         }
@@ -178,7 +180,9 @@ internal static class ModifierHelper
             AddToken( SyntaxKind.UnsafeKeyword );
         }
 
-        if ( (categories & ModifierCategories.Volatile) != 0 && member.GetSymbol() is IFieldSymbol { IsVolatile: true } )
+        if ( (categories & ModifierCategories.Volatile) != 0
+            && member.GetSymbol()?.Kind == SymbolKind.Field
+            && member.GetSymbol() is IFieldSymbol { IsVolatile: true } )
         {
             AddToken( SyntaxKind.VolatileKeyword );
         }

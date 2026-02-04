@@ -141,11 +141,13 @@ internal abstract partial class Invoker<T>
     }
 
     protected static INamedType? GetTargetType()
-        => TemplateExpansionContext.CurrentTargetDeclaration switch
+        => TemplateExpansionContext.CurrentTargetDeclaration?.DeclarationKind switch
         {
-            INamedType type => type,
-            IMember member => member.DeclaringType,
-            IParameter parameter => parameter.DeclaringMember.AssertNotNull().DeclaringType,
+            DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when TemplateExpansionContext.CurrentTargetDeclaration is INamedType type => type,
+            { IsMember: true } when TemplateExpansionContext.CurrentTargetDeclaration is IMember member => member.DeclaringType,
+            DeclarationKind.Parameter when TemplateExpansionContext.CurrentTargetDeclaration is IParameter parameter => parameter.DeclaringMember
+                .AssertNotNull()
+                .DeclaringType,
             null => null,
             _ => throw new AssertionFailedException( $"Unexpected target declaration: '{TemplateExpansionContext.CurrentTargetDeclaration}'." )
         };

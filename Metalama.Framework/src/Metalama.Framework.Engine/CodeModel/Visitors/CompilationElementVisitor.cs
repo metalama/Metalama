@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using System;
 
 namespace Metalama.Framework.Engine.CodeModel.Visitors;
@@ -39,8 +40,7 @@ internal abstract class CompilationElementVisitor
 
                         break;
 
-                    case TypeKind.Class or TypeKind.Struct or TypeKind.Delegate or TypeKind.Enum
-                        or TypeKind.Interface:
+                    case { IsNamedType: true }:
                         this.VisitNamedType( (INamedType) type );
 
                         break;

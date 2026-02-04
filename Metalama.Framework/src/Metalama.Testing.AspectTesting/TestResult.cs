@@ -516,9 +516,57 @@ internal class TestResult : IDisposable
 
                 for ( var i = 0; i < outputMembers.Length; i++ )
                 {
-                    switch ( outputMembers[i] )
+                    switch ( outputMembers[i].Kind() )
                     {
-                        case MemberDeclarationSyntax member:
+                        case SyntaxKind.CompilationUnit:
+                            var compilationUnit = (CompilationUnitSyntax) outputMembers[i];
+                            consolidatedCompilationUnit = consolidatedCompilationUnit
+                                .AddMembers( compilationUnit.Members.ToArray() )
+                                .AddUsings( compilationUnit.Usings.ToArray() );
+
+                            break;
+
+                        case SyntaxKind.ExpressionStatement:
+                            // This is an empty statement
+                            var statementSyntax = (ExpressionStatementSyntax) outputMembers[i];
+
+                            if ( statementSyntax.ToString() == "" )
+                            {
+                                consolidatedCompilationUnit = consolidatedCompilationUnit
+                                    .WithLeadingTrivia( statementSyntax.GetLeadingTrivia().AddRange( consolidatedCompilationUnit.GetLeadingTrivia() ) );
+                            }
+                            else
+                            {
+                                throw new InvalidOperationException( $"Don't know how to add a {outputMembers[i].Kind()} to the compilation unit." );
+                            }
+
+                            break;
+
+                        // All MemberDeclarationSyntax kinds
+                        case SyntaxKind.GlobalStatement:
+                        case SyntaxKind.NamespaceDeclaration:
+                        case SyntaxKind.FileScopedNamespaceDeclaration:
+                        case SyntaxKind.ClassDeclaration:
+                        case SyntaxKind.StructDeclaration:
+                        case SyntaxKind.InterfaceDeclaration:
+                        case SyntaxKind.RecordDeclaration:
+                        case SyntaxKind.RecordStructDeclaration:
+                        case SyntaxKind.EnumDeclaration:
+                        case SyntaxKind.DelegateDeclaration:
+                        case SyntaxKind.EnumMemberDeclaration:
+                        case SyntaxKind.FieldDeclaration:
+                        case SyntaxKind.EventFieldDeclaration:
+                        case SyntaxKind.MethodDeclaration:
+                        case SyntaxKind.OperatorDeclaration:
+                        case SyntaxKind.ConversionOperatorDeclaration:
+                        case SyntaxKind.ConstructorDeclaration:
+                        case SyntaxKind.DestructorDeclaration:
+                        case SyntaxKind.PropertyDeclaration:
+                        case SyntaxKind.EventDeclaration:
+                        case SyntaxKind.IndexerDeclaration:
+                        case SyntaxKind.IncompleteMember:
+                            var member = (MemberDeclarationSyntax) outputMembers[i];
+
                             if ( i != outputMembers.Length - 1 )
                             {
                                 consolidatedCompilationUnit =
@@ -529,20 +577,6 @@ internal class TestResult : IDisposable
                             {
                                 consolidatedCompilationUnit = consolidatedCompilationUnit.AddMembers( member.WithoutTrivia() );
                             }
-
-                            break;
-
-                        case CompilationUnitSyntax compilationUnit:
-                            consolidatedCompilationUnit = consolidatedCompilationUnit
-                                .AddMembers( compilationUnit.Members.ToArray() )
-                                .AddUsings( compilationUnit.Usings.ToArray() );
-
-                            break;
-
-                        case ExpressionStatementSyntax statementSyntax when statementSyntax.ToString() == "":
-                            // This is an empty statement
-                            consolidatedCompilationUnit = consolidatedCompilationUnit
-                                .WithLeadingTrivia( statementSyntax.GetLeadingTrivia().AddRange( consolidatedCompilationUnit.GetLeadingTrivia() ) );
 
                             break;
 

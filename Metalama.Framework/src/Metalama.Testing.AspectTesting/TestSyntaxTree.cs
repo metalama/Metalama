@@ -189,15 +189,37 @@ namespace Metalama.Testing.AspectTesting
         {
             CompilationUnitSyntax compilationUnit;
 
-            switch ( syntaxNode )
+            switch ( syntaxNode.Kind() )
             {
-                case CompilationUnitSyntax cu:
-                    compilationUnit = cu;
+                case SyntaxKind.CompilationUnit:
+                    compilationUnit = (CompilationUnitSyntax) syntaxNode;
 
                     break;
 
-                case MemberDeclarationSyntax member:
-                    compilationUnit = SyntaxFactory.CompilationUnit().WithMembers( SyntaxFactory.SingletonList( member ) );
+                // All MemberDeclarationSyntax kinds
+                case SyntaxKind.GlobalStatement:
+                case SyntaxKind.NamespaceDeclaration:
+                case SyntaxKind.FileScopedNamespaceDeclaration:
+                case SyntaxKind.ClassDeclaration:
+                case SyntaxKind.StructDeclaration:
+                case SyntaxKind.InterfaceDeclaration:
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                case SyntaxKind.EnumDeclaration:
+                case SyntaxKind.DelegateDeclaration:
+                case SyntaxKind.EnumMemberDeclaration:
+                case SyntaxKind.FieldDeclaration:
+                case SyntaxKind.EventFieldDeclaration:
+                case SyntaxKind.MethodDeclaration:
+                case SyntaxKind.OperatorDeclaration:
+                case SyntaxKind.ConversionOperatorDeclaration:
+                case SyntaxKind.ConstructorDeclaration:
+                case SyntaxKind.DestructorDeclaration:
+                case SyntaxKind.PropertyDeclaration:
+                case SyntaxKind.EventDeclaration:
+                case SyntaxKind.IndexerDeclaration:
+                case SyntaxKind.IncompleteMember:
+                    compilationUnit = SyntaxFactory.CompilationUnit().WithMembers( SyntaxFactory.SingletonList( (MemberDeclarationSyntax) syntaxNode ) );
 
                     break;
 

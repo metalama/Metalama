@@ -4,7 +4,9 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 using SpecialType = Microsoft.CodeAnalysis.SpecialType;
@@ -57,8 +59,8 @@ internal static partial class IteratorHelper
         var isIterator = method.DeclaringSyntaxReferences.Any(
             r => r.GetSyntax() switch
             {
-                MethodDeclarationSyntax { Body: { } body } => FindYieldVisitor.Instance.VisitBlock( body ),
-                AccessorDeclarationSyntax { Body: { } body } => FindYieldVisitor.Instance.VisitBlock( body ),
+                { SyntaxKind: SyntaxKind.MethodDeclaration } and MethodDeclarationSyntax { Body: { } body } => FindYieldVisitor.Instance.VisitBlock( body ),
+                { SyntaxKind.IsAccessorDeclaration: true } and AccessorDeclarationSyntax { Body: { } body } => FindYieldVisitor.Instance.VisitBlock( body ),
                 _ => false
             } );
 

@@ -141,7 +141,7 @@ public sealed partial class HierarchicalOptionsManager
 
                     break;
 
-                case DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Event or DeclarationKind.Indexer or DeclarationKind.Constructor when declaration is IMember member:
+                case { IsMember: true } when declaration is IMember member:
                     if ( this.Metadata.InheritedByOverridingMembers && member.GetBase()?.Definition is { } baseDeclaration )
                     {
                         baseDeclarationOptions = this.GetOptions( baseDeclaration );

@@ -82,14 +82,14 @@ internal static class DeclarationHelper
                     case null:
                         break;
 
-                    case IType type:
+                    case IDeclaration { DeclarationKind: DeclarationKind.NamedType or DeclarationKind.ExtensionBlock or DeclarationKind.TypeParameter } and IType type:
                         Append( type, kind, sb, currentTypeArguments );
 
                         sb.Append( '+' );
 
                         break;
 
-                    case INamespace ns:
+                    case IDeclaration { DeclarationKind: DeclarationKind.Namespace } and INamespace ns:
                         if ( !ns.IsGlobalNamespace )
                         {
                             Append( ns, kind, sb );
@@ -173,7 +173,8 @@ internal static class DeclarationHelper
     }
 
     private static string GetMetadataName( this INamedDeclaration declaration )
-        => declaration is IGeneric { TypeArguments.Count: > 0 and var count }
+        => declaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock or DeclarationKind.Method
+            && declaration is IGeneric { TypeArguments.Count: > 0 and var count }
             ? $"{declaration.Name}`{count}"
             : declaration.Name;
 

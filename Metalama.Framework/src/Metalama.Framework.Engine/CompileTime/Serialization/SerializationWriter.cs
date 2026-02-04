@@ -250,7 +250,7 @@ internal sealed class SerializationWriter
 
                 break;
 
-            case SerializationIntrinsicType.Array when typeSymbol is IArrayTypeSymbol arrayTypeSymbol:
+            case SerializationIntrinsicType.Array when typeSymbol.Kind == SymbolKind.ArrayType && typeSymbol is IArrayTypeSymbol arrayTypeSymbol:
                 {
                     this._binaryWriter.WriteByte( (byte) intrinsicType );
                     this._binaryWriter.WriteCompressedInteger( arrayTypeSymbol.Rank );
@@ -288,7 +288,7 @@ internal sealed class SerializationWriter
 
                 break;
 
-            case SerializationIntrinsicType.GenericTypeParameter when typeSymbol is ITypeParameterSymbol typeParameterSymbol:
+            case SerializationIntrinsicType.GenericTypeParameter when typeSymbol.Kind == SymbolKind.TypeParameter && typeSymbol is ITypeParameterSymbol typeParameterSymbol:
                 this.WriteGenericTypeParameter( typeParameterSymbol, cause );
 
                 break;

@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -55,7 +56,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
         var semanticModel = this._semanticModelProvider.GetSemanticModel( type.SyntaxTree );
         var symbols = semanticModel.LookupSymbols( type.OpenBraceToken.Span.End );
 
-        var declaredTypeSymbol = (INamedTypeSymbol?) semanticModel.GetDeclaredSymbol( type );
+        var declaredTypeSymbol = semanticModel.GetDeclaredSymbol( type );
 
         if ( declaredTypeSymbol == null
              || !this._compilationModel.TryGetDeclaration( declaredTypeSymbol, out var declaration )
@@ -103,10 +104,10 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                 {
                     var declaration = declarationRef.Definition;
 
-                    var contextType = declaration switch
+                    var contextType = declaration.DeclarationKind switch
                     {
-                        IMemberOrNamedType { DeclaringType: { } declaringType } => declaringType,
-                        INamedType type => type,
+                        { IsMemberOrNamedType: true } when declaration is IMemberOrNamedType { DeclaringType: { } declaringType } => declaringType,
+                        DeclarationKind.NamedType when declaration is INamedType type => type,
                         _ => throw new AssertionFailedException( $"Declarations without declaring type are not supported {declaration}." )
                     };
 
@@ -128,7 +129,10 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     }
 
                     // Accessors have implicit "value" parameter.
-                    if ( declaration is IMethod { MethodKind: MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove } )
+                    if ( declaration.DeclarationKind == DeclarationKind.Method && declaration is IMethod
+                        {
+                            MethodKind: MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove
+                        } )
                     {
                         identifiers.Add( "value" );
                     }
@@ -149,7 +153,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                         switch ( symbol )
                         {
                             // For accessors, look at the associated symbol.
-                            case IMethodSymbol { AssociatedSymbol: { } associatedSymbol }:
+                            case { Kind: SymbolKind.Method } and IMethodSymbol { AssociatedSymbol: { } associatedSymbol }:
                                 syntaxReference = associatedSymbol.GetPrimarySyntaxReference();
 
                                 if ( syntaxReference == null )
@@ -178,7 +182,7 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     var syntaxNode = syntaxReference.GetSyntax();
                     var typeDeclarationSyntax = syntaxNode.GetDeclaringType();
 
-                    if ( syntaxNode is LocalFunctionStatementSyntax && typeDeclarationSyntax == null )
+                    if ( syntaxNode.IsKind( SyntaxKind.LocalFunctionStatement ) && syntaxNode is LocalFunctionStatementSyntax && typeDeclarationSyntax == null )
                     {
                         throw new AssertionFailedException( "Top-level local functions are not supported: {syntaxNode}" );
                     }
@@ -186,7 +190,10 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     var builder = this.GetIdentifiersInTypeScope( typeDeclarationSyntax.AssertNotNull() ).ToBuilder();
 
                     // Accessors have implicit "value" parameter.
-                    if ( symbol is IMethodSymbol { MethodKind: RoslynMethodKind.PropertySet or RoslynMethodKind.EventAdd or RoslynMethodKind.EventRemove } )
+                    if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol
+                        {
+                            MethodKind: RoslynMethodKind.PropertySet or RoslynMethodKind.EventAdd or RoslynMethodKind.EventRemove
+                        } )
                     {
                         builder.Add( "value" );
                     }
@@ -197,7 +204,9 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     var declarationSyntax =
                         syntaxReference.GetSyntax() switch
                         {
-                            { Parent: AccessorListSyntax { Parent: IndexerDeclarationSyntax indexer } } => indexer,
+                            { Parent: { } parent } when parent.IsKind( SyntaxKind.AccessorList ) && parent is AccessorListSyntax { Parent: { } grandParent }
+                                                                                                 && grandParent.IsKind( SyntaxKind.IndexerDeclaration )
+                                                                                                 && grandParent is IndexerDeclarationSyntax indexer => indexer,
                             { } anything => anything
                         };
 

@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -44,14 +45,14 @@ internal sealed partial class LinkerLinkingStep
                     continue;
                 }
 
-                if ( currentStatement is GotoStatementSyntax { Expression: IdentifierNameSyntax { Identifier.ValueText: var gotoLabel } } gotoStatement
-                     && nextStatement is LabeledStatementSyntax { Identifier.ValueText: var declaredLabel } labeledStatement
+                if ( currentStatement.Kind() == SyntaxKind.GotoStatement && currentStatement is GotoStatementSyntax { Expression: IdentifierNameSyntax { Identifier.ValueText: var gotoLabel } } gotoStatement
+                     && nextStatement?.Kind() == SyntaxKind.LabeledStatement && nextStatement is LabeledStatementSyntax { Identifier.ValueText: var declaredLabel } labeledStatement
                      && gotoLabel == declaredLabel
                      && observedLabelCounter.TryGetValue( declaredLabel, out var counter )
                      && counter == 1 )
                 {
-                    if ( SyntaxExtensions.ShouldTriviaBePreserved( gotoStatement, generationContext.Options )
-                         || SyntaxExtensions.ShouldTriviaBePreserved( labeledStatement, generationContext.Options ) )
+                    if ( Utilities.Roslyn.SyntaxExtensions.ShouldTriviaBePreserved( gotoStatement, generationContext.Options )
+                         || Utilities.Roslyn.SyntaxExtensions.ShouldTriviaBePreserved( labeledStatement, generationContext.Options ) )
                     {
                         List<SyntaxTrivia> trivia =
                         [

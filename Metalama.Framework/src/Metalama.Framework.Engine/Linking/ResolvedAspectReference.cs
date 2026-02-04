@@ -150,7 +150,7 @@ internal sealed class ResolvedAspectReference
             && targetKind != AspectReferenceTargetKind.EventRaiseAccessor );
 
         Invariant.AssertNot(
-            resolvedSemantic.Symbol is IMethodSymbol
+            resolvedSemantic.Symbol.Kind == SymbolKind.Method && resolvedSemantic.Symbol is IMethodSymbol
             {
                 MethodKind: not MethodKind.Ordinary and not MethodKind.ExplicitInterfaceImplementation and not MethodKind.Destructor
                 and not MethodKind.UserDefinedOperator and not MethodKind.Conversion and not MethodKind.Constructor and not MethodKind.StaticConstructor

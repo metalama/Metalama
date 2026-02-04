@@ -49,13 +49,13 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         var targetDeclaration = (INamespaceOrNamedType) this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 
         var existingType =
-            targetDeclaration switch
+            targetDeclaration.DeclarationKind switch
             {
-                INamespace @namespace =>
+                DeclarationKind.Namespace when targetDeclaration is INamespace @namespace =>
                     @namespace.Types
                         .OfName( builder.Name )
                         .FirstOrDefault( t => builder.TypeParameters.Count == t.TypeParameters.Count ),
-                INamedType namedType =>
+                DeclarationKind.NamedType when targetDeclaration is INamedType namedType =>
                     namedType.AllTypes
                         .OfName( builder.Name )
                         .FirstOrDefault( t => builder.TypeParameters.Count == t.TypeParameters.Count ),

@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.Utilities.Comparers;
 
@@ -78,7 +79,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
         {
             return 1;
         }
-        
+
         var xKind = x.DeclarationKind;
         var compareDeclarationKind = ((int) y.DeclarationKind).CompareTo( (int) xKind );
 
@@ -91,7 +92,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
         // At this point, x and y have the same DeclarationKind.
         // Use DeclarationKind to determine if they're IType or IDeclaration.
-        if ( xKind.IsTypeKind() )
+        if ( xKind.IsType )
         {
             // Both are IType since they have the same type-related DeclarationKind
             var xType = (IType) x;
@@ -212,7 +213,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                     break;
 
-                case DeclarationKind.AssemblyReference or DeclarationKind.Compilation:
+                case { IsAssembly: true }:
                     return CompareAssemblies( (IAssembly) xDecl, (IAssembly) yDecl );
 
                 default:
@@ -496,8 +497,10 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
         int CompareParameterTypes( IType? parameterTypeX, IType? parameterTypeY )
         {
             // Prevent infinite recursion.
-            var comparer = parameterTypeX is ITypeParameter { ContainingDeclaration: IMethod }
-                           && parameterTypeY is ITypeParameter { ContainingDeclaration: IMethod }
+            var comparer = parameterTypeX?.DeclarationKind == DeclarationKind.TypeParameter
+                           && parameterTypeX is ITypeParameter { ContainingDeclaration.DeclarationKind: DeclarationKind.Method }
+                           && parameterTypeY?.DeclarationKind == DeclarationKind.TypeParameter
+                           && parameterTypeY is ITypeParameter { ContainingDeclaration.DeclarationKind: DeclarationKind.Method }
                 ? _nonRecursive
                 : this;
 
@@ -609,9 +612,9 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
             }
         }
 
-        switch (typeX, typeY)
+        switch ( typeX.TypeKind )
         {
-            case (ITypeParameter typeParamX, ITypeParameter typeParamY):
+            case TypeKind.TypeParameter when typeX is ITypeParameter typeParamX && typeY is ITypeParameter typeParamY:
                 result = StringComparer.Ordinal.Compare( typeParamX.Name, typeParamY.Name );
 
                 if ( result != 0 )
@@ -626,10 +629,11 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 return result;
 
-            case (INamedType namedTypeX, INamedType namedTypeY):
+            case TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Error
+                when typeX is INamedType namedTypeX && typeY is INamedType namedTypeY:
                 return this.CompareNamedTypes( namedTypeX, namedTypeY, this._options );
 
-            case (IArrayType arrayTypeX, IArrayType arrayTypeY):
+            case TypeKind.Array when typeX is IArrayType arrayTypeX && typeY is IArrayType arrayTypeY:
                 result = arrayTypeX.Rank.CompareTo( arrayTypeY.Rank );
 
                 if ( result != 0 )
@@ -639,10 +643,10 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 return this.CompareTypes( arrayTypeX.ElementType, arrayTypeY.ElementType );
 
-            case (IDynamicType, IDynamicType):
+            case TypeKind.Dynamic when typeX is IDynamicType && typeY is IDynamicType:
                 return 0;
 
-            case (IPointerType xPointerType, IPointerType yPointerType):
+            case TypeKind.Pointer when typeX is IPointerType xPointerType && typeY is IPointerType yPointerType:
                 return this.CompareTypes( xPointerType.PointedAtType, yPointerType.PointedAtType );
 
             default:
@@ -680,7 +684,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
                 return result;
             }
 
-            switch (currentX.DeclarationKind)
+            switch ( currentX.DeclarationKind )
             {
                 case DeclarationKind.Method when currentX is IMethod methodX && currentY is IMethod methodY:
                     result = this.CompareMethods( methodX, methodY, StructuralComparerOptions.MethodSignature );
@@ -692,7 +696,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                     break;
 
-                case DeclarationKind.NamedType when currentX is INamedType namedTypeX && currentY is INamedType namedTypeY:
+                case DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when currentX is INamedType namedTypeX && currentY is INamedType namedTypeY:
                     result = this.CompareNamedTypes( namedTypeX, namedTypeY, StructuralComparerOptions.Type );
 
                     if ( result != 0 )
@@ -712,8 +716,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                     break;
 
-                case DeclarationKind.AssemblyReference:
-                case DeclarationKind.Compilation:
+                case { IsAssembly: true }:
                     return 0;
 
                 default:
@@ -756,12 +759,12 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
             case null:
                 throw new ArgumentNullException( nameof(compilationElement) );
 
-            case IParameter parameter:
+            case IParameter parameter when compilationElement.DeclarationKind == DeclarationKind.Parameter:
                 h = HashCode.Combine( h, GetHashCode( parameter.ContainingDeclaration!, options ), parameter.Index );
 
                 break;
 
-            case INamedType type:
+            case INamedType type when compilationElement.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, type.Name );
@@ -774,7 +777,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case IMethodBase method:
+            case IMethodBase method when compilationElement.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, method.Name );
@@ -802,7 +805,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case IProperty property:
+            case IProperty property when compilationElement.DeclarationKind == DeclarationKind.Property:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, property.Name );
@@ -810,7 +813,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case IIndexer indexer:
+            case IIndexer indexer when compilationElement.DeclarationKind == DeclarationKind.Indexer:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, indexer.Name );
@@ -837,7 +840,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case IField field:
+            case IField field when compilationElement.DeclarationKind == DeclarationKind.Field:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, field.Name );
@@ -845,7 +848,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case IEvent @event:
+            case IEvent @event when compilationElement.DeclarationKind == DeclarationKind.Event:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, @event.Name );
@@ -853,7 +856,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case INamespace @namespace:
+            case INamespace @namespace when compilationElement.DeclarationKind == DeclarationKind.Namespace:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, @namespace.Name );
@@ -861,7 +864,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case ITypeParameter typeParameter:
+            case ITypeParameter typeParameter when compilationElement.DeclarationKind == DeclarationKind.TypeParameter:
                 h = HashCode.Combine( h, typeParameter.Index );
 
                 break;
@@ -876,7 +879,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 break;
 
-            case IAssembly assembly:
+            case IAssembly assembly when compilationElement.DeclarationKind.IsAssembly:
                 return HashCode.Combine( h, AssemblyIdentityComparer.SimpleNameComparer.GetHashCode( assembly.Identity.Name ), assembly.Identity.Version );
 
             case IPointerType pointerType:
@@ -897,19 +900,19 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
             while ( current != null )
             {
-                switch ( current )
+                switch ( current.DeclarationKind )
                 {
-                    case INamedType namedType:
+                    case DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when current is INamedType namedType:
                         h = HashCode.Combine( h, namedType.Name, namedType.TypeParameters.Count );
 
                         break;
 
-                    case INamespace @namespace:
+                    case DeclarationKind.Namespace when current is INamespace @namespace:
                         h = HashCode.Combine( h, @namespace.Name );
 
                         break;
 
-                    case IMethod method:
+                    case DeclarationKind.Method when current is IMethod method:
                         h = HashCode.Combine( h, method.Name, method.TypeParameters.Count, method.Parameters.Count );
 
                         // This runs only if the original declaration was a local function.
@@ -920,12 +923,12 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                         break;
 
-                    case IProperty property:
+                    case DeclarationKind.Property when current is IProperty property:
                         h = HashCode.Combine( h, property.Name );
 
                         break;
 
-                    case IIndexer indexer:
+                    case DeclarationKind.Indexer when current is IIndexer indexer:
                         h = HashCode.Combine( h, indexer.Name, indexer.Parameters.Count );
 
                         // This runs only if the original declaration was a local function.
@@ -936,7 +939,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                         break;
 
-                    case IAssembly:
+                    case { IsAssembly: true }:
                         // This is included below if required.
                         break;
 

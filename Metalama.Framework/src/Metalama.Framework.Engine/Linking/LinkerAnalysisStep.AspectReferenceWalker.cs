@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 
@@ -41,7 +42,10 @@ internal sealed partial class LinkerAnalysisStep
 
         public override void VisitLocalFunctionStatement( LocalFunctionStatementSyntax node )
         {
+            // Cast is required for Roslyn 4.8.0 where GetDeclaredSymbol returns ISymbol? instead of IMethodSymbol?
+#pragma warning disable IDE0004 // Remove unnecessary cast
             var symbol = (IMethodSymbol) this._semanticModel.GetDeclaredSymbol( node ).AssertNotNull();
+#pragma warning restore IDE0004
 
             try
             {
@@ -65,9 +69,9 @@ internal sealed partial class LinkerAnalysisStep
 
             if ( node.TryGetAspectReference( out var aspectReference ) )
             {
-                var nodeWithSymbol = node switch
+                var nodeWithSymbol = node.Kind() switch
                 {
-                    ConditionalAccessExpressionSyntax conditionalAccess => GetConditionalMemberName( conditionalAccess ),
+                    SyntaxKind.ConditionalAccessExpression when node is ConditionalAccessExpressionSyntax conditionalAccess => GetConditionalMemberName( conditionalAccess ),
                     _ => node
                 };
 

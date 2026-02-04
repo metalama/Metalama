@@ -55,10 +55,10 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
         this.TypeKind = typeKind;
         this.IsRecord = isRecord;
 
-        this.ContainingNamespace = declaringNamespaceOrType switch
+        this.ContainingNamespace = declaringNamespaceOrType.DeclarationKind switch
         {
-            INamespace @namespace => @namespace,
-            INamedType namedType => namedType.ContainingNamespace,
+            DeclarationKind.Namespace when declaringNamespaceOrType is INamespace @namespace => @namespace,
+            DeclarationKind.NamedType when declaringNamespaceOrType is INamedType namedType => namedType.ContainingNamespace,
             _ => throw new AssertionFailedException( $"Unsupported: {declaringNamespaceOrType}" )
         };
 
@@ -285,11 +285,11 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     [Memo]
     public override SyntaxTree PrimarySyntaxTree
-        => this.ContainingDeclaration switch
+        => this.ContainingDeclaration.DeclarationKind switch
         {
-            INamespace => this.Compilation.RoslynCompilation.CreateEmptySyntaxTree(
+            DeclarationKind.Namespace => this.Compilation.RoslynCompilation.CreateEmptySyntaxTree(
                 this.TypeParameters.Count > 0 ? $"{this.FullName}`{this.TypeParameters.Count}.cs" : $"{this.FullName}.cs" ),
-            INamedType namedType => namedType.GetPrimarySyntaxTree().AssertNotNull(),
+            DeclarationKind.NamedType when this.ContainingDeclaration is INamedType namedType => namedType.GetPrimarySyntaxTree().AssertNotNull(),
             _ => throw new AssertionFailedException( $"Unsupported: {this.ContainingDeclaration}" )
         };
 

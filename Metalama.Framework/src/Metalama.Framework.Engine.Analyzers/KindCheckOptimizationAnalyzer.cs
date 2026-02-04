@@ -1,0 +1,920 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using JetBrains.Annotations;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
+using System;
+using System.Collections.Immutable;
+using System.Linq;
+
+namespace Metalama.Framework.Engine.Analyzers;
+
+/// <summary>
+/// Analyzer to detect pattern matching on IDeclaration, ISymbol, and SyntaxNode subtypes
+/// without a preceding Kind discriminator check, which is a performance anti-pattern.
+/// </summary>
+[DiagnosticAnalyzer( LanguageNames.CSharp )]
+[UsedImplicitly]
+public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
+{
+    // Range: 0860-0869
+    internal static readonly DiagnosticDescriptor PatternMatchingWithoutKindCheck = new(
+        "LAMA0860",
+        "Pattern matching without Kind check",
+        "Pattern matching on '{0}' should be preceded by a Kind check for better performance",
+        "Metalama",
+        DiagnosticSeverity.Warning,
+        true );
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create( PatternMatchingWithoutKindCheck );
+
+    public override void Initialize( AnalysisContext context )
+    {
+        context.ConfigureGeneratedCodeAnalysis( GeneratedCodeAnalysisFlags.None );
+        context.EnableConcurrentExecution();
+        context.RegisterCompilationStartAction( InitializeCompilation );
+    }
+
+    private static void InitializeCompilation( CompilationStartAnalysisContext context )
+    {
+        // Cache base type symbols
+        var iDeclarationSymbol = context.Compilation.GetTypeByMetadataName( "Metalama.Framework.Code.IDeclaration" );
+        var iSymbolSymbol = context.Compilation.GetTypeByMetadataName( "Microsoft.CodeAnalysis.ISymbol" );
+        var syntaxNodeSymbol = context.Compilation.GetTypeByMetadataName( "Microsoft.CodeAnalysis.SyntaxNode" );
+
+        if ( iDeclarationSymbol == null && iSymbolSymbol == null && syntaxNodeSymbol == null )
+        {
+            return;
+        }
+
+        context.RegisterSyntaxNodeAction(
+            ctx => AnalyzeIsPattern( ctx, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ),
+            SyntaxKind.IsPatternExpression );
+
+        context.RegisterSyntaxNodeAction(
+            ctx => AnalyzeSwitchStatement( ctx, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ),
+            SyntaxKind.SwitchStatement );
+
+        context.RegisterSyntaxNodeAction(
+            ctx => AnalyzeSwitchExpression( ctx, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ),
+            SyntaxKind.SwitchExpression );
+    }
+
+    private static void AnalyzeIsPattern(
+        SyntaxNodeAnalysisContext ctx,
+        INamedTypeSymbol? iDeclarationSymbol,
+        INamedTypeSymbol? iSymbolSymbol,
+        INamedTypeSymbol? syntaxNodeSymbol )
+    {
+        var isPattern = (IsPatternExpressionSyntax) ctx.Node;
+
+        // Extract the type from the pattern
+        var patternType = isPattern.Pattern switch
+        {
+            DeclarationPatternSyntax decl => decl.Type,
+            RecursivePatternSyntax { Type: not null } rec => rec.Type,
+            _ => null
+        };
+
+        if ( patternType == null )
+        {
+            return;
+        }
+
+        // Get the type symbol and check if it's IDeclaration/ISymbol/SyntaxNode subtype
+        var typeSymbol = ctx.SemanticModel.GetTypeInfo( patternType ).Type;
+
+        if ( !IsRelevantType( typeSymbol, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ) )
+        {
+            return;
+        }
+
+        // Check the type of the expression being pattern-matched.
+        // Only flag if the expression type is ISymbol, IDeclaration, or SyntaxNode.
+        // If it's object or some other type, pattern matching is the appropriate approach.
+        var expressionType = ctx.SemanticModel.GetTypeInfo( isPattern.Expression ).Type;
+
+        if ( !IsRelevantBaseType( expressionType, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ) )
+        {
+            return;
+        }
+
+        // Check if there's a preceding Kind check in the same && chain
+        if ( HasPrecedingKindCheck( isPattern ) )
+        {
+            return;
+        }
+
+        // Check if the is-pattern is inside a when clause of a switch that already has a Kind check
+        if ( IsInsideSwitchWithKindCheck( isPattern ) )
+        {
+            return;
+        }
+
+        // Check if the pattern itself contains a Kind check (e.g., IMethod { DeclarationKind: DeclarationKind.Method })
+        if ( PatternContainsKindCheck( isPattern.Pattern ) )
+        {
+            return;
+        }
+
+        // Report diagnostic
+        ctx.ReportDiagnostic(
+            Diagnostic.Create(
+                PatternMatchingWithoutKindCheck,
+                patternType.GetLocation(),
+                typeSymbol!.Name ) );
+    }
+
+    private static void AnalyzeSwitchStatement(
+        SyntaxNodeAnalysisContext ctx,
+        INamedTypeSymbol? iDeclarationSymbol,
+        INamedTypeSymbol? iSymbolSymbol,
+        INamedTypeSymbol? syntaxNodeSymbol )
+    {
+        var switchStmt = (SwitchStatementSyntax) ctx.Node;
+
+        // Check if governing expression is already a Kind access
+        if ( IsKindAccess( switchStmt.Expression ) )
+        {
+            return;
+        }
+
+        // Get the type of the governing expression
+        var governingType = ctx.SemanticModel.GetTypeInfo( switchStmt.Expression ).Type;
+
+        if ( !IsRelevantBaseType( governingType, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ) )
+        {
+            return;
+        }
+
+        // Iterate through each switch section
+        foreach ( var section in switchStmt.Sections )
+        {
+            foreach ( var label in section.Labels )
+            {
+                // Check for CasePatternSwitchLabelSyntax with type pattern
+                if ( label is CasePatternSwitchLabelSyntax { Pattern: var pattern } )
+                {
+                    var (patternTypeNode, typeSymbol) = GetPatternTypeInfo( pattern, ctx.SemanticModel );
+
+                    if ( typeSymbol == null || patternTypeNode == null )
+                    {
+                        continue;
+                    }
+
+                    if ( IsRelevantType( typeSymbol, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ) )
+                    {
+                        // Check if the pattern itself contains a Kind check (e.g., IMethod { DeclarationKind: DeclarationKind.Method })
+                        if ( PatternContainsKindCheck( pattern ) )
+                        {
+                            continue;
+                        }
+
+                        // Report diagnostic on each type pattern
+                        ctx.ReportDiagnostic(
+                            Diagnostic.Create(
+                                PatternMatchingWithoutKindCheck,
+                                patternTypeNode.GetLocation(),
+                                typeSymbol.Name ) );
+                    }
+                }
+            }
+        }
+    }
+
+    private static void AnalyzeSwitchExpression(
+        SyntaxNodeAnalysisContext ctx,
+        INamedTypeSymbol? iDeclarationSymbol,
+        INamedTypeSymbol? iSymbolSymbol,
+        INamedTypeSymbol? syntaxNodeSymbol )
+    {
+        var switchExpr = (SwitchExpressionSyntax) ctx.Node;
+
+        // Check if governing expression is already a Kind access
+        if ( IsKindAccess( switchExpr.GoverningExpression ) )
+        {
+            return;
+        }
+
+        // Get the type of the governing expression
+        var governingType = ctx.SemanticModel.GetTypeInfo( switchExpr.GoverningExpression ).Type;
+
+        if ( !IsRelevantBaseType( governingType, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ) )
+        {
+            return;
+        }
+
+        // Iterate through each arm
+        foreach ( var arm in switchExpr.Arms )
+        {
+            var (patternTypeNode, typeSymbol) = GetPatternTypeInfo( arm.Pattern, ctx.SemanticModel );
+
+            if ( typeSymbol == null || patternTypeNode == null )
+            {
+                continue;
+            }
+
+            if ( IsRelevantType( typeSymbol, iDeclarationSymbol, iSymbolSymbol, syntaxNodeSymbol ) )
+            {
+                // Check if the pattern itself contains a Kind check (e.g., IMethod { DeclarationKind: DeclarationKind.Method })
+                if ( PatternContainsKindCheck( arm.Pattern ) )
+                {
+                    continue;
+                }
+
+                // Report diagnostic on each type pattern
+                ctx.ReportDiagnostic(
+                    Diagnostic.Create(
+                        PatternMatchingWithoutKindCheck,
+                        patternTypeNode.GetLocation(),
+                        typeSymbol.Name ) );
+            }
+        }
+    }
+
+    private static (SyntaxNode?, ITypeSymbol?) GetPatternTypeInfo( PatternSyntax pattern, SemanticModel semanticModel )
+    {
+        switch ( pattern )
+        {
+            case DeclarationPatternSyntax decl:
+                return (decl.Type, semanticModel.GetTypeInfo( decl.Type ).Type);
+
+            case RecursivePatternSyntax { Type: not null } rec:
+                return (rec.Type, semanticModel.GetTypeInfo( rec.Type ).Type);
+
+            case TypePatternSyntax typePattern:
+                return (typePattern.Type, semanticModel.GetTypeInfo( typePattern.Type ).Type);
+
+            case ConstantPatternSyntax constantPattern:
+                // In C# 9+, type patterns without a designator parse as ConstantPatternSyntax
+                // We need to check if the expression resolves to a type
+                var symbolInfo = semanticModel.GetSymbolInfo( constantPattern.Expression );
+
+                if ( symbolInfo.Symbol is INamedTypeSymbol namedType )
+                {
+                    return (constantPattern.Expression, namedType);
+                }
+
+                return (null, null);
+
+            default:
+                return (null, null);
+        }
+    }
+
+    private static bool IsKindAccess( ExpressionSyntax expression )
+    {
+        // Check for property access: x.Kind, x.DeclarationKind, x.TypeKind, x.SyntaxKind
+        // Note: SyntaxKind is an extension property on SyntaxNode that returns node.Kind()
+        if ( expression is MemberAccessExpressionSyntax memberAccess )
+        {
+            var name = memberAccess.Name.Identifier.Text;
+
+            return name is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind";
+        }
+
+        // Check for identifiers containing "Kind" (e.g., validatedDeclarationKind, symbolKind)
+        if ( expression is IdentifierNameSyntax identifier )
+        {
+            var name = identifier.Identifier.Text;
+
+            return name.IndexOf( "Kind", StringComparison.OrdinalIgnoreCase ) >= 0;
+        }
+
+        // Check for conditional access: x?.Kind, x?.DeclarationKind, x?.TypeKind
+        if ( expression is ConditionalAccessExpressionSyntax conditionalAccess )
+        {
+            // Handle x?.Kind or x?.SyntaxKind property access
+            if ( conditionalAccess.WhenNotNull is MemberBindingExpressionSyntax memberBinding )
+            {
+                return memberBinding.Name.Identifier.Text is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind";
+            }
+
+            // Handle x?.Kind() or x?.IsKind() method invocation
+            if ( conditionalAccess.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax invokeBinding } )
+            {
+                return invokeBinding.Name.Identifier.Text is "Kind" or "IsKind";
+            }
+
+            // Handle x?.SyntaxKind.IsRecordDeclaration - extension property on Kind property access
+            if ( conditionalAccess.WhenNotNull is MemberAccessExpressionSyntax extensionPropertyAccess )
+            {
+                var extensionPropertyName = extensionPropertyAccess.Name.Identifier.Text;
+
+                // Check if this is an extension property on a Kind() call (e.g., x?.Kind().IsXxx)
+                if ( extensionPropertyName.StartsWith( "Is", StringComparison.Ordinal ) &&
+                     extensionPropertyAccess.Expression is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax kindBinding } &&
+                     kindBinding.Name.Identifier.Text == "Kind" )
+                {
+                    return true;
+                }
+
+                // Check if this is an extension property on a Kind property access (e.g., x?.SyntaxKind.IsXxx)
+                if ( extensionPropertyName.StartsWith( "Is", StringComparison.Ordinal ) &&
+                     extensionPropertyAccess.Expression is MemberBindingExpressionSyntax kindPropertyBinding &&
+                     kindPropertyBinding.Name.Identifier.Text is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind" )
+                {
+                    return true;
+                }
+            }
+        }
+
+        // Check for method invocation: node.Kind()
+        if ( expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax invokeMember } )
+        {
+            return invokeMember.Name.Identifier.Text == "Kind";
+        }
+
+        // Check for tuple expression containing Kind accesses: (left.Kind, right.Kind)
+        if ( expression is TupleExpressionSyntax tupleExpr )
+        {
+            return tupleExpr.Arguments.Any( arg => IsKindAccess( arg.Expression ) );
+        }
+
+        // Check for parenthesized expression
+        if ( expression is ParenthesizedExpressionSyntax parenExpr )
+        {
+            return IsKindAccess( parenExpr.Expression );
+        }
+
+        return false;
+    }
+
+    private static bool IsInsideSwitchWithKindCheck( IsPatternExpressionSyntax isPattern )
+    {
+        // Walk up the syntax tree to find if we're inside a when clause of a switch
+        // that already has a Kind check in its governing expression or case pattern
+        var current = isPattern.Parent;
+
+        while ( current != null )
+        {
+            // Check if we're in a switch expression arm (handles both direct and when clause cases)
+            if ( current is SwitchExpressionArmSyntax arm )
+            {
+                // Find the switch expression
+                var switchExpr = arm.Parent as SwitchExpressionSyntax;
+
+                if ( switchExpr != null )
+                {
+                    // If the switch is on Kind access, check if arm has a Kind enum pattern
+                    if ( IsKindAccess( switchExpr.GoverningExpression ) && IsKindEnumPattern( arm.Pattern ) )
+                    {
+                        return true;
+                    }
+
+                    // If switch is on Kind and when clause has a Kind-checking method call, it's fine
+                    if ( IsKindAccess( switchExpr.GoverningExpression ) && arm.WhenClause != null && WhenClauseContainsKindCheck( arm.WhenClause ) )
+                    {
+                        return true;
+                    }
+
+                    // Also check if the arm pattern itself contains a Kind check (property pattern)
+                    if ( PatternContainsKindCheck( arm.Pattern ) )
+                    {
+                        return true;
+                    }
+                }
+
+                // Don't return false here - continue walking up in case we're nested in another switch
+                current = current.Parent;
+
+                continue;
+            }
+
+            // Check if we're in a when clause of a switch statement case
+            if ( current is CasePatternSwitchLabelSyntax caseLabel )
+            {
+                // Find the switch statement
+                var caseLabelSection = caseLabel.Parent;
+                var switchStatement = caseLabelSection?.Parent as SwitchStatementSyntax;
+
+                if ( switchStatement != null )
+                {
+                    // If the switch is on Kind access, check if case has a Kind enum pattern
+                    if ( IsKindAccess( switchStatement.Expression ) && IsKindEnumPattern( caseLabel.Pattern ) )
+                    {
+                        return true;
+                    }
+
+                    // Also check if the case pattern itself contains a Kind check (property pattern)
+                    if ( PatternContainsKindCheck( caseLabel.Pattern ) )
+                    {
+                        return true;
+                    }
+
+                    // Check if the when clause has a Kind-checking method call (e.g., kind.IsFieldOrProperty())
+                    if ( IsKindAccess( switchStatement.Expression ) && caseLabel.WhenClause != null && WhenClauseContainsKindCheck( caseLabel.WhenClause ) )
+                    {
+                        return true;
+                    }
+                }
+
+                // Don't return false here - continue walking up in case we're nested
+                current = current.Parent;
+
+                continue;
+            }
+
+            // Check if we're inside a switch section (switch statement body)
+            if ( current is SwitchSectionSyntax switchSection )
+            {
+                var switchStatement = switchSection.Parent as SwitchStatementSyntax;
+
+                if ( switchStatement != null && IsKindAccess( switchStatement.Expression ) )
+                {
+                    // Check if any label in this section has a Kind enum pattern or a when clause with Kind check
+                    foreach ( var label in switchSection.Labels )
+                    {
+                        if ( label is CasePatternSwitchLabelSyntax patternLabel )
+                        {
+                            if ( IsKindEnumPattern( patternLabel.Pattern ) )
+                            {
+                                return true;
+                            }
+
+                            // Also check if the when clause has a Kind-checking method call
+                            if ( patternLabel.WhenClause != null && WhenClauseContainsKindCheck( patternLabel.WhenClause ) )
+                            {
+                                return true;
+                            }
+                        }
+
+                        if ( label is CaseSwitchLabelSyntax )
+                        {
+                            // Simple case label (e.g., case SyntaxKind.X:) - the switch is already on Kind
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            current = current.Parent;
+        }
+
+        return false;
+    }
+
+    private static bool IsKindEnumPattern( PatternSyntax pattern )
+    {
+        // Check for constant pattern (e.g., SymbolKind.Method or DeclarationKind.Method)
+        if ( pattern is ConstantPatternSyntax )
+        {
+            return true;
+        }
+
+        // Check for "or" pattern combining constant patterns (e.g., SyntaxKind.X or SyntaxKind.Y)
+        if ( pattern is BinaryPatternSyntax binaryPattern )
+        {
+            return IsKindEnumPattern( binaryPattern.Left ) || IsKindEnumPattern( binaryPattern.Right );
+        }
+
+        // Check for tuple pattern with constant patterns (e.g., (SymbolKind.Method, SymbolKind.Method))
+        if ( pattern is RecursivePatternSyntax { PositionalPatternClause: { } positionalClause } )
+        {
+            return positionalClause.Subpatterns.Any( sp => IsKindEnumPattern( sp.Pattern ) );
+        }
+
+        return false;
+    }
+
+    private static bool WhenClauseContainsKindCheck( WhenClauseSyntax whenClause )
+    {
+        // Check if the when clause contains a Kind-checking method call like:
+        // kind.Value.IsTypeDeclaration, kind.IsMemberKind(), kind.IsMemberOrNamedTypeKind()
+        return ContainsKindCheckingMethodCall( whenClause.Condition );
+    }
+
+    private static bool ContainsKindCheckingMethodCall( ExpressionSyntax expression )
+    {
+        // Check for method invocations that are Kind checks
+        if ( expression is InvocationExpressionSyntax invocation )
+        {
+            if ( invocation.Expression is MemberAccessExpressionSyntax memberAccess )
+            {
+                var methodName = memberAccess.Name.Identifier.Text;
+
+                // Check for methods like IsTypeDeclaration, IsMemberKind(), IsMemberOrNamedTypeKind()
+                if ( methodName.StartsWith( "Is", StringComparison.Ordinal ) )
+                {
+                    return true;
+                }
+            }
+        }
+
+        // Check for binary && expressions
+        if ( expression is BinaryExpressionSyntax binaryExpr && binaryExpr.IsKind( SyntaxKind.LogicalAndExpression ) )
+        {
+            return ContainsKindCheckingMethodCall( binaryExpr.Left ) || ContainsKindCheckingMethodCall( binaryExpr.Right );
+        }
+
+        // Check for parenthesized expressions
+        if ( expression is ParenthesizedExpressionSyntax parenExpr )
+        {
+            return ContainsKindCheckingMethodCall( parenExpr.Expression );
+        }
+
+        return false;
+    }
+
+    private static bool HasPrecedingKindCheck( IsPatternExpressionSyntax isPattern )
+    {
+        // Walk up the syntax tree to find the containing binary expression (if any)
+        var current = isPattern.Parent;
+
+        while ( current != null )
+        {
+            if ( current is BinaryExpressionSyntax binaryExpr &&
+                 binaryExpr.IsKind( SyntaxKind.LogicalAndExpression ) )
+            {
+                // Check if the left side of the && contains a Kind check
+                if ( ContainsKindCheck( binaryExpr.Left ) )
+                {
+                    return true;
+                }
+
+                // Continue checking parent && expressions
+                current = current.Parent;
+            }
+            else if ( current is ParenthesizedExpressionSyntax )
+            {
+                current = current.Parent;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsKindCheck( ExpressionSyntax expression )
+    {
+        // Check if the expression is or contains a Kind comparison
+        // e.g., x.Kind == SymbolKind.Method or x.DeclarationKind == DeclarationKind.Method
+        // or x.DeclarationKind is DeclarationKind.Method
+
+        if ( expression is BinaryExpressionSyntax binaryExpr )
+        {
+            // Check equality comparisons
+            if ( binaryExpr.IsKind( SyntaxKind.EqualsExpression ) || binaryExpr.IsKind( SyntaxKind.NotEqualsExpression ) )
+            {
+                if ( IsKindAccess( binaryExpr.Left ) || IsKindAccess( binaryExpr.Right ) )
+                {
+                    return true;
+                }
+
+                // Also recurse into left/right to find IsKind calls like: node.IsKind(X) == true
+                if ( ContainsKindCheck( binaryExpr.Left ) || ContainsKindCheck( binaryExpr.Right ) )
+                {
+                    return true;
+                }
+            }
+
+            // Check for old-style type check: x.Kind is SomeType (parsed as IsExpression)
+            // e.g., decl.DeclarationKind is DeclarationKind.Method
+            if ( binaryExpr.IsKind( SyntaxKind.IsExpression ) )
+            {
+                if ( IsKindAccess( binaryExpr.Left ) )
+                {
+                    return true;
+                }
+            }
+
+            // Check nested && expressions (left side)
+            if ( binaryExpr.IsKind( SyntaxKind.LogicalAndExpression ) )
+            {
+                return ContainsKindCheck( binaryExpr.Left ) || ContainsKindCheck( binaryExpr.Right );
+            }
+        }
+        else if ( expression is IsPatternExpressionSyntax isPattern )
+        {
+            // Check for x.DeclarationKind is DeclarationKind.Method or x.Kind is SymbolKind.Method
+            if ( IsKindAccess( isPattern.Expression ) )
+            {
+                return true;
+            }
+
+            // Check for x is IType { Kind: SymbolKind.X } property pattern
+            if ( PatternContainsKindCheck( isPattern.Pattern ) )
+            {
+                return true;
+            }
+        }
+        else if ( expression is ParenthesizedExpressionSyntax parenExpr )
+        {
+            return ContainsKindCheck( parenExpr.Expression );
+        }
+        else if ( expression is PrefixUnaryExpressionSyntax { Operand: var operand } && expression.IsKind( SyntaxKind.LogicalNotExpression ) )
+        {
+            return ContainsKindCheck( operand );
+        }
+        else if ( expression is InvocationExpressionSyntax invocation )
+        {
+            // Check for Kind-based method calls like x.SyntaxKind.IsAccessorDeclaration or x.DeclarationKind.IsMethod()
+            if ( invocation.Expression is MemberAccessExpressionSyntax memberAccess )
+            {
+                // Check if calling a method on Kind() result, e.g., node.SyntaxKind.IsXxx()
+                if ( IsKindAccess( memberAccess.Expression ) )
+                {
+                    return true;
+                }
+
+                // Check if the method name starts with "Is" and is called on a Kind-returning expression
+                // e.g., declarationKind.IsMethod() where declarationKind is DeclarationKind
+                var methodName = memberAccess.Name.Identifier.Text;
+
+                if ( methodName.StartsWith( "Is", StringComparison.Ordinal ) && IsKindAccess( memberAccess.Expression ) )
+                {
+                    return true;
+                }
+
+                // Check for x.IsKind(SyntaxKind.X) pattern - common for SyntaxNode
+                if ( methodName == "IsKind" && invocation.ArgumentList.Arguments.Count > 0 )
+                {
+                    return true;
+                }
+            }
+        }
+        else if ( expression is MemberAccessExpressionSyntax memberAccessExpr )
+        {
+            // Check for Kind extension property access like declaration.DeclarationKind.IsMemberOrNamedType
+            // These are C# 14 extension properties that return bool
+            var propertyName = memberAccessExpr.Name.Identifier.Text;
+
+            if ( propertyName.StartsWith( "Is", StringComparison.Ordinal ) )
+            {
+                // Check if accessing an extension property on a Kind property
+                if ( IsKindAccess( memberAccessExpr.Expression ) )
+                {
+                    return true;
+                }
+            }
+        }
+        else if ( expression is ConditionalAccessExpressionSyntax conditionalAccess )
+        {
+            // Handle x?.IsKind(SyntaxKind.X) pattern
+            if ( conditionalAccess.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax invokeBinding } )
+            {
+                var methodName = invokeBinding.Name.Identifier.Text;
+
+                if ( methodName == "IsKind" )
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool PatternContainsKindCheck( PatternSyntax pattern )
+    {
+        // Check for property patterns like { Kind: X } or { DeclarationKind: X } or { TypeKind: X }
+        // Also handles nested patterns like { ResolvedSemantic.Symbol.Kind: X }
+        // Also handles extension property patterns like { DeclarationKind.IsMember: true } or { SyntaxKind.IsAccessorDeclaration: true }
+        if ( pattern is RecursivePatternSyntax recursivePattern )
+        {
+            if ( recursivePattern.PropertyPatternClause is { } propertyClause )
+            {
+                foreach ( var subpattern in propertyClause.Subpatterns )
+                {
+                    // Check if this is a Kind property check via simple name (e.g., { Kind: X } or { RawKind: X })
+                    var propertyName = subpattern.NameColon?.Name.Identifier.Text;
+
+                    if ( propertyName is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind" or "RawKind" )
+                    {
+                        return true;
+                    }
+
+                    // Check if property name starts with "Is" and is a known Kind extension property
+                    // This handles patterns like { IsMember: true } where IsMember is an extension property on DeclarationKind
+                    if ( propertyName != null && propertyName.StartsWith( "Is", StringComparison.Ordinal ) )
+                    {
+                        // Known DeclarationKind extension properties (from DeclarationKindExtensions in Engine)
+                        // and DeclarationExtensions in Framework.Code
+                        if ( propertyName is "IsMember" or "IsMemberOrNamedType" or "IsAssembly" or "IsType" or "IsNamedDeclaration" )
+                        {
+                            return true;
+                        }
+
+                        // Known SymbolKind extension properties
+                        if ( propertyName is "IsType" or "IsNonNamedType" )
+                        {
+                            return true;
+                        }
+
+                        // Known SyntaxKind extension properties
+                        if ( propertyName is "IsTypeDeclaration" or "IsBaseTypeDeclaration" or "IsLambdaExpression"
+                            or "IsBaseFieldDeclaration" or "IsLiteralExpression" or "IsAccessorDeclaration"
+                            or "IsBaseMethodDeclaration" or "IsPropertyOrEventDeclaration"
+                            or "IsSimpleName" or "IsRecordDeclaration" or "IsName" or "IsNamespaceDeclaration" )
+                        {
+                            return true;
+                        }
+
+                        // Known TypeKind extension properties
+                        if ( propertyName is "IsNamedType" or "IsClassOrStruct" )
+                        {
+                            return true;
+                        }
+                    }
+
+                    // Check if this is a Kind property check via member access (e.g., { Symbol.Kind: X } or { ResolvedSemantic.Symbol.Kind: X })
+                    if ( subpattern.ExpressionColon?.Expression is { } expr )
+                    {
+                        if ( EndsWithKindProperty( expr ) )
+                        {
+                            return true;
+                        }
+
+                        // Check for Kind extension property access like { DeclarationKind.IsMember: true } or { SyntaxKind.IsAccessorDeclaration: true }
+                        if ( IsKindExtensionPropertyAccess( expr ) )
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            // Also check nested patterns
+            if ( recursivePattern.PropertyPatternClause is { } props )
+            {
+                foreach ( var subpattern in props.Subpatterns )
+                {
+                    if ( subpattern.Pattern != null && PatternContainsKindCheck( subpattern.Pattern ) )
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsKindExtensionPropertyAccess( ExpressionSyntax expression )
+    {
+        // Check for patterns like DeclarationKind.IsMember or SyntaxKind.IsAccessorDeclaration
+        // These are extension properties on Kind enums
+        if ( expression is MemberAccessExpressionSyntax memberAccess )
+        {
+            var extensionPropertyName = memberAccess.Name.Identifier.Text;
+
+            // Check if the extension property name starts with "Is"
+            if ( !extensionPropertyName.StartsWith( "Is", StringComparison.Ordinal ) )
+            {
+                return false;
+            }
+
+            // Check if the left side is a Kind property access
+            if ( memberAccess.Expression is IdentifierNameSyntax identifier )
+            {
+                var kindPropertyName = identifier.Identifier.Text;
+
+                return kindPropertyName is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind";
+            }
+
+            // Check for chained access like x.DeclarationKind.IsMember
+            if ( memberAccess.Expression is MemberAccessExpressionSyntax nestedMemberAccess )
+            {
+                var kindPropertyName = nestedMemberAccess.Name.Identifier.Text;
+
+                return kindPropertyName is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind";
+            }
+        }
+
+        return false;
+    }
+
+    private static bool EndsWithKindProperty( ExpressionSyntax expression )
+    {
+        // Check if the expression ends with .Kind, .DeclarationKind, .TypeKind, or .SyntaxKind
+        if ( expression is MemberAccessExpressionSyntax memberAccess )
+        {
+            var name = memberAccess.Name.Identifier.Text;
+
+            return name is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind";
+        }
+
+        return false;
+    }
+
+    private static bool IsRelevantType(
+        ITypeSymbol? type,
+        INamedTypeSymbol? iDeclaration,
+        INamedTypeSymbol? iSymbol,
+        INamedTypeSymbol? syntaxNode )
+    {
+        if ( type == null )
+        {
+            return false;
+        }
+
+        // Only flag interface types - concrete classes don't benefit from Kind optimization
+        // because we're checking for a specific implementation, not polymorphic subtypes
+        if ( type.TypeKind != TypeKind.Interface )
+        {
+            // Exception: SyntaxNode subtypes (which are classes) do benefit from Kind() checks
+            // But not abstract base classes like ExpressionSyntax, StatementSyntax - those are type hierarchy checks
+            if ( syntaxNode != null )
+            {
+                // Skip abstract classes - they are type hierarchy checks, not specific type checks
+                if ( type.IsAbstract )
+                {
+                    return false;
+                }
+
+                var baseType = type.BaseType;
+
+                while ( baseType != null )
+                {
+                    if ( SymbolEqualityComparer.Default.Equals( baseType, syntaxNode ) )
+                    {
+                        return true;
+                    }
+
+                    baseType = baseType.BaseType;
+                }
+            }
+
+            return false;
+        }
+
+        // Check if type implements IDeclaration (directly or via AllInterfaces)
+        if ( iDeclaration != null )
+        {
+            if ( SymbolEqualityComparer.Default.Equals( type, iDeclaration ) ||
+                 type.AllInterfaces.Any( i => SymbolEqualityComparer.Default.Equals( i, iDeclaration ) ) )
+            {
+                return true;
+            }
+        }
+
+        // Check if type implements ISymbol (directly or via AllInterfaces)
+        if ( iSymbol != null )
+        {
+            if ( SymbolEqualityComparer.Default.Equals( type, iSymbol ) ||
+                 type.AllInterfaces.Any( i => SymbolEqualityComparer.Default.Equals( i, iSymbol ) ) )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsRelevantBaseType(
+        ITypeSymbol? type,
+        INamedTypeSymbol? iDeclaration,
+        INamedTypeSymbol? iSymbol,
+        INamedTypeSymbol? syntaxNode )
+    {
+        if ( type == null )
+        {
+            return false;
+        }
+
+        // Check if type is or implements IDeclaration
+        if ( iDeclaration != null )
+        {
+            if ( SymbolEqualityComparer.Default.Equals( type, iDeclaration ) ||
+                 type.AllInterfaces.Any( i => SymbolEqualityComparer.Default.Equals( i, iDeclaration ) ) )
+            {
+                return true;
+            }
+        }
+
+        // Check if type is or implements ISymbol
+        if ( iSymbol != null )
+        {
+            if ( SymbolEqualityComparer.Default.Equals( type, iSymbol ) ||
+                 type.AllInterfaces.Any( i => SymbolEqualityComparer.Default.Equals( i, iSymbol ) ) )
+            {
+                return true;
+            }
+        }
+
+        // Check if type is or derives from SyntaxNode
+        if ( syntaxNode != null )
+        {
+            var currentType = type;
+
+            while ( currentType != null )
+            {
+                if ( SymbolEqualityComparer.Default.Equals( currentType, syntaxNode ) )
+                {
+                    return true;
+                }
+
+                currentType = currentType.BaseType;
+            }
+        }
+
+        return false;
+    }
+}

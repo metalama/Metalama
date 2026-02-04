@@ -6,7 +6,7 @@ using Metalama.Framework.Engine.Linking.Inlining;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -146,7 +146,7 @@ internal sealed partial class LinkerAnalysisStep
                         var targetSemantic = aspectReference.ResolvedSemanticBody;
                         var info = inliner.GetInliningAnalysisInfo( aspectReference );
 
-                        if ( context.UsingSimpleInlining && (info.ReplacedRootNode is ReturnStatementSyntax or EqualsValueClauseSyntax
+                        if ( context.UsingSimpleInlining && (info.ReplacedRootNode.Kind() is SyntaxKind.ReturnStatement or SyntaxKind.EqualsValueClause
                                                              || currentSemantic.Kind == IntermediateSymbolSemanticKind.Final) )
                         {
                             // Possible cases:
@@ -171,7 +171,7 @@ internal sealed partial class LinkerAnalysisStep
                             VisitSemanticBody( destinationSemantic, targetSemantic, context.Recurse() );
                         }
                         else if ( !SymbolEqualityComparer.Default.Equals( currentSemantic.Symbol, aspectReference.ContainingBody )
-                                  && info.ReplacedRootNode is ReturnStatementSyntax or EqualsValueClauseSyntax )
+                                  && info.ReplacedRootNode.Kind() is SyntaxKind.ReturnStatement or SyntaxKind.EqualsValueClause )
                         {
                             // If inlining into a local function, revert to simple inlining.
                             inliningSpecifications.Enqueue(

@@ -26,11 +26,11 @@ public sealed record ReferenceIndexerRequirements(
         var validatedIdentifier = validatedDeclaration.DeclarationKind switch
         {
             DeclarationKind.Constructor when validatedDeclaration is IConstructor constructor => constructor.DeclaringType.Name,
-            _ when validatedDeclaration is INamedDeclaration namedDeclaration => namedDeclaration.Name,
+            { IsNamedDeclaration: true } when validatedDeclaration is INamedDeclaration namedDeclaration => namedDeclaration.Name,
             _ => null
         };
 
-        if ( referenceKinds.IsDefined( ReferenceKinds.BaseType ) && validatedDeclaration is INamedType { IsSealed: true } )
+        if ( referenceKinds.IsDefined( ReferenceKinds.BaseType ) && validatedDeclaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock && validatedDeclaration is INamedType { IsSealed: true } )
         {
             referenceKinds &= ~ReferenceKinds.BaseType;
         }

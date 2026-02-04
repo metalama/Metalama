@@ -312,14 +312,15 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
 
     private bool TryConvertExpressionToTypedConstant( ExpressionSyntax syntax, [NotNullWhen( true )] out TypedConstant? typedConstant )
     {
-        switch ( syntax )
+        switch ( syntax.Kind() )
         {
-            case LiteralExpressionSyntax literalExpression:
+            case SyntaxKind.StringLiteralExpression or SyntaxKind.NumericLiteralExpression or SyntaxKind.CharacterLiteralExpression or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression or SyntaxKind.DefaultLiteralExpression
+                when syntax is LiteralExpressionSyntax literalExpression:
                 typedConstant = Code.TypedConstant.Create( literalExpression.Token.Value );
 
                 return true;
 
-            case DefaultExpressionSyntax defaultExpressionSyntax:
+            case SyntaxKind.DefaultExpression when syntax is DefaultExpressionSyntax defaultExpressionSyntax:
                 {
                     var type = this.Compilation.GetCompilationModel()
                         .SerializableTypeIdResolver.ResolveId( defaultExpressionSyntax.Type.GetSerializableTypeId() );

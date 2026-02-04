@@ -38,7 +38,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
             if ( memberName is nameof(this.Property) or nameof(this.Field) or nameof(this.FieldOrProperty) && this._fieldOrPropertyOrIndexer != null )
             {
-                var alternativeMemberName = this._fieldOrPropertyOrIndexer is IFieldOrProperty
+                var alternativeMemberName = this._fieldOrPropertyOrIndexer.DeclarationKind is DeclarationKind.Field or DeclarationKind.Property && this._fieldOrPropertyOrIndexer is IFieldOrProperty
                     ? nameof(this.FieldOrProperty)
                     : nameof(this.FieldOrPropertyOrIndexer);
 
@@ -64,15 +64,17 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         [Memo]
         public IField Field
-            => this._fieldOrPropertyOrIndexer switch
+            => this._fieldOrPropertyOrIndexer?.DeclarationKind switch
             {
-                IField field => @field,
-                IProperty { OriginalField: { } field } => @field,
+                DeclarationKind.Field when this._fieldOrPropertyOrIndexer is IField field => @field,
+                DeclarationKind.Property when this._fieldOrPropertyOrIndexer is IProperty { OriginalField: { } field } => @field,
                 _ => throw this.CreateInvalidOperationException( nameof(this.Field) )
             };
 
         public IFieldOrProperty FieldOrProperty
-            => this._fieldOrPropertyOrIndexer as IFieldOrProperty ?? throw this.CreateInvalidOperationException( nameof(this.FieldOrProperty) );
+            => this._fieldOrPropertyOrIndexer?.DeclarationKind is DeclarationKind.Field or DeclarationKind.Property && this._fieldOrPropertyOrIndexer is IFieldOrProperty fieldOrProperty
+                ? fieldOrProperty
+                : throw this.CreateInvalidOperationException( nameof(this.FieldOrProperty) );
 
         public IFieldOrPropertyOrIndexer FieldOrPropertyOrIndexer
             => this._fieldOrPropertyOrIndexer ?? throw this.CreateInvalidOperationException( nameof(this.FieldOrPropertyOrIndexer) );
@@ -110,10 +112,10 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         [Memo]
         public IProperty Property
-            => this._fieldOrPropertyOrIndexer switch
+            => this._fieldOrPropertyOrIndexer?.DeclarationKind switch
             {
-                IProperty property => property,
-                IField { OverridingProperty: { } property } => property,
+                DeclarationKind.Property when this._fieldOrPropertyOrIndexer is IProperty property => property,
+                DeclarationKind.Field when this._fieldOrPropertyOrIndexer is IField { OverridingProperty: { } property } => property,
                 _ => throw this.CreateInvalidOperationException( nameof(this.Property) )
             };
 
@@ -126,7 +128,10 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         [field: MaybeNull]
         public IParameter Parameter => field ?? throw this.CreateInvalidOperationException( nameof(this.Parameter) );
 
-        public IIndexer Indexer => this._fieldOrPropertyOrIndexer as IIndexer ?? throw this.CreateInvalidOperationException( nameof(this.Indexer) );
+        public IIndexer Indexer
+            => this._fieldOrPropertyOrIndexer?.DeclarationKind == DeclarationKind.Indexer && this._fieldOrPropertyOrIndexer is IIndexer indexer
+                ? indexer
+                : throw this.CreateInvalidOperationException( nameof(this.Indexer) );
 
         public INamedType Type => this._type ?? throw this.CreateInvalidOperationException( nameof(this.Type), nameof(INamedType) );
 
@@ -253,13 +258,13 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
                     {
                         switch ( propertyOrEvent.DeclarationKind )
                         {
-                            case DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Indexer:
-                                this._fieldOrPropertyOrIndexer = (IFieldOrPropertyOrIndexer) method.DeclaringMember;
+                            case DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Indexer when propertyOrEvent is IFieldOrPropertyOrIndexer fieldOrPropOrIdx:
+                                this._fieldOrPropertyOrIndexer = fieldOrPropOrIdx;
 
                                 break;
 
-                            case DeclarationKind.Event:
-                                this._event = (IEvent) method.DeclaringMember;
+                            case DeclarationKind.Event when propertyOrEvent is IEvent evt:
+                                this._event = evt;
 
                                 break;
 
@@ -304,15 +309,19 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         }
 
         public static MetaApi ForContract( IDeclaration declaration, IMethodBase method, MetaApiProperties common, ContractDirection contractDirection )
-            => declaration switch
+            => declaration.DeclarationKind switch
             {
-                IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer => new MetaApi( fieldOrPropertyOrIndexer, (IMethod) method, common )
-                {
-                    ContractDirection = contractDirection
-                },
-                IEvent @event => new MetaApi( @event, (IMethod) method, common ) { ContractDirection = contractDirection },
-                IConstructor constructor => new MetaApi( constructor, common ) { ContractDirection = contractDirection },
-                IParameter parameter => new MetaApi( parameter, method, common ) { ContractDirection = contractDirection },
+                DeclarationKind.Field or DeclarationKind.Property or DeclarationKind.Indexer when declaration is IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer
+                    => new MetaApi( fieldOrPropertyOrIndexer, (IMethod) method, common )
+                    {
+                        ContractDirection = contractDirection
+                    },
+                DeclarationKind.Event when declaration is IEvent @event
+                    => new MetaApi( @event, (IMethod) method, common ) { ContractDirection = contractDirection },
+                DeclarationKind.Constructor when declaration is IConstructor constructor
+                    => new MetaApi( constructor, common ) { ContractDirection = contractDirection },
+                DeclarationKind.Parameter when declaration is IParameter parameter
+                    => new MetaApi( parameter, method, common ) { ContractDirection = contractDirection },
                 _ => throw new AssertionFailedException( $"Unexpected type: {declaration.GetType()}." )
             };
 
@@ -324,10 +333,12 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
             => new( common.Translate( fieldOrPropertyOrIndexer ), common.Translate( accessor ), common );
 
         public static MetaApi ForInitializer( IMember initializedDeclaration, MetaApiProperties common )
-            => initializedDeclaration switch
+            => initializedDeclaration.DeclarationKind switch
             {
-                IFieldOrProperty fieldOrProperty => new MetaApi( common.Translate( fieldOrProperty ), null, common ),
-                IEvent eventField => new MetaApi( common.Translate( eventField ), null, common ),
+                DeclarationKind.Field or DeclarationKind.Property when initializedDeclaration is IFieldOrProperty fieldOrProperty
+                    => new MetaApi( common.Translate( fieldOrProperty ), null, common ),
+                DeclarationKind.Event when initializedDeclaration is IEvent eventField
+                    => new MetaApi( common.Translate( eventField ), null, common ),
                 _ => throw new AssertionFailedException( $"Unexpected type: {initializedDeclaration.GetType()}." )
             };
 

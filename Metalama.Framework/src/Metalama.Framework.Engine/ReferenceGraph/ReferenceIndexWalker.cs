@@ -112,20 +112,20 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         this.Visit( node.Right );
         this.VisitWithReferenceKinds( node.Left, ReferenceKinds.Assignment );
 
-        switch ( node.Left )
+        switch ( node.Left.Kind() )
         {
-            case MemberAccessExpressionSyntax memberAccess:
+            case SyntaxKind.SimpleMemberAccessExpression when node.Left is MemberAccessExpressionSyntax memberAccess:
                 this.Visit( memberAccess.Expression );
 
                 break;
 
-            case ElementAccessExpressionSyntax elementAccess:
+            case SyntaxKind.ElementAccessExpression when node.Left is ElementAccessExpressionSyntax elementAccess:
                 this.Visit( elementAccess.Expression );
                 this.Visit( elementAccess.ArgumentList );
 
                 break;
 
-            case IdentifierNameSyntax:
+            case SyntaxKind.IdentifierName:
                 // If we just have an identifier, we have nothing to visit.
                 break;
 
@@ -459,11 +459,11 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
     }
 
     private static SyntaxToken GetTypeIdentifier( TypeSyntax? syntax )
-        => syntax switch
+        => syntax?.Kind() switch
         {
-            IdentifierNameSyntax identifier => identifier.Identifier,
-            GenericNameSyntax generic => generic.Identifier,
-            QualifiedNameSyntax qualified => GetTypeIdentifier( qualified.Right ),
+            SyntaxKind.IdentifierName when syntax is IdentifierNameSyntax identifier => identifier.Identifier,
+            SyntaxKind.GenericName when syntax is GenericNameSyntax generic => generic.Identifier,
+            SyntaxKind.QualifiedName when syntax is QualifiedNameSyntax qualified => GetTypeIdentifier( qualified.Right ),
             _ => default
         };
 
@@ -605,7 +605,7 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
 
             this._observer?.OnSymbolResolved( expressionType );
 
-            if ( expressionType is IArrayTypeSymbol arrayType )
+            if ( expressionType.Kind == SymbolKind.ArrayType && expressionType is IArrayTypeSymbol arrayType )
             {
                 this._referenceIndexBuilder.AddReference( arrayType.ElementType, this.CurrentDeclarationSymbol, node, ReferenceKinds.ArrayCreation );
             }
@@ -922,28 +922,28 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
 
                 break;
 
-            case SyntaxKind.NullableType:
-                this.VisitWithReferenceKinds( ((NullableTypeSyntax) type).ElementType, kind );
+            case SyntaxKind.NullableType when type is NullableTypeSyntax nullableType:
+                this.VisitWithReferenceKinds( nullableType.ElementType, kind );
 
                 break;
 
-            case SyntaxKind.ArrayType:
-                this.VisitWithReferenceKinds( ((ArrayTypeSyntax) type).ElementType, ReferenceKinds.ArrayElementType );
+            case SyntaxKind.ArrayType when type is ArrayTypeSyntax arrayType:
+                this.VisitWithReferenceKinds( arrayType.ElementType, ReferenceKinds.ArrayElementType );
 
                 break;
 
-            case SyntaxKind.PointerType:
-                this.VisitWithReferenceKinds( ((PointerTypeSyntax) type).ElementType, ReferenceKinds.PointerType );
+            case SyntaxKind.PointerType when type is PointerTypeSyntax pointerType:
+                this.VisitWithReferenceKinds( pointerType.ElementType, ReferenceKinds.PointerType );
 
                 break;
 
-            case SyntaxKind.RefType:
-                this.VisitWithReferenceKinds( ((RefTypeSyntax) type).Type, kind );
+            case SyntaxKind.RefType when type is RefTypeSyntax refType:
+                this.VisitWithReferenceKinds( refType.Type, kind );
 
                 break;
 
-            case SyntaxKind.TupleType:
-                foreach ( var item in ((TupleTypeSyntax) type).Elements )
+            case SyntaxKind.TupleType when type is TupleTypeSyntax tupleType:
+                foreach ( var item in tupleType.Elements )
                 {
                     this.VisitTypeReference( item.Type, ReferenceKinds.TupleElementType );
                 }
@@ -955,10 +955,8 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
                 // Not implemented;
                 break;
 
-            case SyntaxKind.GenericName:
+            case SyntaxKind.GenericName when type is GenericNameSyntax genericType:
                 {
-                    var genericType = (GenericNameSyntax) type;
-
                     if ( genericType.Identifier.Text == nameof(Nullable<int>) )
                     {
                         // Process nullable types consitently as the ? operator.

@@ -71,8 +71,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
                     }
 
                 // Instance member.
-                case DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Indexer or DeclarationKind.Constructor
-                    when currentDeclaration is IMember { IsStatic: false, DeclaringType: { } type }:
+                case { IsMember: true } when currentDeclaration is IMember { IsStatic: false, DeclaringType: { } type }:
                     receiver = new ThisInstanceUserReceiver( type, aspectReferenceSpecification );
 
                     return true;
