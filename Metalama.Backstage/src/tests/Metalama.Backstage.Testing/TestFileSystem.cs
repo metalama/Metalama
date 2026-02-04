@@ -42,7 +42,7 @@ namespace Metalama.Backstage.Testing
         private readonly IDateTimeProvider _time;
         private readonly DirectoryWrapper _directory;
         private readonly FileWrapper _file;
-        private readonly ConcurrentDictionary<string, ConcurrentDictionary<WatcherHandle, Action<FileSystemEventArgs>>> _changeWatchers = new();
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<WatcherHandle, Action<FileSystemEventArgs>>> _changeWatchers = new( StringComparer.OrdinalIgnoreCase );
         private readonly DateTime _initializationTime;
 
         public MockFileSystem Mock { get; private set; } = new();
@@ -351,8 +351,12 @@ namespace Metalama.Backstage.Testing
 
         public IDisposable WatchChanges( string directory, string filter, Action<FileSystemEventArgs> callback )
         {
-            var subDictionary = this._changeWatchers.GetOrAdd( directory, _ => new ConcurrentDictionary<WatcherHandle, Action<FileSystemEventArgs>>() );
-            var handle = new WatcherHandle( this, directory, filter );
+            // Normalize the directory path to ensure consistent lookup.
+            // Path.GetFullPath normalizes separators and removes trailing slashes.
+            var normalizedDirectory = Path.GetFullPath( directory );
+
+            var subDictionary = this._changeWatchers.GetOrAdd( normalizedDirectory, _ => new ConcurrentDictionary<WatcherHandle, Action<FileSystemEventArgs>>() );
+            var handle = new WatcherHandle( this, normalizedDirectory, filter );
             subDictionary.TryAdd( handle, callback );
 
             return handle;

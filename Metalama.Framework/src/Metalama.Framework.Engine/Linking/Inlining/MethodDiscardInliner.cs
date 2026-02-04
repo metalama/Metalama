@@ -5,7 +5,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 
 namespace Metalama.Framework.Engine.Linking.Inlining;
 
@@ -28,18 +27,21 @@ internal sealed class MethodDiscardInliner : MethodInliner
             return false;
         }
 
-        if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
 
-        if ( invocationExpression.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        // The invocation (possibly through parentheses or null-forgiving) should be the right side of an assignment.
+        var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+
+        if ( !invocationOrWrapped.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) || invocationOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
 
         // Invocation should be on the right.
-        if ( assignmentExpression.Right != invocationExpression )
+        if ( assignmentExpression.Right != invocationOrWrapped )
         {
             // Only incorrect code can get here.
             throw new AssertionFailedException( Justifications.CoverageMissing );
@@ -48,21 +50,19 @@ internal sealed class MethodDiscardInliner : MethodInliner
         }
 
         // Assignment should have a discard identifier on the left (TODO: ref returns).
-        if ( assignmentExpression.Kind() != SyntaxKind.SimpleAssignmentExpression
-             || assignmentExpression.Left is not IdentifierNameSyntax identifierName
-             || !string.Equals( identifierName.Identifier.ValueText, "_", StringComparison.Ordinal ) )
+        if ( !InlinerHelper.IsDiscardAssignment( assignmentExpression ) )
         {
             return false;
         }
 
         // The assignment should be part of expression statement.
-        if ( assignmentExpression.Parent is not ExpressionStatementSyntax )
+        if ( !assignmentExpression.Parent.IsKind( SyntaxKind.ExpressionStatement ) || assignmentExpression.Parent is not ExpressionStatementSyntax )
         {
             return false;
         }
 
         // The invocation needs to be inlineable in itself.
-        if ( !IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
+        if ( !InlinerHelper.IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
         {
             return false;
         }
@@ -73,7 +73,11 @@ internal sealed class MethodDiscardInliner : MethodInliner
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
         var invocationExpression = (InvocationExpressionSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
-        var assignmentExpression = (AssignmentExpressionSyntax) invocationExpression.Parent.AssertNotNull();
+
+        // Navigate through parentheses and null-forgiving to find the assignment.
+        var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+
+        var assignmentExpression = (AssignmentExpressionSyntax) invocationOrWrapped.Parent.AssertNotNull();
         var expressionStatement = (ExpressionStatementSyntax) assignmentExpression.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( expressionStatement, null );
