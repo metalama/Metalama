@@ -349,7 +349,7 @@ public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
 
             // Get the string to find the opening parenthesis.
             var keyString = stringBuilder.ToString()!;
-            var indexOfParenthesis = keyString.IndexOf( '(' );
+            var indexOfParenthesis = keyString.IndexOfOrdinal( '(' );
 
             if ( useMethodNameAsPrefix && indexOfParenthesis > 0 )
             {
