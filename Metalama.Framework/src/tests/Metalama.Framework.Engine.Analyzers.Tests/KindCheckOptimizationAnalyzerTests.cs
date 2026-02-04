@@ -2,6 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -36,6 +38,10 @@ public class KindCheckOptimizationAnalyzerTests
 
         // Metalama.Framework reference (for IDeclaration)
         references.Add( MetadataReference.CreateFromFile( typeof( Metalama.Framework.Code.IDeclaration ).Assembly.Location ) );
+
+        // Metalama.Framework.Engine reference (for extension properties like DeclarationKindExtensions.IsMember)
+        references.Add( MetadataReference.CreateFromFile( typeof( DeclarationKindExtensions ).Assembly.Location ) );
+        references.Add( MetadataReference.CreateFromFile( typeof( SyntaxKindExtensions ).Assembly.Location ) );
 
         _references = references.ToArray();
     }
@@ -837,6 +843,278 @@ public class KindCheckOptimizationAnalyzerTests
 
         // Should be 0 because there's a preceding Kind check
         Assert.Empty( diagnostics );
+    }
+
+    #endregion
+
+    #region Extension Property Pattern Tests - False Positives (Should Not Warn)
+
+    [Fact]
+    public async Task IsPattern_DeclarationKindExtensionProperty_IsMember_ShouldNotWarn()
+    {
+        // Pattern: { DeclarationKind.IsMember: true } - uses extension property on DeclarationKind
+        var code = """
+            using Metalama.Framework.Code;
+            using Metalama.Framework.Engine.Utilities;
+            class Test
+            {
+                void M(IDeclaration decl)
+                {
+                    if (decl is { DeclarationKind.IsMember: true } and IMember member) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_DeclarationKindExtensionProperty_IsMemberOrNamedType_ShouldNotWarn()
+    {
+        // Pattern: { DeclarationKind.IsMemberOrNamedType: true } - uses extension property on DeclarationKind
+        var code = """
+            using Metalama.Framework.Code;
+            using Metalama.Framework.Engine.Utilities;
+            class Test
+            {
+                void M(IDeclaration decl)
+                {
+                    if (decl is { DeclarationKind.IsMemberOrNamedType: true } and IMemberOrNamedType member) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task SwitchExpression_DeclarationKindExtensionProperty_ShouldNotWarn()
+    {
+        // Pattern: case { DeclarationKind.IsMember: true } when declaration is IMember member
+        var code = """
+            using Metalama.Framework.Code;
+            using Metalama.Framework.Engine.Utilities;
+            class Test
+            {
+                int M(IDeclaration decl) => decl switch
+                {
+                    { DeclarationKind.IsMember: true } and IMember member => 1,
+                    _ => 0
+                };
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task SwitchStatement_DeclarationKindExtensionProperty_ShouldNotWarn()
+    {
+        // Pattern in switch statement: case { DeclarationKind.IsMember: true } and IMember member:
+        var code = """
+            using Metalama.Framework.Code;
+            using Metalama.Framework.Engine.Utilities;
+            class Test
+            {
+                void M(IDeclaration decl)
+                {
+                    switch (decl)
+                    {
+                        case { DeclarationKind.IsMember: true } and IMember member:
+                            break;
+                    }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_SyntaxKindExtensionProperty_IsAccessorDeclaration_ShouldNotWarn()
+    {
+        // Pattern: { SyntaxKind.IsAccessorDeclaration: true }
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(SyntaxNode node)
+                {
+                    if (node is { SyntaxKind.IsAccessorDeclaration: true } and AccessorDeclarationSyntax accessor) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_SyntaxKindExtensionProperty_IsTypeDeclaration_ShouldNotWarn()
+    {
+        // Pattern: { SyntaxKind.IsTypeDeclaration: true }
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(SyntaxNode node)
+                {
+                    if (node is { SyntaxKind.IsTypeDeclaration: true } and TypeDeclarationSyntax typeDecl) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_SyntaxKindExtensionProperty_IsBaseMethodDeclaration_ShouldNotWarn()
+    {
+        // Pattern: { SyntaxKind.IsBaseMethodDeclaration: true }
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(SyntaxNode node)
+                {
+                    if (node is { SyntaxKind.IsBaseMethodDeclaration: true } and BaseMethodDeclarationSyntax method) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task SwitchExpression_SyntaxKindExtensionProperty_ShouldNotWarn()
+    {
+        // Pattern in switch expression with SyntaxKind extension property
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                int M(SyntaxNode node) => node switch
+                {
+                    { SyntaxKind.IsTypeDeclaration: true } and TypeDeclarationSyntax typeDecl => 1,
+                    { SyntaxKind.IsBaseMethodDeclaration: true } and BaseMethodDeclarationSyntax method => 2,
+                    _ => 0
+                };
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_SymbolKindExtensionProperty_IsMember_ShouldNotWarn()
+    {
+        // Pattern: { Kind.IsMember: true }
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(ISymbol symbol)
+                {
+                    if (symbol is { Kind.IsMember: true } and IFieldSymbol field) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_SymbolKindExtensionProperty_IsNonNamedType_ShouldNotWarn()
+    {
+        // Pattern: { Kind.IsNonNamedType: true }
+        var code = """
+            using Microsoft.CodeAnalysis;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            class Test
+            {
+                void M(ISymbol symbol)
+                {
+                    if (symbol is { Kind.IsNonNamedType: true } and IArrayTypeSymbol array) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task SwitchStatement_DirectExtensionPropertyInPattern_ShouldNotWarn()
+    {
+        // Pattern: case { IsMember: true } when currentDeclaration is IMember
+        // This tests direct extension property access in a pattern (without Kind. prefix)
+        var code = """
+            using Metalama.Framework.Code;
+            using Metalama.Framework.Engine.Utilities;
+            class Test
+            {
+                void M(IDeclaration decl)
+                {
+                    switch (decl.DeclarationKind)
+                    {
+                        case { IsMember: true } when decl is IMember member:
+                            break;
+                    }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_PrecedingExtensionPropertyCheck_ShouldNotWarn()
+    {
+        // Pattern: declaration.DeclarationKind.IsMemberOrNamedType && declaration is IMemberOrNamedType
+        // This tests extension property access in a preceding && expression
+        var code = """
+            using Metalama.Framework.Code;
+            using Metalama.Framework.Engine.Utilities;
+            class Test
+            {
+                void M(IDeclaration decl)
+                {
+                    if (decl.DeclarationKind.IsMemberOrNamedType && decl is IMemberOrNamedType memberOrType) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
+    }
+
+    [Fact]
+    public async Task IsPattern_PrecedingExtensionPropertyCheck_IsMember_ShouldNotWarn()
+    {
+        // Pattern: declaration.DeclarationKind.IsMember && declaration is IMember
+        var code = """
+            using Metalama.Framework.Code;
+            using Metalama.Framework.Engine.Utilities;
+            class Test
+            {
+                void M(IDeclaration decl)
+                {
+                    if (decl.DeclarationKind.IsMember && decl is IMember member) { }
+                }
+            }
+            """;
+
+        await AssertDiagnosticCountAsync( code, 0 );
     }
 
     #endregion

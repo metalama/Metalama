@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -280,7 +281,7 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
         {
             var name = identifier.Identifier.Text;
 
-            return name.IndexOf( "Kind", System.StringComparison.OrdinalIgnoreCase ) >= 0;
+            return name.IndexOf( "Kind", StringComparison.OrdinalIgnoreCase ) >= 0;
         }
 
         // Check for conditional access: x?.Kind, x?.DeclarationKind, x?.TypeKind
@@ -460,7 +461,7 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
     private static bool WhenClauseContainsKindCheck( WhenClauseSyntax whenClause )
     {
         // Check if the when clause contains a Kind-checking method call like:
-        // kind.Value.IsTypeDeclaration(), kind.IsMemberKind(), kind.IsMemberOrNamedTypeKind()
+        // kind.Value.IsTypeDeclaration, kind.IsMemberKind(), kind.IsMemberOrNamedTypeKind()
         return ContainsKindCheckingMethodCall( whenClause.Condition );
     }
 
@@ -473,8 +474,8 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             {
                 var methodName = memberAccess.Name.Identifier.Text;
 
-                // Check for methods like IsTypeDeclaration(), IsMemberKind(), IsMemberOrNamedTypeKind()
-                if ( methodName.StartsWith( "Is", System.StringComparison.Ordinal ) )
+                // Check for methods like IsTypeDeclaration, IsMemberKind(), IsMemberOrNamedTypeKind()
+                if ( methodName.StartsWith( "Is", StringComparison.Ordinal ) )
                 {
                     return true;
                 }
@@ -591,10 +592,10 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
         }
         else if ( expression is InvocationExpressionSyntax invocation )
         {
-            // Check for Kind-based method calls like x.Kind().IsAccessorDeclaration() or x.DeclarationKind.IsMethod()
+            // Check for Kind-based method calls like x.SyntaxKind.IsAccessorDeclaration or x.DeclarationKind.IsMethod()
             if ( invocation.Expression is MemberAccessExpressionSyntax memberAccess )
             {
-                // Check if calling a method on Kind() result, e.g., node.Kind().IsXxx()
+                // Check if calling a method on Kind() result, e.g., node.SyntaxKind.IsXxx()
                 if ( IsKindAccess( memberAccess.Expression ) )
                 {
                     return true;
@@ -604,13 +605,28 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                 // e.g., declarationKind.IsMethod() where declarationKind is DeclarationKind
                 var methodName = memberAccess.Name.Identifier.Text;
 
-                if ( methodName.StartsWith( "Is", System.StringComparison.Ordinal ) && IsKindAccess( memberAccess.Expression ) )
+                if ( methodName.StartsWith( "Is", StringComparison.Ordinal ) && IsKindAccess( memberAccess.Expression ) )
                 {
                     return true;
                 }
 
                 // Check for x.IsKind(SyntaxKind.X) pattern - common for SyntaxNode
                 if ( methodName == "IsKind" && invocation.ArgumentList.Arguments.Count > 0 )
+                {
+                    return true;
+                }
+            }
+        }
+        else if ( expression is MemberAccessExpressionSyntax memberAccessExpr )
+        {
+            // Check for Kind extension property access like declaration.DeclarationKind.IsMemberOrNamedType
+            // These are C# 14 extension properties that return bool
+            var propertyName = memberAccessExpr.Name.Identifier.Text;
+
+            if ( propertyName.StartsWith( "Is", StringComparison.Ordinal ) )
+            {
+                // Check if accessing an extension property on a Kind property
+                if ( IsKindAccess( memberAccessExpr.Expression ) )
                 {
                     return true;
                 }
@@ -637,6 +653,7 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
     {
         // Check for property patterns like { Kind: X } or { DeclarationKind: X } or { TypeKind: X }
         // Also handles nested patterns like { ResolvedSemantic.Symbol.Kind: X }
+        // Also handles extension property patterns like { DeclarationKind.IsMember: true } or { SyntaxKind.IsAccessorDeclaration: true }
         if ( pattern is RecursivePatternSyntax recursivePattern )
         {
             if ( recursivePattern.PropertyPatternClause is { } propertyClause )
@@ -646,15 +663,55 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                     // Check if this is a Kind property check via simple name (e.g., { Kind: X })
                     var propertyName = subpattern.NameColon?.Name.Identifier.Text;
 
-                    if ( propertyName is "Kind" or "DeclarationKind" or "TypeKind" )
+                    if ( propertyName is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind" )
                     {
                         return true;
                     }
 
-                    // Check if this is a Kind property check via member access (e.g., { Symbol.Kind: X } or { ResolvedSemantic.Symbol.Kind: X })
-                    if ( subpattern.ExpressionColon?.Expression is { } expr && EndsWithKindProperty( expr ) )
+                    // Check if property name starts with "Is" and is a known Kind extension property
+                    // This handles patterns like { IsMember: true } where IsMember is an extension property on DeclarationKind
+                    if ( propertyName != null && propertyName.StartsWith( "Is", StringComparison.Ordinal ) )
                     {
-                        return true;
+                        // Known DeclarationKind extension properties
+                        if ( propertyName is "IsMember" or "IsMemberOrNamedType" )
+                        {
+                            return true;
+                        }
+
+                        // Known SymbolKind extension properties
+                        if ( propertyName is "IsType" or "IsNonNamedType" )
+                        {
+                            return true;
+                        }
+
+                        // Known SyntaxKind extension properties
+                        if ( propertyName is "IsTypeDeclaration" or "IsBaseTypeDeclaration" or "IsLambdaExpression"
+                             or "IsBaseFieldDeclaration" or "IsLiteralExpression" or "IsAccessorDeclaration"
+                             or "IsBaseMethodDeclaration" or "IsPropertyOrEventDeclaration" )
+                        {
+                            return true;
+                        }
+
+                        // Known TypeKind extension properties
+                        if ( propertyName is "IsNamedType" )
+                        {
+                            return true;
+                        }
+                    }
+
+                    // Check if this is a Kind property check via member access (e.g., { Symbol.Kind: X } or { ResolvedSemantic.Symbol.Kind: X })
+                    if ( subpattern.ExpressionColon?.Expression is { } expr )
+                    {
+                        if ( EndsWithKindProperty( expr ) )
+                        {
+                            return true;
+                        }
+
+                        // Check for Kind extension property access like { DeclarationKind.IsMember: true } or { SyntaxKind.IsAccessorDeclaration: true }
+                        if ( IsKindExtensionPropertyAccess( expr ) )
+                        {
+                            return true;
+                        }
                     }
                 }
             }
@@ -669,6 +726,40 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                         return true;
                     }
                 }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsKindExtensionPropertyAccess( ExpressionSyntax expression )
+    {
+        // Check for patterns like DeclarationKind.IsMember or SyntaxKind.IsAccessorDeclaration
+        // These are extension properties on Kind enums
+        if ( expression is MemberAccessExpressionSyntax memberAccess )
+        {
+            var extensionPropertyName = memberAccess.Name.Identifier.Text;
+
+            // Check if the extension property name starts with "Is"
+            if ( !extensionPropertyName.StartsWith( "Is", StringComparison.Ordinal ) )
+            {
+                return false;
+            }
+
+            // Check if the left side is a Kind property access
+            if ( memberAccess.Expression is IdentifierNameSyntax identifier )
+            {
+                var kindPropertyName = identifier.Identifier.Text;
+
+                return kindPropertyName is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind";
+            }
+
+            // Check for chained access like x.DeclarationKind.IsMember
+            if ( memberAccess.Expression is MemberAccessExpressionSyntax nestedMemberAccess )
+            {
+                var kindPropertyName = nestedMemberAccess.Name.Identifier.Text;
+
+                return kindPropertyName is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind";
             }
         }
 

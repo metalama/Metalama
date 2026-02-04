@@ -2,60 +2,87 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace Metalama.Framework.Engine.Utilities.Roslyn;
 
 /// <summary>
-/// Extension methods for <see cref="SyntaxKind"/>.
+/// Extension properties for <see cref="SyntaxKind"/>.
 /// </summary>
-internal static class SyntaxKindExtensions
+public static class SyntaxKindExtensions
 {
-    /// <summary>
-    /// Determines whether the syntax kind represents a type declaration that can contain members
-    /// (class, struct, interface, record, or record struct).
-    /// </summary>
-    public static bool IsTypeDeclaration( this SyntaxKind kind )
-        => kind is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
-            or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration;
+    extension( SyntaxNode node )
+    {
+        public SyntaxKind SyntaxKind => node.Kind();
+    }
 
-    /// <summary>
-    /// Determines whether the syntax kind represents any base type declaration
-    /// (class, struct, interface, record, record struct, enum, or delegate).
-    /// </summary>
-    public static bool IsBaseTypeDeclaration( this SyntaxKind kind )
-        => kind.IsTypeDeclaration() || kind is SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration;
+    extension( SyntaxToken token )
+    {
+        public SyntaxKind SyntaxKind => token.Kind();
+    }
 
-    /// <summary>
-    /// Determines whether the syntax kind represents a lambda expression
-    /// (simple lambda or parenthesized lambda).
-    /// </summary>
-    public static bool IsLambdaExpression( this SyntaxKind kind )
-        => kind is SyntaxKind.SimpleLambdaExpression or SyntaxKind.ParenthesizedLambdaExpression;
+    extension( SyntaxKind kind )
+    {
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents a type declaration that can contain members
+        /// (class, struct, interface, record, or record struct).
+        /// </summary>
+        public bool IsTypeDeclaration
+            => kind is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration;
 
-    /// <summary>
-    /// Determines whether the syntax kind represents a base field declaration
-    /// (field or event field).
-    /// </summary>
-    public static bool IsBaseFieldDeclaration( this SyntaxKind kind )
-        => kind is SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration;
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents any base type declaration
+        /// (class, struct, interface, record, record struct, enum, or delegate).
+        /// </summary>
+        public bool IsBaseTypeDeclaration => kind.IsTypeDeclaration || kind is SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration;
 
-    /// <summary>
-    /// Determines whether the syntax kind represents a literal expression
-    /// (character, string, numeric, true, false, null, or default literal).
-    /// </summary>
-    public static bool IsLiteralExpression( this SyntaxKind kind )
-        => kind is SyntaxKind.CharacterLiteralExpression or SyntaxKind.StringLiteralExpression
-            or SyntaxKind.NumericLiteralExpression or SyntaxKind.TrueLiteralExpression
-            or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression
-            or SyntaxKind.DefaultLiteralExpression;
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents a lambda expression
+        /// (simple lambda or parenthesized lambda).
+        /// </summary>
+        public bool IsLambdaExpression => kind is SyntaxKind.SimpleLambdaExpression or SyntaxKind.ParenthesizedLambdaExpression;
 
-    /// <summary>
-    /// Determines whether the syntax kind represents an accessor declaration
-    /// (get, set, init, add, or remove accessor).
-    /// </summary>
-    public static bool IsAccessorDeclaration( this SyntaxKind kind )
-        => kind is SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration
-            or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration
-            or SyntaxKind.RemoveAccessorDeclaration;
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents a base field declaration
+        /// (field or event field).
+        /// </summary>
+        public bool IsBaseFieldDeclaration => kind is SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration;
+
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents a literal expression
+        /// (character, string, numeric, true, false, null, or default literal).
+        /// </summary>
+        public bool IsLiteralExpression
+            => kind is SyntaxKind.CharacterLiteralExpression or SyntaxKind.StringLiteralExpression
+                or SyntaxKind.NumericLiteralExpression or SyntaxKind.TrueLiteralExpression
+                or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression
+                or SyntaxKind.DefaultLiteralExpression;
+
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents an accessor declaration
+        /// (get, set, init, add, or remove accessor).
+        /// </summary>
+        public bool IsAccessorDeclaration
+            => kind is SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration
+                or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration
+                or SyntaxKind.RemoveAccessorDeclaration;
+
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents a base method declaration
+        /// (method, constructor, destructor, operator, or conversion operator).
+        /// </summary>
+        public bool IsBaseMethodDeclaration
+            => kind is SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration
+                or SyntaxKind.DestructorDeclaration or SyntaxKind.OperatorDeclaration
+                or SyntaxKind.ConversionOperatorDeclaration;
+
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents a property, event, or indexer declaration.
+        /// </summary>
+        public bool IsPropertyOrEventDeclaration
+            => kind is SyntaxKind.PropertyDeclaration or SyntaxKind.EventDeclaration
+                or SyntaxKind.IndexerDeclaration;
+    }
 }

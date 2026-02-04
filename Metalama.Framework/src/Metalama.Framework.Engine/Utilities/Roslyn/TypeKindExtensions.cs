@@ -9,7 +9,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 /// <summary>
 /// Extension properties for <see cref="TypeKind"/>.
 /// </summary>
-internal static class TypeKindExtensions
+public static class TypeKindExtensions
 {
     extension( TypeKind kind )
     {

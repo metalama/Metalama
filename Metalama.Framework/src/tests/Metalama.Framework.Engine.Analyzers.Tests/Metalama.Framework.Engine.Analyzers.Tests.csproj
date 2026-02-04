@@ -19,6 +19,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" />
+        <ProjectReference Include="../../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" />
         <ProjectReference Include="../../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" />
     </ItemGroup>
 

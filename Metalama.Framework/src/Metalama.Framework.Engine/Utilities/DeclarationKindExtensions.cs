@@ -6,12 +6,10 @@ using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Engine.Utilities;
 
-#if ROSLYN_5_0_0_OR_GREATER
-
 /// <summary>
 /// Extension properties for <see cref="DeclarationKind"/>.
 /// </summary>
-internal static class DeclarationKindExtensions
+public static class DeclarationKindExtensions
 {
     extension( DeclarationKind kind )
     {
@@ -33,30 +31,3 @@ internal static class DeclarationKindExtensions
                 or DeclarationKind.NamedType or DeclarationKind.ExtensionBlock;
     }
 }
-
-#else
-
-/// <summary>
-/// Extension methods for <see cref="DeclarationKind"/>.
-/// </summary>
-internal static class DeclarationKindExtensions
-{
-    /// <summary>
-    /// Determines whether the declaration kind represents a member
-    /// (method, constructor, property, indexer, field, or event).
-    /// </summary>
-    public static bool IsMember( this DeclarationKind kind )
-        => kind is DeclarationKind.Method or DeclarationKind.Constructor or DeclarationKind.Property
-            or DeclarationKind.Indexer or DeclarationKind.Field or DeclarationKind.Event;
-
-    /// <summary>
-    /// Determines whether the declaration kind represents a member or named type
-    /// (method, constructor, property, indexer, field, event, named type, or extension block).
-    /// </summary>
-    public static bool IsMemberOrNamedType( this DeclarationKind kind )
-        => kind is DeclarationKind.Method or DeclarationKind.Constructor or DeclarationKind.Property
-            or DeclarationKind.Indexer or DeclarationKind.Field or DeclarationKind.Event
-            or DeclarationKind.NamedType or DeclarationKind.ExtensionBlock;
-}
-
-#endif
