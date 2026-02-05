@@ -126,7 +126,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache hit: Key=\"{Key}\".", key ) );
 
-                AddCacheHitDependencies( backend, key, item );
+                AddChildDependency( backend, key );
 
                 value = item.Value;
             }
@@ -257,7 +257,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache hit: Key=\"{Key}\".", key ) );
 
-                AddCacheHitDependencies( backend, key, item );
+                AddChildDependency( backend, key );
 
                 value = item.Value;
             }
@@ -388,7 +388,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache hit: Key=\"{Key}\".", key ) );
 
-                AddCacheHitDependencies( backend, key, item );
+                AddChildDependency( backend, key );
 
                 value = item.Value;
             }
@@ -405,12 +405,10 @@ internal sealed class CachingFrontend
         }
     }
 
-    private static void AddCacheHitDependencies( CachingBackend backend, string key, CacheItem item )
+    private static void AddChildDependency( CachingBackend backend, string key )
     {
         if ( backend.SupportedFeatures.Dependencies )
         {
-            if ( item.Dependencies != null ) { }
-
             CachingContext.Current.AddDependency( key );
         }
     }
