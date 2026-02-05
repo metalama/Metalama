@@ -8,7 +8,7 @@ using Metalama.Patterns.Caching.Implementation;
 using Metalama.Patterns.Caching.TestHelpers;
 using Xunit;
 
-namespace Metalama.Patterns.Caching.Tests.Backends.Single
+namespace Metalama.Patterns.Caching.Tests.Backends
 {
     public sealed class NullCacheBackendTests
     {

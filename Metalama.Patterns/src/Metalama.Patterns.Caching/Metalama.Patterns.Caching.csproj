@@ -23,6 +23,7 @@
     <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="System.Collections.Immutable" />
+    <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 

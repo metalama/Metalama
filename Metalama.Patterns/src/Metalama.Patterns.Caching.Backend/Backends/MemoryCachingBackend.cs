@@ -327,6 +327,8 @@ internal class MemoryCachingBackend : CachingBackend
                 {
                     if ( this.RemoveItemImpl( item, replacementValue, replacementValueExpiration ) )
                     {
+                        // Recursively invalidate items that depend on this item.
+                        this.InvalidateDependencyImpl( item, replacementValue, replacementValueExpiration );
                         this.OnItemRemoved( item, CacheItemRemovedReason.Invalidated, this.Id );
                     }
                 }

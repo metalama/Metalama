@@ -31,7 +31,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Backends\Distributed\" />
+    <Compile Remove="Backends\Distributed\**" />
+    <Compile Remove="Backends\Single\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Remove="Backends\Distributed\**" />
+    <EmbeddedResource Remove="Backends\Single\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Backends\Distributed\**" />
+    <None Remove="Backends\Single\**" />
   </ItemGroup>
   
 </Project>

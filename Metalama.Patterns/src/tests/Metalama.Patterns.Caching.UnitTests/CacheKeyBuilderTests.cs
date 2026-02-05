@@ -714,5 +714,326 @@ namespace Metalama.Patterns.Caching.Tests
         #endregion TestMethodWithThreeItemCollectionParametersAsync
 
         public CacheKeyBuilderTests( ITestOutputHelper testOutputHelper ) : base( testOutputHelper ) { }
+
+        #region Hashing Tests
+
+        private sealed class HashingCacheKeyBuilder : CacheKeyBuilder
+        {
+#pragma warning disable SA1401
+            public string? LastMethodKey;
+#pragma warning restore SA1401
+
+            public override string BuildMethodKey(
+                CachedMethodMetadata metadata,
+                object? instance,
+                IList<object?> arguments )
+            {
+                return this.LastMethodKey = base.BuildMethodKey( metadata, instance, arguments );
+            }
+
+            public HashingCacheKeyBuilder( IFormatterRepository formatterRepository, CacheKeyBuilderOptions options )
+                : base( formatterRepository, options ) { }
+        }
+
+        private string DoTestMethodWithHashingAndCapture(
+            string profileName,
+            CacheKeyHashingAlgorithm algorithm,
+            int threshold,
+            Func<string> action )
+        {
+            using var context = this.InitializeTest(
+                profileName,
+                b => b.WithKeyBuilder(
+                    ( f, _ ) => new HashingCacheKeyBuilder(
+                        f,
+                        new CacheKeyBuilderOptions { HashingAlgorithm = algorithm, KeyCompressingThreshold = threshold } ) ) );
+
+            var keyBuilder = (HashingCacheKeyBuilder) CachingService.Default.KeyBuilder;
+            action();
+            this.TestOutputHelper.WriteLine( $"Key: {keyBuilder.LastMethodKey}" );
+
+            return keyBuilder.LastMethodKey!;
+        }
+
+        #region No Hashing - Method Keys
+
+        private const string _noHashingProfileName = _profileNamePrefix + "NoHashing";
+
+        [Cache( ProfileName = _noHashingProfileName )]
+        private string MethodWithNoHashing( string param ) => param;
+
+        [Fact]
+        public void TestMethodKey_NoHashing_InstanceMethod()
+        {
+            var key = this.DoTestMethodWithHashingAndCapture(
+                _noHashingProfileName,
+                CacheKeyHashingAlgorithm.None,
+                1000,
+                () => this.MethodWithNoHashing( "value1" ) );
+
+            Assert.Equal(
+                "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.MethodWithNoHashing(this={Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests}, (string) \"value1\")",
+                key );
+        }
+
+        #endregion
+
+        #region XxHash64 - Method Keys
+
+        private const string _xxHash64AboveThresholdProfile = _profileNamePrefix + "XxHash64_AboveThreshold";
+
+        [Cache( ProfileName = _xxHash64AboveThresholdProfile )]
+        private string MethodForAboveThreshold( string param ) => param;
+
+        [Fact]
+        public void TestMethodKey_XxHash64_AboveThreshold()
+        {
+            var key = this.DoTestMethodWithHashingAndCapture(
+                _xxHash64AboveThresholdProfile,
+                CacheKeyHashingAlgorithm.XxHash64,
+                50,
+                () => this.MethodForAboveThreshold( "this is a long parameter value" ) );
+
+            Assert.Equal( "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.MethodForAboveThreshold~DsMAFM6LcmI", key );
+        }
+
+        private const string _xxHash64BelowThresholdProfile = _profileNamePrefix + "XxHash64_BelowThreshold";
+
+        [Cache( ProfileName = _xxHash64BelowThresholdProfile )]
+        private string MethodForBelowThreshold( string param ) => param;
+
+        [Fact]
+        public void TestMethodKey_XxHash64_BelowThreshold()
+        {
+            var key = this.DoTestMethodWithHashingAndCapture(
+                _xxHash64BelowThresholdProfile,
+                CacheKeyHashingAlgorithm.XxHash64,
+                1000,
+                () => this.MethodForBelowThreshold( "short" ) );
+
+            Assert.Equal(
+                "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.MethodForBelowThreshold(this={Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests}, (string) \"short\")",
+                key );
+        }
+
+        private const string _xxHash64ConsistentProfile = _profileNamePrefix + "XxHash64_Consistent";
+
+        [Cache( ProfileName = _xxHash64ConsistentProfile )]
+        private string MethodForConsistent( string param ) => param;
+
+        [Fact]
+        public void TestMethodKey_XxHash64_ConsistentHash()
+        {
+            var key1 = this.DoTestMethodWithHashingAndCapture(
+                _xxHash64ConsistentProfile,
+                CacheKeyHashingAlgorithm.XxHash64,
+                50,
+                () => this.MethodForConsistent( "consistent value for hashing" ) );
+
+            var key2 = this.DoTestMethodWithHashingAndCapture(
+                _xxHash64ConsistentProfile,
+                CacheKeyHashingAlgorithm.XxHash64,
+                50,
+                () => this.MethodForConsistent( "consistent value for hashing" ) );
+
+            Assert.Equal( key1, key2 );
+            Assert.Equal( "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.MethodForConsistent~oCvsjcu1zvU", key1 );
+        }
+
+        private const string _xxHash64DifferentProfile = _profileNamePrefix + "XxHash64_Different";
+
+        [Cache( ProfileName = _xxHash64DifferentProfile )]
+        private string MethodForDifferent( string param ) => param;
+
+        [Fact]
+        public void TestMethodKey_XxHash64_DifferentInputs()
+        {
+            var key1 = this.DoTestMethodWithHashingAndCapture(
+                _xxHash64DifferentProfile,
+                CacheKeyHashingAlgorithm.XxHash64,
+                50,
+                () => this.MethodForDifferent( "first long parameter value here" ) );
+
+            var key2 = this.DoTestMethodWithHashingAndCapture(
+                _xxHash64DifferentProfile,
+                CacheKeyHashingAlgorithm.XxHash64,
+                50,
+                () => this.MethodForDifferent( "second long parameter value here" ) );
+
+            Assert.NotEqual( key1, key2 );
+            Assert.Equal( "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.MethodForDifferent~AGCxesDBay0", key1 );
+            Assert.Equal( "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.MethodForDifferent~0NrrsjHRYIs", key2 );
+        }
+
+        #endregion
+
+        #region XxHash128 - Method Keys
+
+        private const string _xxHash128AboveThresholdProfile = _profileNamePrefix + "XxHash128_AboveThreshold";
+
+        [Cache( ProfileName = _xxHash128AboveThresholdProfile )]
+        private string MethodForXxHash128Above( string param ) => param;
+
+        [Fact]
+        public void TestMethodKey_XxHash128_AboveThreshold()
+        {
+            var key = this.DoTestMethodWithHashingAndCapture(
+                _xxHash128AboveThresholdProfile,
+                CacheKeyHashingAlgorithm.XxHash128,
+                50,
+                () => this.MethodForXxHash128Above( "this is a long parameter value" ) );
+
+            Assert.Equal( "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.MethodForXxHash128Above~scmoaRBwPbyLBp/q/WBW/A", key );
+        }
+
+        private const string _xxHash64LongerProfile = _profileNamePrefix + "XxHash64_Longer";
+        private const string _xxHash128LongerProfile = _profileNamePrefix + "XxHash128_Longer";
+
+        [Cache( ProfileName = _xxHash64LongerProfile )]
+        private string MethodForLonger64( string param ) => param;
+
+        [Cache( ProfileName = _xxHash128LongerProfile )]
+        private string MethodForLonger128( string param ) => param;
+
+        [Fact]
+        public void TestMethodKey_XxHash128_LongerHashThanXxHash64()
+        {
+            var key64 = this.DoTestMethodWithHashingAndCapture(
+                _xxHash64LongerProfile,
+                CacheKeyHashingAlgorithm.XxHash64,
+                50,
+                () => this.MethodForLonger64( "same long parameter value here" ) );
+
+            var key128 = this.DoTestMethodWithHashingAndCapture(
+                _xxHash128LongerProfile,
+                CacheKeyHashingAlgorithm.XxHash128,
+                50,
+                () => this.MethodForLonger128( "same long parameter value here" ) );
+
+            Assert.Equal( "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.MethodForLonger64~AOB+nmPuWks", key64 );
+            Assert.Equal( "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.MethodForLonger128~hW/a3ACvH9lzz3ykAcFYiA", key128 );
+            Assert.True( key128.Length > key64.Length );
+        }
+
+        #endregion
+
+        #region Static Method - Hashing
+
+        private const string _staticHashingProfileName = _profileNamePrefix + "StaticHashing";
+
+        [Cache( ProfileName = _staticHashingProfileName )]
+        private static string StaticMethodWithHashing( string param ) => param;
+
+        [Fact]
+        public void TestMethodKey_XxHash64_StaticMethod()
+        {
+            using var context = this.InitializeTest(
+                _staticHashingProfileName,
+                b => b.WithKeyBuilder(
+                    ( f, _ ) => new HashingCacheKeyBuilder(
+                        f,
+                        new CacheKeyBuilderOptions { HashingAlgorithm = CacheKeyHashingAlgorithm.XxHash64, KeyCompressingThreshold = 50 } ) ) );
+
+            var keyBuilder = (HashingCacheKeyBuilder) CachingService.Default.KeyBuilder;
+            StaticMethodWithHashing( "long static method parameter value" );
+            var key = keyBuilder.LastMethodKey!;
+            this.TestOutputHelper.WriteLine( $"Key: {key}" );
+
+            Assert.Equal( "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.StaticMethodWithHashing~ao+90DFkieM", key );
+            Assert.DoesNotContain( "this=", key, StringComparison.Ordinal );
+        }
+
+        #endregion
+
+        #region Generic Method - Hashing
+
+        private const string _genericHashingProfileName = _profileNamePrefix + "GenericHashing";
+
+        [Cache( ProfileName = _genericHashingProfileName )]
+        private T GenericMethodWithHashing<T>( T value ) where T : class => value;
+
+        [Fact]
+        public void TestMethodKey_XxHash64_GenericMethod()
+        {
+            var key = this.DoTestMethodWithHashingAndCapture(
+                _genericHashingProfileName,
+                CacheKeyHashingAlgorithm.XxHash64,
+                50,
+                () => this.GenericMethodWithHashing( "long generic method parameter" ) );
+
+            // Generic arguments should be stripped from the prefix
+            Assert.Equal( "Metalama.Patterns.Caching.Tests.CacheKeyBuilderTests.GenericMethodWithHashing~NLzohCwEu3U", key );
+            Assert.DoesNotContain( "<string>", key, StringComparison.Ordinal );
+        }
+
+        #endregion
+
+        #region Dependency Keys - Hashing
+
+        [Fact]
+        public void TestDependencyKey_NoHashing()
+        {
+            var formatters = FormatterRepository.Create( CacheKeyFormatting.Instance, _ => { } );
+
+            using var builder = new CacheKeyBuilder(
+                formatters,
+                new CacheKeyBuilderOptions { HashingAlgorithm = CacheKeyHashingAlgorithm.None } );
+
+            var key = builder.BuildDependencyKey( "test dependency" );
+            this.TestOutputHelper.WriteLine( $"Key: {key}" );
+
+            Assert.Equal( "\"test dependency\"", key );
+        }
+
+        [Fact]
+        public void TestDependencyKey_XxHash64_AboveThreshold()
+        {
+            var formatters = FormatterRepository.Create( CacheKeyFormatting.Instance, _ => { } );
+
+            using var builder = new CacheKeyBuilder(
+                formatters,
+                new CacheKeyBuilderOptions { HashingAlgorithm = CacheKeyHashingAlgorithm.XxHash64, KeyCompressingThreshold = 10 } );
+
+            var key = builder.BuildDependencyKey( "long dependency key value" );
+            this.TestOutputHelper.WriteLine( $"Key: {key}" );
+
+            Assert.Equal( "+xzXcfxonoE", key );
+            Assert.DoesNotContain( "~", key, StringComparison.Ordinal );
+        }
+
+        [Fact]
+        public void TestDependencyKey_XxHash128_AboveThreshold()
+        {
+            var formatters = FormatterRepository.Create( CacheKeyFormatting.Instance, _ => { } );
+
+            using var builder = new CacheKeyBuilder(
+                formatters,
+                new CacheKeyBuilderOptions { HashingAlgorithm = CacheKeyHashingAlgorithm.XxHash128, KeyCompressingThreshold = 10 } );
+
+            var key = builder.BuildDependencyKey( "long dependency key value" );
+            this.TestOutputHelper.WriteLine( $"Key: {key}" );
+
+            Assert.Equal( "XvAena8w0848u3Se8hp2mg", key );
+            Assert.DoesNotContain( "~", key, StringComparison.Ordinal );
+        }
+
+        [Fact]
+        public void TestDependencyKey_XxHash64_BelowThreshold()
+        {
+            var formatters = FormatterRepository.Create( CacheKeyFormatting.Instance, _ => { } );
+
+            using var builder = new CacheKeyBuilder(
+                formatters,
+                new CacheKeyBuilderOptions { HashingAlgorithm = CacheKeyHashingAlgorithm.XxHash64, KeyCompressingThreshold = 1000 } );
+
+            var key = builder.BuildDependencyKey( "short" );
+            this.TestOutputHelper.WriteLine( $"Key: {key}" );
+
+            Assert.Equal( "\"short\"", key );
+        }
+
+        #endregion
+
+        #endregion Hashing Tests
     }
 }

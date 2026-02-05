@@ -398,7 +398,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> properties of the
     /// resulting <see cref="CacheItem"/> should be populated, otherwise <c>false</c>.</param>
     /// <returns>A <see cref="CacheItem"/>, or <c>null</c> if there is no item in cache of the given <paramref name="key"/>.</returns>
-    public CacheItem? GetItem( string key, bool includeDependencies = true )
+    public CacheItem? GetItem( string key, bool includeDependencies = false )
     {
         using ( var activity = this.LogSource.Default.OpenActivity( Formatted( """GetItem( backend = "{Backend}" key = "{Key}" )""", this, key ) ) )
         {
@@ -452,7 +452,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// <returns>A <see cref="Task"/> evaluating to a <see cref="CacheItem"/>, or evaluating to <c>null</c> if there is no item in cache of the given <paramref name="key"/>.</returns>
     public async ValueTask<CacheItem?> GetItemAsync(
         string key,
-        bool includeDependencies = true,
+        bool includeDependencies = false,
         CancellationToken cancellationToken = default )
     {
         using ( var activity = this.LogSource.Default.OpenAsyncActivity( Formatted( """GetItemAsync( backend = "{Backend}" key = "{Key}" )""", this, key ) ) )

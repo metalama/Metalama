@@ -5,7 +5,9 @@
 using Flashtrace.Formatters;
 using JetBrains.Annotations;
 using System.Globalization;
+using System.IO.Hashing;
 using System.Reflection;
+using System.Text;
 
 namespace Metalama.Patterns.Caching.Formatters;
 
@@ -13,14 +15,31 @@ namespace Metalama.Patterns.Caching.Formatters;
 /// Default implementation of <see cref="ICacheKeyBuilder"/> that builds cache item keys and dependency keys.
 /// </summary>
 /// <remarks>
-/// <para>This class generates cache keys by combining method signature information with formatted argument values.
-/// The format includes the declaring type, method name, generic arguments, and parameter values.</para>
+/// <h4>Key Building Strategy</h4>
+/// <para>This class generates cache keys by combining method signature information with formatted argument values.</para>
+/// <para><b>Method keys</b> follow this format:</para>
+/// <code>Namespace.DeclaringType.MethodName&lt;GenericArgs&gt;(this={instance}, (ParamType) paramValue, ...)</code>
+/// <para>For example: <c>MyApp.Services.UserService.GetUser(this={MyApp.Services.UserService}, (int) 42)</c></para>
+/// <para><b>Dependency keys</b> are formatted representations of the dependency object using the registered formatters.</para>
+///
+/// <h4>Key Compression (Hashing)</h4>
+/// <para>When <see cref="HashingAlgorithm"/> is set to <see cref="CacheKeyHashingAlgorithm.XxHash64"/> or
+/// <see cref="CacheKeyHashingAlgorithm.XxHash128"/>, keys exceeding <see cref="KeyCompressingThreshold"/> characters
+/// are compressed using a hash. This is useful for backends with key length limits (e.g., Redis, Memcached).</para>
+/// <para><b>For method keys:</b> The class and method name are preserved as a prefix (with generic arguments stripped),
+/// followed by a tilde (<c>~</c>) and the base64-encoded hash of the full key.</para>
+/// <para>Example: <c>MyApp.Services.UserService.GetUser~9XwmlUowFDE</c></para>
+/// <para><b>For dependency keys:</b> The entire key is replaced with the base64-encoded hash (no prefix).</para>
+/// <para>XxHash64 produces ~11 character hashes; XxHash128 produces ~22 character hashes.</para>
+///
+/// <h4>Customization</h4>
 /// <para>To customize key generation, either derive from this class and override the virtual methods,
 /// or implement <see cref="ICacheKeyBuilder"/> directly. Register custom implementations using
 /// <see cref="Building.ICachingServiceBuilder.WithKeyBuilder"/>.</para>
 /// </remarks>
 /// <seealso cref="ICacheKeyBuilder"/>
 /// <seealso cref="CacheKeyBuilderOptions"/>
+/// <seealso cref="CacheKeyHashingAlgorithm"/>
 /// <seealso href="@caching-keys"/>
 [PublicAPI]
 public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
@@ -38,17 +57,29 @@ public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
     protected object IgnoredParameterSentinel { get; } = new();
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CacheKeyBuilder"/> class specifying the maximal key size 
+    /// Gets the algorithm used to compress the key if its length is above <see cref="KeyCompressingThreshold"/>.
+    /// </summary>
+    public CacheKeyHashingAlgorithm HashingAlgorithm { get; }
+
+    /// <summary>
+    /// Gets the length above which a key will be compressed if <see cref="HashingAlgorithm"/> is not <see cref="CacheKeyHashingAlgorithm.None"/>.
+    /// </summary>
+    public int KeyCompressingThreshold { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CacheKeyBuilder"/> class specifying the maximal key size
     /// and optionally a <see cref="IFormatterRepository"/>.
     /// </summary>
-    /// <param name="maxKeySize">The maximal number of characters in cache keys.</param>
     /// <param name="formatterRepository">
     /// The <see cref="IFormatterRepository"/> from which to obtain formatters.
     /// </param>
+    /// <param name="options">Options for the cache key builder.</param>
     public CacheKeyBuilder( IFormatterRepository formatterRepository, CacheKeyBuilderOptions options )
     {
         this.Formatters = formatterRepository;
         this._stringBuilderPool = new UnsafeStringBuilderPool( options.MaxKeySize, true );
+        this.HashingAlgorithm = options.HashingAlgorithm;
+        this.KeyCompressingThreshold = options.KeyCompressingThreshold;
     }
 
     /// <summary>
@@ -122,7 +153,7 @@ public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
         }
 
         stringBuilder.Append( ')' );
-        var cacheKey = stringBuilder.ToString()!;
+        var cacheKey = this.CompressKey( stringBuilder, true, this.KeyCompressingThreshold );
         this._stringBuilderPool.ReturnInstance( stringBuilder );
 
         return cacheKey;
@@ -138,7 +169,7 @@ public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
         var stringBuilder = this._stringBuilderPool.GetInstance();
         this.AppendObject( stringBuilder, o );
 
-        var key = stringBuilder.ToString()!;
+        var key = this.CompressKey( stringBuilder, false, this.KeyCompressingThreshold );
         this._stringBuilderPool.ReturnInstance( stringBuilder );
 
         return key;
@@ -240,6 +271,137 @@ public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
         }
 
         stringBuilder.Append( '>' );
+    }
+
+    /// <summary>
+    /// Gets the maximum length of the hash string for the specified algorithm.
+    /// </summary>
+    /// <param name="algorithm">The hashing algorithm.</param>
+    /// <returns>The maximum hash string length (XxHash64 = 11, XxHash128 = 22).</returns>
+    public static int GetHashLength( CacheKeyHashingAlgorithm algorithm )
+        => algorithm switch
+        {
+            CacheKeyHashingAlgorithm.XxHash64 => 11,
+            CacheKeyHashingAlgorithm.XxHash128 => 22,
+            _ => 0
+        };
+
+    /// <summary>
+    /// Hashes a buffer using <see cref="HashingAlgorithm"/> and appends the result to a <see cref="StringBuilder"/>.
+    /// </summary>
+    /// <param name="stringBuilder">The <see cref="StringBuilder"/> to append the hash to.</param>
+    /// <param name="buffer">The buffer to hash.</param>
+    protected virtual void AppendBufferHash( StringBuilder stringBuilder, ReadOnlySpan<byte> buffer )
+    {
+        switch ( this.HashingAlgorithm )
+        {
+            case CacheKeyHashingAlgorithm.XxHash64:
+                {
+                    var hash = new byte[8];
+                    XxHash64.Hash( buffer, hash );
+                    AppendBase64( stringBuilder, hash );
+
+                    break;
+                }
+
+            case CacheKeyHashingAlgorithm.XxHash128:
+                {
+                    var hash = new byte[16];
+                    XxHash128.Hash( buffer, hash );
+                    AppendBase64( stringBuilder, hash );
+
+                    break;
+                }
+
+            default:
+                throw new InvalidOperationException( $"Unsupported hashing algorithm: {this.HashingAlgorithm}" );
+        }
+    }
+
+    private static void AppendBase64( StringBuilder stringBuilder, byte[] bytes )
+    {
+        var base64 = Convert.ToBase64String( bytes );
+
+        // Append without trailing '=' padding
+        var length = base64.Length;
+
+        while ( length > 0 && base64[length - 1] == '=' )
+        {
+            length--;
+        }
+
+        stringBuilder.Append( base64, 0, length );
+    }
+
+    /// <summary>
+    /// Compresses the key if necessary.
+    /// </summary>
+    /// <param name="stringBuilder">The uncompressed key.</param>
+    /// <param name="useMethodNameAsPrefix"><c>true</c> if the key is from <see cref="BuildMethodKey"/>, <c>false</c> when it is from <see cref="BuildDependencyKey"/>.
+    /// In method keys, the method name is kept as a prefix, but parameters and type parameters are stripped.</param>
+    /// <param name="threshold">The minimal key length above which compression is applied.</param>
+    /// <returns>The compressed key.</returns>
+    protected virtual unsafe string CompressKey( UnsafeStringBuilder stringBuilder, bool useMethodNameAsPrefix, int threshold )
+    {
+        if ( this.HashingAlgorithm != CacheKeyHashingAlgorithm.None && stringBuilder.Length > threshold )
+        {
+            var buffer = new ReadOnlySpan<byte>( (byte*) stringBuilder.Buffer, stringBuilder.Length * 2 );
+
+            // Get the string to find the opening parenthesis.
+            var keyString = stringBuilder.ToString()!;
+            var indexOfParenthesis = keyString.IndexOfOrdinal( '(' );
+
+            if ( useMethodNameAsPrefix && indexOfParenthesis > 0 )
+            {
+                var hashedString = new StringBuilder( indexOfParenthesis + 1 + GetHashLength( this.HashingAlgorithm ) );
+
+                var genericDepthLevel = 0;
+
+                for ( var i = 0; i < indexOfParenthesis; i++ )
+                {
+                    var c = keyString[i];
+
+                    switch ( c )
+                    {
+                        case '<':
+                            genericDepthLevel++;
+
+                            break;
+
+                        case '>':
+                            genericDepthLevel--;
+
+                            break;
+
+                        default:
+                            if ( genericDepthLevel == 0 )
+                            {
+                                hashedString.Append( c );
+                            }
+
+                            break;
+                    }
+                }
+
+                hashedString.Append( '~' );
+                this.AppendBufferHash( hashedString, buffer );
+
+                return hashedString.ToString();
+            }
+            else
+            {
+                // For custom dependencies, we cannot automatically find a meaningful prefix because the string is freeform.
+                // So we just return the hash without prefix.
+                var hashedString = new StringBuilder( GetHashLength( this.HashingAlgorithm ) );
+                this.AppendBufferHash( hashedString, buffer );
+
+                return hashedString.ToString();
+            }
+        }
+        else
+        {
+            return stringBuilder.ToString()!;
+        }
     }
 
     /// <summary>

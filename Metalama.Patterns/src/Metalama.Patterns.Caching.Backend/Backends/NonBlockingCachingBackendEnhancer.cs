@@ -79,6 +79,10 @@ internal class NonBlockingCachingBackendEnhancer : CachingBackendEnhancer
     }
 
     /// <inheritdoc />
+    public override Task WhenBackgroundTasksCompleted( CancellationToken cancellationToken )
+        => this._taskScheduler.WhenBackgroundTasksCompleted( cancellationToken );
+
+    /// <inheritdoc />
     protected override async ValueTask DisposeAsyncCore( CancellationToken cancellationToken )
     {
         await this._taskScheduler.DisposeAsync( cancellationToken );
