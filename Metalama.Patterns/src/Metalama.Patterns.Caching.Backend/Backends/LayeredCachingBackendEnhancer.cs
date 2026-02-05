@@ -161,9 +161,9 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     {
         var localCacheItem = this.LocalCache.GetItem( key, includeDependencies );
 
-        if ( localCacheItem == null )
+        if ( localCacheItem == null || (includeDependencies && localCacheItem.Dependencies.IsDefault) )
         {
-            var remoteCacheItem = this.GetValueFromUnderlyingBackend( key );
+            var remoteCacheItem = this.GetValueFromUnderlyingBackend( key, includeDependencies );
 
             if ( remoteCacheItem != null )
             {
@@ -186,7 +186,7 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
                     {
                         // We have the magic string meaning that the node has been deleted.
 
-                        var remoteCacheItem = this.GetValueFromUnderlyingBackend( key );
+                        var remoteCacheItem = this.GetValueFromUnderlyingBackend( key, includeDependencies );
 
                         if ( remoteCacheItem == null )
                         {
@@ -214,9 +214,9 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
         }
     }
 
-    private MaterializedCacheItem? GetValueFromUnderlyingBackend( string key )
+    private MaterializedCacheItem? GetValueFromUnderlyingBackend( string key, bool includeDependencies )
     {
-        var cacheValue = (MaterializedCacheItem?) this.UnderlyingBackend.GetItem( key );
+        var cacheValue = (MaterializedCacheItem?) this.UnderlyingBackend.GetItem( key, includeDependencies );
 
         if ( cacheValue == null )
         {
