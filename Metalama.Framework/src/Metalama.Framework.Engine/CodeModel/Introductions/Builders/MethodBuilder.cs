@@ -26,7 +26,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
     private bool _isReadOnly;
     private bool _isIteratorMethod;
     private bool _isImplicitlyDeclared;
-    private DeclarationKind _declarationKind;
+    private MethodKind _methodKind;
     private OperatorKind _operatorKind;
 
     public IntroducedRef<IMethod> Ref { get; }
@@ -43,17 +43,16 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
         AspectLayerInstance aspectLayerInstance,
         INamedType declaringType,
         string name,
-        DeclarationKind declarationKind = DeclarationKind.Method,
+        MethodKind methodKind = MethodKind.Default,
         OperatorKind operatorKind = OperatorKind.None )
         : base( aspectLayerInstance, declaringType, name )
     {
-        Invariant.Assert(
-            declarationKind == DeclarationKind.Operator
-                            ==
-                            (operatorKind != OperatorKind.None) );
+        var isOperatorMethodKind = methodKind == MethodKind.Operator;
+        var hasOperatorKind = operatorKind != OperatorKind.None;
+        Invariant.Assert( isOperatorMethodKind == hasOperatorKind );
 
         this.Ref = new IntroducedRef<IMethod>( this.Compilation.RefFactory );
-        this._declarationKind = declarationKind;
+        this._methodKind = methodKind;
         this._operatorKind = operatorKind;
 
         // When created with an operator kind, set IsStatic based on the operator.
@@ -193,19 +192,12 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     public bool IsCanonicalGenericInstance => true;
 
-    // We don't currently support adding other methods than default ones.
-    public MethodKind MethodKind
-        => this.DeclarationKind switch
-        {
-            DeclarationKind.Method => MethodKind.Default,
-            DeclarationKind.Operator => MethodKind.Operator,
-            DeclarationKind.Finalizer => MethodKind.Finalizer,
-            _ => throw new AssertionFailedException( $"Unexpected DeclarationKind: {this.DeclarationKind}." )
-        };
+    public MethodKind MethodKind => this._methodKind;
 
     public override MethodBase ToMethodBase() => this.ToMethodInfo();
 
-    public override DeclarationKind DeclarationKind => this._declarationKind;
+    // Public API always returns Method - use MethodKind to distinguish operators/finalizers.
+    public override DeclarationKind DeclarationKind => DeclarationKind.Method;
 
     public OperatorKind OperatorKind
     {
@@ -223,7 +215,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
             {
                 // Switching from operator to regular method.
                 this._operatorKind = OperatorKind.None;
-                this._declarationKind = DeclarationKind.Method;
+                this._methodKind = MethodKind.Default;
 
                 // Name and IsStatic are not automatically reset - user must set them manually.
             }
@@ -252,7 +244,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
                 base.Name = operatorData.MemberName;
                 base.IsStatic = operatorData.IsStatic;
                 this._operatorKind = value;
-                this._declarationKind = DeclarationKind.Operator;
+                this._methodKind = MethodKind.Operator;
             }
         }
     }

@@ -21,11 +21,11 @@ internal static class FormatterHelper
     private const string _backingFieldSuffix = ">k__BackingField";
 
     public static string ToDebugString( this ISymbol symbol )
-        => symbol switch
+        => symbol.Kind switch
         {
-            IParameterSymbol parameter => parameter.ContainingSymbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat ) + "/"
+            SymbolKind.Parameter when symbol is IParameterSymbol parameter => parameter.ContainingSymbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat ) + "/"
                 + parameter.Name,
-            IFieldSymbol { IsImplicitlyDeclared: true } field when TryGetBackedPropertyName( field.Name, out var propertyName ) => field.ContainingType
+            SymbolKind.Field when symbol is IFieldSymbol { IsImplicitlyDeclared: true } field && TryGetBackedPropertyName( field.Name, out var propertyName ) => field.ContainingType
                 .ToDebugString() + "." + propertyName + ".field",
             _ => symbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )
         };

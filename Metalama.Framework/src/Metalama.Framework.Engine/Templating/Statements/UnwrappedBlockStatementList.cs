@@ -22,7 +22,7 @@ internal sealed class UnwrappedBlockStatementList : IStatementListImpl
     {
         var syntax = ((IStatementImpl) this._statement).GetSyntax( templateSyntaxFactory );
 
-        if ( syntax is BlockSyntax block )
+        if ( syntax.Kind() == SyntaxKind.Block && syntax is BlockSyntax block )
         {
             return GetDeepestBlock( block ).Statements;
         }

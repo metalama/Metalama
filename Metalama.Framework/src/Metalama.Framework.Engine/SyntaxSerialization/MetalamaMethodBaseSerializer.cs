@@ -78,7 +78,7 @@ internal abstract class MetalamaMethodBaseSerializer<TInput, TOutput> : ObjectSe
 
         ExpressionSyntax invokeGetMethod;
 
-        if ( method is IConstructor constructor )
+        if ( method.DeclarationKind == DeclarationKind.Constructor && method is IConstructor constructor )
         {
             if ( ReflectionSignatureBuilder.HasTypeArgument( constructor ) )
             {

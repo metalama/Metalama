@@ -116,9 +116,9 @@ public sealed partial class HierarchicalOptionsManager
             IHierarchicalOptions? containingDeclarationOptions;
             IHierarchicalOptions? namespaceOptions;
 
-            switch ( declaration )
+            switch ( declaration.DeclarationKind )
             {
-                case INamedType namedType:
+                case DeclarationKind.NamedType when declaration is INamedType namedType:
                     if ( this.Metadata.InheritedByDerivedTypes && namedType.BaseType?.Definition is { } baseType )
                     {
                         baseDeclarationOptions = this.GetOptions( baseType );
@@ -141,7 +141,7 @@ public sealed partial class HierarchicalOptionsManager
 
                     break;
 
-                case IMember member:
+                case { IsMember: true } when declaration is IMember member:
                     if ( this.Metadata.InheritedByOverridingMembers && member.GetBase()?.Definition is { } baseDeclaration )
                     {
                         baseDeclarationOptions = this.GetOptions( baseDeclaration );
@@ -157,7 +157,7 @@ public sealed partial class HierarchicalOptionsManager
 
                     break;
 
-                case IAssembly { IsExternal: true }:
+                case DeclarationKind.AssemblyReference when declaration is IAssembly { IsExternal: true }:
                     // Make sure not to go down to the compilation.
                     baseDeclarationOptions = null;
 
@@ -168,7 +168,7 @@ public sealed partial class HierarchicalOptionsManager
 
                     break;
 
-                case ICompilation:
+                case DeclarationKind.Compilation:
                     baseDeclarationOptions = null;
                     containingDeclarationOptions = this._defaultOptions;
                     namespaceOptions = null;

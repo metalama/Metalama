@@ -75,7 +75,7 @@ public sealed partial class ContextualSyntaxGenerator
     {
         var typeSyntax = this.TypeSyntax( type );
 
-        if ( type is INamedTypeSymbol { IsGenericType: true } namedType )
+        if ( type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol { IsGenericType: true } namedType )
         {
             if ( namedType.IsGenericTypeDefinition() )
             {
@@ -95,10 +95,11 @@ public sealed partial class ContextualSyntaxGenerator
         // In any typeof, we must change dynamic to object.
         typeSyntax = (TypeSyntax) dynamicToVarRewriter.Visit( typeSyntax ).AssertNotNull();
 
-        SafeSyntaxRewriter rewriter = type switch
+        SafeSyntaxRewriter rewriter = type.Kind switch
         {
-            INamedTypeSymbol { IsGenericType: true } genericType when genericType.IsGenericTypeDefinition() => new RemoveTypeArgumentsRewriter(),
-            INamedTypeSymbol { IsGenericType: true } => new RemoveReferenceNullableAnnotationsRewriterForSymbol( type ),
+            SymbolKind.NamedType when type is INamedTypeSymbol { IsGenericType: true } genericType && genericType.IsGenericTypeDefinition() =>
+                new RemoveTypeArgumentsRewriter(),
+            SymbolKind.NamedType when type is INamedTypeSymbol { IsGenericType: true } => new RemoveReferenceNullableAnnotationsRewriterForSymbol( type ),
             _ => dynamicToVarRewriter
         };
 
@@ -127,7 +128,8 @@ public sealed partial class ContextualSyntaxGenerator
 
         var typeSyntax = this.TypeSyntax( type );
 
-        if ( type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } )
+        if ( type.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
+             && type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } )
         {
             // In generic definitions, we must remove type arguments.
             typeSyntax = (TypeSyntax) new RemoveTypeArgumentsRewriter().Visit( typeSyntax ).AssertNotNull();
@@ -144,10 +146,12 @@ public sealed partial class ContextualSyntaxGenerator
         // In any typeof, we must change dynamic to object.
         typeSyntax = (TypeSyntax) dynamicToVarRewriter.Visit( typeSyntax ).AssertNotNull();
 
-        SafeSyntaxRewriter rewriter = type switch
+        SafeSyntaxRewriter rewriter = type.TypeKind switch
         {
-            INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } => new RemoveTypeArgumentsRewriter(),
-            INamedType { TypeParameters.Count: > 0 } => new RemoveReferenceNullableAnnotationsRewriter( type ),
+            TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
+                when type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } => new RemoveTypeArgumentsRewriter(),
+            TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
+                when type is INamedType { TypeParameters.Count: > 0 } => new RemoveReferenceNullableAnnotationsRewriter( type ),
             _ => dynamicToVarRewriter
         };
 
@@ -207,18 +211,17 @@ public sealed partial class ContextualSyntaxGenerator
     {
         TypeSyntax expression;
 
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case ITypeSymbol typeSymbol:
-                return this.TypeSyntax( typeSymbol );
-
-            case INamespaceSymbol namespaceSymbol:
+            case SymbolKind.Namespace when symbol is INamespaceSymbol namespaceSymbol:
                 expression = (NameSyntax) _roslynSyntaxGenerator.NameExpression( namespaceSymbol );
 
                 break;
 
             default:
-                throw new AssertionFailedException( $"Unexpected symbol kind: {symbol.Kind}." );
+                return symbol.Kind.IsType
+                    ? this.TypeSyntax( (ITypeSymbol) symbol )
+                    : throw new AssertionFailedException( $"Unexpected symbol kind: {symbol.Kind}." );
         }
 
         return expression.WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
@@ -293,15 +296,13 @@ public sealed partial class ContextualSyntaxGenerator
                 case TypeKindConstraint.Unmanaged:
                     constraints ??= [];
 
-                    constraints.Add(
-                        TypeConstraint(
-                            SyntaxFactoryEx.WellKnownIdentifierName( "unmanaged" ) ) );
+                    constraints.Add( TypeConstraint( WellKnownIdentifierName( "unmanaged" ) ) );
 
                     break;
 
                 case TypeKindConstraint.NotNull:
                     constraints ??= [];
-                    constraints.Add( TypeConstraint( SyntaxFactoryEx.WellKnownIdentifierName( "notnull" ) ) );
+                    constraints.Add( TypeConstraint( WellKnownIdentifierName( "notnull" ) ) );
 
                     break;
 
@@ -347,7 +348,7 @@ public sealed partial class ContextualSyntaxGenerator
                 clauses.Add(
                     TypeParameterConstraintClause(
                         TokenWithTrailingSpace( SyntaxKind.WhereKeyword ),
-                        SyntaxFactoryEx.SafeIdentifierName( genericParameter.Name ),
+                        SafeIdentifierName( genericParameter.Name ),
                         Token( SyntaxKind.ColonToken ),
                         SeparatedList( constraints ) ) );
             }
@@ -412,8 +413,7 @@ public sealed partial class ContextualSyntaxGenerator
                 .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
     }
 
-    private ExpressionSyntax FieldReference( IFullRef<IField> fieldRef ) 
-        => this.FieldReference( fieldRef.Definition );
+    private ExpressionSyntax FieldReference( IFullRef<IField> fieldRef ) => this.FieldReference( fieldRef.Definition );
 
     internal ExpressionSyntax TypedConstant( in TypedConstant typedConstant )
     {
@@ -423,7 +423,7 @@ public sealed partial class ContextualSyntaxGenerator
 
             if ( typedConstant.HasNullForgivingOperator )
             {
-                expression = SyntaxFactory.PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
+                expression = PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
             }
 
             return expression;
@@ -460,7 +460,7 @@ public sealed partial class ContextualSyntaxGenerator
 
             if ( typedConstant.HasNullForgivingOperator )
             {
-                expression = SyntaxFactory.PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
+                expression = PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
             }
 
             return expression;
@@ -497,12 +497,13 @@ public sealed partial class ContextualSyntaxGenerator
 
         foreach ( var content in interpolatedString.Contents )
         {
-            switch ( content )
+            switch ( content.Kind() )
             {
-                case InterpolatedStringTextSyntax text:
+                case SyntaxKind.InterpolatedStringText when content is InterpolatedStringTextSyntax text:
                     var previousIndex = contents.Count - 1;
 
-                    if ( contents.Count > 0 && contents[previousIndex] is InterpolatedStringTextSyntax previousText )
+                    if ( contents.Count > 0 && contents[previousIndex].Kind() == SyntaxKind.InterpolatedStringText
+                                            && contents[previousIndex] is InterpolatedStringTextSyntax previousText )
                     {
                         // If we have two adjacent text tokens, we need to merge them, otherwise reformatting will add a white space.
 
@@ -523,7 +524,7 @@ public sealed partial class ContextualSyntaxGenerator
 
                     break;
 
-                case InterpolationSyntax interpolation:
+                case SyntaxKind.Interpolation when content is InterpolationSyntax interpolation:
                     contents.Add( interpolation );
 
                     break;
@@ -820,12 +821,12 @@ public sealed partial class ContextualSyntaxGenerator
                 return Null;
             }
 
-            switch ( type )
+            switch ( type.TypeKind )
             {
-                case INamedType { TypeKind: TypeKind.Enum } enumType:
+                case TypeKind.Enum when type is INamedType enumType:
                     return this.EnumValueExpression( enumType, value );
 
-                case IArrayType arrayType:
+                case TypeKind.Array when type is IArrayType arrayType:
                     return this.ArrayCreationExpression(
                         this.TypeSyntax( arrayType.ElementType ),
                         ((ImmutableArray<TypedConstant>) value).Select( x => GetValue( x.RawValue, x.Type ) ) );
@@ -937,7 +938,7 @@ public sealed partial class ContextualSyntaxGenerator
             this.AttributesForDeclaration( parameter.ToFullRef(), compilation ),
             parameter.GetSyntaxModifierList(),
             this.TypeSyntax( parameter.Type ).WithOptionalTrailingTrivia( ElasticSpace, this.Options ),
-            SyntaxFactoryEx.SafeIdentifier( parameter.Name ),
+            SafeIdentifier( parameter.Name ),
             equalsValueClause );
     }
 
@@ -958,7 +959,7 @@ public sealed partial class ContextualSyntaxGenerator
 
             if ( parameter.HasNotNullConstraint )
             {
-                constraints = constraints.Add( TypeConstraint( SyntaxFactoryEx.WellKnownIdentifierName( "notnull" ) ) );
+                constraints = constraints.Add( TypeConstraint( WellKnownIdentifierName( "notnull" ) ) );
             }
             else if ( parameter.HasReferenceTypeConstraint )
             {
@@ -972,9 +973,7 @@ public sealed partial class ContextualSyntaxGenerator
             {
                 if ( parameter.HasUnmanagedTypeConstraint )
                 {
-                    constraints = constraints.Add(
-                        TypeConstraint(
-                            SyntaxFactoryEx.WellKnownIdentifierName( "unmanaged" ) ) );
+                    constraints = constraints.Add( TypeConstraint( WellKnownIdentifierName( "unmanaged" ) ) );
                 }
                 else
                 {
@@ -1007,36 +1006,40 @@ public sealed partial class ContextualSyntaxGenerator
 
     internal CastExpressionSyntax SafeCastExpression( TypeSyntax type, ExpressionSyntax syntax )
     {
-        if ( syntax is CastExpressionSyntax cast && cast.Type.IsEquivalentTo( type, topLevel: false ) )
+        if ( syntax.Kind() == SyntaxKind.CastExpression && syntax is CastExpressionSyntax cast && cast.Type.IsEquivalentTo( type, topLevel: false ) )
         {
             // It's already a cast to the same type, no need to cast again.
             return cast;
         }
 
-        var requiresParenthesis = syntax switch
+        var requiresParenthesis = syntax.Kind() switch
         {
-            CastExpressionSyntax => false,
-            InvocationExpressionSyntax => false,
-            MemberAccessExpressionSyntax => false,
-            ElementAccessExpressionSyntax => false,
-            IdentifierNameSyntax => false,
-            LiteralExpressionSyntax => false,
-            DefaultExpressionSyntax => false,
-            TypeOfExpressionSyntax => false,
-            ParenthesizedExpressionSyntax => false,
-            ConditionalAccessExpressionSyntax => false,
-            ObjectCreationExpressionSyntax => false,
-            ArrayCreationExpressionSyntax => false,
-            PostfixUnaryExpressionSyntax => false,
+            SyntaxKind.CastExpression => false,
+            SyntaxKind.InvocationExpression => false,
+            SyntaxKind.SimpleMemberAccessExpression => false,
+            SyntaxKind.ElementAccessExpression => false,
+            SyntaxKind.IdentifierName => false,
+            SyntaxKind.NumericLiteralExpression or SyntaxKind.StringLiteralExpression or SyntaxKind.CharacterLiteralExpression
+                or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression
+                or SyntaxKind.DefaultLiteralExpression => false,
+            SyntaxKind.DefaultExpression => false,
+            SyntaxKind.TypeOfExpression => false,
+            SyntaxKind.ParenthesizedExpression => false,
+            SyntaxKind.ConditionalAccessExpression => false,
+            SyntaxKind.ObjectCreationExpression => false,
+            SyntaxKind.ArrayCreationExpression or SyntaxKind.ImplicitArrayCreationExpression => false,
+            SyntaxKind.PostIncrementExpression or SyntaxKind.PostDecrementExpression or SyntaxKind.SuppressNullableWarningExpression => false,
 
 #if ROSLYN_4_8_0_OR_GREATER
-            CollectionExpressionSyntax => false,
+            SyntaxKind.CollectionExpression => false,
 #endif
 
             // The syntax (T)-x is ambiguous and interpreted as binary minus, not cast of unary minus.
-            PrefixUnaryExpressionSyntax { RawKind: not (int) SyntaxKind.UnaryMinusExpression } => false,
-            TupleExpressionSyntax => false,
-            ThisExpressionSyntax => false,
+            SyntaxKind.UnaryPlusExpression or SyntaxKind.LogicalNotExpression or SyntaxKind.BitwiseNotExpression
+                or SyntaxKind.PreIncrementExpression or SyntaxKind.PreDecrementExpression or SyntaxKind.AddressOfExpression
+                or SyntaxKind.PointerIndirectionExpression or SyntaxKind.IndexExpression => false,
+            SyntaxKind.TupleExpression => false,
+            SyntaxKind.ThisExpression => false,
             _ => true
         };
 
@@ -1132,15 +1135,16 @@ public sealed partial class ContextualSyntaxGenerator
             return MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
                 this.TypeSyntax( tupleType.Compilation.Factory.GetSpecialType( Code.SpecialType.ValueTuple ) ),
-                SyntaxFactoryEx.WellKnownIdentifierName( "Create" ) );
+                WellKnownIdentifierName( "Create" ) );
         }
 
         static string? GetRightMostIdentifier( ExpressionSyntax expression )
-            => expression switch
+            => expression.Kind() switch
             {
-                IdentifierNameSyntax identifierName => identifierName.Identifier.Text,
-                MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
-                ConditionalAccessExpressionSyntax conditionalAccess => GetRightMostIdentifier( conditionalAccess.WhenNotNull ),
+                SyntaxKind.IdentifierName when expression is IdentifierNameSyntax identifierName => identifierName.Identifier.Text,
+                SyntaxKind.SimpleMemberAccessExpression when expression is MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
+                SyntaxKind.ConditionalAccessExpression when expression is ConditionalAccessExpressionSyntax conditionalAccess => GetRightMostIdentifier(
+                    conditionalAccess.WhenNotNull ),
                 _ => null
             };
     }

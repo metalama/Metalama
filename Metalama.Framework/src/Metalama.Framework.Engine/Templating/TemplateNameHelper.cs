@@ -12,33 +12,33 @@ namespace Metalama.Framework.Engine.Templating
     internal static class TemplateNameHelper
     {
         public static string GetCompiledTemplateName( ISymbol symbol )
-            => symbol switch
+            => symbol.Kind switch
             {
-                IMethodSymbol { MethodKind: MethodKind.PropertyGet } method => GetCompiledTemplateName(
+                SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.PropertyGet } method => GetCompiledTemplateName(
                     $"Get{method.AssociatedSymbol!.Name}",
                     method,
                     method.Parameters ),
-                IMethodSymbol { MethodKind: MethodKind.PropertySet } method => GetCompiledTemplateName(
+                SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.PropertySet } method => GetCompiledTemplateName(
                     $"Set{method.AssociatedSymbol!.Name}",
                     method,
                     method.Parameters,
                     true ),
-                IMethodSymbol { MethodKind: MethodKind.EventAdd } method => GetCompiledTemplateName(
+                SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.EventAdd } method => GetCompiledTemplateName(
                     $"Add{method.AssociatedSymbol!.Name}",
                     method,
                     method.Parameters,
                     true ),
-                IMethodSymbol { MethodKind: MethodKind.EventRemove } method => GetCompiledTemplateName(
+                SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.EventRemove } method => GetCompiledTemplateName(
                     $"Remove{method.AssociatedSymbol!.Name}",
                     method,
                     method.Parameters,
                     true ),
-                IMethodSymbol method => GetCompiledTemplateName( method.Name, method.OriginalDefinition, method.Parameters ),
+                SymbolKind.Method when symbol is IMethodSymbol method => GetCompiledTemplateName( method.Name, method.OriginalDefinition, method.Parameters ),
 
                 // Initializer templates.
-                IFieldSymbol field => GetCompiledTemplateName( field.Name, field ),
-                IPropertySymbol property => GetCompiledTemplateName( property.Name, property, property.Parameters ),
-                IEventSymbol @event => GetCompiledTemplateName( @event.Name, @event ),
+                SymbolKind.Field when symbol is IFieldSymbol field => GetCompiledTemplateName( field.Name, field ),
+                SymbolKind.Property when symbol is IPropertySymbol property => GetCompiledTemplateName( property.Name, property, property.Parameters ),
+                SymbolKind.Event when symbol is IEventSymbol @event => GetCompiledTemplateName( @event.Name, @event ),
                 _ => throw new AssertionFailedException( $"Unexpected symbol: '{symbol}'." )
             };
 

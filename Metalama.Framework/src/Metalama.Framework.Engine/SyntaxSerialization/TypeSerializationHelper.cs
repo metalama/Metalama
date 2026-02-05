@@ -13,9 +13,9 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
     {
         public static ExpressionSyntax SerializeTypeSymbolRecursive( ITypeSymbol symbol, SyntaxSerializationContext serializationContext )
         {
-            switch ( symbol )
+            switch ( symbol.Kind )
             {
-                case ITypeParameterSymbol:
+                case SymbolKind.TypeParameter:
                     // Serializing a generic parameter always assume that we are in a lexical scope where
                     // the symbol exists. Getting the generic parameter e.g. using typeof(X).GetGenericArguments()[Y]
                     // is not supported and would require an API change.

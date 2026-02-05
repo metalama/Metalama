@@ -39,9 +39,9 @@ internal sealed class CallerMemberSubstitution : SyntaxNodeSubstitution
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case InvocationExpressionSyntax invocationExpression:
+            case SyntaxKind.InvocationExpression when currentNode is InvocationExpressionSyntax invocationExpression:
                 var additionalArguments = new List<ArgumentSyntax>();
 
                 foreach ( var parameterToFix in this._parametersToFix )

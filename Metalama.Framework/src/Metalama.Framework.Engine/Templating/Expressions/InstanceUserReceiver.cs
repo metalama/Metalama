@@ -40,14 +40,15 @@ namespace Metalama.Framework.Engine.Templating.Expressions
             bool throwOnError,
             out InstanceUserReceiver? receiver )
         {
-            switch ( currentDeclaration )
+            switch ( currentDeclaration?.DeclarationKind )
             {
                 // Parameters
-                case IParameter { DeclaringMember: { } m }:
+                case DeclarationKind.Parameter when currentDeclaration is IParameter { DeclaringMember: { } m }:
                     return TryCreate( m, aspectReferenceSpecification, throwOnError, out receiver );
 
                 // Extension member in extension block.
-                case IMember { IsStatic: false, DeclaringType: { TypeKind: TypeKind.Extension } and IExtensionBlock e } m:
+                case DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Indexer
+                    when currentDeclaration is IMember { IsStatic: false, DeclaringType: { TypeKind: TypeKind.Extension } and IExtensionBlock e } m:
                     {
                         if ( !m.IsStatic )
                         {
@@ -70,13 +71,13 @@ namespace Metalama.Framework.Engine.Templating.Expressions
                     }
 
                 // Instance member.
-                case IMember { IsStatic: false, DeclaringType: { } type }:
+                case { IsMember: true } when currentDeclaration is IMember { IsStatic: false, DeclaringType: { } type }:
                     receiver = new ThisInstanceUserReceiver( type, aspectReferenceSpecification );
 
                     return true;
 
                 // Extension method.
-                case IMethod { IsStatic: true, Parameters.Count: > 0 } m when m.Parameters[0].IsThis:
+                case DeclarationKind.Method when currentDeclaration is IMethod { IsStatic: true, Parameters.Count: > 0 } m && m.Parameters[0].IsThis:
                     receiver = new ReceiverParameterUserReceiver( m.Parameters[0], aspectReferenceSpecification );
 
                     return true;

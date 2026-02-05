@@ -22,10 +22,10 @@ internal sealed class CompileTimeFieldOrPropertyInfoSerializer : ObjectSerialize
 
     public static ExpressionSyntax SerializeFieldOrProperty( IFieldOrPropertyOrIndexer member, SyntaxSerializationContext serializationContext )
     {
-        var fieldInfoOrPropertyInfo = member switch
+        var fieldInfoOrPropertyInfo = member.DeclarationKind switch
         {
-            IPropertyOrIndexer property => CompileTimePropertyInfoSerializer.SerializeProperty( property, serializationContext ),
-            IField field => CompileTimeFieldInfoSerializer.SerializeField( field, serializationContext ),
+            DeclarationKind.Property or DeclarationKind.Indexer when member is IPropertyOrIndexer property => CompileTimePropertyInfoSerializer.SerializeProperty( property, serializationContext ),
+            DeclarationKind.Field when member is IField field => CompileTimeFieldInfoSerializer.SerializeField( field, serializationContext ),
             _ => throw new NotImplementedException()
         };
 

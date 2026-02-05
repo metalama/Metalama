@@ -76,17 +76,20 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         [Memo]
         public ConstructorInitializerKind InitializerKind
-            => this.GetPrimaryDeclarationSyntax() switch
+            => this.GetPrimaryDeclarationSyntax()?.Kind() switch
             {
                 null => ConstructorInitializerKind.None,
-                ConstructorDeclarationSyntax { Initializer: null } => ConstructorInitializerKind.None,
-                ConstructorDeclarationSyntax { Initializer: { } initializer } when initializer.IsKind( SyntaxKind.ThisConstructorInitializer ) =>
-                    ConstructorInitializerKind.This,
-                ConstructorDeclarationSyntax { Initializer: { } initializer } when initializer.IsKind( SyntaxKind.BaseConstructorInitializer ) =>
-                    ConstructorInitializerKind.Base,
-                TypeDeclarationSyntax { BaseList: null } =>
+                SyntaxKind.ConstructorDeclaration when this.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax { Initializer: null } =>
                     ConstructorInitializerKind.None,
-                TypeDeclarationSyntax { BaseList: { } baseList } =>
+                SyntaxKind.ConstructorDeclaration when this.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax { Initializer: { } initializer }
+                                                       && initializer.IsKind( SyntaxKind.ThisConstructorInitializer ) =>
+                    ConstructorInitializerKind.This,
+                SyntaxKind.ConstructorDeclaration when this.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax { Initializer: { } initializer }
+                                                       && initializer.IsKind( SyntaxKind.BaseConstructorInitializer ) =>
+                    ConstructorInitializerKind.Base,
+                { IsTypeDeclaration: true } when this.GetPrimaryDeclarationSyntax() is TypeDeclarationSyntax { BaseList: null } =>
+                    ConstructorInitializerKind.None,
+                { IsTypeDeclaration: true } when this.GetPrimaryDeclarationSyntax() is TypeDeclarationSyntax { BaseList: { } baseList } =>
                     baseList.Types.Any( bt => bt.IsKind( SyntaxKind.PrimaryConstructorBaseType ) )
                         ? ConstructorInitializerKind.Base
                         : ConstructorInitializerKind.None,
@@ -110,11 +113,13 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         {
             var declaration = this.GetPrimaryDeclarationSyntax();
 
-            SyntaxNode? initializer = declaration switch
+            SyntaxNode? initializer = declaration?.Kind() switch
             {
                 null => null,
-                ConstructorDeclarationSyntax constructorDeclaration => constructorDeclaration.Initializer,
-                TypeDeclarationSyntax typeDeclarationSyntax => typeDeclarationSyntax.BaseList?.Types.FirstOrDefault() as PrimaryConstructorBaseTypeSyntax,
+                SyntaxKind.ConstructorDeclaration when declaration is ConstructorDeclarationSyntax constructorDeclaration => constructorDeclaration.Initializer,
+                SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                    when declaration is TypeDeclarationSyntax typeDeclarationSyntax =>
+                    typeDeclarationSyntax.BaseList?.Types.FirstOrDefault() as PrimaryConstructorBaseTypeSyntax,
                 _ => throw new AssertionFailedException( $"Unexpected constructor syntax {declaration.GetType()}." )
             };
 

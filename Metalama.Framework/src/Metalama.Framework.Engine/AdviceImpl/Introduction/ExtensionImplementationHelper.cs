@@ -32,7 +32,7 @@ internal static class ExtensionImplementationHelper
     /// <param name="sourceParameters">The parameters to copy from the source member (can be empty).</param>
     /// <param name="returnType">The return type of the implicit method.</param>
     /// <param name="compilation">The compilation for resolving types.</param>
-    /// <param name="declarationKind">The declaration kind (Method or Operator).</param>
+    /// <param name="methodKind">The method kind (Default or Operator).</param>
     /// <param name="operatorKind">The operator kind if applicable.</param>
     /// <param name="sourceMethodAttributes">The method-level attributes to copy.</param>
     /// <param name="sourceReturnParameterAttributes">The return parameter attributes to copy.</param>
@@ -46,7 +46,7 @@ internal static class ExtensionImplementationHelper
         IReadOnlyList<ParameterBuilderData> sourceParameters,
         IType returnType,
         CompilationModel compilation,
-        DeclarationKind declarationKind = DeclarationKind.Method,
+        MethodKind methodKind = MethodKind.Default,
         OperatorKind operatorKind = OperatorKind.None,
         ImmutableArray<AttributeBuilderData> sourceMethodAttributes = default,
         ImmutableArray<AttributeBuilderData> sourceReturnParameterAttributes = default )
@@ -57,7 +57,7 @@ internal static class ExtensionImplementationHelper
             aspectLayerInstance,
             parentType,
             methodName,
-            declarationKind,
+            methodKind,
             operatorKind )
         {
             // Always static.

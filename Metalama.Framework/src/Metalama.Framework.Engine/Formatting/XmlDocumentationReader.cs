@@ -52,21 +52,21 @@ namespace Metalama.Framework.Engine.Formatting
         {
             var compilation = compilationContext.Compilation;
 
-            switch ( symbol )
+            switch ( symbol.Kind )
             {
-                case IMethodSymbol { IsOverride: true, OverriddenMethod: { } overriddenMethod }:
+                case SymbolKind.Method when symbol is IMethodSymbol { IsOverride: true, OverriddenMethod: { } overriddenMethod }:
                     return this.GetFormattedDocumentation( overriddenMethod, compilationContext, "Overrides the " );
 
-                case IMethodSymbol { ExplicitInterfaceImplementations.Length: > 0 } methodSymbol:
+                case SymbolKind.Method when symbol is IMethodSymbol { ExplicitInterfaceImplementations.Length: > 0 } methodSymbol:
                     // TODO: Implicit implementations are not trivial.
                     return this.GetFormattedDocumentation( methodSymbol.ExplicitInterfaceImplementations.First(), compilationContext, "Implements the " );
 
-                case IMethodSymbol methodSymbol:
+                case SymbolKind.Method when symbol is IMethodSymbol methodSymbol:
                     symbol = methodSymbol.OriginalDefinition;
 
                     break;
 
-                case INamedTypeSymbol namedTypeSymbol:
+                case SymbolKind.NamedType when symbol is INamedTypeSymbol namedTypeSymbol:
                     symbol = namedTypeSymbol.ConstructedFrom;
 
                     break;
@@ -77,7 +77,7 @@ namespace Metalama.Framework.Engine.Formatting
             if ( documentationId == null || !this._members.TryGetValue( documentationId, out var documentation ) )
             {
                 // If the constructor is not documented, return the documentation of the type.
-                if ( symbol is IMethodSymbol { MethodKind: MethodKind.Constructor } methodSymbol )
+                if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.Constructor } methodSymbol )
                 {
                     return this.GetFormattedDocumentation( methodSymbol.ContainingType, compilationContext );
                 }
@@ -161,9 +161,9 @@ namespace Metalama.Framework.Engine.Formatting
 
             var normalized = _spaceRegex.Replace( stringBuilder.ToString(), " " ).Trim();
 
-            var declarationKind = symbol switch
+            var declarationKind = symbol.Kind switch
             {
-                INamedTypeSymbol namedType => namedType.TypeKind switch
+                SymbolKind.NamedType when symbol is INamedTypeSymbol namedType => namedType.TypeKind switch
                 {
                     TypeKind.FunctionPointer => "function pointer",
                     TypeKind.TypeParameter => "type parameter",

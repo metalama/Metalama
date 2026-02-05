@@ -4,10 +4,6 @@ public partial class TestClass
   public async Task<T?> GetAsync<T>(CacheKey key, Func<Task<T>> acquire)
   {
     global::System.Console.WriteLine("Executing TestClass.GetAsync<T>(CacheKey, Func<Task<T>>)");
-    return (await this.GetAsync_Source<T>(key, acquire));
-  }
-  private async Task<T?> GetAsync_Source<T>(CacheKey key, Func<Task<T>> acquire)
-  {
     await Task.Yield();
     return default;
   }
@@ -15,10 +11,6 @@ public partial class TestClass
   public async Task<T?> GetAsync<T>(CacheKey key, Func<T> acquire)
   {
     global::System.Console.WriteLine("Executing TestClass.GetAsync<T>(CacheKey, Func<T>)");
-    return (await this.GetAsync_Source<T>(key, acquire));
-  }
-  private async Task<T?> GetAsync_Source<T>(CacheKey key, Func<T> acquire)
-  {
     await Task.Yield();
     return default;
   }

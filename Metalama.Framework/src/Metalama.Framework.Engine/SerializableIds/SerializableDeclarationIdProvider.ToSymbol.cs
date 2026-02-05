@@ -62,13 +62,13 @@ public static partial class SerializableDeclarationIdProvider
                 return parent;
             }
 
-            return (parent, kind) switch
+            return (parent?.Kind, kind) switch
             {
                 (null, _) => null,
-                (IMethodSymbol method, "Parameter") => method.Parameters[ordinal],
-                (IMethodSymbol method, "TypeParameter") => method.TypeParameters[ordinal],
-                (INamedTypeSymbol type, "TypeParameter") => type.TypeParameters[ordinal],
-                (IPropertySymbol property, "Parameter") => property.Parameters[ordinal],
+                (SymbolKind.Method, "Parameter") when parent is IMethodSymbol method => method.Parameters[ordinal],
+                (SymbolKind.Method, "TypeParameter") when parent is IMethodSymbol method => method.TypeParameters[ordinal],
+                (SymbolKind.NamedType, "TypeParameter") when parent is INamedTypeSymbol type => type.TypeParameters[ordinal],
+                (SymbolKind.Property, "Parameter") when parent is IPropertySymbol property => property.Parameters[ordinal],
                 _ => null
             };
         }
@@ -111,7 +111,8 @@ public static partial class SerializableDeclarationIdProvider
             var symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( id.ToString(), compilation );
 
             // Make sure to return the non-nullable type.
-            if ( symbol is ITypeSymbol { NullableAnnotation: NullableAnnotation.None } typeSymbol2 )
+            if ( symbol?.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter
+                && symbol is ITypeSymbol { NullableAnnotation: NullableAnnotation.None } typeSymbol2 )
             {
                 return typeSymbol2.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
             }

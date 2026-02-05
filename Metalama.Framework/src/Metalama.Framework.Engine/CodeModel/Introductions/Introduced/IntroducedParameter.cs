@@ -98,7 +98,7 @@ internal sealed class IntroducedParameter : IntroducedDeclaration, IParameterImp
     public override bool CanBeInherited => ((IDeclarationImpl) this.ContainingDeclaration).CanBeInherited;
 
     public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
-        => this.DeclaringMember is IMemberImpl memberImpl
+        => this.DeclaringMember is { DeclarationKind.IsMember: true } and IMemberImpl memberImpl
             ? memberImpl.GetDerivedDeclarations( options ).Select( d => ((IHasParameters) d).Parameters[this.Index] )
             : [];
 }

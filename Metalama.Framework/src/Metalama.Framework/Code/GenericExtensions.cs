@@ -29,7 +29,8 @@ namespace Metalama.Framework.Code
         /// <param name="declaration">The declaration to check.</param>
         /// <returns><c>true</c> if the declaration or any of its declaring types is generic; otherwise, <c>false</c>.</returns>
         public static bool IsSelfOrDeclaringTypeGeneric( this IMemberOrNamedType declaration )
-            => declaration is IGeneric { IsGeneric: true } || (declaration.DeclaringType != null && declaration.DeclaringType.IsSelfOrDeclaringTypeGeneric());
+            => ((declaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock or DeclarationKind.Method) && declaration is IGeneric { IsGeneric: true })
+               || (declaration.DeclaringType != null && declaration.DeclaringType.IsSelfOrDeclaringTypeGeneric());
 
         /// <summary>
         /// Gets the base type of a type or the base member of an overridden member, if any.
@@ -37,13 +38,13 @@ namespace Metalama.Framework.Code
         /// <param name="declaration">The declaration whose base to retrieve.</param>
         /// <returns>The base type or overridden member, or <c>null</c> if none exists.</returns>
         public static IMemberOrNamedType? GetBase( this IMemberOrNamedType declaration )
-            => declaration switch
+            => declaration.DeclarationKind switch
             {
-                INamedType namedType => namedType.BaseType,
-                IMethod method => method.OverriddenMethod,
-                IProperty property => property.OverriddenProperty,
-                IEvent @event => @event.OverriddenEvent,
-                IIndexer indexer => indexer.OverriddenIndexer,
+                DeclarationKind.NamedType when declaration is INamedType namedType => namedType.BaseType,
+                DeclarationKind.Method when declaration is IMethod method => method.OverriddenMethod,
+                DeclarationKind.Property when declaration is IProperty property => property.OverriddenProperty,
+                DeclarationKind.Event when declaration is IEvent @event => @event.OverriddenEvent,
+                DeclarationKind.Indexer when declaration is IIndexer indexer => indexer.OverriddenIndexer,
                 _ => null
             };
 
@@ -51,9 +52,10 @@ namespace Metalama.Framework.Code
         public static IDeclaration GetOriginalDefinition( this IDeclaration declaration ) => declaration.GetDefinition();
 
         internal static IDeclaration GetDefinition( this IDeclaration declaration )
-            => declaration switch
+            => declaration.DeclarationKind switch
             {
-                IMemberOrNamedType memberOrNamedType => memberOrNamedType.Definition,
+                DeclarationKind.NamedType or DeclarationKind.Method or DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Constructor or DeclarationKind.Indexer
+                    when declaration is IMemberOrNamedType memberOrNamedType => memberOrNamedType.Definition,
                 _ => declaration
             };
 
@@ -292,41 +294,39 @@ namespace Metalama.Framework.Code
 
             IEnumerable<IMemberOrNamedType> candidates;
 
-            // TODO PERF: Implement the switch based on DeclarationKind. 
-
-            switch ( declaration )
+            switch ( declaration.DeclarationKind )
             {
-                case INamedType namedType:
+                case DeclarationKind.NamedType when declaration is INamedType namedType:
                     candidates = typeInstance.Types.OfName( namedType.Name );
 
                     break;
 
-                case IMethod method:
+                case DeclarationKind.Method when declaration is IMethod method:
                     candidates = typeInstance.Methods.OfName( method.Name );
 
                     break;
 
-                case IField { OverridingProperty: null } field:
+                case DeclarationKind.Field when declaration is IField { OverridingProperty: null } field:
                     candidates = typeInstance.Fields.OfName( field.Name );
 
                     break;
 
-                case IProperty property:
+                case DeclarationKind.Property when declaration is IProperty property:
                     candidates = typeInstance.Properties.OfName( property.Name );
 
                     break;
 
-                case IEvent @event:
+                case DeclarationKind.Event when declaration is IEvent @event:
                     candidates = typeInstance.Events.OfName( @event.Name );
 
                     break;
 
-                case IConstructor { IsStatic: false }:
+                case DeclarationKind.Constructor when declaration is IConstructor { IsStatic: false }:
                     candidates = typeInstance.Constructors;
 
                     break;
 
-                case IConstructor { IsStatic: true }:
+                case DeclarationKind.Constructor when declaration is IConstructor { IsStatic: true }:
                     candidates = typeInstance.StaticConstructor != null ? new[] { typeInstance.StaticConstructor } : Array.Empty<IMemberOrNamedType>();
 
                     break;

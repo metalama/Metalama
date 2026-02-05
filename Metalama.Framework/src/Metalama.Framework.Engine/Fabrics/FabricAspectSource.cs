@@ -72,11 +72,11 @@ internal sealed class FabricAspectSource : IAspectSource
                 .ToImmutableArray();
 
             // Create an IAspect.
-            IAspect aspect = target switch
+            IAspect aspect = target.DeclarationKind switch
             {
-                INamedType => new FabricAspect<INamedType>( drivers ),
-                INamespace => new FabricAspect<INamespace>( drivers ),
-                ICompilation => new FabricAspect<ICompilation>( drivers ),
+                DeclarationKind.NamedType or DeclarationKind.ExtensionBlock => new FabricAspect<INamedType>( drivers ),
+                DeclarationKind.Namespace => new FabricAspect<INamespace>( drivers ),
+                DeclarationKind.Compilation => new FabricAspect<ICompilation>( drivers ),
                 _ => throw new AssertionFailedException( $"Unexpected fabric target: '{target}'." )
             };
 

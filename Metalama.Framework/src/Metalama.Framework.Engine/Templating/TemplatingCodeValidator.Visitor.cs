@@ -98,7 +98,9 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     return node
                         .AncestorsAndSelf()
-                        .Any( n => n is TypeOfExpressionSyntax || (n is InvocationExpressionSyntax invocation && invocation.IsNameOf()) );
+                        .Any(
+                            n => n.IsKind( SyntaxKind.TypeOfExpression ) || (n.IsKind( SyntaxKind.InvocationExpression )
+                                                                             && n is InvocationExpressionSyntax invocation && invocation.IsNameOf()) );
                 }
 
                 bool AvoidDuplicates( ISymbol symbol )
@@ -108,7 +110,7 @@ namespace Metalama.Framework.Engine.Templating
                              && this._alreadyReportedDiagnostics.Contains( symbol.ContainingSymbol ));
                 }
 
-                if ( node is null or IdentifierNameSyntax { IsVar: true } )
+                if ( node == null || (node.IsKind( SyntaxKind.IdentifierName ) && node is IdentifierNameSyntax { IsVar: true }) )
                 {
                     // We skip 'var' because the semantic model sometimes resolve it to dynamic for no reason,
                     // and there is little value in spending more effort coping with this case.
@@ -132,7 +134,7 @@ namespace Metalama.Framework.Engine.Templating
                 this._observer?.OnSemanticModelUsed();
                 var referencedSymbol = this._semanticModel.GetSymbolInfo( node ).Symbol;
 
-                if ( referencedSymbol is not null and not ITypeParameterSymbol )
+                if ( referencedSymbol != null && referencedSymbol.Kind != SymbolKind.TypeParameter )
                 {
                     this._observer?.OnSymbolClassifierUsed( this._symbolClassificationContext == SymbolClassificationContext.RunTimeOnly );
                     var referencedScope = this._classifier.GetTemplatingScope( referencedSymbol, this._symbolClassificationContext );
@@ -158,7 +160,8 @@ namespace Metalama.Framework.Engine.Templating
                                             break;
 
                                         case ("Metalama.Framework.Code.IExpression", "Value"):
-                                            var expression = node.Parent is MemberAccessExpressionSyntax memberAccess
+                                            var expression = node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression )
+                                                             && node.Parent is MemberAccessExpressionSyntax memberAccess
                                                 ? memberAccess.Expression.ToString()
                                                 : "expression";
 
@@ -167,7 +170,10 @@ namespace Metalama.Framework.Engine.Templating
                                             break;
 
                                         case ("Metalama.Framework.Code.SyntaxBuilders.SyntaxBuilder", "AppendExpression"):
-                                            if ( node.Parent?.Parent is InvocationExpressionSyntax { ArgumentList.Arguments: [var argument] } )
+                                            if ( node.Parent?.Parent is { RawKind: (int) SyntaxKind.InvocationExpression } and InvocationExpressionSyntax
+                                                {
+                                                    ArgumentList.Arguments: [var argument]
+                                                } )
                                             {
                                                 this._observer?.OnSemanticModelUsed();
                                                 var argumentType = this._semanticModel.GetTypeInfo( argument.Expression ).Type;
@@ -234,7 +240,8 @@ namespace Metalama.Framework.Engine.Templating
                 }
 
                 this._observer?.OnSemanticModelUsed();
-                var attributeSymbol = (this._semanticModel.GetSymbolInfo( node ).Symbol as IMethodSymbol)?.ContainingType;
+                var symbol = this._semanticModel.GetSymbolInfo( node ).Symbol;
+                var attributeSymbol = (symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol method) ? method.ContainingType : null;
                 var iAspectSymbol = this._compilationContext.ReflectionMapper.GetTypeSymbol( typeof(IAspect) );
 
                 var compilation = this._compilationContext.SourceCompilation;
@@ -331,8 +338,9 @@ namespace Metalama.Framework.Engine.Templating
                     foreach ( var baseTypeNode in node.BaseList.Types )
                     {
                         this._observer?.OnSemanticModelUsed();
+                        var baseTypeSymbol = ModelExtensions.GetSymbolInfo( this._semanticModel, baseTypeNode.Type ).Symbol;
 
-                        if ( ModelExtensions.GetSymbolInfo( this._semanticModel, baseTypeNode.Type ).Symbol is not INamedTypeSymbol baseType )
+                        if ( baseTypeSymbol?.Kind != SymbolKind.NamedType || baseTypeSymbol is not INamedTypeSymbol baseType )
                         {
                             continue;
                         }
@@ -378,7 +386,8 @@ namespace Metalama.Framework.Engine.Templating
 #if ROSLYN_4_8_0_OR_GREATER
                 if ( symbol is not null
                      && this._currentScope is TemplatingScope.RunTimeOrCompileTime or TemplatingScope.CompileTimeOnly
-                     && node is TypeDeclarationSyntax { ParameterList: not null } and (ClassDeclarationSyntax or StructDeclarationSyntax) )
+                     && node.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration
+                     && node is TypeDeclarationSyntax { ParameterList: not null } )
                 {
                     // C#12 primary constructors (non-record types) are not supported.
                     this.Report(
@@ -406,7 +415,8 @@ namespace Metalama.Framework.Engine.Templating
                                 symbol.GetDiagnosticLocation(),
                                 symbol ) );
                     }
-                    else if ( serializerType == null && node is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } )
+                    else if ( serializerType == null && node.SyntaxKind.IsRecordDeclaration
+                                                     && node is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } )
                     {
                         // Generated serializers for positional records are not supported.
                         this.Report(
@@ -594,7 +604,7 @@ namespace Metalama.Framework.Engine.Templating
             {
                 // For e.g. int P => 42;, there is no node that declares the getter,
                 // so we have to handle it manually to set up the context for the getter method.
-                if ( node.Parent is PropertyDeclarationSyntax propertyDeclaration )
+                if ( node.Parent.IsKind( SyntaxKind.PropertyDeclaration ) && node.Parent is PropertyDeclarationSyntax propertyDeclaration )
                 {
                     this._observer?.OnSemanticModelUsed();
                     var getMethod = this._semanticModel.GetDeclaredSymbol( propertyDeclaration ).AssertSymbolNotNull().GetMethod;
@@ -837,7 +847,7 @@ namespace Metalama.Framework.Engine.Templating
                 }
 
                 // Report an error for advice attribute on an accessor.
-                if ( declaredSymbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol } )
+                if ( declaredSymbol.Kind == SymbolKind.Method && declaredSymbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol } )
                 {
                     var adviceAttribute = declaredSymbol.GetAttributes()
                         .FirstOrDefault(
@@ -855,7 +865,8 @@ namespace Metalama.Framework.Engine.Templating
                 // Report an error for multiple advice attributes.
                 IEnumerable<(ISymbol Member, INamedTypeSymbol AttributeClass)> GetAdviceAttributes( ISymbol? member )
                 {
-                    if ( member is null or ITypeSymbol )
+                    if ( member == null || member.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType
+                            or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter )
                     {
                         return [];
                     }
@@ -864,7 +875,7 @@ namespace Metalama.Framework.Engine.Templating
                         .Where( a => this._compilationContext.SourceCompilation.HasImplicitConversion( a.AttributeClass, this._iAdviceAttributeType ) )
                         .Select( a => (member, a.AttributeClass!) );
 
-                    var baseAttributesSource = member is IMethodSymbol { AssociatedSymbol: { } memberAssociatedSymbol }
+                    var baseAttributesSource = member.Kind == SymbolKind.Method && member is IMethodSymbol { AssociatedSymbol: { } memberAssociatedSymbol }
                         ? memberAssociatedSymbol
                         : member.GetOverriddenMember();
 
@@ -886,7 +897,8 @@ namespace Metalama.Framework.Engine.Templating
                 var reflectionMapper = this._compilationContext.ReflectionMapper;
 
                 // Report an error for struct aspect.
-                if ( declaredSymbol is INamedTypeSymbol { IsValueType: true } typeSymbol && IsAspect( typeSymbol ) )
+                if ( declaredSymbol.Kind == SymbolKind.NamedType && declaredSymbol is INamedTypeSymbol { IsValueType: true } typeSymbol
+                                                                 && IsAspect( typeSymbol ) )
                 {
                     this.Report(
                         TemplatingDiagnosticDescriptors.AspectCantBeStruct.CreateRoslynDiagnostic(
@@ -895,7 +907,7 @@ namespace Metalama.Framework.Engine.Templating
                 }
 
                 // Get the type scope.
-                var typeScope = declaredSymbol is INamedTypeSymbol ? scope : this._currentTypeScope;
+                var typeScope = declaredSymbol.Kind == SymbolKind.NamedType ? scope : this._currentTypeScope;
 
                 // Get the template info.
                 var templateInfo = this._currentTemplateInfo;
@@ -920,7 +932,7 @@ namespace Metalama.Framework.Engine.Templating
                                 declaredSymbol.GetDiagnosticLocation(),
                                 declaredSymbol ) );
                     }
-                    else if ( declaredSymbol is IMethodSymbol { IsExtensionMethod: true } )
+                    else if ( declaredSymbol.Kind == SymbolKind.Method && declaredSymbol is IMethodSymbol { IsExtensionMethod: true } )
                     {
                         this.Report(
                             TemplatingDiagnosticDescriptors.ExtensionMethodTemplateNotSupported.CreateRoslynDiagnostic(
@@ -986,7 +998,7 @@ namespace Metalama.Framework.Engine.Templating
                 // Skip when: run-time member, validation disabled, not a type, and not a template.
                 var skipImplementation = scope == TemplatingScope.RunTimeOnly
                                          && !this._validateRunTimeCode
-                                         && declaredSymbol is not INamedTypeSymbol
+                                         && declaredSymbol.Kind != SymbolKind.NamedType
                                          && templateInfo.IsNone;
 
                 // Assign the new context.
@@ -1032,7 +1044,7 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     // Verify the symbol kind.
                     if ( Array.IndexOf( suppression.EligibleSymbolKinds, declaredSymbol.Kind ) < 0
-                         && !(suppression.AppliesToConstructor && node is ConstructorDeclarationSyntax) )
+                         && !(suppression.AppliesToConstructor && node.IsKind( SyntaxKind.ConstructorDeclaration )) )
                     {
                         continue;
                     }
@@ -1040,21 +1052,22 @@ namespace Metalama.Framework.Engine.Templating
                     // Verify that the template has a body, if required.
                     if ( suppression.RequiresBody )
                     {
-                        var hasBody = node switch
+                        var hasBody = node.Kind() switch
                         {
-                            ConstructorDeclarationSyntax => true,
-                            MethodDeclarationSyntax method => method.Body != null || method.ExpressionBody != null,
-                            VariableDeclaratorSyntax variable => variable.Initializer != null,
-                            EventDeclarationSyntax => true,
-                            OperatorDeclarationSyntax => true,
-                            DestructorDeclarationSyntax => true,
-                            ConversionOperatorDeclarationSyntax => true,
-                            IndexerDeclarationSyntax => true,
-                            AccessorDeclarationSyntax accessor => accessor.Body != null || accessor.ExpressionBody != null,
-                            PropertyDeclarationSyntax property => property.Initializer != null ||
-                                                                  (property.AccessorList != null && property.AccessorList.Accessors.Any(
-                                                                      a => a.Body != null || a.ExpressionBody != null )),
-                            ArrowExpressionClauseSyntax => true,
+                            SyntaxKind.ConstructorDeclaration => true,
+                            SyntaxKind.MethodDeclaration when node is MethodDeclarationSyntax method => method.Body != null || method.ExpressionBody != null,
+                            SyntaxKind.VariableDeclarator when node is VariableDeclaratorSyntax variable => variable.Initializer != null,
+                            SyntaxKind.EventDeclaration => true,
+                            SyntaxKind.OperatorDeclaration => true,
+                            SyntaxKind.DestructorDeclaration => true,
+                            SyntaxKind.ConversionOperatorDeclaration => true,
+                            SyntaxKind.IndexerDeclaration => true,
+                            SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                                or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                                when node is AccessorDeclarationSyntax accessor => accessor.Body != null || accessor.ExpressionBody != null,
+                            SyntaxKind.PropertyDeclaration when node is PropertyDeclarationSyntax property => property.Initializer != null ||
+                                (property.AccessorList != null && property.AccessorList.Accessors.Any( a => a.Body != null || a.ExpressionBody != null )),
+                            SyntaxKind.ArrowExpressionClause => true,
                             _ => throw new AssertionFailedException()
                         };
 
@@ -1069,10 +1082,11 @@ namespace Metalama.Framework.Engine.Templating
             }
 
             private static bool IsSupportedTemplateDeclaration( ISymbol declaredSymbol )
-                => declaredSymbol is not IMethodSymbol
-                {
-                    MethodKind: MethodKind.Constructor or MethodKind.Destructor or MethodKind.Conversion or MethodKind.UserDefinedOperator
-                };
+                => declaredSymbol.Kind != SymbolKind.Method
+                   || declaredSymbol is not IMethodSymbol
+                   {
+                       MethodKind: MethodKind.Constructor or MethodKind.Destructor or MethodKind.Conversion or MethodKind.UserDefinedOperator
+                   };
 
             private readonly struct Context : IDisposable
             {

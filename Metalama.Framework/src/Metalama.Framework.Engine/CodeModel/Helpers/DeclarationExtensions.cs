@@ -36,29 +36,30 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers;
 public static class DeclarationExtensions
 {
     internal static DeclarationKind GetDeclarationKind( this ISymbol symbol, CompilationContext compilationContext )
-        => symbol switch
+        => symbol.Kind switch
         {
-            INamespaceSymbol => DeclarationKind.Namespace,
+            SymbolKind.Namespace => DeclarationKind.Namespace,
 #if ROSLYN_5_0_0_OR_GREATER
-            INamedTypeSymbol { IsExtension: true } => DeclarationKind.ExtensionBlock,
+            SymbolKind.NamedType when symbol is INamedTypeSymbol { IsExtension: true } => DeclarationKind.ExtensionBlock,
 #endif
-            INamedTypeSymbol => DeclarationKind.NamedType,
-            IMethodSymbol method =>
-                method.MethodKind switch
-                {
-                    MethodKind.Constructor or MethodKind.StaticConstructor => DeclarationKind.Constructor,
-                    MethodKind.Destructor => DeclarationKind.Finalizer,
-                    _ => DeclarationKind.Method
-                },
-            IPropertySymbol { Parameters.Length: var parameters } => parameters == 0 ? DeclarationKind.Property : DeclarationKind.Indexer,
-            IFieldSymbol => DeclarationKind.Field,
-            ITypeParameterSymbol => DeclarationKind.TypeParameter,
-            IAssemblySymbol assemblySymbol when assemblySymbol.Equals( compilationContext.Compilation.Assembly ) => DeclarationKind.Compilation,
-            IAssemblySymbol => DeclarationKind.AssemblyReference,
-            IParameterSymbol => DeclarationKind.Parameter,
-            IEventSymbol => DeclarationKind.Event,
-            ITypeSymbol => DeclarationKind.Type,
-            IModuleSymbol => DeclarationKind.Compilation,
+            SymbolKind.NamedType => DeclarationKind.NamedType,
+            SymbolKind.Method when symbol is IMethodSymbol method =>
+                method.MethodKind is MethodKind.Constructor or MethodKind.StaticConstructor
+                    ? DeclarationKind.Constructor
+                    : DeclarationKind.Method,
+            SymbolKind.Property when symbol is IPropertySymbol { Parameters.Length: var parameters } => parameters == 0
+                ? DeclarationKind.Property
+                : DeclarationKind.Indexer,
+            SymbolKind.Field => DeclarationKind.Field,
+            SymbolKind.TypeParameter => DeclarationKind.TypeParameter,
+            SymbolKind.Assembly when symbol is IAssemblySymbol assemblySymbol && assemblySymbol.Equals( compilationContext.Compilation.Assembly ) =>
+                DeclarationKind.Compilation,
+            SymbolKind.Assembly => DeclarationKind.AssemblyReference,
+            SymbolKind.Parameter => DeclarationKind.Parameter,
+            SymbolKind.Event => DeclarationKind.Event,
+            { IsNonNamedType: true } =>
+                DeclarationKind.Type,
+            SymbolKind.NetModule => DeclarationKind.Compilation,
             _ => throw new ArgumentException( $"Unexpected symbol: {symbol.GetType().Name}.", nameof(symbol) )
         };
 
@@ -67,11 +68,11 @@ public static class DeclarationExtensions
     /// </summary>
     internal static IEnumerable<IDeclaration> GetContainedDeclarations( this IDeclaration declaration )
         => declaration.SelectManyRecursive(
-            child => child switch
+            child => child.DeclarationKind switch
             {
-                ICompilation compilation => [compilation.GlobalNamespace],
-                INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
-                INamedType namedType => EnumerableExtensions.Concat<IDeclaration>(
+                DeclarationKind.Compilation when child is ICompilation compilation => [compilation.GlobalNamespace],
+                DeclarationKind.Namespace when child is INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
+                DeclarationKind.NamedType when child is INamedType namedType => EnumerableExtensions.Concat<IDeclaration>(
                         namedType.Types,
                         namedType.Methods,
                         namedType.Constructors,
@@ -82,12 +83,12 @@ public static class DeclarationExtensions
                         namedType.TypeParameters )
                     .ConcatNotNull( namedType.StaticConstructor )
                     .ConcatNotNull( namedType.Finalizer ),
-                IMethod method => Enumerable
+                DeclarationKind.Method when child is IMethod method => Enumerable
                     .Concat<IDeclaration>( method.Parameters, method.TypeParameters )
                     .ConcatNotNull( method.ReturnParameter ),
-                IIndexer indexer => indexer.Parameters.Concat<IDeclaration>( indexer.Accessors ),
-                IConstructor constructor => constructor.Parameters,
-                IHasAccessors member => member.Accessors,
+                DeclarationKind.Indexer when child is IIndexer indexer => indexer.Parameters.Concat<IDeclaration>( indexer.Accessors ),
+                DeclarationKind.Constructor when child is IConstructor constructor => constructor.Parameters,
+                DeclarationKind.Property or DeclarationKind.Event when child is IHasAccessors member => member.Accessors,
                 _ => []
             } );
 
@@ -97,11 +98,13 @@ public static class DeclarationExtensions
             : null;
 
     internal static Location? GetDiagnosticLocation( this IDeclaration declaration )
+#pragma warning disable LAMA0860 // ISdkDeclaration is a marker interface not tied to a specific DeclarationKind
         => declaration switch
         {
             ISdkDeclaration hasLocation => hasLocation.DiagnosticLocation,
             _ => null
         };
+#pragma warning restore LAMA0860
 
     private static void CheckArguments( this IDeclaration declaration, IReadOnlyList<IParameter> parameters, IReadOnlyList<IExpression> arguments )
     {
@@ -276,7 +279,8 @@ public static class DeclarationExtensions
         => symbol.GetPropertyKind() switch
         {
             PropertyKind.Auto => true,
-            PropertyKind.SemiAuto => true, // Semi-auto properties have compiler-generated backing fields; IsAutoProperty returns true based on backing field existence, not accessor implementation.
+            PropertyKind.SemiAuto =>
+                true, // Semi-auto properties have compiler-generated backing fields; IsAutoProperty returns true based on backing field existence, not accessor implementation.
             PropertyKind.Default => false,
             _ => null
         };
@@ -333,12 +337,18 @@ public static class DeclarationExtensions
 
             // Check if all accessors are empty (pure auto-property).
             var allAccessorsEmpty = symbol.DeclaringSyntaxReferences.All(
-                sr => sr.GetSyntax() switch
+                sr =>
                 {
-                    BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } =>
-                        accessors.All( a => a.Body == null && a.ExpressionBody == null ),
-                    ParameterSyntax => true, // Primary constructor parameter
-                    _ => false
+                    var syntax = sr.GetSyntax();
+
+                    return syntax.Kind() switch
+                    {
+                        SyntaxKind.PropertyDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.IndexerDeclaration
+                            when syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } =>
+                            accessors.All( a => a.Body == null && a.ExpressionBody == null ),
+                        SyntaxKind.Parameter => true, // Primary constructor parameter
+                        _ => false
+                    };
                 } );
 
             if ( allAccessorsEmpty )
@@ -370,14 +380,17 @@ public static class DeclarationExtensions
     }
 
     private static bool HasExplicitAccessorBody( IPropertySymbol symbol )
-        => symbol.DeclaringSyntaxReferences.Any(
-            sr => sr.GetSyntax() switch
-            {
-                BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } =>
-                    accessors.Any( a => a.Body != null || a.ExpressionBody != null ),
-                PropertyDeclarationSyntax { ExpressionBody: { } } => true, // Expression-bodied property
-                _ => false
-            } );
+        => symbol.DeclaringSyntaxReferences
+            .Select( sr => sr.GetSyntax() )
+            .Any(
+                syntax => syntax.Kind() switch
+                {
+                    SyntaxKind.PropertyDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.IndexerDeclaration
+                        when syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } =>
+                        accessors.Any( a => a.Body != null || a.ExpressionBody != null ),
+                    SyntaxKind.PropertyDeclaration when syntax is PropertyDeclarationSyntax { ExpressionBody: not null } => true, // Expression-bodied property
+                    _ => false
+                } );
 
     private static bool ContainsFieldKeyword( IPropertySymbol symbol )
     {
@@ -386,7 +399,8 @@ public static class DeclarationExtensions
         {
             var syntax = syntaxRef.GetSyntax();
 
-            if ( syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } )
+            if ( syntax.Kind() is SyntaxKind.PropertyDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.IndexerDeclaration
+                 && syntax is BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } )
             {
                 foreach ( var accessor in accessors )
                 {
@@ -406,6 +420,7 @@ public static class DeclarationExtensions
         => symbol switch
         {
             { IsAbstract: true } => false,
+
             // Use GetPropertyKind() instead of IsAutoProperty() to correctly handle semi-auto properties.
             // Semi-auto properties (using C# 14 'field' keyword) have backing fields but explicit accessor bodies,
             // so their accessors should NOT be considered auto accessors.
@@ -428,12 +443,20 @@ public static class DeclarationExtensions
             { IsAbstract: true } => false,
             { DeclaringSyntaxReferences.Length: > 0 } =>
                 method.DeclaringSyntaxReferences.Any(
-                    m => m.GetSyntax() is
-                        BaseMethodDeclarationSyntax { Body: { } }
-                        or BaseMethodDeclarationSyntax { ExpressionBody: { } }
-                        or PropertyDeclarationSyntax { ExpressionBody: { } }
-                        or AccessorDeclarationSyntax { Body: { } }
-                        or AccessorDeclarationSyntax { ExpressionBody: { } } ),
+                    m =>
+                    {
+                        var syntax = m.GetSyntax();
+
+                        return syntax switch
+                        {
+                            { SyntaxKind.IsBaseMethodDeclaration: true }
+                                and (BaseMethodDeclarationSyntax { Body: { } } or BaseMethodDeclarationSyntax { ExpressionBody: { } }) => true,
+                            { SyntaxKind: SyntaxKind.PropertyDeclaration } and PropertyDeclarationSyntax { ExpressionBody: { } } => true,
+                            { SyntaxKind.IsAccessorDeclaration: true }
+                                and (AccessorDeclarationSyntax { Body: { } } or AccessorDeclarationSyntax { ExpressionBody: { } }) => true,
+                            _ => false
+                        };
+                    } ),
             _ => null
         };
 
@@ -445,7 +468,8 @@ public static class DeclarationExtensions
             { IsPartialDefinition: true } => false, // Partial event is not event field (and cannot be when implemented).
 #endif
             { DeclaringSyntaxReferences.Length: > 0 } =>
-                symbol.DeclaringSyntaxReferences.All( sr => sr.GetSyntax() is VariableDeclaratorSyntax ),
+                symbol.DeclaringSyntaxReferences.All(
+                    sr => sr.GetSyntax().IsKind( SyntaxKind.VariableDeclarator ) && sr.GetSyntax() is VariableDeclaratorSyntax ),
             { AddMethod: { } addMethod, RemoveMethod: { } removeMethod } => addMethod.IsCompilerGenerated() && removeMethod.IsCompilerGenerated(),
             _ => null
         };
@@ -468,15 +492,15 @@ public static class DeclarationExtensions
 
     internal static IMember GetExplicitInterfaceImplementation( this IMember member )
     {
-        switch ( member )
+        switch ( member.DeclarationKind )
         {
-            case IMethod method:
+            case DeclarationKind.Method when member is IMethod method:
                 return method.ExplicitInterfaceImplementations.Single();
 
-            case IProperty property:
+            case DeclarationKind.Property when member is IProperty property:
                 return property.ExplicitInterfaceImplementations.Single();
 
-            case IEvent @event:
+            case DeclarationKind.Event when member is IEvent @event:
                 return @event.ExplicitInterfaceImplementations.Single();
 
             default:
@@ -555,7 +579,8 @@ public static class DeclarationExtensions
 
     internal static bool TryGetHiddenDeclaration( this IMemberOrNamedType declaration, [NotNullWhen( true )] out IMemberOrNamedType? hiddenDeclaration )
     {
-        if ( declaration is IMember { IsOverride: true } )
+        if ( declaration.DeclarationKind.IsMember
+             && declaration is IMember { IsOverride: true } )
         {
             // Override symbol never hides anything.
             hiddenDeclaration = null;
@@ -567,9 +592,9 @@ public static class DeclarationExtensions
 
         while ( currentType != null )
         {
-            switch ( declaration )
+            switch ( declaration.DeclarationKind )
             {
-                case IFieldOrProperty or IEvent or INamedType:
+                case DeclarationKind.Field or DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.NamedType:
                     // Field/properties/events are matched by name. When a base method is hidden, we ignore it (as it may be still accessible).
                     var candidateMember =
                         currentType.Fields.OfName( declaration.Name ).FirstOrDefault()
@@ -587,7 +612,7 @@ public static class DeclarationExtensions
 
                     break;
 
-                case IIndexer indexer:
+                case DeclarationKind.Indexer when declaration is IIndexer indexer:
                     // Indexers are matched by signature.
                     var candidateIndexer = currentType.Indexers.OfExactSignature( indexer );
 
@@ -602,7 +627,7 @@ public static class DeclarationExtensions
 
                     break;
 
-                case IMethod method:
+                case DeclarationKind.Method when declaration is IMethod method:
                     // Methods are matched by signature.
                     var candidateMethod = currentType.Methods.OfExactSignature( method );
 
@@ -660,7 +685,8 @@ public static class DeclarationExtensions
     /// i.e. returns containing namespace for top-level types.
     /// </summary>
     internal static IDeclaration? GetContainingDeclarationOrNamespace( this IDeclaration declaration )
-        => declaration.ContainingDeclaration is IAssembly && declaration is INamedType namedType
+        => declaration.ContainingDeclaration?.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.AssemblyReference
+           && declaration is { ContainingDeclaration: IAssembly, DeclarationKind: DeclarationKind.NamedType } and INamedType namedType
             ? namedType.ContainingNamespace
             : declaration.ContainingDeclaration;
 
@@ -669,18 +695,18 @@ public static class DeclarationExtensions
     internal static bool IsNullableValueType( this IType type ) => type is { IsNullable: true, IsReferenceType: false };
 
     internal static INamedType? GetBaseType( this IType type )
-        => type switch
+        => type.DeclarationKind switch
         {
-            INamedType namedType => namedType.BaseType,
-            IArrayType => (INamedType) type.GetCompilationModel().Factory.GetTypeByReflectionType( typeof(Array) ),
+            DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when type is INamedType namedType => namedType.BaseType,
+            DeclarationKind.Type when type is IArrayType => (INamedType) type.GetCompilationModel().Factory.GetTypeByReflectionType( typeof(Array) ),
             _ => null
         };
 
     internal static IEnumerable<INamedType> GetImplementedInterfaces( this IType type )
-        => type switch
+        => type.DeclarationKind switch
         {
-            INamedType namedType => namedType.ImplementedInterfaces,
-            IArrayType { Rank: 1 } arrayType => SymbolHelpers.ArrayGenericInterfaces.Select(
+            DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when type is INamedType namedType => namedType.ImplementedInterfaces,
+            DeclarationKind.Type when type is IArrayType { Rank: 1 } arrayType => SymbolHelpers.ArrayGenericInterfaces.Select(
                 definitionSpecialType => type.GetCompilationModel()
                     .Factory
                     .GetNamedType(

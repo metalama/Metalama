@@ -17,6 +17,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
@@ -296,10 +297,10 @@ internal sealed class LinkerInjectionRegistry
             var intermediateSyntaxTree = this._transformedSyntaxTreeMap[injectedMember.GetTargetSyntaxTree()];
             var intermediateSyntax = intermediateSyntaxTree.GetRoot().GetCurrentNode( injectedMember.Syntax ).AssertNotNull();
 
-            SyntaxNode symbolSyntax = intermediateSyntax switch
+            SyntaxNode symbolSyntax = intermediateSyntax.Kind() switch
             {
-                EventFieldDeclarationSyntax eventFieldSyntax => eventFieldSyntax.Declaration.Variables.First(),
-                FieldDeclarationSyntax fieldSyntax => fieldSyntax.Declaration.Variables.First(),
+                SyntaxKind.EventFieldDeclaration when intermediateSyntax is EventFieldDeclarationSyntax eventFieldSyntax => eventFieldSyntax.Declaration.Variables.First(),
+                SyntaxKind.FieldDeclaration when intermediateSyntax is FieldDeclarationSyntax fieldSyntax => fieldSyntax.Declaration.Variables.First(),
                 _ => intermediateSyntax
             };
 
@@ -365,9 +366,9 @@ internal sealed class LinkerInjectionRegistry
                 var intermediateSemanticModel =
                     this._intermediateCompilation.CompilationContext.SemanticModelProvider.GetSemanticModel( intermediateSyntaxTree );
 
-                var symbolNode = intermediateNode.AssertNotNull() switch
+                var symbolNode = intermediateNode.AssertNotNull().Kind() switch
                 {
-                    EventFieldDeclarationSyntax eventFieldNode => (SyntaxNode) eventFieldNode.Declaration.Variables.First(),
+                    SyntaxKind.EventFieldDeclaration when intermediateNode is EventFieldDeclarationSyntax eventFieldNode => (SyntaxNode) eventFieldNode.Declaration.Variables.First(),
                     _ => intermediateNode
                 };
 
@@ -386,7 +387,7 @@ internal sealed class LinkerInjectionRegistry
 
             foreach ( var translatedMember in translatedDeclaringType.GetMembers() )
             {
-                if ( translatedMember is not IMethodSymbol { MethodKind: MethodKind.Constructor } translatedConstructor )
+                if ( translatedMember.Kind != SymbolKind.Method || translatedMember is not IMethodSymbol { MethodKind: MethodKind.Constructor } translatedConstructor )
                 {
                     continue;
                 }
@@ -459,13 +460,13 @@ internal sealed class LinkerInjectionRegistry
     /// <returns>An introduced member, or <c>null</c> if the declaration represented by this symbol was not introduced.</returns>
     public InjectedMember? GetInjectedMemberForSymbol( ISymbol symbol )
     {
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case IMethodSymbol { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet } propertyAccessorSymbol:
+            case SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet } propertyAccessorSymbol:
                 // Coverage: ignore (coverage is irrelevant, needed for correctness).
                 return this.GetInjectedMemberForSymbol( propertyAccessorSymbol.AssociatedSymbol.AssertNotNull() );
 
-            case IMethodSymbol { MethodKind: MethodKind.EventAdd or MethodKind.EventRemove } eventAccessorSymbol:
+            case SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.EventAdd or MethodKind.EventRemove } eventAccessorSymbol:
                 // Coverage: ignore (coverage is irrelevant, needed for correctness).
                 return this.GetInjectedMemberForSymbol( eventAccessorSymbol.AssociatedSymbol.AssertNotNull() );
         }
@@ -550,18 +551,18 @@ internal sealed class LinkerInjectionRegistry
     {
         symbol = symbol.GetCanonicalDefinition();
 
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case IMethodSymbol { MethodKind: MethodKind.PropertyGet } getterSymbol:
+            case SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.PropertyGet } getterSymbol:
                 return ((IPropertySymbol) this.GetLastOverride( getterSymbol.AssociatedSymbol.AssertNotNull() )).GetMethod.AssertNotNull();
 
-            case IMethodSymbol { MethodKind: MethodKind.PropertySet } setterSymbol:
+            case SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.PropertySet } setterSymbol:
                 return ((IPropertySymbol) this.GetLastOverride( setterSymbol.AssociatedSymbol.AssertNotNull() )).SetMethod.AssertNotNull();
 
-            case IMethodSymbol { MethodKind: MethodKind.EventAdd } adderSymbol:
+            case SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.EventAdd } adderSymbol:
                 return ((IEventSymbol) this.GetLastOverride( adderSymbol.AssociatedSymbol.AssertNotNull() )).AddMethod.AssertNotNull();
 
-            case IMethodSymbol { MethodKind: MethodKind.EventRemove } removerSymbol:
+            case SymbolKind.Method when symbol is IMethodSymbol { MethodKind: MethodKind.EventRemove } removerSymbol:
                 return ((IEventSymbol) this.GetLastOverride( removerSymbol.AssociatedSymbol.AssertNotNull() )).RemoveMethod.AssertNotNull();
 
             default:
@@ -592,7 +593,7 @@ internal sealed class LinkerInjectionRegistry
     /// <returns><c>True</c> if the method is introduced, otherwise <c>false</c>.</returns>
     public bool IsIntroduced( ISymbol symbol )
     {
-        if ( symbol is IMethodSymbol
+        if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol
             {
                 MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove
             } methodSymbol )
@@ -619,7 +620,7 @@ internal sealed class LinkerInjectionRegistry
     /// <returns><c>True</c> if the method is override target, otherwise <c>false</c>.</returns>
     public bool IsOverrideTarget( ISymbol symbol )
     {
-        if ( symbol is IMethodSymbol
+        if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol
             {
                 MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove
             } methodSymbol )
@@ -639,7 +640,7 @@ internal sealed class LinkerInjectionRegistry
     /// <returns></returns>
     public bool IsOverride( ISymbol symbol )
     {
-        if ( symbol is IMethodSymbol
+        if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol
             {
                 MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet or MethodKind.EventAdd or MethodKind.EventRemove
             } methodSymbol )
@@ -675,7 +676,7 @@ internal sealed class LinkerInjectionRegistry
 
     public bool IsEventRaiseOverride( ISymbol symbol )
     {
-        if ( symbol is IMethodSymbol methodSymbol )
+        if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol methodSymbol )
         {
             return this.GetInjectedMemberForSymbol( methodSymbol ) is { Semantic: InjectedMemberSemantic.OverrideEventRaise };
         }
@@ -685,9 +686,9 @@ internal sealed class LinkerInjectionRegistry
 
     public bool HasEventRaiseOverride( ISymbol symbol )
     {
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case IEventSymbol eventSymbol when this.IsOverrideTarget( eventSymbol ):
+            case SymbolKind.Event when symbol is IEventSymbol eventSymbol && this.IsOverrideTarget( eventSymbol ):
                 var overrides = this.GetOverridesForSymbol( eventSymbol );
 
                 if ( overrides
@@ -701,7 +702,7 @@ internal sealed class LinkerInjectionRegistry
 
                 break;
 
-            case IEventSymbol eventSymbol when this.IsOverride( symbol ):
+            case SymbolKind.Event when symbol is IEventSymbol eventSymbol && this.IsOverride( symbol ):
                 if ( this.GetInjectedMembersForTransformation( this.GetInjectedMemberForSymbol( eventSymbol ).AssertNotNull().Transformation.AssertNotNull() )
                     .Any( im => im is { Semantic: InjectedMemberSemantic.OverrideEventRaise } ) )
                 {

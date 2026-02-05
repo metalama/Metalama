@@ -69,16 +69,16 @@ internal partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
             targetKind == RefTargetKind.Default ||
             (targetKind == RefTargetKind.Return && symbol.Kind == SymbolKind.Method) ||
             (targetKind is RefTargetKind.PropertyGet or RefTargetKind.PropertyGetReturnParameter
-             && symbol is { Kind: SymbolKind.Field } or IPropertySymbol { GetMethod: null }) ||
+             && (symbol is { Kind: SymbolKind.Field } || (symbol.Kind == SymbolKind.Property && symbol is IPropertySymbol { GetMethod: null }))) ||
             (targetKind is RefTargetKind.PropertySet or RefTargetKind.PropertySetParameter or RefTargetKind.PropertySetReturnParameter
-             && symbol is { Kind: SymbolKind.Field } or IPropertySymbol { SetMethod: null }) ||
+             && (symbol is { Kind: SymbolKind.Field } || (symbol.Kind == SymbolKind.Property && symbol is IPropertySymbol { SetMethod: null }))) ||
             (targetKind is RefTargetKind.EventRaise or RefTargetKind.EventRaiseParameter or RefTargetKind.EventRaiseReturnParameter &&
              symbol.Kind == SymbolKind.Event),
             $"Invalid RefTargetKind.{targetKind} for {symbol.Kind}." );
 
         // Verify that we're using ITypeExtension or ITupleType when necessary.
         Invariant.Assert(
-            symbol is not INamedTypeSymbol namedTypeSymbol || typeof(T) == (namedTypeSymbol.IsExtensionSafe() ? typeof(IExtensionBlock) :
+            symbol.Kind != SymbolKind.NamedType || symbol is not INamedTypeSymbol namedTypeSymbol || typeof(T) == (namedTypeSymbol.IsExtensionSafe() ? typeof(IExtensionBlock) :
                 namedTypeSymbol.IsTupleType ? typeof(ITupleType) : typeof(INamedType)) );
 
         this.Symbol = symbol;

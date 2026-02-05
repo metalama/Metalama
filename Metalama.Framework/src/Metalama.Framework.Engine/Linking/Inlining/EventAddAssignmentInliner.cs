@@ -19,26 +19,31 @@ internal sealed class EventAddAssignmentInliner : EventInliner
         }
 
         // The syntax needs to be in form: <annotated_property_expression> += value;
-        if ( aspectReference.ResolvedSemantic.Symbol is not IEventSymbol
-             && (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol is not IEventSymbol )
+        if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Event && aspectReference.ResolvedSemantic.Symbol is not IEventSymbol
+             && (aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method
+                 || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol
+                 || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol?.Kind != SymbolKind.Event) )
         {
             // Coverage: ignore (hit only when the check in base class is incorrect).
             return false;
         }
 
-        if ( aspectReference.RootExpression.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        // The event access (possibly through parentheses) should be the left side of an assignment.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+        if ( !expressionOrWrapped.Parent.IsKind( SyntaxKind.AddAssignmentExpression ) || expressionOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
 
-        // Property access should be on the left.
-        if ( assignmentExpression.Left != aspectReference.RootExpression )
+        // Event access should be on the left.
+        if ( assignmentExpression.Left != expressionOrWrapped )
         {
             return false;
         }
 
         // Assignment should have a "value" identifier on the right.
-        if ( assignmentExpression.Right is not IdentifierNameSyntax rightIdentifier ||
+        if ( !assignmentExpression.Right.IsKind( SyntaxKind.IdentifierName ) || assignmentExpression.Right is not IdentifierNameSyntax rightIdentifier ||
              !string.Equals( rightIdentifier.Identifier.ValueText, "value", StringComparison.Ordinal ) )
         {
             return false;
@@ -51,7 +56,7 @@ internal sealed class EventAddAssignmentInliner : EventInliner
         }
 
         // The assignment should be part of expression statement.
-        if ( assignmentExpression.Parent is not ExpressionStatementSyntax )
+        if ( !assignmentExpression.Parent.IsKind( SyntaxKind.ExpressionStatement ) || assignmentExpression.Parent is not ExpressionStatementSyntax )
         {
             // Only incorrect code can get here.
             throw new AssertionFailedException( Justifications.CoverageMissing );
@@ -64,7 +69,10 @@ internal sealed class EventAddAssignmentInliner : EventInliner
 
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
     {
-        var assignmentExpression = (AssignmentExpressionSyntax) aspectReference.RootExpression.Parent.AssertNotNull();
+        // Navigate through parentheses to find the assignment.
+        var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
+
+        var assignmentExpression = (AssignmentExpressionSyntax) expressionOrWrapped.Parent.AssertNotNull();
         var expressionStatement = (ExpressionStatementSyntax) assignmentExpression.Parent.AssertNotNull();
 
         return new InliningAnalysisInfo( expressionStatement, null );

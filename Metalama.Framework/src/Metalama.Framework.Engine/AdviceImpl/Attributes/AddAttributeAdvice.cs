@@ -81,7 +81,8 @@ internal sealed class AddAttributeAdvice : Advice<AddAttributeAdviceResult>
                 contextCopy.AddTransformation( removeTransformation );
             }
 
-            if ( targetDeclaration.ContainingDeclaration is IConstructor { IsImplicitlyDeclared: true } constructor )
+            if ( targetDeclaration.ContainingDeclaration?.DeclarationKind == DeclarationKind.Constructor
+                 && targetDeclaration.ContainingDeclaration is IConstructor { IsImplicitlyDeclared: true } constructor )
             {
                 contextCopy.AddTransformation(
                     new ConstructorBuilder( this.AspectLayerInstance, constructor )

@@ -30,24 +30,32 @@ internal abstract class TemplateMemberSymbolClassifier
         => type switch
         {
             null => false,
-            IDynamicTypeSymbol => true,
-            IArrayTypeSymbol { ElementType: IDynamicTypeSymbol } => true,
-            IArrayTypeSymbol arrayType when IsDynamicParameter( arrayType.ElementType ) => true,
-            INamedTypeSymbol { IsGenericType: true } genericType when genericType.TypeArguments.Any( IsDynamicParameter ) => true,
+            { Kind: SymbolKind.DynamicType } => true,
+            { Kind: SymbolKind.ArrayType } and IArrayTypeSymbol { ElementType.Kind: SymbolKind.DynamicType } => true,
+            { Kind: SymbolKind.ArrayType } when type is IArrayTypeSymbol arrayType && IsDynamicParameter( arrayType.ElementType ) => true,
+            { Kind: SymbolKind.NamedType } when type is INamedTypeSymbol { IsGenericType: true } genericType && genericType.TypeArguments.Any( IsDynamicParameter ) => true,
             _ => false
         };
 
     public static bool IsTemplateParameter( IParameterSymbol parameter )
-        => parameter.ContainingSymbol is IMethodSymbol { MethodKind: not (MethodKind.LambdaMethod or MethodKind.LocalFunction) }
-            or IPropertySymbol
-            or IEventSymbol;
+        => parameter.ContainingSymbol.Kind switch
+        {
+            SymbolKind.Method when parameter.ContainingSymbol is IMethodSymbol { MethodKind: not (MethodKind.LambdaMethod or MethodKind.LocalFunction) } => true,
+            SymbolKind.Property => true,
+            SymbolKind.Event => true,
+            _ => false
+        };
 
     public bool IsRunTimeTemplateParameter( IParameterSymbol parameter ) => IsTemplateParameter( parameter ) && !this.IsCompileTimeParameter( parameter );
 
     public static bool IsTemplateTypeParameter( ITypeParameterSymbol parameter )
-        => parameter.ContainingSymbol is IMethodSymbol { MethodKind: not (MethodKind.LambdaMethod or MethodKind.LocalFunction) }
-            or IPropertySymbol
-            or IEventSymbol;
+        => parameter.ContainingSymbol.Kind switch
+        {
+            SymbolKind.Method when parameter.ContainingSymbol is IMethodSymbol { MethodKind: not (MethodKind.LambdaMethod or MethodKind.LocalFunction) } => true,
+            SymbolKind.Property => true,
+            SymbolKind.Event => true,
+            _ => false
+        };
 
     public bool IsCompileTimeTemplateTypeParameter( ITypeParameterSymbol typeParameter )
         => IsTemplateTypeParameter( typeParameter ) && this.IsCompileTimeParameter( typeParameter );

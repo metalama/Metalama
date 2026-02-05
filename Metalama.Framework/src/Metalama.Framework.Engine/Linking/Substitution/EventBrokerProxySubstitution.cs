@@ -34,9 +34,9 @@ internal sealed class EventBrokerProxySubstitution : SyntaxNodeSubstitution
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
         // Transform calls to the helper declaration instead of the actual broker call
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case MemberAccessExpressionSyntax memberAccess:
+            case SyntaxKind.SimpleMemberAccessExpression when currentNode is MemberAccessExpressionSyntax memberAccess:
                 // Replace member access with access to the broker proxy
                 var newMemberAccess = MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
@@ -46,7 +46,7 @@ internal sealed class EventBrokerProxySubstitution : SyntaxNodeSubstitution
                 // Preserve trivia from the original member access
                 return newMemberAccess.WithTriviaFromIfNecessary( memberAccess, substitutionContext.SyntaxGenerationContext.Options );
 
-            case IdentifierNameSyntax identifierName:
+            case SyntaxKind.IdentifierName when currentNode is IdentifierNameSyntax identifierName:
                 // Replace identifier with access to the broker proxy
                 var memberAccessExpression = MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,

@@ -254,9 +254,9 @@ namespace Metalama.Framework.Engine.Templating
                 TypeSyntax variableType;
                 ExpressionSyntax variableValue;
 
-                switch ( type )
+                switch ( type.Kind() )
                 {
-                    case IdentifierNameSyntax { IsVar: true }:
+                    case SyntaxKind.IdentifierName when type is IdentifierNameSyntax { IsVar: true }:
                         variableType = this.SyntaxSerializationContext.SyntaxGenerator.TypeSyntax( Microsoft.CodeAnalysis.SpecialType.System_Object );
 
                         variableValue = SyntaxFactoryEx.Null;
@@ -339,9 +339,9 @@ namespace Metalama.Framework.Engine.Templating
 
         public AnonymousFunctionExpressionSyntax SimplifyAnonymousFunction<T>( T node )
             where T : AnonymousFunctionExpressionSyntax
-            => node switch
+            => node.Kind() switch
             {
-                SimpleLambdaExpressionSyntax { Block.Statements: [ExpressionStatementSyntax expressionStatement] } simpleLambdaExpression =>
+                SyntaxKind.SimpleLambdaExpression when node is SimpleLambdaExpressionSyntax { Block.Statements: [ExpressionStatementSyntax expressionStatement] } simpleLambdaExpression =>
                     simpleLambdaExpression.Update(
                         simpleLambdaExpression.AttributeLists,
                         simpleLambdaExpression.Modifiers,
@@ -349,7 +349,7 @@ namespace Metalama.Framework.Engine.Templating
                         SyntaxFactory.Token( SyntaxKind.EqualsGreaterThanToken ),
                         null,
                         expressionStatement.Expression ),
-                SimpleLambdaExpressionSyntax { Block.Statements: [ThrowStatementSyntax { Expression: not null } throwStatement] } simpleLambdaExpression =>
+                SyntaxKind.SimpleLambdaExpression when node is SimpleLambdaExpressionSyntax { Block.Statements: [ThrowStatementSyntax { Expression: not null } throwStatement] } simpleLambdaExpression =>
                     simpleLambdaExpression.Update(
                         simpleLambdaExpression.AttributeLists,
                         simpleLambdaExpression.Modifiers,
@@ -357,9 +357,9 @@ namespace Metalama.Framework.Engine.Templating
                         SyntaxFactory.Token( SyntaxKind.EqualsGreaterThanToken ),
                         null,
                         SyntaxFactory.ThrowExpression( throwStatement.ThrowKeyword, throwStatement.Expression! ) ),
-                SimpleLambdaExpressionSyntax { Block.Statements: [BlockSyntax { Statements.Count: 1 } nestedBlock] } simpleLambdaExpression
+                SyntaxKind.SimpleLambdaExpression when node is SimpleLambdaExpressionSyntax { Block.Statements: [BlockSyntax { Statements.Count: 1 } nestedBlock] } simpleLambdaExpression
                     => this.SimplifyAnonymousFunction( simpleLambdaExpression.WithBlock( nestedBlock ) ),
-                ParenthesizedLambdaExpressionSyntax { Block.Statements: [ExpressionStatementSyntax expressionStatement] } simpleLambdaExpression =>
+                SyntaxKind.ParenthesizedLambdaExpression when node is ParenthesizedLambdaExpressionSyntax { Block.Statements: [ExpressionStatementSyntax expressionStatement] } simpleLambdaExpression =>
                     simpleLambdaExpression.Update(
                         simpleLambdaExpression.AttributeLists,
                         simpleLambdaExpression.Modifiers,
@@ -367,7 +367,7 @@ namespace Metalama.Framework.Engine.Templating
                         SyntaxFactory.Token( SyntaxKind.EqualsGreaterThanToken ),
                         null,
                         expressionStatement.Expression ),
-                ParenthesizedLambdaExpressionSyntax { Block.Statements: [ThrowStatementSyntax throwStatement] } simpleLambdaExpression =>
+                SyntaxKind.ParenthesizedLambdaExpression when node is ParenthesizedLambdaExpressionSyntax { Block.Statements: [ThrowStatementSyntax throwStatement] } simpleLambdaExpression =>
                     simpleLambdaExpression.Update(
                         simpleLambdaExpression.AttributeLists,
                         simpleLambdaExpression.Modifiers,
@@ -375,7 +375,7 @@ namespace Metalama.Framework.Engine.Templating
                         SyntaxFactory.Token( SyntaxKind.EqualsGreaterThanToken ),
                         null,
                         SyntaxFactory.ThrowExpression( throwStatement.ThrowKeyword, throwStatement.Expression! ) ),
-                ParenthesizedLambdaExpressionSyntax { Block.Statements: [BlockSyntax { Statements.Count: 1 } nestedBlock] } simpleLambdaExpression
+                SyntaxKind.ParenthesizedLambdaExpression when node is ParenthesizedLambdaExpressionSyntax { Block.Statements: [BlockSyntax { Statements.Count: 1 } nestedBlock] } simpleLambdaExpression
                     => this.SimplifyAnonymousFunction( simpleLambdaExpression.WithBlock( nestedBlock ) ),
 
                 _ => node
@@ -752,8 +752,9 @@ namespace Metalama.Framework.Engine.Templating
 
         public string EscapeIdentifier( string name )
         {
-            return name == "field" &&
-                   this._templateExpansionContext.TargetDeclaration is IMethod { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet }
+            return name == "field"
+                   && this._templateExpansionContext.TargetDeclaration?.DeclarationKind == DeclarationKind.Method
+                   && this._templateExpansionContext.TargetDeclaration is IMethod { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet }
                 ? "@field"
                 : name;
         }

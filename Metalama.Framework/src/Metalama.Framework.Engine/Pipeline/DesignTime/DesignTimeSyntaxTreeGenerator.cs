@@ -84,14 +84,14 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             {
                 var target = transformationGroup.Key.GetTarget( finalCompilationModel );
 
-                switch ( target )
+                switch ( target.DeclarationKind )
                 {
-                    case INamedType namedType:
+                    case DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when target is INamedType namedType:
                         ProcessTransformationsOnType( namedType, transformationGroup.Value );
 
                         break;
 
-                    case INamespace:
+                    case DeclarationKind.Namespace:
                         ProcessTransformationsOnNamespace( transformationGroup.Value );
 
                         break;
@@ -325,7 +325,8 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         {
             foreach ( var member in injectedMembers )
             {
-                if ( member is TypeDeclarationSyntax typeDeclaration
+                if ( member.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                     && member is TypeDeclarationSyntax typeDeclaration
                      && !typeDeclaration.Modifiers.Any( SyntaxKind.PartialKeyword ) )
                 {
                     yield return

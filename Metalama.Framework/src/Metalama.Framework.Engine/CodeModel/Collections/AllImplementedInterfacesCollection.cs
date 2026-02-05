@@ -20,7 +20,7 @@ internal sealed class AllImplementedInterfacesCollection : DeclarationCollection
     {
         var itype = this.ContainingDeclaration!.Compilation.Factory.GetTypeByReflectionType( type );
 
-        if ( itype is not INamedType namedType )
+        if ( itype.DeclarationKind != DeclarationKind.NamedType || itype is not INamedType namedType )
         {
             return false;
         }

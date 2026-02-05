@@ -92,7 +92,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
         private static string GetReflectionName( this INamespaceOrTypeSymbol s, TypeNameKind kind )
         {
-            if ( s is ITypeParameterSymbol typeParameter )
+            if ( s.Kind == SymbolKind.TypeParameter && s is ITypeParameterSymbol typeParameter )
             {
                 return typeParameter.Name;
             }
@@ -110,21 +110,22 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 var currentTypeArguments = typeArguments ?? new List<ITypeSymbol>();
 
                 // Append the containing namespace or type.
-                if ( kind != TypeNameKind.Name && symbol is not ITypeParameterSymbol )
+                if ( kind != TypeNameKind.Name && symbol.Kind != SymbolKind.TypeParameter )
                 {
-                    switch ( symbol.ContainingSymbol )
+                    switch ( symbol.ContainingSymbol?.Kind )
                     {
                         case null:
                             break;
 
-                        case ITypeSymbol type:
+                        case SymbolKind.NamedType or SymbolKind.ErrorType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.DynamicType or SymbolKind.TypeParameter
+                            when symbol.ContainingSymbol is ITypeSymbol type:
                             Append( type, currentTypeArguments );
 
                             sb.Append( '+' );
 
                             break;
 
-                        case INamespaceSymbol ns:
+                        case SymbolKind.Namespace when symbol.ContainingSymbol is INamespaceSymbol ns:
                             if ( !ns.IsGlobalNamespace )
                             {
                                 Append( ns );
@@ -140,23 +141,24 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                     }
                 }
 
-                switch ( symbol )
+                switch ( symbol.Kind )
                 {
-                    case INamedTypeSymbol { IsGenericType: true } unboundGenericType
-                        when (!unboundGenericType.IsGenericTypeDefinition() && kind != TypeNameKind.Name)
-                             || kind == TypeNameKind.ToString:
+                    case SymbolKind.NamedType when symbol is INamedTypeSymbol { IsGenericType: true } unboundGenericType
+                        && ((!unboundGenericType.IsGenericTypeDefinition() && kind != TypeNameKind.Name)
+                             || kind == TypeNameKind.ToString):
                         sb.Append( unboundGenericType.MetadataName );
 
                         currentTypeArguments.AddRange( unboundGenericType.TypeArguments );
 
                         break;
 
-                    case { } when !string.IsNullOrEmpty( symbol.MetadataName ):
+                    case SymbolKind.NamedType or SymbolKind.Namespace or SymbolKind.TypeParameter
+                        when !string.IsNullOrEmpty( symbol.MetadataName ):
                         sb.Append( symbol.MetadataName );
 
                         break;
 
-                    case IArrayTypeSymbol array:
+                    case SymbolKind.ArrayType when symbol is IArrayTypeSymbol array:
                         Append( array.ElementType );
 
                         sb.Append( '[' );
@@ -170,19 +172,19 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
                         break;
 
-                    case IPointerTypeSymbol pointer:
+                    case SymbolKind.PointerType when symbol is IPointerTypeSymbol pointer:
                         Append( pointer.PointedAtType );
 
                         sb.Append( '*' );
 
                         break;
 
-                    case IDynamicTypeSymbol:
+                    case SymbolKind.DynamicType:
                         sb.Append( "System.Object" );
 
                         break;
 
-                    case IErrorTypeSymbol errorTypeSymbol:
+                    case SymbolKind.ErrorType when symbol is IErrorTypeSymbol errorTypeSymbol:
                         // We try to write a name for an unresolved type, even if it is incorrect.
                         // If the caller requires a valid name, it has to verify the type validity differently.
                         sb.Append( errorTypeSymbol.Name );

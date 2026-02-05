@@ -16,30 +16,13 @@ internal class TargetClass
   public async void AsyncVoid()
   {
     global::System.Console.WriteLine("dynamic");
-    await this.AsyncVoid_Task();
-    return;
-  }
-  private async global::System.Threading.Tasks.ValueTask AsyncVoid_Source()
-  {
-    await Task.Yield();
-    Console.WriteLine("This is the original method.");
-  }
-  private async global::System.Threading.Tasks.ValueTask AsyncVoid_Void()
-  {
-    global::System.Console.WriteLine("void");
-    await this.AsyncVoid_Source();
-  }
-  private async global::System.Threading.Tasks.ValueTask AsyncVoid_TaskDynamic()
-  {
-    global::System.Console.WriteLine("Task<dynamic>");
-    await this.AsyncVoid_Void();
-    return;
-  }
-  private async global::System.Threading.Tasks.ValueTask AsyncVoid_Task()
-  {
     await global::System.Threading.Tasks.Task.Yield();
     global::System.Console.WriteLine("Task");
-    await this.AsyncVoid_TaskDynamic();
+    global::System.Console.WriteLine("Task<dynamic>");
+    global::System.Console.WriteLine("void");
+    await Task.Yield();
+    Console.WriteLine("This is the original method.");
+    return;
   }
   [Dynamic]
   public int Int()
@@ -74,25 +57,12 @@ internal class TargetClass
   public async Task AsyncTask()
   {
     global::System.Console.WriteLine("dynamic");
-    await this.AsyncTask_Task();
-    return;
-  }
-  private async Task AsyncTask_Source()
-  {
-    await Task.Yield();
-    Console.WriteLine("This is the original method.");
-  }
-  private async global::System.Threading.Tasks.Task AsyncTask_TaskDynamic()
-  {
-    global::System.Console.WriteLine("Task<dynamic>");
-    await this.AsyncTask_Source();
-    return;
-  }
-  private async global::System.Threading.Tasks.Task AsyncTask_Task()
-  {
     await global::System.Threading.Tasks.Task.Yield();
     global::System.Console.WriteLine("Task");
-    await this.AsyncTask_TaskDynamic();
+    global::System.Console.WriteLine("Task<dynamic>");
+    await Task.Yield();
+    Console.WriteLine("This is the original method.");
+    return;
   }
   [Dynamic]
   [TaskDynamic]
@@ -108,18 +78,10 @@ internal class TargetClass
   public async Task<int> AsyncTaskInt()
   {
     global::System.Console.WriteLine("dynamic");
-    return (await this.AsyncTaskInt_TaskDynamic());
-  }
-  private async Task<int> AsyncTaskInt_Source()
-  {
+    global::System.Console.WriteLine("Task<dynamic>");
     await Task.Yield();
     Console.WriteLine("This is the original method.");
     return 42;
-  }
-  private async global::System.Threading.Tasks.Task<global::System.Int32> AsyncTaskInt_TaskDynamic()
-  {
-    global::System.Console.WriteLine("Task<dynamic>");
-    return (await this.AsyncTaskInt_Source());
   }
   [Dynamic]
   [Task]
@@ -147,25 +109,12 @@ internal class TargetClass
   public async ValueTask AsyncValueTask()
   {
     global::System.Console.WriteLine("dynamic");
-    await this.AsyncValueTask_Task();
-    return;
-  }
-  private async ValueTask AsyncValueTask_Source()
-  {
-    await Task.Yield();
-    Console.WriteLine("This is the original method.");
-  }
-  private async global::System.Threading.Tasks.ValueTask AsyncValueTask_TaskDynamic()
-  {
-    global::System.Console.WriteLine("Task<dynamic>");
-    await this.AsyncValueTask_Source();
-    return;
-  }
-  private async global::System.Threading.Tasks.ValueTask AsyncValueTask_Task()
-  {
     await global::System.Threading.Tasks.Task.Yield();
     global::System.Console.WriteLine("Task");
-    await this.AsyncValueTask_TaskDynamic();
+    global::System.Console.WriteLine("Task<dynamic>");
+    await Task.Yield();
+    Console.WriteLine("This is the original method.");
+    return;
   }
   [Dynamic]
   [TaskDynamic]
@@ -181,17 +130,9 @@ internal class TargetClass
   public async ValueTask<int> AsyncValueTaskInt()
   {
     global::System.Console.WriteLine("dynamic");
-    return (await this.AsyncValueTaskInt_TaskDynamic());
-  }
-  private async ValueTask<int> AsyncValueTaskInt_Source()
-  {
+    global::System.Console.WriteLine("Task<dynamic>");
     await Task.Yield();
     Console.WriteLine("This is the original method.");
     return 42;
-  }
-  private async global::System.Threading.Tasks.ValueTask<global::System.Int32> AsyncValueTaskInt_TaskDynamic()
-  {
-    global::System.Console.WriteLine("Task<dynamic>");
-    return (await this.AsyncValueTaskInt_Source());
   }
 }

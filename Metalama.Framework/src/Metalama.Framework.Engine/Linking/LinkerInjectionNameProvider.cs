@@ -99,10 +99,10 @@ internal sealed class LinkerInjectionNameProvider : InjectionNameProvider
         var shortAspectName = aspectLayer.AspectShortName;
         var shortLayerName = aspectLayer.LayerName;
 
-        var targetName = targetDeclaration switch
+        var targetName = targetDeclaration.DeclarationKind switch
         {
-            INamedType => null,
-            IMember member => member.Name,
+            DeclarationKind.NamedType => null,
+            { IsMember: true } when targetDeclaration is IMember member => member.Name,
             _ => throw new AssertionFailedException( $"Unexpected declaration: '{targetDeclaration}'." )
         };
 

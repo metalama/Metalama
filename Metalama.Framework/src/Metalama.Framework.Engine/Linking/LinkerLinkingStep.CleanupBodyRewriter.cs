@@ -86,7 +86,7 @@ internal sealed partial class LinkerLinkingStep
 
             foreach ( var statement in originalStatements )
             {
-                if ( statement is BlockSyntax innerBlock )
+                if ( statement.Kind() == SyntaxKind.Block && statement is BlockSyntax innerBlock )
                 {
                     var innerBlockFlags = innerBlock.GetLinkerGeneratedFlags();
 
@@ -134,7 +134,7 @@ internal sealed partial class LinkerLinkingStep
 
                 if ( statement.GetLinkerGeneratedFlags().HasFlagFast( LinkerGeneratedFlags.EmptyLabeledStatement ) )
                 {
-                    var labeledStatement = (statement as LabeledStatementSyntax).AssertNotNull();
+                    var labeledStatement = (LabeledStatementSyntax) statement;
 
                     if ( i == newStatements.Count - 1 )
                     {
@@ -197,7 +197,7 @@ internal sealed partial class LinkerLinkingStep
 
                 foreach ( var statement in block.Statements )
                 {
-                    if ( statement is BlockSyntax innerBlock && innerBlock.GetLinkerGeneratedFlags().HasFlagFast( LinkerGeneratedFlags.FlattenableBlock ) )
+                    if ( statement.Kind() == SyntaxKind.Block && statement is BlockSyntax innerBlock && innerBlock.GetLinkerGeneratedFlags().HasFlagFast( LinkerGeneratedFlags.FlattenableBlock ) )
                     {
                         AddFlattenedBlockStatements( innerBlock, statements );
                     }

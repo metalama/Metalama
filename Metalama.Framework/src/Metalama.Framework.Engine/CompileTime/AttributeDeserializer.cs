@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Microsoft.CodeAnalysis;
 using System;
@@ -316,12 +317,12 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
             case TypedConstant typedConstant:
                 return this.TryTranslateAttributeArgument( attribute, typedConstant, targetType, out translatedValue );
 
-            case IErrorTypeSymbol:
+            case ISymbol { Kind: SymbolKind.ErrorType }:
                 translatedValue = null;
 
                 return false;
 
-            case ITypeSymbol type:
+            case ISymbol { Kind.IsType: true } and ITypeSymbol type:
 
                 var compileTimeTime = this._compileTimeTypeResolver.GetCompileTimeType( type, true );
 
@@ -385,7 +386,7 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
                 return true;
 
             default:
-                if ( sourceType is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType )
+                if ( sourceType?.Kind == SymbolKind.NamedType && sourceType is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType )
                 {
                     // Convert the underlying value of an enum to a strongly typed enum when we can.
                     var enumReflectionType = this._compileTimeTypeResolver.GetCompileTimeType( enumType, false );

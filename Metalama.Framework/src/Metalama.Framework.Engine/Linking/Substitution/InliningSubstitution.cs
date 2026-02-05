@@ -74,15 +74,15 @@ namespace Metalama.Framework.Engine.Linking.Substitution
 
         private static ITypeSymbol GetReturnType( ISymbol symbol )
         {
-            switch ( symbol )
+            switch ( symbol.Kind )
             {
-                case IMethodSymbol method:
+                case SymbolKind.Method when symbol is IMethodSymbol method:
                     return method.ReturnType;
 
-                case IPropertySymbol property:
+                case SymbolKind.Property when symbol is IPropertySymbol property:
                     return property.Type;
 
-                case IEventSymbol @event:
+                case SymbolKind.Event when symbol is IEventSymbol @event:
                     return @event.Type;
 
                 default:

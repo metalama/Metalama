@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -22,20 +23,22 @@ namespace Metalama.Framework.Engine.Linking.Inlining
             }
 
             // The syntax has to be in form: <type> <local> = <annotated_method_expression>( <arguments> );
-            if ( aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol methodSymbol )
+            if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol methodSymbol )
             {
                 // Coverage: ignore (hit only when the check in base class is incorrect).
                 return false;
             }
 
             // Should be within invocation expression.
-            if ( aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+            if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
             {
                 return false;
             }
 
-            // Should be within equals clause.
-            if ( invocationExpression.Parent is not EqualsValueClauseSyntax equalsClause )
+            // The invocation (possibly through parentheses or null-forgiving) should be within equals clause.
+            var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+
+            if ( !invocationOrWrapped.Parent.IsKind( SyntaxKind.EqualsValueClause ) || invocationOrWrapped.Parent is not EqualsValueClauseSyntax equalsClause )
             {
                 return false;
             }
@@ -64,13 +67,13 @@ namespace Metalama.Framework.Engine.Linking.Inlining
             }
 
             // Should be within local declaration.
-            if ( variableDeclaration.Parent is not LocalDeclarationStatementSyntax )
+            if ( !variableDeclaration.Parent.IsKind( SyntaxKind.LocalDeclarationStatement ) || variableDeclaration.Parent is not LocalDeclarationStatementSyntax )
             {
                 return false;
             }
 
             // The invocation needs to be inlineable in itself.
-            if ( !IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
+            if ( !InlinerHelper.IsCanonicalInvocation( semanticModel, aspectReference.ContainingSemantic.Symbol, invocationExpression ) )
             {
                 return false;
             }
@@ -81,7 +84,11 @@ namespace Metalama.Framework.Engine.Linking.Inlining
         public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
         {
             var invocationExpression = (InvocationExpressionSyntax) aspectReference.RootExpression.AssertNotNull().Parent.AssertNotNull();
-            var equalsClause = (EqualsValueClauseSyntax) invocationExpression.Parent.AssertNotNull();
+
+            // Navigate through parentheses and null-forgiving to find the equals clause.
+            var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
+
+            var equalsClause = (EqualsValueClauseSyntax) invocationOrWrapped.Parent.AssertNotNull();
             var variableDeclarator = (VariableDeclaratorSyntax) equalsClause.Parent.AssertNotNull();
             var variableDeclaration = (VariableDeclarationSyntax) variableDeclarator.Parent.AssertNotNull();
             var localDeclaration = (LocalDeclarationStatementSyntax) variableDeclaration.Parent.AssertNotNull();

@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using System;
 
 namespace Metalama.Framework.Engine.CodeModel.Visitors;
@@ -18,8 +19,7 @@ internal abstract class CompilationElementVisitor<T>
             IType type => type.TypeKind switch
             {
                 TypeKind.Array => this.VisitArrayType( (IArrayType) type ),
-                TypeKind.Class or TypeKind.Struct or TypeKind.Delegate or TypeKind.Enum or TypeKind.Interface
-                    => this.VisitNamedType( (INamedType) type ),
+                { IsNamedType: true } => this.VisitNamedType( (INamedType) type ),
                 TypeKind.Dynamic => this.VisitDynamicType( (IDynamicType) type ),
                 TypeKind.TypeParameter => this.VisitTypeParameter( (ITypeParameter) type ),
                 TypeKind.Pointer => this.VisitPointerType( (IPointerType) type ),
@@ -33,7 +33,7 @@ internal abstract class CompilationElementVisitor<T>
                 DeclarationKind.Compilation => this.VisitCompilation( (ICompilation) declaration ),
                 DeclarationKind.NamedType => this.VisitNamedType( (INamedType) declaration ),
                 DeclarationKind.ExtensionBlock => this.VisitExtensionBlock( (IExtensionBlock) declaration ),
-                DeclarationKind.Method or DeclarationKind.Finalizer or DeclarationKind.Operator => this.VisitMethod( (IMethod) declaration ),
+                DeclarationKind.Method => this.VisitMethod( (IMethod) declaration ),
                 DeclarationKind.Property => this.VisitProperty( (IProperty) declaration ),
                 DeclarationKind.Indexer => this.VisitIndexer( (IIndexer) declaration ),
                 DeclarationKind.Field => this.VisitField( (IField) declaration ),

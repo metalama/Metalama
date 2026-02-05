@@ -23,26 +23,39 @@ public sealed record ReferenceIndexerRequirements(
     {
         var validatedDeclarationKind = validatedDeclaration.DeclarationKind;
 
-        var validatedIdentifier = validatedDeclaration switch
+        var validatedIdentifier = validatedDeclaration.DeclarationKind switch
         {
-            IConstructor constructor => constructor.DeclaringType.Name,
-            INamedDeclaration namedDeclaration => namedDeclaration.Name,
+            DeclarationKind.Constructor when validatedDeclaration is IConstructor constructor => constructor.DeclaringType.Name,
+            { IsNamedDeclaration: true } when validatedDeclaration is INamedDeclaration namedDeclaration => namedDeclaration.Name,
             _ => null
         };
 
-        if ( referenceKinds.IsDefined( ReferenceKinds.BaseType ) && validatedDeclaration is INamedType { IsSealed: true } )
+        if ( referenceKinds.IsDefined( ReferenceKinds.BaseType ) && validatedDeclaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock && validatedDeclaration is INamedType { IsSealed: true } )
         {
             referenceKinds &= ~ReferenceKinds.BaseType;
         }
 
-        referenceKinds &= GetReferenceKindsSupportedByDeclarationKind( validatedDeclarationKind );
+        // Special handling for methods: check MethodKind to determine reference kinds for finalizers and operators
+        if ( validatedDeclarationKind == DeclarationKind.Method && validatedDeclaration is IMethod method )
+        {
+            referenceKinds &= method.MethodKind switch
+            {
+                MethodKind.Finalizer => ReferenceKinds.None,
+                MethodKind.Operator => ReferenceKinds.Invocation,
+                _ => GetReferenceKindsSupportedByDeclarationKind( validatedDeclarationKind )
+            };
+        }
+        else
+        {
+            referenceKinds &= GetReferenceKindsSupportedByDeclarationKind( validatedDeclarationKind );
+        }
 
         if ( includeDerivedTypes )
         {
-            includeDerivedTypes = validatedDeclaration switch
+            includeDerivedTypes = validatedDeclarationKind switch
             {
-                INamedType namedType => !namedType.IsSealed,
-                INamespace or ICompilation => true,
+                DeclarationKind.NamedType when validatedDeclaration is INamedType namedType => !namedType.IsSealed,
+                DeclarationKind.Namespace or DeclarationKind.Compilation => true,
                 _ => includeDerivedTypes
             };
         }
@@ -62,10 +75,8 @@ public sealed record ReferenceIndexerRequirements(
             DeclarationKind.Property => ReferenceKinds.Default | ReferenceKinds.Assignment | ReferenceKinds.NameOf
                                         | ReferenceKinds.InterfaceMemberImplementation | ReferenceKinds.OverrideMember,
             DeclarationKind.Field => ReferenceKinds.Default | ReferenceKinds.Assignment | ReferenceKinds.NameOf,
-            DeclarationKind.Finalizer => ReferenceKinds.None,
             DeclarationKind.Indexer => ReferenceKinds.Default | ReferenceKinds.Assignment | ReferenceKinds.InterfaceMemberImplementation
                                        | ReferenceKinds.OverrideMember,
-            DeclarationKind.Operator => ReferenceKinds.Invocation,
             _ => ReferenceKinds.None
         };
 }

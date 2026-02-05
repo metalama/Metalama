@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using MethodKind = Metalama.Framework.Code.MethodKind;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
@@ -35,9 +36,9 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
 
         var hasNoBody = finalMethod.IsAbstract || finalMethod.IsPartial || finalMethod.IsExtern;
 
-        switch ( finalMethod.DeclarationKind )
+        switch ( finalMethod.MethodKind )
         {
-            case DeclarationKind.Finalizer:
+            case MethodKind.Finalizer:
                 {
                     Invariant.Assert( !hasNoBody );
 
@@ -52,7 +53,7 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                     return [new InjectedMember( this, syntax, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.BuilderData.ToRef() )];
                 }
 
-            case DeclarationKind.Operator:
+            case MethodKind.Operator:
                 {
                     var operatorData = OperatorData.GetByKind( finalMethod.OperatorKind );
 
@@ -120,28 +121,66 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                     var blockBody =
                         hasNoBody
                             ? null
-                            : syntaxGenerator.FormattedBlock(
-                                !finalMethod.ReturnParameter.Type.IsConvertibleTo( typeof(void) )
-                                    ? finalMethod.GetIteratorInfo().IsIteratorMethod == true
-                                        ?
-                                        [
-                                            syntaxGenerator.FormattedBlock(
-                                                YieldStatement(
-                                                    SyntaxKind.YieldBreakStatement,
-                                                    List<AttributeListSyntax>(),
-                                                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.YieldKeyword ),
-                                                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.BreakKeyword ),
-                                                    null,
-                                                    Token( TriviaList(), SyntaxKind.SemicolonToken, TriviaList() ) ) )
-                                        ]
-                                        :
-                                        [
-                                            ReturnStatement(
-                                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
-                                                DefaultExpression( syntaxGenerator.TypeSyntax( finalMethod.ReturnParameter.Type ) ),
-                                                Token( SyntaxKind.SemicolonToken ) )
-                                        ]
-                                    : [] );
+                            : syntaxGenerator.FormattedBlock( GetDefaultBodyStatements() );
+
+                    StatementSyntax[] GetDefaultBodyStatements()
+                    {
+                        // Void-returning methods don't need a return statement.
+                        if ( finalMethod.ReturnParameter.Type.IsConvertibleTo( typeof(void) ) )
+                        {
+                            return [];
+                        }
+
+                        // Iterator methods use yield break.
+                        if ( finalMethod.GetIteratorInfo().IsIteratorMethod == true )
+                        {
+                            return
+                            [
+                                syntaxGenerator.FormattedBlock(
+                                    YieldStatement(
+                                        SyntaxKind.YieldBreakStatement,
+                                        List<AttributeListSyntax>(),
+                                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.YieldKeyword ),
+                                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.BreakKeyword ),
+                                        null,
+                                        Token( TriviaList(), SyntaxKind.SemicolonToken, TriviaList() ) ) )
+                            ];
+                        }
+
+                        // Async methods (with the async modifier) need to return the awaited result type,
+                        // not the full Task<T> type. Non-async methods returning Task<T> should still
+                        // return default(Task<T>).
+                        var asyncInfo = finalMethod.GetAsyncInfo();
+
+                        if ( asyncInfo.IsAsync == true )
+                        {
+                            // For void-like async methods (Task, ValueTask without type parameter),
+                            // we don't need a return statement.
+                            if ( asyncInfo.ResultType.IsConvertibleTo( SpecialType.Void ) )
+                            {
+                                return [];
+                            }
+
+                            // For async methods with a result (Task<T>, ValueTask<T>),
+                            // return the default of the result type, not the full return type.
+                            return
+                            [
+                                ReturnStatement(
+                                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                                    DefaultExpression( syntaxGenerator.TypeSyntax( asyncInfo.ResultType ) ),
+                                    Token( SyntaxKind.SemicolonToken ) )
+                            ];
+                        }
+
+                        // Non-async, non-iterator methods return default of the return type.
+                        return
+                        [
+                            ReturnStatement(
+                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                                DefaultExpression( syntaxGenerator.TypeSyntax( finalMethod.ReturnParameter.Type ) ),
+                                Token( SyntaxKind.SemicolonToken ) )
+                        ];
+                    }
 
                     // ReSharper enable RedundantLinebreak
 
@@ -182,9 +221,9 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
             ? OperatorData.GetByKind( this.BuilderData.OperatorKind ).MemberName
             : this.BuilderData.Name;
 
-        var declarationKind = this.BuilderData.OperatorKind != OperatorKind.None
-            ? DeclarationKind.Operator
-            : DeclarationKind.Method;
+        var methodKind = this.BuilderData.OperatorKind != OperatorKind.None
+            ? MethodKind.Operator
+            : MethodKind.Default;
 
         var returnType = this.BuilderData.ReturnParameter.Type.GetTarget( this.InitialCompilation );
 
@@ -197,7 +236,7 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
             this.BuilderData.Parameters,
             returnType,
             this.InitialCompilation,
-            declarationKind,
+            methodKind,
             this.BuilderData.OperatorKind,
             this.BuilderData.Attributes,
             this.BuilderData.ReturnParameter.Attributes );

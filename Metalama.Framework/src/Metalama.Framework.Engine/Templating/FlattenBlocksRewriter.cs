@@ -31,9 +31,9 @@ namespace Metalama.Framework.Engine.Templating
             {
                 var processedStatement = (StatementSyntax) this.Visit( statement )!;
 
-                switch ( processedStatement )
+                switch ( processedStatement.Kind() )
                 {
-                    case EmptyStatementSyntax emptyStatement:
+                    case SyntaxKind.EmptyStatement when processedStatement is EmptyStatementSyntax emptyStatement:
                         // Empty statements are to be removed, but trivia needs to be preserved.
                         previousTrivia =
                             previousTrivia
@@ -42,12 +42,12 @@ namespace Metalama.Framework.Engine.Templating
 
                         continue;
 
-                    case BlockSyntax innerBlock:
+                    case SyntaxKind.Block when processedStatement is BlockSyntax innerBlock:
                         {
                             // This block was already processed - it does not contain empty statements and nested blocks that can be flattened.
                             var mustFlatten = innerBlock.HasFlattenBlockAnnotation();
 
-                            if ( mustFlatten || !innerBlock.Statements.Any( s => s is LocalDeclarationStatementSyntax ) )
+                            if ( mustFlatten || !innerBlock.Statements.Any( s => s.Kind() == SyntaxKind.LocalDeclarationStatement ) )
                             {
                                 previousTrivia =
                                     previousTrivia

@@ -45,9 +45,19 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
         /// </summary>
         private static bool TryGetAsyncInfo( IType awaitableType, out IType? awaitableResultType, out bool hasMethodBuilder )
         {
-            var returnType = awaitableType.GetSymbol().AssertSymbolNullNotImplemented( UnsupportedFeatures.IntroducedTypeStateMachines );
+            var returnTypeSymbol = awaitableType.GetSymbol();
 
-            if ( !TryGetAsyncInfo( returnType, out var resultTypeSymbol, out hasMethodBuilder ) )
+            // Introduced types don't have symbols yet. This assumes they are not awaitable.
+            // TODO #1310: Implement IsAwaitable(INamedType) to properly handle introduced awaitable types.
+            if ( returnTypeSymbol == null )
+            {
+                awaitableResultType = null;
+                hasMethodBuilder = false;
+
+                return false;
+            }
+
+            if ( !TryGetAsyncInfo( returnTypeSymbol, out var resultTypeSymbol, out hasMethodBuilder ) )
             {
                 awaitableResultType = null;
 

@@ -14,6 +14,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
@@ -253,9 +254,9 @@ internal sealed partial class LinkerInjectionStep
 
         public void AddRemovedSyntax( SyntaxNode removedSyntax )
         {
-            switch ( removedSyntax )
+            switch ( removedSyntax.Kind() )
             {
-                case VariableDeclaratorSyntax variableDeclarator:
+                case SyntaxKind.VariableDeclarator when removedSyntax is VariableDeclaratorSyntax variableDeclarator:
                     lock ( this._removedVariableDeclaratorSyntax )
                     {
                         this._removedVariableDeclaratorSyntax.Add( variableDeclarator );
@@ -522,9 +523,9 @@ internal sealed partial class LinkerInjectionStep
             statements.AddRange(
                 orderedInputContractStatements.Select(
                     s =>
-                        s.Statement switch
+                        s.Statement.Kind() switch
                         {
-                            BlockSyntax block => block.WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            SyntaxKind.Block when s.Statement is BlockSyntax block => block.WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
                             _ => s.Statement
                         } ) );
 
@@ -592,9 +593,9 @@ internal sealed partial class LinkerInjectionStep
             statements.AddRange(
                 orderedOutputContractStatements.Select(
                     s =>
-                        s.Statement switch
+                        s.Statement.Kind() switch
                         {
-                            BlockSyntax block => block.WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            SyntaxKind.Block when s.Statement is BlockSyntax block => block.WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
                             _ => s.Statement
                         } ) );
 
@@ -606,10 +607,10 @@ internal sealed partial class LinkerInjectionStep
             // Initializers of separate declarations should precede initializers of the type.
             => statements
                 .OrderBy(
-                    s => s.ContextDeclaration switch
+                    s => s.ContextDeclaration.DeclarationKind switch
                     {
-                        IMember => 0,
-                        INamedType => 1,
+                        { IsMember: true } when s.ContextDeclaration is IMember => 0,
+                        DeclarationKind.NamedType when s.ContextDeclaration is INamedType => 1,
                         _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                     } )
                 .ThenBy( s => (s.ContextDeclaration as IMember)?.ToDisplayString() );
@@ -636,12 +637,16 @@ internal sealed partial class LinkerInjectionStep
                                 return -1;
                             }
 
-                            return s.ContextDeclaration switch
+                            return s.ContextDeclaration.DeclarationKind switch
                             {
                                 // Extension block receiver parameters are ordered first.
-                                IParameter { ContainingDeclaration: IExtensionBlock } => -1,
-                                IParameter { IsReturnParameter: false } parameter => parameter.Index, // Parameters are checked in order they appear in code.
-                                IParameter { IsReturnParameter: true, ContainingDeclaration: IMethod method } =>
+                                DeclarationKind.Parameter when s.ContextDeclaration is IParameter { ContainingDeclaration: IExtensionBlock } => -1,
+                                DeclarationKind.Parameter when s.ContextDeclaration is IParameter { IsReturnParameter: false } parameter =>
+                                    parameter.Index, // Parameters are checked in order they appear in code.
+                                DeclarationKind.Parameter when s.ContextDeclaration is IParameter
+                                    {
+                                        IsReturnParameter: true, ContainingDeclaration: IMethod method
+                                    } =>
                                     method.Parameters.Count, // Return parameter contracts are ordered after other parameters.
                                 _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                             };

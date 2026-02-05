@@ -35,13 +35,13 @@ internal sealed class ForcedInitializationSubstitution : SyntaxNodeSubstitution
     {
         // We currently need to support all name syntaxes that may reference a property of the current object.
 
-        switch ( currentNode )
+        switch ( currentNode.Kind() )
         {
-            case BlockSyntax block:
+            case SyntaxKind.Block when currentNode is BlockSyntax block:
                 return
                     block.WithStatements( block.Statements.InsertRange( 0, GetInitializationStatements() ) );
 
-            case ArrowExpressionClauseSyntax arrowExpressionClause:
+            case SyntaxKind.ArrowExpressionClause when currentNode is ArrowExpressionClauseSyntax arrowExpressionClause:
                 return
                     Block( List( GetInitializationStatements().Append( ExpressionStatement( arrowExpressionClause.Expression ) ) ) );
 

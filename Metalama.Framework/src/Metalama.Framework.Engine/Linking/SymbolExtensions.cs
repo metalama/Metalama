@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.CodeModel.Comparers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -19,21 +20,39 @@ internal static class SymbolExtensions
         // TODO: Partials?
         var declaration = symbol.GetPrimaryDeclarationSyntax();
 
-        switch ( declaration )
+        switch ( declaration?.Kind() )
         {
-            case MemberDeclarationSyntax memberDeclaration:
-                return memberDeclaration.GetLinkerDeclarationFlags();
+            case SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration or SyntaxKind.OperatorDeclaration
+                or SyntaxKind.ConversionOperatorDeclaration
+                or SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.FieldDeclaration
+                or SyntaxKind.EventFieldDeclaration
+                or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
+                or SyntaxKind.RecordStructDeclaration
+                or SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration:
+                return ((MemberDeclarationSyntax) declaration!).GetLinkerDeclarationFlags();
 
-            case VariableDeclaratorSyntax variableDeclarator:
+            case SyntaxKind.VariableDeclarator:
+                var variableDeclarator = (VariableDeclaratorSyntax) declaration!;
+
                 return ((MemberDeclarationSyntax?) variableDeclarator.Parent?.Parent).AssertNotNull().GetLinkerDeclarationFlags();
 
-            case ParameterSyntax { Parent.Parent: RecordDeclarationSyntax }:
-                return default;
+            case SyntaxKind.Parameter:
+                var parameter = (ParameterSyntax) declaration!;
+                var grandParent = parameter.Parent?.Parent;
 
-            case AccessorDeclarationSyntax accessorDeclaration:
+                if ( grandParent is { SyntaxKind.IsRecordDeclaration: true } and RecordDeclarationSyntax )
+                {
+                    return default;
+                }
+
+                throw new AssertionFailedException( $"Unexpected declaration syntax for parameter: {declaration}" );
+
+            case { IsAccessorDeclaration: true }:
+                var accessorDeclaration = (AccessorDeclarationSyntax) declaration!;
+
                 return accessorDeclaration.Parent.AssertNotNull().GetLinkerDeclarationFlags();
 
-            case ArrowExpressionClauseSyntax:
+            case SyntaxKind.ArrowExpressionClause:
                 // We cannot have flags on getter of expression-bodied property.
                 return default;
 
@@ -47,7 +66,7 @@ internal static class SymbolExtensions
 
     public static bool IsExplicitInterfaceEventField( this ISymbol symbol )
     {
-        if ( symbol is IEventSymbol eventSymbol )
+        if ( symbol.Kind == SymbolKind.Event && symbol is IEventSymbol eventSymbol )
         {
             var declaration = eventSymbol.GetPrimaryDeclarationSyntax();
 
@@ -72,7 +91,8 @@ internal static class SymbolExtensions
     /// <returns>Hidden symbol or null.</returns>
     public static bool TryGetHiddenSymbol( this ISymbol symbol, Compilation compilation, [NotNullWhen( true )] out ISymbol? hiddenSymbol )
     {
-        if ( symbol is not (IMethodSymbol or IEventSymbol or IPropertySymbol) )
+        if ( symbol.Kind is not (SymbolKind.Method or SymbolKind.Event or SymbolKind.Property)
+             || symbol is not (IMethodSymbol or IEventSymbol or IPropertySymbol) )
         {
             // Types never hide anything.
             hiddenSymbol = null;
@@ -113,9 +133,9 @@ internal static class SymbolExtensions
 
         static bool SignatureEquals( ISymbol localMember, ISymbol baseMember )
         {
-            switch (localMember, baseMember)
+            switch (localMember.Kind, baseMember.Kind)
             {
-                case (IPropertySymbol property, IFieldSymbol field):
+                case (SymbolKind.Property, SymbolKind.Field) when localMember is IPropertySymbol property && baseMember is IFieldSymbol field:
                     // Promoted field that hides a base field.
                     if ( StringComparer.Ordinal.Equals( property.Name, field.Name ) )
                     {

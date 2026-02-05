@@ -100,7 +100,7 @@ internal sealed class SwitchStatement : IStatementImpl
 
         var switchExpression = ((IUserExpression) this._expression).ToTypedExpressionSyntax( templateSyntaxFactory.SyntaxSerializationContext ).Syntax;
 
-        if ( switchExpression is TupleExpressionSyntax tuple )
+        if ( switchExpression.Kind() == SyntaxKind.TupleExpression && switchExpression is TupleExpressionSyntax tuple )
         {
             // Remove names
             switchExpression = tuple.WithArguments( SeparatedList( tuple.Arguments.SelectAsReadOnlyCollection( a => a.WithNameColon( null ) ) ) );

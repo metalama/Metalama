@@ -24,27 +24,21 @@ internal class Target
   [InvalidateCache(nameof(GetResourceName2))]
   public async Task<ProtectedResource?> UpdateProtectedResourceAsync(int x, int y, UpdateProtectedResource update)
   {
-    var result = await UpdateProtectedResourceAsync_Source(x, y, update);
+    ProtectedResource? result;
+    result = new ProtectedResource();
     await _cachingService.InvalidateAsync(_methodsInvalidatedBy_UpdateProtectedResourceAsync_23BEB20FE3CE3EBDD9C65F59C43F5632[0], this, new object[] { x, y, 0 }, default(CancellationToken));
     await _cachingService.InvalidateAsync(_methodsInvalidatedBy_UpdateProtectedResourceAsync_23BEB20FE3CE3EBDD9C65F59C43F5632[1], this, new object[] { y, 0, x }, default(CancellationToken));
-    return result;
-  }
-  private async Task<ProtectedResource?> UpdateProtectedResourceAsync_Source(int x, int y, UpdateProtectedResource update)
-  {
-    return new ProtectedResource();
+    return (ProtectedResource? )result;
   }
   [InvalidateCache(nameof(GetResourceName1))]
   [InvalidateCache(nameof(GetResourceName2))]
   public async Task<ProtectedResource?> UpdateProtectedResource2Async(UpdateProtectedResource update, int y, int x)
   {
-    var result = await UpdateProtectedResource2Async_Source(update, y, x);
+    ProtectedResource? result;
+    result = new ProtectedResource();
     await _cachingService.InvalidateAsync(_methodsInvalidatedBy_UpdateProtectedResource2Async_EF4B99F69BA2C549913F60A9CBDD6F66[0], this, new object[] { x, y, 0 }, default(CancellationToken));
     await _cachingService.InvalidateAsync(_methodsInvalidatedBy_UpdateProtectedResource2Async_EF4B99F69BA2C549913F60A9CBDD6F66[1], this, new object[] { y, 0, x }, default(CancellationToken));
-    return result;
-  }
-  private async Task<ProtectedResource?> UpdateProtectedResource2Async_Source(UpdateProtectedResource update, int y, int x)
-  {
-    return new ProtectedResource();
+    return (ProtectedResource? )result;
   }
   private static readonly CachedMethodMetadata _cacheRegistration_GetResourceName1;
   private static readonly CachedMethodMetadata _cacheRegistration_GetResourceName2;

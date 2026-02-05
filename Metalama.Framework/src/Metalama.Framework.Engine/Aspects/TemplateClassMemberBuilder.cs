@@ -59,7 +59,7 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
 
             switch ( templateInfo.AttributeType )
             {
-                case TemplateAttributeType.DeclarativeAdvice when memberSymbol is IMethodSymbol { AssociatedSymbol: not null }:
+                case TemplateAttributeType.DeclarativeAdvice when memberSymbol.Kind == SymbolKind.Method && memberSymbol is IMethodSymbol { AssociatedSymbol: not null }:
                     // This is an accessor of a template or event declarative advice. We don't index them.
                     continue;
 
@@ -84,7 +84,7 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
 
             if ( attribute is ITemplateAttribute { Properties.Id: { } id } )
             {
-                if ( memberSymbol is IMethodSymbol methodSymbol )
+                if ( memberSymbol.Kind == SymbolKind.Method && memberSymbol is IMethodSymbol methodSymbol )
                 {
                     memberKey = methodSymbol.MethodKind switch
                     {
@@ -128,9 +128,9 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
                 }
             }
 
-            switch ( memberSymbol )
+            switch ( memberSymbol.Kind )
             {
-                case IMethodSymbol method:
+                case SymbolKind.Method when memberSymbol is IMethodSymbol method:
                     {
                         // Forbid ref methods.
                         if ( method.RefKind != RefKind.None )
@@ -187,7 +187,7 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
                         break;
                     }
 
-                case IPropertySymbol property:
+                case SymbolKind.Property when memberSymbol is IPropertySymbol property:
                     // Forbid ref properties.
                     if ( property.RefKind != RefKind.None )
                     {
@@ -207,7 +207,7 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
                     break;
 
                 // ReSharper disable once UnusedVariable
-                case IFieldSymbol field:
+                case SymbolKind.Field when memberSymbol is IFieldSymbol field:
                     // Forbid ref fields.
                     if ( field.RefKind != RefKind.None )
                     {
@@ -219,14 +219,14 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
 
                     break;
 
-                case IEventSymbol @event:
+                case SymbolKind.Event when memberSymbol is IEventSymbol @event:
                     AddAccessor( @event.AddMethod );
                     AddAccessor( @event.RemoveMethod );
 
                     break;
             }
 
-            if ( memberSymbol is IMethodSymbol { MethodKind: MethodKind.PropertySet } && templateParameters.Length != 1 )
+            if ( memberSymbol.Kind == SymbolKind.Method && memberSymbol is IMethodSymbol { MethodKind: MethodKind.PropertySet } && templateParameters.Length != 1 )
             {
                 throw new AssertionFailedException( $"'{memberSymbol}' is a property setter but there is {templateParameters.Length} template parameters." );
             }

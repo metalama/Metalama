@@ -7,16 +7,13 @@ internal class TargetCode
     global::System.Console.WriteLine("Non-async intercept");
     return this.AsyncMethod_Aspect2(a);
   }
-  private async Task<int> AsyncMethod_Source(int a)
-  {
-    await Task.Yield();
-    return a;
-  }
   private async global::System.Threading.Tasks.Task<global::System.Int32> AsyncMethod_Aspect2(global::System.Int32 a)
   {
     global::System.Console.WriteLine("Async intercept");
     await global::System.Threading.Tasks.Task.Yield();
-    var result = await this.AsyncMethod_Source(a);
+    global::System.Int32 result;
+    await Task.Yield();
+    result = a;
     return (global::System.Int32)result;
   }
   [Aspect1]

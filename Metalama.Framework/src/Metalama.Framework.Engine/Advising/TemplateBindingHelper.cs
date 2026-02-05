@@ -363,8 +363,8 @@ internal static class TemplateBindingHelper
                 {
                     var expectedParameterCount = targetMethod switch
                     {
-                        { MethodKind: OurMethodKind.PropertyGet, ContainingDeclaration: IIndexer { Parameters.Count: var parameterCount } } => parameterCount,
-                        { MethodKind: OurMethodKind.PropertySet, ContainingDeclaration: IIndexer { Parameters.Count: var parameterCount } } => parameterCount
+                        { MethodKind: OurMethodKind.PropertyGet, ContainingDeclaration: { DeclarationKind: DeclarationKind.Indexer } and IIndexer { Parameters.Count: var parameterCount } } => parameterCount,
+                        { MethodKind: OurMethodKind.PropertySet, ContainingDeclaration: { DeclarationKind: DeclarationKind.Indexer } and IIndexer { Parameters.Count: var parameterCount } } => parameterCount
                             + 1,
                         { MethodKind: OurMethodKind.PropertyGet } => 0,
                         { MethodKind: OurMethodKind.PropertySet or OurMethodKind.EventAdd or OurMethodKind.EventRemove or OurMethodKind.EventRaise } => 1,
@@ -655,8 +655,9 @@ internal static class TemplateBindingHelper
             }
         }
 
-        if ( fromType is ITypeParameter fromGenericParameter && toType is ITypeParameter toGenericParameter
-                                                             && fromGenericParameter.Name == toGenericParameter.Name )
+        if ( fromType.TypeKind == TypeKind.TypeParameter && fromType is ITypeParameter fromGenericParameter
+             && toType.TypeKind == TypeKind.TypeParameter && toType is ITypeParameter toGenericParameter
+             && fromGenericParameter.Name == toGenericParameter.Name )
         {
             // If we are comparing two generic parameters, we only compare the name here. The caller will then check
             // the compatibility of constraints, so we don't have to do it here.
@@ -678,7 +679,9 @@ internal static class TemplateBindingHelper
             // Return types of template and target match.
             return true;
         }
-        else if ( toMethodAsyncInfo != null && fromType is INamedType fromNamedType && toType is INamedType toNamedType )
+        else if ( toMethodAsyncInfo != null
+                  && fromType.TypeKind.IsNamedType && fromType is INamedType fromNamedType
+                  && toType.TypeKind.IsNamedType && toType is INamedType toNamedType )
         {
             // Special rules for matching async-related return types.
 

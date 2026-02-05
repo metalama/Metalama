@@ -37,7 +37,7 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
 #if ROSLYN_5_0_0_OR_GREATER
 
         // For extension properties, redirect to the implementation method.
-        if ( this.IsExtensionMember && this.Member is IProperty property )
+        if ( this.IsExtensionMember && this.Member.DeclarationKind == DeclarationKind.Property && this.Member is IProperty property )
         {
             return this.CreateExtensionPropertyExpression( property, targetKind, context );
         }
@@ -126,7 +126,7 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
 #if ROSLYN_5_0_0_OR_GREATER
 
         // For extension properties, generate a call to the setter implementation method.
-        if ( this.IsExtensionMember && this.Member is IProperty property )
+        if ( this.IsExtensionMember && this.Member.DeclarationKind == DeclarationKind.Property && this.Member is IProperty property )
         {
             return this.SetExtensionPropertyValue( property, value );
         }

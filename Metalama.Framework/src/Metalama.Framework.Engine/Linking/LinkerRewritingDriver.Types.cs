@@ -32,9 +32,9 @@ internal sealed partial class LinkerRewritingDriver
                         SeparatedList(
                             classDeclaration.BaseList.Types.SelectAsArray(
                                 b =>
-                                    b switch
+                                    b.Kind() switch
                                     {
-                                        PrimaryConstructorBaseTypeSyntax pc => SimpleBaseType( pc.Type ),
+                                        SyntaxKind.PrimaryConstructorBaseType when b is PrimaryConstructorBaseTypeSyntax pc => SimpleBaseType( pc.Type ),
                                         _ => b
                                     } ) ) ) );
 #else
@@ -85,9 +85,9 @@ internal sealed partial class LinkerRewritingDriver
                         SeparatedList(
                             recordDeclaration.BaseList.Types.SelectAsArray(
                                 b =>
-                                    b switch
+                                    b.Kind() switch
                                     {
-                                        PrimaryConstructorBaseTypeSyntax pc => SimpleBaseType( pc.Type ),
+                                        SyntaxKind.PrimaryConstructorBaseType when b is PrimaryConstructorBaseTypeSyntax pc => SimpleBaseType( pc.Type ),
                                         _ => b
                                     } ) ) ) );
         }
@@ -108,7 +108,8 @@ internal sealed partial class LinkerRewritingDriver
                 var parameterSymbol = semanticModel.GetDeclaredSymbol( parameter ).AssertNotNull();
                 var propertySymbol = parameterSymbol.ContainingType.GetMembers( parameterSymbol.Name ).OfType<IPropertySymbol>().FirstOrDefault();
 
-                if ( propertySymbol?.GetPrimaryDeclarationSyntax() is ParameterSyntax && this.IsRewriteTarget( propertySymbol ) )
+                if ( propertySymbol?.GetPrimaryDeclarationSyntax()?.Kind() == SyntaxKind.Parameter
+                    && propertySymbol.GetPrimaryDeclarationSyntax() is ParameterSyntax && this.IsRewriteTarget( propertySymbol ) )
                 {
                     SyntaxGenerationContext GetSyntaxGenerationContext()
                     {

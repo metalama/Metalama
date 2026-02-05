@@ -21,6 +21,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
@@ -233,7 +234,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                             pair.Value.ReturnValueVariableName );
                 }
             }
-            else if ( pair.Key.Definition is IExtensionBlock extensionBlock && pair.Value.WasUsedForOutputContracts )
+            else if ( pair.Key.Definition.DeclarationKind == DeclarationKind.ExtensionBlock && pair.Key.Definition is IExtensionBlock extensionBlock && pair.Value.WasUsedForOutputContracts )
             {
                 // Extension block with output contracts - create auxiliary contract members for each instance member.
                 pair.Value.Complete();
@@ -626,7 +627,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         // If this is overridden property we need to:
         //  1) Block inlining of the first override (force the trampoline).
         //  2) Substitute all sets of the property (can be only in constructors) to use the first override instead.
-        if ( overriddenDeclaration is IProperty
+        if ( overriddenDeclaration.DeclarationKind == DeclarationKind.Property && overriddenDeclaration is IProperty
             {
                 IsAutoPropertyOrField: true, Writeability: Writeability.ConstructorOnly, SetMethod.IsImplicitlyDeclared: true,
                 OverriddenProperty: null or { SetMethod: not null }
@@ -655,9 +656,9 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         var syntaxGenerationContext
             = this._compilationContext.GetSyntaxGenerationContext( this._syntaxGenerationOptions, targetMemberOrNamedType );
 
-        switch ( targetMemberOrNamedType )
+        switch ( targetMemberOrNamedType.DeclarationKind )
         {
-            case IPropertyOrIndexer propertyOrIndexer:
+            case DeclarationKind.Property or DeclarationKind.Indexer when targetMemberOrNamedType is IPropertyOrIndexer propertyOrIndexer:
                 {
                     var insertedStatements = GetInsertedStatements();
 
@@ -671,7 +672,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                                 .Where(
                                     s =>
                                         s.ContextDeclaration.IsContainedIn( propertyOrIndexer.GetMethod )
-                                        || (propertyOrIndexer is IIndexer indexer && s.ContextDeclaration is IParameter parameter
+                                        || (propertyOrIndexer.DeclarationKind == DeclarationKind.Indexer && propertyOrIndexer is IIndexer indexer && s.ContextDeclaration.DeclarationKind == DeclarationKind.Parameter && s.ContextDeclaration is IParameter parameter
                                                                                   && parameter.ContainingDeclaration!.Equals( indexer )) )
                                 .ToReadOnlyList() );
                     }
@@ -684,7 +685,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                                 .Where(
                                     s =>
                                         s.ContextDeclaration.IsContainedIn( propertyOrIndexer.SetMethod )
-                                        || (propertyOrIndexer is IIndexer indexer && s.ContextDeclaration is IParameter parameter
+                                        || (propertyOrIndexer.DeclarationKind == DeclarationKind.Indexer && propertyOrIndexer is IIndexer indexer && s.ContextDeclaration.DeclarationKind == DeclarationKind.Parameter && s.ContextDeclaration is IParameter parameter
                                                                                   && parameter.ContainingDeclaration!.Equals( indexer )) )
                                 .ToReadOnlyList() );
                     }
@@ -692,7 +693,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     break;
                 }
 
-            case IMethodBase methodBase:
+            case DeclarationKind.Method or DeclarationKind.Constructor when targetMemberOrNamedType is IMethodBase methodBase:
                 {
                     var insertedStatements = GetInsertedStatements();
 
@@ -701,7 +702,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     break;
                 }
 
-            case IExtensionBlock extensionBlock:
+            case DeclarationKind.ExtensionBlock when targetMemberOrNamedType is IExtensionBlock extensionBlock:
                 {
                     // For extension blocks, statements are generated per-method (each with a ContextDeclaration
                     // that is a parameter whose ContainingDeclaration is the target method).
@@ -715,7 +716,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 
                     foreach ( var statement in insertedStatements )
                     {
-                        if ( statement.ContextDeclaration.ContainingDeclaration is IMethodBase method )
+                        if ( statement.ContextDeclaration.ContainingDeclaration?.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor && statement.ContextDeclaration.ContainingDeclaration is IMethodBase method )
                         {
                             var methodRef = method.ToRef();
 
@@ -747,7 +748,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                 throw new AssertionFailedException( $"Unexpected target: {targetMemberOrNamedType}." );
         }
 
-        if ( targetMemberOrNamedType is IConstructor { IsPrimary: true } overriddenConstructor )
+        if ( targetMemberOrNamedType.DeclarationKind == DeclarationKind.Constructor && targetMemberOrNamedType is IConstructor { IsPrimary: true } overriddenConstructor )
         {
             auxiliaryMemberTransformations.GetOrAdd( overriddenConstructor.ToFullRef(), _ => new AuxiliaryMemberTransformations() )
                 .InjectAuxiliarySourceMember();
@@ -789,8 +790,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     markedForOutputContracts = true;
                     context.MarkAsUsedForOutputContracts();
 
-                    if ( targetMemberOrNamedType is IProperty or IIndexer
-                         || (targetMemberOrNamedType is IMethod method && method.GetAsyncInfo().ResultType.SpecialType != SpecialType.Void) )
+                    if ( targetMemberOrNamedType.DeclarationKind is DeclarationKind.Property or DeclarationKind.Indexer
+                         || (targetMemberOrNamedType.DeclarationKind == DeclarationKind.Method && targetMemberOrNamedType is IMethod method && method.GetAsyncInfo().ResultType.SpecialType != SpecialType.Void) )
                     {
                         // Force the return variable name to be allocated if the return type is not void.
                         // If there are output contracts that don't use the return value, the return value is still required.
@@ -808,7 +809,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 #if DEBUG
             foreach ( var statement in statements )
             {
-                if ( statement.Statement is BlockSyntax block )
+                if ( statement.Statement.IsKind( SyntaxKind.Block ) && statement.Statement is BlockSyntax block )
                 {
                     if ( !block.Statements.All( s => s.HasAnnotations( FormattingAnnotations.GeneratedCodeAnnotationKind ) ) )
                     {

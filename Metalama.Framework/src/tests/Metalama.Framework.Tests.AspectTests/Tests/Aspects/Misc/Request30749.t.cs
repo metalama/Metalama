@@ -38,18 +38,14 @@ public class OrderAsyncResponseProcessor<TCommand> : BaseProcessor where TComman
     global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.Request30749.ParamsStacks.Push(__metalma_currentThreadId, __metalama_result.ToString());
     try
     {
-      await this.HandleFailureAsync_Source(response, context);
+      _logger.WriteInfo($"Handling failure response");
+      await base.HandleFailureAsync(response, context);
+      _logger.WriteInfo($"Handled failure response ");
       return;
     }
     finally
     {
       global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.Request30749.ParamsStacks.Pop(__metalma_currentThreadId);
     }
-  }
-  private async Task HandleFailureAsync_Source(object response, object context)
-  {
-    _logger.WriteInfo($"Handling failure response");
-    await base.HandleFailureAsync(response, context);
-    _logger.WriteInfo($"Handled failure response ");
   }
 }

@@ -13,7 +13,6 @@ using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -136,7 +135,9 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
 
         var hasNoBody = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
 
-        if ( existingMethod?.GetPrimaryDeclarationSyntax() is MethodDeclarationSyntax methodDeclaration
+        if ( existingMethod?.GetPrimaryDeclarationSyntax() is { } syntax
+             && syntax.IsKind( SyntaxKind.MethodDeclaration )
+             && syntax is MethodDeclarationSyntax methodDeclaration
              && methodDeclaration.Modifiers.Any( x => x.IsKind( SyntaxKind.PartialKeyword ) )
              && builder.IsPartial )
         {

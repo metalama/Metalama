@@ -210,7 +210,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
         }
         else
         {
-            if ( existingDeclaration is not IEvent existingEvent )
+            if ( existingDeclaration.DeclarationKind != DeclarationKind.Event || existingDeclaration is not IEvent existingEvent )
             {
                 return this.CreateFailedResult(
                     AdviceDiagnosticDescriptors.CannotIntroduceWithDifferentKind.CreateRoslynDiagnostic(
