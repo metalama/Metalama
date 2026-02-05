@@ -20,7 +20,7 @@ ENV LC_ALL=C.UTF-8
 ENV DOTNET_CLI_UI_LANGUAGE=en
 ENV VSLANG=1033
 
-# Set base PATH explicitly to avoid issues with ${PATH} expansion
+# Set base PATH explicitly to avoid issues with expansion
 ENV PATH="C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0"
 
 # Enable long path support
@@ -99,6 +99,9 @@ RUN New-Item -ItemType Directory -Path 'C:\Program Files (x86)\Microsoft Visual 
 
 
 # Epilogue
+# Link to private repository for GHCR visibility
+LABEL org.opencontainers.image.source=https://github.com/postsharp/PostSharp.Engineering.Images
+
 # Create docker-context directory for build scripts
 RUN New-Item -ItemType Directory -Path c:\docker-context -Force | Out-Null
 

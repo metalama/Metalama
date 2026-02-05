@@ -20,7 +20,7 @@ ENV LC_ALL=C.UTF-8
 ENV DOTNET_CLI_UI_LANGUAGE=en
 ENV VSLANG=1033
 
-# Set base PATH explicitly to avoid issues with ${PATH} expansion
+# Set base PATH explicitly to avoid issues with expansion
 ENV PATH="C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0"
 
 # Enable long path support
@@ -116,7 +116,7 @@ ENV USERPROFILE=C:\\Users\\ContainerAdministrator
 # Install Claude CLI and configure using cmd shell to avoid HCS issues with PowerShell
 SHELL ["cmd", "/S", "/C"]
 RUN C:\nodejs\npm.cmd install --global @anthropic-ai/claude-code@2.1.27
-RUN mkdir C:\Users\ContainerAdministrator\.claude && echo {"hasCompletedOnboarding": true} > C:\Users\ContainerAdministrator\.claude.json && echo {"alwaysThinkingEnabled": true} > C:\Users\ContainerAdministrator\.claude\settings.json
+RUN mkdir C:\Users\ContainerAdministrator\.claude && echo {"hasCompletedOnboarding": true} > C:\Users\ContainerAdministrator\.claude.json && echo {"alwaysThinkingEnabled": true, "spinnerTipsEnabled": false} > C:\Users\ContainerAdministrator\.claude\settings.json
 
 # Restore PowerShell shell using full path
 SHELL ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Command"]
@@ -132,6 +132,9 @@ SHELL ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Comma
 
 
 # Epilogue
+# Link to private repository for GHCR visibility
+LABEL org.opencontainers.image.source=https://github.com/postsharp/PostSharp.Engineering.Images
+
 # Create docker-context directory for build scripts
 RUN New-Item -ItemType Directory -Path c:\docker-context -Force | Out-Null
 

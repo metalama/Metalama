@@ -23,9 +23,18 @@ param(
     [string]$Memory, # Docker memory limit (e.g., "8g"). Only used with hyperv isolation.
     [int]$Cpus = [Environment]::ProcessorCount, # Docker CPU limit. Only used with hyperv isolation.
     [string[]]$Mount, # Additional directories to mount from host (readonly by default, append :w for writable). Supports * and ** glob patterns.
+    [string[]]$Env, # Additional environment variables to pass from host to container.
+    [string[]]$Ports, # Port mappings from host to container (e.g., "8080:80", "3000").
     [Parameter(ValueFromRemainingArguments)]
     [string[]]$BuildArgs   # Arguments passed to `Build.ps1` within the container (or Claude prompt if -Claude is specified).
 )
+
+# Require PowerShell 7.5 or higher (run with pwsh, not powershell)
+if ($PSVersionTable.PSVersion -lt [Version]'7.5')
+{
+    Write-Error "This script requires PowerShell 7.5 or higher (run with 'pwsh', not 'powershell'). Current version: $($PSVersionTable.PSVersion)"
+    exit 1
+}
 
 ####
 # These settings are replaced by the generate-scripts command.
@@ -106,6 +115,32 @@ function New-EnvJson
         }
     }
 
+    # Process additional environment variables from -Env parameter
+    # Supports both "NAME" (read from host) and "NAME=VALUE" (literal value) forms
+    if ($Env -and $Env.Count -gt 0)
+    {
+        foreach ($envSpec in $Env)
+        {
+            if ($envSpec -match '^([^=]+)=(.*)$')
+            {
+                # NAME=VALUE form: use literal value
+                $envVarName = $Matches[1]
+                $value = $Matches[2]
+                $envVariables[$envVarName] = $value
+            }
+            else
+            {
+                # NAME form: read from host environment
+                $envVarName = $envSpec
+                $value = [Environment]::GetEnvironmentVariable($envVarName)
+                if (-not [string]::IsNullOrEmpty($value))
+                {
+                    $envVariables[$envVarName] = $value
+                }
+            }
+        }
+    }
+
     # Add NUGET_PACKAGES with default if not set
     if (-not $envVariables.ContainsKey("NUGET_PACKAGES"))
     {
@@ -168,8 +203,10 @@ function New-EnvJson
     }
 
     $envVariables | ConvertTo-Json -Depth 10 | Set-Content -Path $jsonPath -Encoding UTF8
-    Write-Host "Created secrets file: $jsonPath" -ForegroundColor Cyan
 
+    # Print sorted list of environment variables being passed
+    $sortedKeys = $envVariables.Keys | Sort-Object
+    Write-Host "Environment variables: $($sortedKeys -join ', ')" -ForegroundColor Gray
 
     return $jsonPath
 }
@@ -179,13 +216,20 @@ function New-ClaudeEnvJson
 {
     $claudeEnv = @{ }
 
-    # CLAUDE_GITHUB_TOKEN -> GITHUB_TOKEN (renamed)
-    if ($env:CLAUDE_GITHUB_TOKEN)
+    # Process $EnvironmentVariables list - only transfer variables that have CLAUDE_ prefix defined
+    # e.g., if CLAUDE_GITHUB_TOKEN is set, transfer it as GITHUB_TOKEN
+    $envVarNames = $EnvironmentVariables -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+    foreach ($envVarName in $envVarNames)
     {
-        $claudeEnv["GITHUB_TOKEN"] = $env:CLAUDE_GITHUB_TOKEN
+        $claudeVarName = "CLAUDE_$envVarName"
+        $value = [Environment]::GetEnvironmentVariable($claudeVarName)
+        if (-not [string]::IsNullOrEmpty($value))
+        {
+            $claudeEnv[$envVarName] = $value
+        }
     }
 
-    # Preserved variables
+    # Preserved variables (transferred as-is, without requiring CLAUDE_ prefix)
     if ($env:ANTHROPIC_API_KEY)
     {
         $claudeEnv["ANTHROPIC_API_KEY"] = $env:ANTHROPIC_API_KEY
@@ -238,6 +282,38 @@ function New-ClaudeEnvJson
     }
     $claudeEnv["NUGET_PACKAGES"] = $nugetPackages
 
+    # Process additional environment variables from -Env parameter
+    # Supports both "NAME" (read from host) and "NAME=VALUE" (literal value) forms
+    # In Claude mode, CLAUDE_FOO takes precedence over FOO
+    if ($Env -and $Env.Count -gt 0)
+    {
+        foreach ($envSpec in $Env)
+        {
+            if ($envSpec -match '^([^=]+)=(.*)$')
+            {
+                # NAME=VALUE form: use literal value
+                $envVarName = $Matches[1]
+                $value = $Matches[2]
+                $claudeEnv[$envVarName] = $value
+            }
+            else
+            {
+                # NAME form: read from host environment (with CLAUDE_ prefix support)
+                $envVarName = $envSpec
+                $claudeVarName = "CLAUDE_$envVarName"
+                $value = [Environment]::GetEnvironmentVariable($claudeVarName)
+                if ([string]::IsNullOrEmpty($value))
+                {
+                    $value = [Environment]::GetEnvironmentVariable($envVarName)
+                }
+                if (-not [string]::IsNullOrEmpty($value))
+                {
+                    $claudeEnv[$envVarName] = $value
+                }
+            }
+        }
+    }
+
     # Convert to JSON and save
     $gDirectory = Join-Path $dockerContextDirectory ".g"
     $jsonPath = Join-Path $gDirectory "env.g.json"
@@ -260,7 +336,10 @@ function New-ClaudeEnvJson
     }
 
     $claudeEnv | ConvertTo-Json -Depth 10 | Set-Content -Path $jsonPath -Encoding UTF8
-    Write-Host "Created Claude secrets file: $jsonPath" -ForegroundColor Cyan
+
+    # Print sorted list of environment variables being passed
+    $sortedKeys = $claudeEnv.Keys | Sort-Object
+    Write-Host "Environment variables: $($sortedKeys -join ', ')" -ForegroundColor Gray
 
     return $jsonPath
 }
@@ -341,6 +420,35 @@ function Get-TimestampFile
     return $timestampFile
 }
 
+function Get-ContentHash {
+    param(
+        [string]$DockerfilePath,
+        [string]$ContextDirectory
+    )
+
+    $hashInput = Get-Content $DockerfilePath -Raw -ErrorAction SilentlyContinue
+    if (-not $hashInput) { $hashInput = "" }
+
+    # Add context files (excluding generated .g/ directory)
+    $contextFiles = Get-ChildItem $ContextDirectory -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '[/\\]\.g[/\\]' } |
+        Sort-Object FullName
+
+    foreach ($file in $contextFiles) {
+        $content = Get-Content $file.FullName -Raw -ErrorAction SilentlyContinue
+        if ($content) {
+            $hashInput += "`n--- $($file.Name) ---`n"
+            $hashInput += $content
+        }
+    }
+
+    $hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
+        [System.Text.Encoding]::UTF8.GetBytes($hashInput)
+    )
+    # Use 8 bytes (16 hex chars) for uniqueness
+    return [System.BitConverter]::ToString($hashBytes, 0, 8).Replace("-", "").ToLower()
+}
+
 # Dictionary to track volume mounts with "writable wins" logic
 $script:VolumeMountDict = @{}
 
@@ -385,6 +493,22 @@ if (-not $Dockerfile)
     {
         $Dockerfile = "Dockerfile"
     }
+
+    # On Windows, detect if we're running on Server 2022 (build < 26100) and use matching Dockerfile
+    # Windows Server 2025 is build 26100+, 2022 is build 20348-26099
+    if ($IsWindows -and -not $Claude)
+    {
+        $osBuild = [System.Environment]::OSVersion.Version.Build
+        if ($osBuild -lt 26100)
+        {
+            $win2022Dockerfile = "Dockerfile.win2022"
+            if (Test-Path (Join-Path $PSScriptRoot $win2022Dockerfile))
+            {
+                Write-Host "Detected Windows Server 2022 (build $osBuild), using $win2022Dockerfile" -ForegroundColor Cyan
+                $Dockerfile = $win2022Dockerfile
+            }
+        }
+    }
 }
 
 # Get the full path of the Dockerfile
@@ -397,19 +521,21 @@ else
     $dockerfileFullPath = Join-Path $PSScriptRoot $Dockerfile
 }
 
-# Generate a hash of the Dockerfile full path (4 bytes, 8 hex chars)
-$hashBytes = (New-Object -TypeName System.Security.Cryptography.SHA256Managed).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($dockerfileFullPath))
-$dockerfileHash = [System.BitConverter]::ToString($hashBytes, 0, 4).Replace("-", "").ToLower()
+# Generate content-based hash for image tag
+$contentHash = Get-ContentHash -DockerfilePath $dockerfileFullPath -ContextDirectory $dockerContextDirectory
+$ghcrRegistry = $env:GHCR_REGISTRY
 
-# Generate ImageTag using the hash
-if ( [string]::IsNullOrEmpty($ImageName))
-{
-    $ImageTag = "dockerfile-$dockerfileHash"
-    Write-Host "Generated image tag from Dockerfile path hash: $ImageTag" -ForegroundColor Cyan
+if ($ghcrRegistry) {
+    # GHCR mode: use registry URL with content hash
+    $ImageTag = "${ghcrRegistry}:${contentHash}"
+    Write-Host "GHCR image tag: $ImageTag" -ForegroundColor Cyan
 }
-else
-{
-    $ImageTag = "$ImageName`:$dockerfileHash"
+elseif ([string]::IsNullOrEmpty($ImageName)) {
+    $ImageTag = "dockerfile-$contentHash"
+    Write-Host "Generated image tag from content hash: $ImageTag" -ForegroundColor Cyan
+}
+else {
+    $ImageTag = "$ImageName`:$contentHash"
     Write-Host "Image will be tagged as: $ImageTag" -ForegroundColor Cyan
 }
 
@@ -1010,7 +1136,7 @@ $( ($GitDirectories | ForEach-Object { "    '$_'" }) -join ",`n" )
 foreach (`$dir in `$gitDirectories) {
     if (`$dir) {
         # Normalize path: convert backslashes to forward slashes, add trailing slash
-        `$normalizedDir = (`$dir -replace '\\\\', '/').TrimEnd('/') + '/'
+        `$normalizedDir = (`$dir -replace '\\', '/').TrimEnd('/') + '/'
         git config --global --add safe.directory `$normalizedDir
     }
 }
@@ -1066,6 +1192,47 @@ if (-not $existingContainerId)
     docker ps -q --filter "ancestor=$ImageTag" | ForEach-Object {
         Write-Host "Killing container $_"
         docker kill $_
+    }
+}
+
+# GHCR authentication and pull logic
+$builtNewImage = $false
+$dockerConfigArg = @()
+
+if ($ghcrRegistry -and -not $NoBuildImage -and -not $existingContainerId) {
+    # Extract registry host from full URL (e.g., ghcr.io from ghcr.io/owner/repo)
+    $registryHost = ($ghcrRegistry -split '/')[0]
+
+    # Create a temporary Docker config directory to avoid credential helper issues
+    # (e.g., docker-credential-desktop not found when using Docker Engine without Desktop)
+    $tempDockerConfig = Join-Path $env:TEMP "docker-config-$(New-Guid)"
+    New-Item -ItemType Directory -Path $tempDockerConfig -Force | Out-Null
+    @{ auths = @{} } | ConvertTo-Json | Set-Content (Join-Path $tempDockerConfig "config.json")
+    $dockerConfigArg = @("--config", $tempDockerConfig)
+
+    # Authenticate to GHCR
+    $ghcrToken = $env:GHCR_TOKEN
+    if ($ghcrToken) {
+        Write-Host "Authenticating to GHCR..." -ForegroundColor Gray
+        # GHCR accepts any username when using a PAT, commonly 'github' is used
+        $ghcrToken | docker @dockerConfigArg login $registryHost --username github --password-stdin 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Warning: GHCR authentication failed. Pull/push may fail." -ForegroundColor Yellow
+        }
+    }
+    else {
+        Write-Host "Warning: GHCR_TOKEN not set. GHCR pull/push may fail." -ForegroundColor Yellow
+    }
+
+    # Try to pull the image
+    Write-Host "Checking GHCR for existing image: $ImageTag" -ForegroundColor Cyan
+    docker @dockerConfigArg pull $ImageTag 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Using cached image from GHCR." -ForegroundColor Green
+        $NoBuildImage = $true
+    }
+    else {
+        Write-Host "Image not found in GHCR, will build locally." -ForegroundColor Yellow
     }
 }
 
@@ -1141,6 +1308,20 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     {
         Write-Host "Docker build failed with exit code $LASTEXITCODE" -ForegroundColor Red
         exit $LASTEXITCODE
+    }
+
+    $builtNewImage = $true
+
+    # Auto-push to GHCR after successful build
+    if ($ghcrRegistry) {
+        Write-Host "Pushing image to GHCR: $ImageTag" -ForegroundColor Cyan
+        docker @dockerConfigArg push $ImageTag
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Warning: Failed to push image to GHCR" -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "Successfully pushed to GHCR" -ForegroundColor Green
+        }
     }
 }
 else
@@ -1336,6 +1517,16 @@ if (-not $BuildImage)
         $dockerCmd += $dockerArgs
         $dockerCmd += $volumeArgs
         $dockerCmd += $envArgs
+
+        # Add port mappings from -Ports parameter
+        if ($Ports -and $Ports.Count -gt 0)
+        {
+            foreach ($portMapping in $Ports)
+            {
+                $dockerCmd += @('-p', $portMapping)
+            }
+        }
+
         if ($pwshArgs) {
             $dockerCmd += @('-w', $ContainerCallingDir, $ImageTag, $pwshPath, $pwshArgs, '-Command', $inlineScript)
         } else {

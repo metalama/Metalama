@@ -3,6 +3,7 @@
 import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildFeatures.*
 import jetbrains.buildServer.configs.kotlin.buildSteps.powerShell
+import jetbrains.buildServer.configs.kotlin.buildSteps.PowerShellStep
 import jetbrains.buildServer.configs.kotlin.failureConditions.*
 import jetbrains.buildServer.configs.kotlin.triggers.*
 import jetbrains.buildServer.configs.kotlin.projectFeatures.*
@@ -55,6 +56,7 @@ object DebugBuild : BuildType({
         powerShell {
             name = "Prepare Docker image metalama-2026.1"
             id = "PrepareImage"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -64,6 +66,7 @@ object DebugBuild : BuildType({
         powerShell {
             name = "Build"
             id = "Build"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -73,6 +76,8 @@ object DebugBuild : BuildType({
     }
 
     requirements {
+        matches("teamcity.agent.jvm.os.family", "Windows")
+        matches("teamcity.agent.jvm.os.arch", "amd64")
         equals("env.BuildAgentType", "docker-win-x64-md")
     }
 
@@ -160,6 +165,7 @@ object ReleaseBuild : BuildType({
         powerShell {
             name = "Prepare Docker image metalama-2026.1"
             id = "PrepareImage"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -169,6 +175,7 @@ object ReleaseBuild : BuildType({
         powerShell {
             name = "Build"
             id = "Build"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -178,6 +185,8 @@ object ReleaseBuild : BuildType({
     }
 
     requirements {
+        matches("teamcity.agent.jvm.os.family", "Windows")
+        matches("teamcity.agent.jvm.os.arch", "amd64")
         equals("env.BuildAgentType", "docker-win-x64-md")
     }
 
@@ -254,6 +263,7 @@ object PublicBuild : BuildType({
         powerShell {
             name = "Prepare Docker image metalama-2026.1"
             id = "PrepareImage"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -263,6 +273,7 @@ object PublicBuild : BuildType({
         powerShell {
             name = "Build"
             id = "Build"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -272,6 +283,8 @@ object PublicBuild : BuildType({
     }
 
     requirements {
+        matches("teamcity.agent.jvm.os.family", "Windows")
+        matches("teamcity.agent.jvm.os.arch", "amd64")
         equals("env.BuildAgentType", "docker-win-x64-md")
     }
 
@@ -343,6 +356,7 @@ object PublicDeployment : BuildType({
         powerShell {
             name = "Prepare Docker image metalama-2026.1"
             id = "PrepareImage"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -352,6 +366,7 @@ object PublicDeployment : BuildType({
         powerShell {
             name = "Publish"
             id = "Publish"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -361,6 +376,8 @@ object PublicDeployment : BuildType({
     }
 
     requirements {
+        matches("teamcity.agent.jvm.os.family", "Windows")
+        matches("teamcity.agent.jvm.os.arch", "amd64")
         equals("env.BuildAgentType", "docker-win-x64-md")
     }
 
@@ -424,6 +441,7 @@ object UpstreamMerge : BuildType({
         powerShell {
             name = "Prepare Docker image metalama-2026.1"
             id = "PrepareImage"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -433,6 +451,7 @@ object UpstreamMerge : BuildType({
         powerShell {
             name = "Merge upstream"
             id = "UpstreamMerge"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -442,6 +461,8 @@ object UpstreamMerge : BuildType({
     }
 
     requirements {
+        matches("teamcity.agent.jvm.os.family", "Windows")
+        matches("teamcity.agent.jvm.os.arch", "amd64")
         equals("env.BuildAgentType", "docker-win-x64-md")
     }
 
@@ -476,6 +497,7 @@ object DockerTestsWinX64 : BuildType({
         powerShell {
             name = "Copy nuget.restored.config to nuget.config"
             id = "CopyNuGetConfig"
+            edition = PowerShellStep.Edition.Core
             scriptMode = script {
                 content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force;Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.wsl.config\" -Force;"
             }
@@ -484,6 +506,7 @@ object DockerTestsWinX64 : BuildType({
         powerShell {
             name = "Create eng/Versions.g.props"
             id = "CreateVersionsFile"
+            edition = PowerShellStep.Edition.Core
             scriptMode = script {
                 content = "New-Item -Path \"eng/Versions.g.props\" -ItemType File -Force -Value \"<Project><Import Project=`\"../artifacts/publish/private/Metalama.version.props`\" /><Import Project=`\"../dependencies/Metalama.Compiler/Metalama.Compiler.version.props`\" /></Project>\" | Out-Null;"
             }
@@ -492,6 +515,7 @@ object DockerTestsWinX64 : BuildType({
         powerShell {
             name = "Prepare Docker image metalama-2026.1-dockertestswinx64"
             id = "PrepareImage"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -501,6 +525,7 @@ object DockerTestsWinX64 : BuildType({
         powerShell {
             name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
             id = "Exec"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -510,6 +535,8 @@ object DockerTestsWinX64 : BuildType({
     }
 
     requirements {
+        matches("teamcity.agent.jvm.os.family", "Windows")
+        matches("teamcity.agent.jvm.os.arch", "amd64")
         equals("env.BuildAgentType", "docker-win-x64-md")
     }
 
@@ -567,6 +594,7 @@ object DockerTestsWslX64 : BuildType({
         powerShell {
             name = "Copy nuget.restored.config to nuget.config"
             id = "CopyNuGetConfig"
+            edition = PowerShellStep.Edition.Core
             scriptMode = script {
                 content = "Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.config\" -Force;Copy-Item -Path \"artifacts/publish/private/nuget.restored.config\" -Destination \"nuget.wsl.config\" -Force;"
             }
@@ -575,6 +603,7 @@ object DockerTestsWslX64 : BuildType({
         powerShell {
             name = "Create eng/Versions.g.props"
             id = "CreateVersionsFile"
+            edition = PowerShellStep.Edition.Core
             scriptMode = script {
                 content = "New-Item -Path \"eng/Versions.g.props\" -ItemType File -Force -Value \"<Project><Import Project=`\"../artifacts/publish/private/Metalama.version.props`\" /><Import Project=`\"../dependencies/Metalama.Compiler/Metalama.Compiler.version.props`\" /></Project>\" | Out-Null;"
             }
@@ -583,6 +612,7 @@ object DockerTestsWslX64 : BuildType({
         powerShell {
             name = "Prepare Docker image metalama-2026.1-dockertestswslx64"
             id = "PrepareImage"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -592,6 +622,7 @@ object DockerTestsWslX64 : BuildType({
         powerShell {
             name = "Execute ./Metalama.Framework/src/tests/docker/DockerTests.ps1"
             id = "Exec"
+            edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -601,6 +632,8 @@ object DockerTestsWslX64 : BuildType({
     }
 
     requirements {
+        matches("teamcity.agent.jvm.os.family", "Windows")
+        matches("teamcity.agent.jvm.os.arch", "amd64")
         equals("env.BuildAgentType", "docker-win-x64-md")
     }
 
