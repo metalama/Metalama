@@ -118,7 +118,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                     cache.Clear();
                 }
 
-                var retrievedItem = cache.GetItem( key );
+                var retrievedItem = cache.GetItem( key, this.TestDependencies );
 
                 AssertEx.Null( retrievedItem, "The cache does not return null on miss." );
             }
@@ -138,7 +138,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                     await cache.ClearAsync();
                 }
 
-                var retrievedItem = await cache.GetItemAsync( key );
+                var retrievedItem = await cache.GetItemAsync( key, this.TestDependencies );
 
                 AssertEx.Null( retrievedItem, $"The cache does not return null on miss. It returned {{{retrievedItem}}} instead." );
             }
@@ -155,7 +155,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                 cache.SetItem( key, cacheItem0 );
                 this.GiveChanceToResetLocalCache( cache );
-                var retrievedItem = cache.GetItem( key );
+                var retrievedItem = cache.GetItem( key, this.TestDependencies );
 
                 AssertEx.NotNull( retrievedItem, "The item has not been stored in the cache." );
 
@@ -172,7 +172,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                 cache.SetItem( key, cacheItem1 );
                 this.GiveChanceToResetLocalCache( cache );
-                retrievedItem = cache.GetItem( key );
+                retrievedItem = cache.GetItem( key, this.TestDependencies );
 
                 AssertEx.NotNull( retrievedItem, "The item has not been stored in the cache." );
                 AssertEx.NotEqual( cacheItem0, retrievedItem, "The item has not been changed." );
@@ -194,7 +194,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 // ReSharper disable once MethodHasAsyncOverload
                 cache.SetItem( key, cacheItem0 );
                 this.GiveChanceToResetLocalCache( cache );
-                var retrievedItem = await cache.GetItemAsync( key );
+                var retrievedItem = await cache.GetItemAsync( key, this.TestDependencies );
 
                 AssertEx.NotNull( retrievedItem, "The item has not been stored in the cache." );
 
@@ -211,7 +211,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                 await cache.SetItemAsync( key, cacheItem1 );
                 this.GiveChanceToResetLocalCache( cache );
-                retrievedItem = await cache.GetItemAsync( key );
+                retrievedItem = await cache.GetItemAsync( key, this.TestDependencies );
 
                 AssertEx.NotNull( retrievedItem, "The item has not been stored in the cache." );
                 AssertEx.NotEqual( cacheItem0, retrievedItem, "The item has not been changed." );
@@ -242,7 +242,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                     cache.SetItem( key, cacheItem );
 
                     Thread.Sleep( this.GetExpirationQuantum() );
-                    var retrievedItemBeforeTimeout = cache.GetItem( key );
+                    var retrievedItemBeforeTimeout = cache.GetItem( key, this.TestDependencies );
 
                     if ( DateTime.Now > setTime + offset )
                     {
@@ -259,11 +259,11 @@ namespace Metalama.Patterns.Caching.TestHelpers
                     Thread.Sleep( offset.Multiply( 2 ) );
 
                     // ReSharper disable once AccessToDisposedClosure
-                    RepeatUntilNullOrFail( () => cache.GetItem( key ) );
+                    RepeatUntilNullOrFail( () => cache.GetItem( key, this.TestDependencies ) );
 
                     Assert.True( itemRemovedEvent.WaitOne( TimeoutTimeSpan ) );
 
-                    var retrievedItemAfterTimeout = cache.GetItem( key );
+                    var retrievedItemAfterTimeout = cache.GetItem( key, this.TestDependencies );
 
                     AssertEx.Null( retrievedItemAfterTimeout, "There is an item retrieved after the timeout." );
 
@@ -310,7 +310,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                     cache.SetItem( key, cacheItem );
                     Thread.Sleep( this.GetExpirationQuantum() );
 
-                    var retrievedItemBeforeTimeout = cache.GetItem( key );
+                    var retrievedItemBeforeTimeout = cache.GetItem( key, this.TestDependencies );
 
                     if ( DateTime.Now > timeWhenSet + expiration )
                     {
@@ -330,7 +330,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                     Thread.Sleep( this.GetExpirationQuantum() );
 
                     // ReSharper disable once AccessToDisposedClosure
-                    RepeatUntilNullOrFail( () => cache.GetItem( key ) );
+                    RepeatUntilNullOrFail( () => cache.GetItem( key, this.TestDependencies ) );
 
                     return;
                 }
@@ -381,7 +381,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                         continue;
                     }
 
-                    var retrievedItemBeforeTimeout = await cache.GetItemAsync( key );
+                    var retrievedItemBeforeTimeout = await cache.GetItemAsync( key, this.TestDependencies );
                     AssertEx.NotNull( retrievedItemBeforeTimeout, "There is not an item retrieved before the timeout." );
 
                     while ( !itemRemoved.Task.IsCompleted )
@@ -390,7 +390,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                         await Task.Delay( 50 );
                     }
 
-                    await RepeatUntilNullOrFailAsync( () => cache.GetItemAsync( key ) );
+                    await RepeatUntilNullOrFailAsync( () => cache.GetItemAsync( key, this.TestDependencies ) );
 
                     return;
                 }
@@ -437,7 +437,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 Thread.Sleep( offset.Multiply( 2 ) );
 
                 // ReSharper disable once AccessToDisposedClosure
-                RepeatUntilNullOrFail( () => cache.GetItem( key ) );
+                RepeatUntilNullOrFail( () => cache.GetItem( key, this.TestDependencies ) );
 
                 Assert.True( eventRaised.WaitOne( TimeoutTimeSpan ) );
 
@@ -479,7 +479,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 await cache.SetItemAsync( key, cacheItem );
 
                 Thread.Sleep( offset.Multiply( 2 ) );
-                await RepeatUntilNullOrFailAsync( () => cache.GetItemAsync( key ) ); // Forces collection in some backends as well.
+                await RepeatUntilNullOrFailAsync( () => cache.GetItemAsync( key, this.TestDependencies ) ); // Forces collection in some backends as well.
 
                 Assert.True( eventRaised.WaitOne( TimeoutTimeSpan ) );
 
@@ -610,7 +610,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                 cache.SetItem( key, cacheItem );
                 cache.InvalidateDependency( dependencyKey );
-                Assert.Null( cache.GetItem( key ) );
+                Assert.Null( cache.GetItem( key, this.TestDependencies ) );
 
                 Assert.True( itemEventRaised.WaitOne( TimeoutTimeSpan ), "Did not receive ItemRemoved event." );
                 Assert.True( dependencyEventRaised.WaitOne( TimeoutTimeSpan ), "Did not received DependencyInvalidated event." );
@@ -674,7 +674,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 await cache.SetItemAsync( key, cacheItem );
 
                 await cache.InvalidateDependencyAsync( dependencyKey );
-                Assert.Null( await cache.GetItemAsync( key ) );
+                Assert.Null( await cache.GetItemAsync( key, this.TestDependencies ) );
 
                 Assert.True( await Task.WhenAll( itemEventRaised.Task, dependencyEventRaised.Task ).WithTimeout( TimeoutTimeSpan ) );
 
@@ -709,12 +709,12 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 this.GiveChanceToResetLocalCache( cache );
 
                 Assert.Empty( events );
-                Assert.NotNull( cache.GetItem( "m1" ) );
+                Assert.NotNull( cache.GetItem( "m1", this.TestDependencies ) );
                 cache.InvalidateDependency( dependencyKey );
 
                 this.GiveChanceToResetLocalCache( cache );
 
-                Assert.Null( cache.GetItem( "m1" ) );
+                Assert.Null( cache.GetItem( "m1", this.TestDependencies ) );
 
                 if ( cache.SupportedFeatures.ContainsDependency )
                 {
@@ -748,12 +748,12 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 this.GiveChanceToResetLocalCache( cache );
 
                 Assert.Equal( 0, eventsCount );
-                Assert.NotNull( await cache.GetItemAsync( "m1" ) );
+                Assert.NotNull( await cache.GetItemAsync( "m1", this.TestDependencies ) );
 
                 this.GiveChanceToResetLocalCache( cache );
 
                 await cache.InvalidateDependencyAsync( dependencyKey );
-                Assert.Null( await cache.GetItemAsync( "m1" ) );
+                Assert.Null( await cache.GetItemAsync( "m1", this.TestDependencies ) );
 
                 if ( cache.SupportedFeatures.ContainsDependency )
                 {
@@ -786,8 +786,8 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 this.GiveChanceToResetLocalCache( cache );
 
                 Assert.Equal( 0, eventsCount );
-                Assert.NotNull( cache.GetItem( "m1" ) );
-                Assert.NotNull( cache.GetItem( "m2" ) );
+                Assert.NotNull( cache.GetItem( "m1", this.TestDependencies ) );
+                Assert.NotNull( cache.GetItem( "m2", this.TestDependencies ) );
 
                 Assert.Equal( 0, eventsCount );
             }
@@ -820,8 +820,8 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 this.GiveChanceToResetLocalCache( cache );
 
                 Assert.Equal( 0, eventsCount );
-                Assert.NotNull( await cache.GetItemAsync( "m1" ) );
-                Assert.NotNull( await cache.GetItemAsync( "m2" ) );
+                Assert.NotNull( await cache.GetItemAsync( "m1", this.TestDependencies ) );
+                Assert.NotNull( await cache.GetItemAsync( "m2", this.TestDependencies ) );
 
                 Assert.Equal( 0, eventsCount );
             }
@@ -839,7 +839,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                 this.GiveChanceToResetLocalCache( cache );
 
-                var retrievedValue = cache.GetItem( "m" );
+                var retrievedValue = cache.GetItem( "m", this.TestDependencies );
                 Assert.NotNull( retrievedValue );
 
                 Assert.Equal( cacheItem2.Value, retrievedValue.Value );
@@ -848,7 +848,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 {
                     cache.InvalidateDependency( "d1" );
 
-                    Assert.NotNull( cache.GetItem( "m" ) );
+                    Assert.NotNull( cache.GetItem( "m", this.TestDependencies ) );
                 }
 
                 Assert.True( cache.ContainsItem( "m" ) );
@@ -869,7 +869,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                 this.GiveChanceToResetLocalCache( cache );
 
-                var retrievedValue = await cache.GetItemAsync( "m" );
+                var retrievedValue = await cache.GetItemAsync( "m", this.TestDependencies );
                 Assert.NotNull( retrievedValue );
 
                 Assert.Equal( cacheItem2.Value, retrievedValue.Value );
@@ -878,7 +878,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 {
                     await cache.InvalidateDependencyAsync( "d1" );
 
-                    Assert.NotNull( await cache.GetItemAsync( "m" ) );
+                    Assert.NotNull( await cache.GetItemAsync( "m", this.TestDependencies ) );
                 }
 
                 Assert.True( await cache.ContainsItemAsync( "m" ) );
@@ -1052,7 +1052,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 // Verify all items are in cache.
                 for ( var i = 0; i < keys.Length - 1; i++ )
                 {
-                    Assert.NotNull( await cache.GetItemAsync( keys[i] ) );
+                    Assert.NotNull( await cache.GetItemAsync( keys[i], this.TestDependencies ) );
                 }
 
                 // Invalidate H (the end of the chain).
@@ -1064,7 +1064,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 // Verify all items have been removed from the cache.
                 for ( var i = 0; i < keys.Length - 1; i++ )
                 {
-                    Assert.Null( await cache.GetItemAsync( keys[i] ) );
+                    Assert.Null( await cache.GetItemAsync( keys[i], this.TestDependencies ) );
                 }
 
                 // Verify the removal order: G should be removed first, then F, E, D, C, B, A.
@@ -1106,7 +1106,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 await cache.SetItemAsync( "A", cacheItem );
 
                 // Verify it's in cache.
-                Assert.NotNull( await cache.GetItemAsync( "A" ) );
+                Assert.NotNull( await cache.GetItemAsync( "A", this.TestDependencies ) );
 
                 // Invalidate A (which should remove the item without infinite loop).
                 await cache.InvalidateDependencyAsync( "A" );
@@ -1115,7 +1115,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 Assert.True( await itemRemovedEvent.Task.WithTimeout( TimeoutTimeSpan ), "Item was not removed within timeout." );
 
                 // Verify the item is no longer in cache.
-                Assert.Null( await cache.GetItemAsync( "A" ) );
+                Assert.Null( await cache.GetItemAsync( "A", this.TestDependencies ) );
                 AssertEx.NotNull( removedArgs, "The item removal event was not raised." );
                 Assert.Equal( CacheItemRemovedReason.Invalidated, removedArgs.RemovedReason );
             }
@@ -1160,8 +1160,8 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 await cache.SetItemAsync( "B", cacheItemB );
 
                 // Verify both items are in cache.
-                Assert.NotNull( await cache.GetItemAsync( "A" ) );
-                Assert.NotNull( await cache.GetItemAsync( "B" ) );
+                Assert.NotNull( await cache.GetItemAsync( "A", this.TestDependencies ) );
+                Assert.NotNull( await cache.GetItemAsync( "B", this.TestDependencies ) );
 
                 // Invalidate A (which should remove both items without infinite loop).
                 await cache.InvalidateDependencyAsync( "A" );
@@ -1170,8 +1170,8 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 Assert.True( await allRemovedEvent.Task.WithTimeout( TimeoutTimeSpan ), "Not all items were removed within timeout." );
 
                 // Verify both items are removed.
-                Assert.Null( await cache.GetItemAsync( "A" ) );
-                Assert.Null( await cache.GetItemAsync( "B" ) );
+                Assert.Null( await cache.GetItemAsync( "A", this.TestDependencies ) );
+                Assert.Null( await cache.GetItemAsync( "B", this.TestDependencies ) );
 
                 lock ( removedItems )
                 {
@@ -1224,7 +1224,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 // Verify all items are in cache.
                 for ( var i = 0; i < itemCount; i++ )
                 {
-                    Assert.NotNull( await cache.GetItemAsync( $"item{i}" ) );
+                    Assert.NotNull( await cache.GetItemAsync( $"item{i}", this.TestDependencies ) );
                 }
 
                 // Invalidate the shared dependency.
@@ -1236,7 +1236,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 // Verify all items have been removed.
                 for ( var i = 0; i < itemCount; i++ )
                 {
-                    Assert.Null( await cache.GetItemAsync( $"item{i}" ) );
+                    Assert.Null( await cache.GetItemAsync( $"item{i}", this.TestDependencies ) );
                 }
 
                 lock ( removedItems )
