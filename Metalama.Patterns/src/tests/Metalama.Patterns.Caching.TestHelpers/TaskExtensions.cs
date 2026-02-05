@@ -17,7 +17,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
         /// Waits for a task with a timeout, throwing if the timeout is exceeded.
         /// Compatible with .NET Framework 4.7.2.
         /// </summary>
-        public static async Task WaitWithTimeoutAsync( this Task task, string message = "Timeout exceeded", TimeSpan? timeout = null )
+        public static async Task WaitWithTimeoutAsync( this Task task, string message = "Timeout exceeded.", TimeSpan? timeout = null )
         {
             var actualTimeout = timeout ?? _defaultTimeout;
 
@@ -31,7 +31,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
         /// Waits for a task with a timeout and returns the result.
         /// Compatible with .NET Framework 4.7.2.
         /// </summary>
-        public static async Task<T> WaitWithTimeoutAsync<T>( this Task<T> task, string message = "Timeout exceeded", TimeSpan? timeout = null )
+        public static async Task<T> WaitWithTimeoutAsync<T>( this Task<T> task, string message = "Timeout exceeded.", TimeSpan? timeout = null )
         {
             var actualTimeout = timeout ?? _defaultTimeout;
 

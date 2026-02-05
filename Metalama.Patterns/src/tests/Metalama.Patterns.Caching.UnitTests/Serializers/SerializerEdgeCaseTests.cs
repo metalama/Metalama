@@ -406,7 +406,138 @@ public sealed class SerializerEdgeCaseTests
 
     #endregion
 
+    #region Large Payload Tests
+
+    [Fact]
+    public void JsonSerializer_RoundTrip_LargeString_16K()
+    {
+        var serializer = new JsonCachingSerializer();
+
+        // Create a 16KB string
+        var largeString = new string( 'x', 16 * 1024 );
+
+        using var memoryStream = new MemoryStream();
+        using var writer = new BinaryWriter( memoryStream );
+
+        serializer.Serialize( largeString, writer );
+        writer.Flush();
+
+        memoryStream.Seek( 0, SeekOrigin.Begin );
+        using var reader = new BinaryReader( memoryStream );
+
+        var result = serializer.Deserialize( reader );
+
+        Assert.NotNull( result );
+        Assert.IsType<string>( result );
+        Assert.Equal( largeString.Length, ((string) result).Length );
+        Assert.Equal( largeString, result );
+    }
+
+    [Fact]
+    public void JsonSerializer_RoundTrip_LargeObject_WithLargeStringProperty()
+    {
+        var serializer = new JsonCachingSerializer();
+
+        // Create object with 16KB string property
+        var largeObject = new LargePayloadObject
+        {
+            Id = 42,
+            LargeData = new string( 'y', 16 * 1024 ),
+            Items = Enumerable.Range( 0, 100 ).Select( i => $"item_{i}" ).ToList()
+        };
+
+        using var memoryStream = new MemoryStream();
+        using var writer = new BinaryWriter( memoryStream );
+
+        serializer.Serialize( largeObject, writer );
+        writer.Flush();
+
+        memoryStream.Seek( 0, SeekOrigin.Begin );
+        using var reader = new BinaryReader( memoryStream );
+
+        var result = serializer.Deserialize( reader );
+
+        Assert.NotNull( result );
+        Assert.IsType<LargePayloadObject>( result );
+
+        var deserialized = (LargePayloadObject) result;
+        Assert.Equal( largeObject.Id, deserialized.Id );
+        Assert.Equal( largeObject.LargeData.Length, deserialized.LargeData.Length );
+        Assert.Equal( largeObject.LargeData, deserialized.LargeData );
+        Assert.Equal( largeObject.Items.Count, deserialized.Items.Count );
+    }
+
+    [Fact]
+    public void CacheItemSerializer_RoundTrip_LargePayload()
+    {
+        var serializer = new CacheItemSerializer( new JsonCachingSerializer() );
+
+        var largeObject = new LargePayloadObject
+        {
+            Id = 123,
+            LargeData = new string( 'z', 16 * 1024 ),
+            Items = Enumerable.Range( 0, 50 ).Select( i => $"value_{i}" ).ToList()
+        };
+
+        var originalItem = new CacheItem( largeObject );
+
+        using var memoryStream = new MemoryStream();
+        using var writer = new BinaryWriter( memoryStream );
+
+        serializer.Serialize( originalItem, writer );
+        writer.Flush();
+
+        memoryStream.Seek( 0, SeekOrigin.Begin );
+        using var reader = new BinaryReader( memoryStream );
+
+        var deserialized = serializer.Deserialize( reader, ImmutableArray<string>.Empty );
+
+        Assert.NotNull( deserialized );
+        Assert.IsType<LargePayloadObject>( deserialized.Value );
+
+        var value = (LargePayloadObject) deserialized.Value!;
+        Assert.Equal( largeObject.Id, value.Id );
+        Assert.Equal( largeObject.LargeData, value.LargeData );
+    }
+
+    [Theory]
+    [InlineData( 1024 )]        // 1 KB
+    [InlineData( 16 * 1024 )]   // 16 KB
+    [InlineData( 64 * 1024 )]   // 64 KB
+    [InlineData( 256 * 1024 )]  // 256 KB
+    public void JsonSerializer_RoundTrip_VariousPayloadSizes( int size )
+    {
+        var serializer = new JsonCachingSerializer();
+
+        var largeString = new string( 'a', size );
+
+        using var memoryStream = new MemoryStream();
+        using var writer = new BinaryWriter( memoryStream );
+
+        serializer.Serialize( largeString, writer );
+        writer.Flush();
+
+        memoryStream.Seek( 0, SeekOrigin.Begin );
+        using var reader = new BinaryReader( memoryStream );
+
+        var result = serializer.Deserialize( reader );
+
+        Assert.NotNull( result );
+        Assert.Equal( largeString, result );
+    }
+
+    #endregion
+
     #region Test Classes
+
+    internal class LargePayloadObject
+    {
+        public int Id { get; set; }
+
+        public string LargeData { get; set; } = "";
+
+        public List<string> Items { get; set; } = new();
+    }
 
     internal class ComplexObject
     {
