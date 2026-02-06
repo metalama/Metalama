@@ -122,15 +122,13 @@ pullRequests {
     }
 
     dependencies {
-        dependency(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
-            snapshot {
-                     onDependencyFailure = FailureAction.FAIL_TO_START
-            }
+        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
 
-            artifacts {
-                cleanDestination = true
-                artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
-            }
+        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
         }
      }
 
@@ -220,15 +218,13 @@ pullRequests {
     }
 
     dependencies {
-        dependency(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
-            snapshot {
-                     onDependencyFailure = FailureAction.FAIL_TO_START
-            }
+        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
 
-            artifacts {
-                cleanDestination = true
-                artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
-            }
+        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
         }
      }
 
@@ -318,15 +314,13 @@ pullRequests {
     }
 
     dependencies {
-        dependency(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_PublicBuild")) {
-            snapshot {
-                     onDependencyFailure = FailureAction.FAIL_TO_START
-            }
+        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_PublicBuild")) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
 
-            artifacts {
-                cleanDestination = true
-                artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
-            }
+        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_PublicBuild")) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
         }
      }
 
@@ -390,30 +384,24 @@ object PublicDeployment : BuildType({
     }
 
     dependencies {
-        dependency(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_PublicBuild")) {
-            snapshot {
-                     onDependencyFailure = FailureAction.FAIL_TO_START
-            }
-
-            artifacts {
-                cleanDestination = true
-                artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
-            }
+        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_PublicBuild")) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
         }
-        dependency(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_PublicDeployment")) {
-            snapshot {
-                     onDependencyFailure = FailureAction.FAIL_TO_START
-            }
-        }
-        dependency(PublicBuild) {
-            snapshot {
-                     onDependencyFailure = FailureAction.FAIL_TO_START
-            }
 
-            artifacts {
-                cleanDestination = true
-                artifactRules = "+:artifacts/publish/public/**/*=>artifacts/publish/public\n+:artifacts/publish/private/**/*=>artifacts/publish/private"
-            }
+        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_PublicBuild")) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
+        }
+        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_PublicDeployment")) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+        snapshot(PublicBuild) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+
+        artifacts(PublicBuild) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/publish/public/**/*=>artifacts/publish/public\n+:artifacts/publish/private/**/*=>artifacts/publish/private"
         }
      }
 
@@ -549,25 +537,21 @@ object DockerTestsWinX64 : BuildType({
     }
 
     dependencies {
-        dependency(DebugBuild) {
-            snapshot {
-                     onDependencyFailure = FailureAction.FAIL_TO_START
-            }
-
-            artifacts {
-                cleanDestination = true
-                artifactRules = "+:artifacts/publish/private/**/*=>artifacts/publish/private"
-            }
+        snapshot(DebugBuild) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
         }
-        dependency(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
-            snapshot {
-                     onDependencyFailure = FailureAction.FAIL_TO_START
-            }
 
-            artifacts {
-                cleanDestination = true
-                artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
-            }
+        artifacts(DebugBuild) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/publish/private/**/*=>artifacts/publish/private"
+        }
+        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+
+        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
         }
      }
 
@@ -646,25 +630,21 @@ object DockerTestsWslX64 : BuildType({
     }
 
     dependencies {
-        dependency(DebugBuild) {
-            snapshot {
-                     onDependencyFailure = FailureAction.FAIL_TO_START
-            }
-
-            artifacts {
-                cleanDestination = true
-                artifactRules = "+:artifacts/publish/private/**/*=>artifacts/publish/private"
-            }
+        snapshot(DebugBuild) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
         }
-        dependency(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
-            snapshot {
-                     onDependencyFailure = FailureAction.FAIL_TO_START
-            }
 
-            artifacts {
-                cleanDestination = true
-                artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
-            }
+        artifacts(DebugBuild) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/publish/private/**/*=>artifacts/publish/private"
+        }
+        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+
+        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/packages/Release/Shipping/**/*=>dependencies/Metalama.Compiler"
         }
      }
 
