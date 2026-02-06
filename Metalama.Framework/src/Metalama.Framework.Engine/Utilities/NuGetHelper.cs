@@ -72,7 +72,10 @@ internal static class NuGetHelper
         {
             if ( childIncrement.Name == "clear" )
             {
-                foreach ( var targetElement in target.Elements() )
+                // ToList() is required because Elements() is a lazy LINQ to XML enumerable.
+                // Removing an element during iteration detaches it from the parent, which terminates
+                // the enumeration prematurely (only the first element would be removed).
+                foreach ( var targetElement in target.Elements().ToList() )
                 {
                     targetElement.Remove();
                 }
