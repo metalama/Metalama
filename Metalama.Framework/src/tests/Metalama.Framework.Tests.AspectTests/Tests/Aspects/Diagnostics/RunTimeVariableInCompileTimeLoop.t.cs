@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0XXX on `stringBuilder.Append( ", " )`: `Cannot call a compile-time method with side effects from a run-time conditional block inside a compile-time loop.`
+// Error LAMA0288 on `stringBuilder.Append( ", " )`: `Cannot call the compile-time expression 'stringBuilder.Append( ", " )' as a statement here because it is part of a block whose execution depends on the run-time condition 'if ( i > 0 )'. A compile-time expression used as a statement is assumed to have side effects and cannot be conditionally executed based on a run-time condition.`

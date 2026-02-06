@@ -1918,6 +1918,29 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
     private static bool IsMutatingUnaryOperator( SyntaxToken token ) => token.Kind() is SyntaxKind.PlusPlusToken or SyntaxKind.MinusMinusToken;
 
+    /// <summary>
+    /// Determines whether the expression is an invocation of a method on a compile-time local variable
+    /// that was declared outside the current run-time conditional block.
+    /// For example, <c>stringBuilder.Append(", ")</c> where <c>stringBuilder</c> is a compile-time local
+    /// declared outside the <c>if</c> block.
+    /// </summary>
+    private bool IsMethodCallOnCompileTimeLocalVariable( ExpressionSyntax expression )
+    {
+        if ( !expression.IsKind( SyntaxKind.InvocationExpression )
+             || expression is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } )
+        {
+            return false;
+        }
+
+        // Check if the receiver is a compile-time local variable declared outside the run-time conditional block.
+        var receiverSymbol = this._syntaxTreeAnnotationMap.GetSymbol( memberAccess.Expression );
+
+        return receiverSymbol is { Kind: SymbolKind.Local } and ILocalSymbol local
+               && this.GetNodeScope( memberAccess.Expression ).GetExpressionExecutionScope() == CompileTimeOnly
+               && this._currentScopeContext.IsRunTimeConditionalBlock
+               && !this._currentScopeContext.RunTimeConditionalBlockVariables.Contains( local );
+    }
+
     public override SyntaxNode VisitPostfixUnaryExpression( PostfixUnaryExpressionSyntax node )
     {
         var (transformedOperand, scope) = this.VisitUnaryExpressionOperand( node.Operand, node.OperatorToken );
@@ -2163,6 +2186,24 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         var transformedExpression = this.Visit( node.Expression );
         var expressionScope = this.GetNodeScope( transformedExpression );
         var statementScope = expressionScope.GetExpressionExecutionScope().ReplaceIndeterminate( RunTimeOnly );
+
+        // A compile-time method call on a compile-time local variable used as a statement is
+        // assumed to have side effects that mutate the variable's state. Such calls cannot be
+        // conditionally executed based on a run-time condition because the compile-time state
+        // would be incorrect. For example, stringBuilder.Append(", ") inside if (i > 0) where
+        // stringBuilder is a compile-time variable and i is a run-time variable.
+        // We exclude compile-time methods that return run-time values (like IMethod.Invoke())
+        // since those are template expansion patterns that generate run-time code.
+        if ( statementScope == CompileTimeOnly
+             && !expressionScope.IsCompileTimeMemberReturningRunTimeValue()
+             && this._currentScopeContext.IsRunTimeConditionalBlock
+             && this.IsMethodCallOnCompileTimeLocalVariable( node.Expression ) )
+        {
+            this.ReportDiagnostic(
+                TemplatingDiagnosticDescriptors.CannotCallCompileTimeMethodWithSideEffectsInRunTimeConditionalBlock,
+                node.Expression,
+                (node.Expression.ToString(), this._currentScopeContext.IsRunTimeConditionalBlockReason) );
+        }
 
         return node.WithExpression( transformedExpression ).AddScopeAnnotation( expressionScope ).AddTargetScopeAnnotation( statementScope );
     }
