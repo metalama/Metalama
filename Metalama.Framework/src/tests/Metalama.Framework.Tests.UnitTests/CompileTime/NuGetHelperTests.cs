@@ -205,6 +205,55 @@ public class NuGetHelperTests : UnitTestClass
     }
 
     [Fact]
+    public void RelativePathsAreResolvedToAbsolute()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string parentConfig = """
+                                    <configuration>
+                                        <packageSources>
+                                            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                            <add key="LocalFeed" value="packages/local" />
+                                        </packageSources>
+                                    </configuration>
+                                    """;
+
+        const string childConfig = """
+                                   <configuration>
+                                       <packageSources>
+                                           <add key="ChildFeed" value="artifacts/publish" />
+                                       </packageSources>
+                                   </configuration>
+                                   """;
+
+        var path1 = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( path1, parentConfig );
+        var subdir = Path.Combine( testContext.BaseDirectory, "sub" );
+        Directory.CreateDirectory( subdir );
+        var path2 = Path.Combine( subdir, "nuget.config" );
+        File.WriteAllText( path2, childConfig );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+
+        // Relative paths should be resolved to absolute paths based on each config file's directory.
+        var resolvedParentPath = Path.GetFullPath( Path.Combine( testContext.BaseDirectory, "packages/local" ) );
+        var resolvedChildPath = Path.GetFullPath( Path.Combine( subdir, "artifacts/publish" ) );
+
+        var expectedMergedConfig =
+            $"""
+            <configuration>
+              <packageSources>
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                <add key="LocalFeed" value="{resolvedParentPath}" />
+                <add key="ChildFeed" value="{resolvedChildPath}" />
+              </packageSources>
+            </configuration>
+            """;
+
+        AssertEx.WhitespaceInvariantEqual( expectedMergedConfig, mergedConfig );
+    }
+
+    [Fact]
     public void ConsolidatedPackageSourceMappingClearRemovesAllInheritedMappings()
     {
         // Reproduces the Metalama.Consolidated + Metalama scenario where:
@@ -277,13 +326,16 @@ public class NuGetHelperTests : UnitTestClass
         var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
 
         // After <clear/>, only the child's entries should be present.
-        const string expectedMergedConfig =
-            """
+        // Relative paths are resolved to absolute paths based on the config file's directory.
+        var resolvedChildPath = Path.GetFullPath( Path.Combine( subdir, "artifacts/publish/private" ) );
+
+        var expectedMergedConfig =
+            $"""
             <configuration>
               <packageSources>
                 <clear />
                 <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-                <add key="Metalama" value="artifacts/publish/private" />
+                <add key="Metalama" value="{resolvedChildPath}" />
               </packageSources>
               <packageSourceMapping>
                 <clear />

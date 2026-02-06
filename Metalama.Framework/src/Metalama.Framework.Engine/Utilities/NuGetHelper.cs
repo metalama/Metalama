@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -57,10 +58,44 @@ internal static class NuGetHelper
                 continue;
             }
 
+            var configDirectory = Path.GetDirectoryName( configFile ).AssertNotNull();
+            ResolveRelativePaths( document, configDirectory );
+
             MergeChildrenNodes( mergedDocument.Root!, document.Root );
         }
 
         return mergedDocument;
+    }
+
+    private static void ResolveRelativePaths( XDocument document, string configFileDirectory )
+    {
+        var packageSources = document.Root?.Element( "packageSources" );
+
+        if ( packageSources == null )
+        {
+            return;
+        }
+
+        foreach ( var add in packageSources.Elements( "add" ) )
+        {
+            var value = add.Attribute( "value" )?.Value;
+
+            if ( value == null || Uri.IsWellFormedUriString( value, UriKind.Absolute ) )
+            {
+                continue;
+            }
+
+            if ( Path.IsPathRooted( value ) )
+            {
+                // Already absolute — just normalize separators.
+                add.SetAttributeValue( "value", Path.GetFullPath( value ) );
+            }
+            else
+            {
+                // Relative — resolve against the config file's directory.
+                add.SetAttributeValue( "value", Path.GetFullPath( Path.Combine( configFileDirectory, value ) ) );
+            }
+        }
     }
 
     private static void MergeChildrenNodes( XElement target, XElement increment )
