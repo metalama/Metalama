@@ -741,11 +741,10 @@ try
     # Start timing the entire process except cleaning
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
-    # Ensure docker context directory exists and contains at least one file (not needed for registry images)
+    # Ensure docker context directory exists (not needed for registry images)
     if (-not $RegistryImage -and -not (Test-Path $dockerContextDirectory))
     {
-        Write-Error "Docker context directory '$dockerContextDirectory' does not exist."
-        exit 1
+        New-Item -ItemType Directory -Path $dockerContextDirectory -Force | Out-Null
     }
 
 
