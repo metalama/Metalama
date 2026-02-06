@@ -99,9 +99,6 @@ ENV PATH="C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin;${PATH}"
 
 
 # Epilogue
-# Link to private repository for GHCR visibility
-LABEL org.opencontainers.image.source=https://github.com/postsharp/PostSharp.Engineering.Images
-
 # Create directories for mountpoints
 ARG MOUNTPOINTS
 RUN if ($env:MOUNTPOINTS) { `

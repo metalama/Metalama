@@ -13,7 +13,7 @@
     - Collects environment variables and generates Init.g.ps1 for container startup
     - Mounts the source directory, NuGet cache, source-dependencies, and sibling repos
     - Handles non-C: drive letters on Windows via subst
-    - Supports GHCR image caching for faster CI builds
+    - Supports registry image caching for faster CI builds
 
 .PARAMETER Interactive
     Opens an interactive PowerShell session inside the container.
@@ -554,8 +554,8 @@ try
     # Dictionary to track volume mounts with "writable wins" logic
     $script:VolumeMountDict = @{ }
 
-    # Background job for async GHCR push (if applicable)
-    $script:GhcrPushJob = $null
+    # Background job for async registry push (if applicable)
+    $script:RegistryPushJob = $null
 
     function Add-VolumeMount
     {
@@ -643,13 +643,13 @@ try
 
         # Generate content-based hash for image tag
         $contentHash = Get-ContentHash -DockerfilePath $dockerfileFullPath -ContextDirectory $dockerContextDirectory
-        $ghcrRegistry = $env:GHCR_REGISTRY
+        $dockerRegistry = $env:DOCKER_REGISTRY
 
-        if ($ghcrRegistry)
+        if ($dockerRegistry)
         {
-            # GHCR mode: use registry URL with content hash
-            $ImageTag = "${ghcrRegistry}:${contentHash}"
-            Write-Host "GHCR image tag: $ImageTag" -ForegroundColor Cyan
+            # Registry mode: use registry URL with image name and content hash
+            $ImageTag = "${dockerRegistry}/build-${contentHash}:${contentHash}"
+            Write-Host "Registry image tag: $ImageTag" -ForegroundColor Cyan
         }
         elseif ([string]::IsNullOrEmpty($ImageName))
         {
@@ -741,11 +741,10 @@ try
     # Start timing the entire process except cleaning
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
-    # Ensure docker context directory exists and contains at least one file (not needed for registry images)
+    # Ensure docker context directory exists (not needed for registry images)
     if (-not $RegistryImage -and -not (Test-Path $dockerContextDirectory))
     {
-        Write-Error "Docker context directory '$dockerContextDirectory' does not exist."
-        exit 1
+        New-Item -ItemType Directory -Path $dockerContextDirectory -Force | Out-Null
     }
 
 
@@ -1411,15 +1410,13 @@ $envVarAssignments$gitConfigCommands$postInitCommands
         }
     }
 
-    # GHCR authentication and pull logic
+    # Registry authentication and pull logic
     $builtNewImage = $false
     $dockerConfigArg = @()
+    $imageExistsInRegistry = $false
 
-    if ($ghcrRegistry -and -not $NoBuildImage -and -not $existingContainerId)
+    if ($dockerRegistry -and -not $NoBuildImage -and -not $existingContainerId)
     {
-        # Extract registry host from full URL (e.g., ghcr.io from ghcr.io/owner/repo)
-        $registryHost = ($ghcrRegistry -split '/')[0]
-
         # Create a temporary Docker config directory to avoid credential helper issues
         # (e.g., docker-credential-desktop not found when using Docker Engine without Desktop)
         $tempDockerConfig = Join-Path $env:TEMP "docker-config-$( New-Guid )"
@@ -1427,34 +1424,56 @@ $envVarAssignments$gitConfigCommands$postInitCommands
         @{ auths = @{ } } | ConvertTo-Json | Set-Content (Join-Path $tempDockerConfig "config.json")
         $dockerConfigArg = @("--config", $tempDockerConfig)
 
-        # Authenticate to GHCR
-        $ghcrToken = $env:GHCR_TOKEN
-        if ($ghcrToken)
+        # Authenticate to registry
+        $dockerPassword = $env:DOCKER_PASSWORD
+        $dockerUsername = $env:DOCKER_USERNAME
+        if ($dockerPassword -and $dockerUsername)
         {
-            Write-Host "Authenticating to GHCR..." -ForegroundColor Gray
-            # GHCR accepts any username when using a PAT, commonly 'github' is used
-            $ghcrToken | docker @dockerConfigArg login $registryHost --username github --password-stdin 2> $null
+            Write-Host "Authenticating to registry..." -ForegroundColor Gray
+            $dockerPassword | docker @dockerConfigArg login $dockerRegistry --username $dockerUsername --password-stdin 2> $null
             if ($LASTEXITCODE -ne 0)
             {
-                Write-Host "Warning: GHCR authentication failed. Pull/push may fail." -ForegroundColor Yellow
+                Write-Host "Warning: Registry authentication failed. Pull/push may fail." -ForegroundColor Yellow
             }
         }
         else
         {
-            Write-Host "Warning: GHCR_TOKEN not set. GHCR pull/push may fail." -ForegroundColor Yellow
+            Write-Host "Warning: DOCKER_USERNAME/DOCKER_PASSWORD not set. Registry pull/push may fail." -ForegroundColor Yellow
         }
 
-        # Try to pull the image
-        Write-Host "Checking GHCR for existing image: $ImageTag" -ForegroundColor Cyan
-        docker @dockerConfigArg pull $ImageTag 2> $null
+        # Check if image already exists locally
+        docker image inspect $ImageTag *> $null
         if ($LASTEXITCODE -eq 0)
         {
-            Write-Host "Using cached image from GHCR." -ForegroundColor Green
+            Write-Host "Using locally cached image: $ImageTag" -ForegroundColor Green
             $NoBuildImage = $true
+
+            # Check if image also exists in registry; if not, push it
+            docker @dockerConfigArg manifest inspect $ImageTag *> $null
+            if ($LASTEXITCODE -eq 0)
+            {
+                $imageExistsInRegistry = $true
+            }
+            else
+            {
+                Write-Host "Image not yet in registry, will push after container run." -ForegroundColor Cyan
+            }
         }
         else
         {
-            Write-Host "Image not found in GHCR, will build locally." -ForegroundColor Yellow
+            # Try to pull the image from registry
+            Write-Host "Checking registry for existing image: $ImageTag" -ForegroundColor Cyan
+            docker @dockerConfigArg pull $ImageTag 2> $null
+            if ($LASTEXITCODE -eq 0)
+            {
+                Write-Host "Using cached image from registry." -ForegroundColor Green
+                $NoBuildImage = $true
+                $imageExistsInRegistry = $true
+            }
+            else
+            {
+                Write-Host "Image not found in registry, will build locally." -ForegroundColor Yellow
+            }
         }
     }
 
@@ -1534,17 +1553,6 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         }
 
         $builtNewImage = $true
-
-        # Auto-push to GHCR after successful build (async)
-        $pushJob = $null
-        if ($ghcrRegistry)
-        {
-            Write-Host "Starting async push to GHCR: $ImageTag" -ForegroundColor Cyan
-            $script:GhcrPushJob = Start-Job -ScriptBlock {
-                docker @using:dockerConfigArg push $using:ImageTag 2>&1
-                $LASTEXITCODE
-            }
-        }
     }
     else
     {
@@ -1556,8 +1564,16 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         {
             Write-Host "Skipping image build (-NoBuildImage specified)." -ForegroundColor Yellow
         }
+    }
 
-
+    # Auto-push to registry if image is not already there (after build or from local cache)
+    if ($dockerRegistry -and -not $imageExistsInRegistry -and -not $existingContainerId)
+    {
+        Write-Host "Starting async push to registry: $ImageTag" -ForegroundColor Cyan
+        $script:RegistryPushJob = Start-Job -ScriptBlock {
+            docker @using:dockerConfigArg push $using:ImageTag 2>&1
+            $LASTEXITCODE
+        }
     }
 
 
@@ -1803,14 +1819,14 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         Write-Host "Skipping container run (BuildImage specified)." -ForegroundColor Yellow
     }
 
-    # Check async GHCR push status if one was started
-    if ($script:GhcrPushJob)
+    # Check async registry push status if one was started
+    if ($script:RegistryPushJob)
     {
         Write-Host ""
-        Write-Host "Checking GHCR push status..." -ForegroundColor Cyan
+        Write-Host "Checking registry push status..." -ForegroundColor Cyan
 
         # Wait for the job to complete with a timeout
-        $pushJob = $script:GhcrPushJob
+        $pushJob = $script:RegistryPushJob
         $completed = Wait-Job -Job $pushJob -Timeout 300  # 5 minute timeout
 
         if ($completed)
@@ -1821,11 +1837,11 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
 
             if ($exitCode -eq 0)
             {
-                Write-Host "GHCR push completed successfully" -ForegroundColor Green
+                Write-Host "Registry push completed successfully" -ForegroundColor Green
             }
             else
             {
-                Write-Host "GHCR push failed with exit code $exitCode" -ForegroundColor Yellow
+                Write-Host "Registry push failed with exit code $exitCode" -ForegroundColor Yellow
                 if ($output)
                 {
                     Write-Host "Push output: $output" -ForegroundColor Gray
@@ -1834,7 +1850,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         }
         else
         {
-            Write-Host "GHCR push timed out (still running in background)" -ForegroundColor Yellow
+            Write-Host "Registry push timed out (still running in background)" -ForegroundColor Yellow
             Stop-Job -Job $pushJob
         }
 
