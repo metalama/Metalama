@@ -231,6 +231,8 @@ if ($Prompt)
 
     # Clean up prompt file
     Remove-Item $promptFile -ErrorAction SilentlyContinue
+
+    Write-Host "Claude exited with code $exitCode" -ForegroundColor $(if ($exitCode -eq 0) { "Green" } else { "Red" })
     exit $exitCode
 }
 else

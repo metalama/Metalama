@@ -94,6 +94,10 @@
 .PARAMETER Ports
     Port mappings from host to container (e.g., "8080:80", "3000").
 
+.PARAMETER Label
+    Label to apply to the container for identification (e.g., for cleanup of orphaned build containers).
+    The label is set as "postsharp.build=<value>" on the container.
+
 .PARAMETER BuildArgs
     Arguments passed to Build.ps1 within the container (or Claude prompt if -Claude is specified).
 
@@ -138,12 +142,13 @@ param(
     [string]$Dockerfile, # Path to custom Dockerfile (defaults to Dockerfile or Dockerfile.claude based on -Claude).
     [string]$RegistryImage, # Use a pre-built image from a registry, skipping Dockerfile build entirely.
     [switch]$NoInit, # Do not generate or call Init.g.ps1 (skips git config, safe.directory, etc).
-    [string]$Isolation = 'process', # Docker isolation mode (process or hyperv). Memory/CPU limits only apply to hyperv.
+    [string]$Isolation = 'hyperv', # Docker isolation mode (process or hyperv). Memory/CPU limits only apply to hyperv.
     [string]$Memory, # Docker memory limit (e.g., "8g"). Only used with hyperv isolation.
     [int]$Cpus = [Environment]::ProcessorCount, # Docker CPU limit. Only used with hyperv isolation.
     [string[]]$Mount, # Additional directories to mount from host (readonly by default, append :w for writable). Supports * and ** glob patterns.
     [string[]]$Env, # Additional environment variables to pass from host to container.
     [string[]]$Ports, # Port mappings from host to container (e.g., "8080:80", "3000").
+    [string]$Label, # Label to apply to the container (e.g., for identifying build containers for cleanup).
     [Parameter(ValueFromRemainingArguments)]
     [string[]]$BuildArgs   # Arguments passed to `Build.ps1` within the container (or Claude prompt if -Claude is specified).
 )
@@ -371,11 +376,23 @@ try
 
         # Git identity - CLAUDE_ prefixed vars take precedence, then GIT_USER_*, then git config
         $gitUserName = $env:CLAUDE_GIT_USER_NAME
-        if (-not $gitUserName) { $gitUserName = $env:GIT_USER_NAME }
-        if (-not $gitUserName) { $gitUserName = git config --global user.name }
+        if (-not $gitUserName)
+        {
+            $gitUserName = $env:GIT_USER_NAME
+        }
+        if (-not $gitUserName)
+        {
+            $gitUserName = git config --global user.name
+        }
         $gitUserEmail = $env:CLAUDE_GIT_USER_EMAIL
-        if (-not $gitUserEmail) { $gitUserEmail = $env:GIT_USER_EMAIL }
-        if (-not $gitUserEmail) { $gitUserEmail = git config --global user.email }
+        if (-not $gitUserEmail)
+        {
+            $gitUserEmail = $env:GIT_USER_EMAIL
+        }
+        if (-not $gitUserEmail)
+        {
+            $gitUserEmail = git config --global user.email
+        }
         if ($gitUserName)
         {
             $claudeEnv["GIT_USER_NAME"] = $gitUserName
@@ -1413,7 +1430,8 @@ $envVarAssignments$gitConfigCommands$postInitCommands
     # Registry authentication and pull logic
     $builtNewImage = $false
     $dockerConfigArg = @()
-    $imageExistsInRegistry = $false
+    # When we skip the registry flow (e.g. -NoBuildImage parameter), assume image is already in registry to avoid unauthenticated push
+    $imageExistsInRegistry = ($NoBuildImage -or $existingContainerId)
 
     if ($dockerRegistry -and -not $NoBuildImage -and -not $existingContainerId)
     {
@@ -1794,6 +1812,12 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
                 }
             }
 
+            # Add label for container identification (used for cleanup of orphaned containers)
+            if ($Label)
+            {
+                $dockerCmd += @('--label', "postsharp.build=$Label")
+            }
+
             if ($pwshArgs)
             {
                 $dockerCmd += @('-w', $ContainerCallingDir, $ImageTag, $pwshPath, $pwshArgs, '-Command', $inlineScript)
@@ -1823,7 +1847,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     if ($script:RegistryPushJob)
     {
         Write-Host ""
-        Write-Host "Checking registry push status..." -ForegroundColor Cyan
+        Write-Host "Waiting for registry push..." -ForegroundColor Cyan
 
         # Wait for the job to complete with a timeout
         $pushJob = $script:RegistryPushJob
