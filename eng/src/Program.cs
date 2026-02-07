@@ -22,7 +22,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         Components =
         [
             // Must match global.json.
-            new DotNetComponent( "10.0.101", DotNetComponentKind.Sdk ),
+            new DotNetComponent( PreferredVersions.DotNetSdk.V_10_0, DotNetComponentKind.Sdk ),
 
             // The runtime is required by all tests.
             // The SDK is required by the Workspace tests.
@@ -50,7 +50,7 @@ var product = new Product( MetalamaDependencies.Metalama )
             new AzureCliComponent()
         ]
     },
-    DotNetSdkVersion = new DotNetSdkVersion( "10.0.101" ) { AllowPrerelease = true },
+    DotNetSdkVersion = new DotNetSdkVersion( PreferredVersions.DotNetSdk.V_10_0 ) { AllowPrerelease = true },
     GenerateNuGetConfig = true,
     MSBuildVersion = new Version( 17, 14 ),
     Solutions =
