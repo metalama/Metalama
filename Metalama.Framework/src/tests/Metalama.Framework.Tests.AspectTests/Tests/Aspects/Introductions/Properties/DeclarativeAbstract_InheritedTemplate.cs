@@ -7,14 +7,14 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Properties.DeclarativeAbstract_InheritedTemplate;
 
-// Tests that the [Template] attribute is inherited from a base aspect when overriding a property.
-// When a base aspect declares an abstract [Template] property and a derived aspect overrides it
-// without explicitly adding [Template], the override should still be recognized as a template.
+// Tests that the [Introduce] attribute is inherited from a base aspect when overriding a property.
+// When a base aspect declares an abstract [Introduce] property and a derived aspect overrides it
+// without explicitly adding [Introduce], the override should still be recognized as a declarative introduction.
 // See https://github.com/metalama/Metalama/issues/821
 
 public abstract class BaseAttribute : TypeAspect
 {
-    [Template]
+    [Introduce]
     public abstract int Property { get; set; }
 }
 
