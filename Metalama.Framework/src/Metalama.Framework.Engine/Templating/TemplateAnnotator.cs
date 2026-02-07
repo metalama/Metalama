@@ -53,6 +53,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
     private readonly ISymbolClassifier _symbolScopeClassifier;
     private readonly SafeSymbolComparer _symbolComparer;
+    private readonly CompileTimeSideEffectDetector _compileTimeSideEffectDetector;
 
     private ScopeContext _currentScopeContext;
 
@@ -78,6 +79,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         this._templateMemberClassifier = new TemplateMemberClassifier( compilationContext, syntaxTreeAnnotationMap );
         this._typeParameterDetectionVisitor = new TypeParameterDetectionVisitor( this );
         this._symbolComparer = compilationContext.CompilationContext.SymbolComparer;
+        this._compileTimeSideEffectDetector = new CompileTimeSideEffectDetector( syntaxTreeAnnotationMap, this._templateMemberClassifier, this.GetNodeScope );
 
         // add default values of scope
         this._currentScopeContext = ScopeContext.Default;
@@ -1918,55 +1920,6 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
     private static bool IsMutatingUnaryOperator( SyntaxToken token ) => token.Kind() is SyntaxKind.PlusPlusToken or SyntaxKind.MinusMinusToken;
 
-    /// <summary>
-    /// Determines whether the expression is an invocation of a method on a compile-time local variable.
-    /// For example, <c>stringBuilder.Append(", ")</c> where <c>stringBuilder</c> is a compile-time local.
-    /// If the receiver is a local variable, it is returned via <paramref name="receiverLocal"/>.
-    /// </summary>
-    private bool IsMethodCallOnCompileTimeLocalVariable( ExpressionSyntax expression, out ILocalSymbol? receiverLocal )
-    {
-        receiverLocal = null;
-
-        if ( !expression.IsKind( SyntaxKind.InvocationExpression )
-             || expression is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } )
-        {
-            return false;
-        }
-
-        var receiverSymbol = this._syntaxTreeAnnotationMap.GetSymbol( memberAccess.Expression );
-
-        if ( receiverSymbol is { Kind: SymbolKind.Local } and ILocalSymbol local
-             && this.GetNodeScope( memberAccess.Expression ).GetExpressionExecutionScope() == CompileTimeOnly )
-        {
-            receiverLocal = local;
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Determines whether the expression is a sub-template invocation. Sub-template calls
-    /// generate run-time code and do not have compile-time side effects.
-    /// </summary>
-    private bool IsSubtemplateInvocation( ExpressionSyntax expression )
-    {
-        if ( expression is not InvocationExpressionSyntax invocation )
-        {
-            return false;
-        }
-
-        var symbol = this._syntaxTreeAnnotationMap.GetInvocableSymbol( invocation.Expression );
-
-        if ( symbol == null )
-        {
-            return false;
-        }
-
-        return this._templateMemberClassifier.SymbolClassifier.GetTemplateInfo( symbol ).CanBeReferencedAsSubtemplate;
-    }
-
     public override SyntaxNode VisitPostfixUnaryExpression( PostfixUnaryExpressionSyntax node )
     {
         var (transformedOperand, scope) = this.VisitUnaryExpressionOperand( node.Operand, node.OperatorToken );
@@ -2213,22 +2166,15 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         var expressionScope = this.GetNodeScope( transformedExpression );
         var statementScope = expressionScope.GetExpressionExecutionScope().ReplaceIndeterminate( RunTimeOnly );
 
-        // A compile-time method call on a compile-time local variable used as a statement is
-        // assumed to have side effects that mutate the variable's state. Such calls cannot be
-        // conditionally executed based on a run-time condition because the compile-time state
-        // would be incorrect. For example, stringBuilder.Append(", ") inside if (i > 0) where
-        // stringBuilder is a compile-time variable and i is a run-time variable.
-        // We exclude:
-        //  - compile-time methods that return run-time values (like IMethod.Invoke()),
-        //  - sub-template invocations (which generate run-time code, not compile-time side effects),
-        //  - calls on locals declared within the current run-time conditional block
-        //    (since their state does not leak outside the block).
-        if ( statementScope == CompileTimeOnly
-             && !expressionScope.IsCompileTimeMemberReturningRunTimeValue()
-             && this._currentScopeContext.IsRunTimeConditionalBlock
-             && this.IsMethodCallOnCompileTimeLocalVariable( node.Expression, out var receiverLocal )
-             && !this.IsSubtemplateInvocation( node.Expression )
-             && ( receiverLocal == null || !this._currentScopeContext.RunTimeConditionalBlockVariables.Contains( receiverLocal ) ) )
+        // Check for compile-time side effects in run-time conditional blocks.
+        // A compile-time expression statement is assumed to have side effects that mutate compile-time state.
+        // If this happens inside a run-time conditional block, the mutation would depend on a run-time condition,
+        // leading to incorrect compile-time state.
+        if ( this._currentScopeContext.IsRunTimeConditionalBlock
+             && this._compileTimeSideEffectDetector.HasCompileTimeSideEffect(
+                 node.Expression,
+                 expressionScope,
+                 this._currentScopeContext.RunTimeConditionalBlockVariables ) )
         {
             this.ReportDiagnostic(
                 TemplatingDiagnosticDescriptors.CannotCallCompileTimeMethodWithSideEffectsInRunTimeConditionalBlock,

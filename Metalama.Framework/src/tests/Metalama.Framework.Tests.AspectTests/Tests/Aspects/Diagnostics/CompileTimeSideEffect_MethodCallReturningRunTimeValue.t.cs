@@ -3,10 +3,12 @@ internal class Target
   [Aspect]
   private int M(string? s)
   {
-    if (s != null)
+    var x = s;
+    if (x != null)
     {
-      return this.M(s);
+      return this.M_Source((global::System.String? )x);
     }
-    return default(int);
+    return default;
   }
+  private int M_Source(string? s) => 0;
 }
