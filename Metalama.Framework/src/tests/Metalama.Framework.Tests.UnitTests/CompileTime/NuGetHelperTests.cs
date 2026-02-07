@@ -129,4 +129,229 @@ public class NuGetHelperTests : UnitTestClass
 
         AssertEx.WhitespaceInvariantEqual( expectedMergedConfig, mergedConfig );
     }
+
+    [Fact]
+    public void PackageSourceMappingClearRemovesAllInheritedMappings()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string parentConfig = """
+                                    <configuration>
+                                        <packageSources>
+                                            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                            <add key="MyFeed" value="https://myfeed/nuget" />
+                                        </packageSources>
+                                        <packageSourceMapping>
+                                            <packageSource key="nuget.org">
+                                                <package pattern="*" />
+                                            </packageSource>
+                                            <packageSource key="MyFeed">
+                                                <package pattern="MyCompany.*" />
+                                                <package pattern="MyCompany.Tools.*" />
+                                            </packageSource>
+                                        </packageSourceMapping>
+                                    </configuration>
+                                    """;
+
+        const string childConfig = """
+                                   <configuration>
+                                       <packageSources>
+                                           <clear />
+                                           <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                           <add key="PrivateFeed" value="https://privatefeed/nuget" />
+                                       </packageSources>
+                                       <packageSourceMapping>
+                                           <clear />
+                                           <packageSource key="nuget.org">
+                                               <package pattern="*" />
+                                           </packageSource>
+                                           <packageSource key="PrivateFeed">
+                                               <package pattern="Internal.*" />
+                                           </packageSource>
+                                       </packageSourceMapping>
+                                   </configuration>
+                                   """;
+
+        var path1 = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( path1, parentConfig );
+        var subdir = Path.Combine( testContext.BaseDirectory, "sub" );
+        Directory.CreateDirectory( subdir );
+        var path2 = Path.Combine( subdir, "nuget.config" );
+        File.WriteAllText( path2, childConfig );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+
+        const string expectedMergedConfig =
+            """
+            <configuration>
+              <packageSources>
+                <clear />
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                <add key="PrivateFeed" value="https://privatefeed/nuget" />
+              </packageSources>
+              <packageSourceMapping>
+                <clear />
+                <packageSource key="nuget.org">
+                  <package pattern="*" />
+                </packageSource>
+                <packageSource key="PrivateFeed">
+                  <package pattern="Internal.*" />
+                </packageSource>
+              </packageSourceMapping>
+            </configuration>
+            """;
+
+        AssertEx.WhitespaceInvariantEqual( expectedMergedConfig, mergedConfig );
+    }
+
+    [Fact]
+    public void RelativePathsAreResolvedToAbsolute()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string parentConfig = """
+                                    <configuration>
+                                        <packageSources>
+                                            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                            <add key="LocalFeed" value="packages/local" />
+                                        </packageSources>
+                                    </configuration>
+                                    """;
+
+        const string childConfig = """
+                                   <configuration>
+                                       <packageSources>
+                                           <add key="ChildFeed" value="artifacts/publish" />
+                                       </packageSources>
+                                   </configuration>
+                                   """;
+
+        var path1 = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( path1, parentConfig );
+        var subdir = Path.Combine( testContext.BaseDirectory, "sub" );
+        Directory.CreateDirectory( subdir );
+        var path2 = Path.Combine( subdir, "nuget.config" );
+        File.WriteAllText( path2, childConfig );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+
+        // Relative paths should be resolved to absolute paths based on each config file's directory.
+        var resolvedParentPath = Path.GetFullPath( Path.Combine( testContext.BaseDirectory, "packages/local" ) );
+        var resolvedChildPath = Path.GetFullPath( Path.Combine( subdir, "artifacts/publish" ) );
+
+        var expectedMergedConfig =
+            $"""
+            <configuration>
+              <packageSources>
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                <add key="LocalFeed" value="{resolvedParentPath}" />
+                <add key="ChildFeed" value="{resolvedChildPath}" />
+              </packageSources>
+            </configuration>
+            """;
+
+        AssertEx.WhitespaceInvariantEqual( expectedMergedConfig, mergedConfig );
+    }
+
+    [Fact]
+    public void ConsolidatedPackageSourceMappingClearRemovesAllInheritedMappings()
+    {
+        // Reproduces the Metalama.Consolidated + Metalama scenario where:
+        // - Parent (Consolidated) has <packageSourceMapping> with many entries but NO <clear/>
+        // - Child (Metalama) has <packageSourceMapping> with <clear/> then its own entries
+        using var testContext = this.CreateTestContext();
+
+        const string parentConfig = """
+                                    <configuration>
+                                        <packageSources>
+                                            <clear />
+                                            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                            <add key="dotnet-preview" value="https://www.myget.org/F/roslyn-consolidated/api/v3/index.json" />
+                                            <add key="Metalama.Consolidated" value="artifacts/publish/private" />
+                                            <add key="Metalama" value="artifacts/metalama" />
+                                            <add key="Metalama.Premium" value="artifacts/premium" />
+                                        </packageSources>
+                                        <packageSourceMapping>
+                                            <packageSource key="nuget.org">
+                                                <package pattern="*" />
+                                            </packageSource>
+                                            <packageSource key="dotnet-preview">
+                                                <package pattern="Microsoft.CodeAnalysis.*" />
+                                            </packageSource>
+                                            <packageSource key="Metalama.Consolidated">
+                                                <package pattern="Metalama.Consolidated" />
+                                                <package pattern="Metalama.Consolidated.*" />
+                                            </packageSource>
+                                            <packageSource key="Metalama">
+                                                <package pattern="Metalama.Backstage*" />
+                                                <package pattern="Metalama.Framework*" />
+                                            </packageSource>
+                                            <packageSource key="Metalama.Premium">
+                                                <package pattern="Metalama.Extensions.Architecture" />
+                                                <package pattern="Metalama.Licensing" />
+                                            </packageSource>
+                                        </packageSourceMapping>
+                                    </configuration>
+                                    """;
+
+        const string childConfig = """
+                                   <configuration>
+                                       <packageSources>
+                                           <clear />
+                                           <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                           <add key="Metalama" value="artifacts/publish/private" />
+                                       </packageSources>
+                                       <packageSourceMapping>
+                                           <clear />
+                                           <packageSource key="nuget.org">
+                                               <package pattern="*" />
+                                           </packageSource>
+                                           <packageSource key="Metalama">
+                                               <package pattern="Metalama.Backstage*" />
+                                               <package pattern="Metalama.Framework*" />
+                                               <package pattern="Metalama.Patterns.*" />
+                                               <package pattern="Metalama.Testing.*" />
+                                           </packageSource>
+                                       </packageSourceMapping>
+                                   </configuration>
+                                   """;
+
+        var path1 = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( path1, parentConfig );
+        var subdir = Path.Combine( testContext.BaseDirectory, "sub" );
+        Directory.CreateDirectory( subdir );
+        var path2 = Path.Combine( subdir, "nuget.config" );
+        File.WriteAllText( path2, childConfig );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+
+        // After <clear/>, only the child's entries should be present.
+        // Relative paths are resolved to absolute paths based on the config file's directory.
+        var resolvedChildPath = Path.GetFullPath( Path.Combine( subdir, "artifacts/publish/private" ) );
+
+        var expectedMergedConfig =
+            $"""
+            <configuration>
+              <packageSources>
+                <clear />
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                <add key="Metalama" value="{resolvedChildPath}" />
+              </packageSources>
+              <packageSourceMapping>
+                <clear />
+                <packageSource key="nuget.org">
+                  <package pattern="*" />
+                </packageSource>
+                <packageSource key="Metalama">
+                  <package pattern="Metalama.Backstage*" />
+                  <package pattern="Metalama.Framework*" />
+                  <package pattern="Metalama.Patterns.*" />
+                  <package pattern="Metalama.Testing.*" />
+                </packageSource>
+              </packageSourceMapping>
+            </configuration>
+            """;
+
+        AssertEx.WhitespaceInvariantEqual( expectedMergedConfig, mergedConfig );
+    }
 }

@@ -527,6 +527,7 @@ internal sealed class CompileTimeAssemblyLocator
                 var nuGetConfigPath = Path.Combine( this._cacheDirectory, "nuget.config" );
                 this._logger.Trace?.Log( $"Writing '{nuGetConfigPath}'." );
                 File.WriteAllText( nuGetConfigPath, nugetConfig );
+                File.WriteAllText( nuGetConfigPath + ".log", string.Join( Environment.NewLine, this._nugetConfigFiles ) );
             }
 
             this._logger.Trace?.Log( $"Building with restore timeout {this._restoreTimeout}." );
