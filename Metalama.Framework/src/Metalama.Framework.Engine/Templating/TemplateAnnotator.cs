@@ -1919,26 +1919,52 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
     private static bool IsMutatingUnaryOperator( SyntaxToken token ) => token.Kind() is SyntaxKind.PlusPlusToken or SyntaxKind.MinusMinusToken;
 
     /// <summary>
-    /// Determines whether the expression is an invocation of a method on a compile-time local variable
-    /// that was declared outside the current run-time conditional block.
-    /// For example, <c>stringBuilder.Append(", ")</c> where <c>stringBuilder</c> is a compile-time local
-    /// declared outside the <c>if</c> block.
+    /// Determines whether the expression is an invocation of a method on a compile-time local variable.
+    /// For example, <c>stringBuilder.Append(", ")</c> where <c>stringBuilder</c> is a compile-time local.
+    /// If the receiver is a local variable, it is returned via <paramref name="receiverLocal"/>.
     /// </summary>
-    private bool IsMethodCallOnCompileTimeLocalVariable( ExpressionSyntax expression )
+    private bool IsMethodCallOnCompileTimeLocalVariable( ExpressionSyntax expression, out ILocalSymbol? receiverLocal )
     {
+        receiverLocal = null;
+
         if ( !expression.IsKind( SyntaxKind.InvocationExpression )
              || expression is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } )
         {
             return false;
         }
 
-        // Check if the receiver is a compile-time local variable declared outside the run-time conditional block.
         var receiverSymbol = this._syntaxTreeAnnotationMap.GetSymbol( memberAccess.Expression );
 
-        return receiverSymbol is { Kind: SymbolKind.Local } and ILocalSymbol local
-               && this.GetNodeScope( memberAccess.Expression ).GetExpressionExecutionScope() == CompileTimeOnly
-               && this._currentScopeContext.IsRunTimeConditionalBlock
-               && !this._currentScopeContext.RunTimeConditionalBlockVariables.Contains( local );
+        if ( receiverSymbol is { Kind: SymbolKind.Local } and ILocalSymbol local
+             && this.GetNodeScope( memberAccess.Expression ).GetExpressionExecutionScope() == CompileTimeOnly )
+        {
+            receiverLocal = local;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines whether the expression is a sub-template invocation. Sub-template calls
+    /// generate run-time code and do not have compile-time side effects.
+    /// </summary>
+    private bool IsSubtemplateInvocation( ExpressionSyntax expression )
+    {
+        if ( expression is not InvocationExpressionSyntax invocation )
+        {
+            return false;
+        }
+
+        var symbol = this._syntaxTreeAnnotationMap.GetInvocableSymbol( invocation.Expression );
+
+        if ( symbol == null )
+        {
+            return false;
+        }
+
+        return this._templateMemberClassifier.SymbolClassifier.GetTemplateInfo( symbol ).CanBeReferencedAsSubtemplate;
     }
 
     public override SyntaxNode VisitPostfixUnaryExpression( PostfixUnaryExpressionSyntax node )
@@ -2192,12 +2218,17 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         // conditionally executed based on a run-time condition because the compile-time state
         // would be incorrect. For example, stringBuilder.Append(", ") inside if (i > 0) where
         // stringBuilder is a compile-time variable and i is a run-time variable.
-        // We exclude compile-time methods that return run-time values (like IMethod.Invoke())
-        // since those are template expansion patterns that generate run-time code.
+        // We exclude:
+        //  - compile-time methods that return run-time values (like IMethod.Invoke()),
+        //  - sub-template invocations (which generate run-time code, not compile-time side effects),
+        //  - calls on locals declared within the current run-time conditional block
+        //    (since their state does not leak outside the block).
         if ( statementScope == CompileTimeOnly
              && !expressionScope.IsCompileTimeMemberReturningRunTimeValue()
              && this._currentScopeContext.IsRunTimeConditionalBlock
-             && this.IsMethodCallOnCompileTimeLocalVariable( node.Expression ) )
+             && this.IsMethodCallOnCompileTimeLocalVariable( node.Expression, out var receiverLocal )
+             && !this.IsSubtemplateInvocation( node.Expression )
+             && ( receiverLocal == null || !this._currentScopeContext.RunTimeConditionalBlockVariables.Contains( receiverLocal ) ) )
         {
             this.ReportDiagnostic(
                 TemplatingDiagnosticDescriptors.CannotCallCompileTimeMethodWithSideEffectsInRunTimeConditionalBlock,
