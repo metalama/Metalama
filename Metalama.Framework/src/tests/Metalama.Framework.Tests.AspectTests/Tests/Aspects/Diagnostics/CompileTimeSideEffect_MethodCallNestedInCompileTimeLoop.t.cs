@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0288 on `stringBuilder.Append( field.Name )`: `Cannot call the compile-time expression 'stringBuilder.Append( field.Name )' as a statement here because it is part of a block whose execution depends on the run-time condition 'if ( i > 0 )'. A compile-time expression used as a statement is assumed to have side effects and cannot be conditionally executed based on a run-time condition.`
