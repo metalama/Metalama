@@ -66,8 +66,8 @@ RUN & .\dotnet-install.ps1 -Version 8.0.417 -InstallDir 'C:\Program Files\dotnet
 RUN & .\dotnet-install.ps1 -Version 9.0.310 -InstallDir 'C:\Program Files\dotnet'
 
 
-# Install .NET Sdk 10.0.102
-RUN & .\dotnet-install.ps1 -Version 10.0.102 -InstallDir 'C:\Program Files\dotnet'
+# Install .NET Sdk 10.0.101
+RUN & .\dotnet-install.ps1 -Version 10.0.101 -InstallDir 'C:\Program Files\dotnet'
 
 
 # Install VS Build Tools
