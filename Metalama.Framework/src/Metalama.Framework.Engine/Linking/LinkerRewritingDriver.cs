@@ -212,7 +212,7 @@ internal sealed partial class LinkerRewritingDriver
 
         if ( symbol.AssociatedSymbol != null && symbol.AssociatedSymbol.IsExplicitInterfaceEventField() )
         {
-            return GetImplicitAccessorBody( symbol, generationContext );
+            return this.GetImplicitAccessorBody( symbol, generationContext );
         }
 
         if ( this.AnalysisRegistry.HasAnySubstitutions( symbol ) )
@@ -264,22 +264,22 @@ internal sealed partial class LinkerRewritingDriver
         switch ( symbol )
         {
             case { MethodKind: MethodKind.PropertyGet, Parameters.Length: > 0 }:
-                return GetImplicitIndexerGetterBody( symbol, generationContext );
+                return this.GetImplicitIndexerGetterBody( symbol, generationContext );
 
             case { MethodKind: MethodKind.PropertySet, Parameters.Length: > 0 }:
-                return GetImplicitIndexerSetterBody( symbol, generationContext );
+                return this.GetImplicitIndexerSetterBody( symbol, generationContext );
 
             case { MethodKind: MethodKind.PropertyGet }:
-                return GetImplicitGetterBody( symbol, generationContext );
+                return this.GetImplicitGetterBody( symbol, generationContext );
 
             case { MethodKind: MethodKind.PropertySet }:
-                return GetImplicitSetterBody( symbol, generationContext );
+                return this.GetImplicitSetterBody( symbol, generationContext );
 
             case { MethodKind: MethodKind.EventAdd }:
-                return GetImplicitAdderBody( symbol, generationContext );
+                return this.GetImplicitAdderBody( symbol, generationContext );
 
             case { MethodKind: MethodKind.EventRemove }:
-                return GetImplicitRemoverBody( symbol, generationContext );
+                return this.GetImplicitRemoverBody( symbol, generationContext );
 
             default:
                 throw new AssertionFailedException( $"Don't know how to process '{symbol}'." );

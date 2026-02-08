@@ -280,7 +280,7 @@ namespace Metalama.Framework.Engine.Linking
                                 symbol.IsStatic
                                     ? context.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
-                                WellKnownIdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                WellKnownIdentifierName( this.GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( context ),
                         Token( SyntaxKind.SemicolonToken ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
@@ -295,7 +295,7 @@ namespace Metalama.Framework.Engine.Linking
                                     symbol.IsStatic
                                         ? context.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                         : ThisExpression(),
-                                    WellKnownIdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                    WellKnownIdentifierName( this.GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                                 .WithSimplifierAnnotationIfNecessary( context ),
                             WellKnownIdentifierName( "value" ) ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );

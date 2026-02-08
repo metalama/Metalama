@@ -356,7 +356,7 @@ namespace Metalama.Framework.Engine.Linking
                         type.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
                         SingletonSeparatedList(
                             VariableDeclarator(
-                                WellKnownIdentifier( GetBackingFieldName( symbol ) ),
+                                WellKnownIdentifier( this.GetBackingFieldName( symbol ) ),
                                 null,
                                 initializer ) ) ) )
                 .WithOptionalTrivia(
@@ -375,7 +375,7 @@ namespace Metalama.Framework.Engine.Linking
                                 symbol.IsStatic
                                     ? generationContext.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
-                                WellKnownIdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                WellKnownIdentifierName( this.GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( generationContext ),
                         Token( SyntaxKind.SemicolonToken ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
@@ -390,7 +390,7 @@ namespace Metalama.Framework.Engine.Linking
                                     symbol.IsStatic
                                         ? generationContext.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                         : ThisExpression(),
-                                    WellKnownIdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                    WellKnownIdentifierName( this.GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                                 .WithSimplifierAnnotationIfNecessary( generationContext ),
                             WellKnownIdentifierName( "value" ) ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
