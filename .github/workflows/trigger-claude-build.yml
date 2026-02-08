@@ -23,7 +23,7 @@ jobs:
 
       - name: Trigger TeamCity Build
         run: |
-          curl -s -f -X POST \
+          curl -s -f -o /dev/null -X POST \
             "https://postsharp.teamcity.com/app/rest/buildQueue" \
             -H "Authorization: Bearer ${{ secrets.TEAMCITY_CLOUD_TOKEN }}" \
             -H "Content-Type: application/json" \
@@ -50,7 +50,7 @@ jobs:
 
       - name: Trigger TeamCity Build
         run: |
-          curl -s -f -X POST \
+          curl -s -f -o /dev/null -X POST \
             "https://postsharp.teamcity.com/app/rest/buildQueue" \
             -H "Authorization: Bearer ${{ secrets.TEAMCITY_CLOUD_TOKEN }}" \
             -H "Content-Type: application/json" \
