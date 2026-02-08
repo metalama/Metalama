@@ -1418,15 +1418,6 @@ $envVarAssignments$gitConfigCommands$postInitCommands
         }
     }
 
-    # If no existing container, remove any containers with same image to avoid conflicts
-    if (-not $existingContainerId)
-    {
-        docker ps -a -q --filter "ancestor=$ImageTag" | ForEach-Object {
-            Write-Host "Removing container $_"
-            docker rm -f $_ 2>&1 | Out-Null
-        }
-    }
-
     # Registry authentication and pull logic
     $builtNewImage = $false
     $dockerConfigArg = @()
