@@ -686,6 +686,13 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
             layered.SetItem( "test-key", item );
             layered.RemoveItem( "test-key" ); // Creates marker with current timestamp
 
+            // Ensure the clock has advanced so the newer item gets a strictly greater timestamp
+            // than the RemovedValue marker. Without this, both timestamps can be identical
+            // (same tick), causing the test to be flaky.
+            var timestampAfterRemove = LayeredCachingBackendEnhancer.GetTimestamp();
+
+            SpinWait.SpinUntil( () => LayeredCachingBackendEnhancer.GetTimestamp() > timestampAfterRemove );
+
             // Now set a newer item directly in L2 (simulating another node updating cache)
             var newerItem = new MaterializedCacheItem( new CacheItem( "newer-value" ) );
             l2.SetItem( "test-key", newerItem );
