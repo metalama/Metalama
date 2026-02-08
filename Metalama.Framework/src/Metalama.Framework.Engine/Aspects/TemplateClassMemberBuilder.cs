@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Advising;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SerializableIds;
@@ -264,6 +265,32 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
 
                 // Add or replace the template.
                 membersBuilder[memberKey] = aspectClassMember;
+
+                // When a derived class overrides an abstract declarative advice member from the base class,
+                // the base class entry (which has IsAbstract=true) needs to be updated to reflect that
+                // a concrete implementation now exists. Without this, the introduction machinery will reject
+                // the abstract template when it tries to use the base entry for the introduction.
+                // The base entry is kept because it carries the [Introduce] attribute, but its TemplateInfo
+                // is updated to be non-abstract so the template validation succeeds. At runtime, virtual
+                // dispatch ensures the override's template body is executed.
+                if ( memberSymbol.IsOverride
+                     && templateInfo.AttributeType is TemplateAttributeType.DeclarativeAdvice or TemplateAttributeType.InterfaceMember )
+                {
+                    var overriddenMember = memberSymbol.GetOverriddenMember();
+
+                    if ( overriddenMember != null )
+                    {
+                        var overriddenKey = overriddenMember.GetDocumentationCommentId();
+
+                        if ( overriddenKey != null && overriddenKey != memberKey
+                                                   && membersBuilder.TryGetValue( overriddenKey, out var baseMember )
+                                                   && baseMember.TemplateInfo.IsAbstract )
+                        {
+                            // Use the override's template info (which is non-abstract) for the base entry.
+                            membersBuilder[overriddenKey] = baseMember with { TemplateInfo = templateInfo };
+                        }
+                    }
+                }
             }
             else
             {
