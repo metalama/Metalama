@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Collections.Generic;
-using System.Linq;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Aspects.Diagnostics.CompileTimeSideEffect_MethodCallOnOuterLocal;
