@@ -6,17 +6,18 @@ using System.Linq;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof(Metalama.Framework.Tests.AspectTests.Tests.Aspects.Generic.IntroduceOverrideRenamesTypeParameter.TestAspect1), typeof(Metalama.Framework.Tests.AspectTests.Tests.Aspects.Generic.IntroduceOverrideRenamesTypeParameter.TestAspect2) )]
+[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof(Metalama.Framework.Tests.AspectTests.Tests.Aspects.Generic.IntroduceOverrideRenamesParameterAndTypeParameter.TestAspect1), typeof(Metalama.Framework.Tests.AspectTests.Tests.Aspects.Generic.IntroduceOverrideRenamesParameterAndTypeParameter.TestAspect2) )]
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Generic.IntroduceOverrideRenamesTypeParameter
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Generic.IntroduceOverrideRenamesParameterAndTypeParameter
 {
     public class TestAspect1 : TypeAspect
     {
-        // This aspect introduces/overrides the method changing the type parameter name from T to U.
+        // This aspect introduces/overrides the method, renaming both the type parameter (T -> U)
+        // and the regular parameter (value -> item).
         [Introduce( WhenExists = OverrideStrategy.Override )]
-        public void Foo<U>()
+        public U Foo<U>( U item )
         {
-            meta.Proceed();
+            return meta.Proceed()!;
         }
     }
 
@@ -30,18 +31,19 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Generic.IntroduceOv
             }
         }
 
-        // The template uses the original type parameter name T (as defined in Base).
+        // The template uses the original names (T, value) as defined in the base class.
         [Template]
-        public void FooTemplate<T>()
+        public T FooTemplate<T>( T value )
         {
-            meta.Proceed();
+            return meta.Proceed()!;
         }
     }
 
     internal class Base
     {
-        public virtual void Foo<T>()
+        public virtual T Foo<T>( T value )
         {
+            return value;
         }
     }
 

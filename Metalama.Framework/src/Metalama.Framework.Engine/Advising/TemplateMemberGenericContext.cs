@@ -52,11 +52,19 @@ internal sealed class TemplateMemberGenericContext : GenericContext
         }
         else if ( this._targetMethod.DeclarationKind == DeclarationKind.Method && this._targetMethod is IMethod method )
         {
+            // First try to match by name.
             var typeParameter = method.TypeParameters.FirstOrDefault( t => t.Name == name );
 
             if ( typeParameter != null )
             {
                 return typeParameter;
+            }
+
+            // Fall back to matching by ordinal position. An introduction can rename type parameters,
+            // so the template may use the original name while the target method uses the new name.
+            if ( index < method.TypeParameters.Count )
+            {
+                return method.TypeParameters[index];
             }
         }
 
