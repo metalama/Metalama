@@ -53,6 +53,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
     private readonly ISymbolClassifier _symbolScopeClassifier;
     private readonly SafeSymbolComparer _symbolComparer;
+    private readonly CompileTimeSideEffectDetector _compileTimeSideEffectDetector;
 
     private ScopeContext _currentScopeContext;
 
@@ -78,6 +79,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         this._templateMemberClassifier = new TemplateMemberClassifier( compilationContext, syntaxTreeAnnotationMap );
         this._typeParameterDetectionVisitor = new TypeParameterDetectionVisitor( this );
         this._symbolComparer = compilationContext.CompilationContext.SymbolComparer;
+        this._compileTimeSideEffectDetector = new CompileTimeSideEffectDetector( syntaxTreeAnnotationMap, this._templateMemberClassifier, this.GetNodeScope );
 
         // add default values of scope
         this._currentScopeContext = ScopeContext.Default;
@@ -2163,6 +2165,22 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         var transformedExpression = this.Visit( node.Expression );
         var expressionScope = this.GetNodeScope( transformedExpression );
         var statementScope = expressionScope.GetExpressionExecutionScope().ReplaceIndeterminate( RunTimeOnly );
+
+        // Check for compile-time side effects in run-time conditional blocks.
+        // A compile-time expression statement is assumed to have side effects that mutate compile-time state.
+        // If this happens inside a run-time conditional block, the mutation would depend on a run-time condition,
+        // leading to incorrect compile-time state.
+        if ( this._currentScopeContext.IsRunTimeConditionalBlock
+             && this._compileTimeSideEffectDetector.HasCompileTimeSideEffect(
+                 node.Expression,
+                 expressionScope,
+                 this._currentScopeContext.RunTimeConditionalBlockVariables ) )
+        {
+            this.ReportDiagnostic(
+                TemplatingDiagnosticDescriptors.CannotCallCompileTimeMethodWithSideEffectsInRunTimeConditionalBlock,
+                node.Expression,
+                (node.Expression.ToString(), this._currentScopeContext.IsRunTimeConditionalBlockReason) );
+        }
 
         return node.WithExpression( transformedExpression ).AddScopeAnnotation( expressionScope ).AddTargetScopeAnnotation( statementScope );
     }
