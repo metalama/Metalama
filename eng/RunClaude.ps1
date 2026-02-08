@@ -198,6 +198,15 @@ if ($Prompt)
     $Prompt | Set-Content -Path $promptFile -Encoding UTF8 -NoNewline
     Write-Host "Running Claude with prompt from file: $promptFile" -ForegroundColor Cyan
 
+    # Tag TeamCity build with the prompt
+    if ($env:IS_TEAMCITY_AGENT -eq "true" -or $env:IS_TEAMCITY_AGENT -eq "1") {
+        # Escape special characters for TeamCity service message format
+        $tagValue = $Prompt -replace '\|','||' -replace "'","|'" -replace '\[','|[' -replace '\]','|]' -replace "`n",'|n' -replace "`r",'|r'
+        # Truncate to avoid excessively long tags
+        if ($tagValue.Length -gt 200) { $tagValue = $tagValue.Substring(0, 200) + "..." }
+        Write-Host "##teamcity[addBuildTag tag='$tagValue']"
+    }
+
     # Stream JSON output for human-readable real-time monitoring
     $processArgs = "-p --output-format stream-json --verbose --model $Model --dangerously-skip-permissions $mcpConfigArg"
 
@@ -217,8 +226,37 @@ if ($Prompt)
     $process.StandardInput.Write($promptContent)
     $process.StandardInput.Close()
 
+    # Set up log file for raw JSON output
+    $logDir = Join-Path (Resolve-Path "$PSScriptRoot\..").Path "artifacts\logs"
+    New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    $timestamp = (Get-Date).ToString("yyyy-MM-dd-HHmmss")
+    $logFile = Join-Path $logDir "claude-$timestamp.log.json"
+    $logWriter = [System.IO.StreamWriter]::new($logFile, $false, [System.Text.Encoding]::UTF8)
+    $logWriter.WriteLine("[")
+    $isFirstJsonLine = $true
+
     # Read and parse stdout line by line (real-time streaming)
     while ($null -ne ($line = $process.StandardOutput.ReadLine())) {
+        # Write to log file in real-time
+        if (-not [string]::IsNullOrWhiteSpace($line)) {
+            try {
+                $obj = $line | ConvertFrom-Json
+                $indented = $obj | ConvertTo-Json -Depth 100
+                if (-not $isFirstJsonLine) {
+                    $logWriter.WriteLine(",")
+                }
+                $logWriter.Write($indented)
+                $isFirstJsonLine = $false
+            } catch {
+                # Non-JSON line - write as raw string
+                if (-not $isFirstJsonLine) {
+                    $logWriter.WriteLine(",")
+                }
+                $logWriter.Write("`"$($line -replace '\\','\\\\' -replace '"','\"')`"")
+                $isFirstJsonLine = $false
+            }
+            $logWriter.Flush()
+        }
         ConvertFrom-ClaudeJsonLine -Line $line
     }
 
@@ -228,6 +266,12 @@ if ($Prompt)
 
     $process.WaitForExit()
     $exitCode = $process.ExitCode
+
+    # Close JSON log file
+    $logWriter.WriteLine()
+    $logWriter.WriteLine("]")
+    $logWriter.Close()
+    Write-Host "Claude output log: $logFile" -ForegroundColor Green
 
     # Clean up prompt file
     Remove-Item $promptFile -ErrorAction SilentlyContinue

@@ -143,7 +143,7 @@ param(
     [string]$RegistryImage, # Use a pre-built image from a registry, skipping Dockerfile build entirely.
     [switch]$NoInit, # Do not generate or call Init.g.ps1 (skips git config, safe.directory, etc).
     [string]$Isolation = 'hyperv', # Docker isolation mode (process or hyperv). Memory/CPU limits only apply to hyperv.
-    [string]$Memory = '16g', # Docker memory limit (e.g., "8g"). Only used with hyperv isolation.
+    [string]$Memory = '32g', # Docker memory limit (e.g., "8g"). Only used with hyperv isolation.
     [int]$Cpus = [Environment]::ProcessorCount, # Docker CPU limit. Only used with hyperv isolation.
     [string[]]$Mount, # Additional directories to mount from host (readonly by default, append :w for writable). Supports * and ** glob patterns.
     [string[]]$Env, # Additional environment variables to pass from host to container.
