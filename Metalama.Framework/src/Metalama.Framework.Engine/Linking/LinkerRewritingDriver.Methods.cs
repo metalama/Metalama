@@ -296,6 +296,192 @@ namespace Metalama.Framework.Engine.Linking
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
         }
 
+        /// <summary>
+        /// Rewrites a synthesized override target method (e.g. record-synthesized Equals) that has no explicit syntax in source.
+        /// Creates a method declaration from the symbol and applies the linked body.
+        /// </summary>
+        public IReadOnlyList<MemberDeclarationSyntax> RewriteSynthesizedMethodOverrideTarget(
+            IMethodSymbol symbol,
+            SyntaxGenerationContext generationContext )
+        {
+            Invariant.Assert( this.InjectionRegistry.IsOverrideTarget( symbol ) );
+
+            var members = new List<MemberDeclarationSyntax>();
+            var lastOverride = this.InjectionRegistry.GetLastOverride( symbol );
+
+            // Create a synthetic MethodDeclarationSyntax from the symbol.
+            var returnType = generationContext.SyntaxGenerator.TypeSyntax( symbol.ReturnType )
+                .WithOptionalTrailingTrivia( ElasticSpace, generationContext.Options );
+
+            var parameterList = ParameterList(
+                SeparatedList(
+                    symbol.Parameters.SelectAsReadOnlyList(
+                        p =>
+                        {
+                            var parameterSyntax = Parameter(
+                                    default,
+                                    default,
+                                    generationContext.SyntaxGenerator.TypeSyntax( p.Type )
+                                        .WithOptionalTrailingTrivia( ElasticSpace, generationContext.Options ),
+                                    SafeIdentifier( p.Name ),
+                                    null );
+
+                            if ( p.RefKind != RefKind.None )
+                            {
+                                var refKindKeyword = p.RefKind switch
+                                {
+                                    RefKind.Ref => SyntaxKind.RefKeyword,
+                                    RefKind.Out => SyntaxKind.OutKeyword,
+                                    RefKind.In => SyntaxKind.InKeyword,
+                                    RefKind.RefReadOnlyParameter => SyntaxKind.RefKeyword,
+                                    _ => throw new AssertionFailedException( $"Unexpected RefKind: {p.RefKind}." )
+                                };
+
+                                parameterSyntax = parameterSyntax.WithModifiers(
+                                    TokenList( Token( default, refKindKeyword, TriviaList( ElasticSpace ) ) ) );
+                            }
+
+                            return parameterSyntax;
+                        } ) ) );
+
+            var modifiers = symbol.GetSyntaxModifierList(
+                ModifierCategories.Accessibility | ModifierCategories.Static | ModifierCategories.Unsafe );
+
+            // Record-synthesized Equals is virtual, so add virtual modifier.
+            if ( symbol.IsVirtual && !symbol.IsOverride )
+            {
+                modifiers = modifiers.Add( TokenWithTrailingSpace( SyntaxKind.VirtualKeyword ) );
+            }
+
+            // If the method is an override, ensure the override keyword is present.
+            if ( symbol.IsOverride )
+            {
+                modifiers = modifiers.Add( TokenWithTrailingSpace( SyntaxKind.OverrideKeyword ) );
+            }
+
+            var typeParameterList = symbol.TypeParameters.Length > 0
+                ? TypeParameterList(
+                    SeparatedList(
+                        symbol.TypeParameters.SelectAsReadOnlyList(
+                            tp => TypeParameter( SafeIdentifier( tp.Name ) ) ) ) )
+                : null;
+
+            var syntheticMethodDeclaration = MethodDeclaration(
+                List<AttributeListSyntax>(),
+                modifiers,
+                returnType,
+                null,
+                SafeIdentifier( symbol.Name ),
+                typeParameterList,
+                parameterList,
+                List<TypeParameterConstraintClauseSyntax>(),
+                null,
+                null );
+
+            if ( this.AnalysisRegistry.IsInlined( lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
+            {
+                members.Add( GetLinkedDeclaration( IntermediateSymbolSemanticKind.Final, lastOverride.IsAsync ) );
+            }
+            else
+            {
+                members.Add(
+                    this.GetTrampolineForSynthesizedMethod(
+                        syntheticMethodDeclaration,
+                        lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                        generationContext ) );
+            }
+
+            if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
+                 && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
+                 && this.ShouldGenerateSourceMember( symbol ) )
+            {
+                members.Add( this.GetEmptyImplMethod( syntheticMethodDeclaration, symbol, generationContext ) );
+            }
+
+            if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
+                 && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
+                 && this.ShouldGenerateEmptyMember( symbol ) )
+            {
+                members.Add( this.GetEmptyImplMethod( syntheticMethodDeclaration, symbol, generationContext ) );
+            }
+
+            return members;
+
+            MethodDeclarationSyntax GetLinkedDeclaration( IntermediateSymbolSemanticKind semanticKind, bool isAsync )
+            {
+                var linkedBody = this.GetSubstitutedBody(
+                    symbol.ToSemantic( semanticKind ),
+                    new SubstitutionContext(
+                        this,
+                        generationContext,
+                        new InliningContextIdentifier( symbol.ToSemantic( semanticKind ) ) ) );
+
+                var currentModifiers = syntheticMethodDeclaration.Modifiers;
+
+                if ( isAsync && !symbol.IsAsync )
+                {
+                    currentModifiers = currentModifiers.Add( Token( TriviaList( ElasticSpace ), SyntaxKind.AsyncKeyword, TriviaList( ElasticSpace ) ) );
+                }
+
+                return syntheticMethodDeclaration
+                    .PartialUpdate(
+                        modifiers: currentModifiers,
+                        body: Block(
+                                Token( TriviaList( ElasticMarker ), SyntaxKind.OpenBraceToken, TriviaList( ElasticMarker ) ),
+                                SingletonList<StatementSyntax>( linkedBody ),
+                                Token( TriviaList( ElasticMarker ), SyntaxKind.CloseBraceToken, TriviaList( ElasticMarker ) ) )
+                            .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock )
+                            .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) )
+                    .WithOptionalLeadingAndTrailingLineFeed( generationContext )
+                    .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
+            }
+        }
+
+        private MethodDeclarationSyntax GetTrampolineForSynthesizedMethod(
+            MethodDeclarationSyntax method,
+            IntermediateSymbolSemantic<IMethodSymbol> targetSemantic,
+            SyntaxGenerationContext context )
+        {
+            return method
+                .PartialUpdate( body: GetBody() )
+                .WithTriviaFromIfNecessary( method, this.SyntaxGenerationOptions );
+
+            BlockSyntax GetBody()
+            {
+                var invocation =
+                    InvocationExpression(
+                        GetInvocationTarget(),
+                        ArgumentList(
+                            SeparatedList( method.ParameterList.Parameters.SelectAsReadOnlyList( x => Argument( WellKnownIdentifierName( x.Identifier ) ) ) ) ) );
+
+                if ( !targetSemantic.Symbol.ReturnsVoid )
+                {
+                    return context.SyntaxGenerator.FormattedBlock(
+                        ReturnStatement(
+                            TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                            invocation,
+                            Token( SyntaxKind.SemicolonToken ) ) );
+                }
+                else
+                {
+                    return context.SyntaxGenerator.FormattedBlock( ExpressionStatement( invocation ) );
+                }
+
+                ExpressionSyntax GetInvocationTarget()
+                {
+                    if ( targetSemantic.Symbol.IsStatic )
+                    {
+                        return SafeIdentifierName( targetSemantic.Symbol.Name );
+                    }
+                    else
+                    {
+                        return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SafeIdentifierName( targetSemantic.Symbol.Name ) )
+                            .WithSimplifierAnnotationIfNecessary( context );
+                    }
+                }
+            }
+        }
+
         private MethodDeclarationSyntax GetTrampolineForMethod(
             MethodDeclarationSyntax method,
             IntermediateSymbolSemantic<IMethodSymbol> targetSemantic,

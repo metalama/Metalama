@@ -303,6 +303,9 @@ internal sealed partial class LinkerRewritingDriver
             case SyntaxKind.Parameter when bodyRootNode is ParameterSyntax { Parent.Parent: RecordDeclarationSyntax } positionalProperty:
                 return (BlockSyntax) rewriter.Visit( positionalProperty ).AssertNotNull();
 
+            case SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when bodyRootNode is RecordDeclarationSyntax recordDeclaration:
+                return (BlockSyntax) rewriter.Visit( recordDeclaration ).AssertNotNull();
+
             case SyntaxKind.ArrowExpressionClause when bodyRootNode is ArrowExpressionClauseSyntax arrowExpressionClause:
                 var rewrittenNode = rewriter.Visit( arrowExpressionClause );
 
@@ -367,6 +370,25 @@ internal sealed partial class LinkerRewritingDriver
     /// </summary>
     /// <param name="symbol"></param>
     /// <returns></returns>
+    /// <summary>
+    /// Gets synthesized override target methods for a type (e.g. record-synthesized Equals, GetHashCode).
+    /// These are methods that are override targets but have no explicit syntax in source.
+    /// </summary>
+    public IEnumerable<IMethodSymbol> GetSynthesizedMethodOverrideTargets( INamedTypeSymbol typeSymbol )
+    {
+        foreach ( var overriddenMember in this.InjectionRegistry.GetOverriddenMembers() )
+        {
+            if ( overriddenMember.Kind == SymbolKind.Method
+                 && overriddenMember is IMethodSymbol methodSymbol
+                 && this.IntermediateCompilationContext.SymbolComparer.Equals( methodSymbol.ContainingType, typeSymbol )
+                 && methodSymbol.IsImplicitlyDeclared
+                 && methodSymbol.GetPrimaryDeclarationSyntax() is RecordDeclarationSyntax )
+            {
+                yield return methodSymbol;
+            }
+        }
+    }
+
     public bool IsRewriteTarget( ISymbol symbol )
     {
         if ( this.InjectionRegistry.IsOverrideTarget( symbol ) )

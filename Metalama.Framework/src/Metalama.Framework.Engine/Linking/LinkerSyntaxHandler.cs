@@ -91,6 +91,13 @@ internal static class LinkerSyntaxHandler
                         goto default;
                     }
 
+                case SyntaxKind.RecordDeclaration:
+                case SyntaxKind.RecordStructDeclaration:
+                    {
+                        // Record-synthesized method (e.g. Equals, GetHashCode).
+                        return declaration!;
+                    }
+
                 default:
                     throw new AssertionFailedException( $"Unexpected override target symbol: '{symbol}'." );
             }

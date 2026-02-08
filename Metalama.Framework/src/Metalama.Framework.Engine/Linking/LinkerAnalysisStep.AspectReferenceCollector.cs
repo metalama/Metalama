@@ -193,6 +193,9 @@ internal sealed partial class LinkerAnalysisStep
                                 => arrowExpressionClause,
                             SyntaxKind.Parameter when declarationSyntax is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter
                                 => recordParameter,
+                            SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                                when declarationSyntax is RecordDeclarationSyntax recordDeclaration
+                                => recordDeclaration,
                             _ => throw new AssertionFailedException( $"Unexpected syntax for '{containingSemantic.Symbol}'." )
                         };
 

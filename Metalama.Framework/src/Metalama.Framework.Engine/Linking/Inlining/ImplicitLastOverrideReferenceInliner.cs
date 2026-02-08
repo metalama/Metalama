@@ -59,6 +59,9 @@ internal sealed class ImplicitLastOverrideReferenceInliner : Inliner
                 {
                     Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax }
                 } recordParameter => recordParameter,
+                SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                    when declarationSyntax is RecordDeclarationSyntax recordDeclaration
+                    => recordDeclaration,
 #if ROSLYN_4_8_0_OR_GREATER
                 { IsTypeDeclaration: true } when declarationSyntax is TypeDeclarationSyntax { ParameterList: { } parameterList } => parameterList,
 #endif
