@@ -366,7 +366,7 @@ namespace Metalama.Framework.Engine.Linking
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
         }
 
-        private static BlockSyntax GetImplicitGetterBody( IMethodSymbol symbol, SyntaxGenerationContext generationContext )
+        private BlockSyntax GetImplicitGetterBody( IMethodSymbol symbol, SyntaxGenerationContext generationContext )
             => generationContext.SyntaxGenerator.FormattedBlock(
                     ReturnStatement(
                         SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
@@ -380,7 +380,7 @@ namespace Metalama.Framework.Engine.Linking
                         Token( SyntaxKind.SemicolonToken ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
 
-        private static BlockSyntax GetImplicitSetterBody( IMethodSymbol symbol, SyntaxGenerationContext generationContext )
+        private BlockSyntax GetImplicitSetterBody( IMethodSymbol symbol, SyntaxGenerationContext generationContext )
             => generationContext.SyntaxGenerator.FormattedBlock(
                     ExpressionStatement(
                         AssignmentExpression(

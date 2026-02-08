@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -40,6 +41,12 @@ internal sealed partial class LinkerRewritingDriver
     private LinkerLateTransformationRegistry LateTransformationRegistry { get; }
 
     public LinkerAnalysisRegistry AnalysisRegistry { get; }
+
+    // Per-symbol cache: ensures the same backing field name is returned for the same symbol across multiple calls.
+    private readonly ConcurrentDictionary<ISymbol, string> _backingFieldNameCache = new( SymbolEqualityComparer.Default );
+
+    // Per-type set of allocated backing field names: prevents name collisions between different symbols in the same type.
+    private readonly ConcurrentDictionary<INamedTypeSymbol, HashSet<string>> _allocatedBackingFieldNames = new( SymbolEqualityComparer.Default );
 
     public LinkerRewritingDriver(
         ProjectServiceProvider serviceProvider,
@@ -252,7 +259,7 @@ internal sealed partial class LinkerRewritingDriver
         throw new AssertionFailedException( $"Don't know how to process '{symbol}'." );
     }
 
-    private static BlockSyntax GetImplicitAccessorBody( IMethodSymbol symbol, SyntaxGenerationContext generationContext )
+    private BlockSyntax GetImplicitAccessorBody( IMethodSymbol symbol, SyntaxGenerationContext generationContext )
     {
         switch ( symbol )
         {
@@ -715,7 +722,12 @@ internal sealed partial class LinkerRewritingDriver
         }
     }
 
-    public static string GetBackingFieldName( ISymbol symbol )
+    public string GetBackingFieldName( ISymbol symbol )
+    {
+        return this._backingFieldNameCache.GetOrAdd( symbol, this.ComputeBackingFieldName );
+    }
+
+    private string ComputeBackingFieldName( ISymbol symbol )
     {
         string name;
 
@@ -753,10 +765,9 @@ internal sealed partial class LinkerRewritingDriver
             camelCasePropertyName = FindUniqueName( camelCasePropertyName );
         }
 
-        // TODO: Write tests of the collision resolution algorithm.
         if ( camelCasePropertyName.StartsWith( "_", StringComparison.Ordinal ) )
         {
-            return camelCasePropertyName;
+            return ReserveUniqueName( camelCasePropertyName );
         }
         else
         {
@@ -767,9 +778,9 @@ internal sealed partial class LinkerRewritingDriver
 
         string FindUniqueName( string hint )
         {
-            if ( !symbol.ContainingType.GetMembers( hint ).Any() )
+            if ( !IsNameTaken( hint ) )
             {
-                return hint;
+                return ReserveUniqueName( hint );
             }
             else
             {
@@ -777,12 +788,45 @@ internal sealed partial class LinkerRewritingDriver
                 {
                     var candidate = hint + i;
 
-                    if ( !symbol.ContainingType.GetMembers( candidate ).Any() )
+                    if ( !IsNameTaken( candidate ) )
                     {
-                        return candidate;
+                        return ReserveUniqueName( candidate );
                     }
                 }
             }
+        }
+
+        bool IsNameTaken( string candidate )
+        {
+            // Check if the name exists as an original member of the containing type.
+            if ( symbol.ContainingType.GetMembers( candidate ).Any() )
+            {
+                return true;
+            }
+
+            // Check if the name has already been allocated for another generated backing field in the same type.
+            var allocatedNames = this._allocatedBackingFieldNames.GetOrAdd(
+                symbol.ContainingType,
+                static _ => new HashSet<string>( StringComparer.Ordinal ) );
+
+            lock ( allocatedNames )
+            {
+                return allocatedNames.Contains( candidate );
+            }
+        }
+
+        string ReserveUniqueName( string resolvedName )
+        {
+            var allocatedNames = this._allocatedBackingFieldNames.GetOrAdd(
+                symbol.ContainingType,
+                static _ => new HashSet<string>( StringComparer.Ordinal ) );
+
+            lock ( allocatedNames )
+            {
+                allocatedNames.Add( resolvedName );
+            }
+
+            return resolvedName;
         }
     }
 

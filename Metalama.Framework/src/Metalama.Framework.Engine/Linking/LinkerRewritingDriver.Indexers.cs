@@ -271,7 +271,7 @@ namespace Metalama.Framework.Engine.Linking
         }
 #endif
 
-        private static BlockSyntax GetImplicitIndexerGetterBody( IMethodSymbol symbol, SyntaxGenerationContext context )
+        private BlockSyntax GetImplicitIndexerGetterBody( IMethodSymbol symbol, SyntaxGenerationContext context )
             => context.SyntaxGenerator.FormattedBlock(
                     ReturnStatement(
                         SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
@@ -285,7 +285,7 @@ namespace Metalama.Framework.Engine.Linking
                         Token( SyntaxKind.SemicolonToken ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
 
-        private static BlockSyntax GetImplicitIndexerSetterBody( IMethodSymbol symbol, SyntaxGenerationContext context )
+        private BlockSyntax GetImplicitIndexerSetterBody( IMethodSymbol symbol, SyntaxGenerationContext context )
             => context.SyntaxGenerator.FormattedBlock(
                     ExpressionStatement(
                         AssignmentExpression(

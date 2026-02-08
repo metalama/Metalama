@@ -223,7 +223,7 @@ namespace Metalama.Framework.Engine.Linking
             }
         }
 
-        private static BlockSyntax GetImplicitAdderBody( IMethodSymbol symbol, SyntaxGenerationContext context )
+        private BlockSyntax GetImplicitAdderBody( IMethodSymbol symbol, SyntaxGenerationContext context )
             => context.SyntaxGenerator.FormattedBlock(
                 ExpressionStatement(
                     AssignmentExpression(
@@ -238,7 +238,7 @@ namespace Metalama.Framework.Engine.Linking
                         WellKnownIdentifierName( "value" ) ),
                     Token( default, SyntaxKind.SemicolonToken, new SyntaxTriviaList( context.ElasticEndOfLineTrivia ) ) ) );
 
-        private static BlockSyntax GetImplicitRemoverBody( IMethodSymbol symbol, SyntaxGenerationContext context )
+        private BlockSyntax GetImplicitRemoverBody( IMethodSymbol symbol, SyntaxGenerationContext context )
             => context.SyntaxGenerator.FormattedBlock(
                 ExpressionStatement(
                     AssignmentExpression(
