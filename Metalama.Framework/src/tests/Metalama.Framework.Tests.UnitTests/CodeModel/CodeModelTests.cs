@@ -510,6 +510,42 @@ class C
     }
 
     [Fact]
+    public void EventRaiseMethodNullForAccessorEvents()
+    {
+        // Issue #771: IEvent.RaiseMethod should return null for events that cannot be raised.
+        // An event with explicit add/remove accessors (non-field-like) cannot be raised,
+        // so RaiseMethod should be null. A field-like event CAN be raised, so RaiseMethod
+        // should be non-null.
+
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+using System;
+class C
+{
+    event EventHandler AccessorEvent
+    {
+        add {}
+        remove {}
+    }
+
+    event EventHandler FieldLikeEvent;
+}";
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = Assert.Single( compilation.Types );
+
+        var accessorEvent = type.Events.Single( e => e.Name == "AccessorEvent" );
+        var fieldLikeEvent = type.Events.Single( e => e.Name == "FieldLikeEvent" );
+
+        // An accessor-based event cannot be raised, so RaiseMethod should be null.
+        Assert.Null( accessorEvent.RaiseMethod );
+
+        // A field-like event can be raised, so RaiseMethod should be non-null.
+        Assert.NotNull( fieldLikeEvent.RaiseMethod );
+    }
+
+    [Fact]
     public void MethodKinds()
     {
         using var testContext = this.CreateTestContext();
