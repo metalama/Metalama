@@ -477,7 +477,8 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                     isIteratorMethod,
                                     isExplicit,
                                     isVirtual,
-                                    isOverride );
+                                    isOverride,
+                                    templateMethodDeclaration );
 
                                 CopyAttributes( interfaceMethod, methodBuilder );
                                 methodBuilder.Freeze();
@@ -702,7 +703,8 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                     isExplicit,
                                     isVirtual,
                                     isOverride,
-                                    hasImplicitSetter );
+                                    hasImplicitSetter,
+                                    templatePropertyDeclaration );
 
                                 if ( templateProperty != null )
                                 {
@@ -884,7 +886,8 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                     isEventField,
                                     isExplicit,
                                     isVirtual,
-                                    isOverride );
+                                    isOverride,
+                                    templateEventDeclaration );
 
                                 if ( templateEvent != null )
                                 {
@@ -981,28 +984,61 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
             diagnostics.ToImmutableArray() );
     }
 
+    /// <summary>
+    /// If the interface type has oblivious nullability and the template type has explicit nullability,
+    /// returns the interface type with the template's nullability applied. Otherwise returns the interface type unchanged.
+    /// </summary>
+    private static IType ResolveNullability( IType interfaceType, IType? templateType )
+    {
+        if ( templateType != null && interfaceType.IsNullable == null && templateType.IsNullable != null )
+        {
+            return templateType.IsNullable == true ? interfaceType.ToNullable() : interfaceType.ToNonNullable();
+        }
+
+        return interfaceType;
+    }
+
+    private static INamedType ResolveNullability( INamedType interfaceType, INamedType? templateType )
+    {
+        if ( templateType != null && interfaceType.IsNullable == null && templateType.IsNullable != null )
+        {
+            // For named types (e.g. delegate types for events), ToNullable always returns INamedType.
+            // ToNonNullable can return a non-INamedType for Nullable<T>, but event delegate types are always reference types.
+            return templateType.IsNullable == true ? interfaceType.ToNullable() : (INamedType) interfaceType.ToNonNullable();
+        }
+
+        return interfaceType;
+    }
+
     private MethodBuilder GetImplMethodBuilder(
         INamedType declaringType,
         IMethod interfaceMethod,
         bool isIteratorMethod,
         bool isExplicit,
         bool isVirtual,
-        bool isOverride )
+        bool isOverride,
+        IMethod? templateMethod = null )
     {
         var name = GetInterfaceMemberName( interfaceMethod, isExplicit );
 
+        var returnType = ResolveNullability( interfaceMethod.ReturnParameter.Type, templateMethod?.ReturnParameter.Type );
+
         var methodBuilder = new MethodBuilder( this.AspectLayerInstance, declaringType, name )
         {
-            ReturnParameter = { Type = interfaceMethod.ReturnParameter.Type, RefKind = interfaceMethod.ReturnParameter.RefKind }
+            ReturnParameter = { Type = returnType, RefKind = interfaceMethod.ReturnParameter.RefKind }
         };
 
         methodBuilder.SetIsIteratorMethod( isIteratorMethod );
 
-        foreach ( var interfaceParameter in interfaceMethod.Parameters )
+        for ( var i = 0; i < interfaceMethod.Parameters.Count; i++ )
         {
+            var interfaceParameter = interfaceMethod.Parameters[i];
+            var templateParameter = templateMethod != null && i < templateMethod.Parameters.Count ? templateMethod.Parameters[i] : null;
+            var parameterType = ResolveNullability( interfaceParameter.Type, templateParameter?.Type );
+
             _ = methodBuilder.AddParameter(
                 interfaceParameter.Name,
-                interfaceParameter.Type,
+                parameterType,
                 interfaceParameter.RefKind,
                 interfaceParameter.DefaultValue );
         }
@@ -1049,9 +1085,12 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
         bool isExplicit,
         bool isVirtual,
         bool isOverride,
-        bool hasImplicitSetter )
+        bool hasImplicitSetter,
+        IProperty? templateProperty = null )
     {
         var name = GetInterfaceMemberName( interfaceProperty, isExplicit );
+
+        var propertyType = ResolveNullability( interfaceProperty.Type, templateProperty?.Type );
 
         var propertyBuilder = new PropertyBuilder(
             this.AspectLayerInstance,
@@ -1062,7 +1101,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
             isAutoProperty,
             interfaceProperty.Writeability == Writeability.InitOnly,
             false,
-            hasImplicitSetter ) { Type = interfaceProperty.Type };
+            hasImplicitSetter ) { Type = propertyType };
 
         if ( isExplicit )
         {
@@ -1106,11 +1145,14 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
         bool isEventField,
         bool isExplicit,
         bool isVirtual,
-        bool isOverride )
+        bool isOverride,
+        IEvent? templateEvent = null )
     {
         var name = GetInterfaceMemberName( interfaceEvent, isExplicit );
 
-        var eventBuilder = new EventBuilder( this.AspectLayerInstance, declaringType, name, isEventField ) { Type = interfaceEvent.Type };
+        var eventType = ResolveNullability( interfaceEvent.Type, templateEvent?.Type );
+
+        var eventBuilder = new EventBuilder( this.AspectLayerInstance, declaringType, name, isEventField ) { Type = eventType };
 
         if ( isExplicit )
         {
