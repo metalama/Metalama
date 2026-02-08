@@ -17,6 +17,6 @@ public class Aspect : MethodAspect
     [Template]
     private T Template<[CompileTime] T>()
     {
-        return default;
+        return default!;
     }
 }

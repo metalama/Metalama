@@ -3,6 +3,6 @@ internal class TargetCode
   [Aspect]
   private int M()
   {
-    return default;
+    return default !;
   }
 }
