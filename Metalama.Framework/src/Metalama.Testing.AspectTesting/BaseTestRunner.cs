@@ -282,6 +282,11 @@ internal abstract partial class BaseTestRunner
             if ( !string.IsNullOrEmpty( testInput.FullPath ) )
             {
                 (mainProject, _) = await AddDependencyProjectAsync( mainProject, testInput.FullPath );
+
+                if ( !testResult.Success )
+                {
+                    return;
+                }
             }
 
             // Add additional input documents.
@@ -303,6 +308,11 @@ internal abstract partial class BaseTestRunner
                 }
 
                 (mainProject, _) = await AddDependencyProjectAsync( mainProject, includedFileName );
+
+                if ( !testResult.Success )
+                {
+                    return;
+                }
 
                 await testResult.AddInputDocumentAsync( includedDocument, includedFullPath );
             }

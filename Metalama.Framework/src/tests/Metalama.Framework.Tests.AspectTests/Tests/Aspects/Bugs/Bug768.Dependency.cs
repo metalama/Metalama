@@ -8,10 +8,9 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug768;
 
 public class TestAspect : OverrideMethodAspect
 {
-    [Template]
     public override dynamic? OverrideMethod()
     {
-        X a = meta.CompileTime( new X() );
+        var x = meta.CompileTime( new X() );
 
         return meta.Proceed();
     }
