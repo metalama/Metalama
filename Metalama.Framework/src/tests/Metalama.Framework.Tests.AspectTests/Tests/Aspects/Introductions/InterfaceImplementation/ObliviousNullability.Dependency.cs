@@ -20,5 +20,13 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
         string ObliviousProperty { get; set; }
 
         string ObliviousMethod( string x );
+
+        int ValueTypeProperty { get; set; }
+
+        int ValueTypeMethod( int x );
+
+        int? NullableValueTypeProperty { get; set; }
+
+        int? NullableValueTypeMethod( int? x );
     }
 }

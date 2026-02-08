@@ -33,6 +33,24 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
         {
             return x;
         }
+
+        [InterfaceMember]
+        public int ValueTypeProperty { get; set; }
+
+        [InterfaceMember]
+        public int ValueTypeMethod( int x )
+        {
+            return x;
+        }
+
+        [InterfaceMember]
+        public int? NullableValueTypeProperty { get; set; }
+
+        [InterfaceMember]
+        public int? NullableValueTypeMethod( int? x )
+        {
+            return x;
+        }
     }
 
     // <target>
