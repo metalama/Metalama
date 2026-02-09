@@ -6,7 +6,7 @@ internal class TargetCode
     global::System.Console.WriteLine("Starting Enumerable");
     await foreach (var item in global::System.Threading.Tasks.TaskAsyncEnumerableExtensions.ConfigureAwait(this.Enumerable_Source(a), false))
     {
-      global::System.Console.WriteLine($" Intercepting {(object)item}");
+      global::System.Console.WriteLine($" Intercepting {item}");
       yield return item;
     }
     global::System.Console.WriteLine("Ending Enumerable");

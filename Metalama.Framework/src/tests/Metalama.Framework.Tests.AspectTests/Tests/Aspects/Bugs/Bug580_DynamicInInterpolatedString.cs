@@ -16,13 +16,18 @@ internal class LogAttribute : OverrideMethodAspect
 
         Console.WriteLine( $"Method returned: {result}" );
 
-        // Test with different blocks and a variable with the same name in a nested scope.
-        // This ensures the fix is not based on tracking variable names (which would break
-        // with conflicting names across scopes).
+        // Test with conflicting variable names across scopes.
+        // The first declaration is in the 'else' block so both branches declare 'result2'
+        // with the same name, verifying that scoping is handled correctly.
         if ( meta.Target.Parameters.Count > 0 )
         {
             var result2 = meta.Target.Parameters[0].Value;
             Console.WriteLine( $"  First param value: {result2}" );
+        }
+        else
+        {
+            var result2 = meta.Proceed();
+            Console.WriteLine( $"  No params, result2: {result2}" );
         }
 
         return result;

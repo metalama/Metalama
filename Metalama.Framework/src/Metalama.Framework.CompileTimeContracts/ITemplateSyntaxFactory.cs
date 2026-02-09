@@ -90,7 +90,7 @@ public interface ITemplateSyntaxFactory
 
     TypeOfExpressionSyntax TypeOf( string typeOfString, Dictionary<string, TypeSyntax> substitutions );
 
-    InterpolationSyntax FixInterpolationSyntax( InterpolationSyntax interpolation, bool isDynamic = false );
+    InterpolationSyntax FixInterpolationSyntax( InterpolationSyntax interpolation );
 
     ITemplateSyntaxFactory ForLocalFunction( string returnType, Dictionary<string, IType> genericArguments, bool isAsync = false );
 

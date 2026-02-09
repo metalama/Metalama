@@ -6,7 +6,7 @@ internal class TargetCode
     global::System.Console.WriteLine("Starting Enumerable");
     await foreach (var item in this.Enumerable_Source(a))
     {
-      global::System.Console.WriteLine($" Intercepting {(object)item}");
+      global::System.Console.WriteLine($" Intercepting {item}");
       yield return item;
     }
     global::System.Console.WriteLine("Ending Enumerable");
@@ -28,7 +28,7 @@ internal class TargetCode
     var enumerator = this.Enumerator_Source(a);
     while (await enumerator.MoveNextAsync())
     {
-      global::System.Console.WriteLine($" Intercepting {(object)enumerator.Current}");
+      global::System.Console.WriteLine($" Intercepting {enumerator.Current}");
       yield return enumerator.Current;
     }
     global::System.Console.WriteLine("Ending Enumerator");

@@ -7,7 +7,7 @@ internal class TargetCode
     global::System.Int32 result;
     await Task.Yield();
     result = a * 2;
-    global::System.Console.WriteLine($"After: {(object)result}");
+    global::System.Console.WriteLine($"After: {result}");
     return (global::System.Int32)result;
   }
 }
