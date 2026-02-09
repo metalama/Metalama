@@ -124,6 +124,9 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
 
             awaitableResultType = getResultMethod.ReturnType;
 
+            // Check for AsyncMethodBuilderAttribute on the awaitable type.
+            hasMethodBuilder = namedType.Attributes.Any( a => a.Type.Name == nameof(AsyncMethodBuilderAttribute) );
+
             return true;
         }
 
