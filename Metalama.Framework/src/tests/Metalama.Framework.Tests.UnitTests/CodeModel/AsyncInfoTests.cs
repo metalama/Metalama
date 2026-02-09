@@ -635,7 +635,7 @@ class C
     }
 
     [Fact]
-    public void IntroducedAwaitableType_IncompleteAwaiter()
+    public void IntroducedAwaitableType_MinimalAwaiter()
     {
         using var testContext = this.CreateTestContext();
 
@@ -650,8 +650,9 @@ class C
         var compilation = immutableCompilation.CreateMutableClone();
         var targetType = compilation.Types.Single();
 
-        // Introduce an incomplete awaiter type (has GetResult but no IsCompleted and no OnCompleted).
-        var awaiterTypeBuilder = new NamedTypeBuilder( null!, targetType, "IncompleteAwaiter", TypeKind.Struct );
+        // Introduce an awaiter type with only GetResult (the code model fallback checks
+        // the same markers as the Roslyn path: GetAwaiter + GetResult).
+        var awaiterTypeBuilder = new NamedTypeBuilder( null!, targetType, "MinimalAwaiter", TypeKind.Struct );
 
         var getResultBuilder = new MethodBuilder( null!, awaiterTypeBuilder, "GetResult" );
         getResultBuilder.Freeze();
@@ -661,9 +662,9 @@ class C
         compilation.AddTransformation( awaiterTypeBuilder.CreateTransformation() );
         compilation.AddTransformation( getResultBuilder.ToTransformation() );
 
-        var awaiterType = compilation.Types.Single().Types.OfName( "IncompleteAwaiter" ).Single();
+        var awaiterType = compilation.Types.Single().Types.OfName( "MinimalAwaiter" ).Single();
 
-        // Introduce an awaitable type whose GetAwaiter() returns the incomplete awaiter.
+        // Introduce an awaitable type whose GetAwaiter() returns the minimal awaiter.
         var awaitableTypeBuilder = new NamedTypeBuilder( null!, targetType, "MyAwaitable", TypeKind.Struct );
 
         var getAwaiterBuilder = new MethodBuilder( null!, awaitableTypeBuilder, "GetAwaiter" ) { ReturnType = awaiterType };
@@ -683,9 +684,11 @@ class C
         var method = compilation.Types.Single().Methods.OfName( "Method" ).Single();
         var asyncInfo = method.GetAsyncInfo();
 
-        // The awaiter is incomplete (missing IsCompleted and OnCompleted), so the type should NOT be awaitable.
+        // With GetAwaiter() + GetResult(), the type is awaitable (aligned with the Roslyn path behavior).
         Assert.False( asyncInfo.IsAsync );
-        Assert.False( asyncInfo.IsAwaitable );
-        Assert.False( asyncInfo.IsAwaitableOrVoid );
+        Assert.True( asyncInfo.IsAwaitable );
+        Assert.True( asyncInfo.IsAwaitableOrVoid );
+        Assert.False( asyncInfo.HasMethodBuilder );
+        Assert.Equal( compilation.Factory.GetTypeByReflectionType( typeof(void) ), asyncInfo.ResultType );
     }
 }

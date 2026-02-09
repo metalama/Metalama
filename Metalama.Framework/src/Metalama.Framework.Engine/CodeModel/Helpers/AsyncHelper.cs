@@ -81,7 +81,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
                 return false;
             }
 
-            // Check for GetAwaiter() method with no parameters.
+            // Check for GetAwaiter() method with no parameters (same check as the Roslyn path).
             var getAwaiterMethod = namedType.Methods.OfName( "GetAwaiter" ).FirstOrDefault( m => m.Parameters.Count == 0 );
 
             if ( getAwaiterMethod == null )
@@ -89,7 +89,6 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
                 return false;
             }
 
-            // Validate the awaiter type per C# spec: it must have IsCompleted, GetResult(), and OnCompleted/UnsafeOnCompleted.
             var awaiterType = getAwaiterMethod.ReturnType;
 
             if ( awaiterType is not INamedType awaiterNamedType )
@@ -97,27 +96,10 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
                 return false;
             }
 
-            // Check for parameterless GetResult() method.
+            // Check for parameterless GetResult() method on the awaiter (same check as the Roslyn path).
             var getResultMethod = awaiterNamedType.Methods.OfName( "GetResult" ).FirstOrDefault( m => m.Parameters.Count == 0 );
 
             if ( getResultMethod == null )
-            {
-                return false;
-            }
-
-            // Check for IsCompleted property (bool getter).
-            var isCompletedProperty = awaiterNamedType.Properties.OfName( "IsCompleted" ).FirstOrDefault();
-
-            if ( isCompletedProperty == null )
-            {
-                return false;
-            }
-
-            // Check for OnCompleted or UnsafeOnCompleted method (from INotifyCompletion/ICriticalNotifyCompletion).
-            var hasOnCompleted = awaiterNamedType.Methods.OfName( "OnCompleted" ).Any( m => m.Parameters.Count == 1 )
-                                 || awaiterNamedType.Methods.OfName( "UnsafeOnCompleted" ).Any( m => m.Parameters.Count == 1 );
-
-            if ( !hasOnCompleted )
             {
                 return false;
             }
