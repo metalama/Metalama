@@ -32,6 +32,7 @@ namespace Metalama.Framework.Engine.Templating
     {
         private readonly TemplateExpansionContext _templateExpansionContext;
         private readonly ObjectReaderFactory _objectReaderFactory;
+        private readonly HashSet<string> _dynamicLocalVariableNames = new( StringComparer.Ordinal );
 
         public TemplateSyntaxFactoryImpl( TemplateExpansionContext templateExpansionContext )
         {
@@ -244,6 +245,15 @@ namespace Metalama.Framework.Engine.Templating
                 throw new AssertionFailedException( "The expression should not be null." );
             }
 
+            // Track whether the variable will actually have type 'dynamic' at run time,
+            // so that FixInterpolationSyntax can add an (object) cast when needed to avoid CS9230.
+            var effectiveType = awaitResult ? value.Type.GetAsyncInfo().ResultType : value.Type;
+
+            if ( effectiveType.TypeKind == Code.TypeKind.Dynamic )
+            {
+                this._dynamicLocalVariableNames.Add( identifier.Text );
+            }
+
             var runtimeExpression = value.ToExpressionSyntax( this.SyntaxSerializationContext );
 
             if ( value.Type.Equals( SpecialType.Void )
@@ -433,7 +443,8 @@ namespace Metalama.Framework.Engine.Templating
                     }
 
                 case ExpressionSyntax expressionSyntax:
-                    // TODO: Fix the data flow. This method call was redundant.
+                    // TODO: Fix the data flow. In this case, the dynamic expression is an ExpressionSyntax,
+                    // and we don't have type annotations. This should be fixed.
                     return expressionSyntax;
 
                 default:
@@ -559,7 +570,39 @@ namespace Metalama.Framework.Engine.Templating
             return typeOfExpression;
         }
 
-        public InterpolationSyntax FixInterpolationSyntax( InterpolationSyntax interpolation ) => InterpolationSyntaxHelper.Fix( interpolation );
+        public InterpolationSyntax FixInterpolationSyntax( InterpolationSyntax interpolation )
+        {
+            // Determine if the interpolation expression is of type 'dynamic' at expansion time.
+            // Check the type annotation (set by GetDynamicSyntax for IExpression values like parameter.Value).
+            var isDynamic = TypeAnnotationMapper.TryFindExpressionTypeFromAnnotation(
+                                interpolation.Expression,
+                                this.SyntaxSerializationContext.CompilationModel,
+                                out var annotatedType )
+                            && annotatedType.TypeKind == Code.TypeKind.Dynamic;
+
+            // Also check if the expression is a local variable that was declared as 'dynamic' at expansion time
+            // (tracked in DynamicLocalDeclaration).
+            if ( !isDynamic && interpolation.Expression.IsKind( SyntaxKind.IdentifierName )
+                            && interpolation.Expression is IdentifierNameSyntax identifierName
+                            && this._dynamicLocalVariableNames.Contains( identifierName.Identifier.Text ) )
+            {
+                isDynamic = true;
+            }
+
+            var fixedInterpolation = InterpolationSyntaxHelper.Fix( interpolation );
+
+            // If the interpolation expression is of type 'dynamic', cast it to 'object' to avoid CS9230
+            // ("Cannot perform a dynamic invocation on an expression") when using interpolated string handlers (Roslyn 4.12+).
+            if ( isDynamic )
+            {
+                var objectType = SyntaxFactory.PredefinedType( SyntaxFactory.Token( SyntaxKind.ObjectKeyword ) );
+                var castExpression = SyntaxFactory.CastExpression( objectType, fixedInterpolation.Expression );
+
+                fixedInterpolation = fixedInterpolation.WithExpression( castExpression );
+            }
+
+            return fixedInterpolation;
+        }
 
         public ITemplateSyntaxFactory ForLocalFunction( string returnType, Dictionary<string, IType> genericArguments, bool isAsync = false )
         {
