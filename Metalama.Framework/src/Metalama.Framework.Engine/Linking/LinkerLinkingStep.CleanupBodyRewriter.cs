@@ -220,13 +220,13 @@ internal sealed partial class LinkerLinkingStep
                 {
                     var openBraceTrailingTrivia = block.OpenBraceToken.TrailingTrivia.StripFirstTrailingNewLine();
 
-                    // If the first statement's leading trivia does not start with an end-of-line,
-                    // we need to preserve the newline from the open brace to avoid placing content on the same line as '{'.
+                    // If the first statement's leading trivia contains a comment (non-whitespace, non-EOL trivia),
+                    // we need to preserve the newline from the open brace to avoid placing the comment on the same line as '{'.
                     if ( firstStatementIndex < statements.Count )
                     {
                         var firstStatementLeading = statements[firstStatementIndex].GetLeadingTrivia();
 
-                        if ( firstStatementLeading.Count == 0 || !firstStatementLeading[0].IsKind( SyntaxKind.EndOfLineTrivia ) )
+                        if ( HasCommentTrivia( firstStatementLeading ) )
                         {
                             openBraceTrailingTrivia = block.OpenBraceToken.TrailingTrivia;
                         }
@@ -253,6 +253,22 @@ internal sealed partial class LinkerLinkingStep
                             statements[lastStatementIndex]
                                 .WithRequiredTrailingTrivia( statements[lastStatementIndex].GetTrailingTrivia().AddRange( trailingTrivia ) );
                     }
+                }
+
+                static bool HasCommentTrivia( SyntaxTriviaList triviaList )
+                {
+                    foreach ( var trivia in triviaList )
+                    {
+                        if ( trivia.IsKind( SyntaxKind.SingleLineCommentTrivia )
+                             || trivia.IsKind( SyntaxKind.MultiLineCommentTrivia )
+                             || trivia.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
+                             || trivia.IsKind( SyntaxKind.MultiLineDocumentationCommentTrivia ) )
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
                 }
             }
         }
