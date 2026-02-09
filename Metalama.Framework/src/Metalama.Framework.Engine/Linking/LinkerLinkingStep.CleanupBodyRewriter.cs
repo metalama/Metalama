@@ -218,7 +218,21 @@ internal sealed partial class LinkerLinkingStep
                 if ( SyntaxExtensions.ShouldTriviaBePreserved( block.OpenBraceToken, generationContext.Options )
                      || SyntaxExtensions.ShouldTriviaBePreserved( block.CloseBraceToken, generationContext.Options ) )
                 {
-                    var leadingTrivia = block.OpenBraceToken.LeadingTrivia.AddRange( block.OpenBraceToken.TrailingTrivia.StripFirstTrailingNewLine() );
+                    var openBraceTrailingTrivia = block.OpenBraceToken.TrailingTrivia.StripFirstTrailingNewLine();
+
+                    // If the first statement's leading trivia does not start with an end-of-line,
+                    // we need to preserve the newline from the open brace to avoid placing content on the same line as '{'.
+                    if ( firstStatementIndex < statements.Count )
+                    {
+                        var firstStatementLeading = statements[firstStatementIndex].GetLeadingTrivia();
+
+                        if ( firstStatementLeading.Count == 0 || !firstStatementLeading[0].IsKind( SyntaxKind.EndOfLineTrivia ) )
+                        {
+                            openBraceTrailingTrivia = block.OpenBraceToken.TrailingTrivia;
+                        }
+                    }
+
+                    var leadingTrivia = block.OpenBraceToken.LeadingTrivia.AddRange( openBraceTrailingTrivia );
                     var trailingTrivia = block.CloseBraceToken.LeadingTrivia.AddRange( block.CloseBraceToken.TrailingTrivia.StripFirstTrailingNewLine() );
 
                     if ( firstStatementIndex >= statements.Count )

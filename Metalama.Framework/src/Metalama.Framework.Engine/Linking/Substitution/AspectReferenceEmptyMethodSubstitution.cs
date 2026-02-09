@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel.Helpers;
-using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -103,15 +102,10 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
 
     public override SyntaxNode? Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
-        var syntaxGenerator = substitutionContext.SyntaxGenerationContext.SyntaxGenerator;
-
         if ( this._isStatementContext )
         {
-            // For statement context (void or non-void used as statement), suppress the statement
-            // by replacing it with an empty flattenable block.
-            return syntaxGenerator.FormattedBlock()
-                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock )
-                .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
+            // For statement context (void or non-void used as statement), remove the statement entirely.
+            return null;
         }
         else
         {
