@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
@@ -11,10 +10,8 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
@@ -76,10 +73,6 @@ namespace Metalama.Framework.Engine.Templating
 
             block = (BlockSyntax) new FlattenBlocksRewriter().Visit( output )!;
 
-            // Rename template run-time type parameter references to match the target method's type parameter names.
-            // This is needed because the template may use different names than the target method (e.g., template uses T, target uses U).
-            block = RenameTypeParametersIfNecessary( block, templateExpansionContext );
-
             // If we're generating an async iterator method, but there is no yield statement, we would get an error.
             // Prevent that by adding `yield break;` at the end of the method body.
             block = templateExpansionContext.AddYieldBreakIfNecessary( block );
@@ -91,69 +84,6 @@ namespace Metalama.Framework.Engine.Templating
             block = block.WithGeneratedCodeAnnotation( aspectClass?.GeneratedCodeAnnotation ?? FormattingAnnotations.SystemGeneratedCodeAnnotation );
 
             return errorCountAfter == errorCountBefore;
-        }
-
-        private static BlockSyntax RenameTypeParametersIfNecessary( BlockSyntax block, TemplateExpansionContext context )
-        {
-            var genericArguments = context.TemplateGenericArguments;
-
-            if ( genericArguments.Count == 0 )
-            {
-                return block;
-            }
-
-            // Build a renaming map from template type parameter name to target type parameter name,
-            // but only for type parameters that map to other type parameters (not concrete types).
-            Dictionary<string, string>? renameMap = null;
-
-            foreach ( var pair in genericArguments )
-            {
-                if ( pair.Value is ITypeParameter targetTypeParameter && pair.Key != targetTypeParameter.Name )
-                {
-                    renameMap ??= new Dictionary<string, string>();
-                    renameMap[pair.Key] = targetTypeParameter.Name;
-                }
-            }
-
-            if ( renameMap == null )
-            {
-                return block;
-            }
-
-            return (BlockSyntax) new TypeParameterRenamingRewriter( renameMap ).Visit( block )!;
-        }
-
-        /// <summary>
-        /// A syntax rewriter that renames type parameter identifiers in the expanded template body.
-        /// </summary>
-        private sealed class TypeParameterRenamingRewriter : CSharpSyntaxRewriter
-        {
-            private readonly Dictionary<string, string> _renameMap;
-
-            public TypeParameterRenamingRewriter( Dictionary<string, string> renameMap )
-            {
-                this._renameMap = renameMap;
-            }
-
-            public override SyntaxNode? VisitIdentifierName( IdentifierNameSyntax node )
-            {
-                if ( this._renameMap.TryGetValue( node.Identifier.ValueText, out var newName ) )
-                {
-                    return node.WithIdentifier( SyntaxFactoryEx.SafeIdentifier( newName ).WithTriviaFrom( node.Identifier ) );
-                }
-
-                return base.VisitIdentifierName( node );
-            }
-
-            public override SyntaxNode? VisitGenericName( GenericNameSyntax node )
-            {
-                if ( this._renameMap.TryGetValue( node.Identifier.ValueText, out var newName ) )
-                {
-                    node = node.WithIdentifier( SyntaxFactoryEx.SafeIdentifier( newName ).WithTriviaFrom( node.Identifier ) );
-                }
-
-                return base.VisitGenericName( node );
-            }
         }
     }
 }
