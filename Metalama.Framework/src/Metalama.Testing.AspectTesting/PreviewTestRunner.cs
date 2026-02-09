@@ -34,6 +34,11 @@ internal sealed class PreviewTestRunner : BaseTestRunner
     {
         await base.RunAsync( testInput, testResult, testContext );
 
+        if ( !testResult.Success )
+        {
+            return;
+        }
+
         var inputCompilation = testResult.InputCompilation.AssertNotNull();
 
         var (project, _) = await WorkspaceHelper.CreateProjectFromCompilationAsync(
