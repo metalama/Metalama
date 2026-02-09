@@ -164,15 +164,15 @@ internal sealed partial class LinkerLinkingStep
                         if ( finalStatements.Count == 0 )
                         {
                             // There is not yet any statement to attach the trivia so everything goes into overflow.
-                            overflowingTrivia = leadingTrivia.AddRange( trailingTrivia );
+                            overflowingTrivia = overflowingTrivia.AddRange( leadingTrivia ).AddRange( trailingTrivia );
                         }
                         else
                         {
                             // We need to replace trailing trivia of the last statement.
                             var newTrailingTrivia =
                                 overflowingTrivia.Count > 0
-                                    ? leadingTrivia
-                                        .AddRange( finalStatements[^1].GetTrailingTrivia() )
+                                    ? finalStatements[^1].GetTrailingTrivia()
+                                        .AddRange( overflowingTrivia )
                                         .AddRange( leadingTrivia )
                                     : finalStatements[^1].GetTrailingTrivia().AddRange( leadingTrivia );
 
