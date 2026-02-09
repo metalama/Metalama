@@ -648,6 +648,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 }
 
                 var transformedNode = node.WithMembers( List( members ) )
+                    .WithBaseList( this.FilterBaseList( node.BaseList, node.SyntaxTree ) )
                     .WithAdditionalAnnotations( _hasCompileTimeCodeAnnotation )
                     .WithAttributeLists( this.VisitAttributeLists( node.AttributeLists ) );
 
@@ -738,10 +739,66 @@ namespace Metalama.Framework.Engine.CompileTime
 
                     return true;
                 }
-                else
+
+                // Exclude explicit interface implementations of runtime-only interfaces.
+                if ( this.IsExplicitImplementationOfRunTimeOnlyInterface( symbol ) )
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
+            }
+
+            private bool IsExplicitImplementationOfRunTimeOnlyInterface( ISymbol symbol )
+            {
+                var explicitImplementations = symbol.Kind switch
+                {
+                    SymbolKind.Method when symbol is IMethodSymbol method => method.ExplicitInterfaceImplementations.Select( m => m.ContainingType ),
+                    SymbolKind.Property when symbol is IPropertySymbol property => property.ExplicitInterfaceImplementations.Select( p => p.ContainingType ),
+                    SymbolKind.Event when symbol is IEventSymbol @event => @event.ExplicitInterfaceImplementations.Select( e => e.ContainingType ),
+                    _ => Enumerable.Empty<INamedTypeSymbol>()
+                };
+
+                return explicitImplementations.Any( t => this.SymbolClassifier.GetTemplatingScope( t ) == TemplatingScope.RunTimeOnly );
+            }
+
+            private BaseListSyntax? FilterBaseList( BaseListSyntax? baseList, SyntaxTree syntaxTree )
+            {
+                if ( baseList == null )
+                {
+                    return null;
+                }
+
+                var semanticModel = this.RunTimeSemanticModelProvider.GetSemanticModel( syntaxTree );
+                var filteredTypes = new List<BaseTypeSyntax>();
+
+                foreach ( var baseType in baseList.Types )
+                {
+                    var typeInfo = semanticModel.GetTypeInfo( baseType.Type );
+
+                    if ( typeInfo.Type is INamedTypeSymbol namedType
+                         && namedType.TypeKind == TypeKind.Interface
+                         && this.SymbolClassifier.GetTemplatingScope( namedType ) == TemplatingScope.RunTimeOnly )
+                    {
+                        // Skip runtime-only interfaces.
+                        continue;
+                    }
+
+                    filteredTypes.Add( baseType );
+                }
+
+                if ( filteredTypes.Count == baseList.Types.Count )
+                {
+                    // No interfaces were removed.
+                    return baseList;
+                }
+
+                if ( filteredTypes.Count == 0 )
+                {
+                    return null;
+                }
+
+                return baseList.WithTypes( SeparatedList( filteredTypes ) );
             }
 
             private IEnumerable<MethodDeclarationSyntax> TransformMethodDeclaration( MethodDeclarationSyntax node )
