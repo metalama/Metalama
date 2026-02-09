@@ -589,11 +589,17 @@ class C
         var getResultBuilder = new MethodBuilder( null!, awaiterTypeBuilder, "GetResult" );
         getResultBuilder.Freeze();
 
+        // Add OnCompleted(Action) method to the awaiter (required by C# spec for awaiters).
+        var onCompletedBuilder = new MethodBuilder( null!, awaiterTypeBuilder, "OnCompleted" );
+        onCompletedBuilder.AddParameter( "action", compilation.Factory.GetTypeByReflectionType( typeof(System.Action) ) );
+        onCompletedBuilder.Freeze();
+
         awaiterTypeBuilder.Freeze();
 
         compilation.AddTransformation( awaiterTypeBuilder.CreateTransformation() );
         compilation.AddTransformation( isCompletedBuilder.CreateTransformation() );
         compilation.AddTransformation( getResultBuilder.ToTransformation() );
+        compilation.AddTransformation( onCompletedBuilder.ToTransformation() );
 
         // Get the introduced awaiter type from the compilation.
         var awaiterType = compilation.Types.Single().Types.OfName( "MyAwaiter" ).Single();
@@ -626,5 +632,60 @@ class C
         Assert.True( asyncInfo.IsAwaitableOrVoid );
         Assert.False( asyncInfo.HasMethodBuilder );
         Assert.Equal( compilation.Factory.GetTypeByReflectionType( typeof(void) ), asyncInfo.ResultType );
+    }
+
+    [Fact]
+    public void IntroducedAwaitableType_IncompleteAwaiter()
+    {
+        using var testContext = this.CreateTestContext();
+
+        // Source code: a class C.
+        const string code = @"
+class C
+{
+}
+";
+
+        var immutableCompilation = testContext.CreateCompilationModel( code );
+        var compilation = immutableCompilation.CreateMutableClone();
+        var targetType = compilation.Types.Single();
+
+        // Introduce an incomplete awaiter type (has GetResult but no IsCompleted and no OnCompleted).
+        var awaiterTypeBuilder = new NamedTypeBuilder( null!, targetType, "IncompleteAwaiter", TypeKind.Struct );
+
+        var getResultBuilder = new MethodBuilder( null!, awaiterTypeBuilder, "GetResult" );
+        getResultBuilder.Freeze();
+
+        awaiterTypeBuilder.Freeze();
+
+        compilation.AddTransformation( awaiterTypeBuilder.CreateTransformation() );
+        compilation.AddTransformation( getResultBuilder.ToTransformation() );
+
+        var awaiterType = compilation.Types.Single().Types.OfName( "IncompleteAwaiter" ).Single();
+
+        // Introduce an awaitable type whose GetAwaiter() returns the incomplete awaiter.
+        var awaitableTypeBuilder = new NamedTypeBuilder( null!, targetType, "MyAwaitable", TypeKind.Struct );
+
+        var getAwaiterBuilder = new MethodBuilder( null!, awaitableTypeBuilder, "GetAwaiter" ) { ReturnType = awaiterType };
+        getAwaiterBuilder.Freeze();
+
+        awaitableTypeBuilder.Freeze();
+
+        compilation.AddTransformation( awaitableTypeBuilder.CreateTransformation() );
+        compilation.AddTransformation( getAwaiterBuilder.ToTransformation() );
+
+        // Add a method to C that returns the introduced awaitable type.
+        var introducedAwaitableType = compilation.Types.Single().Types.OfName( "MyAwaitable" ).Single();
+        var methodBuilder = new MethodBuilder( null!, targetType, "Method" ) { ReturnType = introducedAwaitableType };
+        methodBuilder.Freeze();
+        compilation.AddTransformation( methodBuilder.ToTransformation() );
+
+        var method = compilation.Types.Single().Methods.OfName( "Method" ).Single();
+        var asyncInfo = method.GetAsyncInfo();
+
+        // The awaiter is incomplete (missing IsCompleted and OnCompleted), so the type should NOT be awaitable.
+        Assert.False( asyncInfo.IsAsync );
+        Assert.False( asyncInfo.IsAwaitable );
+        Assert.False( asyncInfo.IsAwaitableOrVoid );
     }
 }
