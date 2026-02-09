@@ -471,9 +471,8 @@ internal static class TemplateBindingHelper
                 break;
 
             case { OperatorKind: OperatorKind.None }:
-                // For non-operator methods, we match parameters by name.
-                // An introduction can rename parameters, so if name-based lookup fails,
-                // we fall back to matching by ordinal position among run-time parameters.
+                // For non-operator methods, we match parameters by name, falling back to ordinal position
+                // among run-time parameters when an introduction has renamed the parameter.
                 var runTimeParameterIndex = 0;
 
                 foreach ( var templateParameter in templateMethodSymbol.Parameters )
@@ -512,7 +511,9 @@ internal static class TemplateBindingHelper
                     runTimeParameterIndex++;
                 }
 
-                // Check that template generic parameters match the target.
+                // Check that template generic parameters match the target by ordinal position among run-time type parameters.
+                var runTimeTypeParameterIndex = 0;
+
                 foreach ( var templateParameter in templateMethodSymbol.TypeParameters )
                 {
                     if ( template.TemplateClassMember.TypeParameters[templateParameter.Ordinal].IsCompileTime )
@@ -520,31 +521,25 @@ internal static class TemplateBindingHelper
                         continue;
                     }
 
-                    // First try to match by name. If that fails, fall back to matching by ordinal position.
-                    // An introduction can rename type parameters, so the template may use the original name
-                    // while the target method uses the new name.
-                    var methodParameter = targetMethod.TypeParameters.SingleOrDefault( p => p.Name == templateParameter.Name );
-
-                    if ( methodParameter == null )
+                    if ( runTimeTypeParameterIndex < targetMethod.TypeParameters.Count )
                     {
-                        if ( templateParameter.Ordinal < targetMethod.TypeParameters.Count )
-                        {
-                            methodParameter = targetMethod.TypeParameters[templateParameter.Ordinal];
-                        }
-                        else
+                        var methodParameter = targetMethod.TypeParameters[runTimeTypeParameterIndex];
+
+                        if ( !templateParameter.IsCompatibleWith( methodParameter ) )
                         {
                             throw new InvalidTemplateSignatureException(
                                 MetalamaStringFormatter.Format(
-                                    $"Cannot use the template '{templateMethodSymbol}' to override the method '{targetMethod}': the target method does not contain a generic parameter '{templateParameter.Name}'." ) );
+                                    $"Cannot use the template '{templateMethodSymbol}' to override the method '{targetMethod}': the constraints on the template parameter '{templateParameter.Name}' are not compatible with the constraints on the target method parameter '{methodParameter.Name}'." ) );
                         }
                     }
-
-                    if ( !templateParameter.IsCompatibleWith( methodParameter ) )
+                    else
                     {
                         throw new InvalidTemplateSignatureException(
                             MetalamaStringFormatter.Format(
-                                $"Cannot use the template '{templateMethodSymbol}' to override the method '{targetMethod}': the constraints on the template parameter '{templateParameter.Name}' are not compatible with the constraints on the target method parameter '{methodParameter.Name}'." ) );
+                                $"Cannot use the template '{templateMethodSymbol}' to override the method '{targetMethod}': the target method does not contain a generic parameter '{templateParameter.Name}'." ) );
                     }
+
+                    runTimeTypeParameterIndex++;
                 }
 
                 break;

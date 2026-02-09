@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using System;
 using System.Linq;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -12,10 +13,11 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Generic.IntroduceOv
 {
     public class TestAspect1 : TypeAspect
     {
-        // This aspect introduces/overrides the method changing the type parameter name from T to U.
+        // This aspect introduces/overrides the method changing the type parameter name from S to U.
         [Introduce( WhenExists = OverrideStrategy.Override )]
         public void Foo<U>()
         {
+            Console.WriteLine( typeof(U) );
             meta.Proceed();
         }
     }
@@ -30,17 +32,18 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Generic.IntroduceOv
             }
         }
 
-        // The template uses the original type parameter name T (as defined in Base).
+        // The template uses a different type parameter name T (neither the original S nor the renamed U).
         [Template]
         public void FooTemplate<T>()
         {
+            Console.WriteLine( typeof(T) );
             meta.Proceed();
         }
     }
 
     internal class Base
     {
-        public virtual void Foo<T>()
+        public virtual void Foo<S>()
         {
         }
     }
