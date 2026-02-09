@@ -219,6 +219,39 @@ namespace Metalama.Framework.Engine.Linking
                 generationContext );
         }
 
+        /// <summary>
+        /// Creates a source impl method for a synthesized override target that throws <see cref="System.NotSupportedException"/>.
+        /// This is used when meta.Proceed() is called in an aspect that overrides a compiler-synthesized record member.
+        /// </summary>
+        private MemberDeclarationSyntax GetNotSupportedImplMethod(
+            MethodDeclarationSyntax method,
+            IMethodSymbol symbol,
+            SyntaxGenerationContext generationContext )
+        {
+            var notSupportedBody =
+                generationContext.SyntaxGenerator.FormattedBlock(
+                    ThrowStatement(
+                        TokenWithTrailingSpace( SyntaxKind.ThrowKeyword ),
+                        ObjectCreationExpression(
+                            TokenWithTrailingSpace( SyntaxKind.NewKeyword ),
+                            QualifiedName(
+                                AliasQualifiedName(
+                                    WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+                                    WellKnownIdentifierName( "System" ) ),
+                                WellKnownIdentifierName( "NotSupportedException" ) ),
+                            ArgumentList(
+                                SingletonSeparatedList(
+                                    Argument(
+                                        LiteralExpression(
+                                            SyntaxKind.StringLiteralExpression,
+                                            Literal(
+                                                "Calling the original implementation of a compiler-synthesized record member is not supported. Do not use meta.Proceed() when overriding synthesized record members like Equals or GetHashCode." ) ) ) ) ),
+                            null ),
+                        Token( SyntaxKind.SemicolonToken ) ) );
+
+            return this.GetSpecialImplMethod( method, notSupportedBody, null, symbol, GetOriginalImplMemberName( symbol ), generationContext );
+        }
+
         private MemberDeclarationSyntax GetEmptyImplMethod(
             MethodDeclarationSyntax method,
             IMethodSymbol symbol,
@@ -395,7 +428,7 @@ namespace Metalama.Framework.Engine.Linking
                  && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
                  && this.ShouldGenerateSourceMember( symbol ) )
             {
-                members.Add( this.GetEmptyImplMethod( syntheticMethodDeclaration, symbol, generationContext ) );
+                members.Add( this.GetNotSupportedImplMethod( syntheticMethodDeclaration, symbol, generationContext ) );
             }
 
             if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )

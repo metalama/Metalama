@@ -235,6 +235,12 @@ internal sealed partial class LinkerAnalysisStep
                         false,
                         Array.Empty<BlockSyntax>() );
 
+                case SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when body is RecordDeclarationSyntax:
+                    return new SemanticBodyAnalysisResult(
+                        new Dictionary<ReturnStatementSyntax, ReturnStatementProperties>(),
+                        false,
+                        Array.Empty<BlockSyntax>() );
+
                 default:
                     throw new AssertionFailedException( $"Unexpected body for '{symbol}'." );
             }
@@ -393,6 +399,7 @@ internal sealed partial class LinkerAnalysisStep
                     SyntaxKind.VariableDeclarator when declaration is VariableDeclaratorSyntax declarator => declarator,
                     SyntaxKind.ArrowExpressionClause when declaration is ArrowExpressionClauseSyntax arrowExpressionClause => arrowExpressionClause,
                     SyntaxKind.Parameter when declaration is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter => recordParameter,
+                    SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when declaration is RecordDeclarationSyntax recordDeclaration => recordDeclaration,
                     _ => throw new AssertionFailedException( $"Unexpected node: {CSharpExtensions.Kind( declaration )}." )
                 };
             }

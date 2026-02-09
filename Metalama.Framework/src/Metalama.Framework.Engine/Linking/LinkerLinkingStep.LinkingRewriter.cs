@@ -203,7 +203,7 @@ internal sealed partial class LinkerLinkingStep
                 }
             }
 
-            // Process synthesized override targets (e.g. record-synthesized Equals) that have no explicit syntax.
+            // Process synthesized override targets (e.g. record-synthesized Equals, EqualityContract) that have no explicit syntax.
             foreach ( var synthesizedMethod in this._rewritingDriver.GetSynthesizedMethodOverrideTargets( typeSymbol ) )
             {
                 var generationContext = this._compilationContext.GetSyntaxGenerationContext(
@@ -212,6 +212,16 @@ internal sealed partial class LinkerLinkingStep
                     node.SpanStart );
 
                 newMembers.AddRange( this._rewritingDriver.RewriteSynthesizedMethodOverrideTarget( synthesizedMethod, generationContext ) );
+            }
+
+            foreach ( var synthesizedProperty in this._rewritingDriver.GetSynthesizedPropertyOverrideTargets( typeSymbol ) )
+            {
+                var generationContext = this._compilationContext.GetSyntaxGenerationContext(
+                    this._rewritingDriver.SyntaxGenerationOptions,
+                    node.SyntaxTree,
+                    node.SpanStart );
+
+                newMembers.AddRange( this._rewritingDriver.RewriteSynthesizedPropertyOverrideTarget( synthesizedProperty, generationContext ) );
             }
 
             return newMembers;

@@ -692,6 +692,9 @@ internal sealed partial class LinkerAnalysisStep
                 SyntaxKind.Parameter when root is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter
                     => new RecordParameterSubstitution( this._intermediateCompilationContext, recordParameter, targetSymbol, returnVariableIdentifier ),
 
+                SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when root is RecordDeclarationSyntax recordDeclaration
+                    => new SynthesizedRecordMemberSubstitution( this._intermediateCompilationContext, recordDeclaration ),
+
                 _ => throw new AssertionFailedException( $"Unexpected syntax: '{root}'." )
             };
     }

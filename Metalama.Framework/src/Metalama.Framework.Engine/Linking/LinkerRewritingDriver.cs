@@ -389,9 +389,28 @@ internal sealed partial class LinkerRewritingDriver
                  && overriddenMember is IMethodSymbol methodSymbol
                  && this.IntermediateCompilationContext.SymbolComparer.Equals( methodSymbol.ContainingType, typeSymbol )
                  && methodSymbol.IsImplicitlyDeclared
-                 && methodSymbol.GetPrimaryDeclarationSyntax() is RecordDeclarationSyntax )
+                 && methodSymbol.GetPrimaryDeclarationSyntax()?.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration )
             {
                 yield return methodSymbol;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets synthesized override target properties for a type (e.g. record-synthesized EqualityContract).
+    /// These are properties that are override targets but have no explicit syntax in source.
+    /// </summary>
+    public IEnumerable<IPropertySymbol> GetSynthesizedPropertyOverrideTargets( INamedTypeSymbol typeSymbol )
+    {
+        foreach ( var overriddenMember in this.InjectionRegistry.GetOverriddenMembers() )
+        {
+            if ( overriddenMember.Kind == SymbolKind.Property
+                 && overriddenMember is IPropertySymbol propertySymbol
+                 && this.IntermediateCompilationContext.SymbolComparer.Equals( propertySymbol.ContainingType, typeSymbol )
+                 && propertySymbol.IsImplicitlyDeclared
+                 && propertySymbol.GetPrimaryDeclarationSyntax()?.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration )
+            {
+                yield return propertySymbol;
             }
         }
     }

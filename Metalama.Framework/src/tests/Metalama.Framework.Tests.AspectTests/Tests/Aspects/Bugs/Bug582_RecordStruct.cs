@@ -18,7 +18,9 @@ public class ComparisonAttribute : TypeAspect
     [Template( Name = "Equals" )]
     public bool IntroducedEquals<[CompileTime] T>( T? other )
     {
-        return true;
+        var result = meta.Proceed();
+
+        return result;
     }
 }
 

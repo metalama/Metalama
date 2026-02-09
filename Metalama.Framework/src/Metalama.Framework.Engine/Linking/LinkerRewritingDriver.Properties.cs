@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Linking.Substitution;
 using Metalama.Framework.Engine.SyntaxGeneration;
@@ -564,6 +565,296 @@ namespace Metalama.Framework.Engine.Linking
                             : default )
                     .WithOptionalLeadingLineFeed( context )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
+        }
+
+        /// <summary>
+        /// Rewrites a synthesized override target property (e.g. record-synthesized EqualityContract) that has no explicit syntax in source.
+        /// Creates a property declaration from the symbol and applies the linked body.
+        /// </summary>
+        public IReadOnlyList<MemberDeclarationSyntax> RewriteSynthesizedPropertyOverrideTarget(
+            IPropertySymbol symbol,
+            SyntaxGenerationContext generationContext )
+        {
+            Invariant.Assert( this.InjectionRegistry.IsOverrideTarget( symbol ) );
+
+            var members = new List<MemberDeclarationSyntax>();
+            var lastOverride = (IPropertySymbol) this.InjectionRegistry.GetLastOverride( symbol );
+
+            // Create a synthetic PropertyDeclarationSyntax from the symbol.
+            var propertyType = generationContext.SyntaxGenerator.TypeSyntax( symbol.Type )
+                .WithOptionalTrailingTrivia( ElasticSpace, generationContext.Options );
+
+            var modifiers = symbol.GetSyntaxModifierList(
+                ModifierCategories.Accessibility | ModifierCategories.Static | ModifierCategories.Unsafe );
+
+            if ( symbol.IsVirtual && !symbol.IsOverride )
+            {
+                modifiers = modifiers.Add( TokenWithTrailingSpace( SyntaxKind.VirtualKeyword ) );
+            }
+
+            if ( symbol.IsOverride )
+            {
+                modifiers = modifiers.Add( TokenWithTrailingSpace( SyntaxKind.OverrideKeyword ) );
+            }
+
+            // Build accessor list from the symbol.
+            var accessors = new List<AccessorDeclarationSyntax>();
+
+            if ( symbol.GetMethod != null )
+            {
+                accessors.Add(
+                    AccessorDeclaration(
+                        SyntaxKind.GetAccessorDeclaration,
+                        List<AttributeListSyntax>(),
+                        TokenList(),
+                        Token( SyntaxKind.GetKeyword ),
+                        null,
+                        null,
+                        Token( SyntaxKind.SemicolonToken ) ) );
+            }
+
+            if ( symbol.SetMethod != null )
+            {
+                var setKind = symbol.SetMethod.IsInitOnly
+                    ? SyntaxKind.InitAccessorDeclaration
+                    : SyntaxKind.SetAccessorDeclaration;
+
+                accessors.Add(
+                    AccessorDeclaration(
+                        setKind,
+                        List<AttributeListSyntax>(),
+                        TokenList(),
+                        Token( setKind == SyntaxKind.InitAccessorDeclaration ? SyntaxKind.InitKeyword : SyntaxKind.SetKeyword ),
+                        null,
+                        null,
+                        Token( SyntaxKind.SemicolonToken ) ) );
+            }
+
+            var syntheticPropertyDeclaration = PropertyDeclaration(
+                List<AttributeListSyntax>(),
+                modifiers,
+                propertyType,
+                null,
+                SafeIdentifier( symbol.Name ),
+                AccessorList( List( accessors ) ),
+                null,
+                null );
+
+            if ( this.AnalysisRegistry.IsInlined( lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
+            {
+                members.Add( GetLinkedDeclaration( IntermediateSymbolSemanticKind.Final ) );
+            }
+            else
+            {
+                members.Add(
+                    this.GetTrampolineForSynthesizedProperty(
+                        syntheticPropertyDeclaration,
+                        lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                        generationContext ) );
+            }
+
+            if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
+                 && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
+                 && this.ShouldGenerateSourceMember( symbol ) )
+            {
+                members.Add(
+                    this.GetNotSupportedImplProperty(
+                        symbol,
+                        propertyType,
+                        generationContext ) );
+            }
+
+            if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
+                 && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
+                 && this.ShouldGenerateEmptyMember( symbol ) )
+            {
+                members.Add(
+                    this.GetEmptyImplProperty(
+                        symbol,
+                        List<AttributeListSyntax>(),
+                        propertyType,
+                        generationContext ) );
+            }
+
+            return members;
+
+            PropertyDeclarationSyntax GetLinkedDeclaration( IntermediateSymbolSemanticKind semanticKind )
+            {
+                var transformedAccessors = new List<AccessorDeclarationSyntax>();
+
+                if ( symbol.GetMethod != null )
+                {
+                    var getAccessorDeclaration = syntheticPropertyDeclaration.AccessorList!.Accessors
+                        .Single( a => a.IsKind( SyntaxKind.GetAccessorDeclaration ) );
+
+                    var linkedBody = this.GetSubstitutedBody(
+                        symbol.GetMethod.ToSemantic( semanticKind ),
+                        new SubstitutionContext(
+                            this,
+                            generationContext,
+                            new InliningContextIdentifier( symbol.GetMethod.ToSemantic( semanticKind ) ) ) );
+
+                    transformedAccessors.Add(
+                        getAccessorDeclaration.PartialUpdate(
+                            body: Block(
+                                    Token( TriviaList( ElasticMarker ), SyntaxKind.OpenBraceToken, TriviaList( ElasticMarker ) ),
+                                    SingletonList<StatementSyntax>( linkedBody ),
+                                    Token( TriviaList( ElasticMarker ), SyntaxKind.CloseBraceToken, TriviaList( ElasticMarker ) ) )
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock )
+                                .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ),
+                            semicolonToken: default(SyntaxToken) ) );
+                }
+
+                if ( symbol.SetMethod != null )
+                {
+                    var setAccessorDeclaration = syntheticPropertyDeclaration.AccessorList!.Accessors
+                        .Single( a => a.IsKind( SyntaxKind.SetAccessorDeclaration ) || a.IsKind( SyntaxKind.InitAccessorDeclaration ) );
+
+                    var linkedBody = this.GetSubstitutedBody(
+                        symbol.SetMethod.ToSemantic( semanticKind ),
+                        new SubstitutionContext(
+                            this,
+                            generationContext,
+                            new InliningContextIdentifier( symbol.SetMethod.ToSemantic( semanticKind ) ) ) );
+
+                    transformedAccessors.Add(
+                        setAccessorDeclaration.PartialUpdate(
+                            body: Block(
+                                    Token( TriviaList( ElasticMarker ), SyntaxKind.OpenBraceToken, TriviaList( ElasticMarker ) ),
+                                    SingletonList<StatementSyntax>( linkedBody ),
+                                    Token( TriviaList( ElasticMarker ), SyntaxKind.CloseBraceToken, TriviaList( ElasticMarker ) ) )
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock )
+                                .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ),
+                            semicolonToken: default(SyntaxToken) ) );
+                }
+
+                return syntheticPropertyDeclaration
+                    .PartialUpdate(
+                        accessorList: AccessorList(
+                                Token( TriviaList( ElasticMarker ), SyntaxKind.OpenBraceToken, TriviaList( ElasticMarker ) ),
+                                List( transformedAccessors ),
+                                Token( TriviaList( ElasticMarker ), SyntaxKind.CloseBraceToken, TriviaList( ElasticMarker ) ) )
+                            .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) )
+                    .WithOptionalLeadingAndTrailingLineFeed( generationContext )
+                    .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
+            }
+        }
+
+        private PropertyDeclarationSyntax GetTrampolineForSynthesizedProperty(
+            PropertyDeclarationSyntax property,
+            IntermediateSymbolSemantic<IPropertySymbol> targetSymbol,
+            SyntaxGenerationContext context )
+        {
+            var getAccessor = property.AccessorList?.Accessors.SingleOrDefault( x => x.Kind() == SyntaxKind.GetAccessorDeclaration );
+            var setAccessor = property.AccessorList?.Accessors.SingleOrDefault(
+                x => x.Kind() == SyntaxKind.SetAccessorDeclaration || x.Kind() == SyntaxKind.InitAccessorDeclaration );
+
+            return property
+                .PartialUpdate(
+                    accessorList: AccessorList(
+                        List(
+                            new[]
+                                {
+                                    getAccessor != null
+                                        ? AccessorDeclaration(
+                                            SyntaxKind.GetAccessorDeclaration,
+                                            context.SyntaxGenerator.FormattedBlock(
+                                                ReturnStatement(
+                                                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                                                    GetInvocationTarget(),
+                                                    Token( SyntaxKind.SemicolonToken ) ) ) )
+                                        : null,
+                                    setAccessor != null
+                                        ? AccessorDeclaration(
+                                            SyntaxKind.SetAccessorDeclaration,
+                                            context.SyntaxGenerator.FormattedBlock(
+                                                ExpressionStatement(
+                                                    AssignmentExpression(
+                                                        SyntaxKind.SimpleAssignmentExpression,
+                                                        GetInvocationTarget(),
+                                                        IdentifierName( "value" ) ) ) ) )
+                                        : null
+                                }.Where( a => a != null )
+                                .AssertNoneNull() ) ) )
+                .WithTriviaFromIfNecessary( property, this.SyntaxGenerationOptions );
+
+            ExpressionSyntax GetInvocationTarget()
+            {
+                if ( targetSymbol.Symbol.IsStatic )
+                {
+                    return SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Symbol.Name );
+                }
+                else
+                {
+                    return MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            ThisExpression(),
+                            SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Symbol.Name ) )
+                        .WithSimplifierAnnotationIfNecessary( context );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates a source impl property for a synthesized override target that throws <see cref="System.NotSupportedException"/>.
+        /// </summary>
+        private MemberDeclarationSyntax GetNotSupportedImplProperty(
+            IPropertySymbol symbol,
+            TypeSyntax type,
+            SyntaxGenerationContext context )
+        {
+            var notSupportedBody =
+                context.SyntaxGenerator.FormattedBlock(
+                    ThrowStatement(
+                        TokenWithTrailingSpace( SyntaxKind.ThrowKeyword ),
+                        ObjectCreationExpression(
+                            TokenWithTrailingSpace( SyntaxKind.NewKeyword ),
+                            QualifiedName(
+                                AliasQualifiedName(
+                                    WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+                                    WellKnownIdentifierName( "System" ) ),
+                                WellKnownIdentifierName( "NotSupportedException" ) ),
+                            ArgumentList(
+                                SingletonSeparatedList(
+                                    Argument(
+                                        LiteralExpression(
+                                            SyntaxKind.StringLiteralExpression,
+                                            Literal(
+                                                "Calling the original implementation of a compiler-synthesized record member is not supported. Do not use meta.Proceed() when overriding synthesized record members." ) ) ) ) ),
+                            null ),
+                        Token( SyntaxKind.SemicolonToken ) ) );
+
+            var accessors = new List<AccessorDeclarationSyntax>();
+
+            if ( symbol.GetMethod != null )
+            {
+                accessors.Add(
+                    AccessorDeclaration(
+                        SyntaxKind.GetAccessorDeclaration,
+                        notSupportedBody ) );
+            }
+
+            if ( symbol.SetMethod != null )
+            {
+                var setKind = symbol.SetMethod.IsInitOnly
+                    ? SyntaxKind.InitAccessorDeclaration
+                    : SyntaxKind.SetAccessorDeclaration;
+
+                accessors.Add(
+                    AccessorDeclaration(
+                        setKind,
+                        notSupportedBody ) );
+            }
+
+            return this.GetSpecialImplProperty(
+                List<AttributeListSyntax>(),
+                type,
+                AccessorList( List( accessors ) ),
+                null,
+                null,
+                symbol,
+                GetOriginalImplMemberName( symbol ),
+                context );
         }
 
         private PropertyDeclarationSyntax GetTrampolineForProperty(
