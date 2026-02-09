@@ -24,7 +24,19 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
 internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 {
+#if ROSLYN_5_0_0_OR_GREATER
+    private readonly bool _skipTypeArgumentInference;
+#endif
+
     public MethodInvoker( IMethod method, InvokerOptions options = default, IExpression? target = null ) : base( method, options, target ) { }
+
+#if ROSLYN_5_0_0_OR_GREATER
+    private MethodInvoker( IMethod method, InvokerOptions options, IExpression? target, bool skipTypeArgumentInference )
+        : base( method, options, target )
+    {
+        this._skipTypeArgumentInference = skipTypeArgumentInference;
+    }
+#endif
 
     public object? Invoke( IEnumerable<IExpression> args ) => this.InvokeCore( args.ToReadOnlyList() );
 
@@ -129,7 +141,11 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         // with unresolved type parameters like `Bar<T>` instead of `Bar<int>`. (See #765)
         var resolvedMethod = this.Member;
 
-        if ( resolvedMethod.IsGeneric && resolvedMethod.IsCanonicalGenericInstance && args.Count > 0 )
+        if ( resolvedMethod.IsGeneric && resolvedMethod.IsCanonicalGenericInstance && args.Count > 0
+#if ROSLYN_5_0_0_OR_GREATER
+             && !this._skipTypeArgumentInference
+#endif
+           )
         {
             var inferredMethod = TryInferTypeArguments( resolvedMethod, args );
 
@@ -270,7 +286,9 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         }
 
         // The implementation method is always static, so we pass null as target.
-        var implInvoker = new MethodInvoker( implMethod, this.Options, target: null );
+        // Skip type argument inference for extension implementation methods because
+        // their type parameters (from the extension block) should be kept as-is.
+        var implInvoker = new MethodInvoker( implMethod, this.Options, target: null, skipTypeArgumentInference: true );
 
         // For instance extension members, the receiver becomes the first argument.
         IReadOnlyList<IExpression> implArgs;
