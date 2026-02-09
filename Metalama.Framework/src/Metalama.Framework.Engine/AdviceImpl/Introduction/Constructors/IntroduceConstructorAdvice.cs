@@ -10,7 +10,6 @@ using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
-using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using System;
@@ -95,14 +94,9 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
         // TODO: Introduce attributes that are added not present on the existing member?
         if ( existingConstructor == null || existingImplicitConstructor != null || (existingConstructor.IsPartial && builder.IsPartial) )
         {
-            if ( existingImplicitConstructor != null
-                 && (builder.Parameters.Count == 0 || existingImplicitConstructor is IntroducedConstructor) )
+            if ( existingImplicitConstructor != null && builder.Parameters.Count == 0 )
             {
-                // Replace the implicit constructor. For parameterless constructors, this always redirects the ref.
-                // For constructors with parameters, this removes introduced implicit constructors
-                // (similar to C# behavior where declaring any explicit constructor removes the implicit one).
-                // Source-type implicit constructors are NOT removed when introducing parametered constructors,
-                // because Roslyn still generates them in the compiled output.
+                // Redirect if the builder has no parameters and the existing constructor is implicit.
                 builder.ReplacedImplicitConstructor = existingImplicitConstructor;
             }
 
