@@ -26,4 +26,4 @@ public class ComparisonAttribute : TypeAspect
 
 // <target>
 [ComparisonAttribute]
-record Target;
+internal record Target;

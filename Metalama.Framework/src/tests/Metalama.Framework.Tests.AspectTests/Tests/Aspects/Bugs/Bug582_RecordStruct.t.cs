@@ -1,5 +1,5 @@
 [ComparisonAttribute]
-record struct Target
+internal record struct Target
 {
   public global::System.Boolean Equals(global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug582_RecordStruct.Target other)
   {

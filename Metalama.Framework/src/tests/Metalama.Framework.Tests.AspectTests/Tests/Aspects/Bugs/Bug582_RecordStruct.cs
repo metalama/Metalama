@@ -26,4 +26,4 @@ public class ComparisonAttribute : TypeAspect
 
 // <target>
 [ComparisonAttribute]
-record struct Target;
+internal record struct Target;
