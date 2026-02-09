@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.ReflectionMocks;
 using System;
@@ -46,7 +47,7 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
         // We intentionally don't store a reference to the replaced constructor, but the constructor itself,
         // because references are always resolved to the _replacement_.
 
-        Invariant.Assert( replacedImplicitConstructor is SourceConstructor or ConstructorBuilder );
+        Invariant.Assert( replacedImplicitConstructor is SourceConstructor or ConstructorBuilder or IntroducedConstructor );
         Invariant.Assert( replacedImplicitConstructor.IsImplicitlyDeclared );
 
         this.ReplacedImplicitConstructor = replacedImplicitConstructor;
@@ -72,12 +73,15 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
 
     protected override void EnsureReferenceCreated()
     {
-        if ( this.ReplacedImplicitConstructor != null )
+        if ( this.ReplacedImplicitConstructor != null && this.ReplacedImplicitConstructor.ToFullRef() is not IIntroducedRef )
         {
+            // For source constructors (SymbolRef), reuse the existing ref so it continues to resolve correctly.
             this._ref = this.ReplacedImplicitConstructor.ToFullRef();
         }
         else
         {
+            // For introduced constructors or new constructors, create a new IntroducedRef.
+            // The redirection mechanism will handle mapping the old ref to the new builder data.
             this._ref = new IntroducedRef<IConstructor>( this.Compilation.RefFactory );
         }
     }

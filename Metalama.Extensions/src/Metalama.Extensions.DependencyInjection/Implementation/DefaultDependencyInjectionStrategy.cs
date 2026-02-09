@@ -17,7 +17,7 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 /// to be easily extended and overwritten.
 /// </summary>
 [CompileTime]
-public class DefaultDependencyInjectionStrategy : ITemplateProvider
+public class DefaultDependencyInjectionStrategy
 {
     /// <summary>
     /// Gets the <see cref="DependencyProperties"/> for which the current object was created.
@@ -143,24 +143,9 @@ public class DefaultDependencyInjectionStrategy : ITemplateProvider
     {
         SuppressNonNullableFieldMustContainValue( adviser, dependencyFieldOrProperty );
 
-        var constructors = GetConstructors( adviser.Target ).ToList();
-
-        // If the type has no constructors (e.g. an introduced type), introduce a default constructor first.
-        if ( constructors.Count == 0 && adviser.Target is { TypeKind: TypeKind.Class, IsStatic: false } )
-        {
-            adviser
-                .WithTemplateProvider( this )
-                .IntroduceConstructor(
-                    nameof(DefaultConstructorTemplate),
-                    OverrideStrategy.Ignore,
-                    buildConstructor: c => c.Accessibility = Accessibility.Public );
-
-            constructors = GetConstructors( adviser.Target ).ToList();
-        }
-
         var success = true;
 
-        foreach ( var constructor in constructors )
+        foreach ( var constructor in GetConstructors( adviser.Target ) )
         {
             if ( !this.TryPullDependency( adviser.With( constructor ), dependencyFieldOrProperty, dependencyPullStrategy ) )
             {
@@ -212,10 +197,4 @@ public class DefaultDependencyInjectionStrategy : ITemplateProvider
     /// <returns>The <see cref="IDependencyPullStrategy"/>.</returns>
     protected virtual IDependencyPullStrategy GetDependencyPullStrategy( IFieldOrProperty introducedFieldOrProperty )
         => new DefaultDependencyPullStrategy( this.Properties, introducedFieldOrProperty );
-
-    /// <summary>
-    /// Template for the default parameterless constructor introduced when the target type has no constructors.
-    /// </summary>
-    [Template]
-    private void DefaultConstructorTemplate() { }
 }
