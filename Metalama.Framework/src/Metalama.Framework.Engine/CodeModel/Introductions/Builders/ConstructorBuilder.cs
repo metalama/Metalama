@@ -73,15 +73,17 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
 
     protected override void EnsureReferenceCreated()
     {
-        if ( this.ReplacedImplicitConstructor != null && this.ReplacedImplicitConstructor.ToFullRef() is not IIntroducedRef )
+        if ( this.ReplacedImplicitConstructor is SourceConstructor && this.Parameters.Count == 0 )
         {
-            // For source constructors (SymbolRef), reuse the existing ref so it continues to resolve correctly.
+            // When replacing a source implicit constructor with a parameterless constructor,
+            // reuse the existing SymbolRef so it continues to resolve correctly.
             this._ref = this.ReplacedImplicitConstructor.ToFullRef();
         }
         else
         {
-            // For introduced constructors or new constructors, create a new IntroducedRef.
-            // The redirection mechanism will handle mapping the old ref to the new builder data.
+            // For introduced constructors, new constructors, or parameterized replacements,
+            // create a new IntroducedRef. The redirection mechanism will handle mapping
+            // the old ref to the new builder data.
             this._ref = new IntroducedRef<IConstructor>( this.Compilation.RefFactory );
         }
     }
