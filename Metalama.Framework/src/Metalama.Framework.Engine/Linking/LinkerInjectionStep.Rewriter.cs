@@ -508,6 +508,21 @@ internal sealed partial class LinkerInjectionStep
                         injectedMember.Transformation?.AspectInstance.AspectClass.GeneratedCodeAnnotation
                         ?? FormattingAnnotations.SystemGeneratedCodeAnnotation );
 
+                // When a field is promoted to a property, transfer the field's doc comment trivia to the property
+                // (the property is the public member).
+                if ( injectedMember is { Semantic: InjectedMemberSemantic.Introduction, Kind: DeclarationKind.Property }
+                     && injectedMember.Transformation is IReplaceMemberTransformation { ReplacedMember: ISymbolRef<IField> replacedFieldRef } )
+                {
+                    var fieldSyntaxReference = replacedFieldRef.Symbol.GetPrimarySyntaxReference();
+
+                    if ( fieldSyntaxReference?.GetSyntax().Parent?.Parent is { RawKind: (int) SyntaxKind.FieldDeclaration } and FieldDeclarationSyntax fieldDeclaration )
+                    {
+                        var docTrivia = TriviaHelper.GetDocumentationTrivia( fieldDeclaration );
+
+                        injectedNode = TriviaHelper.WithDocumentationTrivia( injectedNode, docTrivia );
+                    }
+                }
+
                 switch ( injectedNode.Kind() )
                 {
                     case SyntaxKind.ConstructorDeclaration when injectedNode is ConstructorDeclarationSyntax constructorDeclaration:

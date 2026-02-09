@@ -1,10 +1,10 @@
 internal class TargetClass : BaseClass
 {
+  private readonly int _property;
+  // Comment before property.
   /// <summary>
   /// Gets the property value.
   /// </summary>
-  private readonly int _property;
-  // Comment before property.
   [Override]
   public int Property
   {
@@ -19,10 +19,10 @@ internal class TargetClass : BaseClass
       this._property = value;
     }
   }
+  private static int _staticProperty;
   /// <summary>
   /// Gets the static property value.
   /// </summary>
-  private static int _staticProperty;
   [Override]
   public static int StaticProperty
   {
@@ -37,10 +37,10 @@ internal class TargetClass : BaseClass
       global::Metalama.Framework.Tests.AspectTests.TestInputs.Aspects.Overrides.Properties.Auto_GetOnly_Trivias.TargetClass._staticProperty = value;
     }
   }
+  private readonly int _initializerProperty = 42;
   /// <summary>
   /// Gets the initializer property value.
   /// </summary>
-  private readonly int _initializerProperty = 42;
   [Override]
   [Description("An initializer property")]
   public int InitializerProperty
@@ -56,10 +56,10 @@ internal class TargetClass : BaseClass
       this._initializerProperty = value;
     }
   }
+  private readonly int _abstractBaseProperty;
   /// <summary>
   /// Gets the abstract base property value.
   /// </summary>
-  private readonly int _abstractBaseProperty;
   [Override]
   public override int AbstractBaseProperty
   {
@@ -81,10 +81,10 @@ internal class TargetClass : BaseClass
       this._abstractBaseProperty = value;
     }
   }
+  private readonly int _virtualBaseProperty;
   /// <summary>
   /// Gets the virtual base property value.
   /// </summary>
-  private readonly int _virtualBaseProperty;
   [Override]
   public override int VirtualBaseProperty
   {

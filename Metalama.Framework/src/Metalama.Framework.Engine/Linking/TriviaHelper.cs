@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -14,24 +13,13 @@ namespace Metalama.Framework.Engine.Linking;
 internal static class TriviaHelper
 {
     /// <summary>
-    /// Transfers XML documentation comment trivia from a property declaration to a backing field declaration.
-    /// Only <c>SingleLineDocumentationCommentTrivia</c> and <c>MultiLineDocumentationCommentTrivia</c> are moved;
-    /// all other leading trivia remains on the property declaration.
+    /// Extracts XML documentation comment trivia from a field declaration.
+    /// Returns the documentation trivia list, or an empty list if none is found.
     /// </summary>
-    public static (FieldDeclarationSyntax Field, PropertyDeclarationSyntax Property) TransferDocumentationTrivia(
-        FieldDeclarationSyntax backingField,
-        PropertyDeclarationSyntax propertyDeclaration,
-        SyntaxGenerationOptions options )
+    public static SyntaxTriviaList GetDocumentationTrivia( FieldDeclarationSyntax fieldDeclaration )
     {
-        var leadingTrivia = propertyDeclaration.GetLeadingTrivia();
-
-        if ( !leadingTrivia.ShouldBePreserved( options ) )
-        {
-            return (backingField, propertyDeclaration);
-        }
-
+        var leadingTrivia = fieldDeclaration.GetLeadingTrivia();
         var docCommentTrivia = new List<SyntaxTrivia>();
-        var remainingTrivia = new List<SyntaxTrivia>();
 
         foreach ( var trivia in leadingTrivia )
         {
@@ -40,24 +28,25 @@ internal static class TriviaHelper
             {
                 docCommentTrivia.Add( trivia );
             }
-            else
-            {
-                remainingTrivia.Add( trivia );
-            }
         }
 
-        if ( docCommentTrivia.Count == 0 )
+        return new SyntaxTriviaList( docCommentTrivia );
+    }
+
+    /// <summary>
+    /// Adds documentation trivia to the leading trivia of a member declaration.
+    /// The documentation trivia is prepended before the member's existing leading trivia.
+    /// </summary>
+    public static T WithDocumentationTrivia<T>( T member, SyntaxTriviaList documentationTrivia )
+        where T : MemberDeclarationSyntax
+    {
+        if ( documentationTrivia.Count == 0 )
         {
-            return (backingField, propertyDeclaration);
+            return member;
         }
 
-        var fieldLeadingTrivia = new SyntaxTriviaList( docCommentTrivia );
+        var existingTrivia = member.GetLeadingTrivia();
 
-        backingField = backingField.WithRequiredLeadingTrivia(
-            fieldLeadingTrivia.AddRange( backingField.GetLeadingTrivia() ) );
-
-        propertyDeclaration = propertyDeclaration.WithRequiredLeadingTrivia( remainingTrivia );
-
-        return (backingField, propertyDeclaration);
+        return member.WithRequiredLeadingTrivia( documentationTrivia.AddRange( existingTrivia ) );
     }
 }

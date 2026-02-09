@@ -66,13 +66,6 @@ namespace Metalama.Framework.Engine.Linking
                         symbol,
                         generationContext );
 
-                    // Transfer documentation comment trivia from the property to the backing field,
-                    // so that doc comments stay above the first emitted member.
-                    (backingField, propertyDeclaration) = TriviaHelper.TransferDocumentationTrivia(
-                        backingField,
-                        propertyDeclaration,
-                        this.SyntaxGenerationOptions );
-
                     members.Add( backingField );
                 }
 
