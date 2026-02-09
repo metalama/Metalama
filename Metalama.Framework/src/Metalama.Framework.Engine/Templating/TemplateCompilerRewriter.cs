@@ -984,16 +984,14 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     /// </list>
     /// <para>The generated compile-time code evaluates the expression at compile time, and if non-null, accesses the
     /// bridge member to get the run-time syntax, wrapping any remaining chain in a run-time conditional access.
-    /// When null, it generates a typed null expression using the compile-time expression's type information.</para>
+    /// When null, it generates a typed null expression and preserves the chain to maintain the correct result type.</para>
     /// </remarks>
     private bool TryTransformMixedScopeConditionalAccess( ConditionalAccessExpressionSyntax node, out ExpressionSyntax result )
     {
         // Decompose the WhenNotNull to find the first MemberBindingExpression (the compile-time-to-runtime bridge).
-        // The WhenNotNull could be:
+        // The WhenNotNull can currently be:
         //   1. MemberBindingExpression(.Value)                                    — simple case: expr?.Value
         //   2. ConditionalAccessExpression(MemberBindingExpression(.Value), rest)  — chain case: expr?.Value?.rest
-        //   3. InvocationExpression(MemberBindingExpression(.Method), args)        — call case: expr?.Method()
-        //   4. Other structures with a leading MemberBindingExpression
 
         MemberBindingExpressionSyntax firstMemberBinding;
         ExpressionSyntax? remainingWhenNotNull;
@@ -1051,6 +1049,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
         // Build the "when not null" branch.
         ExpressionSyntax transformedWhenNotNull;
+        ExpressionSyntax? transformedRemainingWhenNotNull = null;
 
         if ( remainingWhenNotNull == null )
         {
@@ -1060,7 +1059,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         else
         {
             // Chain case: expr?.Value?.rest — wrap in ConditionalAccessExpression(runtimeExpr, transformedRest).
-            var transformedRemainingWhenNotNull = this.Transform( remainingWhenNotNull );
+            transformedRemainingWhenNotNull = this.Transform( remainingWhenNotNull );
 
             transformedWhenNotNull = InvocationExpression(
                     this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.ConditionalAccessExpression) ),
@@ -1071,10 +1070,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         // We generate: templateSyntaxFactory.NullOfType(((IHasType?)compileTimeExpr)?.Type)
         // This gets the run-time type from the compile-time expression (e.g. IParameter.Type gives the parameter's
         // actual type like string), and generates ((T?)null) in the output. If the compile-time expression is null,
-        // Type will be null too and NullOfType falls back to ((object?)null).
-        //
-        // We don't chain ?.ToLower() etc. on the null expression because the result is always null regardless,
-        // and the chain method may not exist on the null type (e.g. ToLower() doesn't exist on object).
+        // Type will be null too and NullOfType falls back to ((dynamic)null).
         var compileTimeExprAsHasType = ParenthesizedExpression(
             CastExpression(
                 NullableType( ParseTypeName( typeof(IHasType).FullName! ) ),
@@ -1084,9 +1080,30 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             compileTimeExprAsHasType,
             MemberBindingExpression( IdentifierName( nameof(IHasType.Type) ) ) );
 
-        var transformedWhenNull = InvocationExpression(
+        var nullOfTypeExpr = InvocationExpression(
                 this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.NullOfType) ) )
             .AddArgumentListArguments( Argument( compileTimeType ) );
+
+        // When there is a remaining chain (e.g. ?.ToLower()), we must preserve it on the null branch too
+        // to ensure the expression type is correct. For example, if the chain is ?.ToLower(), the result type
+        // must be string?, not object?. Since the right side of ?. is dynamic, we can't know the type without
+        // evaluating the chain. So we generate: ConditionalAccessExpression(NullOfType(type), transformedRest)
+        // which produces e.g. ((string?)null)?.ToLower() — the chain determines the correct result type.
+        ExpressionSyntax transformedWhenNull;
+
+        if ( remainingWhenNotNull == null )
+        {
+            // Simple case: expr?.Value — no chain, NullOfType gives the correct type directly.
+            transformedWhenNull = nullOfTypeExpr;
+        }
+        else
+        {
+            // Chain case: expr?.Value?.rest — wrap NullOfType in ConditionalAccessExpression with the same chain.
+            // transformedRemainingWhenNotNull is guaranteed to be non-null here because remainingWhenNotNull != null.
+            transformedWhenNull = InvocationExpression(
+                    this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.ConditionalAccessExpression) ),
+                    ArgumentList( SeparatedList( [Argument( nullOfTypeExpr ), Argument( transformedRemainingWhenNotNull! )] ) ) );
+        }
 
         // Build the compile-time ternary: compileTimeExpr != null ? whenNotNull : whenNull
         var compileTimeCondition = BinaryExpression(

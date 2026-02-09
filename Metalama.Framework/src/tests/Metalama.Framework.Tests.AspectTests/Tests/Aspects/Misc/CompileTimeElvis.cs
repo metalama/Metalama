@@ -30,8 +30,8 @@ internal class TargetCode
         return token;
     }
 
-    // Method WITHOUT a matching parameter - should resolve to (object?)null since
-    // the compile-time expression is null and the type cannot be determined.
+    // Method WITHOUT a matching parameter - should resolve to ((dynamic)null)?.ToLower() since
+    // the compile-time expression is null. The chain is preserved to maintain the correct result type.
     [Aspect]
     private string? MethodWithoutToken( int x )
     {

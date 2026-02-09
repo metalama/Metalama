@@ -7,12 +7,12 @@ internal class TargetCode
     var tokenParameters = token?.ToLower();
     return (global::System.String? )tokenParameters;
   }
-  // Method WITHOUT a matching parameter - should resolve to (object?)null since
-  // the compile-time expression is null and the type cannot be determined.
+  // Method WITHOUT a matching parameter - should resolve to ((dynamic)null)?.ToLower() since
+  // the compile-time expression is null. The chain is preserved to maintain the correct result type.
   [Aspect]
   private string? MethodWithoutToken(int x)
   {
-    var tokenParameters = ((global::System.Object? )null);
+    var tokenParameters = ((dynamic)null)?.ToLower();
     return (global::System.String? )tokenParameters;
   }
 }
