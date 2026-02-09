@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 
 #pragma warning disable CS0219 // Variable is assigned but its value is never used
