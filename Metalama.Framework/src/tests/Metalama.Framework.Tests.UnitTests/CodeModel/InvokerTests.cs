@@ -449,7 +449,7 @@ class TargetCode
                     @"this.MyEvent -= value" );
 
                 AssertEx.DynamicEquals(
-                    @event.RaiseMethod.Invoke( parameterExpression, parameterExpression ),
+                    @event.RaiseMethod!.Invoke( parameterExpression, parameterExpression ),
                     @"this.MyEvent?.Invoke(value, (global::System.EventArgs)value)" );
             }
         }
