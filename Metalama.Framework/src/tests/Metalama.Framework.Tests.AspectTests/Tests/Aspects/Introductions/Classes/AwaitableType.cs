@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
+using System.Threading.Tasks;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -40,17 +41,17 @@ public class IntroductionAttribute : TypeAspect
                 b.ReturnType = awaiterResult.Declaration;
             } );
 
-        // Introduce a method returning the introduced awaitable type and override it.
+        // Introduce an async method that returns Task<int> and override it with an async template.
+        // This demonstrates the async pipeline works for introduced methods alongside introduced awaitable types.
         var methodResult = builder.IntroduceMethod(
-            nameof(MethodTemplate),
+            nameof(GetValueAsyncTemplate),
             buildMethod: b =>
             {
-                b.Name = "GetAwaitable";
+                b.Name = "GetValueAsync";
                 b.Accessibility = Code.Accessibility.Public;
-                b.ReturnType = awaitableResult.Declaration;
             } );
 
-        builder.With( methodResult.Declaration ).Override( nameof(OverrideTemplate) );
+        builder.With( methodResult.Declaration ).Override( nameof(OverrideAsyncTemplate) );
     }
 
     [Template]
@@ -74,17 +75,19 @@ public class IntroductionAttribute : TypeAspect
     }
 
     [Template]
-    public dynamic? MethodTemplate()
+    public async Task<int> GetValueAsyncTemplate()
     {
-        return default;
+        await Task.Yield();
+
+        return 42;
     }
 
     [Template]
-    public dynamic? OverrideTemplate()
+    public async Task<dynamic?> OverrideAsyncTemplate()
     {
         Console.WriteLine( "Override" );
 
-        return meta.Proceed();
+        return await meta.ProceedAsync();
     }
 }
 

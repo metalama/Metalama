@@ -1,10 +1,11 @@
 [IntroductionAttribute]
 public class TargetType
 {
-  public global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Classes.AwaitableType.TargetType.MyAwaitable GetAwaitable()
+  public async global::System.Threading.Tasks.Task<global::System.Int32> GetValueAsync()
   {
     global::System.Console.WriteLine("Override");
-    return default;
+    await global::System.Threading.Tasks.Task.Yield();
+    return (global::System.Int32)42;
   }
   public class MyAwaitable
   {
