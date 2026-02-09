@@ -31,7 +31,7 @@ internal sealed class PropertyImplicitAccessorSubstitution : SyntaxNodeSubstitut
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
-        var targetName = LinkerRewritingDriver.GetBackingFieldName( this._targetProperty );
+        var targetName = substitutionContext.RewritingDriver.GetBackingFieldName( this._targetProperty );
 
         switch ( currentNode.Kind() )
         {
