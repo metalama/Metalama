@@ -51,6 +51,9 @@ internal sealed class IntroducedEvent : IntroducedMember, IEventImpl
     [Memo]
     public IMethod? RaiseMethod => new IntroducedAccessor( this, this.EventBuilderData.RaiseMethod );
 
+    // Introduced events are always field-like, so RaiseMethod is always non-null.
+    public IMethod GetRaiseMethodForAdvice() => this.RaiseMethod!;
+
     [Memo]
     public IEvent? OverriddenEvent => this.MapDeclaration( this.EventBuilderData.OverriddenEvent );
 

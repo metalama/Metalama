@@ -328,7 +328,10 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
             (EventBuilder eventBuilder, MethodKind.EventRemove)
                 => eventBuilder.ExplicitInterfaceImplementations.SelectAsImmutableArray( p => p.RemoveMethod ),
             (EventBuilder eventBuilder, MethodKind.EventRaise)
-                => eventBuilder.ExplicitInterfaceImplementations.SelectAsImmutableArray( p => p.RaiseMethod! ),
+                => eventBuilder.ExplicitInterfaceImplementations
+                    .SelectAsArray( p => p.RaiseMethod )
+                    .WhereNotNull()
+                    .ToReadOnlyList(),
             _ => throw new AssertionFailedException( $"Unexpected combination ('{this.ContainingDeclaration}', {this.MethodKind})." )
         };
 

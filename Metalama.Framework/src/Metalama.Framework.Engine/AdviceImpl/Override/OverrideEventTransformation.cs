@@ -6,6 +6,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.SyntaxGeneration;
@@ -99,7 +100,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             templateExpansionError = templateExpansionError || !this.TryExpandInvokeTemplate(
                 context,
                 this.InvokeTemplate,
-                overriddenDeclaration.RaiseMethod!,
+                ((IEventImpl) overriddenDeclaration).GetRaiseMethodForAdvice(),
                 overriddenDeclaration,
                 out raiseAccessorBody );
         }
