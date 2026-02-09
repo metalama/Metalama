@@ -7,9 +7,16 @@ using System.Threading.Tasks;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using System.Linq;
+using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Classes.AwaitableType;
+
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(OverrideAttribute), typeof(IntroductionAttribute) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Classes.AwaitableType;
 
+/// <summary>
+/// Introduces an awaitable type and a method returning it. Applied first in the pipeline.
+/// </summary>
 public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
@@ -41,17 +48,16 @@ public class IntroductionAttribute : TypeAspect
                 b.ReturnType = awaiterResult.Declaration;
             } );
 
-        // Introduce an async method that returns Task<int> and override it with an async template.
-        // This demonstrates the async pipeline works for introduced methods alongside introduced awaitable types.
-        var methodResult = builder.IntroduceMethod(
-            nameof(GetValueAsyncTemplate),
+        // Introduce a method returning the introduced awaitable type.
+        // The template returns Task<dynamic?> but the return type is overridden to MyAwaitable.
+        builder.IntroduceMethod(
+            nameof(GetValueTemplate),
             buildMethod: b =>
             {
-                b.Name = "GetValueAsync";
+                b.Name = "GetValue";
                 b.Accessibility = Code.Accessibility.Public;
+                b.ReturnType = awaitableResult.Declaration;
             } );
-
-        builder.With( methodResult.Declaration ).Override( nameof(OverrideAsyncTemplate) );
     }
 
     [Template]
@@ -75,22 +81,37 @@ public class IntroductionAttribute : TypeAspect
     }
 
     [Template]
-    public async Task<int> GetValueAsyncTemplate()
+    public dynamic? GetValueTemplate()
     {
-        await Task.Yield();
+        return default;
+    }
+}
 
-        return 42;
+/// <summary>
+/// Overrides the introduced method with a template returning Task&lt;dynamic?&gt;.
+/// Applied second in the pipeline. Because MyAwaitable is recognized as awaitable
+/// (via TryGetAsyncInfoFromCodeModel), the pipeline correctly handles the override.
+/// The template uses meta.Proceed() to delegate to the introduced method.
+/// </summary>
+public class OverrideAttribute : TypeAspect
+{
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
+    {
+        var method = builder.Target.Methods.OfName( "GetValue" ).Single();
+
+        builder.With( method ).Override( nameof(OverrideTemplate) );
     }
 
     [Template]
-    public async Task<dynamic?> OverrideAsyncTemplate()
+    public Task<dynamic?> OverrideTemplate()
     {
         Console.WriteLine( "Override" );
 
-        return await meta.ProceedAsync();
+        return meta.Proceed()!;
     }
 }
 
 // <target>
 [IntroductionAttribute]
+[OverrideAttribute]
 public class TargetType { }
