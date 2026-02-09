@@ -15,7 +15,7 @@ internal class TargetCode
     result = a * 2;
     goto __aspect_return_1;
     __aspect_return_1:
-      global::System.Console.WriteLine($"After: {result}");
+      global::System.Console.WriteLine($"After: {(object)result}");
     return (global::System.Int32)result;
   }
 }

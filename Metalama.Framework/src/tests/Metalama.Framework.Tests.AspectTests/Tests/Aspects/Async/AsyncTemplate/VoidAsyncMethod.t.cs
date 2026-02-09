@@ -4,7 +4,7 @@ internal class TargetCode
   private void NonAsyncMethod()
   {
     object result = null;
-    global::System.Console.WriteLine($"result={result}");
+    global::System.Console.WriteLine($"result={(object)result}");
     return;
   }
   [Aspect]
@@ -13,7 +13,7 @@ internal class TargetCode
     await global::System.Threading.Tasks.Task.Yield();
     await Task.Yield();
     object result = null;
-    global::System.Console.WriteLine($"result={result}");
+    global::System.Console.WriteLine($"result={(object)result}");
     return;
   }
 }

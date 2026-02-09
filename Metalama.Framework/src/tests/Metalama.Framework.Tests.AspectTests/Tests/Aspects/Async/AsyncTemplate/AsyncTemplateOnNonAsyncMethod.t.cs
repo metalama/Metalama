@@ -5,7 +5,7 @@ internal class TargetCode
   {
     await global::System.Threading.Tasks.Task.Yield();
     var result = await this.AsyncMethod_Source(a);
-    global::System.Console.WriteLine($"result={result}");
+    global::System.Console.WriteLine($"result={(object)result}");
     return (global::System.Int32)result;
   }
   private ValueTask<int> AsyncMethod_Source(int a)

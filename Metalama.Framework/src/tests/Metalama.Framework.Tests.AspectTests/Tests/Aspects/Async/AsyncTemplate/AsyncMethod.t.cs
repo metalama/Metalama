@@ -12,7 +12,7 @@ internal class TargetCode
     global::System.Int32 result;
     await Task.Yield();
     result = a;
-    global::System.Console.WriteLine($"result={result}");
+    global::System.Console.WriteLine($"result={(object)result}");
     return (global::System.Int32)result;
   }
   [Aspect]
@@ -21,7 +21,7 @@ internal class TargetCode
     await global::System.Threading.Tasks.Task.Yield();
     await Task.Yield();
     object result = null;
-    global::System.Console.WriteLine($"result={result}");
+    global::System.Console.WriteLine($"result={(object)result}");
     return;
   }
 }

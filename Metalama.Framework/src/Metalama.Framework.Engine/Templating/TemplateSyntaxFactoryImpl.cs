@@ -32,7 +32,6 @@ namespace Metalama.Framework.Engine.Templating
     {
         private readonly TemplateExpansionContext _templateExpansionContext;
         private readonly ObjectReaderFactory _objectReaderFactory;
-        private readonly HashSet<string> _dynamicLocalVariableNames = new( StringComparer.Ordinal );
 
         public TemplateSyntaxFactoryImpl( TemplateExpansionContext templateExpansionContext )
         {
@@ -245,15 +244,6 @@ namespace Metalama.Framework.Engine.Templating
                 throw new AssertionFailedException( "The expression should not be null." );
             }
 
-            // Track whether the variable will actually have type 'dynamic' at run time,
-            // so that FixInterpolationSyntax can add an (object) cast when needed to avoid CS9230.
-            var effectiveType = awaitResult ? value.Type.GetAsyncInfo().ResultType : value.Type;
-
-            if ( effectiveType.TypeKind == Code.TypeKind.Dynamic )
-            {
-                this._dynamicLocalVariableNames.Add( identifier.Text );
-            }
-
             var runtimeExpression = value.ToExpressionSyntax( this.SyntaxSerializationContext );
 
             if ( value.Type.Equals( SpecialType.Void )
@@ -443,9 +433,13 @@ namespace Metalama.Framework.Engine.Templating
                     }
 
                 case ExpressionSyntax expressionSyntax:
-                    // TODO: Fix the data flow. In this case, the dynamic expression is an ExpressionSyntax,
-                    // and we don't have type annotations. This should be fixed.
-                    return expressionSyntax;
+                    // The template compiler routes expressions through GetDynamicSyntax when their type is dynamic,
+                    // so we annotate with the dynamic type to preserve this information for downstream consumers
+                    // (e.g. FixInterpolationSyntax which needs to cast dynamic to object in interpolated strings).
+                    return TypeAnnotationMapper.AddExpressionTypeAnnotation(
+                        expressionSyntax,
+                        this._templateExpansionContext.Compilation.AssertNotNull().Factory.GetIType(
+                            this._templateExpansionContext.Compilation.AssertNotNull().RoslynCompilation.DynamicType ) );
 
                 default:
                     if ( this._templateExpansionContext.SyntaxSerializationService.TrySerialize(
@@ -570,23 +564,17 @@ namespace Metalama.Framework.Engine.Templating
             return typeOfExpression;
         }
 
-        public InterpolationSyntax FixInterpolationSyntax( InterpolationSyntax interpolation )
+        public InterpolationSyntax FixInterpolationSyntax( InterpolationSyntax interpolation, bool isDynamic = false )
         {
-            // Determine if the interpolation expression is of type 'dynamic' at expansion time.
-            // Check the type annotation (set by GetDynamicSyntax for IExpression values like parameter.Value).
-            var isDynamic = TypeAnnotationMapper.TryFindExpressionTypeFromAnnotation(
-                                interpolation.Expression,
-                                this.SyntaxSerializationContext.CompilationModel,
-                                out var annotatedType )
-                            && annotatedType.TypeKind == Code.TypeKind.Dynamic;
-
-            // Also check if the expression is a local variable that was declared as 'dynamic' at expansion time
-            // (tracked in DynamicLocalDeclaration).
-            if ( !isDynamic && interpolation.Expression.IsKind( SyntaxKind.IdentifierName )
-                            && interpolation.Expression is IdentifierNameSyntax identifierName
-                            && this._dynamicLocalVariableNames.Contains( identifierName.Identifier.Text ) )
+            // Check the type annotation on the expression (set at expansion time by GetDynamicSyntax).
+            // The annotation is the most accurate source because it reflects the actual expanded type,
+            // not the compile-time template type (which may be 'dynamic' for any IExpression value).
+            if ( TypeAnnotationMapper.TryFindExpressionTypeFromAnnotation(
+                     interpolation.Expression,
+                     this.SyntaxSerializationContext.CompilationModel,
+                     out var annotatedType ) )
             {
-                isDynamic = true;
+                isDynamic = annotatedType.TypeKind == Code.TypeKind.Dynamic;
             }
 
             var fixedInterpolation = InterpolationSyntaxHelper.Fix( interpolation );

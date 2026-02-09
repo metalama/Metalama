@@ -6,11 +6,8 @@ internal class Target
     dynamic result;
     result = input;
     global::System.Console.WriteLine($"Method returned: {(object)result}");
+    var result2 = input;
+    global::System.Console.WriteLine($"  First param value: {(object)result2}");
     return (dynamic)result;
-  }
-  private static void TestMain()
-  {
-    var target = new Target();
-    target.DoSomething("hello");
   }
 }

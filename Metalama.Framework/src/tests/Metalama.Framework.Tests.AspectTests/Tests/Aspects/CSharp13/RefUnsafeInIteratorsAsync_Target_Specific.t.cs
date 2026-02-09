@@ -20,7 +20,7 @@ internal class Target
       Span<int> s = stackalloc int[1];
       await Task.Yield();
       object result = null;
-      global::System.Console.WriteLine($"Target.Async() succeeded with result {result}.");
+      global::System.Console.WriteLine($"Target.Async() succeeded with result {(object)result}.");
       return;
     }
     catch (global::System.Exception ex)
@@ -35,7 +35,7 @@ internal class Target
     global::System.Console.WriteLine("Entering Target.Iterator().");
     foreach (var item in this.Iterator_Source())
     {
-      global::System.Console.WriteLine($"Target.Iterator() yielded {item}.");
+      global::System.Console.WriteLine($"Target.Iterator() yielded {(object)item}.");
       yield return item;
     }
   }
@@ -61,7 +61,7 @@ internal class Target
     global::System.Console.WriteLine("Entering Target.AsyncIterator().");
     await foreach (var item in this.AsyncIterator_Source())
     {
-      global::System.Console.WriteLine($"Target.AsyncIterator() yielded {item}.");
+      global::System.Console.WriteLine($"Target.AsyncIterator() yielded {(object)item}.");
       yield return item;
     }
   }

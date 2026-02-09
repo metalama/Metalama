@@ -20,7 +20,7 @@ internal class Target
       Span<int> s = stackalloc int[1];
       await Task.Yield();
       object result = null;
-      global::System.Console.WriteLine($"Target.Async() succeeded with result {result}.");
+      global::System.Console.WriteLine($"Target.Async() succeeded with result {(object)result}.");
       return;
     }
     catch (global::System.Exception ex)
@@ -36,7 +36,7 @@ internal class Target
     try
     {
       var result = global::Metalama.Framework.RunTime.RunTimeAspectHelper.Buffer(this.Iterator_Source());
-      global::System.Console.WriteLine($"Target.Iterator() succeeded with result {result}.");
+      global::System.Console.WriteLine($"Target.Iterator() succeeded with result {(object)result}.");
       return (global::System.Collections.Generic.IEnumerable<global::System.Int32>)result;
     }
     catch (global::System.Exception ex)

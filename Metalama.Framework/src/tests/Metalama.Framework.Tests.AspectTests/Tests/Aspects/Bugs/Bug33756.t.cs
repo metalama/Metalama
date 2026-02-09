@@ -4,7 +4,7 @@ public class SelfCachedClass
   public int Add(int a, int b)
   {
     {
-      var cacheKey = $"Add({string.Join(", ", new object[] { a, b })})";
+      var cacheKey = $"Add({(object)string.Join(", ", new object[] { a, b })})";
       if (!_cache.TryGetValue(cacheKey, out var returnValue))
       {
         returnValue = a + b;
@@ -18,7 +18,7 @@ public class SelfCachedClass
   public int Rmove(int a, int b)
   {
     {
-      var cacheKey = $"Rmove({string.Join(", ", new object[] { a, b })})";
+      var cacheKey = $"Rmove({(object)string.Join(", ", new object[] { a, b })})";
       if (!_cache.TryGetValue(cacheKey, out var returnValue))
       {
         returnValue = a - b;
