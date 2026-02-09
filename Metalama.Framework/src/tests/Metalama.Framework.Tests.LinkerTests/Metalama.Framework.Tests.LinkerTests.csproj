@@ -26,6 +26,11 @@
         <NoWarn>$(NoWarn);1591,1572,1573,CS8892,VSTHRD100,VSTHRD200,CA1018,CA1305,CA1307,CA1725,CA1822,CA2201</NoWarn>
     </PropertyGroup>
 
+    <!-- CS0436: System.Linq.AsyncEnumerable brings Microsoft.Bcl.Memory which conflicts with SDK system-type polyfills on net48 -->
+    <PropertyGroup Condition="'$(TargetFramework)'=='net48'">
+        <NoWarn>$(NoWarn);CS0436</NoWarn>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="xunit" />

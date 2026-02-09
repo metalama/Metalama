@@ -4,6 +4,7 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(NETFRAMEWORK)
+// @IgnoredDiagnostic(CS0436)
 #endif
 
 
