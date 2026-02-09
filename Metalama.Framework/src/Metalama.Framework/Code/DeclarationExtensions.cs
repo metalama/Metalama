@@ -116,7 +116,7 @@ namespace Metalama.Framework.Code
             /// <value>
             ///     <c>true</c> if the declaration kind represents a member or named type; otherwise, <c>false</c>.
             /// </value>
-            public bool IsMemberOrNamedType => kind.IsMember || kind == DeclarationKind.NamedType;
+            public bool IsMemberOrNamedType => kind.IsMember || kind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock;
 
             /// <summary>
             /// Determines whether a <see cref="DeclarationKind"/> represents an <see cref="IType"/>.
@@ -124,7 +124,7 @@ namespace Metalama.Framework.Code
             /// <value>
             ///     <c>true</c> if the declaration kind represents a type; otherwise, <c>false</c>.
             /// </value>
-            public bool IsType => kind is DeclarationKind.NamedType or DeclarationKind.TypeParameter or DeclarationKind.Type;
+            public bool IsType => kind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock or DeclarationKind.TypeParameter or DeclarationKind.Type;
 
             /// <summary>
             /// Gets a value indicating whether the declaration kind represents an assembly

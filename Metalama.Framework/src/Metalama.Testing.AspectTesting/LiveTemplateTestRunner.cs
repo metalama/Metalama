@@ -39,6 +39,11 @@ namespace Metalama.Testing.AspectTesting
 
             await base.RunAsync( testInput, testResult, testContext );
 
+            if ( !testResult.Success )
+            {
+                return;
+            }
+
             var serviceProvider = testContext.ServiceProvider;
 
             var partialCompilation = PartialCompilation.CreateComplete( testResult.InputCompilation! );
