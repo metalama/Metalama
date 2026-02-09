@@ -66,13 +66,37 @@ namespace Metalama.Framework.Engine.Linking
                         symbol,
                         generationContext );
 
-                    // Transfer leading trivia (comments, doc comments) from the property to the backing field.
+                    // Transfer documentation comment trivia from the property to the backing field,
+                    // so that doc comments stay above the first emitted member.
                     var leadingTrivia = propertyDeclaration.GetLeadingTrivia();
 
                     if ( leadingTrivia.ShouldBePreserved( this.SyntaxGenerationOptions ) )
                     {
-                        backingField = backingField.WithRequiredLeadingTrivia( leadingTrivia.AddRange( backingField.GetLeadingTrivia() ) );
-                        propertyDeclaration = propertyDeclaration.WithoutLeadingTrivia();
+                        var docCommentTrivia = new List<SyntaxTrivia>();
+                        var remainingTrivia = new List<SyntaxTrivia>();
+
+                        foreach ( var trivia in leadingTrivia )
+                        {
+                            if ( trivia.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
+                                 || trivia.IsKind( SyntaxKind.MultiLineDocumentationCommentTrivia ) )
+                            {
+                                docCommentTrivia.Add( trivia );
+                            }
+                            else
+                            {
+                                remainingTrivia.Add( trivia );
+                            }
+                        }
+
+                        if ( docCommentTrivia.Count > 0 )
+                        {
+                            var fieldLeadingTrivia = new SyntaxTriviaList( docCommentTrivia );
+
+                            backingField = backingField.WithRequiredLeadingTrivia(
+                                fieldLeadingTrivia.AddRange( backingField.GetLeadingTrivia() ) );
+
+                            propertyDeclaration = propertyDeclaration.WithRequiredLeadingTrivia( remainingTrivia );
+                        }
                     }
 
                     members.Add( backingField );

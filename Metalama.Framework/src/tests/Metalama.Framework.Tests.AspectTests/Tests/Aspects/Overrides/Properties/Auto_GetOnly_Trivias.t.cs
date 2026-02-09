@@ -1,10 +1,10 @@
 internal class TargetClass : BaseClass
 {
-  // Comment before property.
   /// <summary>
   /// Gets the property value.
   /// </summary>
   private readonly int _property;
+  // Comment before property.
   [Override]
   public int Property
   {
