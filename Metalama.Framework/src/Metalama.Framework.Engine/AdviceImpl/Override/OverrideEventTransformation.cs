@@ -99,7 +99,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             templateExpansionError = templateExpansionError || !this.TryExpandInvokeTemplate(
                 context,
                 this.InvokeTemplate,
-                overriddenDeclaration.RaiseMethod,
+                overriddenDeclaration.RaiseMethod!,
                 overriddenDeclaration,
                 out raiseAccessorBody );
         }

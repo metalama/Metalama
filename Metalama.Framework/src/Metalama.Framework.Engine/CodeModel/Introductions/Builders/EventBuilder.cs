@@ -108,7 +108,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     IMethod IEvent.RemoveMethod => this.RemoveMethod;
 
-    IMethod IEvent.RaiseMethod => this.RaiseMethod;
+    IMethod? IEvent.RaiseMethod => this.RaiseMethod;
 
     // TODO: When an interface is introduced, explicit implementation should appear here.
     public IReadOnlyList<IEvent> ExplicitInterfaceImplementations { get; private set; } = Array.Empty<IEvent>();
@@ -148,6 +148,8 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     object IEventInvoker.Remove( IExpression handler ) => this.Invoker.Remove( handler );
 
+    bool IEventInvoker.CanRaise => ((IEvent) this).RaiseMethod != null;
+
     object? IEventInvoker.Raise( params object?[] args ) => this.Invoker.Raise( args );
 
     object? IEventInvoker.Raise( params IExpression[] args ) => this.Invoker.Raise( args );
@@ -160,7 +162,19 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     public IMethod? GetAccessor( MethodKind methodKind ) => this.GetAccessorImpl( methodKind );
 
-    public IEnumerable<IMethod> Accessors => [this.AddMethod, this.RemoveMethod, this.RaiseMethod];
+    public IEnumerable<IMethod> Accessors
+    {
+        get
+        {
+            yield return this.AddMethod;
+            yield return this.RemoveMethod;
+
+            if ( ((IEvent) this).RaiseMethod is { } raiseMethod )
+            {
+                yield return raiseMethod;
+            }
+        }
+    }
 
     protected override void FreezeChildren()
     {

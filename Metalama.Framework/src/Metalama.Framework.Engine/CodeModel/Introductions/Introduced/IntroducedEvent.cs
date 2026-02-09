@@ -49,7 +49,7 @@ internal sealed class IntroducedEvent : IntroducedMember, IEventImpl
     public IMethod RemoveMethod => new IntroducedAccessor( this, this.EventBuilderData.RemoveMethod );
 
     [Memo]
-    public IMethod RaiseMethod => new IntroducedAccessor( this, this.EventBuilderData.RaiseMethod );
+    public IMethod? RaiseMethod => new IntroducedAccessor( this, this.EventBuilderData.RaiseMethod );
 
     [Memo]
     public IEvent? OverriddenEvent => this.MapDeclaration( this.EventBuilderData.OverriddenEvent );
@@ -98,13 +98,27 @@ internal sealed class IntroducedEvent : IntroducedMember, IEventImpl
 
     object IEventInvoker.Remove( IExpression handler ) => this.Invoker.Remove( handler );
 
+    bool IEventInvoker.CanRaise => this.RaiseMethod != null;
+
     object? IEventInvoker.Raise( params object?[] args ) => this.Invoker.Raise( args );
 
     object? IEventInvoker.Raise( params IExpression[] args ) => this.Invoker.Raise( args );
 
     public IMethod? GetAccessor( MethodKind methodKind ) => this.GetAccessorImpl( methodKind );
 
-    public IEnumerable<IMethod> Accessors => [this.AddMethod, this.RemoveMethod, this.RaiseMethod];
+    public IEnumerable<IMethod> Accessors
+    {
+        get
+        {
+            yield return this.AddMethod;
+            yield return this.RemoveMethod;
+
+            if ( this.RaiseMethod is { } raiseMethod )
+            {
+                yield return raiseMethod;
+            }
+        }
+    }
 
     IType IHasType.Type => this.Type;
 

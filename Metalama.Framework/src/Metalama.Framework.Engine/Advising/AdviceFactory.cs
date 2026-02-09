@@ -1319,7 +1319,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             var boundInvokeTemplate =
                 this.ValidateTemplateName( invokeTemplate, TemplateKind.Default )
                     ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
-                    .ForOverride( targetEvent.RaiseMethod, this.GetArgsReader( args ) );
+                    .ForOverride( targetEvent.RaiseMethod!, this.GetArgsReader( args ) );
 
             var advice = new OverrideEventAdvice(
                 this.GetAdviceConstructorParameters( targetEvent ),

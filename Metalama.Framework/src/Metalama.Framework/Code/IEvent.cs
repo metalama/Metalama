@@ -41,10 +41,20 @@ namespace Metalama.Framework.Code
 
         /// <summary>
         /// Gets an object that represents the <c>raise</c> semantic and allows to add aspects and advice
-        /// as with a normal method. In case of non-field-like events that were not overridden, this property cannot be used
-        /// for invocation.
+        /// as with a normal method, or <c>null</c> if the event cannot be raised.
         /// </summary>
-        IMethod RaiseMethod { get; }
+        /// <remarks>
+        /// <para>
+        /// In C#, only field-like events (events without explicit <c>add</c>/<c>remove</c> accessors) can be raised
+        /// because they have a backing delegate field. For non-field-like events (events with explicit accessors),
+        /// there is no backing delegate to invoke, so this property returns <c>null</c>.
+        /// </para>
+        /// <para>
+        /// Use the <see cref="IEventInvoker.CanRaise"/> property to programmatically check whether an event can be raised
+        /// before attempting to use this property or the <see cref="IEventInvoker.Raise(dynamic?[])"/> method.
+        /// </para>
+        /// </remarks>
+        IMethod? RaiseMethod { get; }
 
         /// <summary>
         /// Gets the base event that is overridden by the current event.

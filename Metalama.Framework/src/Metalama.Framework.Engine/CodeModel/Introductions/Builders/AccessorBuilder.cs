@@ -94,7 +94,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
             (FieldBuilder _, _) => null,
             (EventBuilder eventBuilder, MethodKind.EventAdd) => eventBuilder.OverriddenEvent?.AddMethod.AssertNotNull(),
             (EventBuilder eventBuilder, MethodKind.EventRemove) => eventBuilder.OverriddenEvent?.RemoveMethod.AssertNotNull(),
-            (EventBuilder eventBuilder, MethodKind.EventRaise) => eventBuilder.OverriddenEvent?.RaiseMethod.AssertNotNull(),
+            (EventBuilder eventBuilder, MethodKind.EventRaise) => eventBuilder.OverriddenEvent?.RaiseMethod,
             _ => throw new AssertionFailedException( $"Unexpected combination ('{this.ContainingDeclaration}', {this.MethodKind})." )
         };
 
@@ -328,7 +328,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
             (EventBuilder eventBuilder, MethodKind.EventRemove)
                 => eventBuilder.ExplicitInterfaceImplementations.SelectAsImmutableArray( p => p.RemoveMethod ),
             (EventBuilder eventBuilder, MethodKind.EventRaise)
-                => eventBuilder.ExplicitInterfaceImplementations.SelectAsImmutableArray( p => p.RaiseMethod ),
+                => eventBuilder.ExplicitInterfaceImplementations.SelectAsImmutableArray( p => p.RaiseMethod! ),
             _ => throw new AssertionFailedException( $"Unexpected combination ('{this.ContainingDeclaration}', {this.MethodKind})." )
         };
 
