@@ -60,7 +60,7 @@ internal sealed class ForcedInitializationSubstitution : SyntaxNodeSubstitution
                             MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 ThisExpression(),
-                                SyntaxFactoryEx.WellKnownIdentifierName( LinkerRewritingDriver.GetBackingFieldName( symbol ) ) ),
+                                SyntaxFactoryEx.WellKnownIdentifierName( substitutionContext.RewritingDriver.GetBackingFieldName( symbol ) ) ),
                             LiteralExpression(
                                 SyntaxKind.DefaultLiteralExpression,
                                 Token( SyntaxKind.DefaultKeyword ) ) ) );

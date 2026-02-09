@@ -33,7 +33,7 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
     {
         var targetName =
             this._targetEvent.IsEventFieldIntroduction()
-                ? LinkerRewritingDriver.GetBackingFieldName( this._targetEvent )
+                ? substitutionContext.RewritingDriver.GetBackingFieldName( this._targetEvent )
                 : LinkerRewritingDriver.GetOriginalImplMemberName( this._targetEvent );
 
         switch ( currentNode.Kind() )
