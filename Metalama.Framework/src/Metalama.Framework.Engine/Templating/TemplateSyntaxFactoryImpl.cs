@@ -546,6 +546,16 @@ namespace Metalama.Framework.Engine.Templating
 
         public ExpressionSyntax StringLiteralExpression( string? value ) => SyntaxFactoryEx.LiteralExpression( value );
 
+        public ExpressionSyntax NullOfType( IType? type )
+        {
+            var nullableType = type?.ToNullable()
+                               ?? this.SyntaxSerializationContext.CompilationModel.Factory.GetSpecialType( SpecialType.Object ).ToNullable();
+
+            return SyntaxFactory.ParenthesizedExpression(
+                    this.SyntaxSerializationContext.SyntaxGenerator.CastExpression( nullableType, SyntaxFactoryEx.Null ) )
+                .WithSimplifierAnnotationIfNecessary( this.SyntaxSerializationContext.SyntaxGenerationContext );
+        }
+
         public TypeOfExpressionSyntax TypeOf( string typeOfString, Dictionary<string, TypeSyntax>? substitutions )
         {
             var typeOfExpression = (TypeOfExpressionSyntax) SyntaxFactoryEx.ParseExpressionSafe( typeOfString );

@@ -963,7 +963,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         // run-time member (e.g. .Value?.ToString()). We decompose the WhenNotNull to find the compile-time-to-runtime
         // bridge (e.g. .Value), evaluate it at compile time, and generate the remaining chain as run-time syntax.
         if ( transformationKind != TransformationKind.Transform
-             && this.TryTransformMixedScopeConditionalAccess( node ) is { } mixedScopeResult )
+             && this.TryTransformMixedScopeConditionalAccess( node, out var mixedScopeResult ) )
         {
             return mixedScopeResult;
         }
@@ -974,19 +974,19 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     /// <summary>
     /// Handles a conditional access where the expression (left side of ?.) is compile-time and the WhenNotNull
     /// (right side) starts with a compile-time-to-runtime bridge member (e.g. .Value on IParameter).
-    /// Returns null if this pattern is not matched.
     /// </summary>
     /// <remarks>
-    /// <para>For example, <c>meta.Target.Parameters.FirstOrDefault(...)?.Value?.ToString()</c> where:</para>
+    /// <para>For example, <c>meta.Target.Parameters.FirstOrDefault(...)?.Value?.ToLower()</c> where:</para>
     /// <list type="bullet">
     /// <item><c>meta.Target.Parameters.FirstOrDefault(...)</c> is compile-time (<c>IParameter?</c>)</item>
     /// <item><c>.Value</c> is compile-time-returning-runtime (the parameter's run-time value)</item>
-    /// <item><c>?.ToString()</c> is run-time</item>
+    /// <item><c>?.ToLower()</c> is run-time</item>
     /// </list>
     /// <para>The generated compile-time code evaluates the expression at compile time, and if non-null, accesses the
-    /// bridge member to get the run-time syntax, wrapping any remaining chain in a run-time conditional access.</para>
+    /// bridge member to get the run-time syntax, wrapping any remaining chain in a run-time conditional access.
+    /// When null, it generates a typed null expression using the compile-time expression's type information.</para>
     /// </remarks>
-    private ExpressionSyntax? TryTransformMixedScopeConditionalAccess( ConditionalAccessExpressionSyntax node )
+    private bool TryTransformMixedScopeConditionalAccess( ConditionalAccessExpressionSyntax node, out ExpressionSyntax result )
     {
         // Decompose the WhenNotNull to find the first MemberBindingExpression (the compile-time-to-runtime bridge).
         // The WhenNotNull could be:
@@ -1008,19 +1008,23 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 break;
 
             case SyntaxKind.ConditionalAccessExpression
-                when ((ConditionalAccessExpressionSyntax) node.WhenNotNull).Expression.Kind() == SyntaxKind.MemberBindingExpression:
+                when node.WhenNotNull is ConditionalAccessExpressionSyntax
+                     {
+                         Expression: MemberBindingExpressionSyntax innerMemberBinding
+                     } conditionalAccess:
             {
                 // Chain case: expr?.Value?.rest
-                var innerConditionalAccess = (ConditionalAccessExpressionSyntax) node.WhenNotNull;
-                firstMemberBinding = (MemberBindingExpressionSyntax) innerConditionalAccess.Expression;
-                remainingWhenNotNull = innerConditionalAccess.WhenNotNull;
+                firstMemberBinding = innerMemberBinding;
+                remainingWhenNotNull = conditionalAccess.WhenNotNull;
 
                 break;
             }
 
             default:
                 // Not a recognized pattern for mixed-scope conditional access.
-                return null;
+                result = null!;
+
+                return false;
         }
 
         // Check that the bridge member is compile-time-returning-runtime.
@@ -1028,7 +1032,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
         if ( !bridgeScope.IsCompileTimeMemberReturningRunTimeValue() )
         {
-            return null;
+            result = null!;
+
+            return false;
         }
 
         // Compile-time expression: node.Expression.MemberName
@@ -1061,40 +1067,26 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                     ArgumentList( SeparatedList( [Argument( runtimeExpressionSyntax ), Argument( transformedRemainingWhenNotNull )] ) ) );
         }
 
-        // Build the "when null" branch. We generate the same run-time structure as the "when not null" branch
-        // but with ((object?)null) as the receiver. For example, if the not-null branch produces `token?.ToString()`,
-        // the null branch produces `((object?)null)?.ToString()`, which is valid C# evaluating to `(string?)null`.
-        // This preserves the expression type and avoids "Cannot assign null to implicitly-typed variable" for var declarations.
+        // Build the "when null" branch using NullOfType at template expansion time.
+        // We generate: templateSyntaxFactory.NullOfType(((IHasType?)compileTimeExpr)?.Type)
+        // This gets the run-time type from the compile-time expression (e.g. IParameter.Type gives the parameter's
+        // actual type like string), and generates ((T?)null) in the output. If the compile-time expression is null,
+        // Type will be null too and NullOfType falls back to ((object?)null).
         //
-        // For the simple case (expr?.Value), there's no remaining chain and we can't use this approach. We fall back
-        // to generating a cast expression like `(object?)null` directly.
-        var castNullToObjectSyntax = this.MetaSyntaxFactory.CastExpression(
-            this.MetaSyntaxFactory.NullableType(
-                this.MetaSyntaxFactory.PredefinedType( this.MetaSyntaxFactory.Token( this.Transform( SyntaxKind.ObjectKeyword ) ) ) ),
-            this.MetaSyntaxFactory.LiteralExpression( this.Transform( SyntaxKind.NullLiteralExpression ) ) );
+        // We don't chain ?.ToLower() etc. on the null expression because the result is always null regardless,
+        // and the chain method may not exist on the null type (e.g. ToLower() doesn't exist on object).
+        var compileTimeExprAsHasType = ParenthesizedExpression(
+            CastExpression(
+                NullableType( ParseTypeName( typeof(IHasType).FullName! ) ),
+                node.Expression ) );
 
-        ExpressionSyntax transformedWhenNull;
+        var compileTimeType = ConditionalAccessExpression(
+            compileTimeExprAsHasType,
+            MemberBindingExpression( IdentifierName( nameof(IHasType.Type) ) ) );
 
-        if ( remainingWhenNotNull != null )
-        {
-            var transformedRemainingForNull = this.Transform( remainingWhenNotNull );
-
-            transformedWhenNull = InvocationExpression(
-                    this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.ConditionalAccessExpression) ),
-                    ArgumentList(
-                        SeparatedList(
-                        [
-                            Argument( castNullToObjectSyntax ),
-                            Argument( transformedRemainingForNull )
-                        ] ) ) );
-        }
-        else
-        {
-            // Simple case: expr?.Value — there is no remaining chain. Generate `(object?)null` as a run-time expression.
-            transformedWhenNull = InvocationExpression(
-                    this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.RunTimeExpression) ) )
-                .AddArgumentListArguments( Argument( castNullToObjectSyntax ) );
-        }
+        var transformedWhenNull = InvocationExpression(
+                this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.NullOfType) ) )
+            .AddArgumentListArguments( Argument( compileTimeType ) );
 
         // Build the compile-time ternary: compileTimeExpr != null ? whenNotNull : whenNull
         var compileTimeCondition = BinaryExpression(
@@ -1102,7 +1094,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             node.Expression,
             SyntaxFactoryEx.Null );
 
-        return ConditionalExpression( compileTimeCondition, transformedWhenNotNull, transformedWhenNull );
+        result = ConditionalExpression( compileTimeCondition, transformedWhenNotNull, transformedWhenNull );
+
+        return true;
     }
 
     private (ExpressionSyntax Condition, ExpressionSyntax Invocation)? ProcessConditionalAccessExtensionMethod(

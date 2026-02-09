@@ -12,7 +12,9 @@ internal class Aspect : OverrideMethodAspect
     public override dynamic? OverrideMethod()
     {
         // Compile-time expression (IParameter?) with null-conditional access to .Value (dynamic).
-        var tokenParameters = meta.Target.Parameters.FirstOrDefault( p => p.Name == "token" )?.Value?.ToString();
+        // Uses ToLower() instead of ToString() to verify the null branch uses the correct type cast
+        // (ToLower() is only available on string, not on object).
+        var tokenParameters = meta.Target.Parameters.FirstOrDefault( p => p.Name == "token" )?.Value?.ToLower();
 
         return tokenParameters;
     }
@@ -21,14 +23,15 @@ internal class Aspect : OverrideMethodAspect
 // <target>
 internal class TargetCode
 {
-    // Method WITH a matching parameter - should resolve to token.ToString().
+    // Method WITH a matching parameter - should resolve to token?.ToLower().
     [Aspect]
     private string? MethodWithToken( string token )
     {
         return token;
     }
 
-    // Method WITHOUT a matching parameter - should resolve to (string?)null.
+    // Method WITHOUT a matching parameter - should resolve to (object?)null since
+    // the compile-time expression is null and the type cannot be determined.
     [Aspect]
     private string? MethodWithoutToken( int x )
     {

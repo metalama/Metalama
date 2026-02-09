@@ -86,6 +86,8 @@ public interface ITemplateSyntaxFactory
 
     ExpressionSyntax ConditionalAccessExpression( ExpressionSyntax expression, ExpressionSyntax whenNotNullExpression );
 
+    ExpressionSyntax NullOfType( IType? type );
+
     ExpressionSyntax StringLiteralExpression( string? value );
 
     TypeOfExpressionSyntax TypeOf( string typeOfString, Dictionary<string, TypeSyntax> substitutions );
