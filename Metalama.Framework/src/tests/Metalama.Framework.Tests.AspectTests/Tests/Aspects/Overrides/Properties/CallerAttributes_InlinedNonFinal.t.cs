@@ -17,7 +17,7 @@ internal class TargetClass
       return;
     }
   }
-  private global::System.Int32 OverriddenProperty_Override
+  private int OverriddenProperty_Override
   {
     get
     {

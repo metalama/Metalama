@@ -59,13 +59,23 @@ namespace Metalama.Framework.Engine.Linking
                      && this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
                 {
                     // Backing field for auto property.
-                    members.Add(
-                        this.GetPropertyBackingField(
-                            propertyDeclaration.Type,
-                            propertyDeclaration.Initializer,
-                            FilterAttributeListsForTarget( propertyDeclaration.AttributeLists, SyntaxKind.FieldKeyword, false, false ),
-                            symbol,
-                            generationContext ) );
+                    var backingField = this.GetPropertyBackingField(
+                        propertyDeclaration.Type,
+                        propertyDeclaration.Initializer,
+                        FilterAttributeListsForTarget( propertyDeclaration.AttributeLists, SyntaxKind.FieldKeyword, false, false ),
+                        symbol,
+                        generationContext );
+
+                    // Transfer leading trivia (comments, doc comments) from the property to the backing field.
+                    var leadingTrivia = propertyDeclaration.GetLeadingTrivia();
+
+                    if ( leadingTrivia.ShouldBePreserved( this.SyntaxGenerationOptions ) )
+                    {
+                        backingField = backingField.WithRequiredLeadingTrivia( leadingTrivia.AddRange( backingField.GetLeadingTrivia() ) );
+                        propertyDeclaration = propertyDeclaration.WithoutLeadingTrivia();
+                    }
+
+                    members.Add( backingField );
                 }
 
                 if ( this.AnalysisRegistry.IsInlined( lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )

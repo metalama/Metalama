@@ -29,7 +29,7 @@ internal class TargetClass
       _field = value;
     }
   }
-  private global::System.Int32 Property_SecondOverride
+  private int Property_SecondOverride
   {
     get
     {
@@ -73,7 +73,7 @@ internal class TargetClass
       _staticField = value;
     }
   }
-  private static global::System.Int32 StaticProperty_SecondOverride
+  private static int StaticProperty_SecondOverride
   {
     get
     {
@@ -100,7 +100,7 @@ internal class TargetClass
     }
   }
   private int ExpressionBodiedProperty_Source => 42;
-  private global::System.Int32 ExpressionBodiedProperty_SecondOverride
+  private int ExpressionBodiedProperty_SecondOverride
   {
     get
     {
@@ -127,7 +127,7 @@ internal class TargetClass
       this.AutoProperty_SecondOverride = value;
     }
   }
-  private global::System.Int32 AutoProperty_SecondOverride
+  private int AutoProperty_SecondOverride
   {
     get
     {
@@ -160,7 +160,7 @@ internal class TargetClass
       this.AutoGetOnlyProperty_SecondOverride = value;
     }
   }
-  private global::System.Int32 AutoGetOnlyProperty_SecondOverride
+  private int AutoGetOnlyProperty_SecondOverride
   {
     get
     {
