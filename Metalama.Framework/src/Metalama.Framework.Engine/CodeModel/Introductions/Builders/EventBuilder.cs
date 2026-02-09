@@ -68,14 +68,22 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
     [Memo]
     public AccessorBuilder RemoveMethod => new( this, MethodKind.EventRemove, this.IsEventField );
 
+    /// <summary>
+    /// Gets the internal raise method builder. Always non-null — used for template binding and advice infrastructure.
+    /// </summary>
     [Memo]
-    public AccessorBuilder RaiseMethod => new( this, MethodKind.EventRaise, true );
+    internal AccessorBuilder RaiseMethodBuilder => new( this, MethodKind.EventRaise, true );
+
+    /// <summary>
+    /// Gets the raise method, or <c>null</c> for non-field-like events.
+    /// </summary>
+    public AccessorBuilder? RaiseMethod => this.IsEventField ? this.RaiseMethodBuilder : null;
 
     IMethodBuilder IEventBuilder.AddMethod => this.AddMethod;
 
     IMethodBuilder IEventBuilder.RemoveMethod => this.RemoveMethod;
 
-    IMethodBuilder IEventBuilder.RaiseMethod => this.RaiseMethod;
+    IMethodBuilder? IEventBuilder.RaiseMethod => this.RaiseMethod;
 
     public IEvent? OverriddenEvent { get; set; }
 
@@ -110,8 +118,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     IMethod? IEvent.RaiseMethod => this.RaiseMethod;
 
-    // Event builders are always field-like, so RaiseMethod is always non-null.
-    public IMethod GetRaiseMethodForAdvice() => ((IEvent) this).RaiseMethod.AssertNotNull();
+    public IMethod GetRaiseMethodForAdvice() => this.RaiseMethodBuilder;
 
     // TODO: When an interface is introduced, explicit implementation should appear here.
     public IReadOnlyList<IEvent> ExplicitInterfaceImplementations { get; private set; } = Array.Empty<IEvent>();
@@ -185,7 +192,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
         this.AddMethod.Freeze();
         this.RemoveMethod.Freeze();
-        this.RaiseMethod.Freeze();
+        this.RaiseMethodBuilder.Freeze();
     }
 
     protected override void EnsureReferenceInitialized()

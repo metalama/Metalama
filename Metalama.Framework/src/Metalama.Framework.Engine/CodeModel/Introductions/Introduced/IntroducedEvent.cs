@@ -49,10 +49,13 @@ internal sealed class IntroducedEvent : IntroducedMember, IEventImpl
     public IMethod RemoveMethod => new IntroducedAccessor( this, this.EventBuilderData.RemoveMethod );
 
     [Memo]
-    public IMethod? RaiseMethod => new IntroducedAccessor( this, this.EventBuilderData.RaiseMethod );
+    public IMethod? RaiseMethod
+        => this.EventBuilderData.IsEventField
+            ? new IntroducedAccessor( this, this.EventBuilderData.RaiseMethod )
+            : null;
 
-    // Introduced events are always field-like, so RaiseMethod is always non-null.
-    public IMethod GetRaiseMethodForAdvice() => this.RaiseMethod.AssertNotNull();
+    public IMethod GetRaiseMethodForAdvice()
+        => new IntroducedAccessor( this, this.EventBuilderData.RaiseMethod );
 
     [Memo]
     public IEvent? OverriddenEvent => this.MapDeclaration( this.EventBuilderData.OverriddenEvent );

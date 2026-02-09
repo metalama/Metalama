@@ -107,9 +107,15 @@ public partial class DeclarationFactory
             methodBuilder,
             genericContext,
             static ( in args ) =>
-                ((IHasAccessors) args.Builder.ContainingDeclaration.GetTarget( args.Compilation, args.GenericContext ))
-                .GetAccessor( args.Builder.MethodKind )
-                .AssertNotNull() );
+            {
+                var parent = (IHasAccessors) args.Builder.ContainingDeclaration.GetTarget( args.Compilation, args.GenericContext );
+
+                return parent.GetAccessor( args.Builder.MethodKind )
+                    ?? (args.Builder.MethodKind == Code.MethodKind.EventRaise
+                        ? ((IEventImpl) parent).GetRaiseMethodForAdvice()
+                        : throw new AssertionFailedException(
+                            $"The reference to IMethod must not be null: GetAccessor({args.Builder.MethodKind}) returned null for {parent}." ));
+            } );
 
     internal IConstructor GetConstructor(
         ConstructorBuilderData constructorBuilder,

@@ -31,9 +31,10 @@ namespace Metalama.Framework.Code.DeclarationBuilders
         new IMethodBuilder RemoveMethod { get; }
 
         /// <summary>
-        /// Gets the <see cref="IMethodBuilder"/> for the event raiser.
+        /// Gets the <see cref="IMethodBuilder"/> for the event raiser, or <c>null</c> if the event cannot be raised
+        /// (i.e. for non-field-like events with explicit add/remove accessors).
         /// </summary>
-        new IMethodBuilder RaiseMethod { get; }
+        new IMethodBuilder? RaiseMethod { get; }
 
         /// <summary>
         /// Gets or sets the initializer expression for the event (i.e., the expression at the right-hand side of the equal sign).
