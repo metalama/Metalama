@@ -5,14 +5,12 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
-using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
@@ -61,9 +59,7 @@ internal abstract class OverridePropertyBaseTransformation : OverridePropertyOrI
             .GetSyntaxModifierList( ModifierCategories.Static | ModifierCategories.Unsafe )
             .Insert( 0, SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) );
 
-        // Try to preserve the original source type syntax instead of regenerating from the code model.
-        var propertyType = GetSourcePropertyType( overriddenDeclaration )
-            ?? context.SyntaxGenerator.PropertyType( overriddenDeclaration );
+        var propertyType = context.SyntaxGenerator.PropertyType( overriddenDeclaration );
 
         var overrides = new[]
         {
@@ -104,22 +100,6 @@ internal abstract class OverridePropertyBaseTransformation : OverridePropertyOrI
         };
 
         return overrides;
-    }
-
-    private static TypeSyntax? GetSourcePropertyType( IProperty property )
-    {
-        if ( property.DeclarationKind == DeclarationKind.Property
-             && property is IDeclarationImpl { DeclaringSyntaxReferences: { Length: > 0 } syntaxRefs } )
-        {
-            var syntax = syntaxRefs[0].GetSyntax();
-
-            if ( syntax.IsKind( SyntaxKind.PropertyDeclaration ) && syntax is PropertyDeclarationSyntax propertyDeclaration )
-            {
-                return propertyDeclaration.Type.WithoutTrivia();
-            }
-        }
-
-        return null;
     }
 
     protected SyntaxUserExpression CreateProceedDynamicExpression( MemberInjectionContext context, IMethod accessor, TemplateKind templateKind )

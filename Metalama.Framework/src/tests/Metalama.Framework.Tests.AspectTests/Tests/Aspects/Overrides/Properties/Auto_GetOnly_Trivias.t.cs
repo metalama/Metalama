@@ -68,7 +68,7 @@ internal class TargetClass : BaseClass
       return this.AbstractBaseProperty_Override;
     }
   }
-  private int AbstractBaseProperty_Override
+  private global::System.Int32 AbstractBaseProperty_Override
   {
     get
     {
@@ -93,7 +93,7 @@ internal class TargetClass : BaseClass
       return this.VirtualBaseProperty_Override;
     }
   }
-  private int VirtualBaseProperty_Override
+  private global::System.Int32 VirtualBaseProperty_Override
   {
     get
     {

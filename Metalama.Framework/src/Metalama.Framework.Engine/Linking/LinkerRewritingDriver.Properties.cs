@@ -68,36 +68,10 @@ namespace Metalama.Framework.Engine.Linking
 
                     // Transfer documentation comment trivia from the property to the backing field,
                     // so that doc comments stay above the first emitted member.
-                    var leadingTrivia = propertyDeclaration.GetLeadingTrivia();
-
-                    if ( leadingTrivia.ShouldBePreserved( this.SyntaxGenerationOptions ) )
-                    {
-                        var docCommentTrivia = new List<SyntaxTrivia>();
-                        var remainingTrivia = new List<SyntaxTrivia>();
-
-                        foreach ( var trivia in leadingTrivia )
-                        {
-                            if ( trivia.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
-                                 || trivia.IsKind( SyntaxKind.MultiLineDocumentationCommentTrivia ) )
-                            {
-                                docCommentTrivia.Add( trivia );
-                            }
-                            else
-                            {
-                                remainingTrivia.Add( trivia );
-                            }
-                        }
-
-                        if ( docCommentTrivia.Count > 0 )
-                        {
-                            var fieldLeadingTrivia = new SyntaxTriviaList( docCommentTrivia );
-
-                            backingField = backingField.WithRequiredLeadingTrivia(
-                                fieldLeadingTrivia.AddRange( backingField.GetLeadingTrivia() ) );
-
-                            propertyDeclaration = propertyDeclaration.WithRequiredLeadingTrivia( remainingTrivia );
-                        }
-                    }
+                    (backingField, propertyDeclaration) = TriviaHelper.TransferDocumentationTrivia(
+                        backingField,
+                        propertyDeclaration,
+                        this.SyntaxGenerationOptions );
 
                     members.Add( backingField );
                 }

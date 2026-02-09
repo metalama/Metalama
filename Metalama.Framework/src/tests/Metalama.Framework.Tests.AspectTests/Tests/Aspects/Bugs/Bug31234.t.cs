@@ -10,7 +10,7 @@ public partial class TargetClass : BaseClass
       return this.AbstractBaseProperty_Override;
     }
   }
-  private int AbstractBaseProperty_Override
+  private global::System.Int32 AbstractBaseProperty_Override
   {
     get
     {

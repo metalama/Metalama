@@ -20,10 +20,10 @@ public partial class C11 : C10
 [Observable]
 public abstract partial class C10 : INotifyPropertyChanged
 {
-  private int _c10P1;
   /// <summary>
   /// Auto
   /// </summary>
+  private int _c10P1;
   public int C10P1
   {
     get
