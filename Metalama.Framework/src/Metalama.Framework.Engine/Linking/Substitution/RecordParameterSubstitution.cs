@@ -83,7 +83,7 @@ internal sealed class RecordParameterSubstitution : SyntaxNodeSubstitution
                 MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     ThisExpression(),
-                    SyntaxFactoryEx.WellKnownIdentifierName( LinkerRewritingDriver.GetBackingFieldName( (IPropertySymbol) this._targetAccessor.AssociatedSymbol.AssertNotNull() ) ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( substitutionContext.RewritingDriver.GetBackingFieldName( (IPropertySymbol) this._targetAccessor.AssociatedSymbol.AssertNotNull() ) ) );
         }
     }
 }
