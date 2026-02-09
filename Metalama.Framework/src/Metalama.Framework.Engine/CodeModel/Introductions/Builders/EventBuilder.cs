@@ -111,7 +111,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
     IMethod? IEvent.RaiseMethod => this.RaiseMethod;
 
     // Event builders are always field-like, so RaiseMethod is always non-null.
-    public IMethod GetRaiseMethodForAdvice() => this.RaiseMethod;
+    public IMethod GetRaiseMethodForAdvice() => ((IEvent) this).RaiseMethod.AssertNotNull();
 
     // TODO: When an interface is introduced, explicit implementation should appear here.
     public IReadOnlyList<IEvent> ExplicitInterfaceImplementations { get; private set; } = Array.Empty<IEvent>();
