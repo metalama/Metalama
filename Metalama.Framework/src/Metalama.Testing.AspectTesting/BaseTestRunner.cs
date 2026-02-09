@@ -281,7 +281,12 @@ internal abstract partial class BaseTestRunner
 
             if ( !string.IsNullOrEmpty( testInput.FullPath ) )
             {
-                (mainProject, _) = await AddDependencyProjectAsync( mainProject, testInput.FullPath );
+                (var dependencySuccess, mainProject, _) = await AddDependencyProjectAsync( mainProject, testInput.FullPath );
+
+                if ( !dependencySuccess )
+                {
+                    return;
+                }
             }
 
             // Add additional input documents.
@@ -302,7 +307,12 @@ internal abstract partial class BaseTestRunner
                     continue;
                 }
 
-                (mainProject, _) = await AddDependencyProjectAsync( mainProject, includedFileName );
+                (var includedDependencySuccess, mainProject, _) = await AddDependencyProjectAsync( mainProject, includedFileName );
+
+                if ( !includedDependencySuccess )
+                {
+                    return;
+                }
 
                 await testResult.AddInputDocumentAsync( includedDocument, includedFullPath );
             }
@@ -387,14 +397,14 @@ internal abstract partial class BaseTestRunner
             }
 #pragma warning restore CS1998
 
-            async Task<(Project Project, ImmutableArray<MetadataReference> References)> AddDependencyProjectAsync( Project baseProject, string basePath = "" )
+            async Task<(bool Success, Project Project, ImmutableArray<MetadataReference> References)> AddDependencyProjectAsync( Project baseProject, string basePath = "" )
             {
                 var dependencyName = Path.GetFileNameWithoutExtension( basePath ) + ".Dependency.cs";
                 var dependencyPath = Path.GetFullPath( Path.Combine( testDirectory, dependencyName ) );
 
                 if ( !this._fileSystem.FileExists( dependencyPath ) )
                 {
-                    return (baseProject, ImmutableArray<MetadataReference>.Empty);
+                    return (true, baseProject, ImmutableArray<MetadataReference>.Empty);
                 }
 
                 // Add documents to the dependency project.
@@ -418,7 +428,12 @@ internal abstract partial class BaseTestRunner
                 dependencyProject = await AddAdditionalDocumentsAsync( dependencyProject, dependencyParseOptions );
 
                 // Add dependencies recursively.
-                (dependencyProject, var recursiveReferences) = await AddDependencyProjectAsync( dependencyProject, dependencyName );
+                (var recursiveSuccess, dependencyProject, var recursiveReferences) = await AddDependencyProjectAsync( dependencyProject, dependencyName );
+
+                if ( !recursiveSuccess )
+                {
+                    return (false, baseProject, ImmutableArray<MetadataReference>.Empty);
+                }
 
                 // Compile the dependency.
                 var (dependencyReference, _) =
@@ -430,12 +445,12 @@ internal abstract partial class BaseTestRunner
 
                 if ( dependencyReference == null )
                 {
-                    return (baseProject, ImmutableArray<MetadataReference>.Empty);
+                    return (false, baseProject, ImmutableArray<MetadataReference>.Empty);
                 }
 
                 var allReferences = recursiveReferences.Add( dependencyReference );
 
-                return (baseProject.AddMetadataReferences( allReferences ), allReferences);
+                return (true, baseProject.AddMetadataReferences( allReferences ), allReferences);
             }
         }
         finally
