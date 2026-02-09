@@ -76,7 +76,6 @@ internal sealed class PropertyBuilder : PropertyOrIndexerBuilder, IPropertyBuild
             {
                 switch ( value )
                 {
-                    case Writeability.None:
                     case Writeability.ConstructorOnly:
                         this._writeabilityOverride = value;
 

@@ -11,9 +11,6 @@ public class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        // Get-only auto property (cannot be set at all).
-        builder.IntroduceAutomaticProperty( "NonWriteableProp", typeof(int), buildProperty: p => p.Writeability = Writeability.None );
-
         // Constructor-only auto property (can be set in constructor only).
         builder.IntroduceAutomaticProperty( "ConstructorOnlyProp", typeof(int), buildProperty: p => p.Writeability = Writeability.ConstructorOnly );
 

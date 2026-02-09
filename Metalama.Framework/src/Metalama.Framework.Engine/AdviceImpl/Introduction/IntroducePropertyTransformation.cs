@@ -133,8 +133,6 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                 case (false, _, not null, null):
                 // Read only fields or get-only auto properties.
                 case (true, Writeability.ConstructorOnly, not null, { IsImplicitlyDeclared: true }):
-                // Get-only auto properties (no setter at all).
-                case (true, Writeability.None, not null, _):
                     return AccessorList( List( [GenerateGetAccessor()] ) );
 
                 // Properties with only set accessor.
