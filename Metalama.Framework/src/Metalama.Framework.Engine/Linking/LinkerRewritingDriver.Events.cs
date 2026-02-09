@@ -223,7 +223,7 @@ namespace Metalama.Framework.Engine.Linking
             }
         }
 
-        private static BlockSyntax GetImplicitAdderBody( IMethodSymbol symbol, SyntaxGenerationContext context )
+        private BlockSyntax GetImplicitAdderBody( IMethodSymbol symbol, SyntaxGenerationContext context )
             => context.SyntaxGenerator.FormattedBlock(
                 ExpressionStatement(
                     AssignmentExpression(
@@ -233,12 +233,12 @@ namespace Metalama.Framework.Engine.Linking
                                 symbol.IsStatic
                                     ? context.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
-                                WellKnownIdentifierName( GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                WellKnownIdentifierName( this.GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( context ),
                         WellKnownIdentifierName( "value" ) ),
                     Token( default, SyntaxKind.SemicolonToken, new SyntaxTriviaList( context.ElasticEndOfLineTrivia ) ) ) );
 
-        private static BlockSyntax GetImplicitRemoverBody( IMethodSymbol symbol, SyntaxGenerationContext context )
+        private BlockSyntax GetImplicitRemoverBody( IMethodSymbol symbol, SyntaxGenerationContext context )
             => context.SyntaxGenerator.FormattedBlock(
                 ExpressionStatement(
                     AssignmentExpression(
@@ -248,7 +248,7 @@ namespace Metalama.Framework.Engine.Linking
                                 symbol.IsStatic
                                     ? context.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
-                                WellKnownIdentifierName( GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                WellKnownIdentifierName( this.GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( context ),
                         WellKnownIdentifierName( "value" ) ),
                     Token( default, SyntaxKind.SemicolonToken, context.OptionalElasticEndOfLineTriviaList ) ) );
@@ -324,7 +324,7 @@ namespace Metalama.Framework.Engine.Linking
                             eventType.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
                             SingletonSeparatedList(
                                 VariableDeclarator(
-                                    WellKnownIdentifier( GetBackingFieldName( symbol ) ),
+                                    WellKnownIdentifier( this.GetBackingFieldName( symbol ) ),
                                     null,
                                     initializer ) ) ) )
                     .NormalizeWhitespaceIfNecessary( context )

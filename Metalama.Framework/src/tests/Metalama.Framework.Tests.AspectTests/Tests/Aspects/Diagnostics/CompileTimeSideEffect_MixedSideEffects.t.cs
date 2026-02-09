@@ -1,0 +1,3 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0108 on `counter`: `Cannot set the compile-time variable 'counter' here because it is part of a block whose execution depends on the run-time condition 'if ( x != null )' and it was not declared inside the block. Move the assignment out of the run-time-conditional block or move the variable into the block.`
+// Error LAMA0288 on `sb.Append( "hello" )`: `Cannot call the compile-time expression 'sb.Append( "hello" )' as a statement here because it is part of a block whose execution depends on the run-time condition 'if ( x != null )'. A compile-time expression used as a statement is assumed to have side effects and cannot be conditionally executed based on a run-time condition.`
