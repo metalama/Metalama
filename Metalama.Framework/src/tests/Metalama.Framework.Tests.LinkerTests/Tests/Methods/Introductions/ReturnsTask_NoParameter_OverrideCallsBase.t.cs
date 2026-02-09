@@ -1,9 +1,10 @@
 internal class Target
 {
-  private async Task Foo_Override()
+  private Task Foo_Override()
   {
     Console.WriteLine("Before");
-    Console.WriteLine("After");
+    // Should return Task.CompletedTask.
+    return global::System.Threading.Tasks.Task.CompletedTask;
   }
   public Task Foo()
   {

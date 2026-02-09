@@ -33,8 +33,9 @@
         <PackageReference Include="Metalama.Compiler.Sdk" />
         <PackageReference Include="Metalama.Backstage.Testing" />
 
-        <!-- These packages ared used in tests -->
+        <!-- These packages are used in tests -->
         <PackageReference Include="Microsoft.Win32.Registry" />
+        <PackageReference Include="System.Linq.AsyncEnumerable" />
 
         <!-- Resolve conflicts -->
         <PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryLatestVersion)"/>

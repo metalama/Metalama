@@ -620,12 +620,9 @@ internal sealed partial class LinkerAnalysisStep
                         // Default non-inlined semantics that are not override targets need no substitutions.
                         break;
 
-                    case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base, ResolvedSemantic.Symbol: IMethodSymbol { MethodKind: MethodKind.Ordinary or MethodKind.ExplicitInterfaceImplementation } methodSymbol }
-                        when methodSymbol.GetEnumerableKind() == Metalama.Framework.Code.EnumerableKind.None:
+                    case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base, ResolvedSemantic.Symbol: IMethodSymbol { MethodKind: MethodKind.Ordinary or MethodKind.ExplicitInterfaceImplementation } }:
                         // Base references to introduced ordinary methods with no base are replaced inline
-                        // with default value (expression context) or suppressed (statement context).
-                        // Methods returning enumerable/enumerator types are excluded because they may be used
-                        // in foreach or similar contexts where null (default) is invalid - they need the _Empty() stub.
+                        // with an appropriate empty expression (expression context) or suppressed (statement context).
                         AddSubstitution(
                             context,
                             new AspectReferenceEmptyMethodSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );

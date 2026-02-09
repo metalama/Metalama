@@ -2,25 +2,28 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using RoslynSpecialType = Microsoft.CodeAnalysis.SpecialType;
 
 namespace Metalama.Framework.Engine.Linking.Substitution;
 
 /// <summary>
 /// Substitutes an aspect reference to an empty method (introduced method with no base implementation)
-/// by replacing the invocation with a default value (for expression context) or removing the statement
-/// (for statement context), instead of generating a separate empty method.
+/// by replacing the invocation with a semantically appropriate empty expression (for expression context)
+/// or removing the statement (for statement context), instead of generating a separate empty method.
 /// </summary>
 internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstitution
 {
     private readonly bool _isStatementContext;
-    private readonly ITypeSymbol _resultType;
+    private readonly IMethodSymbol _methodSymbol;
 
     public override SyntaxNode ReplacedNode { get; }
 
@@ -35,15 +38,7 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
             !aspectReference.ResolvedSemantic.Symbol.IsOverride
             && !aspectReference.ResolvedSemantic.Symbol.TryGetHiddenSymbol( compilationContext.Compilation, out _ ) );
 
-        // Determine the method symbol and its return type.
-        var methodSymbol = (IMethodSymbol) aspectReference.ResolvedSemantic.Symbol;
-
-        if ( !AsyncHelper.TryGetAsyncInfo( methodSymbol.ReturnType, out var resultType, out _ ) )
-        {
-            resultType = methodSymbol.ReturnType;
-        }
-
-        this._resultType = resultType;
+        this._methodSymbol = (IMethodSymbol) aspectReference.ResolvedSemantic.Symbol;
 
         // Determine the invocation expression (parent of the root node).
         var invocationNode = FindInvocationExpression( aspectReference.RootNode );
@@ -107,10 +102,170 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
             // For statement context (void or non-void used as statement), remove the statement entirely.
             return null;
         }
-        else
+
+        return this.CreateEmptyExpression( substitutionContext.SyntaxGenerationContext.SyntaxGenerator );
+    }
+
+    private ExpressionSyntax CreateEmptyExpression( ContextualSyntaxGenerator syntaxGenerator )
+    {
+        var returnType = this._methodSymbol.ReturnType;
+
+        // Check for async types (Task, Task<T>).
+        if ( AsyncHelper.TryGetAsyncInfo( returnType, out var asyncResultType, out var hasMethodBuilder ) && hasMethodBuilder )
         {
-            // For expression context, replace the invocation with default(ReturnType).
-            return DefaultExpression( substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( this._resultType ) );
+            var taskTypeSyntax = CreateFullyQualifiedName( "System", "Threading", "Tasks", "Task" );
+
+            if ( asyncResultType.SpecialType == RoslynSpecialType.System_Void )
+            {
+                // Task → Task.CompletedTask
+                return MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    taskTypeSyntax,
+                    SyntaxFactoryEx.WellKnownIdentifierName( "CompletedTask" ) );
+            }
+            else
+            {
+                // Task<T> → Task.FromResult(default(T))
+                return InvocationExpression(
+                    MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        taskTypeSyntax,
+                        GenericName( SyntaxFactoryEx.WellKnownIdentifier( "FromResult" ) )
+                            .WithTypeArgumentList(
+                                TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( asyncResultType ) ) ) ) ),
+                    ArgumentList( SingletonSeparatedList( Argument( DefaultExpression( syntaxGenerator.TypeSyntax( asyncResultType ) ) ) ) ) );
+            }
         }
+
+        // Check for enumerable/enumerator types.
+        var enumerableKind = this._methodSymbol.GetEnumerableKind();
+
+        switch ( enumerableKind )
+        {
+            case EnumerableKind.IEnumerable:
+                // IEnumerable<T> → Enumerable.Empty<T>()
+                return CreateEnumerableEmptyExpression( syntaxGenerator, returnType );
+
+            case EnumerableKind.IEnumerator:
+                // IEnumerator<T> → Enumerable.Empty<T>().GetEnumerator()
+                return InvocationExpression(
+                    MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        CreateEnumerableEmptyExpression( syntaxGenerator, this.GetEnumerableTypeFromEnumerator( returnType ) ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( "GetEnumerator" ) ) );
+
+            case EnumerableKind.IAsyncEnumerable:
+                // IAsyncEnumerable<T> → AsyncEnumerable.Empty<T>()
+                return CreateAsyncEnumerableEmptyExpression( syntaxGenerator, returnType );
+
+            case EnumerableKind.IAsyncEnumerator:
+                // IAsyncEnumerator<T> → AsyncEnumerable.Empty<T>().GetAsyncEnumerator()
+                return InvocationExpression(
+                    MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        CreateAsyncEnumerableEmptyExpression( syntaxGenerator, this.GetAsyncEnumerableTypeFromEnumerator( returnType ) ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( "GetAsyncEnumerator" ) ) );
+
+            case EnumerableKind.UntypedIEnumerable:
+            case EnumerableKind.UntypedIEnumerator:
+            default:
+                break;
+        }
+
+        // Default case: use default(ReturnType).
+        if ( !AsyncHelper.TryGetAsyncInfo( returnType, out var resultType, out _ ) )
+        {
+            resultType = returnType;
+        }
+
+        return DefaultExpression( syntaxGenerator.TypeSyntax( resultType ) );
+    }
+
+    /// <summary>
+    /// Creates an expression for <c>Enumerable.Empty&lt;T&gt;()</c>.
+    /// </summary>
+    private static ExpressionSyntax CreateEnumerableEmptyExpression( ContextualSyntaxGenerator syntaxGenerator, ITypeSymbol enumerableType )
+    {
+        var typeArg = GetTypeArgument( enumerableType );
+
+        return InvocationExpression(
+            MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                CreateFullyQualifiedName( "System", "Linq", "Enumerable" ),
+                GenericName( SyntaxFactoryEx.WellKnownIdentifier( "Empty" ) )
+                    .WithTypeArgumentList(
+                        TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( typeArg ) ) ) ) ) );
+    }
+
+    /// <summary>
+    /// Creates an expression for <c>AsyncEnumerable.Empty&lt;T&gt;()</c>.
+    /// </summary>
+    private static ExpressionSyntax CreateAsyncEnumerableEmptyExpression( ContextualSyntaxGenerator syntaxGenerator, ITypeSymbol asyncEnumerableType )
+    {
+        var typeArg = GetTypeArgument( asyncEnumerableType );
+
+        return InvocationExpression(
+            MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                CreateFullyQualifiedName( "System", "Linq", "AsyncEnumerable" ),
+                GenericName( SyntaxFactoryEx.WellKnownIdentifier( "Empty" ) )
+                    .WithTypeArgumentList(
+                        TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( typeArg ) ) ) ) ) );
+    }
+
+    /// <summary>
+    /// Gets the type argument from a generic type (e.g., <c>int</c> from <c>IEnumerable&lt;int&gt;</c>).
+    /// </summary>
+    private static ITypeSymbol GetTypeArgument( ITypeSymbol type )
+        => type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol { TypeArguments.Length: > 0 } namedType
+            ? namedType.TypeArguments[0]
+            : throw new AssertionFailedException( $"Expected a generic type with at least one type argument, got: {type}" );
+
+    /// <summary>
+    /// Constructs the IEnumerable&lt;T&gt; type from IEnumerator&lt;T&gt; by looking up IEnumerable&lt;T&gt; in the compilation.
+    /// </summary>
+    private ITypeSymbol GetEnumerableTypeFromEnumerator( ITypeSymbol enumeratorType )
+    {
+        var typeArg = GetTypeArgument( enumeratorType );
+
+        var enumerableType = this.CompilationContext.Compilation.GetSpecialType( RoslynSpecialType.System_Collections_Generic_IEnumerable_T );
+
+        return enumerableType.Construct( typeArg );
+    }
+
+    /// <summary>
+    /// Constructs the IAsyncEnumerable&lt;T&gt; type from IAsyncEnumerator&lt;T&gt;.
+    /// </summary>
+    private ITypeSymbol GetAsyncEnumerableTypeFromEnumerator( ITypeSymbol asyncEnumeratorType )
+    {
+        var typeArg = GetTypeArgument( asyncEnumeratorType );
+        var asyncEnumerableType = this.CompilationContext.Compilation.GetTypeByMetadataName( "System.Collections.Generic.IAsyncEnumerable`1" );
+
+        if ( asyncEnumerableType == null )
+        {
+            throw new AssertionFailedException( "Could not find IAsyncEnumerable<T> in the compilation." );
+        }
+
+        return asyncEnumerableType.Construct( typeArg );
+    }
+
+    /// <summary>
+    /// Creates a fully qualified name expression like <c>global::System.Linq.Enumerable</c>.
+    /// </summary>
+    private static ExpressionSyntax CreateFullyQualifiedName( params string[] parts )
+    {
+        ExpressionSyntax result = AliasQualifiedName(
+            SyntaxFactoryEx.WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+            SyntaxFactoryEx.WellKnownIdentifierName( parts[0] ) );
+
+        for ( var i = 1; i < parts.Length; i++ )
+        {
+            result = MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                result,
+                SyntaxFactoryEx.WellKnownIdentifierName( parts[i] ) );
+        }
+
+        return result;
     }
 }

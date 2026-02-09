@@ -64,16 +64,8 @@ namespace Metalama.Framework.Engine.Linking
                     members.Add( this.GetOriginalImplMethod( methodDeclaration, symbol, generationContext ) );
                 }
 
-                // Empty base methods are only generated for methods returning enumerable/enumerator types,
-                // which need a stub that yields nothing (or returns an empty enumerator).
-                // For other methods, AspectReferenceEmptyMethodSubstitution replaces invocations inline.
-                if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
-                     && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
-                     && this.ShouldGenerateEmptyMember( symbol )
-                     && symbol.GetEnumerableKind() != Metalama.Framework.Code.EnumerableKind.None )
-                {
-                    members.Add( this.GetEmptyImplMethod( methodDeclaration, symbol, generationContext ) );
-                }
+                // Empty base methods are no longer generated — AspectReferenceEmptyMethodSubstitution
+                // replaces all base invocations inline with appropriate empty expressions.
 
                 return members;
             }
@@ -221,41 +213,6 @@ namespace Metalama.Framework.Engine.Linking
                 symbol,
                 GetOriginalImplMemberName( symbol ),
                 generationContext );
-        }
-
-        private MemberDeclarationSyntax GetEmptyImplMethod(
-            MethodDeclarationSyntax method,
-            IMethodSymbol symbol,
-            SyntaxGenerationContext generationContext )
-        {
-            var returnType = symbol.ReturnType;
-
-            if ( !AsyncHelper.TryGetAsyncInfo( symbol.ReturnType, out var resultType, out _ ) )
-            {
-                resultType = returnType;
-            }
-
-            var isIterator = symbol.IsIteratorMethod();
-
-            var emptyBody =
-                isIterator
-                    ? generationContext.SyntaxGenerator.FormattedBlock(
-                        YieldStatement(
-                            SyntaxKind.YieldBreakStatement,
-                            List<AttributeListSyntax>(),
-                            Token( TriviaList(), SyntaxKind.YieldKeyword, TriviaList( ElasticSpace ) ),
-                            Token( TriviaList(), SyntaxKind.BreakKeyword, TriviaList( ElasticSpace ) ),
-                            null,
-                            Token( TriviaList(), SyntaxKind.SemicolonToken, TriviaList() ) ) )
-                    : resultType.OriginalDefinition.SpecialType == SpecialType.System_Void
-                        ? generationContext.SyntaxGenerator.FormattedBlock()
-                        : generationContext.SyntaxGenerator.FormattedBlock(
-                            ReturnStatement(
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
-                                DefaultExpression( generationContext.SyntaxGenerator.TypeSyntax( resultType ) ),
-                                Token( SyntaxKind.SemicolonToken ) ) );
-
-            return this.GetSpecialImplMethod( method, emptyBody, null, symbol, GetEmptyImplMemberName( symbol ), generationContext );
         }
 
         private MemberDeclarationSyntax GetSpecialImplMethod(

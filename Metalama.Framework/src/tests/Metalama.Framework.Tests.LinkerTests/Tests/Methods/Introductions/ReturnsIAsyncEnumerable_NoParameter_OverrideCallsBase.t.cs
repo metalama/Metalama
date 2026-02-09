@@ -4,7 +4,7 @@ internal class Target
   {
     Console.WriteLine("Before");
     // Should invoke the empty method (async enumerables still need _Empty stub).
-    IAsyncEnumerable<int> baseResult = this.Foo_Empty();
+    IAsyncEnumerable<int> baseResult = global::System.Linq.AsyncEnumerable.Empty<global::System.Int32>();
     await foreach (var item in baseResult)
     {
       yield return item;
@@ -14,9 +14,5 @@ internal class Target
   public IAsyncEnumerable<int> Foo()
   {
     return this.Foo_Override();
-  }
-  private async IAsyncEnumerable<int> Foo_Empty()
-  {
-    yield break;
   }
 }

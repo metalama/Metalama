@@ -27,14 +27,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Introductions.Retur
         [PseudoOverride( nameof(Foo), "A1" )]
         [PseudoNotInlineable]
         [PseudoNotDiscardable]
-        private async Task Foo_Override()
+        private Task Foo_Override()
         {
             Console.WriteLine( "Before" );
 
-            // Should invoke empty code (statement should be suppressed).
-            Link( This.Foo, Base )();
-
-            Console.WriteLine( "After" );
+            // Should return Task.CompletedTask.
+            return Link( This.Foo, Base )();
         }
     }
 }

@@ -4,7 +4,7 @@ internal class Target
   {
     Console.WriteLine("Before");
     // Should invoke the empty method (enumerables still need _Empty stub).
-    foreach (var item in this.Foo_Empty())
+    foreach (var item in global::System.Linq.Enumerable.Empty<global::System.Int32>())
     {
       yield return item;
     }
@@ -13,9 +13,5 @@ internal class Target
   public IEnumerable<int> Foo()
   {
     return this.Foo_Override();
-  }
-  private IEnumerable<int> Foo_Empty()
-  {
-    yield break;
   }
 }
