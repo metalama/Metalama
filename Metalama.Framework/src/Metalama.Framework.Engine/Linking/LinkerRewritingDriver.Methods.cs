@@ -64,9 +64,13 @@ namespace Metalama.Framework.Engine.Linking
                     members.Add( this.GetOriginalImplMethod( methodDeclaration, symbol, generationContext ) );
                 }
 
+                // Empty base methods are only generated for methods returning enumerable/enumerator types,
+                // which need a stub that yields nothing (or returns an empty enumerator).
+                // For other methods, AspectReferenceEmptyMethodSubstitution replaces invocations inline.
                 if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
                      && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
-                     && this.ShouldGenerateEmptyMember( symbol ) )
+                     && this.ShouldGenerateEmptyMember( symbol )
+                     && symbol.GetEnumerableKind() != Metalama.Framework.Code.EnumerableKind.None )
                 {
                     members.Add( this.GetEmptyImplMethod( methodDeclaration, symbol, generationContext ) );
                 }
