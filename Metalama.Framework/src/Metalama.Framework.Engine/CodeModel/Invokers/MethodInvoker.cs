@@ -24,19 +24,15 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
 internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 {
-#if ROSLYN_5_0_0_OR_GREATER
     private readonly bool _skipTypeArgumentInference;
-#endif
 
     public MethodInvoker( IMethod method, InvokerOptions options = default, IExpression? target = null ) : base( method, options, target ) { }
 
-#if ROSLYN_5_0_0_OR_GREATER
     private MethodInvoker( IMethod method, InvokerOptions options, IExpression? target, bool skipTypeArgumentInference )
         : base( method, options, target )
     {
         this._skipTypeArgumentInference = skipTypeArgumentInference;
     }
-#endif
 
     public object? Invoke( IEnumerable<IExpression> args ) => this.InvokeCore( args.ToReadOnlyList() );
 
@@ -127,14 +123,11 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
     private DelegateUserExpression InvokeDefaultMethod( IReadOnlyList<IExpression> args )
     {
-#if ROSLYN_5_0_0_OR_GREATER
-
         // For extension members, redirect to the implementation method.
         if ( this.IsExtensionMember )
         {
             return this.InvokeExtensionImplementationMethod( args );
         }
-#endif
 
         // If the method is a canonical generic instance (type arguments are the type parameters themselves),
         // attempt to infer type arguments from the actual argument types. This prevents generating invalid code
@@ -142,10 +135,7 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         var resolvedMethod = this.Member;
 
         if ( resolvedMethod.IsGeneric && resolvedMethod.IsCanonicalGenericInstance && args.Count > 0
-#if ROSLYN_5_0_0_OR_GREATER
-             && !this._skipTypeArgumentInference
-#endif
-           )
+             && !this._skipTypeArgumentInference )
         {
             var inferredMethod = TryInferTypeArguments( resolvedMethod, args );
 
@@ -275,7 +265,6 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         }
     }
 
-#if ROSLYN_5_0_0_OR_GREATER
     private DelegateUserExpression InvokeExtensionImplementationMethod( IReadOnlyList<IExpression> args )
     {
         var implMethod = this.Member.ExtensionImplementationMethod;
@@ -312,7 +301,6 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
         return (DelegateUserExpression) implInvoker.CreateInvokeExpression( implArgs );
     }
-#endif
 
     private ExpressionSyntax CreateInvocationExpression(
         ReceiverExpressionSyntax receiverTypedExpressionSyntax,
