@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0288 on `sb.Append( "hello" )`: `Cannot call the compile-time expression 'sb.Append( "hello" )' as a statement here because it is part of a block whose execution depends on the run-time condition 'if ( y != null )'. A compile-time expression used as a statement is assumed to have side effects and cannot be conditionally executed based on a run-time condition.`

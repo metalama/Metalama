@@ -390,7 +390,7 @@ namespace Metalama.Framework.Engine.Linking
                         type.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
                         SingletonSeparatedList(
                             VariableDeclarator(
-                                WellKnownIdentifier( GetBackingFieldName( symbol ) ),
+                                WellKnownIdentifier( this.GetBackingFieldName( symbol ) ),
                                 null,
                                 initializer ) ) ) )
                 .WithOptionalTrivia(
@@ -400,7 +400,7 @@ namespace Metalama.Framework.Engine.Linking
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
         }
 
-        private static BlockSyntax GetImplicitGetterBody( IMethodSymbol symbol, SyntaxGenerationContext generationContext )
+        private BlockSyntax GetImplicitGetterBody( IMethodSymbol symbol, SyntaxGenerationContext generationContext )
             => generationContext.SyntaxGenerator.FormattedBlock(
                     ReturnStatement(
                         SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
@@ -409,12 +409,12 @@ namespace Metalama.Framework.Engine.Linking
                                 symbol.IsStatic
                                     ? generationContext.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
-                                WellKnownIdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                WellKnownIdentifierName( this.GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( generationContext ),
                         Token( SyntaxKind.SemicolonToken ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
 
-        private static BlockSyntax GetImplicitSetterBody( IMethodSymbol symbol, SyntaxGenerationContext generationContext )
+        private BlockSyntax GetImplicitSetterBody( IMethodSymbol symbol, SyntaxGenerationContext generationContext )
             => generationContext.SyntaxGenerator.FormattedBlock(
                     ExpressionStatement(
                         AssignmentExpression(
@@ -424,7 +424,7 @@ namespace Metalama.Framework.Engine.Linking
                                     symbol.IsStatic
                                         ? generationContext.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                         : ThisExpression(),
-                                    WellKnownIdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                    WellKnownIdentifierName( this.GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                                 .WithSimplifierAnnotationIfNecessary( generationContext ),
                             WellKnownIdentifierName( "value" ) ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );

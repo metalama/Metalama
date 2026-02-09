@@ -653,5 +653,16 @@ namespace Metalama.Framework.Engine.Templating
                     "Cannot get a receiver in an advice applied to {1} '{0}' because {2}.",
                     _category,
                     Error );
+
+        internal static readonly DiagnosticDefinition<(string Expression, string RunTimeCondition)>
+            CannotCallCompileTimeMethodWithSideEffectsInRunTimeConditionalBlock
+                = new(
+                    "LAMA0288",
+                    "Cannot call a compile-time method with side effects from a run-time conditional block.",
+                    "Cannot call the compile-time expression '{0}' as a statement here because it is part of a block whose execution depends on the run-time "
+                    + "condition '{1}'. A compile-time expression used as a statement is assumed to have side effects and cannot be conditionally executed "
+                    + "based on a run-time condition.",
+                    _category,
+                    Error );
     }
 }
