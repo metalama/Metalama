@@ -573,13 +573,60 @@ namespace Metalama.Framework.Engine.Templating
         {
             var typeOfExpression = (TypeOfExpressionSyntax) SyntaxFactoryEx.ParseExpressionSafe( typeOfString );
 
+            // Apply compile-time type parameter substitutions.
             if ( substitutions is { Count: > 0 } )
             {
                 var rewriter = new SerializedTypeOfRewriter( substitutions );
                 typeOfExpression = (TypeOfExpressionSyntax) rewriter.Visit( typeOfExpression )!;
             }
 
+            // Apply run-time type parameter renaming from the expansion context.
+            // This handles the case where a template type parameter name (e.g., T) differs from
+            // the target method's type parameter name (e.g., U) due to an introduction renaming.
+            var runTimeSubstitutions = this.GetRunTimeTypeParameterSubstitutions();
+
+            if ( runTimeSubstitutions != null )
+            {
+                var rewriter = new SerializedTypeOfRewriter( runTimeSubstitutions );
+                typeOfExpression = (TypeOfExpressionSyntax) rewriter.Visit( typeOfExpression )!;
+            }
+
             return typeOfExpression;
+        }
+
+        public IdentifierNameSyntax RunTimeTypeParameterIdentifier( string templateParameterName )
+        {
+            var genericArguments = this._templateExpansionContext.TemplateGenericArguments;
+
+            if ( genericArguments.TryGetValue( templateParameterName, out var targetType ) && targetType is ITypeParameter targetTypeParameter )
+            {
+                return SyntaxFactoryEx.SafeIdentifierName( targetTypeParameter.Name );
+            }
+
+            return SyntaxFactoryEx.SafeIdentifierName( templateParameterName );
+        }
+
+        private Dictionary<string, TypeSyntax>? GetRunTimeTypeParameterSubstitutions()
+        {
+            var genericArguments = this._templateExpansionContext.TemplateGenericArguments;
+
+            if ( genericArguments.Count == 0 )
+            {
+                return null;
+            }
+
+            Dictionary<string, TypeSyntax>? substitutions = null;
+
+            foreach ( var pair in genericArguments )
+            {
+                if ( pair.Value is ITypeParameter targetTypeParameter && pair.Key != targetTypeParameter.Name )
+                {
+                    substitutions ??= new Dictionary<string, TypeSyntax>();
+                    substitutions[pair.Key] = SyntaxFactoryEx.SafeIdentifierName( targetTypeParameter.Name );
+                }
+            }
+
+            return substitutions;
         }
 
         public InterpolationSyntax FixInterpolationSyntax( InterpolationSyntax interpolation ) => InterpolationSyntaxHelper.Fix( interpolation );

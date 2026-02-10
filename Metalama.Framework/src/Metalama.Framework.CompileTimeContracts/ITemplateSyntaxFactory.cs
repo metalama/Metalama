@@ -92,6 +92,13 @@ public interface ITemplateSyntaxFactory
 
     TypeOfExpressionSyntax TypeOf( string typeOfString, Dictionary<string, TypeSyntax> substitutions );
 
+    /// <summary>
+    /// Maps a template run-time type parameter name to the correct identifier in the current expansion context.
+    /// When the target method's type parameter has been renamed (e.g., by an introduction), this returns
+    /// the correct name based on ordinal position mapping.
+    /// </summary>
+    IdentifierNameSyntax RunTimeTypeParameterIdentifier( string templateParameterName );
+
     InterpolationSyntax FixInterpolationSyntax( InterpolationSyntax interpolation );
 
     ITemplateSyntaxFactory ForLocalFunction( string returnType, Dictionary<string, IType> genericArguments, bool isAsync = false );

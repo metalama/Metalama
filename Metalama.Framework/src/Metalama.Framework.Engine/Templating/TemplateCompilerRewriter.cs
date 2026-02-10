@@ -2940,7 +2940,17 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             {
                 // Fully qualifies simple identifiers.
 
-                if ( symbol?.Kind is SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.DynamicType or SymbolKind.ErrorType
+                if ( symbol?.Kind == SymbolKind.TypeParameter
+                     && symbol is ITypeParameterSymbol typeParameterSymbol
+                     && this._templateMemberClassifier.IsRunTimeTemplateTypeParameter( typeParameterSymbol ) )
+                {
+                    // For run-time type parameters, use ITemplateSyntaxFactory.RunTimeTypeParameterIdentifier
+                    // so the correct name is resolved at expansion time via TemplateExpansionContext.
+                    return InvocationExpression(
+                            this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.RunTimeTypeParameterIdentifier) ) )
+                        .AddArgumentListArguments( Argument( SyntaxFactoryEx.LiteralExpression( typeParameterSymbol.Name ) ) );
+                }
+                else if ( symbol?.Kind is SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.DynamicType or SymbolKind.ErrorType
                          or SymbolKind.FunctionPointerType or SymbolKind.PointerType or SymbolKind.TypeParameter
                      && symbol is INamespaceOrTypeSymbol namespaceOrType )
                 {

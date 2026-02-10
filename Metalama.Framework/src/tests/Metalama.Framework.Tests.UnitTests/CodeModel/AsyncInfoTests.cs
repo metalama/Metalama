@@ -3,6 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.AdviceImpl.Introduction;
+using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Testing.UnitTesting;
 #if NET5_0_OR_GREATER
 using System.Collections.Generic;
@@ -454,4 +456,239 @@ class C
         Assert.Equal( compilation.Factory.GetTypeByReflectionType( typeof(IAsyncEnumerable<int>) ), asyncInfo.ResultType, compilation.Comparers.Default );
     }
 #endif
+
+    [Fact]
+    public void IntroducedAwaitableType()
+    {
+        using var testContext = this.CreateTestContext();
+
+        // Source code: a class C with an awaiter struct (Roslyn-backed).
+        const string code = @"
+using System;
+using System.Runtime.CompilerServices;
+class C
+{
+    public struct MyAwaiter : INotifyCompletion
+    {
+        public bool IsCompleted => true;
+        public int GetResult() => 42;
+        public void OnCompleted(Action action) {}
+    }
+}
+";
+
+        var immutableCompilation = testContext.CreateCompilationModel( code );
+        var compilation = immutableCompilation.CreateMutableClone();
+        var targetType = compilation.Types.Single();
+        var awaiterType = targetType.Types.OfName( "MyAwaiter" ).Single();
+
+        // Introduce a new type "MyAwaitable" nested in C.
+        var awaitableTypeBuilder = new NamedTypeBuilder( null!, targetType, "MyAwaitable", TypeKind.Struct );
+
+        // Add a GetAwaiter() method to the introduced type that returns MyAwaiter.
+        var getAwaiterBuilder = new MethodBuilder( null!, awaitableTypeBuilder, "GetAwaiter" ) { ReturnType = awaiterType };
+        getAwaiterBuilder.Freeze();
+
+        awaitableTypeBuilder.Freeze();
+
+        compilation.AddTransformation( awaitableTypeBuilder.CreateTransformation() );
+        compilation.AddTransformation( getAwaiterBuilder.ToTransformation() );
+
+        // Add a method to C that returns the introduced MyAwaitable type.
+        var introducedAwaitableType = compilation.Types.Single().Types.OfName( "MyAwaitable" ).Single();
+        var methodBuilder = new MethodBuilder( null!, targetType, "Method" ) { ReturnType = introducedAwaitableType };
+        methodBuilder.Freeze();
+        compilation.AddTransformation( methodBuilder.ToTransformation() );
+
+        // Get AsyncInfo for the method returning the introduced awaitable type.
+        var method = compilation.Types.Single().Methods.OfName( "Method" ).Single();
+        var asyncInfo = method.GetAsyncInfo();
+
+        // The method returns an introduced type that has GetAwaiter() -> MyAwaiter (with GetResult() returning int).
+        // This should be recognized as awaitable.
+        Assert.False( asyncInfo.IsAsync );
+        Assert.True( asyncInfo.IsAwaitable );
+        Assert.True( asyncInfo.IsAwaitableOrVoid );
+        Assert.Equal( compilation.Factory.GetTypeByReflectionType( typeof(int) ), asyncInfo.ResultType );
+    }
+
+    [Fact]
+    public void IntroducedNonAwaitableType()
+    {
+        using var testContext = this.CreateTestContext();
+
+        // Source code: a class C.
+        const string code = @"
+class C
+{
+}
+";
+
+        var immutableCompilation = testContext.CreateCompilationModel( code );
+        var compilation = immutableCompilation.CreateMutableClone();
+        var targetType = compilation.Types.Single();
+
+        // Introduce a type that does NOT have GetAwaiter() — not awaitable.
+        var typeBuilder = new NamedTypeBuilder( null!, targetType, "NotAwaitable", TypeKind.Struct );
+        typeBuilder.Freeze();
+        compilation.AddTransformation( typeBuilder.CreateTransformation() );
+
+        // Add a method to C that returns the introduced non-awaitable type.
+        var introducedType = compilation.Types.Single().Types.OfName( "NotAwaitable" ).Single();
+        var methodBuilder = new MethodBuilder( null!, targetType, "Method" ) { ReturnType = introducedType };
+        methodBuilder.Freeze();
+        compilation.AddTransformation( methodBuilder.ToTransformation() );
+
+        // Get AsyncInfo for the method returning the non-awaitable introduced type.
+        var method = compilation.Types.Single().Methods.OfName( "Method" ).Single();
+        var asyncInfo = method.GetAsyncInfo();
+
+        // The introduced type has no GetAwaiter(), so it should NOT be awaitable.
+        Assert.False( asyncInfo.IsAsync );
+        Assert.False( asyncInfo.IsAwaitable );
+        Assert.False( asyncInfo.IsAwaitableOrVoid );
+    }
+
+    [Fact]
+    public void IntroducedAwaitableType_FullyIntroduced()
+    {
+        using var testContext = this.CreateTestContext();
+
+        // Source code: a class C with no awaiter (both awaitable and awaiter will be introduced).
+        const string code = @"
+class C
+{
+}
+";
+
+        var immutableCompilation = testContext.CreateCompilationModel( code );
+        var compilation = immutableCompilation.CreateMutableClone();
+        var targetType = compilation.Types.Single();
+
+        // Introduce the awaiter type "MyAwaiter" nested in C.
+        var awaiterTypeBuilder = new NamedTypeBuilder( null!, targetType, "MyAwaiter", TypeKind.Struct );
+
+        // Add IsCompleted property to the awaiter.
+        var isCompletedBuilder = new PropertyBuilder(
+            null!,
+            awaiterTypeBuilder,
+            "IsCompleted",
+            hasGetter: true,
+            hasSetter: false,
+            isAutoProperty: false,
+            hasInitOnlySetter: false,
+            hasImplicitGetter: false,
+            hasImplicitSetter: false )
+        {
+            Type = compilation.Factory.GetTypeByReflectionType( typeof(bool) )
+        };
+
+        isCompletedBuilder.Freeze();
+
+        // Add GetResult() method to the awaiter returning void.
+        var getResultBuilder = new MethodBuilder( null!, awaiterTypeBuilder, "GetResult" );
+        getResultBuilder.Freeze();
+
+        // Add OnCompleted(Action) method to the awaiter (required by C# spec for awaiters).
+        var onCompletedBuilder = new MethodBuilder( null!, awaiterTypeBuilder, "OnCompleted" );
+        onCompletedBuilder.AddParameter( "action", compilation.Factory.GetTypeByReflectionType( typeof(System.Action) ) );
+        onCompletedBuilder.Freeze();
+
+        awaiterTypeBuilder.Freeze();
+
+        compilation.AddTransformation( awaiterTypeBuilder.CreateTransformation() );
+        compilation.AddTransformation( isCompletedBuilder.CreateTransformation() );
+        compilation.AddTransformation( getResultBuilder.ToTransformation() );
+        compilation.AddTransformation( onCompletedBuilder.ToTransformation() );
+
+        // Get the introduced awaiter type from the compilation.
+        var awaiterType = compilation.Types.Single().Types.OfName( "MyAwaiter" ).Single();
+
+        // Introduce the awaitable type "MyAwaitable" nested in C.
+        var awaitableTypeBuilder = new NamedTypeBuilder( null!, targetType, "MyAwaitable", TypeKind.Struct );
+
+        // Add GetAwaiter() method that returns the introduced awaiter type.
+        var getAwaiterBuilder = new MethodBuilder( null!, awaitableTypeBuilder, "GetAwaiter" ) { ReturnType = awaiterType };
+        getAwaiterBuilder.Freeze();
+
+        awaitableTypeBuilder.Freeze();
+
+        compilation.AddTransformation( awaitableTypeBuilder.CreateTransformation() );
+        compilation.AddTransformation( getAwaiterBuilder.ToTransformation() );
+
+        // Add a method to C that returns the introduced MyAwaitable type.
+        var introducedAwaitableType = compilation.Types.Single().Types.OfName( "MyAwaitable" ).Single();
+        var methodBuilder = new MethodBuilder( null!, targetType, "Method" ) { ReturnType = introducedAwaitableType };
+        methodBuilder.Freeze();
+        compilation.AddTransformation( methodBuilder.ToTransformation() );
+
+        // Get AsyncInfo for the method returning the fully-introduced awaitable type.
+        var method = compilation.Types.Single().Methods.OfName( "Method" ).Single();
+        var asyncInfo = method.GetAsyncInfo();
+
+        // Both awaitable and awaiter are introduced. GetResult() returns void.
+        Assert.False( asyncInfo.IsAsync );
+        Assert.True( asyncInfo.IsAwaitable );
+        Assert.True( asyncInfo.IsAwaitableOrVoid );
+        Assert.False( asyncInfo.HasMethodBuilder );
+        Assert.Equal( compilation.Factory.GetTypeByReflectionType( typeof(void) ), asyncInfo.ResultType );
+    }
+
+    [Fact]
+    public void IntroducedAwaitableType_MinimalAwaiter()
+    {
+        using var testContext = this.CreateTestContext();
+
+        // Source code: a class C.
+        const string code = @"
+class C
+{
+}
+";
+
+        var immutableCompilation = testContext.CreateCompilationModel( code );
+        var compilation = immutableCompilation.CreateMutableClone();
+        var targetType = compilation.Types.Single();
+
+        // Introduce an awaiter type with only GetResult (the code model fallback checks
+        // the same markers as the Roslyn path: GetAwaiter + GetResult).
+        var awaiterTypeBuilder = new NamedTypeBuilder( null!, targetType, "MinimalAwaiter", TypeKind.Struct );
+
+        var getResultBuilder = new MethodBuilder( null!, awaiterTypeBuilder, "GetResult" );
+        getResultBuilder.Freeze();
+
+        awaiterTypeBuilder.Freeze();
+
+        compilation.AddTransformation( awaiterTypeBuilder.CreateTransformation() );
+        compilation.AddTransformation( getResultBuilder.ToTransformation() );
+
+        var awaiterType = compilation.Types.Single().Types.OfName( "MinimalAwaiter" ).Single();
+
+        // Introduce an awaitable type whose GetAwaiter() returns the minimal awaiter.
+        var awaitableTypeBuilder = new NamedTypeBuilder( null!, targetType, "MyAwaitable", TypeKind.Struct );
+
+        var getAwaiterBuilder = new MethodBuilder( null!, awaitableTypeBuilder, "GetAwaiter" ) { ReturnType = awaiterType };
+        getAwaiterBuilder.Freeze();
+
+        awaitableTypeBuilder.Freeze();
+
+        compilation.AddTransformation( awaitableTypeBuilder.CreateTransformation() );
+        compilation.AddTransformation( getAwaiterBuilder.ToTransformation() );
+
+        // Add a method to C that returns the introduced awaitable type.
+        var introducedAwaitableType = compilation.Types.Single().Types.OfName( "MyAwaitable" ).Single();
+        var methodBuilder = new MethodBuilder( null!, targetType, "Method" ) { ReturnType = introducedAwaitableType };
+        methodBuilder.Freeze();
+        compilation.AddTransformation( methodBuilder.ToTransformation() );
+
+        var method = compilation.Types.Single().Methods.OfName( "Method" ).Single();
+        var asyncInfo = method.GetAsyncInfo();
+
+        // With GetAwaiter() + GetResult(), the type is awaitable (aligned with the Roslyn path behavior).
+        Assert.False( asyncInfo.IsAsync );
+        Assert.True( asyncInfo.IsAwaitable );
+        Assert.True( asyncInfo.IsAwaitableOrVoid );
+        Assert.False( asyncInfo.HasMethodBuilder );
+        Assert.Equal( compilation.Factory.GetTypeByReflectionType( typeof(void) ), asyncInfo.ResultType );
+    }
 }

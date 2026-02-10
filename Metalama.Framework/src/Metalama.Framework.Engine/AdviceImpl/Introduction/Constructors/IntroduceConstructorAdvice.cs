@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Diagnostics;
 using System;
 using System.Linq;
@@ -94,9 +95,14 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
         // TODO: Introduce attributes that are added not present on the existing member?
         if ( existingConstructor == null || existingImplicitConstructor != null || (existingConstructor.IsPartial && builder.IsPartial) )
         {
-            if ( existingImplicitConstructor != null && builder.Parameters.Count == 0 )
+            if ( existingImplicitConstructor != null
+                 && (builder.Parameters.Count == 0 || existingImplicitConstructor is not SourceConstructor) )
             {
-                // Redirect if the builder has no parameters and the existing constructor is implicit.
+                // Replace the implicit constructor. For source types with a matching signature (parameterless),
+                // redirect the ref. For introduced types (from IntroduceClass), always replace regardless of
+                // parameter count — this mirrors C# semantics where adding any explicit constructor removes
+                // the implicit default constructor. Source types with parameterized constructors don't need
+                // explicit replacement because Roslyn handles implicit constructor removal automatically.
                 builder.ReplacedImplicitConstructor = existingImplicitConstructor;
             }
 
