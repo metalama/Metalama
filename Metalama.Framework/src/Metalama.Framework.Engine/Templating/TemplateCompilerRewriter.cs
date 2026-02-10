@@ -952,10 +952,37 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         // Expand extension methods.
         if ( this.ProcessConditionalAccessExtensionMethod( node ) is { } expressions )
         {
-            // Turns e.g. `a?.Foo()` into `a is {} x ? x.Foo() : null`. 
+            // Turns e.g. `a?.Foo()` into `a is {} x ? x.Foo() : null`.
             var result = ConditionalExpression( expressions.Condition, expressions.Invocation, SyntaxFactoryEx.Null );
 
             return this.TransformConditionalExpression( result );
+        }
+
+        // Detect unsupported pattern: compile-time expression ?. compile-time-returning-run-time member.
+        // For example, meta.Target.Parameters.FirstOrDefault(...)?.Value where the expression is compile-time
+        // and .Value is a compile-time member returning a run-time value. When the compile-time expression is null,
+        // its type is unknown, so type-preserving run-time code cannot be generated.
+        if ( transformationKind != TransformationKind.Transform )
+        {
+            var firstMemberBinding = node.WhenNotNull.Kind() switch
+            {
+                SyntaxKind.MemberBindingExpression => (MemberBindingExpressionSyntax) node.WhenNotNull,
+                SyntaxKind.ConditionalAccessExpression
+                    when ((ConditionalAccessExpressionSyntax) node.WhenNotNull).Expression.Kind() == SyntaxKind.MemberBindingExpression
+                    => (MemberBindingExpressionSyntax) ((ConditionalAccessExpressionSyntax) node.WhenNotNull).Expression,
+                _ => null
+            };
+
+            if ( firstMemberBinding != null
+                 && firstMemberBinding.GetScopeFromAnnotation().GetValueOrDefault().IsCompileTimeMemberReturningRunTimeValue() )
+            {
+                this.Report(
+                    TemplatingDiagnosticDescriptors.CannotUseConditionalAccessWithCompileTimeToRunTimeMember.CreateRoslynDiagnostic(
+                        this._syntaxTreeAnnotationMap.GetLocation( node ),
+                        (node.ToString(), node.Expression.ToString(), firstMemberBinding.Name.ToString()) ) );
+
+                return node;
+            }
         }
 
         return base.TransformConditionalAccessExpression( node );
