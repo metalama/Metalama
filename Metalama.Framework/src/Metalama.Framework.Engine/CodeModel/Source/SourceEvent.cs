@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Source.Pseudo;
@@ -62,10 +63,15 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         public IMethod RemoveMethod => this.Compilation.Factory.GetMethod( this._symbol.RemoveMethod! );
 
         [Memo]
-        public IMethod RaiseMethod
-            => this._symbol.RaiseMethod == null
-                ? new PseudoRaiser( this )
-                : this.Compilation.Factory.GetMethod( this._symbol.RaiseMethod );
+        public IMethod? RaiseMethod
+            => this._symbol.RaiseMethod != null
+                ? this.Compilation.Factory.GetMethod( this._symbol.RaiseMethod )
+                : this._symbol.IsEventField() == true
+                    ? new PseudoRaiser( this )
+                    : null;
+
+        public IMethod GetRaiseMethodForAdvice()
+            => this.RaiseMethod ?? new PseudoRaiser( this );
 
         public IEvent? OverriddenEvent
         {
@@ -121,6 +127,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         object IEventInvoker.Remove( IExpression handler ) => this.Invoker.Remove( handler );
 
+        bool IEventInvoker.CanRaise => this.RaiseMethod != null;
+
         object? IEventInvoker.Raise( params object?[] args ) => this.Invoker.Raise( args );
 
         object? IEventInvoker.Raise( params IExpression[] args ) => this.Invoker.Raise( args );
@@ -137,7 +145,11 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             {
                 yield return this.AddMethod;
                 yield return this.RemoveMethod;
-                yield return this.RaiseMethod;
+
+                if ( this.RaiseMethod is { } raiseMethod )
+                {
+                    yield return raiseMethod;
+                }
             }
         }
 

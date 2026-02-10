@@ -18,6 +18,7 @@ using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
@@ -1319,7 +1320,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             var boundInvokeTemplate =
                 this.ValidateTemplateName( invokeTemplate, TemplateKind.Default )
                     ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
-                    .ForOverride( targetEvent.RaiseMethod, this.GetArgsReader( args ) );
+                    .ForOverride( ((IEventImpl) targetEvent).GetRaiseMethodForAdvice(), this.GetArgsReader( args ) );
 
             var advice = new OverrideEventAdvice(
                 this.GetAdviceConstructorParameters( targetEvent ),

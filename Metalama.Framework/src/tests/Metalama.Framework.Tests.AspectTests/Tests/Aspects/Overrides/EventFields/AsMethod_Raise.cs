@@ -16,7 +16,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.EventFields.AsMe
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.With( builder.Target.RaiseMethod ).Override( nameof( RaiseEventTemplate ) );
+            builder.With( builder.Target.RaiseMethod! ).Override( nameof( RaiseEventTemplate ) );
         }
 
         [Template]

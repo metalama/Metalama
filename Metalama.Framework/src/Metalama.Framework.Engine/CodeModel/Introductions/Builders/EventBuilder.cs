@@ -68,14 +68,22 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
     [Memo]
     public AccessorBuilder RemoveMethod => new( this, MethodKind.EventRemove, this.IsEventField );
 
+    /// <summary>
+    /// Gets the internal raise method builder. Always non-null — used for template binding and advice infrastructure.
+    /// </summary>
     [Memo]
-    public AccessorBuilder RaiseMethod => new( this, MethodKind.EventRaise, true );
+    internal AccessorBuilder RaiseMethodBuilder => new( this, MethodKind.EventRaise, true );
+
+    /// <summary>
+    /// Gets the raise method, or <c>null</c> for non-field-like events.
+    /// </summary>
+    public AccessorBuilder? RaiseMethod => this.IsEventField ? this.RaiseMethodBuilder : null;
 
     IMethodBuilder IEventBuilder.AddMethod => this.AddMethod;
 
     IMethodBuilder IEventBuilder.RemoveMethod => this.RemoveMethod;
 
-    IMethodBuilder IEventBuilder.RaiseMethod => this.RaiseMethod;
+    IMethodBuilder? IEventBuilder.RaiseMethod => this.RaiseMethod;
 
     public IEvent? OverriddenEvent { get; set; }
 
@@ -108,7 +116,9 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     IMethod IEvent.RemoveMethod => this.RemoveMethod;
 
-    IMethod IEvent.RaiseMethod => this.RaiseMethod;
+    IMethod? IEvent.RaiseMethod => this.RaiseMethod;
+
+    public IMethod GetRaiseMethodForAdvice() => this.RaiseMethodBuilder;
 
     // TODO: When an interface is introduced, explicit implementation should appear here.
     public IReadOnlyList<IEvent> ExplicitInterfaceImplementations { get; private set; } = Array.Empty<IEvent>();
@@ -148,6 +158,8 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     object IEventInvoker.Remove( IExpression handler ) => this.Invoker.Remove( handler );
 
+    bool IEventInvoker.CanRaise => ((IEvent) this).RaiseMethod != null;
+
     object? IEventInvoker.Raise( params object?[] args ) => this.Invoker.Raise( args );
 
     object? IEventInvoker.Raise( params IExpression[] args ) => this.Invoker.Raise( args );
@@ -160,7 +172,19 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     public IMethod? GetAccessor( MethodKind methodKind ) => this.GetAccessorImpl( methodKind );
 
-    public IEnumerable<IMethod> Accessors => [this.AddMethod, this.RemoveMethod, this.RaiseMethod];
+    public IEnumerable<IMethod> Accessors
+    {
+        get
+        {
+            yield return this.AddMethod;
+            yield return this.RemoveMethod;
+
+            if ( ((IEvent) this).RaiseMethod is { } raiseMethod )
+            {
+                yield return raiseMethod;
+            }
+        }
+    }
 
     protected override void FreezeChildren()
     {
@@ -168,7 +192,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
         this.AddMethod.Freeze();
         this.RemoveMethod.Freeze();
-        this.RaiseMethod.Freeze();
+        this.RaiseMethodBuilder.Freeze();
     }
 
     protected override void EnsureReferenceInitialized()

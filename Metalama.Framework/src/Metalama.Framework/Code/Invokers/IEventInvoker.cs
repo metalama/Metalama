@@ -37,6 +37,22 @@ namespace Metalama.Framework.Code.Invokers
         // TODO: Create methods CreateAddExpression, CreateRemoveExpression, CreateRaiseExpression.
 
         /// <summary>
+        /// Gets a value indicating whether the event can be raised.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// In C#, only field-like events (events without explicit <c>add</c>/<c>remove</c> accessors) can be raised
+        /// because they have a backing delegate field that can be invoked. For non-field-like events (events with explicit accessors),
+        /// there is no backing delegate to invoke, so this property returns <c>false</c>.
+        /// </para>
+        /// <para>
+        /// When this property returns <c>false</c>, calling <see cref="Raise(dynamic?[])"/> will throw an <see cref="InvalidOperationException"/>,
+        /// and <see cref="IEvent.RaiseMethod"/> will return <c>null</c>.
+        /// </para>
+        /// </remarks>
+        bool CanRaise { get; }
+
+        /// <summary>
         /// Generates run-time code that adds a handler, given as run-time C# expression, to the event.
         /// </summary>
         /// <param name="handler">A C# expression representing the event handler. If the compile-time type
