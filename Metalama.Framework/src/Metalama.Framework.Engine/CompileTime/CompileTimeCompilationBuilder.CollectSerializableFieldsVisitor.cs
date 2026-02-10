@@ -77,6 +77,13 @@ namespace Metalama.Framework.Engine.CompileTime
                     return;
                 }
 
+                // Skip explicit interface implementations of runtime-only interfaces.
+                if ( propertySymbol.ExplicitInterfaceImplementations.Any(
+                        p => this._compilationContext.SymbolClassifier.GetTemplatingScope( p.ContainingType ) == TemplatingScope.RunTimeOnly ) )
+                {
+                    return;
+                }
+
                 var backingField = propertySymbol.GetBackingField().AssertNotNull();
 
                 if ( !backingField.GetAttributes().Any( a => this._compilationContext.SymbolComparer.Equals( a.AttributeClass, this._nonSerializedAttribute ) )

@@ -30,6 +30,11 @@ namespace Metalama.Testing.AspectTesting
         {
             await base.RunAsync( testInput, testResult, testContext );
 
+            if ( !testResult.Success )
+            {
+                return;
+            }
+
             using var pipeline = new TestDesignTimeAspectPipeline( testContext.ServiceProvider );
 
             var pipelineResult = await pipeline.ExecuteAsync( testResult.InputCompilation! );

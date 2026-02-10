@@ -123,6 +123,34 @@ class A
             Assert.False( StructuralDeclarationComparer.IncludeAssembly.Equals( externalNamespace, internalNamespace ) );
         }
 
+#if ROSLYN_5_0_0_OR_GREATER && NET7_0_OR_GREATER
+        [Fact]
+        public void ExtensionBlocks()
+        {
+            const string code = """
+                                public static class MyExtensions
+                                {
+                                    extension(string self)
+                                    {
+                                        public int GetLength() => self.Length;
+                                        public bool IsEmpty() => self.Length == 0;
+                                    }
+                                }
+                                """;
+
+            using var testContext = this.CreateTestContext();
+
+            var compilation1 = testContext.CreateCompilationModel( code );
+            var compilation2 = testContext.CreateCompilationModel( code );
+
+            AssertSymbolsEqual(
+                GetAllDeclarations( compilation1 ),
+                GetAllDeclarations( compilation2 ),
+                StructuralDeclarationComparer.BypassSymbols,
+                CompilationElementEqualityComparer.Default );
+        }
+#endif
+
         // TODO: More tests.
 
         private static void AssertSymbolsEqual<T>(
