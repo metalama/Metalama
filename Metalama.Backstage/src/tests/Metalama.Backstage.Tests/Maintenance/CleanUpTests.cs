@@ -301,6 +301,42 @@ public sealed class CleanUpTests : TestsBase
     }
 
     [Fact]
+    public void Clean_DeepDirectoryStructure_WhenFileTimestampEqualsThreshold()
+    {
+        // Regression test for #1346: When the file timestamp exactly equals the cleanup threshold,
+        // the directory should still be deleted. This reproduces the flaky test condition where
+        // Windows timer coarseness causes file creation and AddTime to use the same tick value.
+
+        // Freeze time at a known point so that all file timestamps are deterministic.
+        var frozenTime = new DateTime( 2025, 1, 1, 12, 0, 0, DateTimeKind.Utc );
+        this.Time.Set( frozenTime );
+
+        // Create a directory with a cleanup.json file at the frozen time.
+        var testDirectory = Path.Combine( this._standardDirectories.TempDirectory, "BoundaryTest" );
+
+        for ( var i = 0; i < 3; i++ )
+        {
+            var subDirectory = Path.Combine( testDirectory, $"sub_{i}" );
+            this.FileSystem.CreateDirectory( subDirectory );
+            var cleanUpFile = new CleanUpFile { Strategy = CleanUpStrategy.Always };
+            var cleanUpFileContent = JsonConvert.SerializeObject( cleanUpFile );
+            this.FileSystem.WriteAllText( Path.Combine( subDirectory, "cleanup.json" ), cleanUpFileContent );
+        }
+
+        // First cleanup: deletes non-cleanup files but keeps directories with cleanup.json.
+        var tempFileManager = new TempFileManager( this.ServiceProvider );
+        tempFileManager.CleanTempDirectories( true );
+
+        // Advance time by exactly 4 hours (the Always strategy threshold).
+        // Since time was frozen at frozenTime, file timestamps == frozenTime.
+        // The threshold will be (frozenTime + 4h) - 4h == frozenTime.
+        // With strict '<', frozenTime < frozenTime is false, so the directory would NOT be deleted.
+        this.Time.AddTime( TimeSpan.FromHours( 4 ) );
+        tempFileManager.CleanTempDirectories( true );
+        Assert.False( this.FileSystem.DirectoryExists( testDirectory ) );
+    }
+
+    [Fact]
     public void Clean_ReadOnlyFiles()
     {
         // Create a read-only file.
