@@ -61,7 +61,8 @@ internal sealed class LinkerRecordHelper
                  && overriddenMember is IPropertySymbol propertySymbol
                  && this._rewritingDriver.IntermediateCompilationContext.SymbolComparer.Equals( propertySymbol.ContainingType, typeSymbol )
                  && propertySymbol.IsImplicitlyDeclared
-                 && propertySymbol.GetPrimaryDeclarationSyntax()?.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration )
+                 && (propertySymbol.GetPrimaryDeclarationSyntax() ?? propertySymbol.ContainingType?.GetPrimaryDeclarationSyntax())?.Kind()
+                    is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration )
             {
                 yield return propertySymbol;
             }

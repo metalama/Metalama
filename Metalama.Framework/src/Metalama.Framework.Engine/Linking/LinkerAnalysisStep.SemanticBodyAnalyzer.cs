@@ -120,7 +120,10 @@ internal sealed partial class LinkerAnalysisStep
 
         private SemanticBodyAnalysisResult Analyze( IMethodSymbol symbol )
         {
-            var declaration = symbol.GetPrimaryDeclarationSyntax().AssertNotNull();
+            var declaration = symbol.GetPrimaryDeclarationSyntax()
+                              ?? symbol.ContainingType?.GetPrimaryDeclarationSyntax();
+
+            Invariant.Assert( declaration != null );
             var semanticModel = this._semanticModelProvider.GetSemanticModel( declaration.SyntaxTree );
 
             var body = GetDeclarationBody( declaration );

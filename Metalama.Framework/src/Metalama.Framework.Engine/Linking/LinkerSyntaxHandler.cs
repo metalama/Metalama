@@ -18,6 +18,13 @@ internal static class LinkerSyntaxHandler
     {
         var declaration = symbol.GetPrimaryDeclarationSyntax();
 
+        // For synthesized record property accessors (e.g. get_EqualityContract), the accessor method has
+        // no syntax of its own. Fall back to the containing type's syntax (the record declaration).
+        if ( declaration == null && symbol.ContainingType != null )
+        {
+            declaration = symbol.ContainingType.GetPrimaryDeclarationSyntax();
+        }
+
         if ( injectionRegistry.IsOverrideTarget( symbol ) )
         {
             switch ( declaration?.Kind() )
