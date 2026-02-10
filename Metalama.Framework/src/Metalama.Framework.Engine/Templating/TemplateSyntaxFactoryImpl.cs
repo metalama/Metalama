@@ -47,6 +47,17 @@ namespace Metalama.Framework.Engine.Templating
             this._objectReaderFactory = templateExpansionContext.ServiceProvider.Global.GetRequiredService<ObjectReaderFactory>();
         }
 
+        private TemplateSyntaxFactoryImpl( TemplateExpansionContext templateExpansionContext, Dictionary<string, IType> outerLocalVariableTypes )
+            : this( templateExpansionContext )
+        {
+            // Copy outer scope's local variable types so that local functions can detect
+            // captured dynamic variables in interpolated strings.
+            foreach ( var kvp in outerLocalVariableTypes )
+            {
+                this._localVariableTypes[kvp.Key] = kvp.Value;
+            }
+        }
+
         public SyntaxSerializationContext SyntaxSerializationContext { get; }
 
         public ICompilation Compilation => this._templateExpansionContext.Compilation.AssertNotNull();
@@ -683,7 +694,9 @@ namespace Metalama.Framework.Engine.Templating
         {
             var returnTypeSymbol = new SerializableTypeId( returnType ).Resolve( this._templateExpansionContext.Compilation.AssertNotNull(), genericArguments );
 
-            return new TemplateSyntaxFactoryImpl( this._templateExpansionContext.ForLocalFunction( new LocalFunctionInfo( returnTypeSymbol, isAsync ) ) );
+            return new TemplateSyntaxFactoryImpl(
+                this._templateExpansionContext.ForLocalFunction( new LocalFunctionInfo( returnTypeSymbol, isAsync ) ),
+                this._localVariableTypes );
         }
 
         private BlockSyntax InvokeTemplate( string templateName, TemplateProvider templateProvider, IObjectReader args )
