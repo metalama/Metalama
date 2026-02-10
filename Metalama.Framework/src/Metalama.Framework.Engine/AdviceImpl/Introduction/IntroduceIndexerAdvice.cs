@@ -93,10 +93,21 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
             }
         }
 
-        builder.Accessibility =
-            this._getTemplate != null
+        if ( this._getTemplate != null && this._setTemplate != null )
+        {
+            var getAccessibility = this._getTemplate.TemplateMember.Accessibility;
+            var setAccessibility = this._setTemplate.TemplateMember.Accessibility;
+
+            // Set the indexer-level accessibility to the least-restrictive accessibility
+            // that is a superset of both accessor accessibilities.
+            builder.Accessibility = GetLeastRestrictiveSuperset( getAccessibility, setAccessibility );
+        }
+        else
+        {
+            builder.Accessibility = this._getTemplate != null
                 ? this._getTemplate.TemplateMember.Accessibility
                 : this._setTemplate.AssertNotNull().TemplateMember.Accessibility;
+        }
 
         // Extern template denotes an abstract member of an interface.
         builder.IsAbstract =
@@ -157,7 +168,48 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
             CopyTemplateAttributes( templateParameter, parameterBuilder, serviceProvider );
         }
 
-        // TODO: For get accessor template, we are ignoring accessibility of set accessor template because it can be easily incompatible.
+        // Set each accessor's accessibility from its respective template.
+        // C# allows at most one accessor to have a different accessibility from the indexer, so we track
+        // whether we already restricted one accessor before trying to restrict the other.
+        var accessorRestricted = false;
+
+        if ( this._getTemplate != null && builder.GetMethod != null )
+        {
+            var getAccessibility = this._getTemplate.TemplateMember.Accessibility;
+
+            if ( getAccessibility != builder.Accessibility )
+            {
+                builder.GetMethod.Accessibility = getAccessibility;
+                accessorRestricted = true;
+            }
+        }
+
+        if ( this._setTemplate != null && builder.SetMethod != null && !accessorRestricted )
+        {
+            var setAccessibility = this._setTemplate.TemplateMember.Accessibility;
+
+            if ( setAccessibility != builder.Accessibility )
+            {
+                builder.SetMethod.Accessibility = setAccessibility;
+            }
+        }
+    }
+
+    private static Accessibility GetLeastRestrictiveSuperset( Accessibility a, Accessibility b )
+    {
+        if ( a.IsSupersetOrEqual( b ) )
+        {
+            return a;
+        }
+        else if ( b.IsSupersetOrEqual( a ) )
+        {
+            return b;
+        }
+        else
+        {
+            // The only incomparable pair in C# is Protected vs Internal; their least upper bound is ProtectedInternal.
+            return Accessibility.ProtectedInternal;
+        }
     }
 
     protected override void ValidateBuilder( IndexerBuilder builder, IDiagnosticAdder diagnosticAdder )
