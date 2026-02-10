@@ -11,7 +11,6 @@ using Metalama.Framework.Engine.CodeModel.References;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Immutable;
-using System.Linq;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 
 namespace Metalama.Framework.Engine.Advising;
@@ -52,11 +51,21 @@ internal sealed class TemplateMemberGenericContext : GenericContext
         }
         else if ( this._targetMethod.DeclarationKind == DeclarationKind.Method && this._targetMethod is IMethod method )
         {
-            var typeParameter = method.TypeParameters.FirstOrDefault( t => t.Name == name );
+            // Match by ordinal position among run-time type parameters. We compute the run-time index
+            // by counting how many non-compile-time type parameters precede this one.
+            var runTimeIndex = 0;
 
-            if ( typeParameter != null )
+            for ( var i = 0; i < index; i++ )
             {
-                return typeParameter;
+                if ( !this._templateMember.TemplateClassMember.TypeParameters[i].IsCompileTime )
+                {
+                    runTimeIndex++;
+                }
+            }
+
+            if ( runTimeIndex < method.TypeParameters.Count )
+            {
+                return method.TypeParameters[runTimeIndex];
             }
         }
 

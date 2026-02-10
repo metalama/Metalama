@@ -212,19 +212,30 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         }
 
         if ( metaApi.Target.Declaration.DeclarationKind == DeclarationKind.Method
-             && metaApi.Target.Declaration is IMethod { TypeParameters.Count: > 0 } targetMethod )
+             && metaApi.Target.Declaration is IMethod { TypeParameters.Count: > 0 } targetMethod
+             && methodTemplate != null )
         {
             // Generic method - we need to add type parameters as named arguments for correct serializable id resolution.
-            // Any target method type parameter that matches name of template argument can be skipped - template will not have a runtime type parameter of that name.
+            // We map template run-time type parameters to target type parameters by ordinal position,
+            // since an introduction can rename type parameters.
+            var runTimeTypeParameterIndex = 0;
 
-            // TODO: This presumes mapping of type parameters by name, more appropriate place would be to have a map in BoundTemplateMethod, but there is currently no other use for that.
-
-            foreach ( var targetTypeParameter in targetMethod.TypeParameters )
+            foreach ( var templateTypeParameter in methodTemplate.TemplateMember.TemplateClassMember.TypeParameters )
             {
-                if ( !templateTypeArguments.ContainsKey( targetTypeParameter.Name ) )
+                if ( templateTypeParameter.IsCompileTime )
                 {
-                    templateTypeArguments.Add( targetTypeParameter.Name, targetTypeParameter );
+                    continue;
                 }
+
+                if ( runTimeTypeParameterIndex < targetMethod.TypeParameters.Count )
+                {
+                    if ( !templateTypeArguments.ContainsKey( templateTypeParameter.Name ) )
+                    {
+                        templateTypeArguments.Add( templateTypeParameter.Name, targetMethod.TypeParameters[runTimeTypeParameterIndex] );
+                    }
+                }
+
+                runTimeTypeParameterIndex++;
             }
         }
 

@@ -30,7 +30,10 @@ internal abstract class InitializeAdvice : Advice<AddInitializerAdviceResult>
 
     protected override AddInitializerAdviceResult Implement( AdviceImplementationContext context )
     {
-        var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
+        // Use ref-based resolution instead of ForCompilation to correctly follow constructor redirections.
+        // ForCompilation short-circuits when the compilation reference matches, which can return a stale
+        // constructor object that was already replaced by IntroduceConstructorParameterAdvice.
+        var targetDeclaration = this.TargetDeclaration.ToRef().GetTarget( context.MutableCompilation );
 
         var containingType = targetDeclaration.GetClosestNamedType().AssertNotNull();
 
