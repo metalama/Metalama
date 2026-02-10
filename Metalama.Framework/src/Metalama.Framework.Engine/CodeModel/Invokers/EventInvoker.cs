@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.CodeModel.Invokers;
@@ -19,6 +20,8 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
 {
     public EventInvoker( IEvent @event, InvokerOptions options = default, IExpression? target = null ) : base( @event, options, target ) { }
+
+    public bool CanRaise => this.Member.RaiseMethod != null;
 
     public object Add( object? handler ) => this.Add( CapturedUserExpression.Create( this.Compilation, handler ) );
 
@@ -72,6 +75,11 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
 
     public object Raise( IExpression[] args )
     {
+        var raiseMethod = this.Member.RaiseMethod
+                          ?? throw new InvalidOperationException(
+                              $"The event '{this.Member.Name}' cannot be raised because it does not have a raise accessor. " +
+                              $"Only field-like events can be raised. Check the '{nameof(IEventInvoker.CanRaise)}' property before calling '{nameof(IEventInvoker.Raise)}'." );
+
         return new DelegateUserExpression(
             context =>
             {
@@ -83,7 +91,7 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
                 if ( context.AspectReferenceSyntaxProvider != null )
                 {
                     var receiverInfo = this.GetReceiverInfo( context );
-                    var argsTupleType = this.Member.Compilation.Factory.CreateTupleType( this.Member.RaiseMethod.Parameters );
+                    var argsTupleType = this.Member.Compilation.Factory.CreateTupleType( raiseMethod.Parameters );
 
                     return context.AspectReferenceSyntaxProvider.GetEventRaiseReference(
                         receiverInfo.AspectReferenceSpecification.AspectLayerId,
