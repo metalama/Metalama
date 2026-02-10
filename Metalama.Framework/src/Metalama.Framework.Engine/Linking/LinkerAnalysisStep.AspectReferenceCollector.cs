@@ -158,6 +158,13 @@ internal sealed partial class LinkerAnalysisStep
                 {
                     var declarationSyntax = containingSemantic.Symbol.GetPrimaryDeclarationSyntax();
 
+                    // For synthesized record property accessors (e.g. get_EqualityContract), the accessor method has
+                    // no syntax of its own. Fall back to the containing type's syntax (the record declaration).
+                    if ( declarationSyntax == null && containingSemantic.Symbol.ContainingType != null )
+                    {
+                        declarationSyntax = containingSemantic.Symbol.ContainingType.GetPrimaryDeclarationSyntax();
+                    }
+
                     var sourceNode =
                         declarationSyntax?.Kind() switch
                         {
@@ -193,6 +200,9 @@ internal sealed partial class LinkerAnalysisStep
                                 => arrowExpressionClause,
                             SyntaxKind.Parameter when declarationSyntax is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter
                                 => recordParameter,
+                            SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                                when declarationSyntax is RecordDeclarationSyntax recordDeclaration
+                                => recordDeclaration,
                             _ => throw new AssertionFailedException( $"Unexpected syntax for '{containingSemantic.Symbol}'." )
                         };
 

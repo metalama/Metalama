@@ -22,6 +22,14 @@ public static class AspectLinkerDiagnosticDescriptors
             _category,
             Error );
 
+    internal static readonly DiagnosticDefinition<ISymbol>
+        CannotUseProceedWithSynthesizedRecordMember = new(
+            "LAMA0651",
+            "Cannot use meta.Proceed() with a compiler-synthesized record member.",
+            "Cannot use meta.Proceed() when overriding the compiler-synthesized record member '{0}'. Remove the call to meta.Proceed() from the template.",
+            _category,
+            Error );
+
     internal static readonly DiagnosticDefinition<(string AspectType, ISymbol TargetDeclaration)>
         DeclarationMustBeInlined = new(
             "LAMA0699",

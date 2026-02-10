@@ -34,7 +34,7 @@ internal sealed partial class LinkerRewritingDriver
 
     public SyntaxGenerationOptions SyntaxGenerationOptions { get; }
 
-    private CompilationContext IntermediateCompilationContext { get; }
+    internal CompilationContext IntermediateCompilationContext { get; }
 
     public LinkerInjectionRegistry InjectionRegistry { get; }
 
@@ -61,6 +61,7 @@ internal sealed partial class LinkerRewritingDriver
         this.InjectionRegistry = injectionRegistry;
         this.LateTransformationRegistry = lateTransformationRegistry;
         this.AnalysisRegistry = analysisRegistry;
+        this.RecordHelper = new LinkerRecordHelper( this );
     }
 
     /// <summary>
@@ -310,6 +311,9 @@ internal sealed partial class LinkerRewritingDriver
             case SyntaxKind.Parameter when bodyRootNode is ParameterSyntax { Parent.Parent: RecordDeclarationSyntax } positionalProperty:
                 return (BlockSyntax) rewriter.Visit( positionalProperty ).AssertNotNull();
 
+            case SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when bodyRootNode is RecordDeclarationSyntax recordDeclaration:
+                return (BlockSyntax) rewriter.Visit( recordDeclaration ).AssertNotNull();
+
             case SyntaxKind.ArrowExpressionClause when bodyRootNode is ArrowExpressionClauseSyntax arrowExpressionClause:
                 var rewrittenNode = rewriter.Visit( arrowExpressionClause );
 
@@ -369,11 +373,8 @@ internal sealed partial class LinkerRewritingDriver
     public IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>? GetSubstitutions( InliningContextIdentifier inliningContextId )
         => this.AnalysisRegistry.GetSubstitutions( inliningContextId );
 
-    /// <summary>
-    /// Determines whether the symbol should be rewritten.
-    /// </summary>
-    /// <param name="symbol"></param>
-    /// <returns></returns>
+    public LinkerRecordHelper RecordHelper { get; }
+
     public bool IsRewriteTarget( ISymbol symbol )
     {
         if ( this.InjectionRegistry.IsOverrideTarget( symbol ) )
@@ -559,11 +560,11 @@ internal sealed partial class LinkerRewritingDriver
         };
     }
 
-    private bool ShouldGenerateEmptyMember( ISymbol symbol )
+    internal bool ShouldGenerateEmptyMember( ISymbol symbol )
         => this.InjectionRegistry.IsIntroduced( symbol ) && !symbol.IsOverride
                                                          && !symbol.TryGetHiddenSymbol( this.IntermediateCompilationContext.Compilation, out _ );
 
-    private bool ShouldGenerateSourceMember( ISymbol symbol ) => this.InjectionRegistry.IsOverrideTarget( symbol );
+    internal bool ShouldGenerateSourceMember( ISymbol symbol ) => this.InjectionRegistry.IsOverrideTarget( symbol );
 
     /// <summary>
     /// Gets only the indentation trivia (whitespace after the last line break) from a trivia list.

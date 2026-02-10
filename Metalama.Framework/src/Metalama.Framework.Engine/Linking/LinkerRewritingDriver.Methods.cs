@@ -219,7 +219,7 @@ namespace Metalama.Framework.Engine.Linking
                 generationContext );
         }
 
-        private MemberDeclarationSyntax GetEmptyImplMethod(
+        internal MemberDeclarationSyntax GetEmptyImplMethod(
             MethodDeclarationSyntax method,
             IMethodSymbol symbol,
             SyntaxGenerationContext generationContext )
@@ -254,7 +254,7 @@ namespace Metalama.Framework.Engine.Linking
             return this.GetSpecialImplMethod( method, emptyBody, null, symbol, GetEmptyImplMemberName( symbol ), generationContext );
         }
 
-        private MemberDeclarationSyntax GetSpecialImplMethod(
+        internal MemberDeclarationSyntax GetSpecialImplMethod(
             MethodDeclarationSyntax method,
             BlockSyntax? body,
             ArrowExpressionClauseSyntax? expressionBody,
