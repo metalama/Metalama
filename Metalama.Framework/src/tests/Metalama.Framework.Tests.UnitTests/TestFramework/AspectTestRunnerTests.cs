@@ -178,7 +178,7 @@ public class Program
                 var runTestTask = testRunner.RunAndAssertAsync( testInput, testContextOptions, CancellationToken.None );
 
                 // Await for the test to get to the main method.
-                if ( insideTestTask != await Task.WhenAny( runTestTask, insideTestTask, Task.Delay( 120000 ) ) )
+                if ( insideTestTask != await Task.WhenAny( runTestTask, insideTestTask, Task.Delay( TimeSpan.FromMinutes( 5 ) ) ) )
                 {
                     if ( runTestTask.IsFaulted )
                     {
