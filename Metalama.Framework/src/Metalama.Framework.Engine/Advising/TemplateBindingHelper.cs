@@ -471,7 +471,10 @@ internal static class TemplateBindingHelper
                 break;
 
             case { OperatorKind: OperatorKind.None }:
-                // For non-operator methods, we match parameters by name.
+                // For non-operator methods, we match parameters by name, falling back to ordinal position
+                // among run-time parameters when an introduction has renamed the parameter.
+                var runTimeParameterIndex = 0;
+
                 foreach ( var templateParameter in templateMethodSymbol.Parameters )
                 {
                     if ( template.TemplateClassMember.Parameters[templateParameter.Ordinal].IsCompileTime )
@@ -483,11 +486,18 @@ internal static class TemplateBindingHelper
 
                     if ( methodParameter == null )
                     {
-                        var parameterNames = string.Join( ", ", targetMethod.Parameters.SelectAsImmutableArray( p => "'" + p.Name + "'" ) );
+                        if ( runTimeParameterIndex < targetMethod.Parameters.Count )
+                        {
+                            methodParameter = targetMethod.Parameters[runTimeParameterIndex];
+                        }
+                        else
+                        {
+                            var parameterNames = string.Join( ", ", targetMethod.Parameters.SelectAsImmutableArray( p => "'" + p.Name + "'" ) );
 
-                        throw new InvalidTemplateSignatureException(
-                            MetalamaStringFormatter.Format(
-                                $"Cannot use the template '{templateMethodSymbol}' to override the method '{targetMethod}': the target method does not contain a parameter '{templateParameter.Name}'. Available parameters are: {parameterNames}." ) );
+                            throw new InvalidTemplateSignatureException(
+                                MetalamaStringFormatter.Format(
+                                    $"Cannot use the template '{templateMethodSymbol}' to override the method '{targetMethod}': the target method does not contain a parameter '{templateParameter.Name}'. Available parameters are: {parameterNames}." ) );
+                        }
                     }
 
                     if ( !VerifyTemplateType( templateParameter.Type, methodParameter.Type, template, targetMethod, arguments ) )
@@ -498,9 +508,12 @@ internal static class TemplateBindingHelper
                     }
 
                     AddParameter( methodParameter, templateParameter );
+                    runTimeParameterIndex++;
                 }
 
-                // Check that template generic parameters match the target.
+                // Check that template generic parameters match the target by ordinal position among run-time type parameters.
+                var runTimeTypeParameterIndex = 0;
+
                 foreach ( var templateParameter in templateMethodSymbol.TypeParameters )
                 {
                     if ( template.TemplateClassMember.TypeParameters[templateParameter.Ordinal].IsCompileTime )
@@ -508,18 +521,25 @@ internal static class TemplateBindingHelper
                         continue;
                     }
 
-                    var methodParameter = targetMethod.TypeParameters.SingleOrDefault( p => p.Name == templateParameter.Name )
-                                          ??
-                                          throw new InvalidTemplateSignatureException(
-                                              MetalamaStringFormatter.Format(
-                                                  $"Cannot use the template '{templateMethodSymbol}' to override the method '{targetMethod}': the target method does not contain a generic parameter '{templateParameter.Name}'." ) );
+                    if ( runTimeTypeParameterIndex < targetMethod.TypeParameters.Count )
+                    {
+                        var methodParameter = targetMethod.TypeParameters[runTimeTypeParameterIndex];
 
-                    if ( !templateParameter.IsCompatibleWith( methodParameter ) )
+                        if ( !templateParameter.IsCompatibleWith( methodParameter ) )
+                        {
+                            throw new InvalidTemplateSignatureException(
+                                MetalamaStringFormatter.Format(
+                                    $"Cannot use the template '{templateMethodSymbol}' to override the method '{targetMethod}': the constraints on the template parameter '{templateParameter.Name}' are not compatible with the constraints on the target method parameter '{methodParameter.Name}'." ) );
+                        }
+                    }
+                    else
                     {
                         throw new InvalidTemplateSignatureException(
                             MetalamaStringFormatter.Format(
-                                $"Cannot use the template '{templateMethodSymbol}' to override the method '{targetMethod}': the constraints on the template parameter '{templateParameter.Name}' are not compatible with the constraints on the target method parameter '{methodParameter.Name}'." ) );
+                                $"Cannot use the template '{templateMethodSymbol}' to override the method '{targetMethod}': the target method does not contain a generic parameter '{templateParameter.Name}'." ) );
                     }
+
+                    runTimeTypeParameterIndex++;
                 }
 
                 break;
