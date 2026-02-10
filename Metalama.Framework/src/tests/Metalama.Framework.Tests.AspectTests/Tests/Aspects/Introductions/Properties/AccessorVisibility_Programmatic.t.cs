@@ -1,9 +1,29 @@
 [Introduction]
 internal class TargetClass
 {
+  protected internal global::System.Int32 InternalGetProtectedSet
+  {
+    internal get
+    {
+      return default(global::System.Int32);
+    }
+    set
+    {
+    }
+  }
   public global::System.Int32 PrivateGetPublicSet
   {
     private get
+    {
+      return default(global::System.Int32);
+    }
+    set
+    {
+    }
+  }
+  protected internal global::System.Int32 ProtectedGetInternalSet
+  {
+    protected get
     {
       return default(global::System.Int32);
     }

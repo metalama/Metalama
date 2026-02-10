@@ -23,6 +23,12 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Index
                 new[] { ( typeof(int), "x" ) },
                 nameof(PublicGetter),
                 nameof(PrivateSetter) );
+
+            // Introduce an indexer with incomparable accessor accessibilities (protected vs internal).
+            builder.IntroduceIndexer(
+                new[] { ( typeof(string), "key" ) },
+                nameof(ProtectedGetter),
+                nameof(InternalSetter) );
         }
 
         [Template]
@@ -37,6 +43,18 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Index
         private void PrivateSetter( int value )
         {
             Console.WriteLine( "Introduced setter" );
+            meta.Proceed();
+        }
+
+        [Template]
+        protected int ProtectedGetter()
+        {
+            return meta.Proceed();
+        }
+
+        [Template]
+        internal void InternalSetter( int value )
+        {
             meta.Proceed();
         }
     }

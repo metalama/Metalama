@@ -13,4 +13,14 @@ internal class TargetClass
       global::System.Console.WriteLine("Introduced setter");
     }
   }
+  protected internal global::System.Int32 this[global::System.String key]
+  {
+    protected get
+    {
+      return default(global::System.Int32);
+    }
+    set
+    {
+    }
+  }
 }

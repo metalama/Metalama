@@ -132,8 +132,9 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                 var getAccessibility = this._getTemplate.TemplateMember.Accessibility;
                 var setAccessibility = this._setTemplate.TemplateMember.Accessibility;
 
-                // Set the property-level accessibility to the more permissive of the two accessor accessibilities.
-                builder.Accessibility = getAccessibility.IsSupersetOrEqual( setAccessibility ) ? getAccessibility : setAccessibility;
+                // Set the property-level accessibility to the least-restrictive accessibility
+                // that is a superset of both accessor accessibilities.
+                builder.Accessibility = GetLeastRestrictiveSuperset( getAccessibility, setAccessibility );
             }
             else
             {
@@ -172,6 +173,10 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
             else
             {
                 // When using separate accessor templates, set each accessor's accessibility from its respective template.
+                // C# allows at most one accessor to have a different accessibility from the property, so we track
+                // whether we already restricted one accessor before trying to restrict the other.
+                var accessorRestricted = false;
+
                 if ( this._getTemplate != null && builder.GetMethod != null )
                 {
                     var getAccessibility = this._getTemplate.TemplateMember.Accessibility;
@@ -179,10 +184,11 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                     if ( getAccessibility != builder.Accessibility )
                     {
                         builder.GetMethod.Accessibility = getAccessibility;
+                        accessorRestricted = true;
                     }
                 }
 
-                if ( this._setTemplate != null && builder.SetMethod != null )
+                if ( this._setTemplate != null && builder.SetMethod != null && !accessorRestricted )
                 {
                     var setAccessibility = this._setTemplate.TemplateMember.Accessibility;
 
@@ -241,6 +247,23 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
         }
 
         builder.InitializerTemplate = this.Template?.GetInitializerTemplate()?.As<IFieldOrProperty>();
+    }
+
+    private static Accessibility GetLeastRestrictiveSuperset( Accessibility a, Accessibility b )
+    {
+        if ( a.IsSupersetOrEqual( b ) )
+        {
+            return a;
+        }
+        else if ( b.IsSupersetOrEqual( a ) )
+        {
+            return b;
+        }
+        else
+        {
+            // The only incomparable pair in C# is Protected vs Internal; their least upper bound is ProtectedInternal.
+            return Accessibility.ProtectedInternal;
+        }
     }
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceProperty;

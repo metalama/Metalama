@@ -35,6 +35,19 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Properties.A
                 "ProtectedGetPrivateSet",
                 nameof(ProtectedGetter),
                 nameof(PrivateSetter) );
+
+            // Introduce a property with a protected getter and an internal setter.
+            // Protected and Internal are incomparable; the property-level accessibility should be protected internal.
+            builder.IntroduceProperty(
+                "ProtectedGetInternalSet",
+                nameof(ProtectedGetter),
+                nameof(InternalSetter) );
+
+            // Introduce a property with an internal getter and a protected setter.
+            builder.IntroduceProperty(
+                "InternalGetProtectedSet",
+                nameof(InternalGetter),
+                nameof(ProtectedSetter) );
         }
 
         [Template]
@@ -65,6 +78,24 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Properties.A
         protected int ProtectedGetter()
         {
             return meta.Proceed();
+        }
+
+        [Template]
+        internal int InternalGetter()
+        {
+            return meta.Proceed();
+        }
+
+        [Template]
+        internal void InternalSetter( int value )
+        {
+            meta.Proceed();
+        }
+
+        [Template]
+        protected void ProtectedSetter( int value )
+        {
+            meta.Proceed();
         }
     }
 
