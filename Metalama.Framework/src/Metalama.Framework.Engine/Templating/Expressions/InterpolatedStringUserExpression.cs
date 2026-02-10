@@ -65,7 +65,17 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
                         FlushTextToken();
 
-                        var tokenSyntax = TypedExpressionSyntaxImpl.FromValue( token.Expression, syntaxSerializationContext ).Syntax;
+                        var typedTokenExpression = TypedExpressionSyntaxImpl.FromValue( token.Expression, syntaxSerializationContext );
+                        var tokenSyntax = typedTokenExpression.Syntax;
+
+                        // If the expression is of type 'dynamic', cast it to 'object' to avoid CS9230
+                        // ("Cannot perform a dynamic invocation on an expression") when using interpolated string handlers (Roslyn 4.12+).
+                        if ( typedTokenExpression.ExpressionType?.TypeKind == Code.TypeKind.Dynamic )
+                        {
+                            tokenSyntax = SyntaxFactory.CastExpression(
+                                SyntaxFactory.PredefinedType( SyntaxFactory.Token( SyntaxKind.ObjectKeyword ) ),
+                                tokenSyntax );
+                        }
 
                         if ( tokenSyntax.Kind() == SyntaxKind.StringLiteralExpression && tokenSyntax is LiteralExpressionSyntax literal && literal.Token.IsKind( SyntaxKind.StringLiteralToken ) &&
                              token.Alignment is null && token.Format is null )

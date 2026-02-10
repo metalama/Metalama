@@ -156,6 +156,13 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                             case { Kind: SymbolKind.Method } and IMethodSymbol { AssociatedSymbol: { } associatedSymbol }:
                                 syntaxReference = associatedSymbol.GetPrimarySyntaxReference();
 
+                                if ( syntaxReference == null && symbol.ContainingType != null )
+                                {
+                                    // The associated symbol may also be implicitly declared (e.g. synthesized record property like EqualityContract).
+                                    // Fall through to using the containing type.
+                                    syntaxReference = symbol.ContainingType.GetPrimarySyntaxReference();
+                                }
+
                                 if ( syntaxReference == null )
                                 {
                                     throw new AssertionFailedException( $"No syntax for '{associatedSymbol}'." );

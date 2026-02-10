@@ -120,7 +120,10 @@ internal sealed partial class LinkerAnalysisStep
 
         private SemanticBodyAnalysisResult Analyze( IMethodSymbol symbol )
         {
-            var declaration = symbol.GetPrimaryDeclarationSyntax().AssertNotNull();
+            var declaration = symbol.GetPrimaryDeclarationSyntax()
+                              ?? symbol.ContainingType?.GetPrimaryDeclarationSyntax();
+
+            Invariant.Assert( declaration != null );
             var semanticModel = this._semanticModelProvider.GetSemanticModel( declaration.SyntaxTree );
 
             var body = GetDeclarationBody( declaration );
@@ -230,6 +233,12 @@ internal sealed partial class LinkerAnalysisStep
                         Array.Empty<BlockSyntax>() );
 
                 case SyntaxKind.Parameter when body is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } }:
+                    return new SemanticBodyAnalysisResult(
+                        new Dictionary<ReturnStatementSyntax, ReturnStatementProperties>(),
+                        false,
+                        Array.Empty<BlockSyntax>() );
+
+                case SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when body is RecordDeclarationSyntax:
                     return new SemanticBodyAnalysisResult(
                         new Dictionary<ReturnStatementSyntax, ReturnStatementProperties>(),
                         false,
@@ -393,6 +402,7 @@ internal sealed partial class LinkerAnalysisStep
                     SyntaxKind.VariableDeclarator when declaration is VariableDeclaratorSyntax declarator => declarator,
                     SyntaxKind.ArrowExpressionClause when declaration is ArrowExpressionClauseSyntax arrowExpressionClause => arrowExpressionClause,
                     SyntaxKind.Parameter when declaration is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter => recordParameter,
+                    SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when declaration is RecordDeclarationSyntax recordDeclaration => recordDeclaration,
                     _ => throw new AssertionFailedException( $"Unexpected node: {CSharpExtensions.Kind( declaration )}." )
                 };
             }

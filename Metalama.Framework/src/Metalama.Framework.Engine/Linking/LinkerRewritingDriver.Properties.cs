@@ -478,7 +478,7 @@ namespace Metalama.Framework.Engine.Linking
             }
         }
 
-        private MemberDeclarationSyntax GetEmptyImplProperty(
+        internal MemberDeclarationSyntax GetEmptyImplProperty(
             IPropertySymbol symbol,
             SyntaxList<AttributeListSyntax> attributes,
             TypeSyntax type,
@@ -519,7 +519,7 @@ namespace Metalama.Framework.Engine.Linking
             return this.GetSpecialImplProperty( attributes, type, accessorList, null, null, symbol, GetEmptyImplMemberName( symbol ), context );
         }
 
-        private MemberDeclarationSyntax GetSpecialImplProperty(
+        internal MemberDeclarationSyntax GetSpecialImplProperty(
             SyntaxList<AttributeListSyntax> attributes,
             TypeSyntax propertyType,
             AccessorListSyntax? accessorList,

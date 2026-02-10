@@ -483,7 +483,7 @@ public partial class DeclarationFactory
                         RefTargetKind.Default => @event,
                         RefTargetKind.EventRaise => @event.RaiseMethod,
                         RefTargetKind.EventRaiseParameter => throw new NotImplementedException(),
-                        RefTargetKind.EventRaiseReturnParameter => @event.RaiseMethod.ReturnParameter,
+                        RefTargetKind.EventRaiseReturnParameter => @event.RaiseMethod?.ReturnParameter,
                         _ => throw new AssertionFailedException( $"Invalid DeclarationRefTargetKind: {targetKind}." )
                     };
                 }

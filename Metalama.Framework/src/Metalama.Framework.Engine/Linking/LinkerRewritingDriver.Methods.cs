@@ -215,7 +215,42 @@ namespace Metalama.Framework.Engine.Linking
                 generationContext );
         }
 
-        private MemberDeclarationSyntax GetSpecialImplMethod(
+        internal MemberDeclarationSyntax GetEmptyImplMethod(
+            MethodDeclarationSyntax method,
+            IMethodSymbol symbol,
+            SyntaxGenerationContext generationContext )
+        {
+            var returnType = symbol.ReturnType;
+
+            if ( !AsyncHelper.TryGetAsyncInfo( symbol.ReturnType, out var resultType, out _ ) )
+            {
+                resultType = returnType;
+            }
+
+            var isIterator = symbol.IsIteratorMethod();
+
+            var emptyBody =
+                isIterator
+                    ? generationContext.SyntaxGenerator.FormattedBlock(
+                        YieldStatement(
+                            SyntaxKind.YieldBreakStatement,
+                            List<AttributeListSyntax>(),
+                            Token( TriviaList(), SyntaxKind.YieldKeyword, TriviaList( ElasticSpace ) ),
+                            Token( TriviaList(), SyntaxKind.BreakKeyword, TriviaList( ElasticSpace ) ),
+                            null,
+                            Token( TriviaList(), SyntaxKind.SemicolonToken, TriviaList() ) ) )
+                    : resultType.OriginalDefinition.SpecialType == SpecialType.System_Void
+                        ? generationContext.SyntaxGenerator.FormattedBlock()
+                        : generationContext.SyntaxGenerator.FormattedBlock(
+                            ReturnStatement(
+                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                                DefaultExpression( generationContext.SyntaxGenerator.TypeSyntax( resultType ) ),
+                                Token( SyntaxKind.SemicolonToken ) ) );
+
+            return this.GetSpecialImplMethod( method, emptyBody, null, symbol, GetEmptyImplMemberName( symbol ), generationContext );
+        }
+
+        internal MemberDeclarationSyntax GetSpecialImplMethod(
             MethodDeclarationSyntax method,
             BlockSyntax? body,
             ArrowExpressionClauseSyntax? expressionBody,

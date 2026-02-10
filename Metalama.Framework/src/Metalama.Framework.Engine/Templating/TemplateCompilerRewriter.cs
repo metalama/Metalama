@@ -2414,6 +2414,10 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     {
         var transformedNode = base.TransformInterpolation( node ).AssertNotNull();
 
+        // FixInterpolationSyntax detects dynamic expressions via type annotations from the compile-time object model
+        // (set by GetDynamicSyntax during template expansion), not from the template's semantic model.
+        // The template semantic model reports many expressions as 'dynamic' (e.g. foreach iteration variables
+        // in iterator templates) that have concrete types at runtime.
         var fixedNode = InvocationExpression(
             this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.FixInterpolationSyntax) ),
             ArgumentList( SingletonSeparatedList( Argument( transformedNode ) ) ) );

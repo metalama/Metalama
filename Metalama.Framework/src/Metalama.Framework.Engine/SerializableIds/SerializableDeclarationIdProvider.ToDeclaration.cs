@@ -42,8 +42,8 @@ public static partial class SerializableDeclarationIdProvider
                 (IField field, nameof(RefTargetKind.PropertyGetReturnParameter)) => field.GetMethod?.ReturnParameter,
                 (IField field, nameof(RefTargetKind.PropertySetReturnParameter)) => field.SetMethod?.ReturnParameter,
                 (IEvent @event, nameof(RefTargetKind.EventRaise)) => @event.RaiseMethod,
-                (IEvent @event, nameof(RefTargetKind.EventRaiseParameter)) => @event.RaiseMethod.Parameters[0],
-                (IEvent @event, nameof(RefTargetKind.EventRaiseReturnParameter)) => @event.RaiseMethod.ReturnParameter,
+                (IEvent @event, nameof(RefTargetKind.EventRaiseParameter)) => @event.RaiseMethod?.Parameters[0],
+                (IEvent @event, nameof(RefTargetKind.EventRaiseReturnParameter)) => @event.RaiseMethod?.ReturnParameter,
                 _ => null
             };
         }
