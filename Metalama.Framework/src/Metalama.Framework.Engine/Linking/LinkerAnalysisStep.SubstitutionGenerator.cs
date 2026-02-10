@@ -566,7 +566,8 @@ internal sealed partial class LinkerAnalysisStep
                         when this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
                     case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base, ResolvedSemantic.Symbol: var potentiallyHidingSymbol }
                         when potentiallyHidingSymbol.TryGetHiddenSymbol( this._intermediateCompilationContext.Compilation, out _ )
-                             && this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
+                             && (this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol )
+                                 || nonInlinedReference.ResolvedSemantic.Symbol.Kind == SymbolKind.Field):
                         // Base reference to a virtual member of the parent that is not overridden.
                         // Base references to new slot or override members are rewritten to the base member call.
                         AddSubstitution(

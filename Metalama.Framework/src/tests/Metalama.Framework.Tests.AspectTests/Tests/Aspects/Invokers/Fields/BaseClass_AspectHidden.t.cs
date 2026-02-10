@@ -5,13 +5,12 @@ public class TargetClass : BaseClass
   public int InvokerBefore
   {
     get
-    {
-      // Invoke this.Field
+    { // Invoke this.Field
       _ = this.Field;
       // Invoke base.Field
-      _ = this.Field_Empty;
+      _ = base.Field;
       // Invoke base.Field
-      _ = this.Field_Empty;
+      _ = base.Field;
       // Invoke this.Field
       _ = this.Field;
       return 0;
@@ -20,9 +19,9 @@ public class TargetClass : BaseClass
     { // Invoke this.Field
       this.Field = 42;
       // Invoke base.Field
-      this.Field_Empty = 42;
+      base.Field = 42;
       // Invoke base.Field
-      this.Field_Empty = 42;
+      base.Field = 42;
       // Invoke this.Field
       this.Field = 42;
     }
@@ -31,8 +30,7 @@ public class TargetClass : BaseClass
   public int InvokerAfter
   {
     get
-    {
-      // Invoke this.Field
+    { // Invoke this.Field
       _ = this.Field;
       // Invoke this.Field
       _ = this.Field;
@@ -51,13 +49,6 @@ public class TargetClass : BaseClass
       this.Field = 42;
       // Invoke this.Field
       this.Field = 42;
-    }
-  }
-  private global::System.Int32 Field_Empty
-  {
-    get => default(global::System.Int32);
-    set
-    {
     }
   }
   public new global::System.Int32 Field;
