@@ -18,7 +18,7 @@ public class OverrideAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        builder.With( builder.Target.RaiseMethod ).Override( nameof( InvokeEventTemplate ) );
+        builder.With( builder.Target.RaiseMethod! ).Override( nameof( InvokeEventTemplate ) );
     }
 
     [Template]

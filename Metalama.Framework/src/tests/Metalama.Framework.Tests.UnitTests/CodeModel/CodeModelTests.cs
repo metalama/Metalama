@@ -510,6 +510,215 @@ class C
     }
 
     [Fact]
+    public void EventRaiseMethodNullForAccessorEvents()
+    {
+        // Issue #771: IEvent.RaiseMethod should return null for events that cannot be raised.
+        // An event with explicit add/remove accessors (non-field-like) cannot be raised,
+        // so RaiseMethod should be null. A field-like event CAN be raised, so RaiseMethod
+        // should be non-null.
+
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+using System;
+class C
+{
+    event EventHandler AccessorEvent
+    {
+        add {}
+        remove {}
+    }
+
+    event EventHandler FieldLikeEvent;
+}";
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = Assert.Single( compilation.Types );
+
+        var accessorEvent = type.Events.Single( e => e.Name == "AccessorEvent" );
+        var fieldLikeEvent = type.Events.Single( e => e.Name == "FieldLikeEvent" );
+
+        // An accessor-based event cannot be raised, so RaiseMethod should be null.
+        Assert.Null( accessorEvent.RaiseMethod );
+
+        // A field-like event can be raised, so RaiseMethod should be non-null.
+        Assert.NotNull( fieldLikeEvent.RaiseMethod );
+    }
+
+    [Fact]
+    public void EventCanRaiseProperty()
+    {
+        // Issue #771: IEventInvoker.CanRaise should return false for accessor-based events
+        // and true for field-like events.
+
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+using System;
+class C
+{
+    event EventHandler AccessorEvent
+    {
+        add {}
+        remove {}
+    }
+
+    event EventHandler FieldLikeEvent;
+}";
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = Assert.Single( compilation.Types );
+
+        var accessorEvent = type.Events.Single( e => e.Name == "AccessorEvent" );
+        var fieldLikeEvent = type.Events.Single( e => e.Name == "FieldLikeEvent" );
+
+        Assert.False( accessorEvent.CanRaise );
+        Assert.True( fieldLikeEvent.CanRaise );
+    }
+
+    [Fact]
+    public void EventAccessorsExcludeRaiseMethodWhenNull()
+    {
+        // Issue #771: IHasAccessors.Accessors should not include RaiseMethod when it is null.
+
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+using System;
+class C
+{
+    event EventHandler AccessorEvent
+    {
+        add {}
+        remove {}
+    }
+
+    event EventHandler FieldLikeEvent;
+}";
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = Assert.Single( compilation.Types );
+
+        var accessorEvent = type.Events.Single( e => e.Name == "AccessorEvent" );
+        var fieldLikeEvent = type.Events.Single( e => e.Name == "FieldLikeEvent" );
+
+        // Accessor-based event should only have add and remove accessors.
+        Assert.Equal( 2, accessorEvent.Accessors.Count() );
+        Assert.All( accessorEvent.Accessors, a => Assert.Contains( a.MethodKind, new[] { Code.MethodKind.EventAdd, Code.MethodKind.EventRemove } ) );
+
+        // Field-like event should have add, remove, and raise accessors.
+        Assert.Equal( 3, fieldLikeEvent.Accessors.Count() );
+        Assert.Contains( fieldLikeEvent.Accessors, a => a.MethodKind == Code.MethodKind.EventRaise );
+    }
+
+    [Fact]
+    public void EventGetAccessorReturnsNullForRaiseOnAccessorEvents()
+    {
+        // Issue #771: IHasAccessors.GetAccessor(MethodKind.EventRaise) should return null
+        // for accessor-based events.
+
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+using System;
+class C
+{
+    event EventHandler AccessorEvent
+    {
+        add {}
+        remove {}
+    }
+
+    event EventHandler FieldLikeEvent;
+}";
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = Assert.Single( compilation.Types );
+
+        var accessorEvent = type.Events.Single( e => e.Name == "AccessorEvent" );
+        var fieldLikeEvent = type.Events.Single( e => e.Name == "FieldLikeEvent" );
+
+        // For accessor-based event, GetAccessor(EventRaise) should return null.
+        Assert.Null( accessorEvent.GetAccessor( Code.MethodKind.EventRaise ) );
+        Assert.NotNull( accessorEvent.GetAccessor( Code.MethodKind.EventAdd ) );
+        Assert.NotNull( accessorEvent.GetAccessor( Code.MethodKind.EventRemove ) );
+
+        // For field-like event, GetAccessor(EventRaise) should return a method.
+        Assert.NotNull( fieldLikeEvent.GetAccessor( Code.MethodKind.EventRaise ) );
+        Assert.NotNull( fieldLikeEvent.GetAccessor( Code.MethodKind.EventAdd ) );
+        Assert.NotNull( fieldLikeEvent.GetAccessor( Code.MethodKind.EventRemove ) );
+    }
+
+    [Fact]
+    public void EventRaiseMethodNullForAbstractEvents()
+    {
+        // Issue #771: Abstract events should have null RaiseMethod (they are not field-like).
+
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+using System;
+abstract class C
+{
+    public abstract event EventHandler AbstractEvent;
+}";
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = Assert.Single( compilation.Types );
+
+        var abstractEvent = type.Events.Single( e => e.Name == "AbstractEvent" );
+
+        Assert.Null( abstractEvent.RaiseMethod );
+        Assert.False( abstractEvent.CanRaise );
+    }
+
+    [Fact]
+    public void EventRaiseMethodNullForInterfaceEvents()
+    {
+        // Issue #771: Interface events should have null RaiseMethod (they are not field-like).
+
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+using System;
+interface I
+{
+    event EventHandler InterfaceEvent;
+}";
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = Assert.Single( compilation.Types );
+
+        var interfaceEvent = type.Events.Single( e => e.Name == "InterfaceEvent" );
+
+        Assert.Null( interfaceEvent.RaiseMethod );
+        Assert.False( interfaceEvent.CanRaise );
+    }
+
+    [Fact]
+    public void EventRaiseMethodNonNullForFieldLikeEventWithInitializer()
+    {
+        // Issue #771: Field-like events with initializers should still be raisable.
+
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+using System;
+class C
+{
+    event EventHandler InitializedEvent = delegate { };
+}";
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = Assert.Single( compilation.Types );
+
+        var initializedEvent = type.Events.Single( e => e.Name == "InitializedEvent" );
+
+        Assert.NotNull( initializedEvent.RaiseMethod );
+        Assert.True( initializedEvent.CanRaise );
+    }
+
+    [Fact]
     public void MethodKinds()
     {
         using var testContext = this.CreateTestContext();
