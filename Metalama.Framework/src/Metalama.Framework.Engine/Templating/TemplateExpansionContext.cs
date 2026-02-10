@@ -95,7 +95,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
                 return declaration.Equals( property.GetMethod ) || declaration.Equals( property.SetMethod );
 
             case DeclarationKind.Event when metaApi.Declaration is IEvent @event:
-                return declaration.Equals( @event.AddMethod ) || declaration.Equals( @event.RemoveMethod ) || declaration.Equals( @event.RaiseMethod );
+                return declaration.Equals( @event.AddMethod ) || declaration.Equals( @event.RemoveMethod ) || (@event.RaiseMethod != null && declaration.Equals( @event.RaiseMethod ));
         }
 
         return false;

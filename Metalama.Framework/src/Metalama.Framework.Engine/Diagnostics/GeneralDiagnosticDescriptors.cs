@@ -349,6 +349,14 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "Cannot load an extension assembly.",
                 _category );
 
+        internal static readonly DiagnosticDefinition<IMethod>
+            CannotInferTypeArguments = new(
+                "LAMA0071",
+                _category,
+                "Cannot infer the type arguments for method '{0}'. Supply the type arguments explicitly using IMethod.WithTypeArguments.",
+                Error,
+                "Cannot infer the type arguments for a generic method." );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(
