@@ -59,6 +59,8 @@ internal abstract class OverridePropertyBaseTransformation : OverridePropertyOrI
             .GetSyntaxModifierList( ModifierCategories.Static | ModifierCategories.Unsafe )
             .Insert( 0, SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) );
 
+        var propertyType = context.SyntaxGenerator.PropertyType( overriddenDeclaration );
+
         var overrides = new[]
         {
             new InjectedMember(
@@ -66,7 +68,7 @@ internal abstract class OverridePropertyBaseTransformation : OverridePropertyOrI
                 SyntaxFactory.PropertyDeclaration(
                     SyntaxFactory.List<AttributeListSyntax>(),
                     modifiers,
-                    context.SyntaxGenerator.PropertyType( overriddenDeclaration )
+                    propertyType
                         .WithOptionalTrailingTrivia( SyntaxFactory.ElasticSpace, context.SyntaxGenerationContext.Options ),
                     null,
                     SyntaxFactoryEx.SafeIdentifier( propertyName ),
