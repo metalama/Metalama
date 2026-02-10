@@ -3,8 +3,8 @@ internal class Target
   private async IAsyncEnumerator<int> Foo_Override()
   {
     Console.WriteLine("Before");
-    // Should invoke the empty method (async enumerators still need _Empty stub).
-    var enumerator = global::System.Linq.AsyncEnumerable.Empty<global::System.Int32>().GetAsyncEnumerator();
+    // Base call replaced with AsyncEnumerableArray<T>.Empty.GetAsyncEnumerator().
+    var enumerator = global::Metalama.Framework.RunTime.AsyncEnumerableArray<global::System.Int32>.Empty.GetAsyncEnumerator();
     while (await enumerator.MoveNextAsync())
     {
       yield return enumerator.Current;

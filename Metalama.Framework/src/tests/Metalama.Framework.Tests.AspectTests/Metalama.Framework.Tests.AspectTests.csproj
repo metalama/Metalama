@@ -38,7 +38,6 @@
 
         <!-- These packages are used in tests -->
         <PackageReference Include="Microsoft.Win32.Registry" />
-        <PackageReference Include="System.Linq.AsyncEnumerable" />
 
         <!-- Upgrade for latest security fixes. -->
         <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />

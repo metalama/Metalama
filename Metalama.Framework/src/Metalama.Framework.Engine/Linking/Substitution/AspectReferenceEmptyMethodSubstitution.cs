@@ -182,11 +182,11 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
                         SyntaxFactoryEx.WellKnownIdentifierName( "GetEnumerator" ) ) );
 
             case EnumerableKind.IAsyncEnumerable:
-                // IAsyncEnumerable<T> → AsyncEnumerable.Empty<T>()
+                // IAsyncEnumerable<T> → AsyncEnumerableArray<T>.Empty
                 return CreateAsyncEnumerableEmptyExpression( syntaxGenerator, returnType );
 
             case EnumerableKind.IAsyncEnumerator:
-                // IAsyncEnumerator<T> → AsyncEnumerable.Empty<T>().GetAsyncEnumerator()
+                // IAsyncEnumerator<T> → AsyncEnumerableArray<T>.Empty.GetAsyncEnumerator()
                 return InvocationExpression(
                     MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
@@ -220,19 +220,33 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
     }
 
     /// <summary>
-    /// Creates an expression for <c>AsyncEnumerable.Empty&lt;T&gt;()</c>.
+    /// Creates an expression for <c>AsyncEnumerableArray&lt;T&gt;.Empty</c>.
     /// </summary>
+    /// <remarks>
+    /// We use <c>Metalama.Framework.RunTime.AsyncEnumerableArray&lt;T&gt;</c> instead of
+    /// <c>System.Linq.AsyncEnumerable.Empty&lt;T&gt;()</c> to avoid pulling in the
+    /// <c>System.Linq.AsyncEnumerable</c> package as a dependency of user projects.
+    /// </remarks>
     private static ExpressionSyntax CreateAsyncEnumerableEmptyExpression( ContextualSyntaxGenerator syntaxGenerator, ITypeSymbol asyncEnumerableType )
     {
         var typeArg = GetTypeArgument( asyncEnumerableType );
 
-        return InvocationExpression(
-            MemberAccessExpression(
-                SyntaxKind.SimpleMemberAccessExpression,
-                CreateFullyQualifiedName( "System", "Linq", "AsyncEnumerable" ),
-                GenericName( SyntaxFactoryEx.WellKnownIdentifier( "Empty" ) )
-                    .WithTypeArgumentList(
-                        TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( typeArg ) ) ) ) ) );
+        // Build: global::Metalama.Framework.RunTime.AsyncEnumerableArray<T>.Empty
+        var qualifiedName = CreateFullyQualifiedName( "Metalama", "Framework", "RunTime" );
+
+        var genericTypeName = GenericName( SyntaxFactoryEx.WellKnownIdentifier( "AsyncEnumerableArray" ) )
+            .WithTypeArgumentList(
+                TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( typeArg ) ) ) );
+
+        var fullType = MemberAccessExpression(
+            SyntaxKind.SimpleMemberAccessExpression,
+            qualifiedName,
+            genericTypeName );
+
+        return MemberAccessExpression(
+            SyntaxKind.SimpleMemberAccessExpression,
+            fullType,
+            SyntaxFactoryEx.WellKnownIdentifierName( "Empty" ) );
     }
 
     /// <summary>

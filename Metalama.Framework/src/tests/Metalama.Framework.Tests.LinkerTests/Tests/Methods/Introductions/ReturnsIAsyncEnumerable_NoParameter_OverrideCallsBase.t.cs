@@ -3,8 +3,8 @@ internal class Target
   private async IAsyncEnumerable<int> Foo_Override()
   {
     Console.WriteLine("Before");
-    // Should invoke the empty method (async enumerables still need _Empty stub).
-    IAsyncEnumerable<int> baseResult = global::System.Linq.AsyncEnumerable.Empty<global::System.Int32>();
+    // Base call replaced with AsyncEnumerableArray<T>.Empty.
+    IAsyncEnumerable<int> baseResult = global::Metalama.Framework.RunTime.AsyncEnumerableArray<global::System.Int32>.Empty;
     await foreach (var item in baseResult)
     {
       yield return item;

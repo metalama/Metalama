@@ -6,7 +6,7 @@ internal class TargetClass
     global::System.Console.WriteLine("This is introduced method.");
     await global::System.Threading.Tasks.Task.Yield();
     yield return 42;
-    await foreach (var x in global::System.Linq.AsyncEnumerable.Empty<global::System.Int32>())
+    await foreach (var x in global::Metalama.Framework.RunTime.AsyncEnumerableArray<global::System.Int32>.Empty)
     {
       yield return x;
     }
@@ -16,7 +16,7 @@ internal class TargetClass
     global::System.Console.WriteLine("This is introduced method.");
     await global::System.Threading.Tasks.Task.Yield();
     yield return 42;
-    var enumerator = global::System.Linq.AsyncEnumerable.Empty<global::System.Int32>().GetAsyncEnumerator();
+    var enumerator = global::Metalama.Framework.RunTime.AsyncEnumerableArray<global::System.Int32>.Empty.GetAsyncEnumerator();
     while (await enumerator.MoveNextAsync())
     {
       yield return enumerator.Current;
