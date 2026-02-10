@@ -9,7 +9,7 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 #pragma warning disable CS0219 // Variable is assigned but its value is never used
 #pragma warning disable CS1998 // Async method lacks 'await' operators
 
-namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Introductions.ReturnsTaskOfInt_NoParameter_OverrideCallsBase
+namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Introductions.ReturnsTaskOfInt_NoParameter_OverrideCallsBase_NotAwaited
 {
     [PseudoLayerOrder( "A0" )]
     [PseudoLayerOrder( "A1" )]
@@ -27,12 +27,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Introductions.Retur
         [PseudoOverride( nameof(Foo), "A1" )]
         [PseudoNotInlineable]
         [PseudoNotDiscardable]
-        private async Task<int> Foo_Override()
+        private Task<int> Foo_Override()
         {
             Console.WriteLine( "Before" );
 
-            // Should return default(int) since this is an awaited base call.
-            return await Link( This.Foo, Base )();
+            // Should return Task.FromResult(default(int)) (not awaited).
+            return Link( This.Foo, Base )();
         }
     }
 }

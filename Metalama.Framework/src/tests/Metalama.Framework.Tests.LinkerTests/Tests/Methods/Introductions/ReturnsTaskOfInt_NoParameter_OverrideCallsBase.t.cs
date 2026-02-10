@@ -1,10 +1,10 @@
 internal class Target
 {
-  private Task<int> Foo_Override()
+  private async Task<int> Foo_Override()
   {
     Console.WriteLine("Before");
-    // Should return Task.FromResult(default(int)).
-    return global::System.Threading.Tasks.Task.FromResult<global::System.Int32>(default(global::System.Int32));
+    // Should return default(int) since this is an awaited base call.
+    return default(global::System.Int32);
   }
   public Task<int> Foo()
   {

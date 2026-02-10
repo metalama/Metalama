@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.Engine.Formatting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -23,6 +24,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution;
 internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstitution
 {
     private readonly bool _isStatementContext;
+    private readonly bool _isAwaitContext;
     private readonly IMethodSymbol _methodSymbol;
 
     public override SyntaxNode ReplacedNode { get; }
@@ -43,8 +45,17 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
         // Determine the invocation expression (parent of the root node).
         var invocationNode = FindInvocationExpression( aspectReference.RootNode );
 
-        // Determine whether the invocation is used as a statement or as an expression.
-        if ( invocationNode.Parent.IsKind( SyntaxKind.ExpressionStatement ) && invocationNode.Parent is ExpressionStatementSyntax expressionStatement )
+        // Check if the invocation is wrapped in an await expression.
+        var effectiveNode = invocationNode;
+
+        if ( invocationNode.Parent.IsKind( SyntaxKind.AwaitExpression ) && invocationNode.Parent is AwaitExpressionSyntax awaitExpression )
+        {
+            this._isAwaitContext = true;
+            effectiveNode = awaitExpression;
+        }
+
+        // Determine whether the effective node is used as a statement or as an expression.
+        if ( effectiveNode.Parent.IsKind( SyntaxKind.ExpressionStatement ) && effectiveNode.Parent is ExpressionStatementSyntax expressionStatement )
         {
             this._isStatementContext = true;
             this.ReplacedNode = expressionStatement;
@@ -52,7 +63,7 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
         else
         {
             this._isStatementContext = false;
-            this.ReplacedNode = invocationNode;
+            this.ReplacedNode = effectiveNode;
         }
     }
 
@@ -103,14 +114,30 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
             return null;
         }
 
-        return this.CreateEmptyExpression( substitutionContext.SyntaxGenerationContext.SyntaxGenerator );
+        return this.CreateEmptyExpression( substitutionContext.SyntaxGenerationContext.SyntaxGenerator )
+            .WithSimplifierAnnotation();
     }
 
     private ExpressionSyntax CreateEmptyExpression( ContextualSyntaxGenerator syntaxGenerator )
     {
         var returnType = this._methodSymbol.ReturnType;
 
-        // Check for async types (Task, Task<T>).
+        // When the invocation is wrapped in `await`, we produce the awaited result type's default expression.
+        if ( this._isAwaitContext
+             && AsyncHelper.TryGetAsyncInfo( returnType, out var awaitedResultType, out var awaitedHasMethodBuilder )
+             && awaitedHasMethodBuilder )
+        {
+            if ( awaitedResultType.SpecialType == RoslynSpecialType.System_Void )
+            {
+                // await Task → should have been removed as a statement; this branch should not be reached.
+                throw new AssertionFailedException( "await Task in expression context is not supported." );
+            }
+
+            // await Task<T> → default(T)
+            return DefaultExpression( syntaxGenerator.TypeSyntax( awaitedResultType ) );
+        }
+
+        // Check for async types (Task, Task<T>) without await.
         if ( AsyncHelper.TryGetAsyncInfo( returnType, out var asyncResultType, out var hasMethodBuilder ) && hasMethodBuilder )
         {
             var taskTypeSyntax = CreateFullyQualifiedName( "System", "Threading", "Tasks", "Task" );
@@ -173,12 +200,7 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
         }
 
         // Default case: use default(ReturnType).
-        if ( !AsyncHelper.TryGetAsyncInfo( returnType, out var resultType, out _ ) )
-        {
-            resultType = returnType;
-        }
-
-        return DefaultExpression( syntaxGenerator.TypeSyntax( resultType ) );
+        return DefaultExpression( syntaxGenerator.TypeSyntax( returnType ) );
     }
 
     /// <summary>
