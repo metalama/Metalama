@@ -101,36 +101,39 @@ internal sealed class LinkerRecordHelper
 
                         if ( p.RefKind != RefKind.None )
                         {
-                            var refKindKeyword = p.RefKind switch
+#if ROSLYN_4_8_0_OR_GREATER
+                            if ( p.RefKind == RefKind.RefReadOnlyParameter )
                             {
-                                RefKind.Ref => SyntaxKind.RefKeyword,
-                                RefKind.Out => SyntaxKind.OutKeyword,
-                                RefKind.In => SyntaxKind.InKeyword,
-                                RefKind.RefReadOnlyParameter => SyntaxKind.RefKeyword,
-                                _ => throw new AssertionFailedException( $"Unexpected RefKind: {p.RefKind}." )
-                            };
+                                parameterSyntax = parameterSyntax.WithModifiers(
+                                    TokenList(
+                                        Token( default, SyntaxKind.RefKeyword, TriviaList( ElasticSpace ) ),
+                                        Token( default, SyntaxKind.ReadOnlyKeyword, TriviaList( ElasticSpace ) ) ) );
+                            }
+                            else
+#endif
+                            {
+                                var refKindKeyword = p.RefKind switch
+                                {
+                                    RefKind.Ref => SyntaxKind.RefKeyword,
+                                    RefKind.Out => SyntaxKind.OutKeyword,
+                                    RefKind.In => SyntaxKind.InKeyword,
+                                    _ => throw new AssertionFailedException( $"Unexpected RefKind: {p.RefKind}." )
+                                };
 
-                            parameterSyntax = parameterSyntax.WithModifiers(
-                                TokenList( Token( default, refKindKeyword, TriviaList( ElasticSpace ) ) ) );
+                                parameterSyntax = parameterSyntax.WithModifiers(
+                                    TokenList( Token( default, refKindKeyword, TriviaList( ElasticSpace ) ) ) );
+                            }
                         }
 
                         return parameterSyntax;
                     } ) ) );
 
         var modifiers = symbol.GetSyntaxModifierList(
-            ModifierCategories.Accessibility | ModifierCategories.Static | ModifierCategories.Unsafe );
-
-        // Record-synthesized Equals is virtual, so add virtual modifier.
-        if ( symbol.IsVirtual && !symbol.IsOverride )
-        {
-            modifiers = modifiers.Add( TokenWithTrailingSpace( SyntaxKind.VirtualKeyword ) );
-        }
-
-        // If the method is an override, ensure the override keyword is present.
-        if ( symbol.IsOverride )
-        {
-            modifiers = modifiers.Add( TokenWithTrailingSpace( SyntaxKind.OverrideKeyword ) );
-        }
+            ModifierCategories.Accessibility
+            | ModifierCategories.Static
+            | ModifierCategories.Unsafe
+            | ModifierCategories.Inheritance
+            | ModifierCategories.ReadOnly );
 
         var typeParameterList = symbol.TypeParameters.Length > 0
             ? TypeParameterList(
@@ -306,17 +309,11 @@ internal sealed class LinkerRecordHelper
             .WithOptionalTrailingTrivia( ElasticSpace, generationContext.Options );
 
         var modifiers = symbol.GetSyntaxModifierList(
-            ModifierCategories.Accessibility | ModifierCategories.Static | ModifierCategories.Unsafe );
-
-        if ( symbol.IsVirtual && !symbol.IsOverride )
-        {
-            modifiers = modifiers.Add( TokenWithTrailingSpace( SyntaxKind.VirtualKeyword ) );
-        }
-
-        if ( symbol.IsOverride )
-        {
-            modifiers = modifiers.Add( TokenWithTrailingSpace( SyntaxKind.OverrideKeyword ) );
-        }
+            ModifierCategories.Accessibility
+            | ModifierCategories.Static
+            | ModifierCategories.Unsafe
+            | ModifierCategories.Inheritance
+            | ModifierCategories.ReadOnly );
 
         // Build accessor list from the symbol.
         var accessors = new List<AccessorDeclarationSyntax>();
@@ -487,7 +484,7 @@ internal sealed class LinkerRecordHelper
                                     : null,
                                 setAccessor != null
                                     ? AccessorDeclaration(
-                                        SyntaxKind.SetAccessorDeclaration,
+                                        setAccessor.Kind(),
                                         context.SyntaxGenerator.FormattedBlock(
                                             ExpressionStatement(
                                                 AssignmentExpression(
