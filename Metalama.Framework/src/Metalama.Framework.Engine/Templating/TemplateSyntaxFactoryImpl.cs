@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 using SpecialType = Metalama.Framework.Code.SpecialType;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.Templating
 {
@@ -254,7 +255,7 @@ namespace Metalama.Framework.Engine.Templating
             // This allows FixInterpolationSyntax to check whether a local is truly dynamic at runtime.
             var effectiveType = awaitResult ? value.Type.GetAsyncInfo().ResultType : value.Type;
 
-            this._localVariableTypes[identifier.Text] = effectiveType;
+            this._localVariableTypes.Add( identifier.Text, effectiveType );
 
             var runtimeExpression = value.ToExpressionSyntax( this.SyntaxSerializationContext );
 
@@ -353,7 +354,10 @@ namespace Metalama.Framework.Engine.Templating
             where T : AnonymousFunctionExpressionSyntax
             => node.Kind() switch
             {
-                SyntaxKind.SimpleLambdaExpression when node is SimpleLambdaExpressionSyntax { Block.Statements: [ExpressionStatementSyntax expressionStatement] } simpleLambdaExpression =>
+                SyntaxKind.SimpleLambdaExpression when node is SimpleLambdaExpressionSyntax
+                    {
+                        Block.Statements: [ExpressionStatementSyntax expressionStatement]
+                    } simpleLambdaExpression =>
                     simpleLambdaExpression.Update(
                         simpleLambdaExpression.AttributeLists,
                         simpleLambdaExpression.Modifiers,
@@ -361,7 +365,10 @@ namespace Metalama.Framework.Engine.Templating
                         SyntaxFactory.Token( SyntaxKind.EqualsGreaterThanToken ),
                         null,
                         expressionStatement.Expression ),
-                SyntaxKind.SimpleLambdaExpression when node is SimpleLambdaExpressionSyntax { Block.Statements: [ThrowStatementSyntax { Expression: not null } throwStatement] } simpleLambdaExpression =>
+                SyntaxKind.SimpleLambdaExpression when node is SimpleLambdaExpressionSyntax
+                    {
+                        Block.Statements: [ThrowStatementSyntax { Expression: not null } throwStatement]
+                    } simpleLambdaExpression =>
                     simpleLambdaExpression.Update(
                         simpleLambdaExpression.AttributeLists,
                         simpleLambdaExpression.Modifiers,
@@ -369,9 +376,15 @@ namespace Metalama.Framework.Engine.Templating
                         SyntaxFactory.Token( SyntaxKind.EqualsGreaterThanToken ),
                         null,
                         SyntaxFactory.ThrowExpression( throwStatement.ThrowKeyword, throwStatement.Expression! ) ),
-                SyntaxKind.SimpleLambdaExpression when node is SimpleLambdaExpressionSyntax { Block.Statements: [BlockSyntax { Statements.Count: 1 } nestedBlock] } simpleLambdaExpression
+                SyntaxKind.SimpleLambdaExpression when node is SimpleLambdaExpressionSyntax
+                    {
+                        Block.Statements: [BlockSyntax { Statements.Count: 1 } nestedBlock]
+                    } simpleLambdaExpression
                     => this.SimplifyAnonymousFunction( simpleLambdaExpression.WithBlock( nestedBlock ) ),
-                SyntaxKind.ParenthesizedLambdaExpression when node is ParenthesizedLambdaExpressionSyntax { Block.Statements: [ExpressionStatementSyntax expressionStatement] } simpleLambdaExpression =>
+                SyntaxKind.ParenthesizedLambdaExpression when node is ParenthesizedLambdaExpressionSyntax
+                    {
+                        Block.Statements: [ExpressionStatementSyntax expressionStatement]
+                    } simpleLambdaExpression =>
                     simpleLambdaExpression.Update(
                         simpleLambdaExpression.AttributeLists,
                         simpleLambdaExpression.Modifiers,
@@ -379,7 +392,10 @@ namespace Metalama.Framework.Engine.Templating
                         SyntaxFactory.Token( SyntaxKind.EqualsGreaterThanToken ),
                         null,
                         expressionStatement.Expression ),
-                SyntaxKind.ParenthesizedLambdaExpression when node is ParenthesizedLambdaExpressionSyntax { Block.Statements: [ThrowStatementSyntax throwStatement] } simpleLambdaExpression =>
+                SyntaxKind.ParenthesizedLambdaExpression when node is ParenthesizedLambdaExpressionSyntax
+                    {
+                        Block.Statements: [ThrowStatementSyntax throwStatement]
+                    } simpleLambdaExpression =>
                     simpleLambdaExpression.Update(
                         simpleLambdaExpression.AttributeLists,
                         simpleLambdaExpression.Modifiers,
@@ -387,7 +403,10 @@ namespace Metalama.Framework.Engine.Templating
                         SyntaxFactory.Token( SyntaxKind.EqualsGreaterThanToken ),
                         null,
                         SyntaxFactory.ThrowExpression( throwStatement.ThrowKeyword, throwStatement.Expression! ) ),
-                SyntaxKind.ParenthesizedLambdaExpression when node is ParenthesizedLambdaExpressionSyntax { Block.Statements: [BlockSyntax { Statements.Count: 1 } nestedBlock] } simpleLambdaExpression
+                SyntaxKind.ParenthesizedLambdaExpression when node is ParenthesizedLambdaExpressionSyntax
+                    {
+                        Block.Statements: [BlockSyntax { Statements.Count: 1 } nestedBlock]
+                    } simpleLambdaExpression
                     => this.SimplifyAnonymousFunction( simpleLambdaExpression.WithBlock( nestedBlock ) ),
 
                 _ => node
@@ -631,11 +650,11 @@ namespace Metalama.Framework.Engine.Templating
             // Check the type annotation on the expression (set at expansion time by GetDynamicSyntax for IExpression values).
             // The annotation reflects the actual type from the compile-time object model.
             if ( TypeAnnotationMapper.TryFindExpressionTypeFromAnnotation(
-                     fixedInterpolation.Expression,
-                     this.SyntaxSerializationContext.CompilationModel,
-                     out var annotatedType ) )
+                    fixedInterpolation.Expression,
+                    this.SyntaxSerializationContext.CompilationModel,
+                    out var annotatedType ) )
             {
-                isDynamic = annotatedType.TypeKind == Code.TypeKind.Dynamic;
+                isDynamic = annotatedType.TypeKind == TypeKind.Dynamic;
             }
             else if ( fixedInterpolation.Expression.IsKind( SyntaxKind.IdentifierName )
                       && fixedInterpolation.Expression is IdentifierNameSyntax identifierName
@@ -644,7 +663,7 @@ namespace Metalama.Framework.Engine.Templating
                 // For local variables declared via DynamicLocalDeclaration, check their type from the
                 // compile-time object model. This handles cases like 'var result = meta.Proceed()' where
                 // the template-level type is always 'dynamic' but the actual runtime type depends on the target.
-                isDynamic = localType.TypeKind == Code.TypeKind.Dynamic;
+                isDynamic = localType.TypeKind == TypeKind.Dynamic;
             }
 
             if ( isDynamic )
