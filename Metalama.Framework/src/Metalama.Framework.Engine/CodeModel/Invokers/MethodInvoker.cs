@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
+using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
@@ -23,7 +24,15 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
 internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 {
+    private readonly bool _skipTypeArgumentInference;
+
     public MethodInvoker( IMethod method, InvokerOptions options = default, IExpression? target = null ) : base( method, options, target ) { }
+
+    private MethodInvoker( IMethod method, InvokerOptions options, IExpression? target, bool skipTypeArgumentInference )
+        : base( method, options, target )
+    {
+        this._skipTypeArgumentInference = skipTypeArgumentInference;
+    }
 
     public object? Invoke( IEnumerable<IExpression> args ) => this.InvokeCore( args.ToReadOnlyList() );
 
@@ -114,14 +123,33 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
     private DelegateUserExpression InvokeDefaultMethod( IReadOnlyList<IExpression> args )
     {
-#if ROSLYN_5_0_0_OR_GREATER
-
         // For extension members, redirect to the implementation method.
         if ( this.IsExtensionMember )
         {
             return this.InvokeExtensionImplementationMethod( args );
         }
-#endif
+
+        // If the method is a canonical generic instance (type arguments are the type parameters themselves),
+        // attempt to infer type arguments from the actual argument types. This prevents generating invalid code
+        // with unresolved type parameters like `Bar<T>` instead of `Bar<int>`. (See #765)
+        var resolvedMethod = this.Member;
+
+        if ( resolvedMethod.IsGeneric && resolvedMethod.IsCanonicalGenericInstance && args.Count > 0
+             && !this._skipTypeArgumentInference )
+        {
+            var inferredMethod = TryInferTypeArguments( resolvedMethod, args );
+
+            if ( inferredMethod != null )
+            {
+                resolvedMethod = inferredMethod;
+            }
+            else
+            {
+                throw GeneralDiagnosticDescriptors.CannotInferTypeArguments.CreateException( resolvedMethod );
+            }
+        }
+
+        var methodForCodeGen = resolvedMethod;
 
         return new DelegateUserExpression(
             context =>
@@ -130,18 +158,18 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
                 var receiverInfo = this.GetReceiverInfo( context );
 
-                if ( this.Member.IsGeneric )
+                if ( methodForCodeGen.IsGeneric )
                 {
                     name = GenericName(
                         SyntaxFactoryEx.SafeIdentifier( this.GetCleanTargetMemberName() ),
-                        TypeArgumentList( SeparatedList( this.Member.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
+                        TypeArgumentList( SeparatedList( methodForCodeGen.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
                 }
                 else
                 {
                     name = SyntaxFactoryEx.SafeIdentifierName( this.GetCleanTargetMemberName() );
                 }
 
-                var arguments = this.Member.GetArguments( this.Member.Parameters, args, context );
+                var arguments = methodForCodeGen.GetArguments( methodForCodeGen.Parameters, args, context );
 
                 if ( this.Member.MethodKind == MethodKind.LocalFunction )
                 {
@@ -165,10 +193,96 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                     return this.CreateInvocationExpression( receiver, name, arguments, AspectReferenceTargetKind.Self, context );
                 }
             },
-            (this.Options & InvokerOptions.NullConditional) != 0 ? this.Member.ReturnType.ToNullable() : this.Member.ReturnType );
+            (this.Options & InvokerOptions.NullConditional) != 0 ? methodForCodeGen.ReturnType.ToNullable() : methodForCodeGen.ReturnType );
     }
 
-#if ROSLYN_5_0_0_OR_GREATER
+    /// <summary>
+    /// Attempts to infer type arguments for a canonical generic method from the actual argument types.
+    /// Returns a constructed generic method if all type parameters can be inferred, or <c>null</c> otherwise.
+    /// </summary>
+    private static IMethod? TryInferTypeArguments( IMethod method, IReadOnlyList<IExpression> args )
+    {
+        var typeParameters = method.TypeParameters;
+        var inferredTypes = new IType?[typeParameters.Count];
+
+        // Match each argument type against the corresponding parameter type to infer type arguments.
+        var parameters = method.Parameters;
+
+        for ( var i = 0; i < Math.Min( args.Count, parameters.Count ); i++ )
+        {
+            var argType = args[i].Type;
+            var paramType = parameters[i].Type;
+
+            TryMatchTypeArguments( paramType, argType, typeParameters, inferredTypes );
+        }
+
+        // Check if all type parameters were inferred.
+        for ( var i = 0; i < inferredTypes.Length; i++ )
+        {
+            if ( inferredTypes[i] == null )
+            {
+                return null;
+            }
+        }
+
+        return method.MakeGenericInstance( inferredTypes! );
+    }
+
+    /// <summary>
+    /// Recursively matches an argument type against a parameter type to discover type parameter mappings.
+    /// For example, matching <c>TestData&lt;int&gt;</c> against <c>TestData&lt;T&gt;</c> infers <c>T = int</c>.
+    /// </summary>
+    private static void TryMatchTypeArguments(
+        IType parameterType,
+        IType argumentType,
+        IReadOnlyList<ITypeParameter> typeParameters,
+        IType?[] inferredTypes )
+    {
+        if ( parameterType.TypeKind == TypeKind.TypeParameter && parameterType is ITypeParameter typeParam )
+        {
+            // Check that this type parameter belongs to the method (not the declaring type).
+            if ( typeParam.TypeParameterKind == TypeParameterKind.Method && typeParam.Index < inferredTypes.Length )
+            {
+                var existingType = inferredTypes[typeParam.Index];
+
+                if ( existingType == null )
+                {
+                    inferredTypes[typeParam.Index] = argumentType;
+                }
+                else if ( !existingType.Equals( argumentType ) )
+                {
+                    // Conflicting inference — mark as failed by using a sentinel.
+                    // TryInferTypeArguments checks for null, so we need a way to signal conflict.
+                    // We set to null and rely on the null check in TryInferTypeArguments to fail.
+                    inferredTypes[typeParam.Index] = null;
+                }
+            }
+
+            return;
+        }
+
+        // For named types (e.g., TestData<T>), match type arguments recursively.
+        if ( parameterType is INamedType paramNamedType && argumentType is INamedType argNamedType )
+        {
+            if ( paramNamedType.TypeArguments.Count > 0 &&
+                 paramNamedType.TypeArguments.Count == argNamedType.TypeArguments.Count &&
+                 paramNamedType.Definition.Equals( argNamedType.Definition ) )
+            {
+                for ( var i = 0; i < paramNamedType.TypeArguments.Count; i++ )
+                {
+                    TryMatchTypeArguments( paramNamedType.TypeArguments[i], argNamedType.TypeArguments[i], typeParameters, inferredTypes );
+                }
+            }
+        }
+
+        // For array types, match element types only when ranks are equal.
+        if ( parameterType is IArrayType paramArrayType && argumentType is IArrayType argArrayType
+             && paramArrayType.Rank == argArrayType.Rank )
+        {
+            TryMatchTypeArguments( paramArrayType.ElementType, argArrayType.ElementType, typeParameters, inferredTypes );
+        }
+    }
+
     private DelegateUserExpression InvokeExtensionImplementationMethod( IReadOnlyList<IExpression> args )
     {
         var implMethod = this.Member.ExtensionImplementationMethod;
@@ -179,7 +293,9 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         }
 
         // The implementation method is always static, so we pass null as target.
-        var implInvoker = new MethodInvoker( implMethod, this.Options, target: null );
+        // Skip type argument inference for extension implementation methods because
+        // their type parameters (from the extension block) should be kept as-is.
+        var implInvoker = new MethodInvoker( implMethod, this.Options, target: null, skipTypeArgumentInference: true );
 
         // For instance extension members, the receiver becomes the first argument.
         IReadOnlyList<IExpression> implArgs;
@@ -203,7 +319,6 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
         return (DelegateUserExpression) implInvoker.CreateInvokeExpression( implArgs );
     }
-#endif
 
     private ExpressionSyntax CreateInvocationExpression(
         ReceiverExpressionSyntax receiverTypedExpressionSyntax,
