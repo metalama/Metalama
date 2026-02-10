@@ -34,7 +34,7 @@ internal sealed partial class LinkerRewritingDriver
 
     public SyntaxGenerationOptions SyntaxGenerationOptions { get; }
 
-    private CompilationContext IntermediateCompilationContext { get; }
+    internal CompilationContext IntermediateCompilationContext { get; }
 
     public LinkerInjectionRegistry InjectionRegistry { get; }
 
@@ -61,6 +61,7 @@ internal sealed partial class LinkerRewritingDriver
         this.InjectionRegistry = injectionRegistry;
         this.LateTransformationRegistry = lateTransformationRegistry;
         this.AnalysisRegistry = analysisRegistry;
+        this.RecordHelper = new LinkerRecordHelper( this );
     }
 
     /// <summary>
@@ -372,48 +373,7 @@ internal sealed partial class LinkerRewritingDriver
     public IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>? GetSubstitutions( InliningContextIdentifier inliningContextId )
         => this.AnalysisRegistry.GetSubstitutions( inliningContextId );
 
-    /// <summary>
-    /// Determines whether the symbol should be rewritten.
-    /// </summary>
-    /// <param name="symbol"></param>
-    /// <returns></returns>
-    /// <summary>
-    /// Gets synthesized override target methods for a type (e.g. record-synthesized Equals, GetHashCode).
-    /// These are methods that are override targets but have no explicit syntax in source.
-    /// </summary>
-    public IEnumerable<IMethodSymbol> GetSynthesizedMethodOverrideTargets( INamedTypeSymbol typeSymbol )
-    {
-        foreach ( var overriddenMember in this.InjectionRegistry.GetOverriddenMembers() )
-        {
-            if ( overriddenMember.Kind == SymbolKind.Method
-                 && overriddenMember is IMethodSymbol methodSymbol
-                 && this.IntermediateCompilationContext.SymbolComparer.Equals( methodSymbol.ContainingType, typeSymbol )
-                 && methodSymbol.IsImplicitlyDeclared
-                 && methodSymbol.GetPrimaryDeclarationSyntax()?.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration )
-            {
-                yield return methodSymbol;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets synthesized override target properties for a type (e.g. record-synthesized EqualityContract).
-    /// These are properties that are override targets but have no explicit syntax in source.
-    /// </summary>
-    public IEnumerable<IPropertySymbol> GetSynthesizedPropertyOverrideTargets( INamedTypeSymbol typeSymbol )
-    {
-        foreach ( var overriddenMember in this.InjectionRegistry.GetOverriddenMembers() )
-        {
-            if ( overriddenMember.Kind == SymbolKind.Property
-                 && overriddenMember is IPropertySymbol propertySymbol
-                 && this.IntermediateCompilationContext.SymbolComparer.Equals( propertySymbol.ContainingType, typeSymbol )
-                 && propertySymbol.IsImplicitlyDeclared
-                 && propertySymbol.GetPrimaryDeclarationSyntax()?.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration )
-            {
-                yield return propertySymbol;
-            }
-        }
-    }
+    public LinkerRecordHelper RecordHelper { get; }
 
     public bool IsRewriteTarget( ISymbol symbol )
     {
@@ -600,11 +560,11 @@ internal sealed partial class LinkerRewritingDriver
         };
     }
 
-    private bool ShouldGenerateEmptyMember( ISymbol symbol )
+    internal bool ShouldGenerateEmptyMember( ISymbol symbol )
         => this.InjectionRegistry.IsIntroduced( symbol ) && !symbol.IsOverride
                                                          && !symbol.TryGetHiddenSymbol( this.IntermediateCompilationContext.Compilation, out _ );
 
-    private bool ShouldGenerateSourceMember( ISymbol symbol ) => this.InjectionRegistry.IsOverrideTarget( symbol );
+    internal bool ShouldGenerateSourceMember( ISymbol symbol ) => this.InjectionRegistry.IsOverrideTarget( symbol );
 
     /// <summary>
     /// Gets only the indentation trivia (whitespace after the last line break) from a trivia list.
