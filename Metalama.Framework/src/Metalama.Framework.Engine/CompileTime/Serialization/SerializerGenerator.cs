@@ -824,6 +824,12 @@ internal sealed class SerializerGenerator : ISerializerGenerator
             return false;
         }
 
+        // Skip explicit interface implementations — they cannot be accessed as this.Name.
+        if ( fieldOrProperty.IsExplicitInterfaceMemberImplementation() )
+        {
+            return false;
+        }
+
         if ( fieldOrProperty.GetAttributes()
             .Any(
                 a => this._runTimeCompilationContext.SymbolComparer.IsConvertibleTo(

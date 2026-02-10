@@ -654,6 +654,15 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
             if ( currentScope?.GetExpressionExecutionScope() is RunTimeOnly ||
                  this._templateMemberClassifier.IsNodeOfDynamicType( visitedNode ) )
             {
+                // Don't report the error on the Name part of a member access expression. The error will be
+                // reported on the Expression (left) part or the parent member access expression instead,
+                // avoiding redundant diagnostics on member access chains like AppDomain.CurrentDomain.GetAssemblies().
+                if ( node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression )
+                     && node.Parent is MemberAccessExpressionSyntax memberAccess && memberAccess.Name == node )
+                {
+                    return visitedNode;
+                }
+
                 // The current expression is obliged to be compile-time-only by inference.
                 // Emit an error if the type of the expression is inferred to be runtime-only.
                 this.RequireScope(
