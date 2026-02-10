@@ -218,7 +218,21 @@ internal sealed partial class LinkerLinkingStep
                 if ( SyntaxExtensions.ShouldTriviaBePreserved( block.OpenBraceToken, generationContext.Options )
                      || SyntaxExtensions.ShouldTriviaBePreserved( block.CloseBraceToken, generationContext.Options ) )
                 {
-                    var leadingTrivia = block.OpenBraceToken.LeadingTrivia.AddRange( block.OpenBraceToken.TrailingTrivia.StripFirstTrailingNewLine() );
+                    var openBraceTrailingTrivia = block.OpenBraceToken.TrailingTrivia.StripFirstTrailingNewLine();
+
+                    // If the first statement's leading trivia contains a comment (non-whitespace, non-EOL trivia),
+                    // we need to preserve the newline from the open brace to avoid placing the comment on the same line as '{'.
+                    if ( firstStatementIndex < statements.Count )
+                    {
+                        var firstStatementLeading = statements[firstStatementIndex].GetLeadingTrivia();
+
+                        if ( HasCommentTrivia( firstStatementLeading ) )
+                        {
+                            openBraceTrailingTrivia = block.OpenBraceToken.TrailingTrivia;
+                        }
+                    }
+
+                    var leadingTrivia = block.OpenBraceToken.LeadingTrivia.AddRange( openBraceTrailingTrivia );
                     var trailingTrivia = block.CloseBraceToken.LeadingTrivia.AddRange( block.CloseBraceToken.TrailingTrivia.StripFirstTrailingNewLine() );
 
                     if ( firstStatementIndex >= statements.Count )
@@ -239,6 +253,22 @@ internal sealed partial class LinkerLinkingStep
                             statements[lastStatementIndex]
                                 .WithRequiredTrailingTrivia( statements[lastStatementIndex].GetTrailingTrivia().AddRange( trailingTrivia ) );
                     }
+                }
+
+                static bool HasCommentTrivia( SyntaxTriviaList triviaList )
+                {
+                    foreach ( var trivia in triviaList )
+                    {
+                        if ( trivia.IsKind( SyntaxKind.SingleLineCommentTrivia )
+                             || trivia.IsKind( SyntaxKind.MultiLineCommentTrivia )
+                             || trivia.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
+                             || trivia.IsKind( SyntaxKind.MultiLineDocumentationCommentTrivia ) )
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
                 }
             }
         }

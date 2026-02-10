@@ -64,12 +64,8 @@ namespace Metalama.Framework.Engine.Linking
                     members.Add( this.GetOriginalImplMethod( methodDeclaration, symbol, generationContext ) );
                 }
 
-                if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
-                     && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
-                     && this.ShouldGenerateEmptyMember( symbol ) )
-                {
-                    members.Add( this.GetEmptyImplMethod( methodDeclaration, symbol, generationContext ) );
-                }
+                // Empty base methods are no longer generated — AspectReferenceEmptyMethodSubstitution
+                // replaces all base invocations inline with appropriate empty expressions.
 
                 return members;
             }

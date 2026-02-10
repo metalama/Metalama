@@ -36,7 +36,7 @@
         <PackageReference Include="FakeItEasy.Analyzer.CSharp" />
         <PackageReference Include="Metalama.Backstage.Testing" />
 
-        <!-- These packages ared used in tests -->
+        <!-- These packages are used in tests -->
         <PackageReference Include="Microsoft.Win32.Registry" />
 
         <!-- Upgrade for latest security fixes. -->

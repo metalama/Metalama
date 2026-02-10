@@ -622,8 +622,17 @@ internal sealed partial class LinkerAnalysisStep
                         // Default non-inlined semantics that are not override targets need no substitutions.
                         break;
 
+                    case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base, ResolvedSemantic.Symbol: IMethodSymbol { MethodKind: MethodKind.Ordinary or MethodKind.ExplicitInterfaceImplementation } }:
+                        // Base references to introduced ordinary methods with no base are replaced inline
+                        // with an appropriate empty expression (expression context) or suppressed (statement context).
+                        AddSubstitution(
+                            context,
+                            new AspectReferenceEmptyMethodSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
+
+                        break;
+
                     case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base }:
-                        // Base references to other members are rewritten to "empty" member call.
+                        // Base references to other members (properties, events) are rewritten to "empty" member call.
                         AddSubstitution(
                             context,
                             new AspectReferenceEmptySubstitution( this._intermediateCompilationContext, nonInlinedReference ) );

@@ -9,8 +9,6 @@ internal class TargetClass
   private void Bar_Introduction2()
   {
     global::System.Console.WriteLine("This is introduced method.");
-    this.Bar_Empty();
-    this.Bar_Empty();
   }
   public void Bar()
   {
@@ -18,14 +16,9 @@ internal class TargetClass
     this.Bar_Introduction2();
     this.Bar_Introduction2();
   }
-  private void Bar_Empty()
-  {
-  }
   private void Foo_Introduction1()
   {
     global::System.Console.WriteLine("This is introduced method.");
-    this.Foo_Empty();
-    this.Foo_Empty();
   }
   private void Foo_Override1()
   {
@@ -44,8 +37,5 @@ internal class TargetClass
     global::System.Console.WriteLine("This is overridden (4) method.");
     this.Foo_Override2();
     this.Foo_Override2();
-  }
-  private void Foo_Empty()
-  {
   }
 }

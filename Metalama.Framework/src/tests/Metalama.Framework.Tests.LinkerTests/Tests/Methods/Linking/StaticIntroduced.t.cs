@@ -6,10 +6,6 @@ internal class Target
   }
   private static void Bar_Override1_1()
   {
-    // Should invoke empty code.
-    global::Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntroduced.Target.Bar_Empty();
-    // Should invoke empty code.
-    global::Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntroduced.Target.Bar_Empty();
     // Should invoke override 1_2.
     Target.Bar_Override1_2();
     // Should invoke the final declaration.
@@ -17,8 +13,6 @@ internal class Target
   }
   private static void Bar_Override1_2()
   {
-    // Should invoke empty code.
-    global::Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntroduced.Target.Bar_Empty();
     // Should invoke override 1_1.
     Target.Bar_Override1_1();
     // Should invoke override 1_2.
@@ -72,12 +66,6 @@ internal class Target
   }
   public static void Foo_Override0()
   {
-    // Should invoke empty code.
-    global::Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntroduced.Target.Bar_Empty();
-    // Should invoke empty code.
-    global::Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntroduced.Target.Bar_Empty();
-    // Should invoke empty code.
-    global::Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntroduced.Target.Bar_Empty();
     // Should invoke the final declaration.
     Target.Bar();
   }
@@ -117,8 +105,5 @@ internal class Target
   public static void Bar()
   {
     Bar_Override5_2();
-  }
-  private static void Bar_Empty()
-  {
   }
 }
