@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Linking.Inlining;
 using Metalama.Framework.Engine.Linking.Substitution;
 using Metalama.Framework.Engine.Services;
@@ -692,8 +693,8 @@ internal sealed partial class LinkerAnalysisStep
                 SyntaxKind.Parameter when root is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter
                     => new RecordParameterSubstitution( this._intermediateCompilationContext, recordParameter, targetSymbol, returnVariableIdentifier ),
 
-                SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when root is RecordDeclarationSyntax recordDeclaration
-                    => new SynthesizedRecordMemberSubstitution( this._intermediateCompilationContext, recordDeclaration ),
+                SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                    => throw AspectLinkerDiagnosticDescriptors.CannotUseProceedWithSynthesizedRecordMember.CreateException( targetSymbol ),
 
                 _ => throw new AssertionFailedException( $"Unexpected syntax: '{root}'." )
             };
