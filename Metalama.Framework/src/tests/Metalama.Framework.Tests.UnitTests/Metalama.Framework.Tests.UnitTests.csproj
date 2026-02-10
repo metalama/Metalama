@@ -37,7 +37,7 @@
         <ProjectReference Include="../../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
         <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" />
         <ProjectReference Include="../../Metalama.Framework.DesignTime.Contracts/Metalama.Framework.DesignTime.Contracts.csproj" />
-        <ProjectReference Include="../../Metalama.Extensions.DiffEngine/Metalama.Extensions.DiffEngine.csproj" />
+        <ProjectReference Include="../../Metalama.Extensions.DiffEngine/Metalama.Extensions.DiffEngine.csproj" Condition="'$(ThisRoslynVersionProjectSuffix)' == ''" />
 
         <!-- Roslyn version specific references -->
         <ProjectReference Include="../../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
@@ -51,7 +51,7 @@
     </ItemGroup>
 
     <!-- Register extension assemblies from build output (for ProjectReference; PackageReference imports props automatically) -->
-    <Import Project="../../Metalama.Extensions.DiffEngine/MetalamaExtensionAssemblies.props" />
+    <Import Project="../../Metalama.Extensions.DiffEngine/MetalamaExtensionAssemblies.props" Condition="'$(ThisRoslynVersionProjectSuffix)' == ''" />
 
     <ItemGroup>
         <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
