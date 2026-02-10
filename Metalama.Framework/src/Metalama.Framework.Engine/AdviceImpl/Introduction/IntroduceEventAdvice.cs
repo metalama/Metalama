@@ -203,7 +203,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                         builder.ToFullRef(),
                         this._addTemplate?.ForIntroduction( builder.AddMethod ),
                         this._removeTemplate?.ForIntroduction( builder.RemoveMethod ),
-                        this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) ) );
+                        this._invokeTemplate?.ForIntroduction( builder.GetRaiseMethodForAdvice() ) ) );
             }
 
             return this.CreateSuccessResult( AdviceOutcome.Default, builder );
@@ -281,7 +281,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                                 builder.ToFullRef(),
                                 this._addTemplate?.ForIntroduction( builder.AddMethod ),
                                 this._removeTemplate?.ForIntroduction( builder.RemoveMethod ),
-                                this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) );
+                                this._invokeTemplate?.ForIntroduction( builder.GetRaiseMethodForAdvice() ) );
 
                             context.AddTransformation( builder.CreateTransformation( this.Template ) );
                             context.AddTransformation( overriddenMethod );
@@ -304,7 +304,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                                 existingEvent.ToFullRef(),
                                 this._addTemplate?.ForIntroduction( existingEvent.AddMethod ),
                                 this._removeTemplate?.ForIntroduction( existingEvent.RemoveMethod ),
-                                this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) );
+                                this._invokeTemplate?.ForIntroduction( builder.GetRaiseMethodForAdvice() ) );
 
                             context.AddTransformation( overriddenMethod );
 
@@ -340,7 +340,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                                 builder.ToFullRef(),
                                 this._addTemplate?.ForIntroduction( builder.AddMethod ),
                                 this._removeTemplate?.ForIntroduction( builder.RemoveMethod ),
-                                this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) );
+                                this._invokeTemplate?.ForIntroduction( builder.GetRaiseMethodForAdvice() ) );
 
                             context.AddTransformation( builder.CreateTransformation( this.Template ) );
                             context.AddTransformation( overriddenEvent );

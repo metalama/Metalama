@@ -6,5 +6,14 @@ using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Engine.CodeModel.Abstractions
 {
-    internal interface IEventImpl : IEvent, IHasAccessorsImpl;
+    internal interface IEventImpl : IEvent, IHasAccessorsImpl
+    {
+        /// <summary>
+        /// Gets the raise method for internal advice/template binding purposes.
+        /// Unlike <see cref="IEvent.RaiseMethod"/>, which returns <c>null</c> for non-field-like events,
+        /// this always returns a raise method (a <see cref="Metalama.Framework.Engine.CodeModel.Source.Pseudo.PseudoRaiser"/> for source events, or an internal accessor for introduced events)
+        /// so that the invoke template can be bound even for accessor-based events.
+        /// </summary>
+        IMethod GetRaiseMethodForAdvice();
+    }
 }

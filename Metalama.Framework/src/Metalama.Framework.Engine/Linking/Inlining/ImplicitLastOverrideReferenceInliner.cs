@@ -21,6 +21,13 @@ internal sealed class ImplicitLastOverrideReferenceInliner : Inliner
     {
         var declarationSyntax = aspectReference.ContainingSemantic.Symbol.GetPrimaryDeclarationSyntax();
 
+        // For synthesized record property accessors (e.g. get_EqualityContract), the accessor method has
+        // no syntax of its own. Fall back to the containing type's syntax (the record declaration).
+        if ( declarationSyntax == null && aspectReference.ContainingSemantic.Symbol.ContainingType != null )
+        {
+            declarationSyntax = aspectReference.ContainingSemantic.Symbol.ContainingType.GetPrimaryDeclarationSyntax();
+        }
+
         SyntaxNode body =
             declarationSyntax?.Kind() switch
             {
@@ -59,6 +66,9 @@ internal sealed class ImplicitLastOverrideReferenceInliner : Inliner
                 {
                     Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax }
                 } recordParameter => recordParameter,
+                SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                    when declarationSyntax is RecordDeclarationSyntax recordDeclaration
+                    => recordDeclaration,
 #if ROSLYN_4_8_0_OR_GREATER
                 { IsTypeDeclaration: true } when declarationSyntax is TypeDeclarationSyntax { ParameterList: { } parameterList } => parameterList,
 #endif

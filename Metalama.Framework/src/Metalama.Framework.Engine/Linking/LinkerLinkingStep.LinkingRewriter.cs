@@ -203,6 +203,27 @@ internal sealed partial class LinkerLinkingStep
                 }
             }
 
+            // Process synthesized override targets (e.g. record-synthesized Equals, EqualityContract) that have no explicit syntax.
+            foreach ( var synthesizedMethod in this._rewritingDriver.RecordHelper.GetSynthesizedMethodOverrideTargets( typeSymbol ) )
+            {
+                var generationContext = this._compilationContext.GetSyntaxGenerationContext(
+                    this._rewritingDriver.SyntaxGenerationOptions,
+                    node.SyntaxTree,
+                    node.SpanStart );
+
+                newMembers.AddRange( this._rewritingDriver.RecordHelper.RewriteSynthesizedMethodOverrideTarget( synthesizedMethod, generationContext ) );
+            }
+
+            foreach ( var synthesizedProperty in this._rewritingDriver.RecordHelper.GetSynthesizedPropertyOverrideTargets( typeSymbol ) )
+            {
+                var generationContext = this._compilationContext.GetSyntaxGenerationContext(
+                    this._rewritingDriver.SyntaxGenerationOptions,
+                    node.SyntaxTree,
+                    node.SpanStart );
+
+                newMembers.AddRange( this._rewritingDriver.RecordHelper.RewriteSynthesizedPropertyOverrideTarget( synthesizedProperty, generationContext ) );
+            }
+
             return newMembers;
         }
     }

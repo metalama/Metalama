@@ -123,10 +123,25 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                 builder.Type = TemplateTypeRewriter.Unbound.Visit( templateDeclaration.AssertNotNull().Type );
             }
 
-            builder.Accessibility =
-                this.Template?.Accessibility ?? (this._getTemplate != null
+            if ( this.Template != null )
+            {
+                builder.Accessibility = this.Template.Accessibility;
+            }
+            else if ( this._getTemplate != null && this._setTemplate != null )
+            {
+                var getAccessibility = this._getTemplate.TemplateMember.Accessibility;
+                var setAccessibility = this._setTemplate.TemplateMember.Accessibility;
+
+                // Set the property-level accessibility to the least-restrictive accessibility
+                // that is a superset of both accessor accessibilities.
+                builder.Accessibility = GetLeastRestrictiveSuperset( getAccessibility, setAccessibility );
+            }
+            else
+            {
+                builder.Accessibility = (this._getTemplate != null
                     ? this._getTemplate.TemplateMember.Accessibility
                     : this._setTemplate?.TemplateMember.Accessibility).AssertNotNull();
+            }
 
             builder.GetMethod?.SetIsIteratorMethod( this.Template?.IsIteratorMethod ?? this._getTemplate?.TemplateMember.IsIteratorMethod ?? false );
 
@@ -152,6 +167,34 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                         {
                             builder.AddFieldAttribute( new SourceAttribute( attribute, this.SourceCompilation, builder ) );
                         }
+                    }
+                }
+            }
+            else
+            {
+                // When using separate accessor templates, set each accessor's accessibility from its respective template.
+                // C# allows at most one accessor to have a different accessibility from the property, so we track
+                // whether we already restricted one accessor before trying to restrict the other.
+                var accessorRestricted = false;
+
+                if ( this._getTemplate != null && builder.GetMethod != null )
+                {
+                    var getAccessibility = this._getTemplate.TemplateMember.Accessibility;
+
+                    if ( getAccessibility != builder.Accessibility )
+                    {
+                        builder.GetMethod.Accessibility = getAccessibility;
+                        accessorRestricted = true;
+                    }
+                }
+
+                if ( this._setTemplate != null && builder.SetMethod != null && !accessorRestricted )
+                {
+                    var setAccessibility = this._setTemplate.TemplateMember.Accessibility;
+
+                    if ( setAccessibility != builder.Accessibility )
+                    {
+                        builder.SetMethod.Accessibility = setAccessibility;
                     }
                 }
             }
@@ -203,9 +246,24 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
             CopyTemplateAttributes( accessorTemplate.ReturnParameter, accessorBuilder.ReturnParameter, serviceProvider );
         }
 
-        // TODO: For get accessor template, we are ignoring accessibility of set accessor template because it can be easily incompatible.
-
         builder.InitializerTemplate = this.Template?.GetInitializerTemplate()?.As<IFieldOrProperty>();
+    }
+
+    private static Accessibility GetLeastRestrictiveSuperset( Accessibility a, Accessibility b )
+    {
+        if ( a.IsSupersetOrEqual( b ) )
+        {
+            return a;
+        }
+        else if ( b.IsSupersetOrEqual( a ) )
+        {
+            return b;
+        }
+        else
+        {
+            // The only incomparable pair in C# is Protected vs Internal; their least upper bound is ProtectedInternal.
+            return Accessibility.ProtectedInternal;
+        }
     }
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceProperty;
