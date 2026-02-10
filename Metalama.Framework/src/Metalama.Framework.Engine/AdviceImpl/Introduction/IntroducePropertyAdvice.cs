@@ -255,7 +255,7 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
         var existingDeclaration = targetDeclaration.FindMemberCompetingWithIntroduction( builder );
 
         var templateDeclaration = this.Template?.GetDeclaration( this.SourceCompilation );
-        var isAutoProperty = templateDeclaration is { IsAutoPropertyOrField: true };
+        var isAutoProperty = this._isProgrammaticAutoProperty || templateDeclaration is { IsAutoPropertyOrField: true };
 
         // TODO: Introduce attributes that are added not present on the existing member?
         if ( existingDeclaration == null )
