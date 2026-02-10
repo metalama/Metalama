@@ -143,6 +143,10 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             {
                 resolvedMethod = inferredMethod;
             }
+            else
+            {
+                throw GeneralDiagnosticDescriptors.CannotInferTypeArguments.CreateException( resolvedMethod );
+            }
         }
 
         var methodForCodeGen = resolvedMethod;

@@ -2,10 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @OutputCompilationDisabled
-#endif
-
 using System.Collections.Generic;
 using System.Linq;
 using Metalama.Framework.Aspects;
@@ -15,8 +11,8 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.Ge
 
 /*
  * Tests that when the parameter type is a generic type (e.g. List<T>) but the argument is a different generic type
- * with the same arity (e.g. HashSet<int>), type argument inference correctly checks the generic type definition
- * and does not incorrectly infer T from an unrelated type.
+ * with the same arity (e.g. HashSet<int>), type argument inference fails with an error telling the user
+ * to supply type arguments explicitly.
  * Regression test for https://github.com/metalama/Metalama/issues/765
  */
 
