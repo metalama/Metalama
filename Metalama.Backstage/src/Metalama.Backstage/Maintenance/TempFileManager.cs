@@ -352,7 +352,7 @@ public sealed class TempFileManager : ITempFileManager
             var lastWriteTime = this._fileSystem.GetFileLastWriteTime( file );
             var lastWriteTimeUtc = lastWriteTime.ToUniversalTime();
 
-            if ( lastWriteTimeUtc < threshold )
+            if ( lastWriteTimeUtc <= threshold )
             {
                 if ( isCleanupFile )
                 {
