@@ -91,8 +91,8 @@ internal static class SymbolExtensions
     /// <returns>Hidden symbol or null.</returns>
     public static bool TryGetHiddenSymbol( this ISymbol symbol, Compilation compilation, [NotNullWhen( true )] out ISymbol? hiddenSymbol )
     {
-        if ( symbol.Kind is not (SymbolKind.Method or SymbolKind.Event or SymbolKind.Property)
-             || symbol is not (IMethodSymbol or IEventSymbol or IPropertySymbol) )
+        if ( symbol.Kind is not (SymbolKind.Method or SymbolKind.Event or SymbolKind.Property or SymbolKind.Field)
+             || symbol is not (IMethodSymbol or IEventSymbol or IPropertySymbol or IFieldSymbol) )
         {
             // Types never hide anything.
             hiddenSymbol = null;
@@ -143,6 +143,10 @@ internal static class SymbolExtensions
                     }
 
                     goto default;
+
+                case (SymbolKind.Field, SymbolKind.Field) when localMember is IFieldSymbol localField && baseMember is IFieldSymbol baseField:
+                    // Field that hides a base field.
+                    return StringComparer.Ordinal.Equals( localField.Name, baseField.Name );
 
                 default:
                     return SignatureTypeComparer.Instance.Equals( localMember, baseMember );

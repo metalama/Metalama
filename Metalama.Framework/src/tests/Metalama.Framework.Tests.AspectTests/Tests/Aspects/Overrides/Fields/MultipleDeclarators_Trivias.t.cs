@@ -18,6 +18,9 @@ internal class TargetClass
   int D, F // Comment after variable declarator
   ; // Comment after first list.
   private global::System.Int32 _e;
+  /// <summary>
+  /// Doc comment for D, E, F.
+  /// </summary>
   public global::System.Int32 E
   {
     get
@@ -32,6 +35,9 @@ internal class TargetClass
     }
   }
   private global::System.Int32 _g;
+  /// <summary>
+  /// Doc comment for G, H, I.
+  /// </summary>
   public global::System.Int32 G
   {
     get
@@ -46,6 +52,9 @@ internal class TargetClass
     }
   }
   private global::System.Int32 _h;
+  /// <summary>
+  /// Doc comment for G, H, I.
+  /// </summary>
   public global::System.Int32 H
   {
     get
@@ -60,6 +69,9 @@ internal class TargetClass
     }
   }
   private global::System.Int32 _i;
+  /// <summary>
+  /// Doc comment for G, H, I.
+  /// </summary>
   public global::System.Int32 I
   {
     get
