@@ -185,7 +185,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
                 throw new InvalidOperationException( "Cannot change field pseudo accessor accessibility." );
             }
 
-            if ( this.ContainingDeclaration is not PropertyBuilder propertyBuilder )
+            if ( this.ContainingDeclaration is not (PropertyBuilder or IndexerBuilder) )
             {
                 throw new InvalidOperationException( $"Cannot change event accessor accessibility." );
             }
@@ -197,26 +197,38 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
                 return;
             }
 
-            if ( !value.IsSubsetOrEqual( propertyBuilder.Accessibility ) )
+            var parentAccessibility = this._containingMember.Accessibility;
+
+            if ( !value.IsSubsetOrEqual( parentAccessibility ) )
             {
                 throw new InvalidOperationException(
-                    $"Cannot change accessor accessibility to {value}, which is not more restrictive than parent accessibility {propertyBuilder.Accessibility}." );
+                    $"Cannot change accessor accessibility to {value}, which is not more restrictive than parent accessibility {parentAccessibility}." );
             }
 
             var otherAccessor = this.MethodKind switch
             {
-                MethodKind.PropertyGet => propertyBuilder.SetMethod,
-                MethodKind.PropertySet => propertyBuilder.GetMethod,
+                MethodKind.PropertyGet => this.ContainingDeclaration switch
+                {
+                    PropertyBuilder pb => pb.SetMethod,
+                    IndexerBuilder ib => ib.SetMethod,
+                    _ => throw new AssertionFailedException( $"Unexpected containing declaration type." )
+                },
+                MethodKind.PropertySet => this.ContainingDeclaration switch
+                {
+                    PropertyBuilder pb => pb.GetMethod,
+                    IndexerBuilder ib => ib.GetMethod,
+                    _ => throw new AssertionFailedException( $"Unexpected containing declaration type." )
+                },
                 _ => throw new AssertionFailedException( $"Unexpected MethodKind: {this.MethodKind}." )
             };
 
-            if ( value != propertyBuilder.Accessibility && otherAccessor == null )
+            if ( value != parentAccessibility && otherAccessor == null )
             {
-                throw new InvalidOperationException( $"Cannot change accessor accessibility, if the property has a single accessor ." );
+                throw new InvalidOperationException( $"Cannot change accessor accessibility, if the property has a single accessor." );
             }
 
-            if ( value != propertyBuilder.Accessibility && otherAccessor != null
-                                                        && otherAccessor.Accessibility.IsSubsetOf( propertyBuilder.Accessibility ) )
+            if ( value != parentAccessibility && otherAccessor != null
+                                              && otherAccessor.Accessibility.IsSubsetOf( parentAccessibility ) )
             {
                 throw new InvalidOperationException(
                     $"Cannot change accessor accessibility to {value}, because the other accessor is already restricted to {otherAccessor.Accessibility}." );
