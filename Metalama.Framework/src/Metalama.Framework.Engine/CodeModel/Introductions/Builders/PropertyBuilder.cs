@@ -30,6 +30,8 @@ internal sealed class PropertyBuilder : PropertyOrIndexerBuilder, IPropertyBuild
 
     private IExpression? _initializerExpression;
 
+    private Writeability? _writeabilityOverride;
+
     public PropertyBuilder(
         AspectLayerInstance aspectLayerInstance,
         INamedType targetType,
@@ -59,22 +61,46 @@ internal sealed class PropertyBuilder : PropertyOrIndexerBuilder, IPropertyBuild
     public override Writeability Writeability
     {
         get
-            => this switch
-            {
-                { SetMethod: null } => Writeability.None,
-                { SetMethod.IsImplicitlyDeclared: true, IsAutoPropertyOrField: true } => Writeability.ConstructorOnly,
-                { HasInitOnlySetter: true } => Writeability.InitOnly,
-                _ => Writeability.All
-            };
+            => this._writeabilityOverride
+               ?? this switch
+               {
+                   { SetMethod: null } => Writeability.None,
+                   { SetMethod.IsImplicitlyDeclared: true, IsAutoPropertyOrField: true } => Writeability.ConstructorOnly,
+                   { HasInitOnlySetter: true } => Writeability.InitOnly,
+                   _ => Writeability.All
+               };
 
         set
-            => this.HasInitOnlySetter = (this, value) switch
+        {
+            if ( this.IsAutoPropertyOrField && this.SetMethod != null )
+            {
+                switch ( value )
+                {
+                    case Writeability.ConstructorOnly:
+                        this._writeabilityOverride = value;
+
+                        return;
+
+                    case Writeability.InitOnly:
+                        this.HasInitOnlySetter = true;
+
+                        return;
+
+                    case Writeability.All:
+                        this.HasInitOnlySetter = false;
+
+                        return;
+                }
+            }
+
+            this.HasInitOnlySetter = (this, value) switch
             {
                 ({ SetMethod: not null }, Writeability.All) => false,
                 ({ SetMethod: not null }, Writeability.InitOnly) => true,
                 _ => throw new InvalidOperationException(
                     $"Writeability can only be set for non-auto properties with a setter to either {Writeability.InitOnly} or {Writeability.All}." )
             };
+        }
     }
 
     public bool IsAutoPropertyOrField { get; }
