@@ -664,5 +664,16 @@ namespace Metalama.Framework.Engine.Templating
                     + "based on a run-time condition.",
                     _category,
                     Error );
+
+        internal static readonly DiagnosticDefinition<(string Expression, string CompileTimeExpression, string RunTimeMember)>
+            CannotUseConditionalAccessWithCompileTimeToRunTimeMember
+                = new(
+                    "LAMA0289",
+                    "The null-conditional operator cannot be used to access a run-time member on a compile-time expression.",
+                    "The null-conditional operator cannot be used in the expression '{0}' because '{1}' is compile-time and '.{2}' "
+                    + "returns a run-time value. When the compile-time expression is null, its type is unknown, so type-preserving "
+                    + "run-time code cannot be generated. Use a compile-time null check (e.g. an 'if' statement) instead of the '?.' operator.",
+                    _category,
+                    Error );
     }
 }

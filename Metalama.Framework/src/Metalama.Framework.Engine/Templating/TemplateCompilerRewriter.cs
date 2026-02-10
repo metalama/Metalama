@@ -67,7 +67,6 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     private int _nextStatementListId;
     private int _nextLocalFunctionFactoryId;
     private int _nextLabelId = 1;
-    private int _nextTempId;
     private ISymbol? _rootTemplateSymbol;
 
     public TemplateCompilerRewriter(
@@ -959,154 +958,34 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             return this.TransformConditionalExpression( result );
         }
 
-        // Handle mixed scope: compile-time receiver with run-time member access (e.g. compileTimeExpr?.Value?.ToString()).
-        // The left side is compile-time (e.g. meta.Target.Parameters.FirstOrDefault(...)), and the right side accesses a
-        // run-time member (e.g. .Value?.ToString()). We decompose the WhenNotNull to find the compile-time-to-runtime
-        // bridge (e.g. .Value), evaluate it at compile time, and generate the remaining chain as run-time syntax.
-        if ( transformationKind != TransformationKind.Transform
-             && this.TryTransformMixedScopeConditionalAccess( node, out var mixedScopeResult ) )
+        // Detect unsupported pattern: compile-time expression ?. compile-time-returning-run-time member.
+        // For example, meta.Target.Parameters.FirstOrDefault(...)?.Value where the expression is compile-time
+        // and .Value is a compile-time member returning a run-time value. When the compile-time expression is null,
+        // its type is unknown, so type-preserving run-time code cannot be generated.
+        if ( transformationKind != TransformationKind.Transform )
         {
-            return mixedScopeResult;
+            var firstMemberBinding = node.WhenNotNull.Kind() switch
+            {
+                SyntaxKind.MemberBindingExpression => (MemberBindingExpressionSyntax) node.WhenNotNull,
+                SyntaxKind.ConditionalAccessExpression
+                    when ((ConditionalAccessExpressionSyntax) node.WhenNotNull).Expression.Kind() == SyntaxKind.MemberBindingExpression
+                    => (MemberBindingExpressionSyntax) ((ConditionalAccessExpressionSyntax) node.WhenNotNull).Expression,
+                _ => null
+            };
+
+            if ( firstMemberBinding != null
+                 && firstMemberBinding.GetScopeFromAnnotation().GetValueOrDefault().IsCompileTimeMemberReturningRunTimeValue() )
+            {
+                this.Report(
+                    TemplatingDiagnosticDescriptors.CannotUseConditionalAccessWithCompileTimeToRunTimeMember.CreateRoslynDiagnostic(
+                        this._syntaxTreeAnnotationMap.GetLocation( node ),
+                        (node.ToString(), node.Expression.ToString(), firstMemberBinding.Name.ToString()) ) );
+
+                return node;
+            }
         }
 
         return base.TransformConditionalAccessExpression( node );
-    }
-
-    /// <summary>
-    /// Handles a conditional access where the expression (left side of ?.) is compile-time and the WhenNotNull
-    /// (right side) starts with a compile-time-to-runtime bridge member (e.g. .Value on IParameter).
-    /// </summary>
-    /// <remarks>
-    /// <para>For example, <c>meta.Target.Parameters.FirstOrDefault(...)?.Value?.ToLower()</c> where:</para>
-    /// <list type="bullet">
-    /// <item><c>meta.Target.Parameters.FirstOrDefault(...)</c> is compile-time (<c>IParameter?</c>)</item>
-    /// <item><c>.Value</c> is compile-time-returning-runtime (the parameter's run-time value)</item>
-    /// <item><c>?.ToLower()</c> is run-time</item>
-    /// </list>
-    /// <para>The generated compile-time code evaluates the expression at compile time, and if non-null, accesses the
-    /// bridge member to get the run-time syntax, wrapping any remaining chain in a run-time conditional access.
-    /// When null, it generates a typed null expression and preserves the chain to maintain the correct result type.</para>
-    /// </remarks>
-    private bool TryTransformMixedScopeConditionalAccess( ConditionalAccessExpressionSyntax node, out ExpressionSyntax result )
-    {
-        // Decompose the WhenNotNull to find the first MemberBindingExpression (the compile-time-to-runtime bridge).
-        // The WhenNotNull can currently be:
-        //   1. MemberBindingExpression(.Value)                                    — simple case: expr?.Value
-        //   2. ConditionalAccessExpression(MemberBindingExpression(.Value), rest)  — chain case: expr?.Value?.rest
-
-        MemberBindingExpressionSyntax firstMemberBinding;
-        ExpressionSyntax? remainingWhenNotNull;
-
-        switch ( node.WhenNotNull.Kind() )
-        {
-            case SyntaxKind.MemberBindingExpression:
-                // Simple case: expr?.Value — the whole WhenNotNull is the bridge member.
-                firstMemberBinding = (MemberBindingExpressionSyntax) node.WhenNotNull;
-                remainingWhenNotNull = null;
-
-                break;
-
-            case SyntaxKind.ConditionalAccessExpression
-                when node.WhenNotNull is ConditionalAccessExpressionSyntax
-                     {
-                         Expression: MemberBindingExpressionSyntax innerMemberBinding
-                     } conditionalAccess:
-            {
-                // Chain case: expr?.Value?.rest
-                firstMemberBinding = innerMemberBinding;
-                remainingWhenNotNull = conditionalAccess.WhenNotNull;
-
-                break;
-            }
-
-            default:
-                // Not a recognized pattern for mixed-scope conditional access.
-                result = null!;
-
-                return false;
-        }
-
-        // Check that the bridge member is compile-time-returning-runtime.
-        var bridgeScope = firstMemberBinding.GetScopeFromAnnotation().GetValueOrDefault();
-
-        if ( !bridgeScope.IsCompileTimeMemberReturningRunTimeValue() )
-        {
-            result = null!;
-
-            return false;
-        }
-
-        // Use `is {} __temp` pattern to evaluate node.Expression exactly once at template expansion time.
-        // __temp is bound in the when-true branch; in the when-false branch, the expression is null so we pass null directly.
-        var tempIdentifier = $"__ct{this._nextTempId++}";
-
-        // Compile-time expression: __temp.MemberName
-        // This evaluates at compile time and returns the dynamic/run-time value.
-        var compileTimeBridgeAccess = MemberAccessExpression(
-            SyntaxKind.SimpleMemberAccessExpression,
-            SyntaxFactoryEx.WellKnownIdentifierName( tempIdentifier ),
-            firstMemberBinding.Name );
-
-        // Generate: GetDynamicSyntax(__temp.MemberName) — converts the compile-time value to run-time syntax.
-        var runtimeExpressionSyntax = InvocationExpression(
-                this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.GetDynamicSyntax) ) )
-            .AddArgumentListArguments( Argument( compileTimeBridgeAccess ) );
-
-        // Build the "when not null" branch.
-        ExpressionSyntax transformedWhenNotNull;
-        ExpressionSyntax? transformedRemainingWhenNotNull = null;
-
-        if ( remainingWhenNotNull == null )
-        {
-            // Simple case: expr?.Value — the result is just the run-time syntax of the value.
-            transformedWhenNotNull = runtimeExpressionSyntax;
-        }
-        else
-        {
-            // Chain case: expr?.Value?.rest — wrap in ConditionalAccessExpression(runtimeExpr, transformedRest).
-            transformedRemainingWhenNotNull = this.Transform( remainingWhenNotNull );
-
-            transformedWhenNotNull = InvocationExpression(
-                    this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.ConditionalAccessExpression) ),
-                    ArgumentList( SeparatedList( [Argument( runtimeExpressionSyntax ), Argument( transformedRemainingWhenNotNull )] ) ) );
-        }
-
-        // Build the "when null" branch using NullOfType at template expansion time.
-        // Since the `is {} __temp` pattern guarantees we're in the null case here, the expression is null
-        // and we can't obtain its type. We pass null directly to NullOfType, which falls back to ((dynamic)null).
-        // When there is a remaining chain (e.g. ?.ToLower()), we preserve it on the null branch too
-        // to ensure the expression type is correct (e.g. ((dynamic)null)?.ToLower() determines the correct result type).
-        var nullOfTypeExpr = InvocationExpression(
-                this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.NullOfType) ) )
-            .AddArgumentListArguments( Argument( SyntaxFactoryEx.Null ) );
-
-        ExpressionSyntax transformedWhenNull;
-
-        if ( remainingWhenNotNull == null )
-        {
-            // Simple case: expr?.Value — no chain, NullOfType gives the correct type directly.
-            transformedWhenNull = nullOfTypeExpr;
-        }
-        else
-        {
-            // Chain case: expr?.Value?.rest — wrap NullOfType in ConditionalAccessExpression with the same chain.
-            // transformedRemainingWhenNotNull is guaranteed to be non-null here because remainingWhenNotNull != null.
-            transformedWhenNull = InvocationExpression(
-                    this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.ConditionalAccessExpression) ),
-                    ArgumentList( SeparatedList( [Argument( nullOfTypeExpr ), Argument( transformedRemainingWhenNotNull! )] ) ) );
-        }
-
-        // Build the compile-time pattern match: compileTimeExpr is {} __temp ? whenNotNull : whenNull
-        // This evaluates node.Expression exactly once and binds it to __temp for use in the when-true branch.
-        var isPatternCondition = IsPatternExpression(
-            node.Expression,
-            RecursivePattern()
-                .WithPropertyPatternClause( PropertyPatternClause() )
-                .WithDesignation( SingleVariableDesignation( SyntaxFactoryEx.WellKnownIdentifier( tempIdentifier ) ) ) );
-
-        result = ConditionalExpression( isPatternCondition, transformedWhenNotNull, transformedWhenNull );
-
-        return true;
     }
 
     private (ExpressionSyntax Condition, ExpressionSyntax Invocation)? ProcessConditionalAccessExtensionMethod(

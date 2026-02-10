@@ -546,29 +546,6 @@ namespace Metalama.Framework.Engine.Templating
 
         public ExpressionSyntax StringLiteralExpression( string? value ) => SyntaxFactoryEx.LiteralExpression( value );
 
-        public ExpressionSyntax NullOfType( IType? type )
-        {
-            if ( type != null )
-            {
-                var nullableType = type.ToNullable();
-
-                return SyntaxFactory.ParenthesizedExpression(
-                        this.SyntaxSerializationContext.SyntaxGenerator.CastExpression( nullableType, SyntaxFactoryEx.Null ) )
-                    .WithSimplifierAnnotationIfNecessary( this.SyntaxSerializationContext.SyntaxGenerationContext );
-            }
-            else
-            {
-                // When we don't know the type (e.g. because the compile-time expression was null and we couldn't
-                // determine its type), fall back to ((dynamic)null). This is better than ((object?)null) because
-                // dynamic supports any member access, which is important when the null expression is used in a
-                // conditional access chain like ((dynamic)null)?.ToLower().
-                return SyntaxFactory.ParenthesizedExpression(
-                    SyntaxFactory.CastExpression(
-                        SyntaxFactory.IdentifierName( "dynamic" ),
-                        SyntaxFactoryEx.Null ) );
-            }
-        }
-
         public TypeOfExpressionSyntax TypeOf( string typeOfString, Dictionary<string, TypeSyntax>? substitutions )
         {
             var typeOfExpression = (TypeOfExpressionSyntax) SyntaxFactoryEx.ParseExpressionSafe( typeOfString );

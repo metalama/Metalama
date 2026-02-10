@@ -1,18 +1,2 @@
-internal class TargetCode
-{
-  // Method WITH a matching parameter - should resolve to token?.ToLower().
-  [Aspect]
-  private string? MethodWithToken(string token)
-  {
-    var tokenParameters = token?.ToLower();
-    return (global::System.String? )tokenParameters;
-  }
-  // Method WITHOUT a matching parameter - should resolve to ((dynamic)null)?.ToLower() since
-  // the compile-time expression is null. The chain is preserved to maintain the correct result type.
-  [Aspect]
-  private string? MethodWithoutToken(int x)
-  {
-    var tokenParameters = ((dynamic)null)?.ToLower();
-    return (global::System.String? )tokenParameters;
-  }
-}
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0289 on `meta.Target.Parameters.FirstOrDefault( p => p.Name == "token" )?.Value?.ToLower()`: `The null-conditional operator cannot be used in the expression 'meta.Target.Parameters.FirstOrDefault( p => p.Name == "token" )?.Value?.ToLower()' because 'meta.Target.Parameters.FirstOrDefault( p => p.Name == "token" )' is compile-time and '.Value' returns a run-time value. When the compile-time expression is null, its type is unknown, so type-preserving run-time code cannot be generated. Use a compile-time null check (e.g. an 'if' statement) instead of the '?.' operator.`
