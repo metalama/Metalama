@@ -119,7 +119,8 @@ public partial class DeclarationFactory
             genericContext,
             static ( in args )
                 => new IntroducedConstructor( args.Builder, args.Compilation, args.GenericContext ),
-            true );
+            true,
+            supportsRedirection: true );
 
     // Fields support redirections, but fields redirect to properties, so it is not handled at this level.
     internal IField GetField(

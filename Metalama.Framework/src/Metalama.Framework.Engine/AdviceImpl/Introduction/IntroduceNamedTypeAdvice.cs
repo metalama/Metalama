@@ -68,6 +68,8 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
 
             context.AddTransformation( builder.CreateTransformation() );
 
+            this.IntroduceImplicitConstructorIfNeeded( builder, context );
+
             return this.CreateSuccessResult( AdviceOutcome.Default, builder );
         }
         else
@@ -89,11 +91,29 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
                     builder.Freeze();
                     context.AddTransformation( builder.CreateTransformation() );
 
+                    this.IntroduceImplicitConstructorIfNeeded( builder, context );
+
                     return this.CreateSuccessResult( AdviceOutcome.Default, builder );
 
                 default:
                     throw new AssertionFailedException( $"Unexpected OverrideStrategy: {this.OverrideStrategy}." );
             }
+        }
+    }
+
+    private void IntroduceImplicitConstructorIfNeeded( NamedTypeBuilder builder, AdviceImplementationContext context )
+    {
+        // Non-static classes should have an implicit default constructor, just like source types
+        // that get their implicit constructor from Roslyn.
+        if ( builder.TypeKind == TypeKind.Class && !builder.IsStatic )
+        {
+            var constructorBuilder = new ConstructorBuilder( this.AspectLayerInstance, builder, isImplicitlyDeclared: true )
+            {
+                Accessibility = Accessibility.Public
+            };
+
+            constructorBuilder.Freeze();
+            context.AddTransformation( constructorBuilder.CreateTransformation() );
         }
     }
 }
