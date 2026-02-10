@@ -151,6 +151,11 @@ namespace Metalama.Framework.Engine.Aspects
         public IAspectBuilder<TNewTarget> With<TNewTarget>( TNewTarget declaration )
             where TNewTarget : class, IDeclaration
         {
+            if ( declaration == null )
+            {
+                throw new ArgumentNullException( nameof(declaration) );
+            }
+
             if ( declaration == this.Target )
             {
                 return (IAspectBuilder<TNewTarget>) (object) this;

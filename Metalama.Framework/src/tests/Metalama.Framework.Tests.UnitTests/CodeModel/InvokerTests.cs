@@ -448,8 +448,10 @@ class TargetCode
                     @event.RemoveMethod.Invoke( parameterExpression ),
                     @"this.MyEvent -= value" );
 
+                Assert.NotNull( @event.RaiseMethod );
+
                 AssertEx.DynamicEquals(
-                    @event.RaiseMethod!.Invoke( parameterExpression, parameterExpression ),
+                    @event.RaiseMethod.Invoke( parameterExpression, parameterExpression ),
                     @"this.MyEvent?.Invoke(value, (global::System.EventArgs)value)" );
             }
         }
