@@ -25,7 +25,7 @@ public sealed class DotNetTool
     public void Execute(
         string arguments,
         string? workingDirectory = null,
-        int timeout = 30_000,
+        int timeout = 300_000,
         Func<KeyValuePair<string, string?>, bool>? environmentVariableFilter = null )
     {
         var startInfo = new ProcessStartInfo( this._platformInfo.DotNetExePath, arguments )
