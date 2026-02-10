@@ -239,7 +239,19 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             // Check that this type parameter belongs to the method (not the declaring type).
             if ( typeParam.TypeParameterKind == TypeParameterKind.Method && typeParam.Index < inferredTypes.Length )
             {
-                inferredTypes[typeParam.Index] = argumentType;
+                var existingType = inferredTypes[typeParam.Index];
+
+                if ( existingType == null )
+                {
+                    inferredTypes[typeParam.Index] = argumentType;
+                }
+                else if ( !existingType.Equals( argumentType ) )
+                {
+                    // Conflicting inference — mark as failed by using a sentinel.
+                    // TryInferTypeArguments checks for null, so we need a way to signal conflict.
+                    // We set to null and rely on the null check in TryInferTypeArguments to fail.
+                    inferredTypes[typeParam.Index] = null;
+                }
             }
 
             return;
@@ -249,7 +261,8 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         if ( parameterType is INamedType paramNamedType && argumentType is INamedType argNamedType )
         {
             if ( paramNamedType.TypeArguments.Count > 0 &&
-                 paramNamedType.TypeArguments.Count == argNamedType.TypeArguments.Count )
+                 paramNamedType.TypeArguments.Count == argNamedType.TypeArguments.Count &&
+                 paramNamedType.Definition.Equals( argNamedType.Definition ) )
             {
                 for ( var i = 0; i < paramNamedType.TypeArguments.Count; i++ )
                 {
@@ -258,8 +271,9 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             }
         }
 
-        // For array types, match element types.
-        if ( parameterType is IArrayType paramArrayType && argumentType is IArrayType argArrayType )
+        // For array types, match element types only when ranks are equal.
+        if ( parameterType is IArrayType paramArrayType && argumentType is IArrayType argArrayType
+             && paramArrayType.Rank == argArrayType.Rank )
         {
             TryMatchTypeArguments( paramArrayType.ElementType, argArrayType.ElementType, typeParameters, inferredTypes );
         }
