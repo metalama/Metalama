@@ -629,7 +629,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 return result;
 
-            case TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Error
+            case TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Error or TypeKind.Extension
                 when typeX is INamedType namedTypeX && typeY is INamedType namedTypeY:
                 return this.CompareNamedTypes( namedTypeX, namedTypeY, this._options );
 

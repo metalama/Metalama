@@ -47,14 +47,10 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
         {
             var returnTypeSymbol = awaitableType.GetSymbol();
 
-            // Introduced types don't have symbols yet. This assumes they are not awaitable.
-            // TODO #1310: Implement IsAwaitable(INamedType) to properly handle introduced awaitable types.
+            // Introduced types don't have symbols yet. Fall back to the code model.
             if ( returnTypeSymbol == null )
             {
-                awaitableResultType = null;
-                hasMethodBuilder = false;
-
-                return false;
+                return TryGetAsyncInfoFromCodeModel( awaitableType, out awaitableResultType, out hasMethodBuilder );
             }
 
             if ( !TryGetAsyncInfo( returnTypeSymbol, out var resultTypeSymbol, out hasMethodBuilder ) )
@@ -69,6 +65,51 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
 
                 return true;
             }
+        }
+
+        /// <summary>
+        /// Checks if a type is awaitable by inspecting the Metalama code model instead of Roslyn symbols.
+        /// This is used for introduced types that don't have Roslyn symbols yet.
+        /// </summary>
+        private static bool TryGetAsyncInfoFromCodeModel( IType awaitableType, out IType? awaitableResultType, out bool hasMethodBuilder )
+        {
+            awaitableResultType = null;
+            hasMethodBuilder = false;
+
+            if ( awaitableType is not INamedType namedType )
+            {
+                return false;
+            }
+
+            // Check for GetAwaiter() method with no parameters (same check as the Roslyn path).
+            var getAwaiterMethod = namedType.Methods.OfName( "GetAwaiter" ).FirstOrDefault( m => m.Parameters.Count == 0 );
+
+            if ( getAwaiterMethod == null )
+            {
+                return false;
+            }
+
+            var awaiterType = getAwaiterMethod.ReturnType;
+
+            if ( awaiterType is not INamedType awaiterNamedType )
+            {
+                return false;
+            }
+
+            // Check for parameterless GetResult() method on the awaiter (same check as the Roslyn path).
+            var getResultMethod = awaiterNamedType.Methods.OfName( "GetResult" ).FirstOrDefault( m => m.Parameters.Count == 0 );
+
+            if ( getResultMethod == null )
+            {
+                return false;
+            }
+
+            awaitableResultType = getResultMethod.ReturnType;
+
+            // Check for AsyncMethodBuilderAttribute on the awaitable type.
+            hasMethodBuilder = namedType.Attributes.Any( a => a.Type.Name == nameof(AsyncMethodBuilderAttribute) );
+
+            return true;
         }
 
         internal static bool TryGetAsyncInfo( ITypeSymbol returnType, [NotNullWhen( true )] out ITypeSymbol? resultType, out bool hasMethodBuilder )
