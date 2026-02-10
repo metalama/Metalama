@@ -55,8 +55,7 @@ internal sealed class IntroducedConstructor : IntroducedMember, IConstructorImpl
 
     [Memo]
     private IFullRef<IConstructor> Ref
-        => this._builderData.ReplacedImplicitConstructor?.WithGenericContext( this.GenericContext )
-           ?? this.RefFactory.FromIntroducedDeclaration<IConstructor>( this );
+        => this._builderData.ToRef().WithGenericContext( this.GenericContext );
 
     public IRef<IConstructor> ToRef() => this.Ref;
 
