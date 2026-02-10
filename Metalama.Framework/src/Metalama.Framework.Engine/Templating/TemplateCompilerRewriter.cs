@@ -67,6 +67,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     private int _nextStatementListId;
     private int _nextLocalFunctionFactoryId;
     private int _nextLabelId = 1;
+    private int _nextTempId;
     private ISymbol? _rootTemplateSymbol;
 
     public TemplateCompilerRewriter(
@@ -1035,14 +1036,18 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             return false;
         }
 
-        // Compile-time expression: node.Expression.MemberName
+        // Use `is {} __temp` pattern to evaluate node.Expression exactly once at template expansion time.
+        // __temp is bound in the when-true branch; in the when-false branch, the expression is null so we pass null directly.
+        var tempIdentifier = $"__ct{this._nextTempId++}";
+
+        // Compile-time expression: __temp.MemberName
         // This evaluates at compile time and returns the dynamic/run-time value.
         var compileTimeBridgeAccess = MemberAccessExpression(
             SyntaxKind.SimpleMemberAccessExpression,
-            node.Expression,
+            SyntaxFactoryEx.WellKnownIdentifierName( tempIdentifier ),
             firstMemberBinding.Name );
 
-        // Generate: GetDynamicSyntax(compileTimeExpr.MemberName) — converts the compile-time value to run-time syntax.
+        // Generate: GetDynamicSyntax(__temp.MemberName) — converts the compile-time value to run-time syntax.
         var runtimeExpressionSyntax = InvocationExpression(
                 this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.GetDynamicSyntax) ) )
             .AddArgumentListArguments( Argument( compileTimeBridgeAccess ) );
@@ -1067,28 +1072,14 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
 
         // Build the "when null" branch using NullOfType at template expansion time.
-        // We generate: templateSyntaxFactory.NullOfType(((IHasType?)compileTimeExpr)?.Type)
-        // This gets the run-time type from the compile-time expression (e.g. IParameter.Type gives the parameter's
-        // actual type like string), and generates ((T?)null) in the output. If the compile-time expression is null,
-        // Type will be null too and NullOfType falls back to ((dynamic)null).
-        var compileTimeExprAsHasType = ParenthesizedExpression(
-            CastExpression(
-                NullableType( ParseTypeName( typeof(IHasType).FullName! ) ),
-                node.Expression ) );
-
-        var compileTimeType = ConditionalAccessExpression(
-            compileTimeExprAsHasType,
-            MemberBindingExpression( IdentifierName( nameof(IHasType.Type) ) ) );
-
+        // Since the `is {} __temp` pattern guarantees we're in the null case here, the expression is null
+        // and we can't obtain its type. We pass null directly to NullOfType, which falls back to ((dynamic)null).
+        // When there is a remaining chain (e.g. ?.ToLower()), we preserve it on the null branch too
+        // to ensure the expression type is correct (e.g. ((dynamic)null)?.ToLower() determines the correct result type).
         var nullOfTypeExpr = InvocationExpression(
                 this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.NullOfType) ) )
-            .AddArgumentListArguments( Argument( compileTimeType ) );
+            .AddArgumentListArguments( Argument( SyntaxFactoryEx.Null ) );
 
-        // When there is a remaining chain (e.g. ?.ToLower()), we must preserve it on the null branch too
-        // to ensure the expression type is correct. For example, if the chain is ?.ToLower(), the result type
-        // must be string?, not object?. Since the right side of ?. is dynamic, we can't know the type without
-        // evaluating the chain. So we generate: ConditionalAccessExpression(NullOfType(type), transformedRest)
-        // which produces e.g. ((string?)null)?.ToLower() — the chain determines the correct result type.
         ExpressionSyntax transformedWhenNull;
 
         if ( remainingWhenNotNull == null )
@@ -1105,13 +1096,15 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                     ArgumentList( SeparatedList( [Argument( nullOfTypeExpr ), Argument( transformedRemainingWhenNotNull! )] ) ) );
         }
 
-        // Build the compile-time ternary: compileTimeExpr != null ? whenNotNull : whenNull
-        var compileTimeCondition = BinaryExpression(
-            SyntaxKind.NotEqualsExpression,
+        // Build the compile-time pattern match: compileTimeExpr is {} __temp ? whenNotNull : whenNull
+        // This evaluates node.Expression exactly once and binds it to __temp for use in the when-true branch.
+        var isPatternCondition = IsPatternExpression(
             node.Expression,
-            SyntaxFactoryEx.Null );
+            RecursivePattern()
+                .WithPropertyPatternClause( PropertyPatternClause() )
+                .WithDesignation( SingleVariableDesignation( SyntaxFactoryEx.WellKnownIdentifier( tempIdentifier ) ) ) );
 
-        result = ConditionalExpression( compileTimeCondition, transformedWhenNotNull, transformedWhenNull );
+        result = ConditionalExpression( isPatternCondition, transformedWhenNotNull, transformedWhenNull );
 
         return true;
     }
