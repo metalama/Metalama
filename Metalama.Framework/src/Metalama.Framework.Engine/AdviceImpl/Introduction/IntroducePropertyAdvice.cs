@@ -123,10 +123,24 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                 builder.Type = TemplateTypeRewriter.Unbound.Visit( templateDeclaration.AssertNotNull().Type );
             }
 
-            builder.Accessibility =
-                this.Template?.Accessibility ?? (this._getTemplate != null
+            if ( this.Template != null )
+            {
+                builder.Accessibility = this.Template.Accessibility;
+            }
+            else if ( this._getTemplate != null && this._setTemplate != null )
+            {
+                var getAccessibility = this._getTemplate.TemplateMember.Accessibility;
+                var setAccessibility = this._setTemplate.TemplateMember.Accessibility;
+
+                // Set the property-level accessibility to the more permissive of the two accessor accessibilities.
+                builder.Accessibility = getAccessibility.IsSupersetOrEqual( setAccessibility ) ? getAccessibility : setAccessibility;
+            }
+            else
+            {
+                builder.Accessibility = (this._getTemplate != null
                     ? this._getTemplate.TemplateMember.Accessibility
                     : this._setTemplate?.TemplateMember.Accessibility).AssertNotNull();
+            }
 
             builder.GetMethod?.SetIsIteratorMethod( this.Template?.IsIteratorMethod ?? this._getTemplate?.TemplateMember.IsIteratorMethod ?? false );
 
@@ -152,6 +166,29 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                         {
                             builder.AddFieldAttribute( new SourceAttribute( attribute, this.SourceCompilation, builder ) );
                         }
+                    }
+                }
+            }
+            else
+            {
+                // When using separate accessor templates, set each accessor's accessibility from its respective template.
+                if ( this._getTemplate != null && builder.GetMethod != null )
+                {
+                    var getAccessibility = this._getTemplate.TemplateMember.Accessibility;
+
+                    if ( getAccessibility != builder.Accessibility )
+                    {
+                        builder.GetMethod.Accessibility = getAccessibility;
+                    }
+                }
+
+                if ( this._setTemplate != null && builder.SetMethod != null )
+                {
+                    var setAccessibility = this._setTemplate.TemplateMember.Accessibility;
+
+                    if ( setAccessibility != builder.Accessibility )
+                    {
+                        builder.SetMethod.Accessibility = setAccessibility;
                     }
                 }
             }
@@ -202,8 +239,6 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
 
             CopyTemplateAttributes( accessorTemplate.ReturnParameter, accessorBuilder.ReturnParameter, serviceProvider );
         }
-
-        // TODO: For get accessor template, we are ignoring accessibility of set accessor template because it can be easily incompatible.
 
         builder.InitializerTemplate = this.Template?.GetInitializerTemplate()?.As<IFieldOrProperty>();
     }
