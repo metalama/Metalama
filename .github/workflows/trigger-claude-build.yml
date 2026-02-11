@@ -1,0 +1,65 @@
+name: Trigger Claude Build
+
+on:
+  issues:
+    types: [assigned]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+
+jobs:
+  trigger-on-issue-assignment:
+    if: >-
+      github.event_name == 'issues' &&
+      github.event.assignee.login == 'PostSharpAgent'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        with:
+          egress-policy: audit
+
+      - name: Trigger TeamCity Build
+        run: |
+          curl -s -f -X POST \
+            "https://postsharp.teamcity.com/app/rest/buildQueue" \
+            -H "Authorization: Bearer ${{ secrets.TEAMCITY_CLOUD_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -d '{
+              "buildType": {"id": "Metalama_Metalama20261_MetalamaConsolidated_Claude"},
+              "properties": {
+                "property": [
+                  {"name": "Issue", "value": "${{ github.event.issue.number }}"}
+                ]
+              }
+            }'
+
+  trigger-on-pr-review:
+    if: >-
+      github.event_name == 'pull_request_review' &&
+      github.event.pull_request.user.login == 'PostSharpAgent'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        with:
+          egress-policy: audit
+
+      - name: Trigger TeamCity Build
+        run: |
+          curl -s -f -X POST \
+            "https://postsharp.teamcity.com/app/rest/buildQueue" \
+            -H "Authorization: Bearer ${{ secrets.TEAMCITY_CLOUD_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -d '{
+              "buildType": {"id": "Metalama_Metalama20261_MetalamaConsolidated_Claude"},
+              "properties": {
+                "property": [
+                  {"name": "Issue", "value": "${{ github.event.pull_request.number }}"}
+                ]
+              }
+            }'
