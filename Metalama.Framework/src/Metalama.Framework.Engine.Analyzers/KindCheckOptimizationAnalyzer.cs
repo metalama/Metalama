@@ -41,6 +41,18 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
 
     private static void InitializeCompilation( CompilationStartAnalysisContext context )
     {
+        // Only analyze Metalama assemblies - other projects can be ignored.
+        var assemblyName = context.Compilation.AssemblyName;
+
+        if ( assemblyName == null ||
+             !( assemblyName.StartsWith( "Metalama.Framework", StringComparison.Ordinal ) ||
+                assemblyName.StartsWith( "Metalama.Testing", StringComparison.Ordinal ) ||
+                assemblyName.StartsWith( "Metalama.Extensions", StringComparison.Ordinal ) ||
+                assemblyName.StartsWith( "Metalama.Patterns", StringComparison.Ordinal ) ) )
+        {
+            return;
+        }
+
         // Cache base type symbols
         var iDeclarationSymbol = context.Compilation.GetTypeByMetadataName( "Metalama.Framework.Code.IDeclaration" );
         var iSymbolSymbol = context.Compilation.GetTypeByMetadataName( "Microsoft.CodeAnalysis.ISymbol" );
