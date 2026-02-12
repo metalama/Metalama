@@ -163,30 +163,50 @@ internal sealed partial class LinkerAnalysisStep
                 // substitutions because the redirection mechanism (e.g., for get-only auto property overrides) is more
                 // specific than the general aspect reference renaming. An aspect reference substitution targeting a
                 // parent node (MemberAccessExpression) would overwrite the child redirection (IdentifierName).
-                HashSet<SyntaxNode>? redirectedNodes = null;
+                HashSet<SyntaxNode>? aspectReferenceRootNodesWithRedirectedDescendant = null;
 
                 if ( this._redirectedSymbolReferencesByContainingSemantic.TryGetValue( nonInlinedSemanticBody, out var redirectedSymbolReference ) )
                 {
-                    redirectedNodes = new HashSet<SyntaxNode>();
-
                     foreach ( var reference in redirectedSymbolReference )
                     {
                         var redirectionTarget = this._redirectedSymbols[reference.TargetSemantic.Symbol];
-                        redirectedNodes.Add( reference.ReferencingNode );
 
                         AddSubstitution(
                             context,
                             new RedirectionSubstitution( this._intermediateCompilationContext, reference.ReferencingNode, redirectionTarget ) );
                     }
+
+                    // Build a set of aspect reference root nodes that contain a redirected descendant.
+                    // Instead of walking descendants of each root (O(N*M)), walk ancestors of each redirected node (O(N*depth)).
+                    if ( this._nonInlinedReferences.TryGetValue( nonInlinedSemanticBody, out var referencesForIndex ) && referencesForIndex.Count > 0 )
+                    {
+                        var aspectReferenceRootNodes = new HashSet<SyntaxNode>( referencesForIndex.SelectAsArray( r => r.RootNode ) );
+
+                        aspectReferenceRootNodesWithRedirectedDescendant = new HashSet<SyntaxNode>();
+
+                        foreach ( var reference in redirectedSymbolReference )
+                        {
+                            foreach ( var ancestor in reference.ReferencingNode.Ancestors() )
+                            {
+                                if ( aspectReferenceRootNodes.Contains( ancestor ) )
+                                {
+                                    aspectReferenceRootNodesWithRedirectedDescendant.Add( ancestor );
+
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Add aspect reference substitution for all aspect references, skipping any whose root node
-                // is an ancestor of a redirected symbol reference node (the redirection already handles the renaming).
+                // has a redirected descendant (the redirection already handles the renaming).
                 if ( this._nonInlinedReferences.TryGetValue( nonInlinedSemanticBody, out var nonInlinedReferenceList ) )
                 {
                     foreach ( var nonInlinedReference in nonInlinedReferenceList )
                     {
-                        if ( redirectedNodes != null && HasRedirectedDescendant( nonInlinedReference.RootNode, redirectedNodes ) )
+                        if ( aspectReferenceRootNodesWithRedirectedDescendant != null
+                             && aspectReferenceRootNodesWithRedirectedDescendant.Contains( nonInlinedReference.RootNode ) )
                         {
                             // Skip this aspect reference - its target is already handled by the redirection substitution.
                             continue;
@@ -664,29 +684,24 @@ internal sealed partial class LinkerAnalysisStep
                 }
             }
 
-            static bool HasRedirectedDescendant( SyntaxNode rootNode, HashSet<SyntaxNode> redirectedNodes )
-            {
-                foreach ( var descendant in rootNode.DescendantNodes() )
-                {
-                    if ( redirectedNodes.Contains( descendant ) )
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
             void AddSubstitution( InliningContextIdentifier inliningContextId, SyntaxNodeSubstitution substitution )
             {
                 var dictionary = substitutions.GetOrAddNew( inliningContextId );
 
                 if ( !dictionary.TryAdd( substitution.ReplacedNode, substitution ) )
                 {
-                    // A substitution already exists for this node. This can happen when both the aspect reference
-                    // mechanism and the redirected symbol mechanism target the same syntax node (e.g., a constructor
-                    // with initializer advice that also accesses a redirected get-only auto property).
-                    // The first substitution wins; the second is compatible and can be safely skipped.
+                    var existingSubstitution = dictionary[substitution.ReplacedNode];
+
+                    // Only allow known compatible pairs: a RedirectionSubstitution and an AspectReferenceOverrideSubstitution
+                    // can target the same node when a constructor with initializer advice also accesses a redirected
+                    // get-only auto property. The redirection takes priority.
+                    if ( !((existingSubstitution is RedirectionSubstitution && substitution is AspectReferenceOverrideSubstitution)
+                           || (existingSubstitution is AspectReferenceOverrideSubstitution && substitution is RedirectionSubstitution)) )
+                    {
+                        throw new AssertionFailedException(
+                            $"Conflicting substitutions for node '{substitution.ReplacedNode}': " +
+                            $"existing '{existingSubstitution.GetType().Name}', new '{substitution.GetType().Name}'." );
+                    }
                 }
             }
         }

@@ -87,13 +87,31 @@ internal sealed class LinkerInjectionRegistry
         this._introducedParametersByTargetDeclaration = introducedParametersByTargetDeclaration;
 
         // Translate constructor refs from the final compilation to the intermediate compilation.
-        this._constructorsWithInsertedStatements = constructorsWithInsertedStatements
-            .OfType<ISymbolRef>()
-            .Select(
-                r => intermediateCompilation.CompilationContext.SymbolTranslator.Translate(
-                    r.Symbol.GetCanonicalDefinition().AssertNotNull() ) )
-            .OfType<IMethodSymbol>()
-            .ToList();
+        // Translation may return null for constructors with introduced parameters (whose signatures differ
+        // between the final and intermediate compilations), so those are filtered out.
+        var translatedConstructors = new List<IMethodSymbol>();
+
+        foreach ( var r in constructorsWithInsertedStatements.OfType<ISymbolRef>() )
+        {
+            var translated = intermediateCompilation.CompilationContext.SymbolTranslator.Translate(
+                r.Symbol.GetCanonicalDefinition().AssertNotNull() );
+
+            // Translation can legitimately return null for constructors with introduced parameters.
+            if ( translated == null )
+            {
+                continue;
+            }
+
+            if ( translated is not IMethodSymbol methodSymbol )
+            {
+                throw new AssertionFailedException(
+                    $"Translated constructor symbol '{r.Symbol}' is not an IMethodSymbol but '{translated.GetType().Name}'." );
+            }
+
+            translatedConstructors.Add( methodSymbol );
+        }
+
+        this._constructorsWithInsertedStatements = translatedConstructors;
 
         this._overrideTargets = overrideTargets = new ConcurrentQueue<ISymbol>();
 
