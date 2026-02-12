@@ -8,10 +8,9 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.References;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
-// TODO: Check why this class is unused.
-// ReSharper disable once UnusedType.Global
 
-// Because we are using OverrideMethodAdvice, but that does not return a correct AdviceKind (#34372).
+// ReSharper disable once UnusedType.Global
+// This class is unused because OverrideMethodAdvice handles finalizers and now returns the correct AdviceKind.
 
 internal class OverrideFinalizerAdvice : OverrideMemberAdvice<IMethod, IMethod>
 {
