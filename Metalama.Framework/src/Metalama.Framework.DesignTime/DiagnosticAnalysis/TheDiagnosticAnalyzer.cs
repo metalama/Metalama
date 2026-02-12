@@ -212,9 +212,14 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     ReportDiagnostic,
                     cancellationToken );
 
-                // If we have unsupported suppressions, a diagnostic here because a Suppressor cannot report.
+                // If we have unsupported suppressions, report a diagnostic here because a Suppressor cannot report.
+                // We check both the user profile (SupportedSuppressionDescriptors) and the compile-time project's manifest
+                // because the user profile may not yet contain suppressions that were just registered during pipeline initialization.
+                var configurationManifest = pipelineResult.IsSuccessful ? pipelineResult.Value.Configuration?.DiagnosticManifest : null;
+
                 foreach ( var suppression in suppressions.Where(
-                             s => !this.DiagnosticDefinitions.SupportedSuppressionDescriptors.ContainsKey( s.Suppression.Definition.SuppressedDiagnosticId ) ) )
+                             s => !this.DiagnosticDefinitions.SupportedSuppressionDescriptors.ContainsKey( s.Suppression.Definition.SuppressedDiagnosticId )
+                                  && configurationManifest?.DefinesSuppression( s.Suppression.Definition.SuppressedDiagnosticId ) != true ) )
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
