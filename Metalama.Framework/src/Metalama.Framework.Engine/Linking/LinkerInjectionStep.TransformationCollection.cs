@@ -66,6 +66,16 @@ internal sealed partial class LinkerInjectionStep
 
         public IReadOnlyDictionary<DeclarationBuilderData, IIntroduceDeclarationTransformation> BuilderToTransformationMap => this._builderToTransformationMap;
 
+        /// <summary>
+        /// Gets the set of constructor references that have inserted initializer statements.
+        /// Used by the linker analysis step to find aspect references in initializer advice code.
+        /// </summary>
+        public IReadOnlyCollection<IRef<IMethodBase>> ConstructorsWithInsertedStatements
+            => this._insertedStatementsByTargetMethodBase
+                .Where( kvp => kvp.Value.Any( s => s.Kind == InsertedStatementKind.Initializer ) )
+                .Select( kvp => kvp.Key )
+                .ToList();
+
         public IReadOnlyDictionary<IRef<IDeclaration>, IReadOnlyList<IntroduceParameterTransformation>> IntroducedParametersByTargetDeclaration
             => this._introducedParametersByTargetDeclaration;
 

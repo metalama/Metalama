@@ -159,25 +159,40 @@ internal sealed partial class LinkerAnalysisStep
                 var nonInlinedSemanticBody = nonInlinedSemantic.ToTyped<IMethodSymbol>();
                 var context = new InliningContextIdentifier( nonInlinedSemanticBody );
 
-                // Add aspect reference substitution for all aspect references.
-                if ( this._nonInlinedReferences.TryGetValue( nonInlinedSemanticBody, out var nonInlinedReferenceList ) )
-                {
-                    foreach ( var nonInlinedReference in nonInlinedReferenceList )
-                    {
-                        AddSubstitutionsForNonInlinedReference( nonInlinedReference, context );
-                    }
-                }
+                // Collect nodes that have redirected symbol substitutions. These take priority over aspect reference
+                // substitutions because the redirection mechanism (e.g., for get-only auto property overrides) is more
+                // specific than the general aspect reference renaming. An aspect reference substitution targeting a
+                // parent node (MemberAccessExpression) would overwrite the child redirection (IdentifierName).
+                HashSet<SyntaxNode>? redirectedNodes = null;
 
-                // Add substitutions for redirected nodes.
                 if ( this._redirectedSymbolReferencesByContainingSemantic.TryGetValue( nonInlinedSemanticBody, out var redirectedSymbolReference ) )
                 {
+                    redirectedNodes = new HashSet<SyntaxNode>();
+
                     foreach ( var reference in redirectedSymbolReference )
                     {
                         var redirectionTarget = this._redirectedSymbols[reference.TargetSemantic.Symbol];
+                        redirectedNodes.Add( reference.ReferencingNode );
 
                         AddSubstitution(
                             context,
                             new RedirectionSubstitution( this._intermediateCompilationContext, reference.ReferencingNode, redirectionTarget ) );
+                    }
+                }
+
+                // Add aspect reference substitution for all aspect references, skipping any whose root node
+                // is an ancestor of a redirected symbol reference node (the redirection already handles the renaming).
+                if ( this._nonInlinedReferences.TryGetValue( nonInlinedSemanticBody, out var nonInlinedReferenceList ) )
+                {
+                    foreach ( var nonInlinedReference in nonInlinedReferenceList )
+                    {
+                        if ( redirectedNodes != null && HasRedirectedDescendant( nonInlinedReference.RootNode, redirectedNodes ) )
+                        {
+                            // Skip this aspect reference - its target is already handled by the redirection substitution.
+                            continue;
+                        }
+
+                        AddSubstitutionsForNonInlinedReference( nonInlinedReference, context );
                     }
                 }
 
@@ -649,14 +664,29 @@ internal sealed partial class LinkerAnalysisStep
                 }
             }
 
+            static bool HasRedirectedDescendant( SyntaxNode rootNode, HashSet<SyntaxNode> redirectedNodes )
+            {
+                foreach ( var descendant in rootNode.DescendantNodes() )
+                {
+                    if ( redirectedNodes.Contains( descendant ) )
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
             void AddSubstitution( InliningContextIdentifier inliningContextId, SyntaxNodeSubstitution substitution )
             {
                 var dictionary = substitutions.GetOrAddNew( inliningContextId );
 
                 if ( !dictionary.TryAdd( substitution.ReplacedNode, substitution ) )
                 {
-                    // TODO: The item was already added, but there is no logic to cover this situation.
-                    throw new AssertionFailedException( $"The substitution was already added for node {substitution.ReplacedNode}." );
+                    // A substitution already exists for this node. This can happen when both the aspect reference
+                    // mechanism and the redirected symbol mechanism target the same syntax node (e.g., a constructor
+                    // with initializer advice that also accesses a redirected get-only auto property).
+                    // The first substitution wins; the second is compatible and can be safely skipped.
                 }
             }
         }

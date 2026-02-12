@@ -51,6 +51,8 @@ internal sealed class LinkerInjectionRegistry
     // TODO: This is used only for mapping of constructors with introduced parameters (limitation of code model).
     private readonly IReadOnlyDictionary<IRef<IDeclaration>, IReadOnlyList<IntroduceParameterTransformation>> _introducedParametersByTargetDeclaration;
 
+    private readonly IReadOnlyCollection<IMethodSymbol> _constructorsWithInsertedStatements;
+
     public LinkerInjectionRegistry(
         TransformationLinkerOrderComparer comparer,
         PartialCompilation intermediateCompilation,
@@ -59,6 +61,7 @@ internal sealed class LinkerInjectionRegistry
         IReadOnlyDictionary<DeclarationBuilderData, IIntroduceDeclarationTransformation> builderToTransformationMap,
         IReadOnlyDictionary<IRef<IDeclaration>, IReadOnlyList<IntroduceParameterTransformation>> introducedParametersByTargetDeclaration,
         ISet<ITransformation> transformationsCausingAuxiliaryOverrides,
+        IReadOnlyCollection<IRef<IMethodBase>> constructorsWithInsertedStatements,
         IConcurrentTaskRunner concurrentTaskRunner,
         CancellationToken cancellationToken )
     {
@@ -82,6 +85,15 @@ internal sealed class LinkerInjectionRegistry
         this._injectedMembers = injectedMembers.ToReadOnlyList();
         this._builderToTransformationMap = builderToTransformationMap;
         this._introducedParametersByTargetDeclaration = introducedParametersByTargetDeclaration;
+
+        // Translate constructor refs from the final compilation to the intermediate compilation.
+        this._constructorsWithInsertedStatements = constructorsWithInsertedStatements
+            .OfType<ISymbolRef>()
+            .Select(
+                r => intermediateCompilation.CompilationContext.SymbolTranslator.Translate(
+                    r.Symbol.GetCanonicalDefinition().AssertNotNull() ) )
+            .OfType<IMethodSymbol>()
+            .ToList();
 
         this._overrideTargets = overrideTargets = new ConcurrentQueue<ISymbol>();
 
@@ -519,6 +531,12 @@ internal sealed class LinkerInjectionRegistry
     /// </summary>
     /// <returns>Enumeration of introduced members.</returns>
     public IEnumerable<InjectedMember> GetInjectedMembers() => this._injectedMembers;
+
+    /// <summary>
+    /// Gets the set of constructor symbols (in the intermediate compilation) that have inserted initializer statements.
+    /// These constructors need to be analyzed by the linker for aspect references in their bodies.
+    /// </summary>
+    public IReadOnlyCollection<IMethodSymbol> GetConstructorsWithInsertedStatements() => this._constructorsWithInsertedStatements;
 
     /// <summary>
     /// Gets all symbols for overridden members.
