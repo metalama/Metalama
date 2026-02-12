@@ -93,6 +93,10 @@ public partial class LazyDependencyInjectionStrategy : DefaultDependencyInjectio
 
     public override bool TryImplementDependency( IAdviser<IFieldOrProperty> adviser )
     {
+        // Suppress CS0649 ("Field is never assigned to") on the target field because
+        // the field will be assigned by the generated lazy resolution code.
+        adviser.Diagnostics.Suppress( DiagnosticDescriptors.FieldIsNeverAssigned, adviser.Target );
+
         var templateArgs = new TemplateArgs();
 
         var overrideResult = adviser
