@@ -27,7 +27,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug718
 
             foreach ( var method in builder.Target.Methods )
             {
-                builder.With( method ).Override( nameof(Foo) );
+                builder.With( method ).Override( nameof(Foo), args: new { T = builder.Target } );
             }
         }
 
@@ -38,11 +38,12 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug718
         }
 
         [Template]
-        public void Foo<[CompileTime] T>()
+        public dynamic? Foo<[CompileTime] T>()
         {
-            Console.WriteLine( "Before" );
-            meta.Proceed();
-            Console.WriteLine( "After" );
+            Console.WriteLine( $"Overriding in {typeof(T).Name}" );
+            var result = meta.Proceed();
+
+            return result;
         }
     }
 

@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if TEST_OPTIONS
-// @Skipped (#34183 - [Template] [InterfaceMember] conflict)
+// @Skipped (#34183 - IntroduceMethod with same name as [InterfaceMember] needs prefix naming)
 #endif
 
 using Metalama.Framework.Advising;
