@@ -92,12 +92,11 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                 {
                     if ( !aspectClassesByName.TryGetValue( aspectClassName, out var aspectClass ) )
                     {
-                        // It seems to happen with inherited aspects at design time when the aspect class could not be found.
-                        // In that case, an error should have been reported above. Anyway, this should not be the problem of the present
-                        // method but of the code upstream and we should cope with that situation/
+                        // This can happen when the referenced assembly was compiled with a different version of Metalama
+                        // that had a different set of aspect classes. We skip the unknown aspect class and continue.
                         serviceProvider.GetLoggerFactory()
                             .GetLogger( nameof(TransitivePipelineContributorSource) )
-                            .Warning?.Log( $"Cannot find the aspect class '{aspectClassesByName}'." );
+                            .Warning?.Log( $"Cannot find the aspect class '{aspectClassName}'." );
 
                         continue;
                     }
