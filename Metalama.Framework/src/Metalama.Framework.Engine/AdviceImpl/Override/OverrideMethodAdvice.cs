@@ -19,7 +19,8 @@ internal sealed class OverrideMethodAdvice : OverrideMemberAdvice<IMethod, IMeth
         this._boundTemplate = boundTemplate;
     }
 
-    public override AdviceKind AdviceKind => AdviceKind.OverrideMethod;
+    public override AdviceKind AdviceKind
+        => this.TargetDeclaration.MethodKind == MethodKind.Finalizer ? AdviceKind.OverrideFinalizer : AdviceKind.OverrideMethod;
 
     protected override OverrideMemberAdviceResult<IMethod> Implement( AdviceImplementationContext context )
     {
