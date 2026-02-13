@@ -5,6 +5,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- CS8002: OldVersion is an intentionally unsigned test assembly. -->
+    <NoWarn>CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

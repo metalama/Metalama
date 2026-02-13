@@ -4,6 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- CA1822: IntroducedMethod is an aspect-introduced member; it must be instance-level. -->
+    <NoWarn>CA1822</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
