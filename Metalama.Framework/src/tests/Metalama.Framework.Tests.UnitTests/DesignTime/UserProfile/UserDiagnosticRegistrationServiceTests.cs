@@ -186,6 +186,95 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.TestCode
         }
 
         [Fact]
+        public void TestDiagnosticSuppressionFromDependency()
+        {
+            // This test reproduces the issue where the [Command] aspect from Metalama.Patterns.Wpf
+            // defines a SuppressionDefinition in a separate internal class within a dependency library,
+            // but the suppression fails to be registered in the user profile.
+            // See https://github.com/metalama/Metalama/issues/726.
+            var output =
+                this.GetUserDiagnosticsFileContent(
+                    dependentCode: """
+                                   using Metalama.Framework.Advising;
+                                   using Metalama.Framework.Aspects;
+                                   using Metalama.Framework.Code;
+                                   using Metalama.Framework.Diagnostics;
+
+                                   namespace TestDependency;
+
+                                   [CompileTime]
+                                   internal static class Suppressions
+                                   {
+                                       // IDE0051: "Private member is unused"
+                                   public static readonly SuppressionDefinition SuppressIDE0051 = new("IDE0051");
+                                   }
+
+                                   public class SuppressWarningAttribute : MethodAspect
+                                   {
+                                       public override void BuildAspect(IAspectBuilder<IMethod> builder)
+                                       {
+                                           builder.Diagnostics.Suppress(Suppressions.SuppressIDE0051, builder.Target);
+                                       }
+                                   }
+                                   """,
+                    targetCode: """
+                                namespace TestDependency;
+
+                                class TargetCode
+                                {
+                                    [SuppressWarning]
+                                    private void Foo() { }
+                                }
+                                """,
+                    aspectCode: "" );
+
+            Assert.Contains( "IDE0051", output.Suppressions );
+        }
+
+        [Fact]
+        public void TestDiagnosticSuppressionFromCurrentProject()
+        {
+            // Verifies that a SuppressionDefinition in the user's own project (not a dependency)
+            // is also correctly registered in the user profile.
+            var output =
+                this.GetUserDiagnosticsFileContent(
+                    aspectCode: """
+                                using Metalama.Framework.Advising;
+                                using Metalama.Framework.Aspects;
+                                using Metalama.Framework.Code;
+                                using Metalama.Framework.Diagnostics;
+
+                                namespace TestProject;
+
+                                [CompileTime]
+                                internal static class MySuppressions
+                                {
+                                    // CS0169: "The field is never used"
+                                    public static readonly SuppressionDefinition SuppressCS0169 = new("CS0169");
+                                }
+
+                                public class SuppressWarningAttribute : MethodAspect
+                                {
+                                    public override void BuildAspect(IAspectBuilder<IMethod> builder)
+                                    {
+                                        builder.Diagnostics.Suppress(MySuppressions.SuppressCS0169, builder.Target.DeclaringType);
+                                    }
+                                }
+                                """,
+                    targetCode: """
+                                namespace TestProject;
+
+                                class TargetCode
+                                {
+                                    [SuppressWarning]
+                                    public void Foo() { }
+                                }
+                                """ );
+
+            Assert.Contains( "CS0169", output.Suppressions );
+        }
+
+        [Fact]
         public void TestDiagnosticSuppression()
         {
             var output =
