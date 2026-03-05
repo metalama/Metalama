@@ -430,7 +430,11 @@ public abstract class AspectPipeline : IDisposable
         contributors.Add( new CompilationAspectSource( configuration.ServiceProvider, aspectClasses ) );
         contributors.Add( new CompilationHierarchicalOptionsSource( configuration.ServiceProvider ) );
 
-        var allSources = new PipelineContributorSources( contributors.ToImmutable(), transitivePipelineContributorSource, transitivePipelineContributorSource );
+        var allSources = new PipelineContributorSources(
+            contributors.ToImmutable(),
+            transitivePipelineContributorSource,
+            transitivePipelineContributorSource,
+            transitivePipelineContributorSource.Diagnostics );
 
         if ( configuration.FabricsContributors != null )
         {
@@ -531,7 +535,7 @@ public abstract class AspectPipeline : IDisposable
 
         // We pass the initialization diagnostics to the pipeline so they are merged with the pipeline results and
         // we don't need to handle diagnostics, suppressions or code fixes separately.
-        var initializationDiagnostics = initializationDiagnosticSink.ToImmutable();
+        var initializationDiagnostics = initializationDiagnosticSink.ToImmutable().Concat( contributorSources.Diagnostics );
 
         // Execute the pipeline stages.
         var pipelineStageResult = new AspectPipelineResult(

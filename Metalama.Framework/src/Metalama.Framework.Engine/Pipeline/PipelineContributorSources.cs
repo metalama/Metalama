@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using System.Collections.Immutable;
@@ -17,13 +18,15 @@ namespace Metalama.Framework.Engine.Pipeline
         internal PipelineContributorSources(
             ImmutableArray<IPipelineContributor> contributors,
             IExternalHierarchicalOptionsProvider? externalOptionsProvider = null,
-            IExternalAnnotationProvider? externalAnnotationProvider = null )
+            IExternalAnnotationProvider? externalAnnotationProvider = null,
+            ImmutableUserDiagnosticList diagnostics = default )
         {
             // We cannot have duplicates. This means a bug upstream.
 
             this.Contributors = contributors;
             this.ExternalOptionsProvider = externalOptionsProvider;
             this.ExternalAnnotationProvider = externalAnnotationProvider;
+            this.Diagnostics = diagnostics.IsEmpty ? ImmutableUserDiagnosticList.Empty : diagnostics;
         }
 
         internal static PipelineContributorSources Empty { get; } = new( ImmutableArray<IPipelineContributor>.Empty );
@@ -42,6 +45,8 @@ namespace Metalama.Framework.Engine.Pipeline
         internal IExternalHierarchicalOptionsProvider? ExternalOptionsProvider { get; }
 
         internal IExternalAnnotationProvider? ExternalAnnotationProvider { get; }
+
+        internal ImmutableUserDiagnosticList Diagnostics { get; }
 
         internal PipelineContributorSources Add( PipelineContributorSources other )
         {

@@ -363,7 +363,7 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "Cannot find the transitive aspect class '{0}'. " +
                 "This can happen when the referenced assembly was compiled with a different version of Metalama.",
-                Warning,
+                Error,
                 "Unknown transitive aspect class." );
 
         // TODO: Use formattable string (C# does not seem to find extension methods).

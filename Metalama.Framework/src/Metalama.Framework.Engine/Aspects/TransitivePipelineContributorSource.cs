@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Services;
@@ -30,6 +31,8 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
 {
     public ImmutableArray<IPipelineContributor> Contributors { get; }
 
+    public ImmutableUserDiagnosticList Diagnostics { get; }
+
     private readonly ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> _manifests;
 
     public TransitivePipelineContributorSource(
@@ -44,6 +47,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         var inheritedAspectsBuilder = ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance>.CreateBuilder();
         var contributorsBuilder = ImmutableArray.CreateBuilder<IPipelineContributor>();
         var manifestDictionaryBuilder = ImmutableDictionary.CreateBuilder<AssemblyIdentity, ITransitiveAspectsManifest>();
+        var diagnosticSink = new UserDiagnosticSink( serviceProvider );
 
         var aspectClassesByName = aspectClasses.Dictionary;
 
@@ -110,7 +114,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                 // Process manifest extensions.
                 foreach ( var extension in pipelineExtensions )
                 {
-                    foreach ( var contributor in extension.GetPipelineContributorsFromTransitiveManifest( manifest.Extensions, aspectClasses ) )
+                    foreach ( var contributor in extension.GetPipelineContributorsFromTransitiveManifest( manifest.Extensions, aspectClasses, diagnosticSink ) )
                     {
                         contributorsBuilder.Add( contributor );
                     }
@@ -121,6 +125,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         contributorsBuilder.Add( new InheritedAspectSourceImpl( serviceProvider, inheritedAspectsBuilder.ToImmutable() ) );
         this.Contributors = contributorsBuilder.ToImmutable();
         this._manifests = manifestDictionaryBuilder.ToImmutable();
+        this.Diagnostics = diagnosticSink.ToImmutable();
     }
 
     public IEnumerable<string> GetOptionTypes()
