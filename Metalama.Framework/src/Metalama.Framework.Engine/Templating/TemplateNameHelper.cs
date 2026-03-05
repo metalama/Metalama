@@ -52,12 +52,15 @@ namespace Metalama.Framework.Engine.Templating
 
             var principal = "__" + templateMemberName;
 
-            if ( parameters.IsDefaultOrEmpty || (ignoredLastParameter && parameters.Length == 1) )
+            var hasParameters = !parameters.IsDefaultOrEmpty && !(ignoredLastParameter && parameters.Length == 1);
+            var hasTypeParameters = symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { TypeParameters.Length: > 0 };
+
+            if ( !hasParameters && !hasTypeParameters )
             {
                 return principal;
             }
 
-            // If we have parameters, we need to add a unique hash of the symbol to differentiate symbols
+            // If we have parameters or type parameters, we need to add a unique hash of the symbol to differentiate symbols
             // of the same name. It is essential that this hash is consistent across runtimes and versions of Roslyn and Metalama.
             using var hashHandle = HashUtilities.AllocateHasher();
             var hashCode = hashHandle.Value;
