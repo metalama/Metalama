@@ -2,14 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline;
-using Metalama.Framework.Engine.Services;
+using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -20,14 +19,7 @@ namespace Metalama.Framework.Engine.Aspects;
 
 internal partial class TransitiveAspectPipelineExtension : PipelineExtension
 {
-    private ILogger? _logger;
-
-    public override bool Initialize( PipelineExtensionInitializationContext context )
-    {
-        this._logger = context.ServiceProvider.GetLoggerFactory().GetLogger( nameof(TransitiveAspectPipelineExtension) );
-
-        return true;
-    }
+    private ImmutableUserDiagnosticList _pendingDiagnostics = ImmutableUserDiagnosticList.Empty;
 
     public override IEnumerable<ITransitiveAspectsManifestExtension> GetTransitiveManifestExtensions( IEnumerable<ITransitivePipelineContributor> contributors )
         => contributors.OfKind( ContributorKind.TransitiveAspectInstance ).Select( x => new SerializableTransitiveAspectInstance( x ) );
@@ -39,6 +31,7 @@ internal partial class TransitiveAspectPipelineExtension : PipelineExtension
         var serializableInstances = extensions.OfKind( ContributorKind.SerializableTransitiveAspectInstance );
 
         var transitiveAspectInstancesBuilder = ImmutableDictionaryOfArray<IAspectClass, AspectInstance>.CreateBuilder();
+        var diagnosticsBuilder = ImmutableArray.CreateBuilder<Diagnostic>();
 
         foreach ( var instance in serializableInstances )
         {
@@ -50,10 +43,16 @@ internal partial class TransitiveAspectPipelineExtension : PipelineExtension
             }
             else
             {
-                this._logger?.Warning?.Log(
-                    $"Cannot create a transitive aspect instance for aspect class '{instance.AspectClassName}'. " +
-                    $"The aspect class was not found. This can happen when the referenced assembly was compiled with a different version of Metalama." );
+                diagnosticsBuilder.Add(
+                    GeneralDiagnosticDescriptors.UnknownTransitiveAspectClass.CreateRoslynDiagnostic(
+                        null,
+                        instance.AspectClassName ) );
             }
+        }
+
+        if ( diagnosticsBuilder.Count > 0 )
+        {
+            this._pendingDiagnostics = new ImmutableUserDiagnosticList( diagnosticsBuilder.ToImmutable() );
         }
 
         yield return new AspectSource( transitiveAspectInstancesBuilder.ToImmutable() );
@@ -68,7 +67,7 @@ internal partial class TransitiveAspectPipelineExtension : PipelineExtension
         => Task.FromResult(
             new ExtensionPipelineContributorsResult(
                 contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
-                ImmutableUserDiagnosticList.Empty ) );
+                this._pendingDiagnostics ) );
 
     public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
         AspectPipelineConfiguration pipelineConfiguration,
@@ -79,5 +78,5 @@ internal partial class TransitiveAspectPipelineExtension : PipelineExtension
         => Task.FromResult(
             new ExtensionPipelineContributorsResult(
                 contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
-                ImmutableUserDiagnosticList.Empty ) );
+                this._pendingDiagnostics ) );
 }

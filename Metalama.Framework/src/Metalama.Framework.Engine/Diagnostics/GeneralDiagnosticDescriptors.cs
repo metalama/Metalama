@@ -357,6 +357,15 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "Cannot infer the type arguments for a generic method." );
 
+        internal static readonly DiagnosticDefinition<string>
+            UnknownTransitiveAspectClass = new(
+                "LAMA0072",
+                _category,
+                "Cannot find the transitive aspect class '{0}'. " +
+                "This can happen when the referenced assembly was compiled with a different version of Metalama.",
+                Warning,
+                "Unknown transitive aspect class." );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(
