@@ -3,6 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Framework.DesignTime.Extensibility;
 using Metalama.Framework.DesignTime.Pipeline.Diff;
 using Metalama.Framework.DesignTime.Rpc;
@@ -47,6 +49,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     private readonly DesignTimeExceptionHandler _exceptionHandler;
     private readonly DesignTimeExtensionManager? _extensionManager;
     private readonly CompileTimeDomain _domain;
+    private readonly ILicenseConsumptionService? _licenseConsumptionService;
 
     internal ServiceProvider<IGlobalService> ServiceProvider { get; }
 
@@ -68,6 +71,13 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
             this._eventHub.ExternalBuildCompletedEvent.RegisterHandler( this.OnExternalBuildCompletedAsync );
         }
 
+        this._licenseConsumptionService = serviceProvider.GetBackstageService<ILicenseConsumptionService>();
+
+        if ( this._licenseConsumptionService != null )
+        {
+            this._licenseConsumptionService.Changed += this.OnLicenseChanged;
+        }
+
         serviceProvider = serviceProvider.WithService( new ProjectVersionProvider( serviceProvider ) );
 
         this._domain = serviceProvider.GetRequiredService<CompileTimeDomain>();
@@ -76,6 +86,23 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     }
 
 #pragma warning disable VSTHRD100
+    private async void OnLicenseChanged()
+    {
+        try
+        {
+            this._logger.Info?.Log( "License changed. Resetting all pipeline caches." );
+
+            foreach ( var pipeline in this._pipelinesByProjectKey.Values )
+            {
+                await pipeline.ResetCacheAsync( AsyncExecutionContext.Get(), this._globalCancellationToken );
+            }
+        }
+        catch ( Exception e )
+        {
+            this._exceptionHandler.ReportException( e, this._logger );
+        }
+    }
+
     private async void OnEditingCompileTimeCodeCompleted()
     {
         try
@@ -377,6 +404,12 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         }
 
         this._eventHub?.ExternalBuildCompletedEvent.UnregisterHandler( this.OnExternalBuildCompletedAsync );
+
+        if ( this._licenseConsumptionService != null )
+        {
+            this._licenseConsumptionService.Changed -= this.OnLicenseChanged;
+        }
+
         this._pipelinesByProjectKey.Clear();
         this._domain.Dispose();
     }
