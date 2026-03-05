@@ -118,7 +118,8 @@ namespace Metalama.Framework.Engine.CompileTime
             {
                 CompileTimeOnly => ExecutionScope.CompileTime,
                 RunTimeOnly => ExecutionScope.RunTime,
-                RunTimeOrCompileTime => ExecutionScope.RunTimeOrCompileTime,
+                RunTimeOrCompileTime or ForcedRunTimeOrCompileTime or ImplicitlyRunTimeOrCompileTime
+                    or LateBound or MustFollowParent or NotCompileTimeOnly => ExecutionScope.RunTimeOrCompileTime,
                 Conflict => ExecutionScope.RunTime, // It seems this may happen at design-time during a background rebuild.
                 _ => throw new AssertionFailedException( $"Unexpected scope: {templatingScope}" )
             };
