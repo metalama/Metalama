@@ -184,11 +184,11 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
     }
 
     [Fact]
-    public async Task SuppressionFromDependencyDoesNotReportLAMA0306()
+    public async Task SuppressionFromDependencyReportsLAMA0306WhenNotInUserProfile()
     {
-        // Regression test for #726: When a dependency defines a SuppressionDefinition (e.g., for IDE0051 "Private member is unused"),
-        // the analyzer should NOT report LAMA0306 ("unregistered suppression") even when SupportedSuppressionDescriptors
-        // is stale (empty), because the suppression is defined in the compile-time project's DiagnosticManifest.
+        // Regression test for #726: When a dependency defines a SuppressionDefinition (e.g., for IDE0051 "Private member is unused")
+        // and the suppression is NOT in the user profile (because the IDE was started before the suppression was registered),
+        // LAMA0306 should be reported to tell the user to restart their IDE.
         const string dependencyCode = """
                                       using Metalama.Framework.Advising;
                                       using Metalama.Framework.Aspects;
@@ -225,7 +225,8 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
 
         var diagnostics = await this.RunAnalyzer( code, dependencyCode );
 
-        // LAMA0306 should NOT be reported because the suppression is defined in the manifest.
-        Assert.DoesNotContain( diagnostics, d => d.Id == "LAMA0306" );
+        // LAMA0306 should be reported because the suppression is not in the user profile (TestUserDiagnosticRegistrationService
+        // returns empty SupportedSuppressionDescriptors, simulating a stale user profile). The user should restart their IDE.
+        Assert.Contains( diagnostics, d => d.Id == "LAMA0306" );
     }
 }

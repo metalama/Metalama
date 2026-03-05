@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.DesignTime.DiagnosticAnalysis;
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.DesignTime.DiagnosticSuppressing;
 using Metalama.Framework.DesignTime.Extensibility;
@@ -221,11 +222,12 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
     }
 
     [Fact]
-    public async Task SuppressFieldWarningWithEmptyUserProfile()
+    public async Task StaleUserProfileSuppressesDiagnosticAndReportsLAMA0306()
     {
         // Regression test for #726: When the user profile (SupportedSuppressionDescriptors) is stale/empty
-        // but the suppression is defined in the compile-time project's DiagnosticManifest,
-        // the suppressor should still suppress the diagnostic via manifest merging.
+        // but the suppression is defined in the compile-time project's DiagnosticManifest:
+        // (a) The suppressor should still suppress the original diagnostic (CS0169) via manifest merging.
+        // (b) The analyzer should report LAMA0306 to tell the user to restart their IDE.
         const string code = """
                             using Metalama.Framework.Aspects;
                             using Metalama.Framework.Code;
@@ -253,8 +255,8 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
                             }
                             """;
 
-        // Pass empty supportedSuppressionDescriptors to simulate a stale user profile.
-        // The suppressor should still suppress CS0169 by merging from the DiagnosticManifest.
+        // The TestUserDiagnosticRegistrationService returns empty SupportedSuppressionDescriptors,
+        // simulating a stale user profile where CS0169 suppression has not been registered yet.
         using var testContext = this.CreateTestContext();
 
         var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
@@ -264,15 +266,26 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
         var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
         var diagnostics = compilation!.GetDiagnostics();
 
+        // (a) Verify the suppressor still suppresses CS0169 via manifest merging even with empty user profile.
         var suppressor = new TheDiagnosticSuppressor( pipelineFactory.ServiceProvider );
-        var analysisContext = new TestSuppressionAnalysisContext( compilation, diagnostics, testContext.ProjectOptions );
+        var suppressionContext = new TestSuppressionAnalysisContext( compilation, diagnostics, testContext.ProjectOptions );
 
-        // Pass empty descriptors — the suppressor must fall back to the manifest.
-        suppressor.ReportSuppressions( analysisContext, ImmutableDictionary<string, SuppressionDescriptor>.Empty );
+        suppressor.ReportSuppressions( suppressionContext, ImmutableDictionary<string, SuppressionDescriptor>.Empty );
 
-        var suppression = Assert.Single( analysisContext.ReportedSuppressions );
+        var suppression = Assert.Single( suppressionContext.ReportedSuppressions );
 
         Assert.Equal( "code.cs(22,13): warning CS0169: The field 'TargetClass._field' is never used", suppression.SuppressedDiagnostic.ToString() );
+
+        // (b) Verify the analyzer reports LAMA0306 because the suppression is not in the user profile.
+        var syntaxTree = await workspaceProvider.GetDocument( "project", "code.cs" ).GetSyntaxTreeAsync();
+        var semanticModel = compilation.GetSemanticModel( syntaxTree! );
+
+        var analyzer = new TheDiagnosticAnalyzer( pipelineFactory.ServiceProvider );
+        var analyzerContext = new TestSemanticModelAnalysisContext( semanticModel, testContext.ProjectOptions );
+
+        analyzer.AnalyzeSemanticModel( analyzerContext );
+
+        Assert.Contains( analyzerContext.ReportedDiagnostics, d => d.Id == "LAMA0306" );
     }
 
     [Fact]
