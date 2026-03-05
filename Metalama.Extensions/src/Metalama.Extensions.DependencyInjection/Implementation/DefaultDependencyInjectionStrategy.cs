@@ -109,6 +109,10 @@ public class DefaultDependencyInjectionStrategy
 
     public virtual bool TryImplementDependency( IAdviser<IFieldOrProperty> adviser )
     {
+        // Suppress CS0649 ("Field is never assigned to") on the target field because
+        // the field will be assigned in generated constructor code.
+        adviser.Diagnostics.Suppress( DiagnosticDescriptors.FieldIsNeverAssigned, adviser.Target );
+
         var pullStrategy = this.GetDependencyPullStrategy( adviser.Target );
 
         this.TryPullDependency( adviser.WithDeclaringType(), adviser.Target, pullStrategy );

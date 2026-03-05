@@ -1,0 +1,23 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+// https://github.com/metalama/Metalama/issues/743
+
+#if TEST_OPTIONS
+// @ClearIgnoredDiagnostics
+#endif
+
+#if !TESTRUNNER
+#pragma warning disable CS8618
+#pragma warning disable CS0649
+#endif
+
+namespace Metalama.Extensions.DependencyInjection.AspectTests.Bugs.Issue743_Lazy;
+
+// <target>
+public class TargetClass
+{
+    [Dependency( IsLazy = true )]
+    private readonly IFormatProvider _formatProvider;
+}
