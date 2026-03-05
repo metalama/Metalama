@@ -286,6 +286,23 @@ internal sealed partial class LinkerAnalysisStep
                 }
             }
 
+            // Analyze source constructor bodies that received inserted initializer statements.
+            // These constructors are not injected members but their bodies may contain aspect reference annotations
+            // from initializer advice templates (AddInitializer). Without this analysis, invokers in initializer
+            // advice code would not be correctly resolved by the linker.
+            // We exclude:
+            //  - Constructors that are already injected members (already processed above by ProcessInjectedMember).
+            //  - Primary constructors (their initializer statements are in an auxiliary body, an injected member).
+            var constructorsWithInsertedStatements = this._injectionRegistry.GetConstructorsWithInsertedStatements()
+                .Where( c => this._injectionRegistry.GetInjectedMemberForSymbol( c ) == null
+                             && c.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax )
+                .ToList();
+
+            await this._concurrentTaskRunner.RunConcurrentlyAsync(
+                constructorsWithInsertedStatements,
+                AnalyzeIntroducedBody,
+                cancellationToken );
+
             return aspectReferences;
 
             void AnalyzeIntroducedBody( IMethodSymbol symbol )

@@ -32,7 +32,7 @@ public class TestClass
   }
   public TestClass()
   {
-    this.TestField = default;
-    this.TestProperty = default;
+    this._testField = default;
+    this._testProperty = default;
   }
 }

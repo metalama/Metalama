@@ -51,6 +51,8 @@ internal sealed class LinkerInjectionRegistry
     // TODO: This is used only for mapping of constructors with introduced parameters (limitation of code model).
     private readonly IReadOnlyDictionary<IRef<IDeclaration>, IReadOnlyList<IntroduceParameterTransformation>> _introducedParametersByTargetDeclaration;
 
+    private readonly IReadOnlyCollection<IMethodSymbol> _constructorsWithInsertedStatements;
+
     public LinkerInjectionRegistry(
         TransformationLinkerOrderComparer comparer,
         PartialCompilation intermediateCompilation,
@@ -59,6 +61,7 @@ internal sealed class LinkerInjectionRegistry
         IReadOnlyDictionary<DeclarationBuilderData, IIntroduceDeclarationTransformation> builderToTransformationMap,
         IReadOnlyDictionary<IRef<IDeclaration>, IReadOnlyList<IntroduceParameterTransformation>> introducedParametersByTargetDeclaration,
         ISet<ITransformation> transformationsCausingAuxiliaryOverrides,
+        IReadOnlyCollection<IRef<IMethodBase>> constructorsWithInsertedStatements,
         IConcurrentTaskRunner concurrentTaskRunner,
         CancellationToken cancellationToken )
     {
@@ -82,6 +85,33 @@ internal sealed class LinkerInjectionRegistry
         this._injectedMembers = injectedMembers.ToReadOnlyList();
         this._builderToTransformationMap = builderToTransformationMap;
         this._introducedParametersByTargetDeclaration = introducedParametersByTargetDeclaration;
+
+        // Translate constructor refs from the final compilation to the intermediate compilation.
+        // Translation may return null for constructors with introduced parameters (whose signatures differ
+        // between the final and intermediate compilations), so those are filtered out.
+        var translatedConstructors = new List<IMethodSymbol>();
+
+        foreach ( var r in constructorsWithInsertedStatements.OfType<ISymbolRef>() )
+        {
+            var translated = intermediateCompilation.CompilationContext.SymbolTranslator.Translate(
+                r.Symbol.GetCanonicalDefinition().AssertNotNull() );
+
+            // Translation can legitimately return null for constructors with introduced parameters.
+            if ( translated == null )
+            {
+                continue;
+            }
+
+            if ( translated is not IMethodSymbol methodSymbol )
+            {
+                throw new AssertionFailedException(
+                    $"Translated constructor symbol '{r.Symbol}' is not an IMethodSymbol but '{translated.GetType().Name}'." );
+            }
+
+            translatedConstructors.Add( methodSymbol );
+        }
+
+        this._constructorsWithInsertedStatements = translatedConstructors;
 
         this._overrideTargets = overrideTargets = new ConcurrentQueue<ISymbol>();
 
@@ -519,6 +549,12 @@ internal sealed class LinkerInjectionRegistry
     /// </summary>
     /// <returns>Enumeration of introduced members.</returns>
     public IEnumerable<InjectedMember> GetInjectedMembers() => this._injectedMembers;
+
+    /// <summary>
+    /// Gets the set of constructor symbols (in the intermediate compilation) that have inserted initializer statements.
+    /// These constructors need to be analyzed by the linker for aspect references in their bodies.
+    /// </summary>
+    public IReadOnlyCollection<IMethodSymbol> GetConstructorsWithInsertedStatements() => this._constructorsWithInsertedStatements;
 
     /// <summary>
     /// Gets all symbols for overridden members.
