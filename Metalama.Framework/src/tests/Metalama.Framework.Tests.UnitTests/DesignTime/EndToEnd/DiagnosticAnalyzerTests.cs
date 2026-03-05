@@ -182,4 +182,39 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
         Assert.Equal( diagnostic1.WarningLevel, diagnostic2.WarningLevel );
         Assert.Equal( diagnostic1.Properties, diagnostic2.Properties );
     }
+
+    /// <summary>
+    /// Regression test for https://github.com/metalama/Metalama/issues/701.
+    /// When an aspect contains a template and the code has an invalid using directive,
+    /// the design-time pipeline should report diagnostics gracefully instead of throwing
+    /// <c>AssertionFailedException: Unexpected scope</c> in <c>ToExecutionScope</c>.
+    /// </summary>
+    [Fact]
+    public async Task InvalidUsingInAspectDoesNotCrash()
+    {
+        const string code = """
+                            using Metalama.Framework.Advising;
+                            using Metalama.Framework.Aspects;
+                            using NonExistent.Namespace;
+
+                            class TheAspect : OverrideMethodAspect
+                            {
+                                public override dynamic? OverrideMethod()
+                                {
+                                    return meta.Proceed();
+                                }
+                            }
+
+                            class Target
+                            {
+                                [TheAspect]
+                                void M() { }
+                            }
+                            """;
+
+        // The pipeline should not throw an AssertionFailedException.
+        await this.RunAnalyzer( code );
+
+        // We don't assert specific diagnostics — the key is that the pipeline doesn't crash.
+    }
 }
