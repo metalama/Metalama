@@ -222,12 +222,15 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
     }
 
     [Fact]
-    public async Task StaleUserProfileSuppressesDiagnosticAndReportsLAMA0306()
+    public async Task StaleUserProfileDoesNotSuppressDiagnosticAndReportsLAMA0306()
     {
         // Regression test for #726: When the user profile (SupportedSuppressionDescriptors) is stale/empty
         // but the suppression is defined in the compile-time project's DiagnosticManifest:
-        // (a) The suppressor should still suppress the original diagnostic (CS0169) via manifest merging.
-        // (b) The analyzer should report LAMA0306 to tell the user to restart their IDE.
+        // (a) The suppressor does NOT suppress the original diagnostic (CS0169) because Roslyn's
+        //     DiagnosticSuppressor contract requires suppressions to be declared in SupportedSuppressions.
+        //     When Roslyn hosts the suppressor, it filters diagnostics before calling ReportSuppressions,
+        //     so diagnostics not in SupportedSuppressions are never passed to the method.
+        // (b) The analyzer reports LAMA0306 to tell the user to restart their IDE.
         const string code = """
                             using Metalama.Framework.Aspects;
                             using Metalama.Framework.Code;
@@ -266,15 +269,17 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
         var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
         var diagnostics = compilation!.GetDiagnostics();
 
-        // (a) Verify the suppressor still suppresses CS0169 via manifest merging even with empty user profile.
+        // (a) Verify the suppressor does NOT suppress CS0169 when the user profile is empty.
+        // In production, Roslyn would not even pass CS0169 to ReportSuppressions because it's
+        // not declared in SupportedSuppressions. Here we simulate that by passing an empty
+        // supportedSuppressionDescriptors dictionary — the suppressor correctly skips the
+        // suppression because it's not in the supported set.
         var suppressor = new TheDiagnosticSuppressor( pipelineFactory.ServiceProvider );
         var suppressionContext = new TestSuppressionAnalysisContext( compilation, diagnostics, testContext.ProjectOptions );
 
         suppressor.ReportSuppressions( suppressionContext, ImmutableDictionary<string, SuppressionDescriptor>.Empty );
 
-        var suppression = Assert.Single( suppressionContext.ReportedSuppressions );
-
-        Assert.Equal( "code.cs(22,13): warning CS0169: The field 'TargetClass._field' is never used", suppression.SuppressedDiagnostic.ToString() );
+        Assert.Empty( suppressionContext.ReportedSuppressions );
 
         // (b) Verify the analyzer reports LAMA0306 because the suppression is not in the user profile.
         var syntaxTree = await workspaceProvider.GetDocument( "project", "code.cs" ).GetSyntaxTreeAsync();

@@ -212,7 +212,12 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     ReportDiagnostic,
                     cancellationToken );
 
-                // If we have unsupported suppressions, report a diagnostic here because a Suppressor cannot report.
+                // Report LAMA0306 for suppressions that are in the pipeline's DiagnosticManifest but NOT
+                // in the user profile (SupportedSuppressionDescriptors). This happens when the IDE was started
+                // before the suppression was registered: the [Memo]-cached SupportedSuppressions property of
+                // TheDiagnosticSuppressor does not include the new suppression, so Roslyn won't pass the
+                // corresponding diagnostics to TheDiagnosticSuppressor.ReportSuppressions. The original
+                // warning therefore persists until the IDE is restarted. LAMA0306 informs the user of this.
                 foreach ( var suppression in suppressions.Where(
                              s => !this.DiagnosticDefinitions.SupportedSuppressionDescriptors.ContainsKey( s.Suppression.Definition.SuppressedDiagnosticId ) ) )
                 {
