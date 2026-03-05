@@ -156,7 +156,7 @@ internal sealed class AspectReferenceResolver
         // At this point we should always target a method or a specific target.
         Invariant.AssertNot( resolvedReferencedSymbol.Kind is SymbolKind.Property or SymbolKind.Event or SymbolKind.Field && targetKind == AspectReferenceTargetKind.Self );
 
-        var annotationLayerIndex = this.GetAnnotationLayerIndex( containingSemantic.Symbol );
+        var annotationLayerIndex = this.GetAnnotationLayerIndex( containingSemantic.Symbol, referenceSpecification.AspectLayerId );
 
         // If the override target was introduced, determine the index.
         var targetIntroductionInjectedMember = this._injectionRegistry.GetInjectedMemberForSymbol( resolvedReferencedSymbol );
@@ -455,13 +455,23 @@ internal sealed class AspectReferenceResolver
         return this.GetMemberLayerIndex( injectedMember );
     }
 
-    private MemberLayerIndex GetAnnotationLayerIndex( ISymbol containingSymbol )
+    private MemberLayerIndex GetAnnotationLayerIndex( ISymbol containingSymbol, AspectLayerId annotationAspectLayerId )
     {
-        var containingInjectedMember =
-            this._injectionRegistry.GetInjectedMemberForSymbol( containingSymbol )
-            ?? throw new AssertionFailedException( $"Could not find injected member for {containingSymbol}." );
+        var containingInjectedMember = this._injectionRegistry.GetInjectedMemberForSymbol( containingSymbol );
 
-        return this.GetMemberLayerIndex( containingInjectedMember );
+        if ( containingInjectedMember != null )
+        {
+            return this.GetMemberLayerIndex( containingInjectedMember );
+        }
+
+        // For source members with inserted statements (e.g. constructors with AddInitializer advice),
+        // the containing symbol is not an injected member. Use the aspect layer from the annotation itself.
+        if ( annotationAspectLayerId != default && this._layerIndex.TryGetValue( annotationAspectLayerId, out var layerIndex ) )
+        {
+            return new MemberLayerIndex( layerIndex, 0, 0 );
+        }
+
+        throw new AssertionFailedException( $"Could not find injected member for {containingSymbol}." );
     }
 
     private MemberLayerIndex GetMemberLayerIndex( InjectedMember injectedMember )
