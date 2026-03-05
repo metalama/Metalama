@@ -221,6 +221,61 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
     }
 
     [Fact]
+    public async Task SuppressFieldWarningWithEmptyUserProfile()
+    {
+        // Regression test for #726: When the user profile (SupportedSuppressionDescriptors) is stale/empty
+        // but the suppression is defined in the compile-time project's DiagnosticManifest,
+        // the suppressor should still suppress the diagnostic via manifest merging.
+        const string code = """
+                            using Metalama.Framework.Aspects;
+                            using Metalama.Framework.Code;
+                            using Metalama.Framework.Diagnostics;
+
+                            namespace Metalama.Framework.Tests.AspectTests.Aspects.Suppressions.Methods
+                            {
+                                public class SuppressWarningAttribute : FieldAspect
+                                {
+                                    // CS0169: "The field is never used"
+                                    private static readonly SuppressionDefinition _suppression1 = new( "CS0169" );
+
+                                    public override void BuildAspect( IAspectBuilder<IField> builder )
+                                    {
+                                        builder.Diagnostics.Suppress( _suppression1, builder.Target );
+                                    }
+                                }
+
+                                // <target>
+                                internal class TargetClass
+                                {
+                                    [SuppressWarning]
+                                    int _field;
+                                }
+                            }
+                            """;
+
+        // Pass empty supportedSuppressionDescriptors to simulate a stale user profile.
+        // The suppressor should still suppress CS0169 by merging from the DiagnosticManifest.
+        using var testContext = this.CreateTestContext();
+
+        var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var workspaceProvider = new TestWorkspaceProvider( testContext.ServiceProvider );
+        workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string>() { ["code.cs"] = code } );
+        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
+        var diagnostics = compilation!.GetDiagnostics();
+
+        var suppressor = new TheDiagnosticSuppressor( pipelineFactory.ServiceProvider );
+        var analysisContext = new TestSuppressionAnalysisContext( compilation, diagnostics, testContext.ProjectOptions );
+
+        // Pass empty descriptors — the suppressor must fall back to the manifest.
+        suppressor.ReportSuppressions( analysisContext, ImmutableDictionary<string, SuppressionDescriptor>.Empty );
+
+        var suppression = Assert.Single( analysisContext.ReportedSuppressions );
+
+        Assert.Equal( "code.cs(22,13): warning CS0169: The field 'TargetClass._field' is never used", suppression.SuppressedDiagnostic.ToString() );
+    }
+
+    [Fact]
     public async Task SuppressTemplateWarnings()
     {
         const string code = """

@@ -205,7 +205,8 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.TestCode
                                    [CompileTime]
                                    internal static class Suppressions
                                    {
-                                       public static readonly SuppressionDefinition SuppressIDE0051 = new("IDE0051");
+                                       // IDE0051: "Private member is unused"
+                                   public static readonly SuppressionDefinition SuppressIDE0051 = new("IDE0051");
                                    }
 
                                    public class SuppressWarningAttribute : MethodAspect
@@ -248,6 +249,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.TestCode
                                 [CompileTime]
                                 internal static class MySuppressions
                                 {
+                                    // CS0169: "The field is never used"
                                     public static readonly SuppressionDefinition SuppressCS0169 = new("CS0169");
                                 }
 

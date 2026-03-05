@@ -182,4 +182,50 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
         Assert.Equal( diagnostic1.WarningLevel, diagnostic2.WarningLevel );
         Assert.Equal( diagnostic1.Properties, diagnostic2.Properties );
     }
+
+    [Fact]
+    public async Task SuppressionFromDependencyDoesNotReportLAMA0306()
+    {
+        // Regression test for #726: When a dependency defines a SuppressionDefinition (e.g., for IDE0051 "Private member is unused"),
+        // the analyzer should NOT report LAMA0306 ("unregistered suppression") even when SupportedSuppressionDescriptors
+        // is stale (empty), because the suppression is defined in the compile-time project's DiagnosticManifest.
+        const string dependencyCode = """
+                                      using Metalama.Framework.Advising;
+                                      using Metalama.Framework.Aspects;
+                                      using Metalama.Framework.Code;
+                                      using Metalama.Framework.Diagnostics;
+
+                                      namespace TestDependency;
+
+                                      [CompileTime]
+                                      internal static class Suppressions
+                                      {
+                                          // IDE0051: "Private member is unused"
+                                          public static readonly SuppressionDefinition SuppressIDE0051 = new("IDE0051");
+                                      }
+
+                                      public class SuppressWarningAttribute : MethodAspect
+                                      {
+                                          public override void BuildAspect(IAspectBuilder<IMethod> builder)
+                                          {
+                                              builder.Diagnostics.Suppress(Suppressions.SuppressIDE0051, builder.Target);
+                                          }
+                                      }
+                                      """;
+
+        const string code = """
+                            using TestDependency;
+
+                            class TargetClass
+                            {
+                                [SuppressWarning]
+                                private void UnusedMethod() { }
+                            }
+                            """;
+
+        var diagnostics = await this.RunAnalyzer( code, dependencyCode );
+
+        // LAMA0306 should NOT be reported because the suppression is defined in the manifest.
+        Assert.DoesNotContain( diagnostics, d => d.Id == "LAMA0306" );
+    }
 }

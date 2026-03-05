@@ -143,14 +143,20 @@ namespace Metalama.Framework.DesignTime.DiagnosticSuppressing
                 // Merge suppression descriptors from the compile-time project's DiagnosticManifest.
                 // The user profile (SupportedSuppressionDescriptors) may not yet contain suppressions
                 // that were just registered during pipeline initialization in this VS session.
+                ImmutableDictionary<string, SuppressionDescriptor>.Builder? suppressionDescriptorsBuilder = null;
+
                 foreach ( var suppressionId in pipelineResult.Value.Configuration.DiagnosticManifest.SuppressionDefinitions.Keys )
                 {
                     if ( !supportedSuppressionDescriptors.ContainsKey( suppressionId ) )
                     {
-                        supportedSuppressionDescriptors = supportedSuppressionDescriptors.Add(
-                            suppressionId,
-                            SuppressionFactories.CreateDescriptor( suppressionId ) );
+                        suppressionDescriptorsBuilder ??= supportedSuppressionDescriptors.ToBuilder();
+                        suppressionDescriptorsBuilder.Add( suppressionId, SuppressionFactories.CreateDescriptor( suppressionId ) );
                     }
+                }
+
+                if ( suppressionDescriptorsBuilder != null )
+                {
+                    supportedSuppressionDescriptors = suppressionDescriptorsBuilder.ToImmutable();
                 }
 
                 var suppressionsCount = 0;
