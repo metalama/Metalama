@@ -57,11 +57,13 @@ internal readonly struct TemplateMemberRef
         var type = templateReflectionContext.Compilation.GetTypeByMetadataNameSafe( this._templateMember.TemplateClass.FullName );
 
         var parameters = this._templateMember.Parameters;
+        var typeParameterCount = this._templateMember.TypeParameters.Length;
 
         var symbol = type.GetSingleMemberIncludingBase(
             this._templateMember.Name,
             symbol => classifier.IsTemplate( symbol )
-                      && symbol.GetParameters().Select( p => p.Type ).SequenceEqual( parameters.Select( p => p.Type ), StructuralSymbolComparer.Default ) );
+                      && symbol.GetParameters().Select( p => p.Type ).SequenceEqual( parameters.Select( p => p.Type ), StructuralSymbolComparer.Default )
+                      && (symbol is not Microsoft.CodeAnalysis.IMethodSymbol methodSymbol || methodSymbol.TypeParameters.Length == typeParameterCount) );
 
         var declaration = templateReflectionContext.GetCompilationModel( compilation ).Factory.GetDeclaration( symbol );
 
