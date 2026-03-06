@@ -5,6 +5,7 @@
 using Metalama.Framework.Aspects;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Code
 {
@@ -33,6 +34,25 @@ namespace Metalama.Framework.Code
         /// </para>
         /// </remarks>
         INamedType GetTypeByReflectionName( string reflectionName );
+
+        /// <summary>
+        /// Attempts to get a type based on its full name, as used in reflection.
+        /// </summary>
+        /// <param name="reflectionName">The full name of the type in reflection format.</param>
+        /// <param name="namedType">When this method returns, contains the <see cref="INamedType"/> if the type was found; otherwise, <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the type was found; otherwise, <see langword="false"/>.</returns>
+        /// <remarks>
+        /// <para>
+        /// For nested types, this means using <c>+</c>, e.g. to get <see cref="System.Environment.SpecialFolder"/>, use <c>System.Environment+SpecialFolder</c>.
+        /// </para>
+        /// <para>
+        /// For generic type definitions, this requires using <c>`</c>, e.g. to get <c>List&lt;T&gt;</c>, use <c>System.Collections.Generic.List`1</c>.
+        /// </para>
+        /// <para>
+        /// Constructed generic types (e.g. <c>List&lt;int&gt;</c>) are not supported, for those, use <see cref="GenericExtensions.WithTypeArguments(IMethod, IType[])"/>.
+        /// </para>
+        /// </remarks>
+        bool TryGetTypeByReflectionName( string reflectionName, [NotNullWhen( true )] out INamedType? namedType );
 
         /// <summary>
         /// Gets an <see cref="IType"/> given a reflection <see cref="Type"/>.
