@@ -30,7 +30,7 @@ internal class SerializableTransitiveAspectInstance : ICompileTimeSerializable, 
         transitiveAspectInstance.TargetDeclaration,
         transitiveAspectInstance.TargetDeclarationDepth ) { }
 
-    private SerializableTransitiveAspectInstance(
+    internal SerializableTransitiveAspectInstance(
         IAspect aspect,
         string aspectClassName,
         IAspectState? aspectState,
@@ -44,23 +44,20 @@ internal class SerializableTransitiveAspectInstance : ICompileTimeSerializable, 
         this.TargetDeclarationDepth = targetDeclarationDepth;
     }
 
-    // public TransitiveAspectInstance ToAspectInstance( IAspectClassResolver aspectClassResolver )
-    // {
-    //     return new TransitiveAspectInstance(
-    //         this.Aspect,
-    //         this.TargetDeclaration,
-    //         this.TargetDeclarationDepth,
-    //         (IAspectClassImpl)aspectClassResolver.GetAspectClass( this.AspectClassName ),
-    //         this.AspectState,
-    //         0 );
-    // }
-    public AspectInstance ToAspectInstance( IAspectClassResolver aspectClassResolver )
+    public AspectInstance? ToAspectInstance( IAspectClassResolver aspectClassResolver )
     {
+        if ( !aspectClassResolver.TryGetAspectClass( this.AspectClassName, out var aspectClass ) )
+        {
+            // The aspect class may not be found when the referenced assembly was compiled with a different
+            // version of Metalama that had a different set of aspect classes.
+            return null;
+        }
+
         return new AspectInstance(
             this.Aspect,
             this.TargetDeclaration,
             this.TargetDeclarationDepth,
-            (IAspectClassImpl) aspectClassResolver.GetAspectClass( this.AspectClassName ),
+            (IAspectClassImpl) aspectClass,
             [],
             ImmutableArray<AspectPredecessor>.Empty,
             false );

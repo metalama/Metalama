@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- CS8002: OldVersion is an intentionally unsigned test assembly. -->
+    <NoWarn>CS8002</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference the OldVersion assembly directly (not as ProjectReference) so it comes through
+         PortableExecutableReference, which exercises the TransitiveAspectsManifest deserialization path.
+         This is the code path that crashes with NRE when cross-version fields are missing. (#728) -->
+    <Reference Include="OldVersion" HintPath="..\OldVersion\bin\$(Configuration)\net8.0\OldVersion.dll" />
+  </ItemGroup>
+
+</Project>

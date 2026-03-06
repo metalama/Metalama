@@ -44,7 +44,8 @@ public abstract class PipelineExtension
 
     public virtual IEnumerable<IPipelineContributor> GetPipelineContributorsFromTransitiveManifest(
         ImmutableArray<ITransitiveAspectsManifestExtension> extensions,
-        IAspectClassResolver aspectClassResolver )
+        IAspectClassResolver aspectClassResolver,
+        UserDiagnosticSink diagnosticSink )
         => [];
 
     public virtual Task<ExtensionPipelineContributorsResult> ExecutePipelineContributorsAsync(
