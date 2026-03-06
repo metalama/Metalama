@@ -65,8 +65,8 @@ namespace Metalama.Framework.RunTime
         /// </summary>
         /// <param name="enumerator">An enumerator.</param>
         /// <typeparam name="T"></typeparam>
-        /// <returns>An <see cref="IEnumerator{T}"/> that supports <see cref="IEnumerator.Reset"/>.</returns>
-        public static IEnumerator<T> Buffer<T>( this IEnumerator<T> enumerator )
+        /// <returns>An <see cref="Enumerator{T}"/> that supports <see cref="IEnumerator.Reset"/>.</returns>
+        public static Enumerator<T> Buffer<T>( this IEnumerator<T> enumerator )
         {
             if ( enumerator is Enumerator<T> resettableEnumerator )
             {
@@ -100,8 +100,8 @@ namespace Metalama.Framework.RunTime
         /// The intended side effect of this method is to completely evaluate the input enumerator.
         /// </summary>
         /// <param name="enumerator">An enumerator.</param>
-        /// <returns>An <see cref="IEnumerator"/> that supports <see cref="IEnumerator.Reset"/>.</returns>
-        public static IEnumerator Buffer( this IEnumerator enumerator )
+        /// <returns>An <see cref="Enumerator"/> that supports <see cref="IEnumerator.Reset"/>.</returns>
+        public static Enumerator Buffer( this IEnumerator enumerator )
         {
             if ( enumerator is Enumerator resettableEnumerator )
             {
@@ -167,8 +167,8 @@ namespace Metalama.Framework.RunTime
         /// </summary>
         /// <param name="enumerator">An enumerator.</param>
         /// <typeparam name="T"></typeparam>
-        /// <returns>An <see cref="IAsyncEnumerator{T}"/> that supports resetting via a subsequent call to this method.</returns>
-        public static async ValueTask<IAsyncEnumerator<T>> BufferAsync<T>(
+        /// <returns>An <see cref="AsyncEnumerator{T}"/> that supports <see cref="AsyncEnumerator{T}.Reset"/>.</returns>
+        public static async ValueTask<AsyncEnumerator<T>> BufferAsync<T>(
             this IAsyncEnumerator<T> enumerator,
             CancellationToken cancellationToken
                 = default )
@@ -248,7 +248,7 @@ namespace Metalama.Framework.RunTime
         /// that return <see cref="IEnumerator{T}"/>.
         /// </summary>
         /// <typeparam name="T">The type of items.</typeparam>
-        internal sealed class Enumerator<T> : IEnumerator<T>
+        public sealed class Enumerator<T> : IEnumerator<T>
         {
             private readonly List<T> _list;
             private List<T>.Enumerator _enumerator;
@@ -286,7 +286,7 @@ namespace Metalama.Framework.RunTime
         /// This type is used by code transformed by aspects when return value contracts are applied to iterator methods
         /// that return <see cref="IEnumerator"/>.
         /// </summary>
-        internal sealed class Enumerator : IEnumerator
+        public sealed class Enumerator : IEnumerator
         {
             private readonly List<object?> _list;
             private List<object?>.Enumerator _enumerator;
@@ -317,7 +317,7 @@ namespace Metalama.Framework.RunTime
         /// that return <see cref="IAsyncEnumerator{T}"/>.
         /// </summary>
         /// <typeparam name="T">The type of items.</typeparam>
-        internal sealed class AsyncEnumerator<T> : IAsyncEnumerator<T>
+        public sealed class AsyncEnumerator<T> : IAsyncEnumerator<T>
         {
             private readonly AsyncEnumerableList<T> _list;
             private readonly CancellationToken _cancellationToken;
@@ -349,7 +349,7 @@ namespace Metalama.Framework.RunTime
             /// <summary>
             /// Resets the enumerator to the beginning of the list.
             /// </summary>
-            internal void Reset()
+            public void Reset()
             {
                 this._enumerator = this._list.GetEnumerator();
             }

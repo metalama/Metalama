@@ -13,7 +13,6 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
-using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -312,43 +311,15 @@ internal sealed partial class LinkerInjectionStep
 
             StatementSyntax CreateEnumeratorResetStatement( ExpressionSyntax enumeratorExpression )
             {
-                if ( method.IsAsync )
-                {
-                    // For async enumerators, IAsyncEnumerator<T> does not have Reset(), so we re-call BufferAsync
-                    // which internally resets the enumerator.
-                    // Generate: bufferedEnumerator = (await global::Metalama.Framework.RunTime.RunTimeAspectHelper.BufferAsync(bufferedEnumerator));
-                    var runtimeHelperType = syntaxGenerationContext.SyntaxGenerator.TypeSyntax(
-                        syntaxGenerationContext.CompilationContext.ReflectionMapper.GetTypeSymbol( typeof(RunTimeAspectHelper) ) );
-
-                    return
-                        ExpressionStatement(
-                            AssignmentExpression(
-                                SyntaxKind.SimpleAssignmentExpression,
+                // Generate: bufferedEnumerator.Reset();
+                // Both sync (Enumerator/Enumerator<T>) and async (AsyncEnumerator<T>) types support Reset().
+                return
+                    ExpressionStatement(
+                        InvocationExpression(
+                            MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
                                 enumeratorExpression,
-                                ParenthesizedExpression(
-                                    AwaitExpression(
-                                        Token( TriviaList(), SyntaxKind.AwaitKeyword, TriviaList( ElasticSpace ) ),
-                                        InvocationExpression(
-                                            MemberAccessExpression(
-                                                SyntaxKind.SimpleMemberAccessExpression,
-                                                runtimeHelperType,
-                                                IdentifierName( "BufferAsync" ) ),
-                                            ArgumentList(
-                                                SingletonSeparatedList(
-                                                    Argument( enumeratorExpression ) ) ) ) ) ) ) );
-                }
-                else
-                {
-                    // For sync enumerators, IEnumerator has Reset() available on the interface.
-                    // Generate: bufferedEnumerator.Reset();
-                    return
-                        ExpressionStatement(
-                            InvocationExpression(
-                                MemberAccessExpression(
-                                    SyntaxKind.SimpleMemberAccessExpression,
-                                    enumeratorExpression,
-                                    IdentifierName( "Reset" ) ) ) );
-                }
+                                IdentifierName( "Reset" ) ) ) );
             }
 
             StatementSyntax CreateEnumeratorEpilogue( ExpressionSyntax enumeratorExpression )
