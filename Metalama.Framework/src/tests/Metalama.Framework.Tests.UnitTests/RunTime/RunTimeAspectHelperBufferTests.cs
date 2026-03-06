@@ -36,8 +36,8 @@ public class RunTimeAspectHelperBufferTests
     {
         var buffered = RunTimeAspectHelper.Buffer( CreateTestEnumerator() );
 
-        // The returned enumerator should support Reset.
-        Assert.True( buffered is IEnumerator<string> );
+        // The returned enumerator should be the expected concrete resettable wrapper type.
+        Assert.IsType<RunTimeAspectHelper.Enumerator<string>>( buffered );
 
         // First pass.
         var items = new List<string>();
@@ -70,8 +70,8 @@ public class RunTimeAspectHelperBufferTests
     {
         var buffered = RunTimeAspectHelper.Buffer( CreateTestUntypedEnumerator() );
 
-        // The returned enumerator should support Reset.
-        Assert.True( buffered is IEnumerator );
+        // The returned enumerator should be the expected concrete resettable wrapper type.
+        Assert.IsType<RunTimeAspectHelper.Enumerator>( buffered );
 
         // First pass.
         var items = new List<object?>();
