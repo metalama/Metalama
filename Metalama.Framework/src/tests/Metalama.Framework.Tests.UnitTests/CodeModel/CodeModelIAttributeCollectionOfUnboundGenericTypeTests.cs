@@ -174,5 +174,129 @@ class C
 
             Assert.Single( attributes );
         }
+
+        [Fact]
+        public void OfAttributeType_UnboundGenericType_NoMatch()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class A<T> : System.Attribute
+{
+}
+
+class B : System.Attribute
+{
+}
+
+[B]
+class C
+{
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var attributeType = compilation.Types.Single( t => t.Name == "A" );
+            var type = compilation.Types.Single( t => t.Name == "C" );
+
+            // Unbound generic type should not match unrelated attributes.
+            var attributes = type.Attributes.OfAttributeType( attributeType )
+                .ToArray();
+
+            Assert.Empty( attributes );
+        }
+
+        [Fact]
+        public void OfAttributeType_UnboundGenericType_GenericInterface()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+interface I<T>
+{
+}
+
+class A : System.Attribute, I<int>
+{
+}
+
+[A]
+class C
+{
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var interfaceType = compilation.Types.Single( t => t.Name == "I" );
+            var type = compilation.Types.Single( t => t.Name == "C" );
+
+            // Unbound generic interface type should match attributes implementing it.
+            var attributes = type.Attributes.OfAttributeType( interfaceType )
+                .ToArray();
+
+            Assert.Single( attributes );
+            Assert.Equal( "A", attributes[0].Type.Name );
+        }
+
+        [Fact]
+        public void Any_UnboundGenericType_NoMatch_ReturnsFalse()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class A<T> : System.Attribute
+{
+}
+
+class B : System.Attribute
+{
+}
+
+[B]
+class C
+{
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var attributeType = compilation.Types.Single( t => t.Name == "A" );
+            var type = compilation.Types.Single( t => t.Name == "C" );
+
+            // Any with unbound generic type should return false when no match.
+            Assert.False( type.Attributes.Any( attributeType ) );
+        }
+
+        [Fact]
+        public void OfAttributeType_ConstructedGenericType_ExactMatch()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+using System;
+
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+class A<T> : System.Attribute
+{
+}
+
+[A<int>]
+[A<string>]
+class C
+{
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var attributeType = compilation.Types.Single( t => t.Name == "A" );
+            var type = compilation.Types.Single( t => t.Name == "C" );
+
+            // Passing a constructed generic type (not unbound) should only match that specific construction.
+            var intType = compilation.Factory.GetTypeByReflectionType( typeof(int) );
+            var constructedType = attributeType.MakeGenericInstance( intType );
+            var attributes = type.Attributes.OfAttributeType( constructedType )
+                .ToArray();
+
+            Assert.Single( attributes );
+        }
     }
 }
