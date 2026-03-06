@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Services;
@@ -29,13 +30,20 @@ namespace Metalama.Framework.Engine.Aspects;
 internal sealed partial class TransitivePipelineContributorSource : IExternalHierarchicalOptionsProvider, IExternalAnnotationProvider
 {
     public ImmutableArray<IPipelineContributor> Contributors { get; }
-
+    
     private readonly ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> _manifests;
 
-    public TransitivePipelineContributorSource(
+    private TransitivePipelineContributorSource( ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> manifests, ImmutableArray<IPipelineContributor> contributors )
+    {
+        this._manifests = manifests;
+        this.Contributors = contributors;
+    }
+
+    public static TransitivePipelineContributorSource Create(
         CompilationContext compilationContext,
         AspectClassCollection aspectClasses,
-        ProjectServiceProvider serviceProvider )
+        ProjectServiceProvider serviceProvider,
+        UserDiagnosticSink diagnosticSink )
     {
         var pipelineExtensions = serviceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
 
@@ -92,12 +100,11 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                 {
                     if ( !aspectClassesByName.TryGetValue( aspectClassName, out var aspectClass ) )
                     {
-                        // It seems to happen with inherited aspects at design time when the aspect class could not be found.
-                        // In that case, an error should have been reported above. Anyway, this should not be the problem of the present
-                        // method but of the code upstream and we should cope with that situation/
+                        // This can happen when the referenced assembly was compiled with a different version of Metalama
+                        // that had a different set of aspect classes. We skip the unknown aspect class and continue.
                         serviceProvider.GetLoggerFactory()
                             .GetLogger( nameof(TransitivePipelineContributorSource) )
-                            .Warning?.Log( $"Cannot find the aspect class '{aspectClassesByName}'." );
+                            .Warning?.Log( $"Cannot find the aspect class '{aspectClassName}'." );
 
                         continue;
                     }
@@ -111,7 +118,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                 // Process manifest extensions.
                 foreach ( var extension in pipelineExtensions )
                 {
-                    foreach ( var contributor in extension.GetPipelineContributorsFromTransitiveManifest( manifest.Extensions, aspectClasses ) )
+                    foreach ( var contributor in extension.GetPipelineContributorsFromTransitiveManifest( manifest.Extensions, aspectClasses, diagnosticSink ) )
                     {
                         contributorsBuilder.Add( contributor );
                     }
@@ -120,8 +127,8 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         }
 
         contributorsBuilder.Add( new InheritedAspectSourceImpl( serviceProvider, inheritedAspectsBuilder.ToImmutable() ) );
-        this.Contributors = contributorsBuilder.ToImmutable();
-        this._manifests = manifestDictionaryBuilder.ToImmutable();
+        
+        return new TransitivePipelineContributorSource( manifestDictionaryBuilder.ToImmutable(), contributorsBuilder.ToImmutable() );
     }
 
     public IEnumerable<string> GetOptionTypes()

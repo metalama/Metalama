@@ -134,19 +134,32 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         {
             var instance = (TransitiveAspectsManifest) obj;
 
+            // Fields use null-coalescing to provide defaults for backward compatibility with manifests
+            // serialized by older Metalama versions that may not have all fields. (#728)
+
             instance.InheritableAspects =
-                initializationArguments.GetValue<ImmutableDictionary<string, IReadOnlyList<InheritableAspectInstance>>>( nameof(instance.InheritableAspects) )!;
+                initializationArguments.GetValue<ImmutableDictionary<string, IReadOnlyList<InheritableAspectInstance>>>( nameof(instance.InheritableAspects) )
+                ?? ImmutableDictionary<string, IReadOnlyList<InheritableAspectInstance>>.Empty;
 
             instance.Extensions =
-                initializationArguments.GetValue<ImmutableArray<ITransitiveAspectsManifestExtension>>( nameof(instance.Extensions) );
+                initializationArguments.TryGetValue<ImmutableArray<ITransitiveAspectsManifestExtension>>( nameof(instance.Extensions), out var extensions )
+                    ? extensions
+                    : ImmutableArray<ITransitiveAspectsManifestExtension>.Empty;
 
             instance.InheritableOptions =
-                initializationArguments.GetValue<ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions>>( nameof(instance.InheritableOptions) )!;
+                initializationArguments.GetValue<ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions>>( nameof(instance.InheritableOptions) )
+                ?? ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions>.Empty;
 
-            instance.Annotations =
-                new ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>(
-                    initializationArguments.GetValue<ImmutableDictionary<SerializableDeclarationId, ImmutableArray<IAnnotation>>>(
-                        nameof(instance.Annotations) )! );
+            if ( initializationArguments.TryGetValue<ImmutableDictionary<SerializableDeclarationId, ImmutableArray<IAnnotation>>>(
+                     nameof(instance.Annotations), out var annotations )
+                 && annotations != null )
+            {
+                instance.Annotations = new ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>( annotations );
+            }
+            else
+            {
+                instance.Annotations = ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>.Empty;
+            }
         }
     }
 }

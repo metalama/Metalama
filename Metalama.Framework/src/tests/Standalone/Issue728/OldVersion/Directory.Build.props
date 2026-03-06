@@ -1,0 +1,3 @@
+<Project>
+    <!-- Block inheritance from parent directories to isolate this project's Metalama version. -->
+</Project>

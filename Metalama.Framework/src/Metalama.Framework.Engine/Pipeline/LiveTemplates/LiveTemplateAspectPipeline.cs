@@ -45,6 +45,7 @@ public sealed class LiveTemplateAspectPipeline : AspectPipeline
     private protected override PipelineContributorSources CreatePipelineContributorSources(
         AspectPipelineConfiguration configuration,
         CompilationContext compilationContext,
+        UserDiagnosticSink diagnosticSink,
         CancellationToken cancellationToken )
     {
         var aspectClass = this._aspectSelector( configuration );
