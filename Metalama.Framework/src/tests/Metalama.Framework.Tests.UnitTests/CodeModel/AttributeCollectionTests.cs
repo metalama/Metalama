@@ -127,7 +127,7 @@ class C
         }
 
         [Fact]
-        public void OfAttributeType_ReflectionType_UnboundGeneric()
+        public void OfAttributeType_ReflectionType_NonGeneric()
         {
             using var testContext = this.CreateTestContext();
 
@@ -146,6 +146,32 @@ class C
                 .ToArray();
 
             Assert.Single( attributes );
+        }
+
+        [Fact]
+        public void OfAttributeType_AndAny_WithReflectionUnboundGenericType()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+[System.ObsoleteAttribute]
+class C
+{
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.Single( t => t.Name == "C" );
+
+            // Passing an unbound generic reflection type (List<>) should be accepted and
+            // go through the ConversionKind.Default -> TypeDefinition promotion path.
+            var unboundGenericReflectionType = typeof(System.Collections.Generic.List<>);
+
+            var attributes = type.Attributes.OfAttributeType( unboundGenericReflectionType )
+                .ToArray();
+
+            Assert.Empty( attributes );
+            Assert.False( type.Attributes.Any( unboundGenericReflectionType ) );
         }
 
         [Fact]
