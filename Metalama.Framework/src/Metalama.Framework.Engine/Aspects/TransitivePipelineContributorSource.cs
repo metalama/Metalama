@@ -30,15 +30,20 @@ namespace Metalama.Framework.Engine.Aspects;
 internal sealed partial class TransitivePipelineContributorSource : IExternalHierarchicalOptionsProvider, IExternalAnnotationProvider
 {
     public ImmutableArray<IPipelineContributor> Contributors { get; }
-
-    public ImmutableUserDiagnosticList Diagnostics { get; }
-
+    
     private readonly ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> _manifests;
 
-    public TransitivePipelineContributorSource(
+    private TransitivePipelineContributorSource( ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> manifests, ImmutableArray<IPipelineContributor> contributors )
+    {
+        this._manifests = manifests;
+        this.Contributors = contributors;
+    }
+
+    public static TransitivePipelineContributorSource Create(
         CompilationContext compilationContext,
         AspectClassCollection aspectClasses,
-        ProjectServiceProvider serviceProvider )
+        ProjectServiceProvider serviceProvider,
+        UserDiagnosticSink diagnosticSink )
     {
         var pipelineExtensions = serviceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
 
@@ -47,7 +52,6 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         var inheritedAspectsBuilder = ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance>.CreateBuilder();
         var contributorsBuilder = ImmutableArray.CreateBuilder<IPipelineContributor>();
         var manifestDictionaryBuilder = ImmutableDictionary.CreateBuilder<AssemblyIdentity, ITransitiveAspectsManifest>();
-        var diagnosticSink = new UserDiagnosticSink( serviceProvider );
 
         var aspectClassesByName = aspectClasses.Dictionary;
 
@@ -123,9 +127,8 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         }
 
         contributorsBuilder.Add( new InheritedAspectSourceImpl( serviceProvider, inheritedAspectsBuilder.ToImmutable() ) );
-        this.Contributors = contributorsBuilder.ToImmutable();
-        this._manifests = manifestDictionaryBuilder.ToImmutable();
-        this.Diagnostics = diagnosticSink.ToImmutable();
+        
+        return new TransitivePipelineContributorSource( manifestDictionaryBuilder.ToImmutable(), contributorsBuilder.ToImmutable() );
     }
 
     public IEnumerable<string> GetOptionTypes()
