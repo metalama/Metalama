@@ -30,7 +30,10 @@ namespace Metalama.Framework.Engine.CodeModel.Collections
             => this.OfAttributeType( type, conversionKind );
 
         private IEnumerable<IAttribute> OfAttributeType( IType type, ConversionKind conversionKind = ConversionKind.Default )
-            => this.GetItems(
+        {
+            conversionKind = GetEffectiveConversionKind( type, conversionKind );
+
+            return this.GetItems(
                 this.Source.Where(
                     a =>
                     {
@@ -38,6 +41,7 @@ namespace Metalama.Framework.Engine.CodeModel.Collections
 
                         return attributeType.IsConvertibleTo( type, conversionKind );
                     } ) );
+        }
 
         IEnumerable<IAttribute> IAttributeCollection.OfAttributeType( Type type ) => this.OfAttributeType( type );
 
@@ -69,7 +73,11 @@ namespace Metalama.Framework.Engine.CodeModel.Collections
         bool IAttributeCollection.Any( IType type, ConversionKind conversionKind ) => this.Any( type, conversionKind );
 
         private bool Any( IType type, ConversionKind conversionKind = ConversionKind.Default )
-            => this.Source.Any( a => ((AttributeRef) a).AttributeType.GetTarget( this.Compilation ).IsConvertibleTo( type, conversionKind ) );
+        {
+            conversionKind = GetEffectiveConversionKind( type, conversionKind );
+
+            return this.Source.Any( a => ((AttributeRef) a).AttributeType.GetTarget( this.Compilation ).IsConvertibleTo( type, conversionKind ) );
+        }
 
         bool IAttributeCollection.Any( Type type ) => this.Any( type );
 
@@ -84,6 +92,21 @@ namespace Metalama.Framework.Engine.CodeModel.Collections
             }
 
             return this.Any( (INamedType) this.ContainingDeclaration!.GetCompilationModel().Factory.GetTypeByReflectionType( type ), conversionKind );
+        }
+
+        /// <summary>
+        /// When <paramref name="conversionKind"/> is <see cref="ConversionKind.Default"/> and the <paramref name="type"/> is an unbound generic type
+        /// (i.e. a generic type definition with type parameters bound to themselves), automatically switches to <see cref="ConversionKind.TypeDefinition"/>
+        /// so that all constructed instances of that generic type are matched.
+        /// </summary>
+        private static ConversionKind GetEffectiveConversionKind( IType type, ConversionKind conversionKind )
+        {
+            if ( conversionKind == ConversionKind.Default && type is INamedType { IsGeneric: true, IsCanonicalGenericInstance: true } )
+            {
+                return ConversionKind.TypeDefinition;
+            }
+
+            return conversionKind;
         }
     }
 }
