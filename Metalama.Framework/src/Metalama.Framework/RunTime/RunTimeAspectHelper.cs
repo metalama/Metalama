@@ -59,19 +59,21 @@ namespace Metalama.Framework.RunTime
         }
 
         /// <summary>
-        /// Evaluates an <see cref="IEnumerator{T}"/>, stores the result into a <see cref="List{T}"/> and returns an enumerator for this list.
-        /// If the enumerator is already a list enumerator, returns the input  enumerator.
+        /// Evaluates an <see cref="IEnumerator{T}"/>, stores the result into a <see cref="List{T}"/> and returns a resettable enumerator for this list.
+        /// If the enumerator is already a <see cref="ResettableEnumerator{T}"/>, returns the input enumerator after resetting it.
         ///  The intended side effect of this method is to completely evaluate the input enumerator.
         /// </summary>
         /// <param name="enumerator">An enumerator.</param>
         /// <typeparam name="T"></typeparam>
-        /// <returns>An enumerator on a <see cref="List{T}"/> made from the items of <paramref name="enumerator"/>, or the <paramref name="enumerator"/> object itself
-        /// it is already a <see cref="List{T}"/> enumerator.</returns>
-        public static List<T>.Enumerator Buffer<T>( this IEnumerator<T> enumerator )
+        /// <returns>A <see cref="ResettableEnumerator{T}"/> over a <see cref="List{T}"/> made from the items of <paramref name="enumerator"/>, or the <paramref name="enumerator"/> object itself
+        /// if it is already a <see cref="ResettableEnumerator{T}"/>.</returns>
+        public static ResettableEnumerator<T> Buffer<T>( this IEnumerator<T> enumerator )
         {
-            if ( enumerator is List<T>.Enumerator listEnumerator )
+            if ( enumerator is ResettableEnumerator<T> resettableEnumerator )
             {
-                return listEnumerator;
+                resettableEnumerator.Reset();
+
+                return resettableEnumerator;
             }
             else
             {
@@ -89,23 +91,25 @@ namespace Metalama.Framework.RunTime
                     enumerator.Dispose();
                 }
 
-                return list.GetEnumerator();
+                return new ResettableEnumerator<T>( list );
             }
         }
 
         /// <summary>
-        /// Evaluates an <see cref="IEnumerator"/>, stores the result into a <c>List&lt;object&gt;</c> and returns an enumerator for this list.
-        /// If the enumerator is already a list enumerator, returns the input  enumerator.
+        /// Evaluates an <see cref="IEnumerator"/>, stores the result into a <c>List&lt;object?&gt;</c> and returns a resettable enumerator for this list.
+        /// If the enumerator is already a <see cref="ResettableEnumerator"/>, returns the input enumerator after resetting it.
         ///  The intended side effect of this method is to completely evaluate the input enumerator.
         /// </summary>
         /// <param name="enumerator">An enumerator.</param>
-        /// <returns>An enumerator on a <c>List&lt;object&gt;</c> made from the items of <paramref name="enumerator"/>, or the <paramref name="enumerator"/> object itself
-        /// it is already a <c>List&lt;object&gt;</c> enumerator.</returns>
-        public static List<object?>.Enumerator Buffer( this IEnumerator enumerator )
+        /// <returns>A <see cref="ResettableEnumerator"/> over a <c>List&lt;object?&gt;</c> made from the items of <paramref name="enumerator"/>, or the <paramref name="enumerator"/> object itself
+        /// if it is already a <see cref="ResettableEnumerator"/>.</returns>
+        public static ResettableEnumerator Buffer( this IEnumerator enumerator )
         {
-            if ( enumerator is List<object?>.Enumerator listEnumerator )
+            if ( enumerator is ResettableEnumerator resettableEnumerator )
             {
-                return listEnumerator;
+                resettableEnumerator.Reset();
+
+                return resettableEnumerator;
             }
             else
             {
@@ -123,7 +127,7 @@ namespace Metalama.Framework.RunTime
                     (enumerator as IDisposable)?.Dispose();
                 }
 
-                return list.GetEnumerator();
+                return new ResettableEnumerator( list );
             }
         }
 
@@ -159,22 +163,24 @@ namespace Metalama.Framework.RunTime
         }
 
         /// <summary>
-        /// Evaluates an <see cref="IAsyncEnumerator{T}"/>, stores the result into an <see cref="AsyncEnumerableList{T}"/> and returns an enumerator for this object.
-        /// If the enumerator is already an <see cref="AsyncEnumerableList{T}"/> enumerator, returns the input enumerator.
+        /// Evaluates an <see cref="IAsyncEnumerator{T}"/>, stores the result into an <see cref="AsyncEnumerableList{T}"/> and returns a resettable enumerator for this object.
+        /// If the enumerator is already a <see cref="ResettableAsyncEnumerator{T}"/>, returns the input enumerator after resetting it.
         ///  The intended side effect of this method is to completely evaluate the input enumerator.
         /// </summary>
         /// <param name="enumerator">An enumerator.</param>
         /// <typeparam name="T"></typeparam>
-        /// <returns>An enumerator on a <see cref="AsyncEnumerableList{T}"/> made from the items of <paramref name="enumerator"/>, or the <paramref name="enumerator"/> object itself
-        /// it is already an <see cref="AsyncEnumerableList{T}"/> enumerator.</returns>
-        public static async ValueTask<AsyncEnumerableList<T>.AsyncEnumerator> BufferAsync<T>(
+        /// <returns>A <see cref="ResettableAsyncEnumerator{T}"/> over an <see cref="AsyncEnumerableList{T}"/> made from the items of <paramref name="enumerator"/>, or the <paramref name="enumerator"/> object itself
+        /// if it is already a <see cref="ResettableAsyncEnumerator{T}"/>.</returns>
+        public static async ValueTask<ResettableAsyncEnumerator<T>> BufferAsync<T>(
             this IAsyncEnumerator<T> enumerator,
             CancellationToken cancellationToken
                 = default )
         {
-            if ( enumerator is AsyncEnumerableList<T>.AsyncEnumerator typedEnumerator )
+            if ( enumerator is ResettableAsyncEnumerator<T> resettableEnumerator )
             {
-                return typedEnumerator;
+                resettableEnumerator.Reset();
+
+                return resettableEnumerator;
             }
             else
             {
@@ -194,7 +200,7 @@ namespace Metalama.Framework.RunTime
                     await enumerator.DisposeAsync();
                 }
 
-                return list.GetAsyncEnumerator( cancellationToken );
+                return new ResettableAsyncEnumerator<T>( list, cancellationToken );
             }
         }
 
@@ -212,7 +218,11 @@ namespace Metalama.Framework.RunTime
             this IAsyncEnumerator<T> enumerator,
             CancellationToken cancellationToken = default )
         {
-            if ( enumerator is AsyncEnumerableList<T>.AsyncEnumerator typedEnumerator )
+            if ( enumerator is ResettableAsyncEnumerator<T> resettableEnumerator )
+            {
+                return resettableEnumerator.Parent;
+            }
+            else if ( enumerator is AsyncEnumerableList<T>.AsyncEnumerator typedEnumerator )
             {
                 return typedEnumerator.Parent;
             }

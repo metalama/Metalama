@@ -28,13 +28,35 @@ public class RunTimeAspectHelperBufferTests
     }
 
     /// <summary>
-    /// Verifies that a buffered generic enumerator can be iterated, reset via the interface, and iterated again.
+    /// Verifies that <see cref="RunTimeAspectHelper.Buffer{T}(IEnumerator{T})"/> returns a <see cref="ResettableEnumerator{T}"/>.
+    /// </summary>
+    [Fact]
+    public void BufferGenericEnumerator_ReturnsResettableEnumerator()
+    {
+        var buffered = RunTimeAspectHelper.Buffer( CreateTestEnumerator() );
+
+        Assert.IsType<ResettableEnumerator<string>>( buffered );
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="RunTimeAspectHelper.Buffer(IEnumerator)"/> returns a <see cref="ResettableEnumerator"/>.
+    /// </summary>
+    [Fact]
+    public void BufferUntypedEnumerator_ReturnsResettableEnumerator()
+    {
+        var buffered = RunTimeAspectHelper.Buffer( CreateTestUntypedEnumerator() );
+
+        Assert.IsType<ResettableEnumerator>( buffered );
+    }
+
+    /// <summary>
+    /// Verifies that a buffered generic enumerator can be iterated, reset, and iterated again.
     /// This is the core scenario required for return value contracts on IEnumerator-returning iterator methods.
     /// </summary>
     [Fact]
     public void BufferGenericEnumerator_CanBeResetAndReused()
     {
-        IEnumerator<string> buffered = RunTimeAspectHelper.Buffer( CreateTestEnumerator() );
+        var buffered = RunTimeAspectHelper.Buffer( CreateTestEnumerator() );
 
         // First iteration.
         var firstPass = new List<string>();
@@ -46,7 +68,7 @@ public class RunTimeAspectHelperBufferTests
 
         Assert.Equal( new[] { "Hello", "World" }, firstPass );
 
-        // Reset via the interface and iterate again - this is what contracts need to do.
+        // Reset and iterate again - this is what contracts need to do.
         buffered.Reset();
 
         var secondPass = new List<string>();
@@ -60,12 +82,12 @@ public class RunTimeAspectHelperBufferTests
     }
 
     /// <summary>
-    /// Verifies that a buffered non-generic enumerator can be iterated, reset via the interface, and iterated again.
+    /// Verifies that a buffered non-generic enumerator can be iterated, reset, and iterated again.
     /// </summary>
     [Fact]
     public void BufferUntypedEnumerator_CanBeResetAndReused()
     {
-        IEnumerator buffered = RunTimeAspectHelper.Buffer( CreateTestUntypedEnumerator() );
+        var buffered = RunTimeAspectHelper.Buffer( CreateTestUntypedEnumerator() );
 
         // First iteration.
         var firstPass = new List<object?>();
@@ -77,7 +99,7 @@ public class RunTimeAspectHelperBufferTests
 
         Assert.Equal( new object[] { "Hello", "World" }, firstPass );
 
-        // Reset via the interface and iterate again.
+        // Reset and iterate again.
         buffered.Reset();
 
         var secondPass = new List<object?>();
@@ -91,18 +113,16 @@ public class RunTimeAspectHelperBufferTests
     }
 
     /// <summary>
-    /// Simulates the exact generated code pattern with multiple contracts on an IEnumerator{T} method.
-    /// When boxed (assigned to the interface), re-assigning from the original variable does not produce
-    /// a fresh enumerator because both variables point to the same boxed instance.
+    /// Simulates the generated code pattern with multiple contracts on an IEnumerator{T} method.
+    /// The new pattern uses Reset() before the final yield loop.
     /// </summary>
     [Fact]
-    public void BufferGenericEnumerator_MultipleContractPattern_Boxed()
+    public void BufferGenericEnumerator_MultipleContractPatternWithReset()
     {
-        // Simulate the generated code pattern with interface-typed variables (boxed).
-        IEnumerator<string> bufferedEnumerator = RunTimeAspectHelper.Buffer( CreateTestEnumerator() );
-        IEnumerator<string> returnValue = bufferedEnumerator;
+        var bufferedEnumerator = RunTimeAspectHelper.Buffer( CreateTestEnumerator() );
+        var returnValue = bufferedEnumerator;
 
-        // First contract iterates returnValue.
+        // First contract iterates returnValue (same reference as bufferedEnumerator).
         var contract1Items = new List<string>();
 
         while ( returnValue.MoveNext() )
@@ -112,9 +132,12 @@ public class RunTimeAspectHelperBufferTests
 
         Assert.Equal( new[] { "Hello", "World" }, contract1Items );
 
-        // Second contract re-assigns and iterates.
-        // With boxing, both variables point to the same exhausted enumerator object.
+        // Between contracts, re-assign (no-op for reference types) happens automatically.
         returnValue = bufferedEnumerator;
+
+        // Reset before second contract.
+        bufferedEnumerator.Reset();
+
         var contract2Items = new List<string>();
 
         while ( returnValue.MoveNext() )
@@ -122,10 +145,11 @@ public class RunTimeAspectHelperBufferTests
             contract2Items.Add( returnValue.Current );
         }
 
-        // With current implementation, contract2Items is empty because the boxed enumerator is exhausted.
         Assert.Equal( new[] { "Hello", "World" }, contract2Items );
 
-        // Final yield loop should also produce all items.
+        // Reset before the final yield loop.
+        bufferedEnumerator.Reset();
+
         var yieldItems = new List<string>();
 
         while ( bufferedEnumerator.MoveNext() )
@@ -137,13 +161,13 @@ public class RunTimeAspectHelperBufferTests
     }
 
     /// <summary>
-    /// Simulates the exact generated code pattern with multiple contracts on an IEnumerator method (non-generic).
+    /// Simulates the generated code pattern with multiple contracts on an IEnumerator method (non-generic).
     /// </summary>
     [Fact]
-    public void BufferUntypedEnumerator_MultipleContractPattern_Boxed()
+    public void BufferUntypedEnumerator_MultipleContractPatternWithReset()
     {
-        IEnumerator bufferedEnumerator = RunTimeAspectHelper.Buffer( CreateTestUntypedEnumerator() );
-        IEnumerator returnValue = bufferedEnumerator;
+        var bufferedEnumerator = RunTimeAspectHelper.Buffer( CreateTestUntypedEnumerator() );
+        var returnValue = bufferedEnumerator;
 
         // First contract iterates returnValue.
         var contract1Items = new List<object?>();
@@ -155,7 +179,9 @@ public class RunTimeAspectHelperBufferTests
 
         Assert.Equal( new object[] { "Hello", "World" }, contract1Items );
 
-        // Second contract re-assigns and iterates.
+        // Reset before second contract.
+        bufferedEnumerator.Reset();
+
         returnValue = bufferedEnumerator;
         var contract2Items = new List<object?>();
 
@@ -165,5 +191,17 @@ public class RunTimeAspectHelperBufferTests
         }
 
         Assert.Equal( new object[] { "Hello", "World" }, contract2Items );
+
+        // Reset before the final yield loop.
+        bufferedEnumerator.Reset();
+
+        var yieldItems = new List<object?>();
+
+        while ( bufferedEnumerator.MoveNext() )
+        {
+            yieldItems.Add( bufferedEnumerator.Current );
+        }
+
+        Assert.Equal( new object[] { "Hello", "World" }, yieldItems );
     }
 }
