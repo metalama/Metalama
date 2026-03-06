@@ -169,15 +169,36 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
 
             foreach ( var deletedAuxiliaryFile in existingFiles.Except( finalFiles ) )
             {
-                File.Delete( deletedAuxiliaryFile );
+                try
+                {
+                    // Remove read-only attribute before deleting.
+                    File.SetAttributes( deletedAuxiliaryFile, FileAttributes.Normal );
+                    File.Delete( deletedAuxiliaryFile );
+                }
+                catch ( FileNotFoundException )
+                {
+                    // The file may have been deleted between Directory.GetFiles and here.
+                }
             }
 
             foreach ( var file in pipelineResult.AdditionalCompilationOutputFiles )
             {
                 var fullPath = GetFileFullPath( file );
                 Directory.CreateDirectory( Path.GetDirectoryName( fullPath )! );
-                using var stream = File.Open( fullPath, FileMode.Create );
-                file.WriteToStream( stream );
+
+                if ( File.Exists( fullPath ) )
+                {
+                    // Remove read-only attribute before overwriting.
+                    File.SetAttributes( fullPath, FileAttributes.Normal );
+                }
+
+                using ( var stream = File.Open( fullPath, FileMode.Create ) )
+                {
+                    file.WriteToStream( stream );
+                }
+
+                // Set the file as read-only so we have no temptation to edit it.
+                File.SetAttributes( fullPath, FileAttributes.ReadOnly );
             }
 
             string GetFileFullPath( AdditionalCompilationOutputFile file )
