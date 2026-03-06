@@ -54,6 +54,11 @@ namespace Metalama.Framework.Engine.Utilities.Comparers
                     return false;
                 }
 
+                if ( x is IMethod xMethod && y is IMethod yMethod && xMethod.TypeParameters.Count != yMethod.TypeParameters.Count )
+                {
+                    return false;
+                }
+
                 for ( var i = 0; i < xHasParameters.Parameters.Count; i++ )
                 {
                     var xParameter = xHasParameters.Parameters[i].Type;
@@ -77,6 +82,11 @@ namespace Metalama.Framework.Engine.Utilities.Comparers
             if ( obj.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor or DeclarationKind.Indexer
                 && obj is IHasParameters hasParameters )
             {
+                if ( obj is IMethod method )
+                {
+                    hashCode.Add( method.TypeParameters.Count );
+                }
+
                 foreach ( var parameter in hasParameters.Parameters )
                 {
                     hashCode.Add( parameter.Type, this._typeComparer );

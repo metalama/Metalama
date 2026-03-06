@@ -119,7 +119,8 @@ public static class MethodCollectionExtensions
             signatureTemplate.Name,
             signatureTemplate.Parameters.Count,
             GetParameter,
-            matchIsStatic ? signatureTemplate.IsStatic : null );
+            matchIsStatic ? signatureTemplate.IsStatic : null,
+            signatureTemplate.TypeParameters.Count );
 
         static (IType Type, RefKind RefKind) GetParameter( IMethod context, int index ) => (context.Parameters[index].Type, context.Parameters[index].RefKind);
     }

@@ -84,7 +84,8 @@ namespace Metalama.Framework.Code
             string? name,
             int parameterCount,
             Func<TPayload, int, (IType Type, RefKind RefKind)> parameterGetter,
-            bool? isStatic )
+            bool? isStatic,
+            int? typeParameterCount = null )
             where TMember : class, IHasParameters
         {
             var compilation = members.DeclaringType.Compilation;
@@ -95,7 +96,8 @@ namespace Metalama.Framework.Code
                 name,
                 parameterCount,
                 IsMatchingParameter,
-                isStatic );
+                isStatic,
+                typeParameterCount: typeParameterCount );
 
             // We use First and not Single because advices may provide many methods with same signature.
             // They do not make it to the final code, but they are stored in this class.
@@ -136,7 +138,8 @@ namespace Metalama.Framework.Code
             int? argumentCount,
             Func<TPayload, int, IType, RefKind, bool> argumentPredicate,
             bool? isStatic,
-            bool expandParams = false )
+            bool expandParams = false,
+            int? typeParameterCount = null )
             where TMember : class, IHasParameters
         {
             var candidates = name != null ? members.OfName( name ) : members;
@@ -149,7 +152,8 @@ namespace Metalama.Framework.Code
             {
                 if ( (isStatic != null && isStatic != sourceItem.IsStatic)
                      || (argumentCount != null && !expandParams && sourceItem.Parameters.Count != argumentCount)
-                     || (argumentCount != null && expandParams && sourceItem.Parameters.Count > argumentCount + 1) )
+                     || (argumentCount != null && expandParams && sourceItem.Parameters.Count > argumentCount + 1)
+                     || (typeParameterCount != null && sourceItem is IMethod m && m.TypeParameters.Count != typeParameterCount) )
                 {
                     continue;
                 }

@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Transformations;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
@@ -65,6 +66,17 @@ internal sealed partial class LinkerInjectionStep
         public IReadOnlyCollection<InjectedMember> InjectedMembers => this._injectedMembers;
 
         public IReadOnlyDictionary<DeclarationBuilderData, IIntroduceDeclarationTransformation> BuilderToTransformationMap => this._builderToTransformationMap;
+
+        /// <summary>
+        /// Gets the set of constructor references that have inserted initializer statements.
+        /// Used by the linker analysis step to find aspect references in initializer advice code.
+        /// </summary>
+        [Memo]
+        public IReadOnlyList<IRef<IMethodBase>> ConstructorsWithInsertedStatements
+            => this._insertedStatementsByTargetMethodBase
+                .Where( kvp => kvp.Value.Any( s => s.Kind == InsertedStatementKind.Initializer ) )
+                .Select( kvp => kvp.Key )
+                .ToReadOnlyList();
 
         public IReadOnlyDictionary<IRef<IDeclaration>, IReadOnlyList<IntroduceParameterTransformation>> IntroducedParametersByTargetDeclaration
             => this._introducedParametersByTargetDeclaration;

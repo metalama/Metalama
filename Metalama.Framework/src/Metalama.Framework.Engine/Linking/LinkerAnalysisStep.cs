@@ -109,12 +109,27 @@ namespace Metalama.Framework.Engine.Linking
 
             var resolvedReferencesBySource = await aspectReferenceCollector.RunAsync( cancellationToken );
 
+            // Constructors with inserted initializer statements need to be non-discardable,
+            // so their aspect references (invokers in AddInitializer templates) are properly resolved.
+            // Primary constructors are excluded because their initializer statements live in an auxiliary body
+            // (an injected member), not in the primary constructor's class/record declaration.
+            var constructorSemantics = input.InjectionRegistry.GetConstructorsWithInsertedStatements()
+                .Where( c => c.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax )
+                .Select( c => (IntermediateSymbolSemantic) c.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
+                .ToArray();
+
+            var additionalNonDiscardableSemantics = eventFieldRaiseReferences
+                .SelectAsReadOnlyList( x => x.TargetSemantic )
+                .Concat( constructorSemantics )
+                .Distinct()
+                .ToArray();
+
             var reachabilityAnalyzer = new ReachabilityAnalyzer(
                 this._serviceProvider,
                 input.IntermediateCompilation.CompilationContext,
                 input.InjectionRegistry,
                 resolvedReferencesBySource,
-                eventFieldRaiseReferences.SelectAsReadOnlyList( x => x.TargetSemantic ).Distinct().ToArray() );
+                additionalNonDiscardableSemantics );
 
             var reachableSemantics = await reachabilityAnalyzer.RunAsync( cancellationToken );
 
@@ -799,9 +814,15 @@ namespace Metalama.Framework.Engine.Linking
                                 break;
                         }
                     }
-                    else
+                    else if ( injectionRegistry.IsOverride( nonInlinedSemantic.Symbol ) )
                     {
                         overrideTarget = injectionRegistry.GetOverrideTarget( nonInlinedSemantic.Symbol ).AssertNotNull();
+                    }
+                    else
+                    {
+                        // Source constructors with inserted initializer statements are non-inlined semantics
+                        // but they are neither override targets nor overrides. Skip inlineability verification.
+                        continue;
                     }
 
                     var sourceName =

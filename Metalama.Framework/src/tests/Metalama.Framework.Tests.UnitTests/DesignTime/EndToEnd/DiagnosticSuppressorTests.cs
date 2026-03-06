@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.DesignTime.DiagnosticAnalysis;
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.DesignTime.DiagnosticSuppressing;
 using Metalama.Framework.DesignTime.Extensibility;
@@ -218,6 +219,78 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
         var suppression = Assert.Single( suppressions.Suppressions );
 
         Assert.Equal( "code.cs(19,9): warning CS0169: The field 'TargetClass._field' is never used", suppression.SuppressedDiagnostic.ToString() );
+    }
+
+    [Fact]
+    public async Task StaleUserProfileDoesNotSuppressDiagnosticAndReportsLAMA0306()
+    {
+        // Regression test for #726: When the user profile (SupportedSuppressionDescriptors) is stale/empty
+        // but the suppression is defined in the compile-time project's DiagnosticManifest:
+        // (a) The suppressor does NOT suppress the original diagnostic (CS0169) because Roslyn's
+        //     DiagnosticSuppressor contract requires suppressions to be declared in SupportedSuppressions.
+        //     When Roslyn hosts the suppressor, it filters diagnostics before calling ReportSuppressions,
+        //     so diagnostics not in SupportedSuppressions are never passed to the method.
+        // (b) The analyzer reports LAMA0306 to tell the user to restart their IDE.
+        const string code = """
+                            using Metalama.Framework.Aspects;
+                            using Metalama.Framework.Code;
+                            using Metalama.Framework.Diagnostics;
+
+                            namespace Metalama.Framework.Tests.AspectTests.Aspects.Suppressions.Methods
+                            {
+                                public class SuppressWarningAttribute : FieldAspect
+                                {
+                                    // CS0169: "The field is never used"
+                                    private static readonly SuppressionDefinition _suppression1 = new( "CS0169" );
+
+                                    public override void BuildAspect( IAspectBuilder<IField> builder )
+                                    {
+                                        builder.Diagnostics.Suppress( _suppression1, builder.Target );
+                                    }
+                                }
+
+                                // <target>
+                                internal class TargetClass
+                                {
+                                    [SuppressWarning]
+                                    int _field;
+                                }
+                            }
+                            """;
+
+        // The TestUserDiagnosticRegistrationService returns empty SupportedSuppressionDescriptors,
+        // simulating a stale user profile where CS0169 suppression has not been registered yet.
+        using var testContext = this.CreateTestContext();
+
+        var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var workspaceProvider = new TestWorkspaceProvider( testContext.ServiceProvider );
+        workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string>() { ["code.cs"] = code } );
+        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
+        var diagnostics = compilation!.GetDiagnostics();
+
+        // (a) Verify the suppressor does NOT suppress CS0169 when the user profile is empty.
+        // In production, Roslyn would not even pass CS0169 to ReportSuppressions because it's
+        // not declared in SupportedSuppressions. Here we simulate that by passing an empty
+        // supportedSuppressionDescriptors dictionary — the suppressor correctly skips the
+        // suppression because it's not in the supported set.
+        var suppressor = new TheDiagnosticSuppressor( pipelineFactory.ServiceProvider );
+        var suppressionContext = new TestSuppressionAnalysisContext( compilation, diagnostics, testContext.ProjectOptions );
+
+        suppressor.ReportSuppressions( suppressionContext, ImmutableDictionary<string, SuppressionDescriptor>.Empty );
+
+        Assert.Empty( suppressionContext.ReportedSuppressions );
+
+        // (b) Verify the analyzer reports LAMA0306 because the suppression is not in the user profile.
+        var syntaxTree = await workspaceProvider.GetDocument( "project", "code.cs" ).GetSyntaxTreeAsync();
+        var semanticModel = compilation.GetSemanticModel( syntaxTree! );
+
+        var analyzer = new TheDiagnosticAnalyzer( pipelineFactory.ServiceProvider );
+        var analyzerContext = new TestSemanticModelAnalysisContext( semanticModel, testContext.ProjectOptions );
+
+        analyzer.AnalyzeSemanticModel( analyzerContext );
+
+        Assert.Contains( analyzerContext.ReportedDiagnostics, d => d.Id == "LAMA0306" );
     }
 
     [Fact]

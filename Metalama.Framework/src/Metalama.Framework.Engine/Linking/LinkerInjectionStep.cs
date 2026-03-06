@@ -366,6 +366,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             transformationCollection.BuilderToTransformationMap,
             transformationCollection.IntroducedParametersByTargetDeclaration,
             transformationCollection.TransformationsCausingAuxiliaryOverrides,
+            transformationCollection.ConstructorsWithInsertedStatements,
             this._concurrentTaskRunner,
             cancellationToken );
 
