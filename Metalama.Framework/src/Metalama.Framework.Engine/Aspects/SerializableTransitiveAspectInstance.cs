@@ -30,7 +30,7 @@ internal class SerializableTransitiveAspectInstance : ICompileTimeSerializable, 
         transitiveAspectInstance.TargetDeclaration,
         transitiveAspectInstance.TargetDeclarationDepth ) { }
 
-    private SerializableTransitiveAspectInstance(
+    internal SerializableTransitiveAspectInstance(
         IAspect aspect,
         string aspectClassName,
         IAspectState? aspectState,

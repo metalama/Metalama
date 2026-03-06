@@ -1,3 +1,5 @@
 {
-    "BuildOnly": true
+    "BuildOnly": true,
+    "IgnoreExitCode": false,
+    "FailOnUnexpectedDiagnostics": true
 }
