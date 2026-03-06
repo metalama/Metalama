@@ -31,6 +31,7 @@ public class TestClass
         throw new global::System.ArgumentNullException("<return>");
       }
     }
+    bufferedEnumerator.Reset();
     while (bufferedEnumerator.MoveNext())
     {
       yield return bufferedEnumerator.Current;
@@ -71,6 +72,7 @@ public class TestClass
         throw new global::System.ArgumentNullException("<return>");
       }
     }
+    bufferedEnumerator.Reset();
     while (bufferedEnumerator.MoveNext())
     {
       yield return bufferedEnumerator.Current;

@@ -40,6 +40,7 @@ public class TestClass
       }
     }
     returnValue = bufferedEnumerator;
+    bufferedEnumerator.Reset();
     global::System.Console.WriteLine("Advice 2");
     while (returnValue.MoveNext())
     {
@@ -48,6 +49,7 @@ public class TestClass
         throw new global::System.ArgumentNullException("<return>");
       }
     }
+    bufferedEnumerator.Reset();
     while (bufferedEnumerator.MoveNext())
     {
       yield return bufferedEnumerator.Current;
@@ -97,6 +99,7 @@ public class TestClass
       }
     }
     returnValue = bufferedEnumerator;
+    bufferedEnumerator.Reset();
     global::System.Console.WriteLine("Advice 2");
     while (returnValue.MoveNext())
     {
@@ -105,6 +108,7 @@ public class TestClass
         throw new global::System.ArgumentNullException("<return>");
       }
     }
+    bufferedEnumerator.Reset();
     while (bufferedEnumerator.MoveNext())
     {
       yield return bufferedEnumerator.Current;

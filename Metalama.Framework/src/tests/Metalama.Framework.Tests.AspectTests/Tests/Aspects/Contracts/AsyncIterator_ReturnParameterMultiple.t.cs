@@ -45,6 +45,7 @@ public class TestClass
       }
     }
     returnValue = bufferedEnumerator;
+    bufferedEnumerator.Reset();
     global::System.Console.WriteLine("Advice 2");
     while (await returnValue.MoveNextAsync())
     {
@@ -53,6 +54,7 @@ public class TestClass
         throw new global::System.ArgumentNullException("<return>");
       }
     }
+    bufferedEnumerator.Reset();
     while (await bufferedEnumerator.MoveNextAsync())
     {
       yield return bufferedEnumerator.Current;
