@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel
 {
-    public sealed class CodeModelIAttributeCollectionOfUnboundGenericTypeTests : UnitTestClass
+    public sealed class AttributeCollectionTests : UnitTestClass
     {
         [Fact]
         public void OfAttributeType_UnboundGenericType_ReturnsAttributes()
