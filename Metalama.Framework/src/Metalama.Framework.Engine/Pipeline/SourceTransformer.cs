@@ -169,9 +169,16 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
 
             foreach ( var deletedAuxiliaryFile in existingFiles.Except( finalFiles ) )
             {
-                // Remove read-only attribute before deleting.
-                File.SetAttributes( deletedAuxiliaryFile, FileAttributes.Normal );
-                File.Delete( deletedAuxiliaryFile );
+                try
+                {
+                    // Remove read-only attribute before deleting.
+                    File.SetAttributes( deletedAuxiliaryFile, FileAttributes.Normal );
+                    File.Delete( deletedAuxiliaryFile );
+                }
+                catch ( FileNotFoundException )
+                {
+                    // The file may have been deleted between Directory.GetFiles and here.
+                }
             }
 
             foreach ( var file in pipelineResult.AdditionalCompilationOutputFiles )
