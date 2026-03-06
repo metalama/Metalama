@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -23,13 +23,31 @@ internal partial class TransitiveAspectPipelineExtension : PipelineExtension
 
     public override IEnumerable<IPipelineContributor> GetPipelineContributorsFromTransitiveManifest(
         ImmutableArray<ITransitiveAspectsManifestExtension> extensions,
-        IAspectClassResolver aspectClassResolver )
+        IAspectClassResolver aspectClassResolver,
+        UserDiagnosticSink diagnosticSink )
     {
-        var transitiveAspectInstances = extensions.OfKind( ContributorKind.SerializableTransitiveAspectInstance )
-            .Select( i => i.ToAspectInstance( aspectClassResolver ) )
-            .ToMultiValueDictionary( x => (IAspectClass) x.AspectClass, x => x );
+        var serializableInstances = extensions.OfKind( ContributorKind.SerializableTransitiveAspectInstance );
 
-        yield return new AspectSource( transitiveAspectInstances );
+        var transitiveAspectInstancesBuilder = ImmutableDictionaryOfArray<IAspectClass, AspectInstance>.CreateBuilder();
+
+        foreach ( var instance in serializableInstances )
+        {
+            var aspectInstance = instance.ToAspectInstance( aspectClassResolver );
+
+            if ( aspectInstance != null )
+            {
+                transitiveAspectInstancesBuilder.Add( aspectInstance.AspectClass, aspectInstance );
+            }
+            else
+            {
+                diagnosticSink.Report(
+                    GeneralDiagnosticDescriptors.UnknownTransitiveAspectClass.CreateRoslynDiagnostic(
+                        null,
+                        instance.AspectClassName ) );
+            }
+        }
+
+        yield return new AspectSource( transitiveAspectInstancesBuilder.ToImmutable() );
     }
 
     public override Task<ExtensionPipelineContributorsResult> ExecutePipelineContributorsAsync(

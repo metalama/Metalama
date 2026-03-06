@@ -419,18 +419,22 @@ public abstract class AspectPipeline : IDisposable
     private protected virtual PipelineContributorSources CreatePipelineContributorSources(
         AspectPipelineConfiguration configuration,
         CompilationContext compilationContext,
+        UserDiagnosticSink diagnosticSink,
         CancellationToken cancellationToken )
     {
         var aspectClasses = configuration.BoundAspectClasses;
 
         var contributors = ImmutableArray.CreateBuilder<IPipelineContributor>();
 
-        var transitivePipelineContributorSource = new TransitivePipelineContributorSource( compilationContext, aspectClasses, configuration.ServiceProvider );
+        var transitivePipelineContributorSource = TransitivePipelineContributorSource.Create( compilationContext, aspectClasses, configuration.ServiceProvider, diagnosticSink );
         contributors.AddRange( transitivePipelineContributorSource.Contributors );
         contributors.Add( new CompilationAspectSource( configuration.ServiceProvider, aspectClasses ) );
         contributors.Add( new CompilationHierarchicalOptionsSource( configuration.ServiceProvider ) );
 
-        var allSources = new PipelineContributorSources( contributors.ToImmutable(), transitivePipelineContributorSource, transitivePipelineContributorSource );
+        var allSources = new PipelineContributorSources(
+            contributors.ToImmutable(),
+            transitivePipelineContributorSource,
+            transitivePipelineContributorSource );
 
         if ( configuration.FabricsContributors != null )
         {
@@ -473,8 +477,10 @@ public abstract class AspectPipeline : IDisposable
         }
 
         var serviceProvider = pipelineConfiguration.ServiceProvider;
+        var initializationDiagnosticSink = new UserDiagnosticSink( serviceProvider );
 
-        // We need to overridde execution scenario in this service provider as well.
+
+        // We need to override the execution scenario in this service provider as well.
         var executionScenario = this.ServiceProvider.GetRequiredService<ExecutionScenario>();
         serviceProvider = serviceProvider.WithService( executionScenario, allowOverride: true );
 
@@ -490,7 +496,7 @@ public abstract class AspectPipeline : IDisposable
                 pipelineConfiguration );
         }
 
-        var contributorSources = this.CreatePipelineContributorSources( pipelineConfiguration, compilation.CompilationContext, cancellationToken );
+        var contributorSources = this.CreatePipelineContributorSources( pipelineConfiguration, compilation.CompilationContext, initializationDiagnosticSink, cancellationToken );
 
         var additionalCompilationOutputFiles = GetAdditionalCompilationOutputFiles( serviceProvider );
 
@@ -502,9 +508,7 @@ public abstract class AspectPipeline : IDisposable
             compilation,
             hierarchicalOptionsManager: hierarchicalOptionsManager,
             externalAnnotationProvider: contributorSources.ExternalAnnotationProvider );
-
-        var initializationDiagnosticSink = new UserDiagnosticSink( serviceProvider );
-
+        
         await hierarchicalOptionsManager.InitializeAsync(
             pipelineConfiguration.CompileTimeProject,
             contributorSources.Contributors.OfKind( ContributorKind.HierarchicalOptionsSource ),
