@@ -8,6 +8,7 @@ using Metalama.Framework.Code.Types;
 using Metalama.Framework.Project;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Code;
 
@@ -73,10 +74,30 @@ public static class TypeFactory
     /// For generic type definitions, this requires using <c>`</c>, e.g. to get <c>List&lt;T&gt;</c>, use <c>System.Collections.Generic.List`1</c>.
     /// </para>
     /// <para>
-    /// Constructed generic types (e.g. <c>List&lt;int&gt;</c>) are not supported, for those, use <see cref="GenericExtensions.WithTypeArguments(IMethod, IType[])"/>.
+    /// Constructed generic types (e.g. <c>List&lt;int&gt;</c>) are not supported, for those, use <see cref="GenericExtensions.WithTypeArguments(INamedType, IType[])"/>.
     /// </para>
     /// </remarks>
     public static INamedType GetType( string typeName ) => Implementation.GetTypeByReflectionName( typeName );
+
+    /// <summary>
+    /// Attempts to get a type based on its full name, as used in reflection.
+    /// </summary>
+    /// <param name="typeName">The full name of the type in reflection format.</param>
+    /// <param name="namedType">When this method returns, contains the <see cref="INamedType"/> if the type was found; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if the type was found; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// For nested types, this means using <c>+</c>, e.g. to get <see cref="System.Environment.SpecialFolder"/>, use <c>System.Environment+SpecialFolder</c>.
+    /// </para>
+    /// <para>
+    /// For generic type definitions, this requires using <c>`</c>, e.g. to get <c>List&lt;T&gt;</c>, use <c>System.Collections.Generic.List`1</c>.
+    /// </para>
+    /// <para>
+    /// Constructed generic types (e.g. <c>List&lt;int&gt;</c>) are not supported, for those, use <see cref="GenericExtensions.WithTypeArguments(INamedType, IType[])"/>.
+    /// </para>
+    /// </remarks>
+    public static bool TryGetType( string typeName, [NotNullWhen( true )] out INamedType? namedType )
+        => Implementation.TryGetTypeByReflectionName( typeName, out namedType );
 
     /// <summary>
     /// Gets a <see cref="INamedType"/> representing a given <see cref="SpecialType"/>.
