@@ -221,7 +221,6 @@ internal sealed partial class LinkerInjectionStep
                 else if ( iteratorInfo.EnumerableKind is EnumerableKind.IEnumerator or EnumerableKind.UntypedIEnumerator
                          or EnumerableKind.IAsyncEnumerator )
                 {
-                    // TODO: #34577 This is wrong, the enumerator needs to be cloned/reset.
                     var bufferedEnumeratorName = this._lexicalScopeFactory.GetLexicalScope( method.ToFullRef() ).GetUniqueIdentifier( "bufferedEnumerator" );
 
                     body = Block(
@@ -234,6 +233,7 @@ internal sealed partial class LinkerInjectionStep
                                         SafeIdentifier( returnVariableName ),
                                         null,
                                         EqualsValueClause( SafeIdentifierName( bufferedEnumeratorName ) ) ) ) ) ),
+                        CreateEnumeratorResetStatement( SafeIdentifierName( bufferedEnumeratorName ) ),
                         CreateEnumeratorEpilogue( SafeIdentifierName( bufferedEnumeratorName ) ) );
                 }
                 else
@@ -307,6 +307,19 @@ internal sealed partial class LinkerInjectionStep
                                 Token( TriviaList(), SyntaxKind.ReturnKeyword, TriviaList( ElasticSpace ) ),
                                 SafeIdentifierName( itemName ),
                                 Token( SyntaxKind.SemicolonToken ) ) ) );
+            }
+
+            StatementSyntax CreateEnumeratorResetStatement( ExpressionSyntax enumeratorExpression )
+            {
+                // Generate: bufferedEnumerator.Reset();
+                // Both sync (Enumerator/Enumerator<T>) and async (AsyncEnumerator<T>) types support Reset().
+                return
+                    ExpressionStatement(
+                        InvocationExpression(
+                            MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                enumeratorExpression,
+                                IdentifierName( "Reset" ) ) ) );
             }
 
             StatementSyntax CreateEnumeratorEpilogue( ExpressionSyntax enumeratorExpression )

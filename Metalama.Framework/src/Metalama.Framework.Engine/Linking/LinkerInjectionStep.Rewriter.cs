@@ -836,7 +836,7 @@ internal sealed partial class LinkerInjectionStep
                             Statements:
                             [
                                 LocalDeclarationStatementSyntax bufferedEnumerableLocal, LocalDeclarationStatementSyntax returnValueLocal,
-                                WhileStatementSyntax whileStatement
+                                ExpressionStatementSyntax resetStatement, WhileStatementSyntax whileStatement
                             ]
                         }:
                             return
@@ -865,11 +865,13 @@ internal sealed partial class LinkerInjectionStep
                                                                                 SyntaxKind.SimpleAssignmentExpression,
                                                                                 WellKnownIdentifierName( declarator.Identifier ),
                                                                                 declarator.Initializer.AssertNotNull().Value ) ),
+                                                                        resetStatement,
                                                                         s )
                                                                     .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
                                                         }
                                                     } ) ) )
                                         .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                                    resetStatement,
                                     whileStatement );
 
                         default:

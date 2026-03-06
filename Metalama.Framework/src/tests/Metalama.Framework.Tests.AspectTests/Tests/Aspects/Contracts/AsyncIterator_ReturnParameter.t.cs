@@ -36,6 +36,7 @@ public class TestClass
         throw new global::System.ArgumentNullException("<return>");
       }
     }
+    bufferedEnumerator.Reset();
     while (await bufferedEnumerator.MoveNextAsync())
     {
       yield return bufferedEnumerator.Current;
