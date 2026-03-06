@@ -30,7 +30,7 @@ namespace Metalama.Framework.Code
         /// For generic type definitions, this requires using <c>`</c>, e.g. to get <c>List&lt;T&gt;</c>, use <c>System.Collections.Generic.List`1</c>.
         /// </para>
         /// <para>
-        /// Constructed generic types (e.g. <c>List&lt;int&gt;</c>) are not supported, for those, use <see cref="GenericExtensions.WithTypeArguments(IMethod, IType[])"/>.
+        /// Constructed generic types (e.g. <c>List&lt;int&gt;</c>) are not supported, for those, use <see cref="GenericExtensions.WithTypeArguments(INamedType, IType[])"/>.
         /// </para>
         /// </remarks>
         INamedType GetTypeByReflectionName( string reflectionName );
@@ -49,7 +49,7 @@ namespace Metalama.Framework.Code
         /// For generic type definitions, this requires using <c>`</c>, e.g. to get <c>List&lt;T&gt;</c>, use <c>System.Collections.Generic.List`1</c>.
         /// </para>
         /// <para>
-        /// Constructed generic types (e.g. <c>List&lt;int&gt;</c>) are not supported, for those, use <see cref="GenericExtensions.WithTypeArguments(IMethod, IType[])"/>.
+        /// Constructed generic types (e.g. <c>List&lt;int&gt;</c>) are not supported, for those, use <see cref="GenericExtensions.WithTypeArguments(INamedType, IType[])"/>.
         /// </para>
         /// </remarks>
         bool TryGetTypeByReflectionName( string reflectionName, [NotNullWhen( true )] out INamedType? namedType );
