@@ -28,25 +28,71 @@ public class RunTimeAspectHelperBufferTests
     }
 
     /// <summary>
-    /// Verifies that <see cref="RunTimeAspectHelper.Buffer{T}(IEnumerator{T})"/> returns a <see cref="ResettableEnumerator{T}"/>.
+    /// Verifies that <see cref="RunTimeAspectHelper.Buffer{T}(IEnumerator{T})"/> returns an <see cref="IEnumerator{T}"/>
+    /// that supports <see cref="IEnumerator.Reset"/>.
     /// </summary>
     [Fact]
     public void BufferGenericEnumerator_ReturnsResettableEnumerator()
     {
         var buffered = RunTimeAspectHelper.Buffer( CreateTestEnumerator() );
 
-        Assert.IsType<ResettableEnumerator<string>>( buffered );
+        // The returned enumerator should support Reset.
+        Assert.True( buffered is IEnumerator<string> );
+
+        // First pass.
+        var items = new List<string>();
+
+        while ( buffered.MoveNext() )
+        {
+            items.Add( buffered.Current );
+        }
+
+        Assert.Equal( new[] { "Hello", "World" }, items );
+
+        // Reset and second pass.
+        buffered.Reset();
+        items.Clear();
+
+        while ( buffered.MoveNext() )
+        {
+            items.Add( buffered.Current );
+        }
+
+        Assert.Equal( new[] { "Hello", "World" }, items );
     }
 
     /// <summary>
-    /// Verifies that <see cref="RunTimeAspectHelper.Buffer(IEnumerator)"/> returns a <see cref="ResettableEnumerator"/>.
+    /// Verifies that <see cref="RunTimeAspectHelper.Buffer(IEnumerator)"/> returns an <see cref="IEnumerator"/>
+    /// that supports <see cref="IEnumerator.Reset"/>.
     /// </summary>
     [Fact]
     public void BufferUntypedEnumerator_ReturnsResettableEnumerator()
     {
         var buffered = RunTimeAspectHelper.Buffer( CreateTestUntypedEnumerator() );
 
-        Assert.IsType<ResettableEnumerator>( buffered );
+        // The returned enumerator should support Reset.
+        Assert.True( buffered is IEnumerator );
+
+        // First pass.
+        var items = new List<object?>();
+
+        while ( buffered.MoveNext() )
+        {
+            items.Add( buffered.Current );
+        }
+
+        Assert.Equal( new object[] { "Hello", "World" }, items );
+
+        // Reset and second pass.
+        buffered.Reset();
+        items.Clear();
+
+        while ( buffered.MoveNext() )
+        {
+            items.Add( buffered.Current );
+        }
+
+        Assert.Equal( new object[] { "Hello", "World" }, items );
     }
 
     /// <summary>

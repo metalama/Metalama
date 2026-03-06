@@ -36,7 +36,7 @@ public class TestClass
         throw new global::System.ArgumentNullException("<return>");
       }
     }
-    bufferedEnumerator.Reset();
+    bufferedEnumerator = (await global::Metalama.Framework.RunTime.RunTimeAspectHelper.BufferAsync(bufferedEnumerator));
     while (await bufferedEnumerator.MoveNextAsync())
     {
       yield return bufferedEnumerator.Current;

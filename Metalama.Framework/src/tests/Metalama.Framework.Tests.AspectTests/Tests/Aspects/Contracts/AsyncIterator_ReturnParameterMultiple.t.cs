@@ -45,7 +45,7 @@ public class TestClass
       }
     }
     returnValue = bufferedEnumerator;
-    bufferedEnumerator.Reset();
+    bufferedEnumerator = (await global::Metalama.Framework.RunTime.RunTimeAspectHelper.BufferAsync(bufferedEnumerator));
     global::System.Console.WriteLine("Advice 2");
     while (await returnValue.MoveNextAsync())
     {
@@ -54,7 +54,7 @@ public class TestClass
         throw new global::System.ArgumentNullException("<return>");
       }
     }
-    bufferedEnumerator.Reset();
+    bufferedEnumerator = (await global::Metalama.Framework.RunTime.RunTimeAspectHelper.BufferAsync(bufferedEnumerator));
     while (await bufferedEnumerator.MoveNextAsync())
     {
       yield return bufferedEnumerator.Current;
