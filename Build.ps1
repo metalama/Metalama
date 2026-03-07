@@ -8,6 +8,7 @@ param(
     [switch]$StartVsmon, # Enable the remote debugger.
     [switch]$NoCache, # Bypass the build cache for `eng`, and force a rebuild.
     [switch]$Snapshot, # Copy built output to temp directory to avoid file locking during execution.
+    [switch]$SnapshotRepo, # Copy the repo to a temp directory and execute the build from there.
     [Parameter(ValueFromRemainingArguments)]
     [string[]]$BuildArgs   # Arguments passed to `Build.ps1` within the container.
 )
@@ -60,9 +61,28 @@ if (-not $Interactive -or $BuildArgs)
     Set-Location $engSrcPath
 
     $snapshotDir = $null
+    $snapshotRepoDir = $null
 
     try
     {
+        # SnapshotRepo mode: copy the repo to a temp directory before building
+        if ($SnapshotRepo)
+        {
+            $snapshotRepoDir = Join-Path $env:TEMP "eng-snapshot-repo-$([Guid]::NewGuid().ToString('N').Substring(0,8))"
+            Write-Host "Creating snapshot of repository at $snapshotRepoDir..." -ForegroundColor Cyan
+            $snapshotStopwatch = [Diagnostics.Stopwatch]::StartNew()
+            & robocopy $PSScriptRoot $snapshotRepoDir /E /XD bin obj artifacts /NJH /NJS /NP | Out-Null
+            if ($LASTEXITCODE -ge 8)
+            {
+                throw "robocopy failed with exit code $LASTEXITCODE"
+            }
+            $snapshotStopwatch.Stop()
+            Write-Host "Snapshot created in $($snapshotStopwatch.Elapsed.TotalSeconds.ToString('F1'))s." -ForegroundColor Cyan
+            # Redirect paths to the snapshot
+            $engSrcPath = Join-Path $snapshotRepoDir $EngPath "src"
+            Set-Location $engSrcPath
+        }
+
         # Build caching: check if we need to rebuild
         $projectPath = Join-Path $engSrcPath "Build$ProductName.csproj"
 
@@ -165,7 +185,7 @@ if (-not $Interactive -or $BuildArgs)
         }
 
         # Set the repository directory via environment variable (needed when running from snapshot)
-        $env:ENG_REPO_DIRECTORY = $PSScriptRoot
+        $env:ENG_REPO_DIRECTORY = if ($snapshotRepoDir) { $snapshotRepoDir } else { $PSScriptRoot }
         & dotnet exec $execDll $BuildArgs
 
         if ($StartVsmon)
@@ -184,6 +204,23 @@ if (-not $Interactive -or $BuildArgs)
         {
             Write-Host "Cleaning up snapshot directory..." -ForegroundColor Cyan
             Remove-Item -Path $snapshotDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+
+        # Copy artifacts back from repo snapshot
+        if ($snapshotRepoDir -and (Test-Path $snapshotRepoDir))
+        {
+            $snapshotArtifacts = Join-Path $snapshotRepoDir "artifacts"
+            $repoArtifacts = Join-Path $PSScriptRoot "artifacts"
+
+            if (Test-Path $snapshotArtifacts)
+            {
+                Write-Host "Copying artifacts from snapshot back to repository..." -ForegroundColor Cyan
+                if (Test-Path $repoArtifacts)
+                {
+                    Remove-Item -Path $repoArtifacts -Recurse -Force
+                }
+                Copy-Item -Path $snapshotArtifacts -Destination $repoArtifacts -Recurse -Force
+            }
         }
 
         # Reset environment variable

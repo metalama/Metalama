@@ -204,7 +204,7 @@ if ($Prompt)
         $tagValue = $Prompt -replace '\|','||' -replace "'","|'" -replace '\[','|[' -replace '\]','|]' -replace "`n",'|n' -replace "`r",'|r'
         # Truncate to avoid excessively long tags
         if ($tagValue.Length -gt 200) { $tagValue = $tagValue.Substring(0, 200) + "..." }
-        Write-Host "##teamcity[addBuildTag tag='$tagValue']"
+        Write-Host "##teamcity[addBuildTag '$tagValue']"
     }
 
     # Stream JSON output for human-readable real-time monitoring

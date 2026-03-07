@@ -79,9 +79,13 @@
 
 .PARAMETER Memory
     Docker memory limit (e.g., "8g"). Only used with hyperv isolation.
+    Defaults to $env:BuildAgentMemory (an integer in GB) if set, otherwise 24g.
 
 .PARAMETER Cpus
-    Docker CPU limit. Defaults to the host processor count. Only used with hyperv isolation.
+    Docker CPU limit. Use a positive integer for a static limit, or "dynamic" for
+    automatic allocation that rebalances CPUs across all managed containers.
+    Only used with hyperv isolation (static) or any isolation (dynamic).
+    Defaults to $env:BuildAgentCpus if set, otherwise the host processor count.
 
 .PARAMETER Mount
     Additional directories to mount from the host (readonly by default, append :w for writable).
@@ -143,8 +147,8 @@ param(
     [string]$RegistryImage, # Use a pre-built image from a registry, skipping Dockerfile build entirely.
     [switch]$NoInit, # Do not generate or call Init.g.ps1 (skips git config, safe.directory, etc).
     [string]$Isolation = 'hyperv', # Docker isolation mode (process or hyperv). Memory/CPU limits only apply to hyperv.
-    [string]$Memory = '32g', # Docker memory limit (e.g., "8g"). Only used with hyperv isolation.
-    [int]$Cpus = [Environment]::ProcessorCount, # Docker CPU limit. Only used with hyperv isolation.
+    [string]$Memory = $(if ($env:BuildAgentMemory) { "${env:BuildAgentMemory}g" } else { '24g' }), # Docker memory limit (e.g., "8g"). Only used with hyperv isolation. Defaults to $env:BuildAgentMemory (in GB) or 24g.
+    [string]$Cpus = $(if ($env:BuildAgentCpus) { $env:BuildAgentCpus } else { [Environment]::ProcessorCount }), # Docker CPU limit. Use a positive integer or "dynamic". Defaults to $env:BuildAgentCpus or host processor count.
     [string[]]$Mount, # Additional directories to mount from host (readonly by default, append :w for writable). Supports * and ** glob patterns.
     [string[]]$Env, # Additional environment variables to pass from host to container.
     [string[]]$Ports, # Port mappings from host to container (e.g., "8080:80", "3000").
@@ -164,6 +168,7 @@ if ($PSVersionTable.PSVersion -lt [Version]'7.5')
 # These settings are replaced by the generate-scripts command.
 $EngPath = 'eng'
 $EnvironmentVariables = 'AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AZ_IDENTITY_USERNAME,AZURE_CLIENT_ID,AZURE_CLIENT_SECRET,AZURE_DEVOPS_TOKEN,AZURE_DEVOPS_USER,AZURE_TENANT_ID,CLAUDE_CODE_OAUTH_TOKEN,DOC_API_KEY,DOWNLOADS_API_KEY,ENG_USERNAME,GIT_USER_EMAIL,GIT_USER_NAME,GITHUB_AUTHOR_EMAIL,GITHUB_REVIEWER_TOKEN,GITHUB_TOKEN,IS_POSTSHARP_OWNED,IS_TEAMCITY_AGENT,MetalamaLicense,NUGET_ORG_API_KEY,PostSharpLicense,SIGNSERVER_SECRET,TEAMCITY_CLOUD_TOKEN,TYPESENSE_API_KEY,VS_MARKETPLACE_ACCESS_TOKEN,VSS_NUGET_EXTERNAL_FEED_ENDPOINTS'
+$OvercommitRatio = 1.0
 ####
 
 $ErrorActionPreference = "Stop"
@@ -238,9 +243,90 @@ try
         exit 1
     }
 
+    # Validate and parse -Cpus parameter
+    $isDynamicCpus = $false
+    if ($Cpus -eq 'dynamic')
+    {
+        $isDynamicCpus = $true
+        $TotalCpus = if ($env:BuildAgentCpus) { [int]$env:BuildAgentCpus } else { [Environment]::ProcessorCount }
+        Write-Host "Dynamic CPU allocation enabled. Total CPUs: $TotalCpus, Overcommit ratio: $OvercommitRatio" -ForegroundColor Cyan
+    }
+    else
+    {
+        $cpuInt = 0
+        if (-not [int]::TryParse($Cpus, [ref]$cpuInt) -or $cpuInt -le 0)
+        {
+            Write-Error "-Cpus must be a positive integer or 'dynamic'. Got: '$Cpus'"
+            exit 1
+        }
+        $Cpus = $cpuInt
+    }
+
     if ($env:IS_TEAMCITY_AGENT)
     {
         Write-Host "Running on TeamCity agent at '$BuildAgentPath'" -ForegroundColor Cyan
+    }
+
+    # Dynamic CPU allocation helpers
+    $DynamicCpuLabel = 'managed-by=DockerBuild'
+
+    function Get-DynamicCpuAllocation
+    {
+        param(
+            [int]$AdditionalContainers = 0
+        )
+
+        $budget = $TotalCpus * (1.0 + $OvercommitRatio)
+
+        # Count running containers with the dynamic CPU label
+        $containerIds = @(docker ps -q --filter "label=$DynamicCpuLabel" 2>$null)
+        # Filter out empty strings from docker output
+        $containerIds = @($containerIds | Where-Object { $_ -and $_.Trim() -ne '' })
+        $runningCount = $containerIds.Count
+
+        $totalContainers = $runningCount + $AdditionalContainers
+        if ($totalContainers -le 0) { $totalContainers = 1 }
+
+        $allocation = [Math]::Min($TotalCpus, [Math]::Floor($budget / $totalContainers))
+        if ($allocation -lt 1) { $allocation = 1 }
+
+        return @{
+            Allocation   = [int]$allocation
+            ContainerIds = $containerIds
+        }
+    }
+
+    function Invoke-DynamicCpuRebalance
+    {
+        param(
+            [int]$AdditionalContainers = 0
+        )
+
+        $result = Get-DynamicCpuAllocation -AdditionalContainers $AdditionalContainers
+        $allocation = $result.Allocation
+        $containerIds = $result.ContainerIds
+
+        if ($containerIds.Count -gt 0)
+        {
+            Write-Host "Rebalancing $( $containerIds.Count ) managed container(s) to $allocation CPUs each" -ForegroundColor Cyan
+            foreach ($cid in $containerIds)
+            {
+                try
+                {
+                    docker update --cpus=$allocation $cid 2>$null | Out-Null
+                }
+                catch
+                {
+                    Write-Warning "Failed to rebalance container $cid`: $_"
+                }
+            }
+        }
+        else
+        {
+            Write-Host "Dynamic CPU allocation: $allocation CPUs (no other managed containers)" -ForegroundColor Cyan
+        }
+
+        return $allocation
     }
 
     # Function to collect environment variables for container
@@ -1776,13 +1862,22 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
             # Build docker command with proper argument handling (avoid empty strings)
             $dockerCmd = @('run', '--rm')
 
-            # Only add --memory and --cpus when NOT using process isolation
-            if ($Isolation -ne 'process')
+            # Memory limit: only add when NOT using process isolation
+            if ($Isolation -ne 'process' -and $Memory)
             {
-                if ($Memory)
-                {
-                    $dockerCmd += "--memory=$Memory"
-                }
+                $dockerCmd += "--memory=$Memory"
+            }
+
+            # CPU limit: dynamic or static
+            if ($isDynamicCpus)
+            {
+                $dynamicAllocation = Invoke-DynamicCpuRebalance -AdditionalContainers 1
+                $dockerCmd += "--cpus=$dynamicAllocation"
+                $dockerCmd += @('-e', "DOTNET_PROCESSOR_COUNT=$dynamicAllocation")
+                $dockerCmd += @('--label', "$DynamicCpuLabel")
+            }
+            elseif ($Isolation -ne 'process')
+            {
                 $dockerCmd += "--cpus=$Cpus"
             }
 
@@ -1822,6 +1917,13 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
             & docker @dockerCmd
         }
         $dockerExitCode = $LASTEXITCODE
+
+        # Post-exit rebalance: when our container exits (--rm removes it),
+        # redistribute CPUs to remaining managed containers
+        if ($isDynamicCpus -and -not $existingContainerId)
+        {
+            Invoke-DynamicCpuRebalance -AdditionalContainers 0 | Out-Null
+        }
 
         # Check exit code
         if ($dockerExitCode -ne 0)
@@ -1882,6 +1984,12 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
 }
 finally
 {
+    # Safety-net rebalance on Ctrl+C or unexpected exit
+    if ($isDynamicCpus)
+    {
+        try { Invoke-DynamicCpuRebalance -AdditionalContainers 0 | Out-Null } catch { }
+    }
+
     # Restore original location
     Pop-Location
 }
