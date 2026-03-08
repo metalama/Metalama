@@ -2306,6 +2306,16 @@ partial class A<T, U>
                         public string Method2() => "hello";
                     }
                 }
+                """,
+            ["other.cs"] =
+                """
+                namespace MyApp.Other
+                {
+                    class OtherClass
+                    {
+                        public void DoWork() { }
+                    }
+                }
                 """
         };
 
@@ -2316,23 +2326,24 @@ partial class A<T, U>
         // First execution with full compilation should succeed.
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out _ ) );
 
-        // Simulate a change to just the target file (design-time partial compilation scenario).
-        // This triggers partial re-execution where only the modified syntax tree is processed,
-        // and the namespace symbol may not be resolvable.
-        var modifiedTargetCode = """
-                                 namespace MyApp.Fabrics
-                                 {
-                                     class TargetClass
-                                     {
-                                         public void Method1() { }
-                                         public string Method2() => "hello";
-                                         public int Method3() => 42;
-                                     }
-                                 }
-                                 """;
+        // Simulate a change to a file in a different namespace (design-time partial compilation scenario).
+        // The modified file is in MyApp.Other, so the partial compilation does not include the
+        // fabric's target namespace (MyApp.Fabrics), which previously caused SymbolNotFoundException.
+        var modifiedOtherCode = """
+                                namespace MyApp.Other
+                                {
+                                    class OtherClass
+                                    {
+                                        public void DoWork() { }
+                                        public int DoMoreWork() => 42;
+                                    }
+                                }
+                                """;
 
-        var newTree = CSharpSyntaxTree.ParseText( modifiedTargetCode, path: "target.cs" );
-        var compilation2 = compilation.ReplaceSyntaxTree( compilation.SyntaxTrees.Single( t => t.FilePath == "target.cs" ), newTree );
+        var originalOtherTree = compilation.SyntaxTrees.Single( t => t.FilePath == "other.cs" );
+        var parseOptions = (CSharpParseOptions) originalOtherTree.Options;
+        var newTree = CSharpSyntaxTree.ParseText( modifiedOtherCode, parseOptions, path: "other.cs" );
+        var compilation2 = compilation.ReplaceSyntaxTree( originalOtherTree, newTree );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation2, default, out _ ) );
     }

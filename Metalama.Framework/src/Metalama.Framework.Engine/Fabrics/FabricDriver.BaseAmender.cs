@@ -43,12 +43,24 @@ internal abstract partial class FabricDriver
             CompilationModelVersion.Final,
             ( action, context ) =>
             {
-                var target = targetDeclaration.GetTargetOrNull( context.Compilation );
+                T target;
 
-                if ( target == null )
+                if ( context.Compilation.IsPartial )
                 {
-                    // The target declaration may not be resolvable in a partial compilation (design-time scenario).
-                    return Task.CompletedTask;
+                    var targetOrNull = targetDeclaration.GetTargetOrNull( context.Compilation );
+
+                    if ( targetOrNull == null )
+                    {
+                        // The target declaration may not be resolvable in a partial compilation (design-time scenario).
+                        return Task.CompletedTask;
+                    }
+
+                    target = targetOrNull;
+                }
+                else
+                {
+                    // In complete compilations, fail fast when the target declaration cannot be resolved.
+                    target = targetDeclaration.GetTarget( context.Compilation );
                 }
 
                 return action( target, 0, context );
