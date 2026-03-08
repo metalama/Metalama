@@ -1583,7 +1583,6 @@ RemainingNamespace
             Assert.True( result.IsSuccessful );
         }
 
-#if NET6_0_OR_GREATER
         [Fact]
         public void OverwriteReadOnlyFilesInCache()
         {
@@ -1601,70 +1600,83 @@ public class ReferencedClass
 }
 ";
 
-            using var testContext = this.CreateTestContext();
-            var domain = testContext.Domain;
+            string cacheSubPath;
+            string[] csFileNames;
 
-            var roslynCompilation = testContext.CreateCSharpCompilation( code );
-
-            DiagnosticBag diagnosticBag = new();
-
-            // First compilation: this writes .cs files to disk and sets them as read-only.
-            var builder1 = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
-
-            Assert.True(
-                builder1.TryGetCompileTimeProjectFromCompilation(
-                    roslynCompilation,
-                    null,
-                    diagnosticBag,
-                    false,
-                    testContext.CancellationToken,
-                    out var compileTimeProject1 ) );
-
-            Assert.NotNull( compileTimeProject1 );
-            Assert.NotNull( compileTimeProject1.Directory );
-
-            // Verify that the files are read-only.
-            var csFiles = Directory.GetFiles( compileTimeProject1.Directory, "*.cs" );
-            Assert.NotEmpty( csFiles );
-
-            foreach ( var csFile in csFiles )
+            // First context: compile to generate the cache directory with read-only .cs files.
+            // We use a separate context so the loaded assembly (which locks the DLL on .NET Framework)
+            // is released when the context is disposed.
+            using ( var testContext1 = this.CreateTestContext() )
             {
+                var domain1 = testContext1.Domain;
+                var roslynCompilation1 = testContext1.CreateCSharpCompilation( code );
+
+                DiagnosticBag diagnosticBag1 = new();
+                var builder1 = new CompileTimeProjectRepository.Builder( domain1, testContext1.ServiceProvider );
+
                 Assert.True(
-                    ( File.GetAttributes( csFile ) & FileAttributes.ReadOnly ) != 0,
-                    $"File '{csFile}' should be read-only." );
+                    builder1.TryGetCompileTimeProjectFromCompilation(
+                        roslynCompilation1,
+                        null,
+                        diagnosticBag1,
+                        false,
+                        testContext1.CancellationToken,
+                        out var compileTimeProject1 ) );
+
+                Assert.NotNull( compileTimeProject1 );
+                Assert.NotNull( compileTimeProject1.Directory );
+
+                // Verify that the .cs files are read-only.
+                var csFiles = Directory.GetFiles( compileTimeProject1.Directory, "*.cs" );
+                Assert.NotEmpty( csFiles );
+
+                foreach ( var csFile in csFiles )
+                {
+                    Assert.True(
+                        ( File.GetAttributes( csFile ) & FileAttributes.ReadOnly ) != 0,
+                        $"File '{csFile}' should be read-only." );
+                }
+
+                // Record the cache sub-path (relative to test base directory) and .cs file names.
+                cacheSubPath = compileTimeProject1.Directory.Substring( testContext1.BaseDirectory.Length ).TrimStart( Path.DirectorySeparatorChar );
+                csFileNames = Array.ConvertAll( csFiles, Path.GetFileName )!;
             }
 
-            // Delete only the PE and manifest files to simulate a partial cache,
-            // leaving the read-only .cs files in place.
-            var peFile = Directory.GetFiles( compileTimeProject1.Directory, "*.dll" ).Single();
-            var pdbFile = Directory.GetFiles( compileTimeProject1.Directory, "*.pdb" ).Single();
-            var manifestFile = Path.Combine( compileTimeProject1.Directory, "manifest.json" );
+            // Second context: pre-populate the cache directory with read-only .cs files
+            // (simulating a partial cache where PE/manifest are missing but .cs files remain),
+            // then compile to verify TryEmit can overwrite them.
+            using ( var testContext2 = this.CreateTestContext() )
+            {
+                var cacheDir2 = Path.Combine( testContext2.BaseDirectory, cacheSubPath );
+                Directory.CreateDirectory( cacheDir2 );
 
-            // Clear read-only attributes before deleting (required on .NET Framework).
-            File.SetAttributes( peFile, FileAttributes.Normal );
-            File.SetAttributes( pdbFile, FileAttributes.Normal );
-            File.SetAttributes( manifestFile, FileAttributes.Normal );
+                // Create read-only .cs files in the new cache directory.
+                foreach ( var csFileName in csFileNames )
+                {
+                    var csFilePath = Path.Combine( cacheDir2, csFileName );
+                    File.WriteAllText( csFilePath, "// stale content" );
+                    File.SetAttributes( csFilePath, FileAttributes.ReadOnly );
+                }
 
-            File.Delete( peFile );
-            File.Delete( pdbFile );
-            File.Delete( manifestFile );
+                var domain2 = testContext2.Domain;
+                var roslynCompilation2 = testContext2.CreateCSharpCompilation( code );
 
-            // Second compilation: the disk cache will be a miss (no PE/manifest),
-            // so TryEmit will be called. It should succeed even though .cs files are read-only.
-            var builder2 = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+                DiagnosticBag diagnosticBag2 = new();
+                var builder2 = new CompileTimeProjectRepository.Builder( domain2, testContext2.ServiceProvider );
 
-            Assert.True(
-                builder2.TryGetCompileTimeProjectFromCompilation(
-                    roslynCompilation,
-                    null,
-                    diagnosticBag,
-                    false,
-                    testContext.CancellationToken,
-                    out var compileTimeProject2 ) );
+                // This should succeed: TryEmit must clear the read-only attribute before overwriting.
+                Assert.True(
+                    builder2.TryGetCompileTimeProjectFromCompilation(
+                        roslynCompilation2,
+                        null,
+                        diagnosticBag2,
+                        false,
+                        testContext2.CancellationToken,
+                        out var compileTimeProject2 ) );
 
-            Assert.NotNull( compileTimeProject2 );
+                Assert.NotNull( compileTimeProject2 );
+            }
         }
-#endif
 
 #if ROSLYN_4_12_0_OR_GREATER
         [Fact]
