@@ -1,3 +1,7 @@
+// Warning MY001 on `TargetType`: `Test<U>.AllImplementedInterfaces: ITest<TargetType.Test<U>/U>`
+// Warning MY001 on `TargetType`: `Test<U>.ImplementedInterfaces: ITest<TargetType.Test<U>/U>`
+// Warning MY001 on `TargetType`: `Test<int>.AllImplementedInterfaces: ITest<int>`
+// Warning MY001 on `TargetType`: `Test<int>.ImplementedInterfaces: ITest<int>`
 [IntroductionAttribute]
 public class TargetType
 {
