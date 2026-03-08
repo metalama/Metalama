@@ -2239,7 +2239,7 @@ partial class A<T, U>
                     {
                         public override void AmendType( ITypeAmender amender )
                             => amender.AddAspect<MyAspect>();
-                    } 
+                    }
                 }
                 """
         };
@@ -2249,5 +2249,91 @@ partial class A<T, U>
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out _ ) );
+    }
+
+    [Fact]
+    public void NamespaceFabric()
+    {
+        // Regression test for https://github.com/metalama/Metalama/issues/595
+        // NamespaceFabric throws SymbolNotFoundException when resolving its target namespace.
+
+        using var testContext = this.CreateTestContext();
+
+        var code = new Dictionary<string, string>()
+        {
+            ["aspect.cs"] =
+                """
+                using System;
+                using Metalama.Framework.Aspects;
+
+                public class LogAspect : OverrideMethodAspect
+                {
+                    public override dynamic? OverrideMethod()
+                    {
+                        Console.WriteLine("logged");
+                        return meta.Proceed();
+                    }
+                }
+                """,
+            ["fabric.cs"] =
+                """
+                using Metalama.Framework.Aspects;
+                using Metalama.Framework.Code;
+                using Metalama.Framework.Fabrics;
+
+                namespace MyApp.Fabrics
+                {
+                    class Fabric : NamespaceFabric
+                    {
+                        public override void AmendNamespace( INamespaceAmender amender )
+                        {
+                            amender
+                                .SelectMany( ns => ns.DescendantsAndSelf() )
+                                .SelectMany( ns => ns.Types )
+                                .SelectMany( t => t.Methods )
+                                .AddAspect<LogAspect>();
+                        }
+                    }
+                }
+                """,
+            ["target.cs"] =
+                """
+                namespace MyApp.Fabrics
+                {
+                    class TargetClass
+                    {
+                        public void Method1() { }
+                        public string Method2() => "hello";
+                    }
+                }
+                """
+        };
+
+        var compilation = testContext.CreateCSharpCompilation( code );
+
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+
+        // First execution with full compilation should succeed.
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out _ ) );
+
+        // Simulate a change to just the target file (design-time partial compilation scenario).
+        // This triggers partial re-execution where only the modified syntax tree is processed,
+        // and the namespace symbol may not be resolvable.
+        var modifiedTargetCode = """
+                                 namespace MyApp.Fabrics
+                                 {
+                                     class TargetClass
+                                     {
+                                         public void Method1() { }
+                                         public string Method2() => "hello";
+                                         public int Method3() => 42;
+                                     }
+                                 }
+                                 """;
+
+        var newTree = CSharpSyntaxTree.ParseText( modifiedTargetCode, path: "target.cs" );
+        var compilation2 = compilation.ReplaceSyntaxTree( compilation.SyntaxTrees.Single( t => t.FilePath == "target.cs" ), newTree );
+
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation2, default, out _ ) );
     }
 }
