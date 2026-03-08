@@ -32,6 +32,12 @@
 
     </PropertyGroup>
 
+    <!-- Default MetalamaFormatOutput to True when MetalamaDebugTransformedCode is True.
+         This must be in the .targets file (not .props) so it can see properties set in the project file. -->
+    <PropertyGroup Condition="'$(MetalamaDebugTransformedCode)'=='True'">
+        <MetalamaFormatOutput Condition="'$(MetalamaFormatOutput)'==''">True</MetalamaFormatOutput>
+    </PropertyGroup>
+
       <!-- The LangVersionImplicitlySet property is set by Metalama.Compiler when LangVersion is not defined, according to the current target framework.
          We change this value to our own lowest supported version. 
         -->
