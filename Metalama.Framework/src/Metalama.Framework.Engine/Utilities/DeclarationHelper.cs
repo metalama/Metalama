@@ -23,11 +23,13 @@ internal static class DeclarationHelper
     private enum TypeNameKind
     {
         Name,
+        ToString,
         FullName
     }
 
     private static readonly WeakCache<IType, string> _reflectionNameCache = new( isStaticCache: true );
     private static readonly WeakCache<IType, string> _reflectionFullNameCache = new( isStaticCache: true );
+    private static readonly WeakCache<IType, string> _reflectionToStringNameCache = new( isStaticCache: true );
 
     /// <summary>
     /// Gets a string that would be equal to <see cref="MemberInfo.Name"/>.
@@ -47,6 +49,15 @@ internal static class DeclarationHelper
             ? type.GetReflectionName( TypeNameKind.FullName, bypassSymbols: true )
             : _reflectionFullNameCache.GetOrAdd( type, x => x.GetReflectionName( TypeNameKind.FullName ) );
 
+    /// <summary>
+    /// Gets a string that would be equal to the returned value of <see cref="Type.ToString"/> method.
+    /// </summary>
+    /// <param name="bypassSymbols">Does not use the symbol-based implementation, even when available. Used for testing.</param>
+    internal static string GetReflectionToStringName( this IType type, bool bypassSymbols = false )
+        => bypassSymbols
+            ? type.GetReflectionName( TypeNameKind.ToString, bypassSymbols: true )
+            : _reflectionToStringNameCache.GetOrAdd( type, x => x.GetReflectionName( TypeNameKind.ToString ) );
+
     private static string GetReflectionName( this IType declaration, TypeNameKind kind, bool bypassSymbols = false )
     {
         if ( declaration.GetSymbol() is { } symbol && !bypassSymbols )
@@ -55,6 +66,7 @@ internal static class DeclarationHelper
             {
                 TypeNameKind.Name => symbol.GetReflectionName(),
                 TypeNameKind.FullName => symbol.GetReflectionFullName(),
+                TypeNameKind.ToString => symbol.GetReflectionToStringName(),
                 _ => throw new AssertionFailedException( $"Unexpected TypeNameKind value: {kind}." )
             };
         }
@@ -108,8 +120,9 @@ internal static class DeclarationHelper
 
             switch ( declaration )
             {
-                case INamedType { IsGeneric: true, IsCanonicalGenericInstance: false } unboundGenericType
-                    when kind != TypeNameKind.Name:
+                case INamedType { IsGeneric: true } unboundGenericType
+                    when (!unboundGenericType.IsCanonicalGenericInstance && kind != TypeNameKind.Name)
+                          || kind == TypeNameKind.ToString:
                     sb.Append( unboundGenericType.GetMetadataName() );
 
                     currentTypeArguments.AddRange( unboundGenericType.TypeArguments );

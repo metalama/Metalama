@@ -86,6 +86,7 @@ public sealed class ReflectionHelperTests : UnitTestClass
 
         Assert.Equal( RemoveAssemblyQualification( type.FullName! ), iType.GetReflectionFullName( bypassSymbols: true ) );
         Assert.Equal( type.Name, iType.GetReflectionName( bypassSymbols: true ) );
+        Assert.Equal( type.ToString(), iType.GetReflectionToStringName( bypassSymbols: true ) );
     }
 
     public class Outer<T1, T2>

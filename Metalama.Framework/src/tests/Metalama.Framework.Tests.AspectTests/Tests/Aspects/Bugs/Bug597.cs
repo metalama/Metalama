@@ -24,17 +24,32 @@ public class MyAspect : TypeAspect
         // Construct a generic instance of the introduced interface with typeof(object).
         var genericInstance = introducedInterface.Declaration.MakeGenericInstance( typeof(object) );
 
-        // Introduce a method where the compile-time type parameter T is bound to the introduced generic type instance.
+        // Test 1: typeof(T) where T is an introduced generic type instance.
         builder.IntroduceMethod(
             nameof(TestTypeOf),
             args: new { T = genericInstance },
             buildMethod: b => { b.Name = "TestTypeOfIntroducedGenericInstance"; } );
+
+        // Test 2: typeof(T) where T is an array of an introduced generic type instance.
+        var arrayOfGenericInstance = genericInstance.MakeArrayType();
+
+        builder.IntroduceMethod(
+            nameof(TestTypeOf),
+            args: new { T = (IType) arrayOfGenericInstance },
+            buildMethod: b => { b.Name = "TestTypeOfIntroducedGenericInstanceArray"; } );
+
+        // Test 3: typeof(T) where T is a 2D array of an introduced generic type instance.
+        var array2DOfGenericInstance = genericInstance.MakeArrayType( 2 );
+
+        builder.IntroduceMethod(
+            nameof(TestTypeOf),
+            args: new { T = (IType) array2DOfGenericInstance },
+            buildMethod: b => { b.Name = "TestTypeOfIntroducedGenericInstanceArray2D"; } );
     }
 
     [Template]
     private void TestTypeOf<[CompileTime] T>()
     {
-        // This should work: typeof(T) where T is IIntroducedInterface<object>.
         Console.WriteLine( typeof(T).Name );
     }
 }

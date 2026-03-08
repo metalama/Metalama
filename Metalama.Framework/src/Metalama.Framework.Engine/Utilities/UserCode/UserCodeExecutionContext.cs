@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
@@ -77,12 +78,42 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         var resolvedTypeId = resolvedType.GetSerializableTypeId( bypassSymbols: true );
 
         // Build metadata from the resolved IType.
-        var ns = (resolvedType as INamedType)?.ContainingNamespace?.FullName;
+        var ns = GetNamespaceForType( resolvedType );
         var name = resolvedType.GetReflectionName( bypassSymbols: true );
         var fullName = resolvedType.GetReflectionFullName( bypassSymbols: true );
-        var metadata = new CompileTimeTypeMetadata( ns, name, fullName, fullName );
+        var toStringName = resolvedType.GetReflectionToStringName( bypassSymbols: true );
+        var metadata = new CompileTimeTypeMetadata( ns, name, fullName, toStringName );
 
         return Current.CompilationContext!.CompileTimeTypeFactory.Get( resolvedTypeId, metadata );
+    }
+
+    /// <summary>
+    /// Emulates <see cref="Type.Namespace"/>: unwraps arrays, pointers, etc. to find the innermost named type's namespace.
+    /// </summary>
+    private static string? GetNamespaceForType( IType type )
+    {
+        while ( true )
+        {
+            switch ( type )
+            {
+                case INamedType namedType:
+                    return namedType.ContainingNamespace?.FullName;
+
+                case IArrayType arrayType:
+                    type = arrayType.ElementType;
+
+                    continue;
+
+                case IPointerType pointerType:
+                    type = pointerType.PointedAtType;
+
+                    continue;
+
+                default:
+                    // For other non-named types (e.g., dynamic), no namespace is available.
+                    return null;
+            }
+        }
     }
 
     internal static Type ResolveCompileTimeTypeOf( string typeId, string? ns, string name, string fullName, string toString )
