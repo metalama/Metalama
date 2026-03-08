@@ -29,10 +29,6 @@
 
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(MetalamaDebugTransformedCode)'=='True'">
-        <MetalamaFormatOutput Condition="'$(MetalamaFormatOutput)'==''">True</MetalamaFormatOutput>
-    </PropertyGroup>
-
     <ItemGroup>
         <!-- Source generator attributes targeting members present in .Net 9 (dotnet/runtime and dotnet/extensions): -->
         <MetalamaSourceGeneratorAttribute Include="Microsoft.Extensions.Diagnostics.Metrics.CounterAttribute" />
