@@ -1583,6 +1583,7 @@ RemainingNamespace
             Assert.True( result.IsSuccessful );
         }
 
+#if NET6_0_OR_GREATER
         [Fact]
         public void OverwriteReadOnlyFilesInCache()
         {
@@ -1639,6 +1640,11 @@ public class ReferencedClass
             var pdbFile = Directory.GetFiles( compileTimeProject1.Directory, "*.pdb" ).Single();
             var manifestFile = Path.Combine( compileTimeProject1.Directory, "manifest.json" );
 
+            // Clear read-only attributes before deleting (required on .NET Framework).
+            File.SetAttributes( peFile, FileAttributes.Normal );
+            File.SetAttributes( pdbFile, FileAttributes.Normal );
+            File.SetAttributes( manifestFile, FileAttributes.Normal );
+
             File.Delete( peFile );
             File.Delete( pdbFile );
             File.Delete( manifestFile );
@@ -1658,6 +1664,7 @@ public class ReferencedClass
 
             Assert.NotNull( compileTimeProject2 );
         }
+#endif
 
 #if ROSLYN_4_12_0_OR_GREATER
         [Fact]
