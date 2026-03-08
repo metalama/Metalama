@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- Issue 594: Setting MetalamaDebugTransformedCode=True in the project file should
+         automatically result in MetalamaFormatOutput=True. This only works if the
+         defaulting logic is in .targets (evaluated after the project file), not in .props
+         (evaluated before the project file). -->
+    <MetalamaDebugTransformedCode>True</MetalamaDebugTransformedCode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+  <!-- Verify that MetalamaFormatOutput was correctly defaulted to True. -->
+  <Target Name="ValidateMetalamaFormatOutput" BeforeTargets="CoreCompile">
+    <Error Text="MetalamaFormatOutput should be 'True' when MetalamaDebugTransformedCode is 'True', but it was '$(MetalamaFormatOutput)'. The defaulting logic must be in .targets, not .props."
+           Condition="'$(MetalamaFormatOutput)' != 'True'" />
+  </Target>
+
+</Project>
