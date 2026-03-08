@@ -460,9 +460,15 @@ internal sealed partial class CompileTimeCompilationBuilder
                     path,
                     p =>
                     {
+                        if ( File.Exists( p ) )
+                        {
+                            // Remove read-only attribute before overwriting.
+                            File.SetAttributes( p, FileAttributes.Normal );
+                        }
+
                         File.WriteAllBytes( p, bytes );
 
-                        // Set the file as read only to we have no temptation to edit it.
+                        // Set the file as read only so we have no temptation to edit it.
                         File.SetAttributes( p, FileAttributes.ReadOnly );
                     },
                     this._serviceProvider.Underlying,
