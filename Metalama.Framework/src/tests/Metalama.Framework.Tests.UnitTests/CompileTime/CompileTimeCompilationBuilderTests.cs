@@ -1583,6 +1583,82 @@ RemainingNamespace
             Assert.True( result.IsSuccessful );
         }
 
+        [Fact]
+        public void OverwriteReadOnlyFilesInCache()
+        {
+            // Regression test for https://github.com/metalama/Metalama/issues/587
+            // When the cache directory already contains read-only .cs files from a previous compilation
+            // (e.g., after a partial failure where PE was not created), TryEmit should still succeed
+            // by clearing the read-only attribute before writing.
+
+            const string code = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+[assembly: CompileTime]
+public class ReferencedClass
+{
+}
+";
+
+            using var testContext = this.CreateTestContext();
+            var domain = testContext.Domain;
+
+            var roslynCompilation = testContext.CreateCSharpCompilation( code );
+
+            DiagnosticBag diagnosticBag = new();
+
+            // First compilation: this writes .cs files to disk and sets them as read-only.
+            var builder1 = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+
+            Assert.True(
+                builder1.TryGetCompileTimeProjectFromCompilation(
+                    roslynCompilation,
+                    null,
+                    diagnosticBag,
+                    false,
+                    testContext.CancellationToken,
+                    out var compileTimeProject1 ) );
+
+            Assert.NotNull( compileTimeProject1 );
+            Assert.NotNull( compileTimeProject1.Directory );
+
+            // Verify that the files are read-only.
+            var csFiles = Directory.GetFiles( compileTimeProject1.Directory, "*.cs" );
+            Assert.NotEmpty( csFiles );
+
+            foreach ( var csFile in csFiles )
+            {
+                Assert.True(
+                    ( File.GetAttributes( csFile ) & FileAttributes.ReadOnly ) != 0,
+                    $"File '{csFile}' should be read-only." );
+            }
+
+            // Delete only the PE and manifest files to simulate a partial cache,
+            // leaving the read-only .cs files in place.
+            var peFile = Directory.GetFiles( compileTimeProject1.Directory, "*.dll" ).Single();
+            var pdbFile = Directory.GetFiles( compileTimeProject1.Directory, "*.pdb" ).Single();
+            var manifestFile = Path.Combine( compileTimeProject1.Directory, "manifest.json" );
+
+            File.Delete( peFile );
+            File.Delete( pdbFile );
+            File.Delete( manifestFile );
+
+            // Second compilation: the disk cache will be a miss (no PE/manifest),
+            // so TryEmit will be called. It should succeed even though .cs files are read-only.
+            var builder2 = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+
+            Assert.True(
+                builder2.TryGetCompileTimeProjectFromCompilation(
+                    roslynCompilation,
+                    null,
+                    diagnosticBag,
+                    false,
+                    testContext.CancellationToken,
+                    out var compileTimeProject2 ) );
+
+            Assert.NotNull( compileTimeProject2 );
+        }
+
 #if ROSLYN_4_12_0_OR_GREATER
         [Fact]
         public void TemplateLanguageVersion()
