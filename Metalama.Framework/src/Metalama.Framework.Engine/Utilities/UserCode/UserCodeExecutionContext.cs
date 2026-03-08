@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.ReflectionMocks;
+using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating.Expressions;
@@ -23,6 +24,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Utilities.UserCode;
 
@@ -53,8 +55,34 @@ public class UserCodeExecutionContext : IExecutionContextInternal
             throw new InvalidOperationException( "Cannot use typeof for run-time types in the current execution context." );
         }
 
+        // When substitutions contain types without symbols (e.g. introduced types), the symbol-based resolver
+        // cannot handle them. Use the IType-based resolver via the CompilationModel instead.
+        if ( substitutions != null && Current.Compilation != null && substitutions.Values.Any( t => t.GetSymbol() == null ) )
+        {
+            return ResolveCompileTimeTypeOfUsingITypeResolver( typeId, substitutions );
+        }
+
         return Current.CompilationContext.CompileTimeTypeFactory
             .Get( new SerializableTypeId( typeId ), substitutions );
+    }
+
+    private static Type ResolveCompileTimeTypeOfUsingITypeResolver( string typeId, IReadOnlyDictionary<string, IType> substitutions )
+    {
+        var compilation = Current.Compilation!;
+
+        // Resolve using the IType-based resolver, which can handle introduced types.
+        var resolvedType = compilation.SerializableTypeIdResolver.ResolveId( new SerializableTypeId( typeId ), substitutions );
+
+        // Get the serializable type ID for the resolved type (for caching in CompileTimeTypeFactory).
+        var resolvedTypeId = resolvedType.GetSerializableTypeId( bypassSymbols: true );
+
+        // Build metadata from the resolved IType.
+        var ns = (resolvedType as INamedType)?.ContainingNamespace?.FullName;
+        var name = resolvedType.GetReflectionName( bypassSymbols: true );
+        var fullName = resolvedType.GetReflectionFullName( bypassSymbols: true );
+        var metadata = new CompileTimeTypeMetadata( ns, name, fullName, fullName );
+
+        return Current.CompilationContext!.CompileTimeTypeFactory.Get( resolvedTypeId, metadata );
     }
 
     internal static Type ResolveCompileTimeTypeOf( string typeId, string? ns, string name, string fullName, string toString )

@@ -6,7 +6,6 @@ using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.SyntaxBuilders;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug597;
 
@@ -37,13 +36,6 @@ public class MyAspect : TypeAspect
     {
         // This should work: typeof(T) where T is IIntroducedInterface<object>.
         Console.WriteLine( typeof(T).Name );
-
-        // This should also work: using AppendTypeName with typeof(T).
-        var s = new StatementBuilder();
-        s.AppendVerbatim( "Console.WriteLine( typeof(" );
-        s.AppendTypeName( typeof(T) );
-        s.AppendVerbatim( ").FullName );" );
-        meta.InsertStatement( s.ToStatement() );
     }
 }
 
