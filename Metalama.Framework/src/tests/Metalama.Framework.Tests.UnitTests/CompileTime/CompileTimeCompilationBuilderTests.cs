@@ -1583,6 +1583,101 @@ RemainingNamespace
             Assert.True( result.IsSuccessful );
         }
 
+        [Fact]
+        public void OverwriteReadOnlyFilesInCache()
+        {
+            // Regression test for https://github.com/metalama/Metalama/issues/587
+            // When the cache directory already contains read-only .cs files from a previous compilation
+            // (e.g., after a partial failure where PE was not created), TryEmit should still succeed
+            // by clearing the read-only attribute before writing.
+
+            const string code = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+[assembly: CompileTime]
+public class ReferencedClass
+{
+}
+";
+
+            string cacheSubPath;
+            string[] csFileNames;
+
+            // First context: compile to generate the cache directory with read-only .cs files.
+            // We use a separate context so the loaded assembly (which locks the DLL on .NET Framework)
+            // is released when the context is disposed.
+            using ( var testContext1 = this.CreateTestContext() )
+            {
+                var domain1 = testContext1.Domain;
+                var roslynCompilation1 = testContext1.CreateCSharpCompilation( code );
+
+                DiagnosticBag diagnosticBag1 = new();
+                var builder1 = new CompileTimeProjectRepository.Builder( domain1, testContext1.ServiceProvider );
+
+                Assert.True(
+                    builder1.TryGetCompileTimeProjectFromCompilation(
+                        roslynCompilation1,
+                        null,
+                        diagnosticBag1,
+                        false,
+                        testContext1.CancellationToken,
+                        out var compileTimeProject1 ) );
+
+                Assert.NotNull( compileTimeProject1 );
+                Assert.NotNull( compileTimeProject1.Directory );
+
+                // Verify that the .cs files are read-only.
+                var csFiles = Directory.GetFiles( compileTimeProject1.Directory, "*.cs" );
+                Assert.NotEmpty( csFiles );
+
+                foreach ( var csFile in csFiles )
+                {
+                    Assert.True(
+                        ( File.GetAttributes( csFile ) & FileAttributes.ReadOnly ) != 0,
+                        $"File '{csFile}' should be read-only." );
+                }
+
+                // Record the cache sub-path (relative to test base directory) and .cs file names.
+                cacheSubPath = compileTimeProject1.Directory.Substring( testContext1.BaseDirectory.Length ).TrimStart( Path.DirectorySeparatorChar );
+                csFileNames = Array.ConvertAll( csFiles, Path.GetFileName )!;
+            }
+
+            // Second context: pre-populate the cache directory with read-only .cs files
+            // (simulating a partial cache where PE/manifest are missing but .cs files remain),
+            // then compile to verify TryEmit can overwrite them.
+            using ( var testContext2 = this.CreateTestContext() )
+            {
+                var cacheDir2 = Path.Combine( testContext2.BaseDirectory, cacheSubPath );
+                Directory.CreateDirectory( cacheDir2 );
+
+                // Create read-only .cs files in the new cache directory.
+                foreach ( var csFileName in csFileNames )
+                {
+                    var csFilePath = Path.Combine( cacheDir2, csFileName );
+                    File.WriteAllText( csFilePath, "// stale content" );
+                    File.SetAttributes( csFilePath, FileAttributes.ReadOnly );
+                }
+
+                var domain2 = testContext2.Domain;
+                var roslynCompilation2 = testContext2.CreateCSharpCompilation( code );
+
+                DiagnosticBag diagnosticBag2 = new();
+                var builder2 = new CompileTimeProjectRepository.Builder( domain2, testContext2.ServiceProvider );
+
+                // This should succeed: TryEmit must clear the read-only attribute before overwriting.
+                Assert.True(
+                    builder2.TryGetCompileTimeProjectFromCompilation(
+                        roslynCompilation2,
+                        null,
+                        diagnosticBag2,
+                        false,
+                        testContext2.CancellationToken,
+                        out var compileTimeProject2 ) );
+
+                Assert.NotNull( compileTimeProject2 );
+            }
+        }
+
 #if ROSLYN_4_12_0_OR_GREATER
         [Fact]
         public void TemplateLanguageVersion()
