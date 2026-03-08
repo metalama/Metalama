@@ -51,12 +51,12 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     public IImplementedInterfaceCollection AllImplementedInterfaces
         => new AllImplementedInterfacesCollection(
             this,
-            this.Compilation.GetAllInterfaceImplementationCollection( this.Ref.DefinitionRef, false ) );
+            this.Compilation.GetAllInterfaceImplementationCollection( this.Ref, false ) );
 
     public IImplementedInterfaceCollection ImplementedInterfaces
         => new ImplementedInterfacesCollection(
             this,
-            this.Compilation.GetInterfaceImplementationCollection( this.Ref.DefinitionRef, false ) );
+            this.Compilation.GetInterfaceImplementationCollection( this.Ref, false ) );
 
     INamespace INamedType.Namespace => this.ContainingNamespace;
 

@@ -45,9 +45,7 @@ internal sealed class IntroducedGenericContext : GenericContext
         }
         else
         {
-            // The type parameter does not belong to this context's definition and there is no parent context.
-            // Return the type parameter unmapped, consistent with SymbolGenericContext behavior.
-            return typeParameter;
+            throw new ArgumentOutOfRangeException();
         }
     }
 
@@ -66,9 +64,7 @@ internal sealed class IntroducedGenericContext : GenericContext
         }
         else
         {
-            // The type parameter does not belong to this context's definition and there is no parent context.
-            // Return the type parameter unmapped, consistent with SymbolGenericContext behavior.
-            return compilation.Factory.GetIType( typeParameterSymbol );
+            throw new ArgumentOutOfRangeException();
         }
     }
 
