@@ -53,7 +53,7 @@ internal static class TriviaHelper
                  || trivia.IsDirective )
             {
                 // Include the whitespace trivia before the comment for proper indentation.
-                if ( result.Count == 0 && i > 0 && leadingTrivia[i - 1].IsKind( SyntaxKind.WhitespaceTrivia ) )
+                if ( i > 0 && leadingTrivia[i - 1].IsKind( SyntaxKind.WhitespaceTrivia ) )
                 {
                     result.Add( leadingTrivia[i - 1] );
                 }

@@ -74,8 +74,9 @@ namespace Metalama.Framework.Engine.Linking
                          {
                              ReplacedMember: ISymbolRef replacedFieldSymbolRef
                          }
-                         && replacedFieldSymbolRef.Symbol.GetPrimarySyntaxReference()?.GetSyntax().Parent?.Parent
-                             is { RawKind: (int) SyntaxKind.FieldDeclaration } and FieldDeclarationSyntax originalFieldDeclaration )
+                         && replacedFieldSymbolRef.Symbol.GetPrimarySyntaxReference()
+                             ?.GetSyntax()
+                             .FirstAncestorOrSelf<FieldDeclarationSyntax>() is { } originalFieldDeclaration )
                     {
                         var nonDocTrivia = TriviaHelper.GetNonDocumentationTrivia( originalFieldDeclaration );
 
