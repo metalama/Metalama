@@ -48,7 +48,7 @@ internal sealed class CompileTimeProject : IProjectService
     private readonly ITextMapFileProvider? _mapFileProvider;
     private readonly CacheableTemplateDiscoveryContextProvider? _cacheableTemplateDiscoveryContextProvider;
 
-    private CompileTimeDomain Domain { get; }
+    internal CompileTimeDomain Domain { get; }
 
     private DiagnosticManifest DiagnosticManifest { get; }
 
