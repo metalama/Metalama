@@ -15,6 +15,7 @@ namespace Metalama.Framework.Engine.CompileTime
     {
         private readonly GlobalServiceProvider _serviceProvider;
         private readonly ConcurrentDictionary<Guid, WeakReference<CompileTimeDomain>> _domains = new();
+        private readonly object _lock = new();
 
         public DefaultCompileTimeDomainFactory( GlobalServiceProvider serviceProvider )
         {
@@ -31,25 +32,28 @@ namespace Metalama.Framework.Engine.CompileTime
 
         public CompileTimeDomain GetOrCreateDomain( IReadOnlyCollection<string> assemblyPaths )
         {
-            // Clean up dead references and check for a compatible domain among all still-alive domains.
-            foreach ( var kvp in this._domains.ToArray() )
+            lock ( this._lock )
             {
-                if ( !kvp.Value.TryGetTarget( out var domain ) )
+                // Clean up dead references and check for a compatible domain among all still-alive domains.
+                foreach ( var kvp in this._domains.ToArray() )
                 {
-                    // Domain has been collected by GC. Remove the dead reference.
-                    this._domains.TryRemove( kvp.Key, out _ );
+                    if ( !kvp.Value.TryGetTarget( out var domain ) )
+                    {
+                        // Domain has been collected by GC. Remove the dead reference.
+                        this._domains.TryRemove( kvp.Key, out _ );
 
-                    continue;
+                        continue;
+                    }
+
+                    if ( domain.IsCompatibleWithAssemblies( assemblyPaths ) )
+                    {
+                        return domain;
+                    }
                 }
 
-                if ( domain.IsCompatibleWithAssemblies( assemblyPaths ) )
-                {
-                    return domain;
-                }
+                // No compatible domain found. Create a new one.
+                return this.CreateDomain();
             }
-
-            // No compatible domain found. Create a new one.
-            return this.CreateDomain();
         }
     }
 }
