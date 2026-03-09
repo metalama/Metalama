@@ -118,6 +118,20 @@ namespace Metalama.Framework.Engine.CompileTime
                 return existingAssembly;
             }
 
+            // Check if an assembly with the same simple name (but different version) is already loaded.
+            // An AssemblyLoadContext cannot hold two assemblies with the same simple name, so we must
+            // return the previously loaded assembly instead of attempting to load the new one, which
+            // would throw a FileLoadException. This happens when extension assemblies are rebuilt
+            // with different versions while the domain is still alive.
+            if ( assemblyName.Name != null
+                 && this._assembliesByName.TryGetValue( assemblyName.Name, out var existingEntry ) )
+            {
+                this._logger.Warning?.Log(
+                    $"Cannot load assembly '{assemblyName}' from '{path}' because a different version ('{existingEntry.Identity}') is already loaded in the domain. Returning the existing assembly." );
+
+                return existingEntry.Assembly;
+            }
+
             // The assembly might already be loaded in the AppDomain or AssemblyLoadContext.
             if ( this._assemblyLoader!.TryGetLoadedAssembly( assemblyName, out existingAssembly ) )
             {

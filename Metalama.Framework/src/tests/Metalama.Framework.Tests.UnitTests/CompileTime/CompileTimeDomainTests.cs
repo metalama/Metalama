@@ -29,7 +29,6 @@ public sealed class CompileTimeDomainTests : UnitTestClass
 
         try
         {
-            // Create two assemblies with the same simple name but different versions.
             var assemblyName = "TestExtension";
 
             var path1 = CreateAssemblyOnDisk( tempDir, assemblyName, new Version( 1, 0, 0, 0 ), "public class V1 {}" );
@@ -42,20 +41,74 @@ public sealed class CompileTimeDomainTests : UnitTestClass
 
             // Load the second version with the same simple name - this is the scenario from issue #579.
             // Before the fix, this throws FileLoadException: "Assembly with same name is already loaded".
-            // After the fix, the domain should handle this gracefully.
+            // After the fix, the domain returns the previously loaded assembly.
             var assembly2 = domain.LoadAssembly( path2, null, new LoadAssemblyOptions { IsShared = true } );
             Assert.NotNull( assembly2 );
+
+            // The domain should return the first assembly because it cannot load two assemblies
+            // with the same simple name into the same AssemblyLoadContext.
+            Assert.Same( assembly1, assembly2 );
         }
         finally
         {
-            try
-            {
-                Directory.Delete( tempDir, true );
-            }
-            catch
-            {
-                // Ignore cleanup errors.
-            }
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that loading the same assembly (same identity) twice returns the cached instance.
+    /// </summary>
+    [Fact]
+    public void LoadAssembly_SameIdentity_ReturnsCachedAssembly()
+    {
+        using var testContext = this.CreateTestContext();
+        using var domain = testContext.Domain;
+
+        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
+        Directory.CreateDirectory( tempDir );
+
+        try
+        {
+            var path = CreateAssemblyOnDisk( tempDir, "TestAssembly", new Version( 1, 0, 0, 0 ), "public class C {}" );
+
+            var assembly1 = domain.LoadAssembly( path );
+            var assembly2 = domain.LoadAssembly( path );
+
+            Assert.Same( assembly1, assembly2 );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that loading assemblies with different simple names works correctly.
+    /// </summary>
+    [Fact]
+    public void LoadAssembly_DifferentNames_LoadsBoth()
+    {
+        using var testContext = this.CreateTestContext();
+        using var domain = testContext.Domain;
+
+        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
+        Directory.CreateDirectory( tempDir );
+
+        try
+        {
+            var path1 = CreateAssemblyOnDisk( tempDir, "ExtensionA", new Version( 1, 0, 0, 0 ), "public class A {}" );
+            var path2 = CreateAssemblyOnDisk( tempDir, "ExtensionB", new Version( 1, 0, 0, 0 ), "public class B {}" );
+
+            var assembly1 = domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
+            var assembly2 = domain.LoadAssembly( path2, null, new LoadAssemblyOptions { IsShared = true } );
+
+            Assert.NotSame( assembly1, assembly2 );
+            Assert.Equal( "ExtensionA", assembly1.GetName().Name );
+            Assert.Equal( "ExtensionB", assembly2.GetName().Name );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir );
         }
     }
 
@@ -80,5 +133,17 @@ public sealed class CompileTimeDomainTests : UnitTestClass
         }
 
         return path;
+    }
+
+    private static void TryDeleteDirectory( string path )
+    {
+        try
+        {
+            Directory.Delete( path, true );
+        }
+        catch
+        {
+            // Ignore cleanup errors.
+        }
     }
 }
