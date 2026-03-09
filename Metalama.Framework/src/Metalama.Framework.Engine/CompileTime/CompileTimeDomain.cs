@@ -308,7 +308,21 @@ namespace Metalama.Framework.Engine.CompileTime
         {
             foreach ( var path in assemblyPaths )
             {
-                var assemblyName = MetadataReferenceCache.GetAssemblyName( path );
+                AssemblyName assemblyName;
+
+                try
+                {
+                    assemblyName = MetadataReferenceCache.GetAssemblyName( path );
+                }
+                catch ( Exception e ) when ( e is FileNotFoundException or BadImageFormatException or IOException )
+                {
+                    // If we cannot read the assembly metadata, treat the domain as compatible and let the
+                    // normal extension loader report a diagnostic when it attempts to load the assembly.
+                    this._logger.Trace?.Log(
+                        $"Domain {this._domainId}: cannot read assembly metadata for '{path}': {e.Message}. Treating as compatible." );
+
+                    continue;
+                }
 
                 if ( assemblyName.Name != null
                      && this._assembliesByName.TryGetValue( assemblyName.Name, out var existingEntry ) )

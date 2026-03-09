@@ -140,18 +140,21 @@ public sealed class CompileTimeDomainTests : UnitTestClass
         var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
         Directory.CreateDirectory( tempDir );
 
+        CompileTimeDomain? domain1 = null;
+        CompileTimeDomain? domain2 = null;
+
         try
         {
             var path1 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 1, 0, 0, 0 ), "public class V1 {}" );
             var path2 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 2, 0, 0, 0 ), "public class V2 {}" );
 
             // Get a domain and load v1.
-            var domain1 = factory.GetOrCreateDomain( new[] { path1 } );
+            domain1 = factory.GetOrCreateDomain( new[] { path1 } );
             var assembly1 = domain1.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
             Assert.Equal( new Version( 1, 0, 0, 0 ), assembly1.GetName().Version );
 
             // Get a domain for v2 — should be a different domain since v1 is incompatible.
-            var domain2 = factory.GetOrCreateDomain( new[] { path2 } );
+            domain2 = factory.GetOrCreateDomain( new[] { path2 } );
             Assert.NotSame( domain1, domain2 );
 
             // Load v2 in the new domain — should succeed.
@@ -160,6 +163,14 @@ public sealed class CompileTimeDomainTests : UnitTestClass
         }
         finally
         {
+            domain2?.Dispose();
+
+            // Only dispose domain1 if it's different from domain2 (it always should be in this test).
+            if ( domain1 != null && !ReferenceEquals( domain1, domain2 ) )
+            {
+                domain1.Dispose();
+            }
+
             TryDeleteDirectory( tempDir );
         }
     }
@@ -176,13 +187,15 @@ public sealed class CompileTimeDomainTests : UnitTestClass
         var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
         Directory.CreateDirectory( tempDir );
 
+        CompileTimeDomain? domain1 = null;
+
         try
         {
             var pathA = CreateAssemblyOnDisk( tempDir, "ExtensionA", new Version( 1, 0, 0, 0 ), "public class A {}" );
             var pathB = CreateAssemblyOnDisk( tempDir, "ExtensionB", new Version( 1, 0, 0, 0 ), "public class B {}" );
 
             // Get a domain and load A.
-            var domain1 = factory.GetOrCreateDomain( new[] { pathA } );
+            domain1 = factory.GetOrCreateDomain( new[] { pathA } );
             domain1.LoadAssembly( pathA, null, new LoadAssemblyOptions { IsShared = true } );
 
             // Get a domain for B — should be the same domain since there's no conflict.
@@ -191,6 +204,7 @@ public sealed class CompileTimeDomainTests : UnitTestClass
         }
         finally
         {
+            domain1?.Dispose();
             TryDeleteDirectory( tempDir );
         }
     }
