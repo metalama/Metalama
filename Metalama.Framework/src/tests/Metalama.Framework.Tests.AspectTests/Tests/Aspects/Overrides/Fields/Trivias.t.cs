@@ -19,6 +19,7 @@ internal class TargetClass
     }
   }
   private global::System.Int32 _fieldWithComment;
+  // Regular comment before field.
   /// <summary>
   /// A field with a regular comment.
   /// </summary>

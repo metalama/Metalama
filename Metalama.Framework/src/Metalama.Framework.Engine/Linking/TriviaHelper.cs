@@ -13,40 +13,56 @@ namespace Metalama.Framework.Engine.Linking;
 internal static class TriviaHelper
 {
     /// <summary>
-    /// Extracts XML documentation comment trivia from a field declaration.
-    /// Returns the documentation trivia list, or an empty list if none is found.
+    /// Extracts comment trivia (regular comments and XML documentation comments) from a field declaration.
+    /// Returns the comment trivia list (including associated whitespace), or an empty list if none is found.
     /// </summary>
-    public static SyntaxTriviaList GetDocumentationTrivia( FieldDeclarationSyntax fieldDeclaration )
+    public static SyntaxTriviaList GetCommentTrivia( FieldDeclarationSyntax fieldDeclaration )
     {
         var leadingTrivia = fieldDeclaration.GetLeadingTrivia();
-        var docCommentTrivia = new List<SyntaxTrivia>();
+        var commentTrivia = new List<SyntaxTrivia>();
 
-        foreach ( var trivia in leadingTrivia )
+        for ( var i = 0; i < leadingTrivia.Count; i++ )
         {
-            if ( trivia.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
+            var trivia = leadingTrivia[i];
+
+            if ( trivia.IsKind( SyntaxKind.SingleLineCommentTrivia )
+                 || trivia.IsKind( SyntaxKind.MultiLineCommentTrivia )
+                 || trivia.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
                  || trivia.IsKind( SyntaxKind.MultiLineDocumentationCommentTrivia ) )
             {
-                docCommentTrivia.Add( trivia );
+                // Include the whitespace trivia before the comment for proper indentation.
+                if ( commentTrivia.Count == 0 && i > 0 && leadingTrivia[i - 1].IsKind( SyntaxKind.WhitespaceTrivia ) )
+                {
+                    commentTrivia.Add( leadingTrivia[i - 1] );
+                }
+
+                commentTrivia.Add( trivia );
+
+                // Include the end-of-line trivia after the comment.
+                if ( i + 1 < leadingTrivia.Count && leadingTrivia[i + 1].IsKind( SyntaxKind.EndOfLineTrivia ) )
+                {
+                    commentTrivia.Add( leadingTrivia[i + 1] );
+                }
             }
         }
 
-        return new SyntaxTriviaList( docCommentTrivia );
+        return new SyntaxTriviaList( commentTrivia );
     }
 
     /// <summary>
-    /// Adds documentation trivia to the leading trivia of a member declaration.
-    /// The documentation trivia is prepended before the member's existing leading trivia.
+    /// Adds comment trivia to the leading trivia of a member declaration.
+    /// The comment trivia is prepended before the member's existing leading trivia.
     /// </summary>
-    public static T WithDocumentationTrivia<T>( T member, SyntaxTriviaList documentationTrivia )
+    public static T WithCommentTrivia<T>( T member, SyntaxTriviaList commentTrivia )
         where T : MemberDeclarationSyntax
     {
-        if ( documentationTrivia.Count == 0 )
+        if ( commentTrivia.Count == 0 )
         {
             return member;
         }
 
         var existingTrivia = member.GetLeadingTrivia();
 
-        return member.WithRequiredLeadingTrivia( documentationTrivia.AddRange( existingTrivia ) );
+        return member.WithRequiredLeadingTrivia( commentTrivia.AddRange( existingTrivia ) );
     }
 }

@@ -2,6 +2,7 @@
 internal class TargetClass
 {
   private global::System.Int32 _a;
+  // Comment before.
   public global::System.Int32 A
   {
     get
@@ -16,6 +17,7 @@ internal class TargetClass
     }
   }
   private global::System.Int32 _b;
+  // Comment before.
   public global::System.Int32 B
   {
     get
@@ -30,6 +32,7 @@ internal class TargetClass
     }
   }
   private global::System.Int32 _c;
+  // Comment before.
   public global::System.Int32 C
   {
     get
