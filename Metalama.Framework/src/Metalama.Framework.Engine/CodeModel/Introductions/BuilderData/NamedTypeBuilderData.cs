@@ -35,6 +35,8 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
 
 #pragma warning restore CA1822
 
+    public bool HasDefaultConstructor { get; }
+
     public NamedTypeBuilderData( NamedTypeBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )
     {
         this._ref = builder.Ref;
@@ -44,6 +46,7 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
         this.Attributes = builder.Attributes.ToImmutable( this._ref );
         this.TypeKind = builder.TypeKind;
         this.IsRecord = builder.IsRecord;
+        this.HasDefaultConstructor = builder.HasDefaultConstructor;
     }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;

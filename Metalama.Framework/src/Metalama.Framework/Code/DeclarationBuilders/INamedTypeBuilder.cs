@@ -13,9 +13,17 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 public interface INamedTypeBuilder : IMemberOrNamedTypeBuilder, INamedType
 {
     /// <summary>
-    /// Gets or sets a value indicating whether the type is marked as <c>partial</c> in source code. 
+    /// Gets or sets a value indicating whether the type is marked as <c>partial</c> in source code.
     /// </summary>
     new bool IsPartial { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the introduced type has a default (parameterless) constructor.
+    /// The default value is <c>true</c>. When <c>true</c>, an implicit parameterless constructor is added
+    /// to the code model. When <c>false</c>, no implicit constructor is added and the user is responsible
+    /// for introducing at least one constructor.
+    /// </summary>
+    new bool HasDefaultConstructor { get; set; }
 
     // TODO: Struct introduction
 
