@@ -24,13 +24,14 @@ namespace Metalama.Framework.Code
     public enum ConstructorInitializerKind
     {
         /// <summary>
-        /// The constructor has no explicit initializer (no <c>: base(...)</c> or <c>: this(...)</c> clause).
-        /// The C# compiler implicitly calls the parameterless base class constructor.
+        /// The constructor has no initializer calling a base or sibling constructor. This only applies to value types (structs).
+        /// For reference types (classes), the C# compiler always implicitly calls a base constructor, so <see cref="Base"/> is returned instead.
         /// </summary>
         None,
 
         /// <summary>
-        /// The constructor has a <c>: base(...)</c> initializer that invokes a constructor of the base class.
+        /// The constructor invokes a constructor of the base class, either explicitly via a <c>: base(...)</c> initializer
+        /// or implicitly when the constructor has no explicit initializer and the declaring type is a reference type.
         /// </summary>
         Base,
 
