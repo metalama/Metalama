@@ -18,7 +18,7 @@ namespace Metalama.Framework.Engine.CompileTime.Serialization;
 /// </summary>
 internal class BaseCompileTimeSerializationBinder
 {
-    private readonly CompileTimeDomain _domain;
+    private readonly CompileTimeDomain? _domain;
     private static readonly ImmutableDictionary<string, string> _ourAssemblyVersions;
     private static readonly AssemblyName _engineAssemblyName = typeof(BaseCompileTimeSerializationBinder).Assembly.GetName();
 
@@ -36,9 +36,13 @@ internal class BaseCompileTimeSerializationBinder
             .ToImmutableDictionary( x => x.Key, x => x.OrderByDescending( a => a.Version ).First().ToString() );
     }
 
-    protected BaseCompileTimeSerializationBinder( in ProjectServiceProvider serviceProvider )
+    /// <param name="domain">The compile-time domain used to resolve loaded assemblies, or <c>null</c> when
+    /// the serializer is created before a <see cref="CompileTimeProject"/> is available (e.g. during early
+    /// pipeline initialization). When null, type binding falls back to <see cref="Type.GetType(string)"/>.</param>
+    /// <param name="serviceProvider">The project service provider.</param>
+    protected BaseCompileTimeSerializationBinder( CompileTimeDomain? domain, in ProjectServiceProvider serviceProvider )
     {
-        this._domain = serviceProvider.Global.GetRequiredService<CompileTimeDomain>();
+        this._domain = domain;
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "Serialization" );
     }
 
@@ -66,7 +70,7 @@ internal class BaseCompileTimeSerializationBinder
             ourAssemblyVersion = assemblyName;
         }
 
-        if ( this._domain.TryGetLoadedAssembly( ourAssemblyVersion, out var assembly ) )
+        if ( this._domain != null && this._domain.TryGetLoadedAssembly( ourAssemblyVersion, out var assembly ) )
         {
             return assembly.GetType( typeName, false );
         }

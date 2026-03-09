@@ -251,7 +251,9 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
 #pragma warning restore LAMA0821
 
-    internal CompileTimeDomain Domain => this.ServiceProvider.Global.GetRequiredService<CompileTimeDomain>();
+    private CompileTimeDomain? _domain;
+
+    internal CompileTimeDomain Domain => this._domain ??= this.ServiceProvider.Global.GetRequiredService<ICompileTimeDomainFactory>().CreateDomain();
 
     /// <summary>
     /// Switches the execution context to a test context for a given <see cref="ICompilation"/>,
@@ -317,10 +319,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
             this.TestProjectOptions.Dispose();
 
-            if ( this.ServiceProvider.Global.Underlying.TryGetService<CompileTimeDomain>( out var domain ) )
-            {
-                domain.Dispose();
-            }
+            this._domain?.Dispose();
 
             // Release all references for GC.
             this.ServiceProvider = ProjectServiceProvider.Empty;
