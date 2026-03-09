@@ -16,7 +16,9 @@ namespace Metalama.Framework.Engine.CompileTime
     public interface ICompileTimeDomainFactory : IGlobalService
     {
         /// <summary>
-        /// Creates a new instance of <see cref="CompileTimeDomain"/>.
+        /// Creates a new, empty <see cref="CompileTimeDomain"/>. Used by test infrastructure
+        /// (e.g. <c>TestContext.Domain</c>) when a standalone domain is needed without assembly
+        /// compatibility checks. Production code should use <see cref="GetOrCreateDomain"/> instead.
         /// </summary>
         CompileTimeDomain CreateDomain();
 

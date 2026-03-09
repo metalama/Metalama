@@ -13,6 +13,10 @@ internal sealed class CompileTimeSerializationBinder : BaseCompileTimeSerializat
     private static readonly string _systemAssemblyName = typeof(object).Assembly.FullName.AssertNotNull();
     private readonly IDeserializationSurrogateProvider? _deserializationSurrogateProvider;
 
+    /// <param name="domain">The compile-time domain, or <c>null</c> when no <see cref="CompileTimeProject"/> is available
+    /// (see <see cref="BaseCompileTimeSerializationBinder"/> for details).</param>
+    /// <param name="serviceProvider">The project service provider.</param>
+    /// <param name="project">The compile-time project, or <c>null</c> during early initialization.</param>
     public CompileTimeSerializationBinder( CompileTimeDomain? domain, in ProjectServiceProvider serviceProvider, CompileTimeProject? project ) : base( domain, serviceProvider )
     {
         this._project = project;

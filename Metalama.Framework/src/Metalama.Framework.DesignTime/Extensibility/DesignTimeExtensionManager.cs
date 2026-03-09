@@ -27,7 +27,6 @@ public sealed class DesignTimeExtensionManager : IGlobalService
 
     private readonly ConcurrentDictionary<int, int> _processedOptions = new();
     private readonly ICompileTimeDomainFactory _domainFactory;
-    private readonly ExtensionLoaderBase _extensionLoaderBase;
     private readonly ConcurrentDictionary<Type, IDesignTimeExtension> _extensions = new();
     private readonly IRpcServiceProviderServerEndpointProvider? _rpcServiceProviderServerEndpointProvider;
     private readonly IExtensionLoader _extensionLoader;
@@ -41,7 +40,6 @@ public sealed class DesignTimeExtensionManager : IGlobalService
         this._processKind = processKind;
         this.ServiceProvider = serviceProvider;
         this._domainFactory = serviceProvider.GetRequiredService<ICompileTimeDomainFactory>();
-        this._extensionLoaderBase = new ExtensionLoaderBase( serviceProvider );
         this._rpcServiceProviderServerEndpointProvider = serviceProvider.GetService<IRpcServiceProviderServerEndpointProvider>();
         this._extensionLoader = serviceProvider.GetRequiredService<IExtensionLoader>();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(DesignTimeExtensionManager) );
@@ -67,7 +65,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
         {
             // Get a domain compatible with this project's design-time extension assemblies.
             var extensionAssemblyPaths = new List<string>(
-                this._extensionLoaderBase.GetExtensionAssemblyPaths( options.DesignTimeExtensionAssemblies ) );
+                this._extensionLoader.GetExtensionAssemblyPaths( options.DesignTimeExtensionAssemblies ) );
 
             var domain = this._domainFactory.GetOrCreateDomain( extensionAssemblyPaths );
 

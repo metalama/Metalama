@@ -122,7 +122,9 @@ public abstract class AspectPipeline : IDisposable
 
         // Get a CompileTimeDomain that is compatible with the extension assemblies for this project.
         // The factory either reuses an existing domain or creates a new one.
-        var extensionAssemblyPaths = new ExtensionLoaderBase( this.ServiceProvider.Global )
+        var extensionLoader = this.ServiceProvider.Global.GetRequiredService<IExtensionLoader>();
+
+        var extensionAssemblyPaths = extensionLoader
             .GetExtensionAssemblyPaths( this.ProjectOptions.ExtensionAssemblies )
             .ToList();
 

@@ -17,4 +17,9 @@ public interface IExtensionLoader : IGlobalService
         CompileTimeDomain domain,
         ExtensionKinds extensionKinds,
         IDiagnosticAdder diagnosticAdder );
+
+    /// <summary>
+    /// Gets the resolved file paths for extension assemblies from the given assembly references.
+    /// </summary>
+    IEnumerable<string> GetExtensionAssemblyPaths( IEnumerable<TargetedAssemblyReference> assemblyReferences );
 }

@@ -36,6 +36,10 @@ internal class BaseCompileTimeSerializationBinder
             .ToImmutableDictionary( x => x.Key, x => x.OrderByDescending( a => a.Version ).First().ToString() );
     }
 
+    /// <param name="domain">The compile-time domain used to resolve loaded assemblies, or <c>null</c> when
+    /// the serializer is created before a <see cref="CompileTimeProject"/> is available (e.g. during early
+    /// pipeline initialization). When null, type binding falls back to <see cref="Type.GetType(string)"/>.</param>
+    /// <param name="serviceProvider">The project service provider.</param>
     protected BaseCompileTimeSerializationBinder( CompileTimeDomain? domain, in ProjectServiceProvider serviceProvider )
     {
         this._domain = domain;

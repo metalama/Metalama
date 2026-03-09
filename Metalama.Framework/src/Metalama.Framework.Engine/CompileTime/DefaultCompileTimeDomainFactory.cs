@@ -4,46 +4,52 @@
 
 using Metalama.Framework.Engine.Services;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CompileTime
 {
     [ExcludeFromCodeCoverage] // Not used in tests.
-    internal sealed class DefaultCompileTimeDomainFactory : ICompileTimeDomainFactory, IDisposable
+    internal sealed class DefaultCompileTimeDomainFactory : ICompileTimeDomainFactory
     {
         private readonly GlobalServiceProvider _serviceProvider;
-        private readonly object _sync = new();
-        private CompileTimeDomain? _currentDomain;
+        private readonly ConcurrentDictionary<Guid, WeakReference<CompileTimeDomain>> _domains = new();
 
         public DefaultCompileTimeDomainFactory( GlobalServiceProvider serviceProvider )
         {
             this._serviceProvider = serviceProvider;
         }
 
-        public CompileTimeDomain CreateDomain() => new( this._serviceProvider );
+        public CompileTimeDomain CreateDomain()
+        {
+            var domain = new CompileTimeDomain( this._serviceProvider );
+            this._domains.TryAdd( domain.Guid, new WeakReference<CompileTimeDomain>( domain ) );
+
+            return domain;
+        }
 
         public CompileTimeDomain GetOrCreateDomain( IReadOnlyCollection<string> assemblyPaths )
         {
-            lock ( this._sync )
+            // Clean up dead references and check for a compatible domain among all still-alive domains.
+            foreach ( var kvp in this._domains.ToArray() )
             {
-                if ( this._currentDomain != null && this._currentDomain.IsCompatibleWithAssemblies( assemblyPaths ) )
+                if ( !kvp.Value.TryGetTarget( out var domain ) )
                 {
-                    return this._currentDomain;
+                    // Domain has been collected by GC. Remove the dead reference.
+                    this._domains.TryRemove( kvp.Key, out _ );
+
+                    continue;
                 }
 
-                // The current domain is incompatible or doesn't exist yet. Create a new one.
-                // The old domain is not disposed here — it may still be in use by concurrent compilations.
-                // It will be collected by the GC when no longer referenced.
-                this._currentDomain = new CompileTimeDomain( this._serviceProvider );
-
-                return this._currentDomain;
+                if ( domain.IsCompatibleWithAssemblies( assemblyPaths ) )
+                {
+                    return domain;
+                }
             }
-        }
 
-        public void Dispose()
-        {
-            this._currentDomain?.Dispose();
+            // No compatible domain found. Create a new one.
+            return this.CreateDomain();
         }
     }
 }
