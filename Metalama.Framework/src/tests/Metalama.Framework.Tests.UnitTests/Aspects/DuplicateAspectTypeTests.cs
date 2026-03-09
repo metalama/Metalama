@@ -28,15 +28,14 @@ public sealed class DuplicateAspectTypeTests : UnitTestClass
     }
 
     /// <summary>
-    /// Tests that when two versions of the same assembly provide the same aspect type name,
-    /// TemplateClassFactory reports a diagnostic error instead of throwing an ArgumentException.
-    /// This is the scenario from issue #614.
+    /// Tests that when duplicate aspect type entries are passed to the test-only <c>GetClasses</c>
+    /// overload, it reports LAMA0290 instead of throwing <see cref="System.ArgumentException"/>.
+    /// This covers the scenario from issue #614, where two versions of the same assembly are loaded
+    /// and both provide the same aspect type name.
     /// </summary>
     [Fact]
     public void DuplicateAspectTypeFromDifferentAssemblies_ReportsDiagnostic()
     {
-        // Create two assemblies with the same type name but different assembly names.
-        // This simulates the scenario where two versions of the same library are loaded.
         const string aspectCode = @"
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
@@ -48,7 +47,6 @@ namespace TestNamespace
 
         using var testContext = this.CreateTestContext();
 
-        // Create the main compilation that contains the aspect type.
         var compilation = testContext.CreateCompilationModel( aspectCode );
 
         var serviceProvider = testContext.ServiceProvider;
@@ -68,23 +66,19 @@ namespace TestNamespace
             new AspectDriverFactory( compilation, ImmutableArray<object>.Empty, serviceProvider ),
             compilation.CompilationContext );
 
-        // Get the aspect type symbol.
         var aspectTypeSymbol = compilation.Types.OfName( "MyAspect" ).Single().GetSymbol();
 
-        // Pass the same type symbol twice to simulate duplicate entries from different assemblies.
-        // This triggers the duplicate key scenario in the ToDictionary call.
+        // Pass the same type symbol twice to simulate duplicate entries (same reflection name from different assemblies).
         var diagnostics = new DiagnosticBag();
 
-        // After the fix, this should report a diagnostic instead of throwing.
-        var aspectTypes = aspectTypeFactory.GetClasses(
+        // Before the fix, this would throw ArgumentException from ToDictionary.
+        // After the fix, it should report a diagnostic and continue.
+        _ = aspectTypeFactory.GetClasses(
             serviceProvider,
             compilation.CompilationContext,
             ImmutableArray.Create( aspectTypeSymbol, aspectTypeSymbol ),
             compileTimeProject,
             diagnostics );
-
-        // Verify we get a diagnostic error about duplicate aspect types instead of an exception.
-        Assert.NotEmpty( diagnostics );
 
         Assert.Contains(
             diagnostics,
