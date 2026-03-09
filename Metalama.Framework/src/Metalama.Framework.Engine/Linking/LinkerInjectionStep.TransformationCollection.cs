@@ -626,6 +626,9 @@ internal sealed partial class LinkerInjectionStep
                         _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                     } )
                 .ThenBy( s => (s.ContextDeclaration as IMember)?.ToDisplayString() )
+                .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
+                .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
+                .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance )
                 .ThenBy( s => s.Statement.ToFullString(), StringComparer.Ordinal );
 
         /// <summary>
