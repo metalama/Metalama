@@ -659,5 +659,36 @@ internal class C : TypeAspect
             this.AssertScope( compilation.RoslynCompilation, invokedMethod, TemplatingScope.RunTimeOnly );
         }
 #endif
+
+        [Fact]
+        public void EnumNestedInRunTimeOrCompileTimeType()
+        {
+            // Reproduces #627: A nested enum inside a [RunTimeOrCompileTime] type should be usable by members of that type.
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+using Metalama.Framework.Aspects;
+
+[RunTimeOrCompileTime]
+class C
+{
+    enum E
+    {
+        A
+    }
+
+    void M( E e ) { }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.OfName( "C" ).Single();
+
+            // The nested enum should NOT be run-time-only — it should inherit RunTimeOrCompileTime from the parent.
+            this.AssertScope( type.NestedTypes.OfName( "E" ).Single(), TemplatingScope.RunTimeOrCompileTime );
+
+            // The method using the enum in its signature should also be RunTimeOrCompileTime.
+            this.AssertScope( type.Methods.OfName( "M" ).Single(), TemplatingScope.RunTimeOrCompileTime );
+        }
     }
 }
