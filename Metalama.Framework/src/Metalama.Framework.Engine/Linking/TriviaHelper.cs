@@ -88,47 +88,4 @@ internal static class TriviaHelper
         return member.WithRequiredLeadingTrivia( documentationTrivia.AddRange( existingTrivia ) );
     }
 
-    /// <summary>
-    /// A syntax annotation used to mark a property whose backing field should receive non-documentation trivia
-    /// from the original field declaration.
-    /// </summary>
-    public static readonly string FieldNonDocTriviaAnnotationKind = "Metalama.FieldNonDocTrivia";
-
-    /// <summary>
-    /// Marks a member with an annotation indicating it has associated non-documentation trivia
-    /// that should be transferred to the backing field.
-    /// </summary>
-    public static T WithFieldNonDocTriviaAnnotation<T>( T member, SyntaxTriviaList nonDocTrivia )
-        where T : MemberDeclarationSyntax
-    {
-        if ( nonDocTrivia.Count == 0 )
-        {
-            return member;
-        }
-
-        // Serialize the trivia to a string representation so it can be carried by the annotation.
-        var triviaString = nonDocTrivia.ToFullString();
-
-        return member.WithAdditionalAnnotations( new SyntaxAnnotation( FieldNonDocTriviaAnnotationKind, triviaString ) );
-    }
-
-    /// <summary>
-    /// Tries to get the non-documentation trivia stored in a syntax annotation on a member.
-    /// Returns true if the annotation was found, and outputs the trivia string.
-    /// </summary>
-    public static bool TryGetFieldNonDocTrivia( MemberDeclarationSyntax member, out string? triviaString )
-    {
-        var annotation = member.GetAnnotations( FieldNonDocTriviaAnnotationKind );
-
-        foreach ( var a in annotation )
-        {
-            triviaString = a.Data;
-
-            return true;
-        }
-
-        triviaString = null;
-
-        return false;
-    }
 }

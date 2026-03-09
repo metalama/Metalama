@@ -2,9 +2,11 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Linking.Substitution;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -68,13 +70,21 @@ namespace Metalama.Framework.Engine.Linking
 
                     // When a field is promoted to a property, non-documentation trivia (regular comments, directives)
                     // should stay with the backing field rather than moving to the property.
-                    if ( TriviaHelper.TryGetFieldNonDocTrivia( propertyDeclaration, out var nonDocTriviaString )
-                         && nonDocTriviaString != null )
+                    if ( this.InjectionRegistry.GetTransformationForSymbol( symbol ) is IReplaceMemberTransformation
+                         {
+                             ReplacedMember: ISymbolRef replacedFieldSymbolRef
+                         }
+                         && replacedFieldSymbolRef.Symbol.GetPrimarySyntaxReference()?.GetSyntax().Parent?.Parent
+                             is { RawKind: (int) SyntaxKind.FieldDeclaration } and FieldDeclarationSyntax originalFieldDeclaration )
                     {
-                        var existingTrivia = backingField.GetLeadingTrivia();
-                        var nonDocTrivia = ParseLeadingTrivia( nonDocTriviaString );
+                        var nonDocTrivia = TriviaHelper.GetNonDocumentationTrivia( originalFieldDeclaration );
 
-                        backingField = backingField.WithRequiredLeadingTrivia( nonDocTrivia.AddRange( existingTrivia ) );
+                        if ( nonDocTrivia.Count > 0 )
+                        {
+                            var existingTrivia = backingField.GetLeadingTrivia();
+
+                            backingField = backingField.WithRequiredLeadingTrivia( nonDocTrivia.AddRange( existingTrivia ) );
+                        }
                     }
 
                     members.Add( backingField );
