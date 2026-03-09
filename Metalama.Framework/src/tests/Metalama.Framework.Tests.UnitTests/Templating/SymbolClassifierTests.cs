@@ -685,7 +685,7 @@ class C
             var type = compilation.Types.OfName( "C" ).Single();
 
             // The nested enum should NOT be run-time-only — it should inherit RunTimeOrCompileTime from the parent.
-            this.AssertScope( type.NestedTypes.OfName( "E" ).Single(), TemplatingScope.RunTimeOrCompileTime );
+            this.AssertScope( type.Types.OfName( "E" ).Single(), TemplatingScope.RunTimeOrCompileTime );
 
             // The method using the enum in its signature should also be RunTimeOrCompileTime.
             this.AssertScope( type.Methods.OfName( "M" ).Single(), TemplatingScope.RunTimeOrCompileTime );

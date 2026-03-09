@@ -12,12 +12,12 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.TemplatingCodeValid
 
 // <target>
 [RunTimeOrCompileTime]
-class C
+internal class C
 {
-    enum E
+    private enum E
     {
         A
     }
 
-    void M( E e ) { }
+    private void M( E e ) { }
 }

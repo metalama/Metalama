@@ -1,11 +1,11 @@
 [RunTimeOrCompileTime]
-class C
+internal class C
 {
-  enum E
+  private enum E
   {
     A
   }
-  void M(E e)
+  private void M(E e)
   {
   }
 }
