@@ -741,6 +741,16 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                 {
                                     return (TemplatingScope.CompileTimeOnly, TemplatingRule.Other);
                                 }
+                                else if ( declaringTypeScope?.Scope is TemplatingScope.RunTimeOrCompileTime
+                                         or TemplatingScope.ForcedRunTimeOrCompileTime )
+                                {
+                                    // Initialize combinedScope to the declaring type's scope so that
+                                    // CombineBaseTypeScope correctly ignores run-time-only interfaces
+                                    // (e.g. ISpanParsable<T> on enums in .NET 8+) while still allowing
+                                    // compile-time base types (e.g. TypeFabric) to take precedence.
+                                    // Don't return early — base type analysis must still run.
+                                    combinedScope = declaringTypeScope.Value.Scope;
+                                }
                                 else
                                 {
                                     // Run-time type can contain fabrics.
@@ -751,12 +761,17 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             else
                             {
                                 combinedScope = GetAssemblyScope( symbol.ContainingAssembly )?.Scope;
+
+                                // We don't look at the rest if the scope is known from the assembly.
+                                if ( combinedScope != null )
+                                {
+                                    return (combinedScope.Value, TemplatingRule.Other);
+                                }
                             }
                         }
-
-                        // We don't look at the rest if the scope is known at this point.
-                        if ( combinedScope != null )
+                        else
                         {
+                            // We don't look at the rest if the scope is known from attributes.
                             return (combinedScope.Value, TemplatingRule.Other);
                         }
 
@@ -781,16 +796,6 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
                         if ( combinedScope != null )
                         {
-                            // If the combined scope from base types/interfaces is RunTimeOnly but the declaring type
-                            // is RunTimeOrCompileTime, the declaring type's scope should take precedence. This prevents
-                            // nested types from being classified as RunTimeOnly solely because they inherit run-time-only
-                            // interfaces (e.g., ISpanParsable<T> on enums in newer .NET versions).
-                            if ( combinedScope == TemplatingScope.RunTimeOnly
-                                 && declaringTypeScope?.Scope is TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime )
-                            {
-                                combinedScope = declaringTypeScope.Value.Scope;
-                            }
-
                             return (combinedScope.Value, TemplatingRule.Other);
                         }
 
