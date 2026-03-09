@@ -10,10 +10,10 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.AssemblyLoaders;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Roslyn;
-using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -28,16 +28,28 @@ namespace Metalama.Framework.Engine.CompileTime
 {
     /// <summary>
     /// Tracks compile-time assemblies belonging to the same domain and implements CLR assembly resolution.
-    /// The number of <see cref="CompileTimeDomain"/> in an <see cref="AppDomain"/>
-    /// depends on the scenario: typically one per project at compile time, one per <see cref="AppDomain"/> at design time, and one per test
-    /// at testing time.
+    /// Each <see cref="CompileTimeDomain"/> has a single <see cref="AssemblyLoader"/> (and, on .NET 5+, a single <c>AssemblyLoadContext</c>).
+    /// Domains are managed by <see cref="ICompileTimeDomainFactory"/>, which decides whether to reuse an existing domain
+    /// or create a new one based on assembly compatibility.
     /// </summary>
-    public class CompileTimeDomain : IDisposable, IGlobalService
+    /// <remarks>
+    /// <para><b>Lifecycle:</b> Domains are created by <see cref="ICompileTimeDomainFactory"/> and are not disposed explicitly
+    /// during normal operation. When a domain becomes incompatible with new assembly versions, the factory creates a new domain
+    /// and the old domain becomes eligible for garbage collection once no compilation holds a reference to it. In tests,
+    /// domains are disposed explicitly via <c>TestContext.Dispose</c>.</para>
+    /// </remarks>
+    public class CompileTimeDomain : IDisposable
     {
         private static readonly ConcurrentDictionary<string, object> _locksByPath = new();
         private static int _nextDomainId;
         private readonly ConcurrentDictionary<AssemblyIdentity, Assembly> _assemblyCache = new();
         private readonly int _domainId = Interlocked.Increment( ref _nextDomainId );
+
+        /// <summary>
+        /// Gets the unique identifier for this domain instance, used by <see cref="ICompileTimeDomainFactory"/>
+        /// to track domains via weak references.
+        /// </summary>
+        public Guid Guid { get; } = Guid.NewGuid();
         private readonly ILogger _logger;
         private readonly object _sync = new();
         private readonly ConcurrentDictionary<string, (Assembly Assembly, AssemblyIdentity Identity)> _assembliesByName = new();
@@ -286,5 +298,50 @@ namespace Metalama.Framework.Engine.CompileTime
 
         public bool IsCollectible( Assembly assembly )
             => this._assemblyLoader?.IsCollectible( assembly ) ?? throw new ObjectDisposedException( this.ToString() );
+
+        /// <summary>
+        /// Determines whether this domain is compatible with the given assembly paths, i.e. whether loading these
+        /// assemblies would not cause a conflict with already-loaded assemblies. A conflict occurs when an assembly
+        /// with the same simple name but a different version or public key token is already loaded.
+        /// </summary>
+        public bool IsCompatibleWithAssemblies( IEnumerable<string> assemblyPaths )
+        {
+            foreach ( var path in assemblyPaths )
+            {
+                AssemblyName assemblyName;
+
+                try
+                {
+                    assemblyName = MetadataReferenceCache.GetAssemblyName( path );
+                }
+                catch ( Exception e ) when ( e is FileNotFoundException or BadImageFormatException or IOException )
+                {
+                    // If we cannot read the assembly metadata, treat the domain as compatible and let the
+                    // normal extension loader report a diagnostic when it attempts to load the assembly.
+                    this._logger.Trace?.Log(
+                        $"Domain {this._domainId}: cannot read assembly metadata for '{path}': {e.Message}. Treating as compatible." );
+
+                    continue;
+                }
+
+                if ( assemblyName.Name != null
+                     && this._assembliesByName.TryGetValue( assemblyName.Name, out var existingEntry ) )
+                {
+                    var existingName = existingEntry.Assembly.GetName();
+
+                    if ( existingName.Version != assemblyName.Version
+                         || !( existingName.GetPublicKeyToken() ?? [] ).SequenceEqual( assemblyName.GetPublicKeyToken() ?? [] ) )
+                    {
+                        this._logger.Trace?.Log(
+                            $"Domain {this._domainId} is incompatible with assembly '{assemblyName}' at '{path}': " +
+                            $"already-loaded assembly has identity '{existingEntry.Identity}'." );
+
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
     }
 }

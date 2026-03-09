@@ -26,7 +26,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
     private readonly DesignTimeProcessKind _processKind;
 
     private readonly ConcurrentDictionary<int, int> _processedOptions = new();
-    private readonly CompileTimeDomain _domain;
+    private readonly ICompileTimeDomainFactory _domainFactory;
     private readonly ConcurrentDictionary<Type, IDesignTimeExtension> _extensions = new();
     private readonly IRpcServiceProviderServerEndpointProvider? _rpcServiceProviderServerEndpointProvider;
     private readonly IExtensionLoader _extensionLoader;
@@ -39,7 +39,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
     {
         this._processKind = processKind;
         this.ServiceProvider = serviceProvider;
-        this._domain = serviceProvider.GetRequiredService<CompileTimeDomain>();
+        this._domainFactory = serviceProvider.GetRequiredService<ICompileTimeDomainFactory>();
         this._rpcServiceProviderServerEndpointProvider = serviceProvider.GetService<IRpcServiceProviderServerEndpointProvider>();
         this._extensionLoader = serviceProvider.GetRequiredService<IExtensionLoader>();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(DesignTimeExtensionManager) );
@@ -63,7 +63,13 @@ public sealed class DesignTimeExtensionManager : IGlobalService
 
         lock ( this._extensions )
         {
-            var extensions = this._extensionLoader.GetExtensionTypes( options, this._domain, ExtensionKinds.DesignTime, NullDiagnosticAdder.Instance );
+            // Get a domain compatible with this project's design-time extension assemblies.
+            var extensionAssemblyPaths = new List<string>(
+                this._extensionLoader.GetExtensionAssemblyPaths( options.DesignTimeExtensionAssemblies ) );
+
+            var domain = this._domainFactory.GetOrCreateDomain( extensionAssemblyPaths );
+
+            var extensions = this._extensionLoader.GetExtensionTypes( options, domain, ExtensionKinds.DesignTime, NullDiagnosticAdder.Instance );
 
             foreach ( var extensionType in extensions )
             {
