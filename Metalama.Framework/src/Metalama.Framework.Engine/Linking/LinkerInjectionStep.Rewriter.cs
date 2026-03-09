@@ -187,13 +187,33 @@ internal sealed partial class LinkerInjectionStep
                 else
                 {
                     // If we are removing a custom attribute, keep its trivia.
+                    var commentFound = false;
+
                     foreach ( var trivia in list.GetLeadingTrivia() )
                     {
-                        if ( trivia.Kind() is SyntaxKind.SingleLineCommentTrivia
+                        if ( trivia.IsDirective )
+                        {
+                            // Preserve preprocessor directives (e.g. #pragma warning, #nullable).
+                            List<SyntaxTrivia> targetList;
+
+                            if ( wasFirstList )
+                            {
+                                targetList = firstListLeadingTrivia ??= [];
+                            }
+                            else
+                            {
+                                targetList = outputTrivia;
+                            }
+
+                            targetList.Add( trivia );
+                        }
+                        else if ( !commentFound && trivia.Kind() is SyntaxKind.SingleLineCommentTrivia
                             or SyntaxKind.MultiLineCommentTrivia
                             or SyntaxKind.SingleLineDocumentationCommentTrivia
                             or SyntaxKind.MultiLineDocumentationCommentTrivia )
                         {
+                            commentFound = true;
+
                             List<SyntaxTrivia> targetList;
 
                             if ( wasFirstList )
@@ -213,8 +233,6 @@ internal sealed partial class LinkerInjectionStep
                                 syntaxGenerationContext ??= this.GetSyntaxGenerationContext( originalDeclaringNode );
                                 targetList.Add( syntaxGenerationContext.ElasticEndOfLineTrivia );
                             }
-
-                            break;
                         }
                     }
                 }

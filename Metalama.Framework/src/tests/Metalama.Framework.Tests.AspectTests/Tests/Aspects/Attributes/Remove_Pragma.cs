@@ -16,8 +16,6 @@ public class MyAspect : TypeAspect
 }
 
 #pragma warning disable CS8618
-
-// <target>
 [MyAspect]
 internal class C
 {
