@@ -43,7 +43,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     protected override NamedDeclarationBuilderData NamedDeclarationBuilderData => this._namedTypeBuilderData;
 
-    public bool HasDefaultConstructor => this._namedTypeBuilderData.HasDefaultConstructor;
+    public bool HasDefaultConstructor => true;
 
     [Memo]
     public INamedType? BaseType => this.MapDeclaration( this._namedTypeBuilderData.BaseType );

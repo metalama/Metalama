@@ -105,7 +105,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     {
         // Non-static classes should have an implicit default constructor, just like source types
         // that get their implicit constructor from Roslyn.
-        if ( builder.TypeKind == TypeKind.Class && !builder.IsStatic && builder.HasDefaultConstructor )
+        if ( builder.TypeKind == TypeKind.Class && !builder.IsStatic )
         {
             var constructorBuilder = new ConstructorBuilder( this.AspectLayerInstance, builder, isImplicitlyDeclared: true )
             {

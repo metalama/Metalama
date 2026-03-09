@@ -100,7 +100,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     public override IDeclaration ContainingDeclaration => (IDeclaration?) this.DeclaringType ?? this.ContainingNamespace;
 
-    public bool HasDefaultConstructor { get; set; } = true;
+    public bool HasDefaultConstructor => true;
 
     public virtual INamedType? BaseType
     {
