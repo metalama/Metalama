@@ -4,12 +4,17 @@
 
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Services;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace Metalama.Testing.UnitTesting;
 
 internal sealed class TestCompileTimeDomainFactory : ICompileTimeDomainFactory
 {
     private readonly GlobalServiceProvider _serviceProvider;
+    private readonly ConcurrentDictionary<Guid, WeakReference<CompileTimeDomain>> _domains = new();
+    private readonly object _lock = new();
 
     public TestCompileTimeDomainFactory( GlobalServiceProvider serviceProvider )
     {
@@ -17,14 +22,44 @@ internal sealed class TestCompileTimeDomainFactory : ICompileTimeDomainFactory
     }
 
     public CompileTimeDomain CreateDomain()
-#if NET5_0_OR_GREATER
     {
-        var domain = new UnloadableCompileTimeDomain( this._serviceProvider );
-        domain.UnloadError += _ => MemoryDumpHelper.CaptureMiniDumpOnce();
+        CompileTimeDomain domain;
+
+#if NET5_0_OR_GREATER
+        var unloadableDomain = new UnloadableCompileTimeDomain( this._serviceProvider );
+        unloadableDomain.UnloadError += _ => MemoryDumpHelper.CaptureMiniDumpOnce();
+        domain = unloadableDomain;
+#else
+        domain = new CompileTimeDomain( this._serviceProvider );
+#endif
+
+        this._domains.TryAdd( domain.Guid, new WeakReference<CompileTimeDomain>( domain ) );
 
         return domain;
     }
-#else
-        => new( this._serviceProvider );
-#endif
+
+    public CompileTimeDomain GetOrCreateDomain( IReadOnlyCollection<string> assemblyPaths )
+    {
+        lock ( this._lock )
+        {
+            // Clean up dead references and check for a compatible domain among all still-alive domains.
+            foreach ( var kvp in this._domains.ToArray() )
+            {
+                if ( !kvp.Value.TryGetTarget( out var domain ) )
+                {
+                    this._domains.TryRemove( kvp.Key, out _ );
+
+                    continue;
+                }
+
+                if ( domain.IsCompatibleWithAssemblies( assemblyPaths ) )
+                {
+                    return domain;
+                }
+            }
+
+            // No compatible domain found. Create a new one.
+            return this.CreateDomain();
+        }
+    }
 }
