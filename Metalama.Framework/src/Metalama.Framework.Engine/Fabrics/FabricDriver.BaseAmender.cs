@@ -15,6 +15,7 @@ using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Project;
 using System;
+using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Fabrics;
 
@@ -40,7 +41,30 @@ internal abstract partial class FabricDriver
             fabricManager.ServiceProvider,
             targetDeclaration,
             CompilationModelVersion.Final,
-            ( action, context ) => action( targetDeclaration.GetTarget( context.Compilation ), 0, context ) )
+            ( action, context ) =>
+            {
+                T target;
+
+                if ( context.Compilation.IsPartial )
+                {
+                    var targetOrNull = targetDeclaration.GetTargetOrNull( context.Compilation );
+
+                    if ( targetOrNull == null )
+                    {
+                        // The target declaration may not be resolvable in a partial compilation (design-time scenario).
+                        return Task.CompletedTask;
+                    }
+
+                    target = targetOrNull;
+                }
+                else
+                {
+                    // In complete compilations, fail fast when the target declaration cannot be resolved.
+                    target = targetDeclaration.GetTarget( context.Compilation );
+                }
+
+                return action( target, 0, context );
+            } )
         {
             this._project = project;
             this._fabricInstance = fabricInstance;

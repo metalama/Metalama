@@ -2239,7 +2239,7 @@ partial class A<T, U>
                     {
                         public override void AmendType( ITypeAmender amender )
                             => amender.AddAspect<MyAspect>();
-                    } 
+                    }
                 }
                 """
         };
@@ -2249,5 +2249,102 @@ partial class A<T, U>
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out _ ) );
+    }
+
+    [Fact]
+    public void NamespaceFabric()
+    {
+        // Regression test for https://github.com/metalama/Metalama/issues/595
+        // NamespaceFabric throws SymbolNotFoundException when resolving its target namespace.
+
+        using var testContext = this.CreateTestContext();
+
+        var code = new Dictionary<string, string>()
+        {
+            ["aspect.cs"] =
+                """
+                using System;
+                using Metalama.Framework.Aspects;
+
+                public class LogAspect : OverrideMethodAspect
+                {
+                    public override dynamic? OverrideMethod()
+                    {
+                        Console.WriteLine("logged");
+                        return meta.Proceed();
+                    }
+                }
+                """,
+            ["fabric.cs"] =
+                """
+                using Metalama.Framework.Aspects;
+                using Metalama.Framework.Code;
+                using Metalama.Framework.Fabrics;
+
+                namespace MyApp.Fabrics
+                {
+                    class Fabric : NamespaceFabric
+                    {
+                        public override void AmendNamespace( INamespaceAmender amender )
+                        {
+                            amender
+                                .SelectMany( ns => ns.DescendantsAndSelf() )
+                                .SelectMany( ns => ns.Types )
+                                .SelectMany( t => t.Methods )
+                                .AddAspect<LogAspect>();
+                        }
+                    }
+                }
+                """,
+            ["target.cs"] =
+                """
+                namespace MyApp.Fabrics
+                {
+                    class TargetClass
+                    {
+                        public void Method1() { }
+                        public string Method2() => "hello";
+                    }
+                }
+                """,
+            ["other.cs"] =
+                """
+                namespace MyApp.Other
+                {
+                    class OtherClass
+                    {
+                        public void DoWork() { }
+                    }
+                }
+                """
+        };
+
+        var compilation = testContext.CreateCSharpCompilation( code );
+
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+
+        // First execution with full compilation should succeed.
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out _ ) );
+
+        // Simulate a change to a file in a different namespace (design-time partial compilation scenario).
+        // The modified file is in MyApp.Other, so the partial compilation does not include the
+        // fabric's target namespace (MyApp.Fabrics), which previously caused SymbolNotFoundException.
+        var modifiedOtherCode = """
+                                namespace MyApp.Other
+                                {
+                                    class OtherClass
+                                    {
+                                        public void DoWork() { }
+                                        public int DoMoreWork() => 42;
+                                    }
+                                }
+                                """;
+
+        var originalOtherTree = compilation.SyntaxTrees.Single( t => t.FilePath == "other.cs" );
+        var parseOptions = (CSharpParseOptions) originalOtherTree.Options;
+        var newTree = CSharpSyntaxTree.ParseText( modifiedOtherCode, parseOptions, path: "other.cs" );
+        var compilation2 = compilation.ReplaceSyntaxTree( originalOtherTree, newTree );
+
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation2, default, out _ ) );
     }
 }
