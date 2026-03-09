@@ -526,8 +526,9 @@ internal sealed partial class LinkerInjectionStep
                         injectedMember.Transformation?.AspectInstance.AspectClass.GeneratedCodeAnnotation
                         ?? FormattingAnnotations.SystemGeneratedCodeAnnotation );
 
-                // When a field is promoted to a property, transfer the field's comment trivia to the property
-                // (the property is the public member).
+                // When a field is promoted to a property, transfer the field's trivia:
+                // - XML doc comments go to the property (public semantic).
+                // - Regular comments and directives stay with the backing field (private implementation detail).
                 if ( injectedMember is { Semantic: InjectedMemberSemantic.Introduction, Kind: DeclarationKind.Property }
                      && injectedMember.Transformation is IReplaceMemberTransformation { ReplacedMember: ISymbolRef<IField> replacedFieldRef } )
                 {
@@ -535,9 +536,14 @@ internal sealed partial class LinkerInjectionStep
 
                     if ( fieldSyntaxReference?.GetSyntax().Parent?.Parent is { RawKind: (int) SyntaxKind.FieldDeclaration } and FieldDeclarationSyntax fieldDeclaration )
                     {
-                        var commentTrivia = TriviaHelper.GetCommentTrivia( fieldDeclaration );
+                        var docTrivia = TriviaHelper.GetDocumentationTrivia( fieldDeclaration );
 
-                        injectedNode = TriviaHelper.WithCommentTrivia( injectedNode, commentTrivia );
+                        injectedNode = TriviaHelper.WithDocumentationTrivia( injectedNode, docTrivia );
+
+                        // Mark the property with non-doc trivia so the rewriting driver can transfer it to the backing field.
+                        var nonDocTrivia = TriviaHelper.GetNonDocumentationTrivia( fieldDeclaration );
+
+                        injectedNode = TriviaHelper.WithFieldNonDocTriviaAnnotation( injectedNode, nonDocTrivia );
                     }
                 }
 

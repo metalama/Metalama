@@ -18,8 +18,8 @@ internal class TargetClass
       this._field = value;
     }
   }
-  private global::System.Int32 _fieldWithComment;
   // Regular comment before field.
+  private global::System.Int32 _fieldWithComment;
   /// <summary>
   /// A field with a regular comment.
   /// </summary>

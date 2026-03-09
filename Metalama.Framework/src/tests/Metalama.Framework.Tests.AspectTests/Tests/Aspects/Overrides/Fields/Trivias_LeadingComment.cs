@@ -8,7 +8,10 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Fields.Trivias_LeadingComment
 {
     /*
-     * Tests that leading comments are preserved when an aspect is applied to a field.
+     * Tests that when a field is promoted to a property by an aspect:
+     * - Regular comments (// and block comments) stay with the backing field (not moved to the property).
+     * - XML documentation comments (///) are transferred to the property (public semantic).
+     * - When both regular and doc comments are present, they are split correctly.
      */
 
     public class OverrideAttribute : OverrideFieldOrPropertyAspect
@@ -45,5 +48,18 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Fields.Trivias_L
         /* Block comment before field. */
         [Override]
         public int BlockCommentField;
+
+        /// <summary>
+        /// XML doc comment on field.
+        /// </summary>
+        [Override]
+        public int DocCommentField;
+
+        // Regular comment before doc.
+        /// <summary>
+        /// Mixed: regular + doc comment.
+        /// </summary>
+        [Override]
+        public int MixedComments;
     }
 }

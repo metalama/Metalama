@@ -2,8 +2,8 @@ public class TheClass
 {
   // C should not be modified.
   public const int C = 4;
-  private global::System.Int32 _f;
   // The other fields should be modified.
+  private global::System.Int32 _f;
   public global::System.Int32 F
   {
     get

@@ -1,8 +1,8 @@
 [Test]
 internal class TargetClass
 {
-  private global::System.Int32 _a;
   // Comment before.
+  private global::System.Int32 _a;
   public global::System.Int32 A
   {
     get
@@ -16,8 +16,8 @@ internal class TargetClass
       this._a = value;
     }
   }
-  private global::System.Int32 _b;
   // Comment before.
+  private global::System.Int32 _b;
   public global::System.Int32 B
   {
     get
@@ -31,8 +31,8 @@ internal class TargetClass
       this._b = value;
     }
   }
-  private global::System.Int32 _c;
   // Comment before.
+  private global::System.Int32 _c;
   public global::System.Int32 C
   {
     get

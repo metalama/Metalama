@@ -13,13 +13,36 @@ namespace Metalama.Framework.Engine.Linking;
 internal static class TriviaHelper
 {
     /// <summary>
-    /// Extracts comment trivia (regular comments and XML documentation comments) from a field declaration.
-    /// Returns the comment trivia list (including associated whitespace), or an empty list if none is found.
+    /// Extracts XML documentation comment trivia from a field declaration.
+    /// Returns the documentation trivia list, or an empty list if none is found.
     /// </summary>
-    public static SyntaxTriviaList GetCommentTrivia( FieldDeclarationSyntax fieldDeclaration )
+    public static SyntaxTriviaList GetDocumentationTrivia( FieldDeclarationSyntax fieldDeclaration )
     {
         var leadingTrivia = fieldDeclaration.GetLeadingTrivia();
-        var commentTrivia = new List<SyntaxTrivia>();
+        var docCommentTrivia = new List<SyntaxTrivia>();
+
+        foreach ( var trivia in leadingTrivia )
+        {
+            if ( trivia.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
+                 || trivia.IsKind( SyntaxKind.MultiLineDocumentationCommentTrivia ) )
+            {
+                docCommentTrivia.Add( trivia );
+            }
+        }
+
+        return new SyntaxTriviaList( docCommentTrivia );
+    }
+
+    /// <summary>
+    /// Extracts non-documentation comment trivia (regular comments and directives) from a field declaration.
+    /// Returns the trivia list with associated whitespace, or an empty list if none is found.
+    /// When a field is promoted to a property, these trivia should stay with the backing field
+    /// (they are associated with the private implementation detail, not the public member).
+    /// </summary>
+    public static SyntaxTriviaList GetNonDocumentationTrivia( FieldDeclarationSyntax fieldDeclaration )
+    {
+        var leadingTrivia = fieldDeclaration.GetLeadingTrivia();
+        var result = new List<SyntaxTrivia>();
 
         for ( var i = 0; i < leadingTrivia.Count; i++ )
         {
@@ -27,42 +50,85 @@ internal static class TriviaHelper
 
             if ( trivia.IsKind( SyntaxKind.SingleLineCommentTrivia )
                  || trivia.IsKind( SyntaxKind.MultiLineCommentTrivia )
-                 || trivia.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
-                 || trivia.IsKind( SyntaxKind.MultiLineDocumentationCommentTrivia ) )
+                 || trivia.IsDirective )
             {
                 // Include the whitespace trivia before the comment for proper indentation.
-                if ( commentTrivia.Count == 0 && i > 0 && leadingTrivia[i - 1].IsKind( SyntaxKind.WhitespaceTrivia ) )
+                if ( result.Count == 0 && i > 0 && leadingTrivia[i - 1].IsKind( SyntaxKind.WhitespaceTrivia ) )
                 {
-                    commentTrivia.Add( leadingTrivia[i - 1] );
+                    result.Add( leadingTrivia[i - 1] );
                 }
 
-                commentTrivia.Add( trivia );
+                result.Add( trivia );
 
                 // Include the end-of-line trivia after the comment.
                 if ( i + 1 < leadingTrivia.Count && leadingTrivia[i + 1].IsKind( SyntaxKind.EndOfLineTrivia ) )
                 {
-                    commentTrivia.Add( leadingTrivia[i + 1] );
+                    result.Add( leadingTrivia[i + 1] );
                 }
             }
         }
 
-        return new SyntaxTriviaList( commentTrivia );
+        return new SyntaxTriviaList( result );
     }
 
     /// <summary>
-    /// Adds comment trivia to the leading trivia of a member declaration.
-    /// The comment trivia is prepended before the member's existing leading trivia.
+    /// Adds documentation trivia to the leading trivia of a member declaration.
+    /// The documentation trivia is prepended before the member's existing leading trivia.
     /// </summary>
-    public static T WithCommentTrivia<T>( T member, SyntaxTriviaList commentTrivia )
+    public static T WithDocumentationTrivia<T>( T member, SyntaxTriviaList documentationTrivia )
         where T : MemberDeclarationSyntax
     {
-        if ( commentTrivia.Count == 0 )
+        if ( documentationTrivia.Count == 0 )
         {
             return member;
         }
 
         var existingTrivia = member.GetLeadingTrivia();
 
-        return member.WithRequiredLeadingTrivia( commentTrivia.AddRange( existingTrivia ) );
+        return member.WithRequiredLeadingTrivia( documentationTrivia.AddRange( existingTrivia ) );
+    }
+
+    /// <summary>
+    /// A syntax annotation used to mark a property whose backing field should receive non-documentation trivia
+    /// from the original field declaration.
+    /// </summary>
+    public static readonly string FieldNonDocTriviaAnnotationKind = "Metalama.FieldNonDocTrivia";
+
+    /// <summary>
+    /// Marks a member with an annotation indicating it has associated non-documentation trivia
+    /// that should be transferred to the backing field.
+    /// </summary>
+    public static T WithFieldNonDocTriviaAnnotation<T>( T member, SyntaxTriviaList nonDocTrivia )
+        where T : MemberDeclarationSyntax
+    {
+        if ( nonDocTrivia.Count == 0 )
+        {
+            return member;
+        }
+
+        // Serialize the trivia to a string representation so it can be carried by the annotation.
+        var triviaString = nonDocTrivia.ToFullString();
+
+        return member.WithAdditionalAnnotations( new SyntaxAnnotation( FieldNonDocTriviaAnnotationKind, triviaString ) );
+    }
+
+    /// <summary>
+    /// Tries to get the non-documentation trivia stored in a syntax annotation on a member.
+    /// Returns true if the annotation was found, and outputs the trivia string.
+    /// </summary>
+    public static bool TryGetFieldNonDocTrivia( MemberDeclarationSyntax member, out string? triviaString )
+    {
+        var annotation = member.GetAnnotations( FieldNonDocTriviaAnnotationKind );
+
+        foreach ( var a in annotation )
+        {
+            triviaString = a.Data;
+
+            return true;
+        }
+
+        triviaString = null;
+
+        return false;
     }
 }

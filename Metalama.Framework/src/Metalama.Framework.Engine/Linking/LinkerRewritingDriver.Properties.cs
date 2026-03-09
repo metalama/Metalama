@@ -66,6 +66,17 @@ namespace Metalama.Framework.Engine.Linking
                         symbol,
                         generationContext );
 
+                    // When a field is promoted to a property, non-documentation trivia (regular comments, directives)
+                    // should stay with the backing field rather than moving to the property.
+                    if ( TriviaHelper.TryGetFieldNonDocTrivia( propertyDeclaration, out var nonDocTriviaString )
+                         && nonDocTriviaString != null )
+                    {
+                        var existingTrivia = backingField.GetLeadingTrivia();
+                        var nonDocTrivia = ParseLeadingTrivia( nonDocTriviaString );
+
+                        backingField = backingField.WithRequiredLeadingTrivia( nonDocTrivia.AddRange( existingTrivia ) );
+                    }
+
                     members.Add( backingField );
                 }
 
