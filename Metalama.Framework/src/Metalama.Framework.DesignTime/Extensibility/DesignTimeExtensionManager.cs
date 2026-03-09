@@ -17,7 +17,6 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Services;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.Linq;
 
 namespace Metalama.Framework.DesignTime.Extensibility;
 
@@ -67,9 +66,8 @@ public sealed class DesignTimeExtensionManager : IGlobalService
         lock ( this._extensions )
         {
             // Get a domain compatible with this project's design-time extension assemblies.
-            var extensionAssemblyPaths = this._extensionLoaderBase
-                .GetExtensionAssemblyPaths( options.DesignTimeExtensionAssemblies )
-                .ToList();
+            var extensionAssemblyPaths = new List<string>(
+                this._extensionLoaderBase.GetExtensionAssemblyPaths( options.DesignTimeExtensionAssemblies ) );
 
             var domain = this._domainFactory.GetOrCreateDomain( extensionAssemblyPaths );
 

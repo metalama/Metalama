@@ -3,13 +3,14 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CompileTime
 {
     [ExcludeFromCodeCoverage] // Not used in tests.
-    internal sealed class DefaultCompileTimeDomainFactory : ICompileTimeDomainFactory
+    internal sealed class DefaultCompileTimeDomainFactory : ICompileTimeDomainFactory, IDisposable
     {
         private readonly GlobalServiceProvider _serviceProvider;
         private readonly object _sync = new();
@@ -38,6 +39,11 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 return this._currentDomain;
             }
+        }
+
+        public void Dispose()
+        {
+            this._currentDomain?.Dispose();
         }
     }
 }

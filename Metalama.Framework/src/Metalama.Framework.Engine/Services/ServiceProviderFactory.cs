@@ -23,7 +23,6 @@ using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using Metalama.Framework.Project;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;

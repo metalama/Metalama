@@ -292,7 +292,7 @@ namespace Metalama.Framework.Engine.CompileTime
         /// assemblies would not cause a conflict with already-loaded assemblies. A conflict occurs when an assembly
         /// with the same simple name but a different version or public key token is already loaded.
         /// </summary>
-        internal bool IsCompatibleWithAssemblies( IEnumerable<string> assemblyPaths )
+        public bool IsCompatibleWithAssemblies( IEnumerable<string> assemblyPaths )
         {
             foreach ( var path in assemblyPaths )
             {
