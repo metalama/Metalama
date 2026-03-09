@@ -76,7 +76,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         [Memo]
         public ConstructorInitializerKind InitializerKind
-            => this.GetPrimaryDeclarationSyntax()?.Kind() switch
+            => this.MethodSymbol.MethodKind == RoslynMethodKind.StaticConstructor
+                ? ConstructorInitializerKind.None
+                : this.GetPrimaryDeclarationSyntax()?.Kind() switch
             {
                 null => this.MethodSymbol.ContainingType.IsValueType ? ConstructorInitializerKind.None : ConstructorInitializerKind.Base,
                 SyntaxKind.ConstructorDeclaration when this.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax { Initializer: null } =>

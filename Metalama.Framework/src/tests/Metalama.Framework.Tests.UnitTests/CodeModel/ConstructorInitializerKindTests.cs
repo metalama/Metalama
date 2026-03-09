@@ -149,4 +149,25 @@ public sealed class ConstructorInitializerKindTests : UnitTestClass
 
         Assert.Equal( ConstructorInitializerKind.Base, constructor.InitializerKind );
     }
+
+    [Fact]
+    public void Class_StaticConstructor_ReturnsNone()
+    {
+        // A static constructor never calls base() or this().
+        using var testContext = this.CreateTestContext();
+
+        const string code = """
+            class SomeClass
+            {
+                static SomeClass() { }
+            }
+            """;
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = compilation.Types.OfName( "SomeClass" ).Single();
+        var staticCtor = type.StaticConstructor;
+
+        Assert.NotNull( staticCtor );
+        Assert.Equal( ConstructorInitializerKind.None, staticCtor!.InitializerKind );
+    }
 }
