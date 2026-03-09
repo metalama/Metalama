@@ -625,7 +625,8 @@ internal sealed partial class LinkerInjectionStep
                         DeclarationKind.NamedType when s.ContextDeclaration is INamedType => 1,
                         _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                     } )
-                .ThenBy( s => (s.ContextDeclaration as IMember)?.ToDisplayString() );
+                .ThenBy( s => (s.ContextDeclaration as IMember)?.ToDisplayString() )
+                .ThenBy( s => s.Statement.ToFullString(), StringComparer.Ordinal );
 
         /// <summary>
         /// Orders contract statements ensuring:
