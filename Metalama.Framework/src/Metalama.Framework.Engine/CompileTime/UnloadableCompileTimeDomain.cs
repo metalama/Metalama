@@ -6,6 +6,7 @@
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.Services;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -16,7 +17,6 @@ using System.Runtime.Loader;
 #if VERIFY_MEMORY_LEAKS
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.Utilities;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -37,6 +37,12 @@ namespace Metalama.Framework.Engine.CompileTime
 
         private AssemblyLoadContext? _assemblyLoadContext;
         private volatile bool _disposed;
+
+        /// <summary>
+        /// AssemblyLoadContexts that have been retired (replaced by a new ALC due to version conflicts)
+        /// but are kept alive so that assemblies loaded from them remain valid for concurrent compilations.
+        /// </summary>
+        private readonly List<AssemblyLoadContext> _retiredAssemblyLoadContexts = new();
 
 #if VERIFY_MEMORY_LEAKS
         private static bool _alreadyHasUnloadingTimeout;
@@ -60,13 +66,16 @@ namespace Metalama.Framework.Engine.CompileTime
         public event Action<string>? UnloadError;
 #pragma warning restore CS0067 // Event is never used
 
-        protected override void ResetAssemblyLoader()
+        protected override void OnAssemblyLoaderRetired()
         {
-            // Unload the old AssemblyLoadContext before creating a new one.
-            this._assemblyLoadContext?.Unload();
-            this._assemblyLoadContext = new AssemblyLoadContext( "Metalama_" + Guid.NewGuid(), isCollectible: true );
+            // Retire the current AssemblyLoadContext without unloading it so that assemblies
+            // loaded from it remain valid for concurrent compilations.
+            if ( this._assemblyLoadContext != null )
+            {
+                this._retiredAssemblyLoadContexts.Add( this._assemblyLoadContext );
+            }
 
-            base.ResetAssemblyLoader();
+            this._assemblyLoadContext = new AssemblyLoadContext( "Metalama_" + Guid.NewGuid(), isCollectible: true );
         }
 
         protected override Assembly LoadAssemblyCore( string path, LoadAssemblyOptions options )
@@ -81,10 +90,10 @@ namespace Metalama.Framework.Engine.CompileTime
             try
             {
                 // There seems to be several issues with LoadFromAssemblyPath:
-                // - Performance issues during tests. Tests seem to be very slow. 
+                // - Performance issues during tests. Tests seem to be very slow.
                 //   Breaking into the process with the debugger shows of lot of threads are inside LoadFromAssemblyPath.
                 // - Possibly file lock issues, where files are not unlocked, even when the AssemblyLoadContext is disposed of.
-                // Therefore, we always use LoadFromStream. 
+                // Therefore, we always use LoadFromStream.
                 using var peStream = RetryHelper.Retry( () => File.OpenRead( path ) );
                 var pdbPath = Path.ChangeExtension( path, ".pdb" );
                 using var pdbStream = File.Exists( pdbPath ) ? RetryHelper.Retry( () => File.OpenRead( pdbPath ) ) : null;
@@ -249,6 +258,14 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 this._assemblyLoadContext?.Unload();
                 this._assemblyLoadContext = null;
+
+                // Unload all retired AssemblyLoadContexts.
+                foreach ( var retiredAlc in this._retiredAssemblyLoadContexts )
+                {
+                    retiredAlc.Unload();
+                }
+
+                this._retiredAssemblyLoadContexts.Clear();
 
                 this._disposed = true;
 

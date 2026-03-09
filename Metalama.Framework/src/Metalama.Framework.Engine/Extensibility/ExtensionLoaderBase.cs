@@ -63,7 +63,7 @@ public class ExtensionLoaderBase
 
         // Check upfront if the domain's current AssemblyLoadContext is compatible with the assemblies we need to load.
         // If any assembly has the same simple name but a different version than one already loaded, the domain will
-        // reset its internal state (dispose the old AssemblyLoadContext and create a new one).
+        // retire the current loader and create a new one, while keeping the old loader alive for concurrent compilations.
         domain.EnsureCompatibleWithAssemblies( paths );
 
         var assemblies = new List<Assembly>();

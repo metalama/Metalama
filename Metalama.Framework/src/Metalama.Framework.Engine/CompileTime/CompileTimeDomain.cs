@@ -14,12 +14,12 @@ using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 
@@ -44,6 +44,12 @@ namespace Metalama.Framework.Engine.CompileTime
         private readonly ConcurrentDictionary<string, (Assembly Assembly, AssemblyIdentity Identity)> _assembliesByName = new();
         private readonly string? _debugName;
 
+        /// <summary>
+        /// Assembly loaders that have been retired (replaced by a new loader due to version conflicts)
+        /// but are kept alive so that assemblies loaded from them remain valid for concurrent compilations.
+        /// </summary>
+        private readonly List<AssemblyLoader> _retiredAssemblyLoaders = new();
+
         private AssemblyLoader? _assemblyLoader;
 
         private ImmutableDictionaryOfArray<string, (string Path, Lazy<AssemblyName> AssemblyName)> _assemblyPathsByName =
@@ -58,14 +64,21 @@ namespace Metalama.Framework.Engine.CompileTime
             this.Observer = serviceProvider.GetService<ICompileTimeDomainObserver>();
             this.Observer?.OnDomainCreated( this );
 
-            this._assemblyLoader = AssemblyLoaderFactory.CreateAssemblyLoader(
-                this.ResolveAssembly,
-                debugName: $"CompileTimeDomain {debugName}".TrimEnd() );
+            this._assemblyLoader = this.CreateAssemblyLoader();
 
             this._logger = Logger.Domain;
 
             this.AddAssembly( this.GetType().Assembly );
         }
+
+        /// <summary>
+        /// Creates a new <see cref="AssemblyLoader"/> for this domain. Subclasses can override
+        /// to customize the loader creation.
+        /// </summary>
+        protected virtual AssemblyLoader CreateAssemblyLoader()
+            => AssemblyLoaderFactory.CreateAssemblyLoader(
+                this.ResolveAssembly,
+                debugName: $"CompileTimeDomain {this._debugName}".TrimEnd() );
 
         private Assembly? ResolveAssembly( string name )
         {
@@ -99,7 +112,7 @@ namespace Metalama.Framework.Engine.CompileTime
             return null;
         }
 
-        // ReSharper disable once VirtualMemberNeverOverridden.Global, 
+        // ReSharper disable once VirtualMemberNeverOverridden.Global,
 
         /// <summary>
         /// Loads an assembly in the CLR.
@@ -271,6 +284,17 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 this._assemblyLoader?.Dispose();
                 this._assemblyLoader = null;
+
+                // Dispose all retired assembly loaders.
+                lock ( this._sync )
+                {
+                    foreach ( var retiredLoader in this._retiredAssemblyLoaders )
+                    {
+                        retiredLoader.Dispose();
+                    }
+
+                    this._retiredAssemblyLoaders.Clear();
+                }
             }
         }
 
@@ -278,8 +302,9 @@ namespace Metalama.Framework.Engine.CompileTime
 
         /// <summary>
         /// Ensures that the domain is compatible with the given assembly paths. If any assembly has the same simple name
-        /// as an already-loaded assembly but a different identity, the domain's internal state is reset by disposing the
-        /// current <see cref="AssemblyLoader"/> and creating a new one, so that the new assemblies can be loaded without conflict.
+        /// as an already-loaded assembly but a different identity, the domain creates a new <see cref="AssemblyLoader"/>
+        /// for the new assemblies. The previous loader is retired but kept alive so that assemblies already loaded from it
+        /// remain valid for concurrent compilations.
         /// </summary>
         /// <param name="assemblyPaths">The paths of assemblies that will be loaded.</param>
         internal void EnsureCompatibleWithAssemblies( IEnumerable<string> assemblyPaths )
@@ -308,35 +333,50 @@ namespace Metalama.Framework.Engine.CompileTime
                 foreach ( var (path, name, existingIdentity) in incompatibleAssemblies )
                 {
                     this._logger.Warning?.Log(
-                        $"Assembly '{name}' at '{path}' is incompatible with already-loaded assembly '{existingIdentity}'. Resetting the domain." );
+                        $"Assembly '{name}' at '{path}' is incompatible with already-loaded assembly '{existingIdentity}'. Creating a new assembly loader." );
                 }
 
-                this.ResetAssemblyLoader();
+                this.RetireCurrentAssemblyLoader();
             }
         }
 
         /// <summary>
-        /// Resets the internal assembly loader and all cached assemblies, creating a fresh <see cref="AssemblyLoader"/>
-        /// so that assemblies with different versions can be loaded. Subclasses should override this to reset any
-        /// additional state (e.g., <c>AssemblyLoadContext</c>).
+        /// Retires the current assembly loader by moving it to the retired list (without disposing it),
+        /// then creates a new assembly loader for subsequent loads. The retired loader and its assemblies
+        /// remain valid for concurrent compilations that already loaded assemblies from it.
         /// </summary>
-        protected virtual void ResetAssemblyLoader()
+        private void RetireCurrentAssemblyLoader()
         {
             lock ( this._sync )
             {
-                this._logger.Warning?.Log( "Resetting the domain's assembly loader due to assembly version incompatibility." );
+                this._logger.Warning?.Log(
+                    "Retiring the current assembly loader due to assembly version incompatibility. " +
+                    "The retired loader will remain alive for concurrent compilations." );
+
+                if ( this._assemblyLoader != null )
+                {
+                    this._retiredAssemblyLoaders.Add( this._assemblyLoader );
+                }
 
                 this._assemblyCache.Clear();
                 this._assembliesByName.Clear();
 
-                this._assemblyLoader?.Dispose();
+                this._assemblyLoader = this.CreateAssemblyLoader();
 
-                this._assemblyLoader = AssemblyLoaderFactory.CreateAssemblyLoader(
-                    this.ResolveAssembly,
-                    debugName: $"CompileTimeDomain {this._debugName}".TrimEnd() );
+                // Allow subclasses to retire their own state (e.g. AssemblyLoadContext).
+                this.OnAssemblyLoaderRetired();
 
                 this.AddAssembly( this.GetType().Assembly );
             }
+        }
+
+        /// <summary>
+        /// Called after the current assembly loader has been retired and a new one created.
+        /// Subclasses can override this to retire additional state (e.g., <c>AssemblyLoadContext</c>)
+        /// without disposing it, so that assemblies loaded from it remain valid.
+        /// </summary>
+        protected virtual void OnAssemblyLoaderRetired()
+        {
         }
 
         internal void RegisterAssemblyPaths( ImmutableArray<string> systemAssemblyPaths )
@@ -351,6 +391,35 @@ namespace Metalama.Framework.Engine.CompileTime
         }
 
         public bool IsCollectible( Assembly assembly )
-            => this._assemblyLoader?.IsCollectible( assembly ) ?? throw new ObjectDisposedException( this.ToString() );
+        {
+            var currentLoader = this._assemblyLoader;
+
+            if ( currentLoader != null )
+            {
+                if ( currentLoader.IsCollectible( assembly ) )
+                {
+                    return true;
+                }
+            }
+
+            // Also check retired loaders, since assemblies loaded from them are still valid.
+            lock ( this._sync )
+            {
+                foreach ( var retiredLoader in this._retiredAssemblyLoaders )
+                {
+                    if ( retiredLoader.IsCollectible( assembly ) )
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            if ( currentLoader == null )
+            {
+                throw new ObjectDisposedException( this.ToString() );
+            }
+
+            return false;
+        }
     }
 }

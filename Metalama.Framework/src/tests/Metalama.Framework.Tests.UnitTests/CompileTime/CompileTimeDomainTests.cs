@@ -16,11 +16,11 @@ public sealed class CompileTimeDomainTests : UnitTestClass
 {
     /// <summary>
     /// Regression test for issue #579: When EnsureCompatibleWithAssemblies detects that an assembly with the same
-    /// simple name but a different version is already loaded, the domain should reset its internal state and allow
-    /// the new version to be loaded.
+    /// simple name but a different version is already loaded, the domain should retire the current loader and create
+    /// a new one, allowing the new version to be loaded while keeping the old loader alive.
     /// </summary>
     [Fact]
-    public void EnsureCompatibleWithAssemblies_ResetsWhenVersionConflict()
+    public void EnsureCompatibleWithAssemblies_RetiresLoaderOnVersionConflict()
     {
         using var testContext = this.CreateTestContext();
         using var domain = testContext.Domain;
@@ -41,7 +41,7 @@ public sealed class CompileTimeDomainTests : UnitTestClass
             Assert.Equal( assemblyName, assembly1.GetName().Name );
             Assert.Equal( new Version( 1, 0, 0, 0 ), assembly1.GetName().Version );
 
-            // EnsureCompatibleWithAssemblies should detect the conflict and reset the domain.
+            // EnsureCompatibleWithAssemblies should detect the conflict and retire the old loader.
             domain.EnsureCompatibleWithAssemblies( new[] { path2 } );
 
             // Now loading the new version should succeed and return the new assembly.
@@ -49,6 +49,9 @@ public sealed class CompileTimeDomainTests : UnitTestClass
             Assert.NotNull( assembly2 );
             Assert.Equal( assemblyName, assembly2.GetName().Name );
             Assert.Equal( new Version( 2, 0, 0, 0 ), assembly2.GetName().Version );
+
+            // The old assembly reference (assembly1) should still be valid — the retired loader is not disposed.
+            Assert.Equal( "V1", assembly1.GetTypes()[0].Name );
         }
         finally
         {
@@ -57,10 +60,10 @@ public sealed class CompileTimeDomainTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that EnsureCompatibleWithAssemblies does not reset the domain when all assemblies are compatible.
+    /// Verifies that EnsureCompatibleWithAssemblies does not retire the loader when all assemblies are compatible.
     /// </summary>
     [Fact]
-    public void EnsureCompatibleWithAssemblies_NoResetWhenCompatible()
+    public void EnsureCompatibleWithAssemblies_NoRetireWhenCompatible()
     {
         using var testContext = this.CreateTestContext();
         using var domain = testContext.Domain;
@@ -76,7 +79,7 @@ public sealed class CompileTimeDomainTests : UnitTestClass
             var assembly1 = domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
             Assert.NotNull( assembly1 );
 
-            // EnsureCompatibleWithAssemblies with the same path should not reset.
+            // EnsureCompatibleWithAssemblies with the same path should not retire the loader.
             domain.EnsureCompatibleWithAssemblies( new[] { path1 } );
 
             // Loading the same assembly should return the cached instance.
@@ -147,10 +150,10 @@ public sealed class CompileTimeDomainTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that after a domain reset, previously loaded compatible assemblies can be reloaded.
+    /// Verifies that after a loader retirement, previously loaded compatible assemblies can be reloaded.
     /// </summary>
     [Fact]
-    public void EnsureCompatibleWithAssemblies_CanReloadAfterReset()
+    public void EnsureCompatibleWithAssemblies_CanReloadAfterRetire()
     {
         using var testContext = this.CreateTestContext();
         using var domain = testContext.Domain;
@@ -168,16 +171,63 @@ public sealed class CompileTimeDomainTests : UnitTestClass
             domain.LoadAssembly( pathA, null, new LoadAssemblyOptions { IsShared = true } );
             domain.LoadAssembly( pathB1, null, new LoadAssemblyOptions { IsShared = true } );
 
-            // Reset for the new version of B.
+            // Retire the loader for the new version of B.
             domain.EnsureCompatibleWithAssemblies( new[] { pathA, pathB2 } );
 
-            // Both assemblies should load successfully after reset.
+            // Both assemblies should load successfully after retirement.
             var assemblyA = domain.LoadAssembly( pathA, null, new LoadAssemblyOptions { IsShared = true } );
             var assemblyB = domain.LoadAssembly( pathB2, null, new LoadAssemblyOptions { IsShared = true } );
 
             Assert.Equal( "ExtensionA", assemblyA.GetName().Name );
             Assert.Equal( "ExtensionB", assemblyB.GetName().Name );
             Assert.Equal( new Version( 2, 0, 0, 0 ), assemblyB.GetName().Version );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that assemblies loaded from a retired loader remain accessible and valid
+    /// even after a new loader has been created. This simulates the concurrent compilation scenario
+    /// where compilation A holds references to assemblies loaded from the old loader while
+    /// compilation B triggers a retirement and uses a new loader.
+    /// </summary>
+    [Fact]
+    public void RetiredLoaderAssemblies_RemainValidForConcurrentUse()
+    {
+        using var testContext = this.CreateTestContext();
+        using var domain = testContext.Domain;
+
+        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
+        Directory.CreateDirectory( tempDir );
+
+        try
+        {
+            var pathV1 = CreateAssemblyOnDisk( tempDir, "SharedExtension", new Version( 1, 0, 0, 0 ), "public class V1 { public static int Value => 1; }" );
+            var pathV2 = CreateAssemblyOnDisk( tempDir, "SharedExtension", new Version( 2, 0, 0, 0 ), "public class V2 { public static int Value => 2; }" );
+            var pathOther = CreateAssemblyOnDisk( tempDir, "OtherExtension", new Version( 1, 0, 0, 0 ), "public class Other {}" );
+
+            // Simulation: Compilation A loads SharedExtension v1 and OtherExtension.
+            var assemblyV1 = domain.LoadAssembly( pathV1, null, new LoadAssemblyOptions { IsShared = true } );
+            var assemblyOther = domain.LoadAssembly( pathOther, null, new LoadAssemblyOptions { IsShared = true } );
+
+            Assert.Equal( new Version( 1, 0, 0, 0 ), assemblyV1.GetName().Version );
+
+            // Simulation: Compilation B needs SharedExtension v2. This retires the old loader.
+            domain.EnsureCompatibleWithAssemblies( new[] { pathV2 } );
+
+            // Compilation B loads SharedExtension v2 into the new loader.
+            var assemblyV2 = domain.LoadAssembly( pathV2, null, new LoadAssemblyOptions { IsShared = true } );
+
+            Assert.Equal( new Version( 2, 0, 0, 0 ), assemblyV2.GetName().Version );
+
+            // Verify that Compilation A's assemblies are still valid and usable.
+            // The retired loader was not disposed, so these references should still work.
+            Assert.Equal( "V1", assemblyV1.GetTypes()[0].Name );
+            Assert.Equal( "Other", assemblyOther.GetTypes()[0].Name );
+            Assert.Equal( new Version( 1, 0, 0, 0 ), assemblyV1.GetName().Version );
         }
         finally
         {
