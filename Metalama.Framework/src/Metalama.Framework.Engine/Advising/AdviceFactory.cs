@@ -292,13 +292,16 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         // We don't validate that the target is "under" the current declaration because some advice type, e.g. annotations, are valid on any target.
 
-        return new AdviceFactory<TNewTarget>(
-            target,
-            this._state,
-            this._templateClassInstance,
-            this._layerName,
-            this._explicitlyImplementedInterfaceType,
-            this._diagnostics );
+        using ( this.WithNonUserCode() )
+        {
+            return new AdviceFactory<TNewTarget>(
+                target,
+                this._state,
+                this._templateClassInstance,
+                this._layerName,
+                this._explicitlyImplementedInterfaceType,
+                this._diagnostics );
+        }
     }
 
     public ICompilation MutableCompilation => this._state.MutableCompilation;
@@ -1896,6 +1899,12 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         if ( this._templateClassInstance == null )
         {
             throw new InvalidOperationException();
+        }
+
+        // An empty name resolves to the target namespace itself.
+        if ( string.IsNullOrEmpty( name ) )
+        {
+            return this.WithDeclaration( targetNamespace );
         }
 
         using ( this.WithNonUserCode() )
