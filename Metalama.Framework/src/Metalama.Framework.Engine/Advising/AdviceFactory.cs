@@ -1898,6 +1898,12 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             throw new InvalidOperationException();
         }
 
+        // An empty name resolves to the target namespace itself.
+        if ( string.IsNullOrEmpty( name ) )
+        {
+            return this.WithDeclaration( targetNamespace );
+        }
+
         using ( this.WithNonUserCode() )
         {
             return
