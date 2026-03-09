@@ -207,7 +207,16 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
         => new TypeParameterList( this, this._namedTypeBuilderData.TypeParameters.Select( t => t.ToRef() ).ToReadOnlyList() );
 
     [Memo]
-    public IReadOnlyList<IType> TypeArguments => this._namedTypeBuilderData.TypeParameters.SelectAsImmutableArray( t => this.MapType( t.ToRef() ) );
+    public IReadOnlyList<IType> TypeArguments
+        => this._namedTypeBuilderData.TypeParameters.SelectAsImmutableArray(
+            t =>
+            {
+                // First resolve the type parameter without context to get the ITypeParameter declaration.
+                var typeParam = (IType) t.ToRef().GetTarget( this.Compilation );
+
+                // Then map it through the generic context, which substitutes e.g. T -> int.
+                return this.GenericContext.Map( typeParam ) ?? typeParam;
+            } );
 
     public bool IsGeneric => this._namedTypeBuilderData.TypeParameters.Length > 0;
 

@@ -144,7 +144,10 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
         }
         else
         {
-            throw new InvalidOperationException( "Cannot combine two non-empty generic contexts." );
+            // Both contexts are non-empty. Combine them by mapping this ref's generic context
+            // through the passed context. E.g., if this ref has {T->U} and the passed context
+            // is {U->int}, the result is {T->int}.
+            return this._genericContext.Map( (GenericContext) genericContext, this.RefFactory );
         }
     }
 
