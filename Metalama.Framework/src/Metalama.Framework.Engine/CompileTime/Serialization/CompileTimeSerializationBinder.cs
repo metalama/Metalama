@@ -13,7 +13,7 @@ internal sealed class CompileTimeSerializationBinder : BaseCompileTimeSerializat
     private static readonly string _systemAssemblyName = typeof(object).Assembly.FullName.AssertNotNull();
     private readonly IDeserializationSurrogateProvider? _deserializationSurrogateProvider;
 
-    public CompileTimeSerializationBinder( in ProjectServiceProvider serviceProvider, CompileTimeProject? project ) : base( serviceProvider )
+    public CompileTimeSerializationBinder( CompileTimeDomain? domain, in ProjectServiceProvider serviceProvider, CompileTimeProject? project ) : base( domain, serviceProvider )
     {
         this._project = project;
         this._deserializationSurrogateProvider = serviceProvider.GetService<IDeserializationSurrogateProvider>();

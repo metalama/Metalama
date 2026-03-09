@@ -15,84 +15,6 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 public sealed class CompileTimeDomainTests : UnitTestClass
 {
     /// <summary>
-    /// Regression test for issue #579: When EnsureCompatibleWithAssemblies detects that an assembly with the same
-    /// simple name but a different version is already loaded, the domain should retire the current loader and create
-    /// a new one, allowing the new version to be loaded while keeping the old loader alive.
-    /// </summary>
-    [Fact]
-    public void EnsureCompatibleWithAssemblies_RetiresLoaderOnVersionConflict()
-    {
-        using var testContext = this.CreateTestContext();
-        using var domain = testContext.Domain;
-
-        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
-        Directory.CreateDirectory( tempDir );
-
-        try
-        {
-            var assemblyName = "TestExtension";
-
-            var path1 = CreateAssemblyOnDisk( tempDir, assemblyName, new Version( 1, 0, 0, 0 ), "public class V1 {}" );
-            var path2 = CreateAssemblyOnDisk( tempDir, assemblyName, new Version( 2, 0, 0, 0 ), "public class V2 {}" );
-
-            // Load the first version.
-            var assembly1 = domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
-            Assert.NotNull( assembly1 );
-            Assert.Equal( assemblyName, assembly1.GetName().Name );
-            Assert.Equal( new Version( 1, 0, 0, 0 ), assembly1.GetName().Version );
-
-            // EnsureCompatibleWithAssemblies should detect the conflict and retire the old loader.
-            domain.EnsureCompatibleWithAssemblies( new[] { path2 } );
-
-            // Now loading the new version should succeed and return the new assembly.
-            var assembly2 = domain.LoadAssembly( path2, null, new LoadAssemblyOptions { IsShared = true } );
-            Assert.NotNull( assembly2 );
-            Assert.Equal( assemblyName, assembly2.GetName().Name );
-            Assert.Equal( new Version( 2, 0, 0, 0 ), assembly2.GetName().Version );
-
-            // The old assembly reference (assembly1) should still be valid — the retired loader is not disposed.
-            Assert.Equal( "V1", assembly1.GetTypes()[0].Name );
-        }
-        finally
-        {
-            TryDeleteDirectory( tempDir );
-        }
-    }
-
-    /// <summary>
-    /// Verifies that EnsureCompatibleWithAssemblies does not retire the loader when all assemblies are compatible.
-    /// </summary>
-    [Fact]
-    public void EnsureCompatibleWithAssemblies_NoRetireWhenCompatible()
-    {
-        using var testContext = this.CreateTestContext();
-        using var domain = testContext.Domain;
-
-        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
-        Directory.CreateDirectory( tempDir );
-
-        try
-        {
-            var path1 = CreateAssemblyOnDisk( tempDir, "ExtensionA", new Version( 1, 0, 0, 0 ), "public class A {}" );
-
-            // Load the first assembly.
-            var assembly1 = domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
-            Assert.NotNull( assembly1 );
-
-            // EnsureCompatibleWithAssemblies with the same path should not retire the loader.
-            domain.EnsureCompatibleWithAssemblies( new[] { path1 } );
-
-            // Loading the same assembly should return the cached instance.
-            var assembly1Again = domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
-            Assert.Same( assembly1, assembly1Again );
-        }
-        finally
-        {
-            TryDeleteDirectory( tempDir );
-        }
-    }
-
-    /// <summary>
     /// Verifies that loading the same assembly (same identity) twice returns the cached instance.
     /// </summary>
     [Fact]
@@ -150,10 +72,10 @@ public sealed class CompileTimeDomainTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that after a loader retirement, previously loaded compatible assemblies can be reloaded.
+    /// Verifies that IsCompatibleWithAssemblies returns true when assemblies are compatible.
     /// </summary>
     [Fact]
-    public void EnsureCompatibleWithAssemblies_CanReloadAfterRetire()
+    public void IsCompatibleWithAssemblies_Compatible_ReturnsTrue()
     {
         using var testContext = this.CreateTestContext();
         using var domain = testContext.Domain;
@@ -163,24 +85,12 @@ public sealed class CompileTimeDomainTests : UnitTestClass
 
         try
         {
-            var pathA = CreateAssemblyOnDisk( tempDir, "ExtensionA", new Version( 1, 0, 0, 0 ), "public class A {}" );
-            var pathB1 = CreateAssemblyOnDisk( tempDir, "ExtensionB", new Version( 1, 0, 0, 0 ), "public class B1 {}" );
-            var pathB2 = CreateAssemblyOnDisk( tempDir, "ExtensionB", new Version( 2, 0, 0, 0 ), "public class B2 {}" );
+            var path1 = CreateAssemblyOnDisk( tempDir, "ExtensionA", new Version( 1, 0, 0, 0 ), "public class A {}" );
 
-            // Load both initial versions.
-            domain.LoadAssembly( pathA, null, new LoadAssemblyOptions { IsShared = true } );
-            domain.LoadAssembly( pathB1, null, new LoadAssemblyOptions { IsShared = true } );
+            domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
 
-            // Retire the loader for the new version of B.
-            domain.EnsureCompatibleWithAssemblies( new[] { pathA, pathB2 } );
-
-            // Both assemblies should load successfully after retirement.
-            var assemblyA = domain.LoadAssembly( pathA, null, new LoadAssemblyOptions { IsShared = true } );
-            var assemblyB = domain.LoadAssembly( pathB2, null, new LoadAssemblyOptions { IsShared = true } );
-
-            Assert.Equal( "ExtensionA", assemblyA.GetName().Name );
-            Assert.Equal( "ExtensionB", assemblyB.GetName().Name );
-            Assert.Equal( new Version( 2, 0, 0, 0 ), assemblyB.GetName().Version );
+            // Same assembly path should be compatible.
+            Assert.True( domain.IsCompatibleWithAssemblies( new[] { path1 } ) );
         }
         finally
         {
@@ -189,13 +99,11 @@ public sealed class CompileTimeDomainTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that assemblies loaded from a retired loader remain accessible and valid
-    /// even after a new loader has been created. This simulates the concurrent compilation scenario
-    /// where compilation A holds references to assemblies loaded from the old loader while
-    /// compilation B triggers a retirement and uses a new loader.
+    /// Verifies that IsCompatibleWithAssemblies returns false when an assembly with the same name
+    /// but different version is already loaded.
     /// </summary>
     [Fact]
-    public void RetiredLoaderAssemblies_RemainValidForConcurrentUse()
+    public void IsCompatibleWithAssemblies_VersionConflict_ReturnsFalse()
     {
         using var testContext = this.CreateTestContext();
         using var domain = testContext.Domain;
@@ -205,29 +113,81 @@ public sealed class CompileTimeDomainTests : UnitTestClass
 
         try
         {
-            var pathV1 = CreateAssemblyOnDisk( tempDir, "SharedExtension", new Version( 1, 0, 0, 0 ), "public class V1 { public static int Value => 1; }" );
-            var pathV2 = CreateAssemblyOnDisk( tempDir, "SharedExtension", new Version( 2, 0, 0, 0 ), "public class V2 { public static int Value => 2; }" );
-            var pathOther = CreateAssemblyOnDisk( tempDir, "OtherExtension", new Version( 1, 0, 0, 0 ), "public class Other {}" );
+            var path1 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 1, 0, 0, 0 ), "public class V1 {}" );
+            var path2 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 2, 0, 0, 0 ), "public class V2 {}" );
 
-            // Simulation: Compilation A loads SharedExtension v1 and OtherExtension.
-            var assemblyV1 = domain.LoadAssembly( pathV1, null, new LoadAssemblyOptions { IsShared = true } );
-            var assemblyOther = domain.LoadAssembly( pathOther, null, new LoadAssemblyOptions { IsShared = true } );
+            domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
 
-            Assert.Equal( new Version( 1, 0, 0, 0 ), assemblyV1.GetName().Version );
+            // Different version of the same assembly should be incompatible.
+            Assert.False( domain.IsCompatibleWithAssemblies( new[] { path2 } ) );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir );
+        }
+    }
 
-            // Simulation: Compilation B needs SharedExtension v2. This retires the old loader.
-            domain.EnsureCompatibleWithAssemblies( new[] { pathV2 } );
+    /// <summary>
+    /// Regression test for issue #579: GetOrCreateDomain returns a new domain when assembly versions conflict,
+    /// allowing the new version to be loaded in a fresh domain.
+    /// </summary>
+    [Fact]
+    public void GetOrCreateDomain_VersionConflict_CreatesNewDomain()
+    {
+        using var testContext = this.CreateTestContext();
+        var factory = testContext.ServiceProvider.Global.GetRequiredService<ICompileTimeDomainFactory>();
 
-            // Compilation B loads SharedExtension v2 into the new loader.
-            var assemblyV2 = domain.LoadAssembly( pathV2, null, new LoadAssemblyOptions { IsShared = true } );
+        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
+        Directory.CreateDirectory( tempDir );
 
-            Assert.Equal( new Version( 2, 0, 0, 0 ), assemblyV2.GetName().Version );
+        try
+        {
+            var path1 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 1, 0, 0, 0 ), "public class V1 {}" );
+            var path2 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 2, 0, 0, 0 ), "public class V2 {}" );
 
-            // Verify that Compilation A's assemblies are still valid and usable.
-            // The retired loader was not disposed, so these references should still work.
-            Assert.Equal( "V1", assemblyV1.GetTypes()[0].Name );
-            Assert.Equal( "Other", assemblyOther.GetTypes()[0].Name );
-            Assert.Equal( new Version( 1, 0, 0, 0 ), assemblyV1.GetName().Version );
+            // Get a domain and load v1.
+            var domain1 = factory.GetOrCreateDomain( new[] { path1 } );
+            var assembly1 = domain1.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
+            Assert.Equal( new Version( 1, 0, 0, 0 ), assembly1.GetName().Version );
+
+            // Get a domain for v2 — should be a different domain since v1 is incompatible.
+            var domain2 = factory.GetOrCreateDomain( new[] { path2 } );
+            Assert.NotSame( domain1, domain2 );
+
+            // Load v2 in the new domain — should succeed.
+            var assembly2 = domain2.LoadAssembly( path2, null, new LoadAssemblyOptions { IsShared = true } );
+            Assert.Equal( new Version( 2, 0, 0, 0 ), assembly2.GetName().Version );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that GetOrCreateDomain returns the same domain when assemblies are compatible.
+    /// </summary>
+    [Fact]
+    public void GetOrCreateDomain_Compatible_ReturnsSameDomain()
+    {
+        using var testContext = this.CreateTestContext();
+        var factory = testContext.ServiceProvider.Global.GetRequiredService<ICompileTimeDomainFactory>();
+
+        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
+        Directory.CreateDirectory( tempDir );
+
+        try
+        {
+            var pathA = CreateAssemblyOnDisk( tempDir, "ExtensionA", new Version( 1, 0, 0, 0 ), "public class A {}" );
+            var pathB = CreateAssemblyOnDisk( tempDir, "ExtensionB", new Version( 1, 0, 0, 0 ), "public class B {}" );
+
+            // Get a domain and load A.
+            var domain1 = factory.GetOrCreateDomain( new[] { pathA } );
+            domain1.LoadAssembly( pathA, null, new LoadAssemblyOptions { IsShared = true } );
+
+            // Get a domain for B — should be the same domain since there's no conflict.
+            var domain2 = factory.GetOrCreateDomain( new[] { pathB } );
+            Assert.Same( domain1, domain2 );
         }
         finally
         {

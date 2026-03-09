@@ -4,12 +4,15 @@
 
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Services;
+using System.Collections.Generic;
 
 namespace Metalama.Testing.UnitTesting;
 
 internal sealed class TestCompileTimeDomainFactory : ICompileTimeDomainFactory
 {
     private readonly GlobalServiceProvider _serviceProvider;
+    private readonly object _sync = new();
+    private CompileTimeDomain? _currentDomain;
 
     public TestCompileTimeDomainFactory( GlobalServiceProvider serviceProvider )
     {
@@ -27,4 +30,19 @@ internal sealed class TestCompileTimeDomainFactory : ICompileTimeDomainFactory
 #else
         => new( this._serviceProvider );
 #endif
+
+    public CompileTimeDomain GetOrCreateDomain( IReadOnlyCollection<string> assemblyPaths )
+    {
+        lock ( this._sync )
+        {
+            if ( this._currentDomain != null && this._currentDomain.IsCompatibleWithAssemblies( assemblyPaths ) )
+            {
+                return this._currentDomain;
+            }
+
+            this._currentDomain = this.CreateDomain();
+
+            return this._currentDomain;
+        }
+    }
 }

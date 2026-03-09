@@ -30,7 +30,7 @@ internal sealed class CompileTimeSerializer
 
     private CompileTimeSerializer( CompileTimeProject? project, in ProjectServiceProvider serviceProvider, CompilationContext compilationContext ) : this(
         serviceProvider,
-        new CompileTimeSerializationBinder( serviceProvider, project ),
+        new CompileTimeSerializationBinder( project?.Domain, serviceProvider, project ),
         compilationContext ) { }
 
     public static CompileTimeSerializer CreateInstance( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )

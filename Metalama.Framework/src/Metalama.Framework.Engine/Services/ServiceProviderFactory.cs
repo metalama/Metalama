@@ -79,7 +79,6 @@ public static class ServiceProviderFactory
             .WithServiceConditional<IGlobalOptions>( _ => new DefaultGlobalOptions() );
 
         serviceProvider = serviceProvider.WithServiceConditional<ICompileTimeDomainFactory>( sp => new DefaultCompileTimeDomainFactory( sp ) );
-        serviceProvider = serviceProvider.WithServiceConditional<CompileTimeDomain>( sp => sp.GetRequiredService<ICompileTimeDomainFactory>().CreateDomain() );
 
         serviceProvider = serviceProvider
             .WithServiceConditional<ITestableCancellationTokenSourceFactory>( _ => new DefaultTestableCancellationTokenSource() )

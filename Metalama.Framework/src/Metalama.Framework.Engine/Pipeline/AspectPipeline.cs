@@ -45,7 +45,7 @@ public abstract class AspectPipeline : IDisposable
 
     protected IProjectOptions ProjectOptions { get; }
 
-    private CompileTimeDomain Domain { get; }
+    private ICompileTimeDomainFactory DomainFactory { get; }
 
     // This member is intentionally protected because there can be one ServiceProvider per project,
     // but the pipeline can be used by many projects.
@@ -60,7 +60,6 @@ public abstract class AspectPipeline : IDisposable
     /// </summary>
     /// <param name="serviceProvider"></param>
     /// <param name="executionScenario"></param>
-    /// <param name="domain">If <c>null</c>, the instance is created from the <see cref="ICompileTimeDomainFactory"/> service.</param>
     protected AspectPipeline(
         ProjectServiceProvider serviceProvider,
         ExecutionScenario executionScenario )
@@ -74,7 +73,7 @@ public abstract class AspectPipeline : IDisposable
         this.ServiceProvider = serviceProvider
             .WithService( executionScenario, true );
 
-        this.Domain = serviceProvider.Global.GetRequiredService<CompileTimeDomain>();
+        this.DomainFactory = serviceProvider.Global.GetRequiredService<ICompileTimeDomainFactory>();
         this.ApplicationExitingToken = serviceProvider.Global.GetRequiredService<ApplicationExitManager>().Token;
     }
 
@@ -121,13 +120,21 @@ public abstract class AspectPipeline : IDisposable
             return false;
         }
 
+        // Get a CompileTimeDomain that is compatible with the extension assemblies for this project.
+        // The factory either reuses an existing domain or creates a new one.
+        var extensionAssemblyPaths = new ExtensionLoaderBase( this.ServiceProvider.Global )
+            .GetExtensionAssemblyPaths( this.ProjectOptions.ExtensionAssemblies )
+            .ToList();
+
+        var domain = this.DomainFactory.GetOrCreateDomain( extensionAssemblyPaths );
+
         // Extension assemblies have to be loaded before the compile-time project is created,
         // because the compile-time project can reference their types.
-        var extensions = this.LoadExtensions( diagnosticAdder, compilation, this.ServiceProvider );
+        var extensions = this.LoadExtensions( domain, diagnosticAdder, compilation, this.ServiceProvider );
 
         // Prepare the compile-time assembly.
         var compileTimeProjectRepository = CompileTimeProjectRepository.Create(
-            this.Domain,
+            domain,
             this.ServiceProvider,
             compilation,
             diagnosticAdder,
@@ -177,7 +184,7 @@ public abstract class AspectPipeline : IDisposable
 
         foreach ( var extension in extensions.Extensions )
         {
-            this.Domain.AddAssembly( extension.GetType().Assembly );
+            domain.AddAssembly( extension.GetType().Assembly );
 
             if ( !extension.Initialize( extensionInitializationContext ) )
             {
@@ -280,7 +287,7 @@ public abstract class AspectPipeline : IDisposable
 
         // Create the configuration.
         configuration = new AspectPipelineConfiguration(
-            this.Domain,
+            domain,
             stages,
             allAspectClasses,
             allOrderedAspectLayers,
@@ -312,6 +319,7 @@ public abstract class AspectPipeline : IDisposable
     }
 
     private (ImmutableArray<PipelineExtension> Extensions, ImmutableArray<IProjectServiceFactory> Services) LoadExtensions(
+        CompileTimeDomain domain,
         IDiagnosticAdder diagnosticAdder,
         Compilation compilation,
         ServiceProvider<IProjectService> serviceProvider )
@@ -326,7 +334,7 @@ public abstract class AspectPipeline : IDisposable
 
         if ( extensionLoader != null )
         {
-            var extensionTypes = extensionLoader.GetExtensionTypes( this.ProjectOptions, this.Domain, ExtensionKinds.Default | ExtensionKinds.ServiceFactory, diagnosticAdder );
+            var extensionTypes = extensionLoader.GetExtensionTypes( this.ProjectOptions, domain, ExtensionKinds.Default | ExtensionKinds.ServiceFactory, diagnosticAdder );
 
             foreach ( var extensionType in extensionTypes )
             {
