@@ -675,5 +675,15 @@ namespace Metalama.Framework.Engine.Templating
                     + "run-time code cannot be generated. Use a compile-time null check (e.g. an 'if' statement) instead of the '?.' operator.",
                     _category,
                     Error );
+
+        internal static readonly DiagnosticDefinition<string> DuplicateAspectTypeInCompilation
+            = new(
+                "LAMA0290",
+                "Multiple aspect types with the same name were found in the compilation.",
+                "The aspect type '{0}' was found in multiple referenced assemblies. "
+                + "This typically happens when two versions of the same assembly are loaded. "
+                + "Remove one of the conflicting assembly references.",
+                _category,
+                Error );
     }
 }
