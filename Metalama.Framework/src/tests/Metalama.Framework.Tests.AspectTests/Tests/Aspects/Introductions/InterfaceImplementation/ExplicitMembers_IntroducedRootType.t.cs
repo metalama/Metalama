@@ -1,0 +1,4 @@
+[Introduction]
+public class TargetClass
+{
+}
