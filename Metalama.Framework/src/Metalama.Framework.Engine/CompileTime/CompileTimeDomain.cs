@@ -19,6 +19,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 
@@ -41,6 +42,7 @@ namespace Metalama.Framework.Engine.CompileTime
         private readonly ILogger _logger;
         private readonly object _sync = new();
         private readonly ConcurrentDictionary<string, (Assembly Assembly, AssemblyIdentity Identity)> _assembliesByName = new();
+        private readonly string? _debugName;
 
         private AssemblyLoader? _assemblyLoader;
 
@@ -52,6 +54,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
         public CompileTimeDomain( GlobalServiceProvider serviceProvider, string? debugName = null )
         {
+            this._debugName = debugName;
             this.Observer = serviceProvider.GetService<ICompileTimeDomainObserver>();
             this.Observer?.OnDomainCreated( this );
 
@@ -116,20 +119,6 @@ namespace Metalama.Framework.Engine.CompileTime
             if ( this.TryGetLoadedAssembly( assemblyName, out var existingAssembly ) )
             {
                 return existingAssembly;
-            }
-
-            // Check if an assembly with the same simple name (but different version) is already loaded.
-            // An AssemblyLoadContext cannot hold two assemblies with the same simple name, so we must
-            // return the previously loaded assembly instead of attempting to load the new one, which
-            // would throw a FileLoadException. This happens when extension assemblies are rebuilt
-            // with different versions while the domain is still alive.
-            if ( assemblyName.Name != null
-                 && this._assembliesByName.TryGetValue( assemblyName.Name, out var existingEntry ) )
-            {
-                this._logger.Warning?.Log(
-                    $"Cannot load assembly '{assemblyName}' from '{path}' because a different version ('{existingEntry.Identity}') is already loaded in the domain. Returning the existing assembly." );
-
-                return existingEntry.Assembly;
             }
 
             // The assembly might already be loaded in the AppDomain or AssemblyLoadContext.
@@ -286,6 +275,69 @@ namespace Metalama.Framework.Engine.CompileTime
         }
 
         public void Dispose() => this.Dispose( true );
+
+        /// <summary>
+        /// Ensures that the domain is compatible with the given assembly paths. If any assembly has the same simple name
+        /// as an already-loaded assembly but a different identity, the domain's internal state is reset by disposing the
+        /// current <see cref="AssemblyLoader"/> and creating a new one, so that the new assemblies can be loaded without conflict.
+        /// </summary>
+        /// <param name="assemblyPaths">The paths of assemblies that will be loaded.</param>
+        internal void EnsureCompatibleWithAssemblies( IEnumerable<string> assemblyPaths )
+        {
+            var incompatibleAssemblies = new List<(string Path, AssemblyName Name, AssemblyIdentity ExistingIdentity)>();
+
+            foreach ( var path in assemblyPaths )
+            {
+                var assemblyName = MetadataReferenceCache.GetAssemblyName( path );
+
+                if ( assemblyName.Name != null
+                     && this._assembliesByName.TryGetValue( assemblyName.Name, out var existingEntry ) )
+                {
+                    var existingName = existingEntry.Assembly.GetName();
+
+                    if ( existingName.Version != assemblyName.Version
+                         || !(existingName.GetPublicKeyToken() ?? []).SequenceEqual( assemblyName.GetPublicKeyToken() ?? [] ) )
+                    {
+                        incompatibleAssemblies.Add( (path, assemblyName, existingEntry.Identity) );
+                    }
+                }
+            }
+
+            if ( incompatibleAssemblies.Count > 0 )
+            {
+                foreach ( var (path, name, existingIdentity) in incompatibleAssemblies )
+                {
+                    this._logger.Warning?.Log(
+                        $"Assembly '{name}' at '{path}' is incompatible with already-loaded assembly '{existingIdentity}'. Resetting the domain." );
+                }
+
+                this.ResetAssemblyLoader();
+            }
+        }
+
+        /// <summary>
+        /// Resets the internal assembly loader and all cached assemblies, creating a fresh <see cref="AssemblyLoader"/>
+        /// so that assemblies with different versions can be loaded. Subclasses should override this to reset any
+        /// additional state (e.g., <c>AssemblyLoadContext</c>).
+        /// </summary>
+        protected virtual void ResetAssemblyLoader()
+        {
+            lock ( this._sync )
+            {
+                this._logger.Warning?.Log( "Resetting the domain's assembly loader due to assembly version incompatibility." );
+
+                this._assemblyCache.Clear();
+                this._assembliesByName.Clear();
+
+                this._assemblyLoader?.Dispose();
+
+                this._assemblyLoader = AssemblyLoaderFactory.CreateAssemblyLoader(
+                    this.ResolveAssembly,
+                    debugName: $"CompileTimeDomain {this._debugName}".TrimEnd() );
+
+                this.AddAssembly( this.GetType().Assembly );
+            }
+        }
 
         internal void RegisterAssemblyPaths( ImmutableArray<string> systemAssemblyPaths )
         {

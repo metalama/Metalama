@@ -15,11 +15,12 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 public sealed class CompileTimeDomainTests : UnitTestClass
 {
     /// <summary>
-    /// Regression test for issue #579: Loading a different version of an extension assembly with the same simple name
-    /// into an existing CompileTimeDomain should not throw FileLoadException.
+    /// Regression test for issue #579: When EnsureCompatibleWithAssemblies detects that an assembly with the same
+    /// simple name but a different version is already loaded, the domain should reset its internal state and allow
+    /// the new version to be loaded.
     /// </summary>
     [Fact]
-    public void LoadAssembly_SameNameDifferentVersion_ShouldNotThrow()
+    public void EnsureCompatibleWithAssemblies_ResetsWhenVersionConflict()
     {
         using var testContext = this.CreateTestContext();
         using var domain = testContext.Domain;
@@ -34,20 +35,53 @@ public sealed class CompileTimeDomainTests : UnitTestClass
             var path1 = CreateAssemblyOnDisk( tempDir, assemblyName, new Version( 1, 0, 0, 0 ), "public class V1 {}" );
             var path2 = CreateAssemblyOnDisk( tempDir, assemblyName, new Version( 2, 0, 0, 0 ), "public class V2 {}" );
 
-            // Load the first version - should succeed.
+            // Load the first version.
             var assembly1 = domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
             Assert.NotNull( assembly1 );
             Assert.Equal( assemblyName, assembly1.GetName().Name );
+            Assert.Equal( new Version( 1, 0, 0, 0 ), assembly1.GetName().Version );
 
-            // Load the second version with the same simple name - this is the scenario from issue #579.
-            // Before the fix, this throws FileLoadException: "Assembly with same name is already loaded".
-            // After the fix, the domain returns the previously loaded assembly.
+            // EnsureCompatibleWithAssemblies should detect the conflict and reset the domain.
+            domain.EnsureCompatibleWithAssemblies( new[] { path2 } );
+
+            // Now loading the new version should succeed and return the new assembly.
             var assembly2 = domain.LoadAssembly( path2, null, new LoadAssemblyOptions { IsShared = true } );
             Assert.NotNull( assembly2 );
+            Assert.Equal( assemblyName, assembly2.GetName().Name );
+            Assert.Equal( new Version( 2, 0, 0, 0 ), assembly2.GetName().Version );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir );
+        }
+    }
 
-            // The domain should return the first assembly because it cannot load two assemblies
-            // with the same simple name into the same AssemblyLoadContext.
-            Assert.Same( assembly1, assembly2 );
+    /// <summary>
+    /// Verifies that EnsureCompatibleWithAssemblies does not reset the domain when all assemblies are compatible.
+    /// </summary>
+    [Fact]
+    public void EnsureCompatibleWithAssemblies_NoResetWhenCompatible()
+    {
+        using var testContext = this.CreateTestContext();
+        using var domain = testContext.Domain;
+
+        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
+        Directory.CreateDirectory( tempDir );
+
+        try
+        {
+            var path1 = CreateAssemblyOnDisk( tempDir, "ExtensionA", new Version( 1, 0, 0, 0 ), "public class A {}" );
+
+            // Load the first assembly.
+            var assembly1 = domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
+            Assert.NotNull( assembly1 );
+
+            // EnsureCompatibleWithAssemblies with the same path should not reset.
+            domain.EnsureCompatibleWithAssemblies( new[] { path1 } );
+
+            // Loading the same assembly should return the cached instance.
+            var assembly1Again = domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
+            Assert.Same( assembly1, assembly1Again );
         }
         finally
         {
@@ -105,6 +139,45 @@ public sealed class CompileTimeDomainTests : UnitTestClass
             Assert.NotSame( assembly1, assembly2 );
             Assert.Equal( "ExtensionA", assembly1.GetName().Name );
             Assert.Equal( "ExtensionB", assembly2.GetName().Name );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that after a domain reset, previously loaded compatible assemblies can be reloaded.
+    /// </summary>
+    [Fact]
+    public void EnsureCompatibleWithAssemblies_CanReloadAfterReset()
+    {
+        using var testContext = this.CreateTestContext();
+        using var domain = testContext.Domain;
+
+        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
+        Directory.CreateDirectory( tempDir );
+
+        try
+        {
+            var pathA = CreateAssemblyOnDisk( tempDir, "ExtensionA", new Version( 1, 0, 0, 0 ), "public class A {}" );
+            var pathB1 = CreateAssemblyOnDisk( tempDir, "ExtensionB", new Version( 1, 0, 0, 0 ), "public class B1 {}" );
+            var pathB2 = CreateAssemblyOnDisk( tempDir, "ExtensionB", new Version( 2, 0, 0, 0 ), "public class B2 {}" );
+
+            // Load both initial versions.
+            domain.LoadAssembly( pathA, null, new LoadAssemblyOptions { IsShared = true } );
+            domain.LoadAssembly( pathB1, null, new LoadAssemblyOptions { IsShared = true } );
+
+            // Reset for the new version of B.
+            domain.EnsureCompatibleWithAssemblies( new[] { pathA, pathB2 } );
+
+            // Both assemblies should load successfully after reset.
+            var assemblyA = domain.LoadAssembly( pathA, null, new LoadAssemblyOptions { IsShared = true } );
+            var assemblyB = domain.LoadAssembly( pathB2, null, new LoadAssemblyOptions { IsShared = true } );
+
+            Assert.Equal( "ExtensionA", assemblyA.GetName().Name );
+            Assert.Equal( "ExtensionB", assemblyB.GetName().Name );
+            Assert.Equal( new Version( 2, 0, 0, 0 ), assemblyB.GetName().Version );
         }
         finally
         {

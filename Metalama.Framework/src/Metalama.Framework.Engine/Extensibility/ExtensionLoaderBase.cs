@@ -59,9 +59,16 @@ public class ExtensionLoaderBase
     {
         // It is essential to materialize the query into a list, otherwise assemblies are not loaded if the caller does not evaluate the query.
 
+        var paths = this.GetExtensionAssemblyPaths( assemblyReferences ).ToList();
+
+        // Check upfront if the domain's current AssemblyLoadContext is compatible with the assemblies we need to load.
+        // If any assembly has the same simple name but a different version than one already loaded, the domain will
+        // reset its internal state (dispose the old AssemblyLoadContext and create a new one).
+        domain.EnsureCompatibleWithAssemblies( paths );
+
         var assemblies = new List<Assembly>();
 
-        foreach ( var path in this.GetExtensionAssemblyPaths( assemblyReferences ) )
+        foreach ( var path in paths )
         {
             try
             {
@@ -86,9 +93,14 @@ public class ExtensionLoaderBase
         IEnumerable<string> assemblyPaths,
         IDiagnosticAdder diagnosticAdder )
     {
+        var paths = assemblyPaths.ToList();
+
+        // Check upfront if the domain's current AssemblyLoadContext is compatible with these assemblies.
+        domain.EnsureCompatibleWithAssemblies( paths );
+
         var assemblies = new List<Assembly>();
 
-        foreach ( var path in assemblyPaths )
+        foreach ( var path in paths )
         {
             try
             {

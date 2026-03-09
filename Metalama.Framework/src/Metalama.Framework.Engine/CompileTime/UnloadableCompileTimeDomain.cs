@@ -60,6 +60,15 @@ namespace Metalama.Framework.Engine.CompileTime
         public event Action<string>? UnloadError;
 #pragma warning restore CS0067 // Event is never used
 
+        protected override void ResetAssemblyLoader()
+        {
+            // Unload the old AssemblyLoadContext before creating a new one.
+            this._assemblyLoadContext?.Unload();
+            this._assemblyLoadContext = new AssemblyLoadContext( "Metalama_" + Guid.NewGuid(), isCollectible: true );
+
+            base.ResetAssemblyLoader();
+        }
+
         protected override Assembly LoadAssemblyCore( string path, LoadAssemblyOptions options )
         {
             if ( this._disposed )
