@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0285 on `Introduce`: `The 'IntroduceAttribute' attribute is not allowed on a local function.`
