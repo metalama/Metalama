@@ -71,11 +71,7 @@ namespace Metalama.Framework.Engine.CompileTime
             this.AddAssembly( this.GetType().Assembly );
         }
 
-        /// <summary>
-        /// Creates a new <see cref="AssemblyLoader"/> for this domain. Subclasses can override
-        /// to customize the loader creation.
-        /// </summary>
-        protected virtual AssemblyLoader CreateAssemblyLoader()
+        private AssemblyLoader CreateAssemblyLoader()
             => AssemblyLoaderFactory.CreateAssemblyLoader(
                 this.ResolveAssembly,
                 debugName: $"CompileTimeDomain {this._debugName}".TrimEnd() );
