@@ -292,13 +292,16 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         // We don't validate that the target is "under" the current declaration because some advice type, e.g. annotations, are valid on any target.
 
-        return new AdviceFactory<TNewTarget>(
-            target,
-            this._state,
-            this._templateClassInstance,
-            this._layerName,
-            this._explicitlyImplementedInterfaceType,
-            this._diagnostics );
+        using ( this.WithNonUserCode() )
+        {
+            return new AdviceFactory<TNewTarget>(
+                target,
+                this._state,
+                this._templateClassInstance,
+                this._layerName,
+                this._explicitlyImplementedInterfaceType,
+                this._diagnostics );
+        }
     }
 
     public ICompilation MutableCompilation => this._state.MutableCompilation;
