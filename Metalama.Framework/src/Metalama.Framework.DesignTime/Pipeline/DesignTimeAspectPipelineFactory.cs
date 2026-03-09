@@ -10,7 +10,6 @@ using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
@@ -46,7 +45,6 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     private readonly ITaskRunner _taskRunner;
     private readonly DesignTimeExceptionHandler _exceptionHandler;
     private readonly DesignTimeExtensionManager? _extensionManager;
-    private readonly CompileTimeDomain _domain;
 
     internal ServiceProvider<IGlobalService> ServiceProvider { get; }
 
@@ -70,7 +68,6 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
 
         serviceProvider = serviceProvider.WithService( new ProjectVersionProvider( serviceProvider ) );
 
-        this._domain = serviceProvider.GetRequiredService<CompileTimeDomain>();
         this.ServiceProvider = serviceProvider;
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "DesignTime" );
     }
@@ -378,7 +375,6 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
 
         this._eventHub?.ExternalBuildCompletedEvent.UnregisterHandler( this.OnExternalBuildCompletedAsync );
         this._pipelinesByProjectKey.Clear();
-        this._domain.Dispose();
     }
 
     internal virtual async ValueTask<DesignTimeAspectPipeline?> GetPipelineAndWaitAsync( Compilation compilation, CancellationToken cancellationToken )

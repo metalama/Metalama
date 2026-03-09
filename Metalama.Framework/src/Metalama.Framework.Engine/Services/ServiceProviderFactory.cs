@@ -23,7 +23,6 @@ using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using Metalama.Framework.Project;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;
@@ -79,7 +78,6 @@ public static class ServiceProviderFactory
             .WithServiceConditional<IGlobalOptions>( _ => new DefaultGlobalOptions() );
 
         serviceProvider = serviceProvider.WithServiceConditional<ICompileTimeDomainFactory>( sp => new DefaultCompileTimeDomainFactory( sp ) );
-        serviceProvider = serviceProvider.WithServiceConditional<CompileTimeDomain>( sp => sp.GetRequiredService<ICompileTimeDomainFactory>().CreateDomain() );
 
         serviceProvider = serviceProvider
             .WithServiceConditional<ITestableCancellationTokenSourceFactory>( _ => new DefaultTestableCancellationTokenSource() )
