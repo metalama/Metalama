@@ -35,6 +35,7 @@ namespace Metalama.Patterns.Caching.Aspects;
 /// <para>To invalidate a cached method, see <see cref="InvalidateCacheAttribute"/> and the <see cref="CachingServiceExtensions.Invalidate{TReturn,TParam1}"/> method.</para>
 /// </remarks>
 [PublicAPI]
+[AttributeUsage( AttributeTargets.Method )]
 public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
 {
     void IEligible<IMethod>.BuildEligibility( IEligibilityBuilder<IMethod> builder )
