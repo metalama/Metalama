@@ -11,7 +11,7 @@ public class C
   {
   // (int, string): None
   // DateTime: Deep
-  // Memory<byte>: None
+  // Memory<byte>: Shallow
   // ReadOnlyMemory<byte>: Shallow
   }
 }
