@@ -34,6 +34,44 @@ internal static class TriviaHelper
     }
 
     /// <summary>
+    /// Extracts non-documentation comment trivia (regular comments and directives) from a field declaration.
+    /// Returns the trivia list with associated whitespace, or an empty list if none is found.
+    /// When a field is promoted to a property, these trivia should stay with the backing field
+    /// (they are associated with the private implementation detail, not the public member).
+    /// </summary>
+    public static SyntaxTriviaList GetNonDocumentationTrivia( FieldDeclarationSyntax fieldDeclaration )
+    {
+        var leadingTrivia = fieldDeclaration.GetLeadingTrivia();
+        var result = new List<SyntaxTrivia>();
+
+        for ( var i = 0; i < leadingTrivia.Count; i++ )
+        {
+            var trivia = leadingTrivia[i];
+
+            if ( trivia.IsKind( SyntaxKind.SingleLineCommentTrivia )
+                 || trivia.IsKind( SyntaxKind.MultiLineCommentTrivia )
+                 || trivia.IsDirective )
+            {
+                // Include the whitespace trivia before the comment for proper indentation.
+                if ( i > 0 && leadingTrivia[i - 1].IsKind( SyntaxKind.WhitespaceTrivia ) )
+                {
+                    result.Add( leadingTrivia[i - 1] );
+                }
+
+                result.Add( trivia );
+
+                // Include the end-of-line trivia after the comment.
+                if ( i + 1 < leadingTrivia.Count && leadingTrivia[i + 1].IsKind( SyntaxKind.EndOfLineTrivia ) )
+                {
+                    result.Add( leadingTrivia[i + 1] );
+                }
+            }
+        }
+
+        return new SyntaxTriviaList( result );
+    }
+
+    /// <summary>
     /// Adds documentation trivia to the leading trivia of a member declaration.
     /// The documentation trivia is prepended before the member's existing leading trivia.
     /// </summary>
@@ -49,4 +87,5 @@ internal static class TriviaHelper
 
         return member.WithRequiredLeadingTrivia( documentationTrivia.AddRange( existingTrivia ) );
     }
+
 }
