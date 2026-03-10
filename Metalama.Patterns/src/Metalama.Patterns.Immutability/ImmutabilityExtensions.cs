@@ -29,7 +29,8 @@ public static class ImmutabilityExtensions
     /// <item><description>The <see cref="ImmutabilityKind"/> configured via <see cref="ImmutableAttribute"/> or
     /// <see cref="Configuration.ImmutabilityConfigurationExtensions.ConfigureImmutability(Metalama.Framework.Fabrics.IQuery{Metalama.Framework.Code.INamedType},ImmutabilityKind)"/>.</description></item>
     /// <item><description>The result of a configured <see cref="Configuration.IImmutabilityClassifier"/> if one is set.</description></item>
-    /// <item><description><see cref="ImmutabilityKind.Deep"/> for value types in the <c>System</c> namespace.</description></item>
+    /// <item><description><see cref="ImmutabilityKind.Deep"/> for value types in the <c>System</c> namespace, except
+    /// <c>ValueTuple</c>, <c>Span</c>, <c>ReadOnlySpan</c>, <c>Memory</c>, and <c>ReadOnlyMemory</c>.</description></item>
     /// <item><description><see cref="ImmutabilityKind.Shallow"/> for read-only structs.</description></item>
     /// <item><description><see cref="ImmutabilityKind.None"/> for all other types.</description></item>
     /// </list>
@@ -80,7 +81,8 @@ public static class ImmutabilityExtensions
             {
                 IsReferenceType: false,
                 ContainingNamespace.FullName: "System"
-            } )
+            }
+             && !IsNonImmutableSystemValueType( namedType ) )
         {
             return ImmutabilityKind.Deep;
         }
@@ -91,5 +93,12 @@ public static class ImmutabilityExtensions
         }
 
         return ImmutabilityKind.None;
+    }
+
+    private static bool IsNonImmutableSystemValueType( INamedType namedType )
+    {
+        var name = namedType.Definition.Name;
+
+        return name is "ValueTuple" or "Span" or "ReadOnlySpan" or "Memory" or "ReadOnlyMemory";
     }
 }
