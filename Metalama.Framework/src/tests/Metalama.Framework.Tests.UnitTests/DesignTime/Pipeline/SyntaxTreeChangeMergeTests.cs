@@ -4,6 +4,7 @@
 
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.Pipeline.Diff;
+using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Immutable;
 using Xunit;
@@ -18,7 +19,7 @@ public sealed class SyntaxTreeChangeMergeTests
     private static SyntaxTreeVersion CreateSyntaxTreeVersion( string code, bool hasCompileTimeCode = false, string path = "code.cs" )
     {
         var tree = CSharpSyntaxTree.ParseText( code, path: path );
-        var hash = (ulong) code.GetHashCode( System.StringComparison.Ordinal );
+        var hash = (ulong) code.GetHashCodeOrdinal();
 
         return new SyntaxTreeVersion( tree, hasCompileTimeCode, hash, ImmutableArray<Framework.DesignTime.Pipeline.Dependencies.TypeDependencyKey>.Empty );
     }
