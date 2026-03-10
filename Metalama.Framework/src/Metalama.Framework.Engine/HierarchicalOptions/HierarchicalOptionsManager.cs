@@ -123,7 +123,9 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
         {
             this._externalOptionsProvider = externalOptionsProvider;
 
-            // We have to create OptionType nodes now while we have an IDiagnosticAdder. 
+            // We have to create OptionType nodes now while we have an IDiagnosticAdder.
+            // Some external option types may not be resolvable (e.g., during design-time when the compilation
+            // is in an inconsistent state), so we skip those silently.
             foreach ( var optionType in externalOptionsProvider.GetOptionTypes() )
             {
                 _ = this.GetOptionTypeNode( optionType );
@@ -147,21 +149,20 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
 
             var optionTypeNode = this.GetOptionTypeNode( optionTypeName );
 
-            optionTypeNode.AddOptionsInstance( option, diagnosticSink );
+            // The option type may not be registered if the type could not be resolved during initialization
+            // (e.g., during design-time when the compilation is in an inconsistent state).
+            optionTypeNode?.AddOptionsInstance( option, diagnosticSink );
         }
     }
 
-    private OptionTypeNode GetOptionTypeNode( string optionTypeName )
+    private OptionTypeNode? GetOptionTypeNode( string optionTypeName )
     {
         if ( !this.IsInitialized )
         {
             throw new InvalidOperationException( $"The {nameof(HierarchicalOptionsManager)} has not been initialized." );
         }
 
-        if ( !this._optionTypes.TryGetValue( optionTypeName, out var optionTypeNode ) )
-        {
-            throw new AssertionFailedException( $"The option type '{optionTypeName}' is not a part of the current project." );
-        }
+        this._optionTypes.TryGetValue( optionTypeName, out var optionTypeNode );
 
         return optionTypeNode;
     }
@@ -169,6 +170,14 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
     public IHierarchicalOptions GetOptions( IDeclaration declaration, Type optionsType )
     {
         var optionTypeNode = this.GetOptionTypeNode( optionsType.FullName.AssertNotNull() );
+
+        if ( optionTypeNode == null )
+        {
+            // The option type may not be registered if the type could not be resolved during initialization
+            // (e.g., during design-time when the compilation is in an inconsistent state).
+            // Return a default instance created via the parameterless constructor.
+            return (IHierarchicalOptions) Activator.CreateInstance( optionsType ).AssertNotNull();
+        }
 
         return optionTypeNode.GetOptions( declaration ).AssertNotNull();
     }
@@ -179,5 +188,5 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
             .SelectMany( s => s.Value.GetInheritableOptions( compilation, withSyntaxTree ) );
 
     internal void SetAspectOptions( IDeclaration declaration, IHierarchicalOptions options )
-        => this.GetOptionTypeNode( options.GetType().FullName.AssertNotNull() ).SetAspectOptions( declaration, options );
+        => this.GetOptionTypeNode( options.GetType().FullName.AssertNotNull() )?.SetAspectOptions( declaration, options );
 }
