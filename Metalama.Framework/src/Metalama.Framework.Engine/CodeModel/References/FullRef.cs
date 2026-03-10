@@ -87,7 +87,7 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
 
                 if ( primaryConstructor != null )
                 {
-                    return new ResolvedAttributeRef( primaryConstructor.GetAttributes(), primaryConstructor, RefTargetKind.PrimaryConstructor );
+                    return new ResolvedAttributeRef( primaryConstructor.GetAttributes(), primaryConstructor, RefTargetKind.Default );
                 }
 
                 return new ResolvedAttributeRef( ImmutableArray<AttributeData>.Empty, namedType, RefTargetKind.PrimaryConstructor );
