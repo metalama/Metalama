@@ -15,72 +15,284 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 /// </summary>
 public sealed class SyntaxTreeChangeMergeTests
 {
-    private static SyntaxTreeVersion CreateSyntaxTreeVersion( string code, string path = "code.cs" )
+    private static SyntaxTreeVersion CreateSyntaxTreeVersion( string code, bool hasCompileTimeCode = false, string path = "code.cs" )
     {
         var tree = CSharpSyntaxTree.ParseText( code, path: path );
         var hash = (ulong) code.GetHashCode( System.StringComparison.Ordinal );
 
-        return new SyntaxTreeVersion( tree, false, hash, ImmutableArray<Framework.DesignTime.Pipeline.Dependencies.TypeDependencyKey>.Empty );
+        return new SyntaxTreeVersion( tree, hasCompileTimeCode, hash, ImmutableArray<Framework.DesignTime.Pipeline.Dependencies.TypeDependencyKey>.Empty );
+    }
+
+    private static SyntaxTreeChange CreateChange(
+        SyntaxTreeChangeKind changeKind,
+        CompileTimeChangeKind compileTimeChangeKind,
+        in SyntaxTreeVersion oldVersion,
+        in SyntaxTreeVersion newVersion,
+        string path = "code.cs" )
+        => new( path, changeKind, compileTimeChangeKind, oldVersion, newVersion );
+
+    // --- SyntaxTreeChangeKind transition tests ---
+
+    [Fact]
+    public void Merge_Added_Then_Changed_Produces_Added()
+    {
+        var newVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var changedVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Added, CompileTimeChangeKind.None, default, newVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.None, newVersion, changedVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( SyntaxTreeChangeKind.Added, merged.SyntaxTreeChangeKind );
     }
 
     [Fact]
-    public void MergeChangedAndAdded()
+    public void Merge_Added_Then_Removed_Produces_None()
     {
-        // Regression test for https://github.com/metalama/Metalama/issues/630
-        // This combination can occur during merging of referenced project changes
-        // when the same file appears as Changed in the first diff and Added in the second diff.
+        var newVersion = CreateSyntaxTreeVersion( "class C { }" );
 
-        var oldVersion = CreateSyntaxTreeVersion( "class C {}", "code.cs" );
-        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }", "code.cs" );
-        var newVersion = CreateSyntaxTreeVersion( "class C { int X; int Y; }", "code.cs" );
+        var first = CreateChange( SyntaxTreeChangeKind.Added, CompileTimeChangeKind.None, default, newVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Removed, CompileTimeChangeKind.None, newVersion, default );
 
-        var firstChange = new SyntaxTreeChange(
-            "code.cs",
-            SyntaxTreeChangeKind.Changed,
-            CompileTimeChangeKind.None,
-            oldVersion,
-            intermediateVersion );
+        var merged = first.Merge( second );
 
-        var secondChange = new SyntaxTreeChange(
-            "code.cs",
-            SyntaxTreeChangeKind.Added,
-            CompileTimeChangeKind.None,
-            default,
-            newVersion );
+        Assert.Equal( SyntaxTreeChangeKind.None, merged.SyntaxTreeChangeKind );
+    }
 
-        // This should not throw. The merged result should be Changed (file existed in original and exists in final).
-        var merged = firstChange.Merge( secondChange );
+    [Fact]
+    public void Merge_Added_Then_Added_Produces_Added()
+    {
+        var newVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var readdedVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Added, CompileTimeChangeKind.None, default, newVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Added, CompileTimeChangeKind.None, default, readdedVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( SyntaxTreeChangeKind.Added, merged.SyntaxTreeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_Changed_Then_Changed_Produces_Changed()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
+        var finalVersion = CreateSyntaxTreeVersion( "class C { int X; int Y; }" );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.None, oldVersion, intermediateVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.None, intermediateVersion, finalVersion );
+
+        var merged = first.Merge( second );
 
         Assert.Equal( SyntaxTreeChangeKind.Changed, merged.SyntaxTreeChangeKind );
-        Assert.Equal( "code.cs", merged.FilePath );
     }
 
     [Fact]
-    public void MergeChangedAndAddedWithSameHash()
+    public void Merge_Changed_Then_Removed_Produces_Removed()
     {
-        // When the final content is the same as the original, the merge should produce None.
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var changedVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
 
-        var oldVersion = CreateSyntaxTreeVersion( "class C {}", "code.cs" );
-        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }", "code.cs" );
-        var newVersion = CreateSyntaxTreeVersion( "class C {}", "code.cs" );
+        var first = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.None, oldVersion, changedVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Removed, CompileTimeChangeKind.None, changedVersion, default );
 
-        var firstChange = new SyntaxTreeChange(
-            "code.cs",
-            SyntaxTreeChangeKind.Changed,
-            CompileTimeChangeKind.None,
-            oldVersion,
-            intermediateVersion );
+        var merged = first.Merge( second );
 
-        var secondChange = new SyntaxTreeChange(
-            "code.cs",
-            SyntaxTreeChangeKind.Added,
-            CompileTimeChangeKind.None,
-            default,
-            newVersion );
+        Assert.Equal( SyntaxTreeChangeKind.Removed, merged.SyntaxTreeChangeKind );
+    }
 
-        var merged = firstChange.Merge( secondChange );
+    [Fact]
+    public void Merge_Changed_Then_Added_DifferentHash_Produces_Changed()
+    {
+        // Regression test for https://github.com/metalama/Metalama/issues/630
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
+        var newVersion = CreateSyntaxTreeVersion( "class C { int X; int Y; }" );
 
-        // The file content went back to the original, so the net change is None.
+        var first = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.None, oldVersion, intermediateVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Added, CompileTimeChangeKind.None, default, newVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( SyntaxTreeChangeKind.Changed, merged.SyntaxTreeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_Changed_Then_Added_SameHash_Produces_None()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
+        var revertedVersion = CreateSyntaxTreeVersion( "class C { }" );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.None, oldVersion, intermediateVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Added, CompileTimeChangeKind.None, default, revertedVersion );
+
+        var merged = first.Merge( second );
+
         Assert.Equal( SyntaxTreeChangeKind.None, merged.SyntaxTreeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_Removed_Then_Added_DifferentHash_Produces_Changed()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var newVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Removed, CompileTimeChangeKind.None, oldVersion, default );
+        var second = CreateChange( SyntaxTreeChangeKind.Added, CompileTimeChangeKind.None, default, newVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( SyntaxTreeChangeKind.Changed, merged.SyntaxTreeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_Removed_Then_Added_SameHash_Produces_None()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var restoredVersion = CreateSyntaxTreeVersion( "class C { }" );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Removed, CompileTimeChangeKind.None, oldVersion, default );
+        var second = CreateChange( SyntaxTreeChangeKind.Added, CompileTimeChangeKind.None, default, restoredVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( SyntaxTreeChangeKind.None, merged.SyntaxTreeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_Removed_Then_Changed_Produces_Changed()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var changedVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Removed, CompileTimeChangeKind.None, oldVersion, default );
+        var second = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.None, default, changedVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( SyntaxTreeChangeKind.Changed, merged.SyntaxTreeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_Removed_Then_Removed_Produces_Removed()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Removed, CompileTimeChangeKind.None, oldVersion, default );
+        var second = CreateChange( SyntaxTreeChangeKind.Removed, CompileTimeChangeKind.None, default, default );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( SyntaxTreeChangeKind.Removed, merged.SyntaxTreeChangeKind );
+    }
+
+    // --- CompileTimeChangeKind transition tests ---
+
+    [Fact]
+    public void Merge_CompileTime_None_Then_NewlyCompileTime()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
+        var finalVersion = CreateSyntaxTreeVersion( "class C { int X; int Y; }", hasCompileTimeCode: true );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.None, oldVersion, intermediateVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.NewlyCompileTime, intermediateVersion, finalVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( CompileTimeChangeKind.NewlyCompileTime, merged.CompileTimeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_CompileTime_None_Then_NoLongerCompileTime()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
+        var finalVersion = CreateSyntaxTreeVersion( "class C { int X; int Y; }" );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.None, oldVersion, intermediateVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.NoLongerCompileTime, intermediateVersion, finalVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( CompileTimeChangeKind.NoLongerCompileTime, merged.CompileTimeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_CompileTime_NewlyCompileTime_Then_None()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }", hasCompileTimeCode: true );
+        var finalVersion = CreateSyntaxTreeVersion( "class C { int X; int Y; }", hasCompileTimeCode: true );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.NewlyCompileTime, oldVersion, intermediateVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.None, intermediateVersion, finalVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( CompileTimeChangeKind.NewlyCompileTime, merged.CompileTimeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_CompileTime_NewlyCompileTime_Then_NoLongerCompileTime_Produces_None()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }", hasCompileTimeCode: true );
+        var finalVersion = CreateSyntaxTreeVersion( "class C { int X; int Y; }" );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.NewlyCompileTime, oldVersion, intermediateVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.NoLongerCompileTime, intermediateVersion, finalVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( CompileTimeChangeKind.None, merged.CompileTimeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_CompileTime_NewlyCompileTime_Then_NewlyCompileTime()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }" );
+        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }", hasCompileTimeCode: true );
+        var finalVersion = CreateSyntaxTreeVersion( "class C { int X; int Y; }", hasCompileTimeCode: true );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.NewlyCompileTime, oldVersion, intermediateVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.NewlyCompileTime, intermediateVersion, finalVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( CompileTimeChangeKind.NewlyCompileTime, merged.CompileTimeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_CompileTime_NoLongerCompileTime_Then_NewlyCompileTime_Produces_None()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }", hasCompileTimeCode: true );
+        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
+        var finalVersion = CreateSyntaxTreeVersion( "class C { int X; int Y; }", hasCompileTimeCode: true );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.NoLongerCompileTime, oldVersion, intermediateVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.NewlyCompileTime, intermediateVersion, finalVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( CompileTimeChangeKind.None, merged.CompileTimeChangeKind );
+    }
+
+    [Fact]
+    public void Merge_CompileTime_NoLongerCompileTime_Then_NoLongerCompileTime()
+    {
+        var oldVersion = CreateSyntaxTreeVersion( "class C { }", hasCompileTimeCode: true );
+        var intermediateVersion = CreateSyntaxTreeVersion( "class C { int X; }" );
+        var finalVersion = CreateSyntaxTreeVersion( "class C { int X; int Y; }" );
+
+        var first = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.NoLongerCompileTime, oldVersion, intermediateVersion );
+        var second = CreateChange( SyntaxTreeChangeKind.Changed, CompileTimeChangeKind.NoLongerCompileTime, intermediateVersion, finalVersion );
+
+        var merged = first.Merge( second );
+
+        Assert.Equal( CompileTimeChangeKind.NoLongerCompileTime, merged.CompileTimeChangeKind );
     }
 }
