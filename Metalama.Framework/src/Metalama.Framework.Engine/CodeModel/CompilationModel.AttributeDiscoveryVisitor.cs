@@ -124,7 +124,7 @@ namespace Metalama.Framework.Engine.CodeModel
                                     IndexAttribute( accessor, RefTargetKind.Default );
                                 }
                             }
-                            else if ( declaration is TypeDeclarationSyntax { ParameterList: { } } )
+                            else if ( declaration is TypeDeclarationSyntax typeDeclaration && typeDeclaration.GetParameterList() != null )
                             {
                                 // [method: ...] on a type declaration with a primary constructor targets the primary constructor.
                                 IndexAttribute( declaration, RefTargetKind.PrimaryConstructor );
