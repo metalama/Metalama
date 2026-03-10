@@ -1,6 +1,7 @@
 [Test]
 internal class TargetClass
 {
+  // Comment before.
   private global::System.Int32 _a;
   public global::System.Int32 A
   {
@@ -15,6 +16,7 @@ internal class TargetClass
       this._a = value;
     }
   }
+  // Comment before.
   private global::System.Int32 _b;
   public global::System.Int32 B
   {
@@ -29,6 +31,7 @@ internal class TargetClass
       this._b = value;
     }
   }
+  // Comment before.
   private global::System.Int32 _c;
   public global::System.Int32 C
   {

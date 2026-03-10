@@ -3,6 +3,7 @@ internal class TargetClass
 {
   // Comment before.
   public int A, C;
+  // Comment before.
   private global::System.Int32 _b;
   public global::System.Int32 B
   {
