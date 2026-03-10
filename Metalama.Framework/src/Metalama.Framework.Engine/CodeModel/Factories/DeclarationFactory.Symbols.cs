@@ -394,6 +394,7 @@ public partial class DeclarationFactory
                     return targetKind switch
                     {
                         RefTargetKind.StaticConstructor => type.StaticConstructor,
+                        RefTargetKind.PrimaryConstructor => type.PrimaryConstructor,
                         RefTargetKind.Default => type,
                         _ => throw new AssertionFailedException( $"Invalid DeclarationRefTargetKind: {targetKind}." )
                     };

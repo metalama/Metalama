@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Source.Pseudo;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -159,7 +160,7 @@ class C<T>
     public void TestNonNamedTyped()
     {
         const string code = @"
-class C 
+class C
 {
   public int[] F;
 }
@@ -170,5 +171,47 @@ class C
         var field = compilation.Types.Single().Fields.Single();
 
         Roundtrip( compilation, field.Type.GetSymbol().AssertSymbolNotNull(), false );
+    }
+
+    [Fact]
+    public void PrimaryConstructorRoundtrip()
+    {
+        const string code = @"
+#pragma warning disable CS9113
+class C(int i)
+{
+  public C(string s) : this(0) {}
+}
+";
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+        var type = compilation.Types.Single();
+        var primaryConstructor = type.PrimaryConstructor;
+
+        if ( primaryConstructor == null )
+        {
+            // Before Roslyn 4.8, non-record primary constructors are not supported.
+            return;
+        }
+
+        // Test standard roundtrip (RefTargetKind.Default) for the primary constructor.
+        Roundtrip( primaryConstructor, compilation, this.TestOutput );
+
+        // Test roundtrip with RefTargetKind.PrimaryConstructor target kind on the type symbol.
+        // This is the path used when [method:] attribute target is applied to a type with a primary constructor.
+        var typeSymbol = type.GetSymbol().AssertSymbolNotNull();
+        var primaryConstructorSymbol = typeSymbol.InstanceConstructors.First( c => c.IsPrimaryConstructor() );
+
+        var idWithTargetKind = typeSymbol.GetSerializableId( RefTargetKind.PrimaryConstructor );
+        this.TestOutput.WriteLine( $"PrimaryConstructor target kind ID: {idWithTargetKind.Id}" );
+
+        // Verify symbol roundtrip via ResolveToSymbolOrNull.
+        var resolvedSymbol = idWithTargetKind.ResolveToSymbolOrNull( compilation.GetCompilationContext() );
+        Assert.Same( primaryConstructorSymbol, resolvedSymbol );
+
+        // Verify declaration roundtrip via ResolveToDeclaration.
+        var resolvedDeclaration = idWithTargetKind.ResolveToDeclaration( compilation.GetCompilationModel() );
+        Assert.Same( primaryConstructor, resolvedDeclaration );
     }
 }
