@@ -19,12 +19,12 @@ public class C2
   }
 }
 [ShowOptionsAspect]
-[global::Metalama.Framework.Tests.AspectTests.Tests.Options.ActualOptionsAttribute(null)]
+[global::Metalama.Framework.Tests.AspectTests.Tests.Options.ActualOptionsAttribute(default(global::System.String))]
 public class C3
 {
   [ShowOptionsAspect]
-  [global::Metalama.Framework.Tests.AspectTests.Tests.Options.ActualOptionsAttribute(null)]
-  public void M([ShowOptionsAspect][global::Metalama.Framework.Tests.AspectTests.Tests.Options.ActualOptionsAttribute(null)] int p)
+  [global::Metalama.Framework.Tests.AspectTests.Tests.Options.ActualOptionsAttribute(default(global::System.String))]
+  public void M([ShowOptionsAspect][global::Metalama.Framework.Tests.AspectTests.Tests.Options.ActualOptionsAttribute(default(global::System.String))] int p)
   {
   }
 }
