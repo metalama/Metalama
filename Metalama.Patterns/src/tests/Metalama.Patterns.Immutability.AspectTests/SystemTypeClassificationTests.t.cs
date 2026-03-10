@@ -13,5 +13,7 @@ public class C
   // DateTime: Deep
   // Memory<byte>: Shallow
   // ReadOnlyMemory<byte>: Shallow
+  // ReadOnlySpan<byte>: Shallow
+  // Span<byte>: Shallow
   }
 }

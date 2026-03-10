@@ -19,12 +19,16 @@ public class C
         [Introduce]
         public static void PrintImmutability()
         {
+            var byteType = TypeFactory.GetType( typeof(byte) );
+
             var typesToCheck = new IType[]
             {
                 TypeFactory.GetType( typeof(ValueTuple<int, string>) ),
                 TypeFactory.GetType( typeof(DateTime) ),
                 TypeFactory.GetType( typeof(Memory<byte>) ),
-                TypeFactory.GetType( typeof(ReadOnlyMemory<byte>) )
+                TypeFactory.GetType( typeof(ReadOnlyMemory<byte>) ),
+                TypeFactory.GetType( "System.Span`1" ).WithTypeArguments( byteType ),
+                TypeFactory.GetType( "System.ReadOnlySpan`1" ).WithTypeArguments( byteType )
             };
 
             foreach ( var type in typesToCheck.OrderBy( t => t.ToString() ) )
