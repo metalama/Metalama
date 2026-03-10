@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Issue 633: Consumer references the library and Metalama.Framework,
+         but does NOT have Metalama.Patterns.Contracts (because the library used PrivateAssets="all"). -->
+    <ProjectReference Include="..\Library\Library.csproj" />
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+</Project>

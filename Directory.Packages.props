@@ -159,6 +159,7 @@
     <PackageVersion Include="Metalama.Extensions.Multicast" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.DiffEngine" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.HtmlWriter" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Patterns.Contracts" Version="$(MetalamaVersion)" />
 
 
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.5" />

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Issue 633: Library references Metalama.Patterns.Contracts with PrivateAssets="all"
+         so that the Contracts package does NOT flow transitively to consumers. -->
+    <PackageReference Include="Metalama.Patterns.Contracts" PrivateAssets="all" />
+    <PackageReference Include="Metalama.Framework.Redist" />
+  </ItemGroup>
+
+</Project>
