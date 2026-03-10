@@ -704,7 +704,9 @@ public sealed partial class ContextualSyntaxGenerator
         }
         else
         {
-            constructorArguments = attribute.ConstructorArguments.Select( a => AttributeArgument( this.TypedConstantExpression( a ) ) );
+            constructorArguments = attribute.ConstructorArguments.Select(
+                ( a, i ) => AttributeArgument(
+                    this.TypedConstantExpression( a, i < attribute.Constructor.Parameters.Count ? attribute.Constructor.Parameters[i].Type : null ) ) );
         }
 
         var namedArguments = attribute.NamedArguments.SelectAsImmutableArray(
