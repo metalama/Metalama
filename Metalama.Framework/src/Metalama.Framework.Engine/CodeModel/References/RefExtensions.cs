@@ -90,6 +90,7 @@ public static class RefExtensions
             RefTargetKind.PropertyGet => [typeof(IMethod)],
             RefTargetKind.PropertySet => [typeof(IMethod)],
             RefTargetKind.StaticConstructor => [typeof(IConstructor)],
+            RefTargetKind.PrimaryConstructor => [typeof(IConstructor)],
             RefTargetKind.PropertySetParameter => [typeof(IParameter)],
             RefTargetKind.PropertyGetReturnParameter => [typeof(IParameter)],
             RefTargetKind.PropertySetReturnParameter => [typeof(IParameter)],
