@@ -1247,7 +1247,12 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                     SeparatedList( transformedArguments, node.ArgumentList.Arguments.GetSeparators() ),
                     node.ArgumentList.CloseParenToken ) );
 
-            updatedInvocation = updatedInvocation.AddScopeAnnotation( expressionScope );
+            // When the expression is a run-time template parameter (e.g. a delegate), the invocation produces
+            // a run-time value, not another template parameter reference. Use RunTimeOnly so the invocation
+            // gets transformed to syntax factory code.
+            var invocationScope = expressionScope == RunTimeTemplateParameter ? RunTimeOnly : expressionScope;
+
+            updatedInvocation = updatedInvocation.AddScopeAnnotation( invocationScope );
 
             if ( expressionScope == CompileTimeOnlyReturningRuntimeOnly && this._syntaxTreeAnnotationMap.GetExpressionType( node ) is
                     { TypeKind: TypeKind.Dynamic } )
