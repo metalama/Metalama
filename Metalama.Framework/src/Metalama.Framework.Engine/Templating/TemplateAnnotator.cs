@@ -1432,6 +1432,67 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         return transformedNode;
     }
 
+    public override SyntaxNode VisitForEachVariableStatement( ForEachVariableStatementSyntax node )
+    {
+        var annotatedExpression = this.Visit( node.Expression );
+
+        TemplatingScope forEachScope;
+        string reason;
+
+        if ( node.AwaitKeyword.IsKind( SyntaxKind.None ) )
+        {
+            forEachScope = this.GetNodeScope( annotatedExpression )
+                .GetExpressionValueScope( true )
+                .ReplaceIndeterminate( RunTimeOnly );
+
+            reason = $"foreach ( var (...) in ... )";
+        }
+        else
+        {
+            forEachScope = RunTimeOnly;
+            reason = $"await foreach ( var (...) in ... )";
+        }
+
+        annotatedExpression = annotatedExpression.ReplaceScopeAnnotationIfUndetermined( forEachScope );
+
+        // Visit the variable (DeclarationExpression) within the scope context determined by the expression.
+        ExpressionSyntax annotatedVariable;
+
+        using ( this.WithScopeContext(
+            forEachScope == CompileTimeOnly
+                ? this._currentScopeContext.CompileTimeOnly( reason )
+                : null ) )
+        {
+            annotatedVariable = this.Visit( node.Variable );
+        }
+
+        annotatedVariable = annotatedVariable.ReplaceScopeAnnotationIfUndetermined( forEachScope );
+
+        StatementSyntax annotatedStatement;
+
+        using ( this.WithScopeContext( this._currentScopeContext.BreakOrContinue( forEachScope, reason ) ) )
+        {
+            // Statements of a compile-time control block must have an explicitly-set scope otherwise the template compiler
+            // will look at the scope in the parent node, which is incorrect here.
+            annotatedStatement = this.Visit( node.Statement ).ReplaceScopeAnnotationIfUndetermined( forEachScope );
+        }
+
+        var transformedNode =
+            ForEachVariableStatement(
+                    node.AwaitKeyword,
+                    node.ForEachKeyword,
+                    node.OpenParenToken,
+                    annotatedVariable,
+                    node.InKeyword,
+                    annotatedExpression,
+                    node.CloseParenToken,
+                    annotatedStatement.AddTargetScopeAnnotation( forEachScope ) )
+                .AddScopeAnnotation( forEachScope )
+                .WithSymbolAnnotationsFrom( node );
+
+        return transformedNode;
+    }
+
     #region Pattern Matching
 
     public override SyntaxNode VisitDeclarationPattern( DeclarationPatternSyntax node )

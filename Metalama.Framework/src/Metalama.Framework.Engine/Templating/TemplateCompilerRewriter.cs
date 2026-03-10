@@ -2670,6 +2670,30 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             statement );
     }
 
+    public override SyntaxNode? VisitForEachVariableStatement( ForEachVariableStatementSyntax node )
+    {
+        if ( this.GetTransformationKind( node ) == TransformationKind.Transform )
+        {
+            // Run-time foreach with variable deconstruction. Just serialize to syntax.
+            return this.TransformForEachVariableStatement( node );
+        }
+
+        this.Indent();
+
+        // Compile-time foreach with variable deconstruction: pass isConditionalBlock=true so returns inside terminate compile-time flow.
+        var statement = this.ToMetaStatement( node.Statement, isConditionalBlock: true );
+
+        this.Unindent();
+
+        // The expression may contain typeof, nameof, ...
+        var expression = (ExpressionSyntax) this.Visit( node.Expression )!;
+
+        return ForEachVariableStatement(
+            node.Variable.WithTrailingTrivia( ElasticSpace ),
+            expression.WithLeadingTrivia( ElasticSpace ),
+            statement );
+    }
+
     /// <summary>
     /// Determines if the expression will be transformed into syntax that instantiates an <see cref="IUserExpression"/>.
     /// </summary>
