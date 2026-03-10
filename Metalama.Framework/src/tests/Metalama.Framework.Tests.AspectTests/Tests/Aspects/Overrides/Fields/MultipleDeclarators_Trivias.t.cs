@@ -17,6 +17,7 @@ internal class TargetClass
  // Comment before variable declarator.
   int D, F // Comment after variable declarator
   ; // Comment after first list.
+  // Comment before first list (one overridden).
   private global::System.Int32 _e;
   /// <summary>
   /// Doc comment for D, E, F.
@@ -34,6 +35,7 @@ internal class TargetClass
       this._e = value;
     }
   }
+  // Comment before first list (all overridden).
   private global::System.Int32 _g;
   /// <summary>
   /// Doc comment for G, H, I.
@@ -51,6 +53,7 @@ internal class TargetClass
       this._g = value;
     }
   }
+  // Comment before first list (all overridden).
   private global::System.Int32 _h;
   /// <summary>
   /// Doc comment for G, H, I.
@@ -68,6 +71,7 @@ internal class TargetClass
       this._h = value;
     }
   }
+  // Comment before first list (all overridden).
   private global::System.Int32 _i;
   /// <summary>
   /// Doc comment for G, H, I.

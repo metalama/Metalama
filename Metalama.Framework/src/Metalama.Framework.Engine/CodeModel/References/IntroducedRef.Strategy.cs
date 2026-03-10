@@ -34,13 +34,17 @@ internal sealed partial class IntroducedRef<T>
         {
             add( i );
         }
+
+        // Also include all interfaces from the base type.
+        if ( resolvedNameType.BaseType is { } baseType )
+        {
+            baseType.EnumerateAllImplementedInterfaces( add );
+        }
     }
 
     public override void EnumerateImplementedInterfaces( Action<IFullRef<INamedType>> add )
     {
         Invariant.Assert( this is IRef<INamedType> );
-
-        // BUG: EnumerateAllImplementedInterfaces and EnumerateImplementedInterfaces should not have the same implementation.
 
         var resolvedNameType = (NamedTypeBuilderData) this.BuilderData;
 
