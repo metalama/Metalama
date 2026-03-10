@@ -200,7 +200,7 @@ class C(int i)
 
         // Test roundtrip with RefTargetKind.PrimaryConstructor target kind on the type symbol.
         // This is the path used when [method:] attribute target is applied to a type with a primary constructor.
-        var typeSymbol = (INamedTypeSymbol) type.GetSymbol().AssertSymbolNotNull();
+        var typeSymbol = type.GetSymbol().AssertSymbolNotNull();
         var primaryConstructorSymbol = typeSymbol.InstanceConstructors.First( c => c.IsPrimaryConstructor() );
 
         var idWithTargetKind = typeSymbol.GetSerializableId( RefTargetKind.PrimaryConstructor );
