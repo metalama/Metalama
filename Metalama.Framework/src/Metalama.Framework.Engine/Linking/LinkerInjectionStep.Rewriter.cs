@@ -526,8 +526,9 @@ internal sealed partial class LinkerInjectionStep
                         injectedMember.Transformation?.AspectInstance.AspectClass.GeneratedCodeAnnotation
                         ?? FormattingAnnotations.SystemGeneratedCodeAnnotation );
 
-                // When a field is promoted to a property, transfer the field's doc comment trivia to the property
-                // (the property is the public member).
+                // When a field is promoted to a property, transfer XML doc comments from the field to the property
+                // (the public semantic). Regular comments and directives stay with the backing field and are handled
+                // in LinkerRewritingDriver.Properties.cs when the backing field is generated.
                 if ( injectedMember is { Semantic: InjectedMemberSemantic.Introduction, Kind: DeclarationKind.Property }
                      && injectedMember.Transformation is IReplaceMemberTransformation { ReplacedMember: ISymbolRef<IField> replacedFieldRef } )
                 {
