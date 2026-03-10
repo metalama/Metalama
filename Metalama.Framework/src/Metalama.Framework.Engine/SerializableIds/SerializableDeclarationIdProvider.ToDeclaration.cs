@@ -44,6 +44,7 @@ public static partial class SerializableDeclarationIdProvider
                 (IEvent @event, nameof(RefTargetKind.EventRaise)) => @event.RaiseMethod,
                 (IEvent @event, nameof(RefTargetKind.EventRaiseParameter)) => @event.RaiseMethod?.Parameters[0],
                 (IEvent @event, nameof(RefTargetKind.EventRaiseReturnParameter)) => @event.RaiseMethod?.ReturnParameter,
+                (INamedType type, nameof(RefTargetKind.PrimaryConstructor)) => type.PrimaryConstructor,
                 _ => null
             };
         }

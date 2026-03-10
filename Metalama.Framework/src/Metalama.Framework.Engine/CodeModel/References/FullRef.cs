@@ -82,6 +82,16 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
                 // Roslyn does not expose the backing field of an event, so we don't have access to its attributes.
                 return new ResolvedAttributeRef( ImmutableArray<AttributeData>.Empty, @event, RefTargetKind.Field );
 
+            case RefTargetKind.PrimaryConstructor when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind: SymbolKind.NamedType } and INamedTypeSymbol namedType:
+                var primaryConstructor = namedType.InstanceConstructors.FirstOrDefault( c => c.IsPrimaryConstructor() );
+
+                if ( primaryConstructor != null )
+                {
+                    return new ResolvedAttributeRef( primaryConstructor.GetAttributes(), primaryConstructor, RefTargetKind.Default );
+                }
+
+                return new ResolvedAttributeRef( ImmutableArray<AttributeData>.Empty, namedType, RefTargetKind.PrimaryConstructor );
+
             default:
                 var symbol = this.GetSymbol( this.CompilationContext, true );
                 var attributes = symbol.GetAttributes();
@@ -136,6 +146,9 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
             (RefTargetKind.Property, SymbolKind.Parameter) when symbol is IParameterSymbol parameter => parameter.ContainingType.GetMembers( symbol.Name )
                 .OfType<IPropertySymbol>()
                 .Single(),
+            (RefTargetKind.PrimaryConstructor, SymbolKind.NamedType) when symbol is INamedTypeSymbol namedType =>
+                namedType.InstanceConstructors.FirstOrDefault( c => c.IsPrimaryConstructor() )
+                ?? throw new AssertionFailedException( $"The type '{namedType}' does not have a primary constructor." ),
             _ => throw new AssertionFailedException( $"Don't know how to get the symbol kind {this.TargetKind} for a {symbol.Kind}." )
         };
 }
