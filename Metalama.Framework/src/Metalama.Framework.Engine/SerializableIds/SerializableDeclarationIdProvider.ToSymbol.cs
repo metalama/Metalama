@@ -7,6 +7,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Globalization;
@@ -69,6 +70,8 @@ public static partial class SerializableDeclarationIdProvider
                 (SymbolKind.Method, "TypeParameter") when parent is IMethodSymbol method => method.TypeParameters[ordinal],
                 (SymbolKind.NamedType, "TypeParameter") when parent is INamedTypeSymbol type => type.TypeParameters[ordinal],
                 (SymbolKind.Property, "Parameter") when parent is IPropertySymbol property => property.Parameters[ordinal],
+                (SymbolKind.NamedType, nameof(RefTargetKind.PrimaryConstructor)) when parent is INamedTypeSymbol type =>
+                    type.InstanceConstructors.FirstOrDefault( c => c.IsPrimaryConstructor() ),
                 _ => null
             };
         }
