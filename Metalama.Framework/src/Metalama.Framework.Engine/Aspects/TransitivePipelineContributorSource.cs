@@ -16,6 +16,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -68,11 +69,27 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                     {
                         if ( metadataInfo.Resources.TryGetValue( CompileTimeConstants.InheritableAspectManifestResourceName, out var bytes ) )
                         {
-                            manifest = TransitiveAspectsManifest.Deserialize(
-                                new MemoryStream( bytes ),
-                                serviceProvider,
-                                compilationContext,
-                                filePath );
+                            try
+                            {
+                                manifest = TransitiveAspectsManifest.Deserialize(
+                                    new MemoryStream( bytes ),
+                                    serviceProvider,
+                                    compilationContext,
+                                    filePath );
+                            }
+                            catch ( InvalidOperationException ex ) when ( ex.Message.Contains( "Could not locate assembly", StringComparison.Ordinal ) )
+                            {
+                                // This can happen when a referenced assembly uses PrivateAssets="all" on an aspect package,
+                                // so the aspect assembly doesn't flow transitively to the consumer. In that case, we skip
+                                // the transitive aspects manifest since the consumer doesn't have the required assemblies.
+                                serviceProvider.GetLoggerFactory()
+                                    .GetLogger( nameof(TransitivePipelineContributorSource) )
+                                    .Warning?.Log(
+                                        $"Cannot deserialize the transitive aspects manifest from '{filePath}': {ex.Message}. " +
+                                        "This may be because the assembly was referenced with PrivateAssets=\"all\" in a dependency. Skipping." );
+
+                                break;
+                            }
 
                             assemblyIdentity = metadataInfo.AssemblyIdentity;
                         }

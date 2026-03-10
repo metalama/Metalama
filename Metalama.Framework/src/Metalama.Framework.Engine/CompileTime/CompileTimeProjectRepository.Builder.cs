@@ -513,16 +513,18 @@ internal sealed partial class CompileTimeProjectRepository
             {
                 if ( this._runTimeAssemblyLocator.TryFindAssembly( runTimeAssemblyIdentity, out var metadataReference ) != true )
                 {
-                    var diagnostic = GeneralDiagnosticDescriptors.CannotFindCompileTimeAssembly.CreateRoslynDiagnostic(
-                        Location.None,
-                        runTimeAssemblyIdentity );
-
-                    diagnosticAdder.Report( diagnostic );
-                    this._logger.Warning?.Log( diagnostic.ToString() );
+                    // The assembly is not available in the current compilation's references.
+                    // This can happen when a referenced library uses PrivateAssets="all" on an aspect package,
+                    // so the package doesn't flow transitively to the consumer. In that case, we skip the
+                    // reference instead of reporting an error; the compile-time compilation will fail later
+                    // if this reference is actually needed.
+                    this._logger.Warning?.Log(
+                        $"The assembly '{runTimeAssemblyIdentity}' required at compile-time cannot be found in the current compilation's references. " +
+                        "This may be because the assembly was referenced with PrivateAssets=\"all\" in a dependency. Skipping." );
 
                     compileTimeProject = null;
 
-                    return false;
+                    return true;
                 }
 
                 return this.TryGetCompileTimeProject(
