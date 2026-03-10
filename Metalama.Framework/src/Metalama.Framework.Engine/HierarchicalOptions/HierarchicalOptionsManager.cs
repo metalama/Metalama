@@ -122,14 +122,6 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
         if ( externalOptionsProvider != null )
         {
             this._externalOptionsProvider = externalOptionsProvider;
-
-            // We have to create OptionType nodes now while we have an IDiagnosticAdder.
-            // Some external option types may not be resolvable (e.g., during design-time when the compilation
-            // is in an inconsistent state), so we skip those silently.
-            foreach ( var optionType in externalOptionsProvider.GetOptionTypes() )
-            {
-                _ = this.GetOptionTypeNode( optionType );
-            }
         }
 
         return Task.WhenAll( sources.Select( s => this.AddSourceAsync( s, compilationModel, diagnosticSink, cancellationToken ) ) );
@@ -167,7 +159,7 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
         return optionTypeNode;
     }
 
-    public IHierarchicalOptions GetOptions( IDeclaration declaration, Type optionsType )
+    public IHierarchicalOptions? GetOptions( IDeclaration declaration, Type optionsType )
     {
         var optionTypeNode = this.GetOptionTypeNode( optionsType.FullName.AssertNotNull() );
 
@@ -175,8 +167,8 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
         {
             // The option type may not be registered if the type could not be resolved during initialization
             // (e.g., during design-time when the compilation is in an inconsistent state).
-            // Return a default instance created via the parameterless constructor.
-            return (IHierarchicalOptions) Activator.CreateInstance( optionsType ).AssertNotNull();
+            // Callers handle null via the null-coalescing pattern (e.g., ?? new TOptions()).
+            return null;
         }
 
         return optionTypeNode.GetOptions( declaration ).AssertNotNull();

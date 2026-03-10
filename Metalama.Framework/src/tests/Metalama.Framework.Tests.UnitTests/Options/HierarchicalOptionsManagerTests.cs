@@ -9,6 +9,7 @@ using Metalama.Framework.Options;
 using Metalama.Testing.UnitTesting;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -29,6 +30,8 @@ public sealed class HierarchicalOptionsManagerTests : UnitTestClass
 
         using var context = this.CreateTestContext();
 
+        var compilationModel = context.CreateCompilationModel( "public class C { }" );
+
         var manager = new HierarchicalOptionsManager( context.ServiceProvider );
 
         // Initialize with an empty project (no option types to register) but with an external provider
@@ -38,9 +41,15 @@ public sealed class HierarchicalOptionsManagerTests : UnitTestClass
             CompileTimeProject.Empty,
             sources: [],
             new UnresolvableExternalOptionsProvider(),
-            compilationModel: null!,
+            compilationModel,
             diagnosticSink: null!,
             cancellationToken: default );
+
+        // Verify that GetOptions returns null for an unregistered option type instead of throwing.
+        var declaration = compilationModel.Types.Single();
+        var options = manager.GetOptions( declaration, typeof(UnresolvableOptions) );
+
+        Assert.Null( options );
     }
 
     /// <summary>
@@ -57,5 +66,16 @@ public sealed class HierarchicalOptionsManagerTests : UnitTestClass
 
             return false;
         }
+    }
+
+    /// <summary>
+    /// A minimal <see cref="IHierarchicalOptions"/> implementation used to test that
+    /// <see cref="HierarchicalOptionsManager.GetOptions"/> handles unregistered option types gracefully.
+    /// </summary>
+    private sealed class UnresolvableOptions : IHierarchicalOptions
+    {
+        public object ApplyChanges( object changes, in ApplyChangesContext context ) => this;
+
+        public IHierarchicalOptions? GetDefaultOptions( OptionsInitializationContext context ) => null;
     }
 }
