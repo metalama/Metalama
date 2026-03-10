@@ -230,7 +230,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
 
         [Theory]
         [InlineData( "0", "0" )]
-        [InlineData( "null", "default(global::System.Object)" )]
+        [InlineData( "null", "null" )]
         [InlineData( "typeof(string)", "typeof(global::System.String)" )]
         [InlineData( "DayOfWeek.Monday", "global::System.DayOfWeek.Monday" )]
         [InlineData( "new[] { 0 }", "new global::System.Int32[] { 0 }" )]
@@ -273,7 +273,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
             var type = compilation.Types.OfName( "C" ).Single();
             var attribute = type.Attributes.Single();
             var codeModelOutput = syntaxGenerator.Attribute( attribute ).ArgumentList!.Arguments[0].NormalizeWhitespace().ToFullString();
-            Assert.Equal( "default(global::System.Int32[])", codeModelOutput );
+            Assert.Equal( "null", codeModelOutput );
         }
 
         [Theory]
