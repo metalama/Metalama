@@ -13,7 +13,6 @@ using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.DesignTime.VersionNeutral;
 using Metalama.Framework.DesignTime.VisualStudio.Services;
 using Metalama.Framework.Engine;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
@@ -124,16 +123,6 @@ internal abstract class DesignTimeServiceProviderFactory
 
     internal ServiceProvider<IGlobalService> GetServiceProvider( ServiceProvider<IGlobalService> serviceProvider )
     {
-        var domain = serviceProvider.GetService<CompileTimeDomain>();
-
-        if ( domain == null )
-        {
-            // May be non-null in tests.
-            domain = new CompileTimeDomain( serviceProvider, $"DesignTime ({this.GetType().Name})" );
-
-            serviceProvider = serviceProvider.WithService( domain );
-        }
-
         // Add the services that may be required by the CompilerServiceProvider.
         serviceProvider = serviceProvider
             .WithServiceConditional( sp => new DesignTimeExceptionHandler( sp ) );

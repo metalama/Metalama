@@ -99,9 +99,23 @@ internal abstract class TemplateClassFactory<T>
 
         foreach ( var aspectType in aspectTypeData )
         {
-            // IMPORTANT: At design time, when a project is being renamed, we can get duplicate aspect types while project dependency tree is being updated.
-            //            Two dependency projects referencing the same assembly may not be synchronized, causing two CompileTimeProjects to exist
-            //            for one assembly (same aspects, two different assembly names).
+            if ( aspectTypeDataDictionary.TryGetValue( aspectType.TypeName, out var existingEntry ) )
+            {
+                // At design time, when a project is being renamed, we can get duplicate aspect types while project dependency tree is being updated.
+                // Two dependency projects referencing the same assembly may not be synchronized, causing two CompileTimeProjects to exist
+                // for one assembly (same aspects, two different assembly names). In this case, we silently overwrite with the latest entry.
+                // However, if two versions of the same assembly provide the same type, report a diagnostic.
+                if ( existingEntry.Project != null && aspectType.Project != null
+                     && existingEntry.Project.RunTimeIdentity.Name == aspectType.Project.RunTimeIdentity.Name
+                     && existingEntry.Project.RunTimeIdentity.Version != aspectType.Project.RunTimeIdentity.Version )
+                {
+                    diagnosticAdder.Report(
+                        TemplatingDiagnosticDescriptors.DuplicateAspectTypeInCompilation.CreateRoslynDiagnostic(
+                            Location.None,
+                            aspectType.TypeName ) );
+                }
+            }
+
             aspectTypeDataDictionary[aspectType.TypeName] = aspectType;
         }
 
@@ -122,18 +136,27 @@ internal abstract class TemplateClassFactory<T>
         CompileTimeProject compileTimeProject,
         IDiagnosticAdder diagnosticAdder )
     {
-        var aspectTypesDiagnostics = types
-            .SelectAsImmutableArray( t => (Symbol: t, ReflectionName: t.GetReflectionFullName().AssertNotNull()) )
-            .ToDictionary(
-                t => t.ReflectionName,
-                t => new TemplateClassData(
-                    compileTimeProject,
-                    t.ReflectionName,
-                    t.Symbol,
-                    compileTimeProject.GetType( t.ReflectionName ),
-                    templateReflectionContext ) );
+        var aspectTypesDictionary = new Dictionary<string, TemplateClassData>();
 
-        return this.GetClasses( aspectTypesDiagnostics, diagnosticAdder, serviceProvider );
+        foreach ( var t in types.SelectAsImmutableArray( t => (Symbol: t, ReflectionName: t.GetReflectionFullName().AssertNotNull()) ) )
+        {
+            if ( !aspectTypesDictionary.TryAdd(
+                    t.ReflectionName,
+                    new TemplateClassData(
+                        compileTimeProject,
+                        t.ReflectionName,
+                        t.Symbol,
+                        compileTimeProject.GetType( t.ReflectionName ),
+                        templateReflectionContext ) ) )
+            {
+                diagnosticAdder.Report(
+                    TemplatingDiagnosticDescriptors.DuplicateAspectTypeInCompilation.CreateRoslynDiagnostic(
+                        Location.None,
+                        t.ReflectionName ) );
+            }
+        }
+
+        return this.GetClasses( aspectTypesDictionary, diagnosticAdder, serviceProvider );
     }
 
     private IReadOnlyList<T> GetClasses(

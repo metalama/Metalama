@@ -385,16 +385,20 @@ record struct D(int x) {}
 
             var compilation = testContext.CreateCompilationModel( code );
 
+            var expectedKindForNoExplicitInitializer = kind.ContainsOrdinal( "struct" )
+                ? ConstructorInitializerKind.None
+                : ConstructorInitializerKind.Base;
+
             var noInitializer = compilation.Types.OfName( "NoInitializer" ).Single();
-            Assert.Equal( ConstructorInitializerKind.None, noInitializer.PrimaryConstructor.AssertNotNull().InitializerKind );
+            Assert.Equal( expectedKindForNoExplicitInitializer, noInitializer.PrimaryConstructor.AssertNotNull().InitializerKind );
 
             var @interface = compilation.Types.OfName( "Interface" ).Single();
-            Assert.Equal( ConstructorInitializerKind.None, @interface.PrimaryConstructor.AssertNotNull().InitializerKind );
+            Assert.Equal( expectedKindForNoExplicitInitializer, @interface.PrimaryConstructor.AssertNotNull().InitializerKind );
 
             if ( !kind.ContainsOrdinal( "struct" ) )
             {
                 var derivedSimple = compilation.Types.OfName( "DerivedSimple" ).Single();
-                Assert.Equal( ConstructorInitializerKind.None, derivedSimple.PrimaryConstructor.AssertNotNull().InitializerKind );
+                Assert.Equal( ConstructorInitializerKind.Base, derivedSimple.PrimaryConstructor.AssertNotNull().InitializerKind );
 
                 var derivedInitializer = compilation.Types.OfName( "DerivedInitializer" ).Single();
                 Assert.Equal( ConstructorInitializerKind.Base, derivedInitializer.PrimaryConstructor.AssertNotNull().InitializerKind );
