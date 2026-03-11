@@ -1678,6 +1678,154 @@ public class ReferencedClass
             }
         }
 
+        [Fact]
+        public void CacheInvalidatedAfterRenamingCompileTimeClass()
+        {
+            // Regression test for https://github.com/metalama/Metalama/issues/730
+            // When a user renames a compile-time class (e.g., an aspect) and rebuilds,
+            // the cache should return a miss because the source code has changed.
+            // The old cached compile-time project should NOT be reused.
+
+            const string assemblyName = "TestProject";
+
+            const string codeBeforeRename = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+[assembly: CompileTime]
+public class OldClassName
+{
+    public string GetName() => ""OldClassName"";
+}
+";
+
+            const string codeAfterRename = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+[assembly: CompileTime]
+public class NewClassName
+{
+    public string GetName() => ""NewClassName"";
+}
+";
+
+            using var testContext = this.CreateTestContext();
+            var domain = testContext.Domain;
+
+            DiagnosticBag diagnosticBag = new();
+
+            // Step 1: Build the compile-time project with the old class name.
+            var compilation1 = testContext.CreateCSharpCompilation( codeBeforeRename, assemblyName: assemblyName );
+            var builder1 = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+
+            Assert.True(
+                builder1.TryGetCompileTimeProjectFromCompilation(
+                    compilation1,
+                    null,
+                    diagnosticBag,
+                    false,
+                    testContext.CancellationToken,
+                    out var project1 ) );
+
+            Assert.NotNull( project1 );
+
+            // Read the generated code to verify it contains the old class name.
+            var generatedCode1 = File.ReadAllText( Path.Combine( project1.Directory!, project1.CodeFiles[0].TransformedPath ) );
+            Assert.Contains( "OldClassName", generatedCode1 );
+
+            // Step 2: Build a new compilation with the renamed class but the same assembly name.
+            // Use a new builder to clear the in-memory cache (simulating a new build/IDE session).
+            var compilation2 = testContext.CreateCSharpCompilation( codeAfterRename, assemblyName: assemblyName );
+            var builder2 = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+
+            // Step 3: Build the new compile-time project.
+            Assert.True(
+                builder2.TryGetCompileTimeProjectFromCompilation(
+                    compilation2,
+                    null,
+                    diagnosticBag,
+                    false,
+                    testContext.CancellationToken,
+                    out var project2 ) );
+
+            Assert.NotNull( project2 );
+
+            // Verify that the generated code contains the NEW class name, not the old one.
+            // If the cache incorrectly returns stale data, this will contain OldClassName.
+            var generatedCode2 = File.ReadAllText( Path.Combine( project2.Directory!, project2.CodeFiles[0].TransformedPath ) );
+            Assert.Contains( "NewClassName", generatedCode2 );
+            Assert.DoesNotContain( "OldClassName", generatedCode2 );
+        }
+
+        [Fact]
+        public void CacheInvalidatedAfterRenamingCompileTimeFile()
+        {
+            // Regression test for https://github.com/metalama/Metalama/issues/730
+            // When a user renames a file containing compile-time code (without changing its content),
+            // the cached compile-time project should reference the correct file paths.
+
+            const string assemblyName = "TestProject";
+
+            const string code = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+[assembly: CompileTime]
+public class MyAspect
+{
+    public string GetName() => ""MyAspect"";
+}
+";
+
+            using var testContext = this.CreateTestContext();
+            var domain = testContext.Domain;
+
+            DiagnosticBag diagnosticBag = new();
+
+            // Step 1: Build the compile-time project with the old file name.
+            var compilation1 = testContext.CreateCSharpCompilation(
+                new Dictionary<string, string> { { "OldFileName.cs", code } },
+                assemblyName: assemblyName );
+
+            var builder1 = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+
+            Assert.True(
+                builder1.TryGetCompileTimeProjectFromCompilation(
+                    compilation1,
+                    null,
+                    diagnosticBag,
+                    false,
+                    testContext.CancellationToken,
+                    out var project1 ) );
+
+            Assert.NotNull( project1 );
+
+            // Step 2: Build a new compilation with the same code but a different file name.
+            // Use a new builder to clear the in-memory cache.
+            var compilation2 = testContext.CreateCSharpCompilation(
+                new Dictionary<string, string> { { "NewFileName.cs", code } },
+                assemblyName: assemblyName );
+
+            var builder2 = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+
+            // Step 3: Build the compile-time project with the new file name.
+            Assert.True(
+                builder2.TryGetCompileTimeProjectFromCompilation(
+                    compilation2,
+                    null,
+                    diagnosticBag,
+                    false,
+                    testContext.CancellationToken,
+                    out var project2 ) );
+
+            Assert.NotNull( project2 );
+
+            // Verify the file paths in the compile-time project reference the new file name,
+            // not the old one. If the cache returns stale data, this will reference OldFileName.cs.
+            var allSourcePaths = project2.CodeFiles.SelectAsReadOnlyList( f => f.SourcePath );
+
+            Assert.DoesNotContain( allSourcePaths, path => path.Contains( "OldFileName" ) );
+            Assert.Contains( allSourcePaths, path => path.Contains( "NewFileName" ) );
+        }
+
 #if ROSLYN_4_12_0_OR_GREATER
         [Fact]
         public void TemplateLanguageVersion()
