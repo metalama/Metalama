@@ -78,6 +78,12 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
             case RefTargetKind.Return when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind: SymbolKind.Method } and IMethodSymbol method:
                 return new ResolvedAttributeRef( method.GetReturnTypeAttributes(), method, RefTargetKind.Return );
 
+            case RefTargetKind.Return when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind: SymbolKind.NamedType } and INamedTypeSymbol
+                {
+                    DelegateInvokeMethod: { } delegateInvokeMethod
+                }:
+                return new ResolvedAttributeRef( delegateInvokeMethod.GetReturnTypeAttributes(), delegateInvokeMethod, RefTargetKind.Return );
+
             case RefTargetKind.Field when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind: SymbolKind.Event } and IEventSymbol @event:
                 // Roslyn does not expose the backing field of an event, so we don't have access to its attributes.
                 return new ResolvedAttributeRef( ImmutableArray<AttributeData>.Empty, @event, RefTargetKind.Field );

@@ -104,6 +104,9 @@ internal sealed partial class EligibilityHelper
             {
                 this._eligibilityRules.Add(
                     new KeyValuePair<Type, IEligibilityRule<IDeclaration>>( typeof(IParameter), LocalFunctionParameterEligibilityRule.Instance ) );
+
+                this._eligibilityRules.Add(
+                    new KeyValuePair<Type, IEligibilityRule<IDeclaration>>( typeof(IParameter), DelegateParameterEligibilityRule.Instance ) );
             }
 
             eligibilitySuccess &= this.GetTryInitializeEligibilityMethod( declarationInterface ).Invoke( this, diagnosticAdder, compilationContext );
