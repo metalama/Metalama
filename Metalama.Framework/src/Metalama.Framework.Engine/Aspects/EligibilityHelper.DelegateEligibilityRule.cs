@@ -25,4 +25,19 @@ internal partial class EligibilityHelper
         public FormattableString? GetIneligibilityJustification( EligibleScenarios requestedEligibility, IDescribedObject<IDeclaration> describedObject )
             => $"the declaring member of {describedObject} must not be a delegate member";
     }
+
+    private sealed class DelegateTypeEligibilityRule : IEligibilityRule<IDeclaration>
+    {
+        public static DelegateTypeEligibilityRule Instance { get; } = new();
+
+        private DelegateTypeEligibilityRule() { }
+
+        public EligibleScenarios GetEligibility( IDeclaration obj )
+            => obj is INamedType { TypeKind: TypeKind.Delegate }
+                ? EligibleScenarios.None
+                : EligibleScenarios.All;
+
+        public FormattableString? GetIneligibilityJustification( EligibleScenarios requestedEligibility, IDescribedObject<IDeclaration> describedObject )
+            => $"{describedObject} must not be a delegate";
+    }
 }
