@@ -174,6 +174,13 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                             {
                                 paramsParameterValues.Add( TypedConstant.UnwrapOrCreate( arrayItem, arrayType.ElementType ) );
                             }
+
+                            typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( paramsParameterValues.ToImmutableArray(), parameterType ) );
+                        }
+                        else
+                        {
+                            // Null is explicitly passed for the params array parameter.
+                            typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( null, parameterType ) );
                         }
                     }
                     else
@@ -184,9 +191,9 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                         {
                             paramsParameterValues.Add( TypedConstant.UnwrapOrCreate( constructorArguments[j], arrayType.ElementType ) );
                         }
-                    }
 
-                    typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( paramsParameterValues.ToImmutableArray(), parameterType ) );
+                        typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( paramsParameterValues.ToImmutableArray(), parameterType ) );
+                    }
                 }
                 else
                 {
