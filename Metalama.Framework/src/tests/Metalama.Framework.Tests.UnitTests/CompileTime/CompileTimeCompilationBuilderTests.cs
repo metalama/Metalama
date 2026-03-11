@@ -1730,7 +1730,7 @@ public class NewClassName
 
             // Read the generated code to verify it contains the old class name.
             var generatedCode1 = File.ReadAllText( Path.Combine( project1.Directory!, project1.CodeFiles[0].TransformedPath ) );
-            Assert.Contains( "OldClassName", generatedCode1 );
+            Assert.Contains( "OldClassName", generatedCode1, StringComparison.Ordinal );
 
             // Step 2: Build a new compilation with the renamed class but the same assembly name.
             // Use a new builder to clear the in-memory cache (simulating a new build/IDE session).
@@ -1752,8 +1752,8 @@ public class NewClassName
             // Verify that the generated code contains the NEW class name, not the old one.
             // If the cache incorrectly returns stale data, this will contain OldClassName.
             var generatedCode2 = File.ReadAllText( Path.Combine( project2.Directory!, project2.CodeFiles[0].TransformedPath ) );
-            Assert.Contains( "NewClassName", generatedCode2 );
-            Assert.DoesNotContain( "OldClassName", generatedCode2 );
+            Assert.Contains( "NewClassName", generatedCode2, StringComparison.Ordinal );
+            Assert.DoesNotContain( "OldClassName", generatedCode2, StringComparison.Ordinal );
         }
 
         [Fact]
@@ -1820,10 +1820,10 @@ public class MyAspect
 
             // Verify the file paths in the compile-time project reference the new file name,
             // not the old one. If the cache returns stale data, this will reference OldFileName.cs.
-            var allSourcePaths = project2.CodeFiles.SelectAsReadOnlyList( f => f.SourcePath );
+            var allSourcePaths = project2.CodeFiles.SelectAsArray( f => f.SourcePath );
 
-            Assert.DoesNotContain( allSourcePaths, path => path.Contains( "OldFileName" ) );
-            Assert.Contains( allSourcePaths, path => path.Contains( "NewFileName" ) );
+            Assert.DoesNotContain( allSourcePaths, path => path.Contains( "OldFileName", StringComparison.Ordinal ) );
+            Assert.Contains( allSourcePaths, path => path.Contains( "NewFileName", StringComparison.Ordinal ) );
         }
 
 #if ROSLYN_4_12_0_OR_GREATER
