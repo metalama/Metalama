@@ -172,7 +172,29 @@ namespace Metalama.Framework.Engine.Formatting
             }
         }
 
-        public override void VisitFieldDeclaration( FieldDeclarationSyntax node ) => this.VisitMember( node, base.VisitFieldDeclaration );
+        public override void VisitFieldDeclaration( FieldDeclarationSyntax node )
+        {
+            if ( node.Declaration.Variables.Any( v => v.IsTemplateFromAnnotation() && v.Initializer != null ) )
+            {
+                this._isInTemplate = true;
+
+                foreach ( var variable in node.Declaration.Variables )
+                {
+                    if ( variable.Initializer != null )
+                    {
+                        this.Mark( variable.Initializer, TextSpanClassification.RunTime );
+                    }
+                }
+
+                base.VisitFieldDeclaration( node );
+
+                this._isInTemplate = false;
+            }
+            else
+            {
+                this.VisitMember( node, base.VisitFieldDeclaration );
+            }
+        }
 
         public override void VisitEventDeclaration( EventDeclarationSyntax node ) => this.VisitMember( node, base.VisitEventDeclaration );
 
@@ -183,8 +205,9 @@ namespace Metalama.Framework.Engine.Formatting
             {
                 this._isInTemplate = true;
 
-                // The code is run-time by default in a template method.
+                // The code is run-time by default in a template property.
                 this.Mark( node.ExpressionBody, TextSpanClassification.RunTime );
+                this.Mark( node.Initializer, TextSpanClassification.RunTime );
 
                 base.VisitPropertyDeclaration( node );
 
@@ -211,7 +234,29 @@ namespace Metalama.Framework.Engine.Formatting
             base.VisitAccessorDeclaration( node );
         }
 
-        public override void VisitEventFieldDeclaration( EventFieldDeclarationSyntax node ) => this.VisitMember( node, base.VisitEventFieldDeclaration );
+        public override void VisitEventFieldDeclaration( EventFieldDeclarationSyntax node )
+        {
+            if ( node.Declaration.Variables.Any( v => v.IsTemplateFromAnnotation() && v.Initializer != null ) )
+            {
+                this._isInTemplate = true;
+
+                foreach ( var variable in node.Declaration.Variables )
+                {
+                    if ( variable.Initializer != null )
+                    {
+                        this.Mark( variable.Initializer, TextSpanClassification.RunTime );
+                    }
+                }
+
+                base.VisitEventFieldDeclaration( node );
+
+                this._isInTemplate = false;
+            }
+            else
+            {
+                this.VisitMember( node, base.VisitEventFieldDeclaration );
+            }
+        }
 
         public override void VisitToken( SyntaxToken token )
         {
