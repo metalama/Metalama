@@ -13,6 +13,7 @@ using Metalama.Framework.Options;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -139,31 +140,28 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
         {
             var optionTypeName = option.Options.GetType().FullName.AssertNotNull();
 
-            var optionTypeNode = this.GetOptionTypeNode( optionTypeName );
-
             // The option type may not be registered if the type could not be resolved during initialization
             // (e.g., during design-time when the compilation is in an inconsistent state).
-            optionTypeNode?.AddOptionsInstance( option, diagnosticSink );
+            if ( this.TryGetOptionTypeNode( optionTypeName, out var optionTypeNode ) )
+            {
+                optionTypeNode.AddOptionsInstance( option, diagnosticSink );
+            }
         }
     }
 
-    private OptionTypeNode? GetOptionTypeNode( string optionTypeName )
+    private bool TryGetOptionTypeNode( string optionTypeName, [NotNullWhen( true )] out OptionTypeNode? node )
     {
         if ( !this.IsInitialized )
         {
             throw new InvalidOperationException( $"The {nameof(HierarchicalOptionsManager)} has not been initialized." );
         }
 
-        this._optionTypes.TryGetValue( optionTypeName, out var optionTypeNode );
-
-        return optionTypeNode;
+        return this._optionTypes.TryGetValue( optionTypeName, out node );
     }
 
     public IHierarchicalOptions? GetOptions( IDeclaration declaration, Type optionsType )
     {
-        var optionTypeNode = this.GetOptionTypeNode( optionsType.FullName.AssertNotNull() );
-
-        if ( optionTypeNode == null )
+        if ( !this.TryGetOptionTypeNode( optionsType.FullName.AssertNotNull(), out var optionTypeNode ) )
         {
             // The option type may not be registered if the type could not be resolved during initialization
             // (e.g., during design-time when the compilation is in an inconsistent state).
@@ -180,5 +178,10 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
             .SelectMany( s => s.Value.GetInheritableOptions( compilation, withSyntaxTree ) );
 
     internal void SetAspectOptions( IDeclaration declaration, IHierarchicalOptions options )
-        => this.GetOptionTypeNode( options.GetType().FullName.AssertNotNull() )?.SetAspectOptions( declaration, options );
+    {
+        if ( this.TryGetOptionTypeNode( options.GetType().FullName.AssertNotNull(), out var optionTypeNode ) )
+        {
+            optionTypeNode.SetAspectOptions( declaration, options );
+        }
+    }
 }
