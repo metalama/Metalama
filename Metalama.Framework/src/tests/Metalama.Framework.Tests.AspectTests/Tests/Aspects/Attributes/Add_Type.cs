@@ -68,3 +68,9 @@ internal class TargetEnum
     internal enum E { }
 }
 
+// <target>
+internal class TargetDelegate
+{
+    [MyAspect]
+    internal delegate void D();
+}
