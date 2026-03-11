@@ -389,7 +389,14 @@ public partial class DeclarationFactory
         {
             case SymbolKind.NamedType:
                 {
-                    var type = this.GetNamedType( (INamedTypeSymbol) mappedSymbol, genericContext );
+                    var namedTypeSymbol = (INamedTypeSymbol) mappedSymbol;
+
+                    if ( targetKind == RefTargetKind.Return && namedTypeSymbol.DelegateInvokeMethod is { } delegateInvokeMethod )
+                    {
+                        return this.GetReturnParameter( delegateInvokeMethod, genericContext );
+                    }
+
+                    var type = this.GetNamedType( namedTypeSymbol, genericContext );
 
                     return targetKind switch
                     {

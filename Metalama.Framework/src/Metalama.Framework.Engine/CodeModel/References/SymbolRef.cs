@@ -68,6 +68,7 @@ internal partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
         Invariant.Assert(
             targetKind == RefTargetKind.Default ||
             (targetKind == RefTargetKind.Return && symbol.Kind == SymbolKind.Method) ||
+            (targetKind == RefTargetKind.Return && symbol is INamedTypeSymbol { DelegateInvokeMethod: not null }) ||
             (targetKind is RefTargetKind.PropertyGet or RefTargetKind.PropertyGetReturnParameter
              && (symbol is { Kind: SymbolKind.Field } || (symbol.Kind == SymbolKind.Property && symbol is IPropertySymbol { GetMethod: null }))) ||
             (targetKind is RefTargetKind.PropertySet or RefTargetKind.PropertySetParameter or RefTargetKind.PropertySetReturnParameter
