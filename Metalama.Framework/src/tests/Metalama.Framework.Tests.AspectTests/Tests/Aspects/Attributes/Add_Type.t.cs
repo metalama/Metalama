@@ -58,9 +58,3 @@ internal class TargetEnum
   {
   }
 }
-internal class TargetDelegate
-{
-  [MyAspect]
-  [global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Attributes.Add_Type.MyAttribute]
-  internal delegate void D();
-}
