@@ -1,6 +1,6 @@
 <Project>
     <PropertyGroup>
-        <MainVersion>2026.0.16</MainVersion>
+        <MainVersion>2026.0.17</MainVersion>
         <PackageVersionSuffix></PackageVersionSuffix>
     </PropertyGroup>
 </Project>
