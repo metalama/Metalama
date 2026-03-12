@@ -5,7 +5,6 @@
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Testing.UnitTesting;
-using Microsoft.CodeAnalysis;
 using System;
 using System.Linq;
 using Xunit;
