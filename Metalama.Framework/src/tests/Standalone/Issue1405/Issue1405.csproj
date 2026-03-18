@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <MetalamaEnabled>true</MetalamaEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Catglobe.ResXFileCodeGenerator" PrivateAssets="All" />
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+   <ItemGroup>
+   <EmbeddedResource Update="Resources\SR.resx">
+     <PublicClass>false</PublicClass>
+     <PartialClass>true</PartialClass>
+     <CustomToolNamespace>System</CustomToolNamespace>
+   </EmbeddedResource>
+ </ItemGroup>
+</Project>
