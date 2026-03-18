@@ -24,7 +24,12 @@ internal partial class SymbolRef<T>
 
         IEnumerable<AttributeData> attributes = this.TargetKind switch
         {
-            RefTargetKind.Return => ((IMethodSymbol) this.Symbol).GetReturnTypeAttributes(),
+            RefTargetKind.Return when this.Symbol is { Kind: SymbolKind.Method } and IMethodSymbol method => method.GetReturnTypeAttributes(),
+            RefTargetKind.Return when this.Symbol is { Kind: SymbolKind.NamedType } and INamedTypeSymbol
+                {
+                    DelegateInvokeMethod: { } delegateInvokeMethod
+                } =>
+                delegateInvokeMethod.GetReturnTypeAttributes(),
             RefTargetKind.Default => this.Symbol.GetAttributes(),
             _ => throw new AssertionFailedException()
         };
