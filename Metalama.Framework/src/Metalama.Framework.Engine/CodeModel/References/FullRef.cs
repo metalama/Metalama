@@ -78,6 +78,12 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
             case RefTargetKind.Return when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind: SymbolKind.Method } and IMethodSymbol method:
                 return new ResolvedAttributeRef( method.GetReturnTypeAttributes(), method, RefTargetKind.Return );
 
+            case RefTargetKind.Return when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind: SymbolKind.NamedType } and INamedTypeSymbol
+                {
+                    DelegateInvokeMethod: { } delegateInvokeMethod
+                }:
+                return new ResolvedAttributeRef( delegateInvokeMethod.GetReturnTypeAttributes(), delegateInvokeMethod, RefTargetKind.Return );
+
             case RefTargetKind.Field when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind: SymbolKind.Event } and IEventSymbol @event:
                 // Roslyn does not expose the backing field of an event, so we don't have access to its attributes.
                 return new ResolvedAttributeRef( ImmutableArray<AttributeData>.Empty, @event, RefTargetKind.Field );
@@ -138,6 +144,9 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
             (RefTargetKind.Module, SymbolKind.NetModule) when symbol is IModuleSymbol => symbol,
             (RefTargetKind.NamedType or RefTargetKind.ExtensionBlock, SymbolKind.NamedType) when symbol is INamedTypeSymbol => symbol,
             (RefTargetKind.Default, _) => symbol,
+            (RefTargetKind.Event, SymbolKind.Event) when symbol is IEventSymbol => symbol,
+            (RefTargetKind.Property, SymbolKind.Property) when symbol is IPropertySymbol => symbol,
+            (RefTargetKind.Field, SymbolKind.Field) when symbol is IFieldSymbol => symbol,
             (RefTargetKind.Return, _) => throw new InvalidOperationException( "Cannot get a symbol for the method return parameter." ),
             (RefTargetKind.Field, SymbolKind.Property) when symbol is IPropertySymbol property => property.GetBackingField().AssertSymbolNotNull(),
             (RefTargetKind.Field, SymbolKind.Event) when symbol is IEventSymbol => throw new InvalidOperationException( "Cannot get the underlying field of an event." ),

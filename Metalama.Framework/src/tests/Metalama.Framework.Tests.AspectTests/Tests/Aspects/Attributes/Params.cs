@@ -29,7 +29,6 @@ public class MyAspect : MethodAspect
         var attr1 = AttributeConstruction.Create( typeof(MyAttribute), new object[] { "x", 1, 2, 3, 4, 5 } );
         builder.IntroduceAttribute( attr1 );
 
-        //  Known issue: should pass the 'null' argument, but does not.
         var attr2 = AttributeConstruction.Create( typeof(MyAttribute), new object?[] { "x", null } );
         builder.IntroduceAttribute( attr2, whenExists: OverrideStrategy.New );
 

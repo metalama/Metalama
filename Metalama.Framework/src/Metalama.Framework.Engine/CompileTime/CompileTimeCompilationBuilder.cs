@@ -148,9 +148,13 @@ internal sealed partial class CompileTimeCompilationBuilder
             h.Append( symbol );
         }
 
-        // Hash syntax trees.
+        // Hash syntax trees, including their file paths.
+        // Including file paths ensures that renaming a file invalidates the cache,
+        // even if the content is unchanged. (fix for #730)
         foreach ( var syntaxTree in compileTimeTrees.OrderBy( t => t.FilePath ) )
         {
+            h.Append( syntaxTree.FilePath );
+
             // SourceText.Checksum does not seem to return the same thing at compile time than at run time, so we take use our own algorithm.
             var text = syntaxTree.GetText().ToString();
             h.Append( text );

@@ -75,7 +75,26 @@ internal sealed partial class LinkerRewritingDriver
         var triviaSource = this.ResolveBodyBlockTriviaSource( semantic, out var shouldRemoveExistingTrivia );
         var bodyRootNode = this.GetBodyRootNode( semantic.Symbol, substitutionContext.SyntaxGenerationContext );
         var rewrittenBody = RewriteBody( bodyRootNode, semantic.Symbol, substitutionContext );
-        var rewrittenBlock = TransformToBlock( substitutionContext, rewrittenBody, semantic.Symbol );
+
+        BlockSyntax rewrittenBlock;
+
+        if ( rewrittenBody.Kind() is { IsAccessorDeclaration: true } && rewrittenBody is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } )
+        {
+            // The substitution was not applied for this body-less accessor (e.g. auto-property accessor in duplicate declarations).
+            // This happens when SymbolEqualityComparer considers two accessor symbols from duplicate declarations as equal,
+            // causing substitution dictionary collisions. Generate the implicit body directly.
+            rewrittenBlock = this.GetImplicitAccessorBody( semantic.Symbol, substitutionContext.SyntaxGenerationContext );
+        }
+        else if ( rewrittenBody.IsKind( SyntaxKind.VariableDeclarator ) )
+        {
+            // The substitution was not applied for this event field variable (e.g. field-like event in duplicate declarations).
+            // Same root cause as the accessor case above. Generate the implicit body directly.
+            rewrittenBlock = this.GetImplicitAccessorBody( semantic.Symbol, substitutionContext.SyntaxGenerationContext );
+        }
+        else
+        {
+            rewrittenBlock = TransformToBlock( substitutionContext, rewrittenBody, semantic.Symbol );
+        }
 
         // Add the SourceCode annotation, if it is the source code.
         if ( semantic.Kind == IntermediateSymbolSemanticKind.Default && this.InjectionRegistry.IsOverrideTarget( semantic.Symbol ) )
@@ -297,7 +316,11 @@ internal sealed partial class LinkerRewritingDriver
                 return (BlockSyntax) rewriter.Visit( block ).AssertNotNull();
 
             case { IsAccessorDeclaration: true } when bodyRootNode is AccessorDeclarationSyntax accessorDecl:
-                return (BlockSyntax) rewriter.Visit( accessorDecl ).AssertNotNull();
+                var rewrittenAccessor = rewriter.Visit( accessorDecl ).AssertNotNull();
+
+                // If the substitution was applied, the result should be a BlockSyntax.
+                // If not (e.g., duplicate declarations in invalid code), the result remains an AccessorDeclarationSyntax.
+                return rewrittenAccessor;
 
             case SyntaxKind.MethodDeclaration when bodyRootNode is MethodDeclarationSyntax partialMethodDeclaration:
                 return (BlockSyntax) rewriter.Visit( partialMethodDeclaration ).AssertNotNull();
@@ -306,7 +329,11 @@ internal sealed partial class LinkerRewritingDriver
                 return (BlockSyntax) rewriter.Visit( partialConstructorDeclaration ).AssertNotNull();
 
             case SyntaxKind.VariableDeclarator when bodyRootNode is VariableDeclaratorSyntax { Parent.Parent: EventFieldDeclarationSyntax } eventFieldVariable:
-                return (BlockSyntax) rewriter.Visit( eventFieldVariable ).AssertNotNull();
+                var rewrittenEventField = rewriter.Visit( eventFieldVariable ).AssertNotNull();
+
+                // If the substitution was applied, the result should be a BlockSyntax.
+                // If not (e.g., duplicate declarations in invalid code), the result remains a VariableDeclaratorSyntax.
+                return rewrittenEventField;
 
             case SyntaxKind.Parameter when bodyRootNode is ParameterSyntax { Parent.Parent: RecordDeclarationSyntax } positionalProperty:
                 return (BlockSyntax) rewriter.Visit( positionalProperty ).AssertNotNull();

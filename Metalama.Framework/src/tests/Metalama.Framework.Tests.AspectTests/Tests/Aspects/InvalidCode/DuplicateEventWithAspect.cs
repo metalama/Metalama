@@ -10,29 +10,28 @@
 using Metalama.Framework.Aspects;
 using System;
 
-namespace Metalama.Framework.Tests.PublicPipeline.Aspects.InvalidCode.DuplicatePropertyWithAspect;
+#pragma warning disable CS0067
+
+namespace Metalama.Framework.Tests.PublicPipeline.Aspects.InvalidCode.DuplicateEventWithAspect;
 
 /*
  * Tests that when there are duplicate declarations, the error is produced without crashing.
  */
 
-internal class Aspect : OverrideFieldOrPropertyAspect
+internal class Aspect : OverrideEventAspect
 {
-    public override dynamic? OverrideProperty
+    public override void OverrideAdd( dynamic handler )
     {
-        get
-        {
-            Console.WriteLine( "Aspect" );
+        Console.WriteLine( "Aspect" );
 
-            return meta.Proceed();
-        }
+        meta.Proceed();
+    }
 
-        set
-        {
-            Console.WriteLine( "Aspect" );
+    public override void OverrideRemove( dynamic handler )
+    {
+        Console.WriteLine( "Aspect" );
 
-            meta.Proceed();
-        }
+        meta.Proceed();
     }
 }
 
@@ -40,10 +39,10 @@ internal class Aspect : OverrideFieldOrPropertyAspect
 internal class TargetCode
 {
     [Aspect]
-    private int Property { get; set; }
+    private event EventHandler? Event;
 
 #if TESTRUNNER
     [Aspect]
-    private int Property { get; set; }
+    private event EventHandler? Event;
 #endif
 }

@@ -80,6 +80,10 @@ public static partial class EligibilityRuleFactory
             // Eligibility rules for regular parameters (not extension block receiver parameters).
             static void AddCommonParameterRules( IEligibilityBuilder<IParameter> parameter )
             {
+                parameter.MustSatisfy(
+                    p => p.DeclaringMember is not IMethod { MethodKind: MethodKind.DelegateInvoke },
+                    p => $"the declaring member of {p} must not be a delegate member" );
+
                 parameter.DeclaringMember().MustBeExplicitlyDeclared();
                 parameter.ExceptForInheritance().DeclaringMember().MustNotBeAbstract();
 
