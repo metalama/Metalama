@@ -214,4 +214,62 @@ class C(int i)
         var resolvedDeclaration = idWithTargetKind.ResolveToDeclaration( compilation.GetCompilationModel() );
         Assert.Same( primaryConstructor, resolvedDeclaration );
     }
+
+    [Fact]
+    public void DelegateReturnParameterRoundtrip()
+    {
+        const string code = @"
+namespace TestNamespace;
+
+delegate int D(int x, string y);
+";
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+        var delegateType = compilation.GetContainedDeclarations().OfType<INamedType>().Single( t => t.Name == "D" );
+        var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
+        var returnParameter = invokeMethod.ReturnParameter;
+
+        // Test standard roundtrip for the delegate's return parameter (through the Invoke method).
+        Roundtrip( returnParameter, compilation, this.TestOutput );
+
+        // Test roundtrip with RefTargetKind.Return on the delegate type symbol.
+        // This is the path used when [return:MyAspect] is applied to a delegate declaration.
+        var delegateTypeSymbol = delegateType.GetSymbol().AssertSymbolNotNull();
+
+        var idWithTargetKind = delegateTypeSymbol.GetSerializableId( RefTargetKind.Return );
+        this.TestOutput.WriteLine( $"Delegate Return target kind ID: {idWithTargetKind.Id}" );
+
+        // Verify symbol roundtrip via ResolveToSymbolOrNull (two-parameter version).
+        // The single-parameter version returns null for return parameters (by design).
+        var resolvedSymbol = idWithTargetKind.ResolveToSymbolOrNull( compilation.GetCompilationContext(), out var isReturnParameter );
+        Assert.True( isReturnParameter );
+        Assert.NotNull( resolvedSymbol );
+        Assert.Equal( delegateTypeSymbol, resolvedSymbol, SymbolEqualityComparer.Default );
+
+        // Verify declaration roundtrip via ResolveToDeclaration.
+        var resolvedDeclaration = idWithTargetKind.ResolveToDeclaration( compilation.GetCompilationModel() );
+        Assert.Same( returnParameter, resolvedDeclaration );
+    }
+
+    [Fact]
+    public void DelegateParameterRoundtrip()
+    {
+        const string code = @"
+namespace TestNamespace;
+
+delegate int D(int x, string y);
+";
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+        var delegateType = compilation.GetContainedDeclarations().OfType<INamedType>().Single( t => t.Name == "D" );
+        var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
+
+        // Test standard roundtrip for the delegate's parameters (through the Invoke method).
+        foreach ( var parameter in invokeMethod.Parameters )
+        {
+            Roundtrip( parameter, compilation, this.TestOutput );
+        }
+    }
 }
