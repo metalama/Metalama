@@ -3,36 +3,41 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if TEST_OPTIONS
-// @RequiredConstant(NET5_0_OR_GREATER)
 // @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
 #endif
-#pragma warning disable CS0067, CS8602, CS8603, CS0169
+
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
+using Metalama.Framework.Diagnostics;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.Diff.WarningLocation
 {
-    internal class IntroduceCloneAttribute : TypeAspect
+    internal class MyAspect : TypeAspect
     {
-        [Introduce]
-        public object Clone()
+        private static readonly DiagnosticDefinition _warning =
+            new( "MY001", Severity.Warning, "Warning on target type." );
+
+        public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            return this.MemberwiseClone();
+            builder.Diagnostics.Report( _warning );
+
+            builder.IntroduceMethod( nameof(IntroducedMethod) );
         }
+
+        [Template]
+        private void IntroducedMethod() { }
     }
 
     // <target>
-    [IntroduceClone]
+    [MyAspect]
     internal partial class FirstClass
     {
         private int a;
-
-        private string? b;
     }
 
-    [IntroduceClone]
+    [MyAspect]
     internal partial class SecondClass
     {
-        // CS8618 should be reported on this class because of this non-nullable field.
-        private string nonNullableField;
+        private int b;
     }
 }
