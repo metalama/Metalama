@@ -113,12 +113,21 @@ namespace Metalama.Framework.Code.Invokers
         /// <remarks>
         /// <para>
         /// When the method has no overloads, this generates a simple method group expression (e.g. <c>this.Method</c>).
-        /// When the method has overloads, this generates a typed delegate expression using <c>Action&lt;&gt;</c> or <c>Func&lt;&gt;</c>
-        /// to disambiguate (e.g. <c>new Action&lt;int&gt;(this.Method)</c>).
         /// </para>
         /// <para>
+        /// When the method has overloads, the generated code depends on the target type context:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>If the expression is assigned to a variable of a specific delegate type (e.g. <c>EventHandler</c>, or a custom delegate),
+        /// and that delegate type is compatible with the method's signature, the target delegate type is used for disambiguation
+        /// (e.g. <c>new MyDelegate(this.Method)</c>).</item>
+        /// <item>Otherwise, <c>Action&lt;&gt;</c> or <c>Func&lt;&gt;</c> is used for disambiguation
+        /// (e.g. <c>new Action&lt;int&gt;(this.Method)</c>).</item>
+        /// </list>
+        /// <para>
         /// If the method has overloads and its signature contains <c>out</c>, <c>in</c>, or <c>ref</c> parameters,
-        /// an exception is thrown because <c>Action&lt;&gt;</c>/<c>Func&lt;&gt;</c> cannot represent such signatures.
+        /// and no compatible target delegate type is available, an exception is thrown because <c>Action&lt;&gt;</c>/<c>Func&lt;&gt;</c>
+        /// cannot represent such signatures.
         /// </para>
         /// <para>
         /// By default, the delegate references the method on the current object (<c>this</c>), unless the method is static.
