@@ -268,6 +268,8 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     IExpression IMethodInvoker.CreateInvokeExpression( IEnumerable<object?> args ) => this.Invoker.CreateInvokeExpression( args );
 
+    IExpression IMethodInvoker.CreateDelegateExpression() => this.Invoker.CreateDelegateExpression();
+
     object? IMethodInvoker.Invoke( params object?[] args ) => this.Invoker.Invoke( args );
 
     object? IMethodInvoker.Invoke( IEnumerable<IExpression> args ) => this.Invoker.Invoke( args );

@@ -387,4 +387,7 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
     public IExpression CreateInvokeExpression( params IEnumerable<object?> args )
         => this.CreateInvokeExpression( args.Select( a => CapturedUserExpression.Create( this.Compilation, a ) ) );
+
+    public IExpression CreateDelegateExpression()
+        => throw new NotImplementedException( "CreateDelegateExpression is not yet implemented." );
 }
