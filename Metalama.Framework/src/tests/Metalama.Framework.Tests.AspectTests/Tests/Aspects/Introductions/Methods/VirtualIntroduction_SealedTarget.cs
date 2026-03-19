@@ -62,4 +62,9 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Virt
     [ProgrammaticVirtualIntroduction]
     [DeclarativeVirtualIntroduction]
     internal sealed class SealedTargetClass { }
+
+    // <target>
+    [ProgrammaticVirtualIntroduction]
+    [DeclarativeVirtualIntroduction]
+    internal struct TargetStruct { }
 }
