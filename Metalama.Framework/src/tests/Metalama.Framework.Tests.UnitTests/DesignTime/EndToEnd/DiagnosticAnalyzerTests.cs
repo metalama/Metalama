@@ -282,4 +282,28 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
         Assert.Contains( "MLTEST", diagnostic.GetLocalizedMessage(), StringComparison.Ordinal );
         Assert.Contains( "Warning!", diagnostic.GetLocalizedMessage(), StringComparison.Ordinal );
     }
+
+    [Fact]
+    public void WrapperDiagnosticIdsAreFixable()
+    {
+        // Regression test for #686: When a user diagnostic has not been registered in the user profile,
+        // it is wrapped into LAMA0301-LAMA0304. The code fix provider must include these wrapper IDs
+        // in FixableDiagnosticIds, otherwise Roslyn won't invoke the code fix provider for wrapped
+        // diagnostics and code fixes attached to unregistered diagnostics will be silently lost.
+        Assert.Contains(
+            DesignTimeDiagnosticDescriptors.UserError.Id,
+            DesignTimeDiagnosticDefinitions.FixableStandardDiagnosticIds );
+
+        Assert.Contains(
+            DesignTimeDiagnosticDescriptors.UserWarning.Id,
+            DesignTimeDiagnosticDefinitions.FixableStandardDiagnosticIds );
+
+        Assert.Contains(
+            DesignTimeDiagnosticDescriptors.UserInfo.Id,
+            DesignTimeDiagnosticDefinitions.FixableStandardDiagnosticIds );
+
+        Assert.Contains(
+            DesignTimeDiagnosticDescriptors.UserHidden.Id,
+            DesignTimeDiagnosticDefinitions.FixableStandardDiagnosticIds );
+    }
 }
