@@ -349,6 +349,43 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         }
 
         [Fact]
+        public void InvalidBaseTypeArraySyntax_DoesNotThrow()
+        {
+            // Regression test for https://github.com/metalama/Metalama/issues/649
+            // When a class uses invalid "array" syntax in base type (e.g. OverrideMethodAspect[]),
+            // Roslyn parses the base type as ArrayTypeSymbol. The validator should not crash.
+            using var testContext = this.CreateTestContext();
+
+            var compilation = testContext.CreateCSharpCompilation(
+                """
+                using Metalama.Framework.Aspects;
+
+                public class SECall : OverrideMethodAspect[]
+                {
+                }
+
+                public class SECall2 : OverrideMethodAspect[c]
+                {
+                }
+                """,
+                ignoreErrors: true );
+
+            List<Diagnostic> diagnostics = new();
+            var syntaxTree = compilation.SyntaxTrees[0];
+            var semanticModel = compilation.GetSemanticModel( syntaxTree );
+
+            // This should not throw an InvalidCastException.
+            TemplatingCodeValidator.Validate(
+                testContext.ServiceProvider,
+                semanticModel,
+                diagnostics.Add,
+                null,
+                false,
+                false,
+                testContext.CancellationToken );
+        }
+
+        [Fact]
         public void WellKnownTypesNotReported()
         {
             using var testContext = this.CreateTestContext();
