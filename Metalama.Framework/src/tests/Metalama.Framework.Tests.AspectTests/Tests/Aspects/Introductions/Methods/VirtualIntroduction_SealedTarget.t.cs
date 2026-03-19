@@ -2,24 +2,24 @@
 [DeclarativeVirtualIntroduction]
 internal sealed class SealedTargetClass
 {
-  public int DeclarativeExplicitlyVirtualMethod()
+  public global::System.Int32 DeclarativeExplicitlyVirtualMethod()
   {
     global::System.Console.WriteLine("Introduced.");
-    return 42;
+    return (global::System.Int32)42;
   }
-  public int DeclarativeImplicitlyVirtualMethod()
+  public global::System.Int32 DeclarativeImplicitlyVirtualMethod()
   {
     global::System.Console.WriteLine("Introduced.");
-    return 42;
+    return (global::System.Int32)42;
   }
-  public int ExplicitlyVirtualMethod()
+  public global::System.Int32 ExplicitlyVirtualMethod()
   {
     global::System.Console.WriteLine("Introduced.");
-    return 42;
+    return (global::System.Int32)42;
   }
-  public int ImplicitlyVirtualMethod()
+  public global::System.Int32 ImplicitlyVirtualMethod()
   {
     global::System.Console.WriteLine("Introduced.");
-    return 42;
+    return (global::System.Int32)42;
   }
 }

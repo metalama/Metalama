@@ -133,6 +133,13 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
                 ?? templateDeclaration?.IsVirtual
                 ?? (isInterfaceMember && builder.Accessibility != Accessibility.Private));
 
+        // Silently ignore IsVirtual when the target type is sealed, because sealed types
+        // cannot have virtual members in C#. The member is introduced as non-virtual instead.
+        if ( builder.IsVirtual && this.TargetDeclaration.IsSealed && this.TargetDeclaration.TypeKind != TypeKind.Struct )
+        {
+            builder.IsVirtual = false;
+        }
+
         // Handle the introduction scope.
         // By default, interface members are static because the scope is default and there is no template.
         builder.IsStatic = this._scope switch
@@ -227,9 +234,16 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
                     this ) );
         }
 
-        // Check that virtual member is not introduced to a sealed type or a struct.
-        if ( targetDeclaration is { IsSealed: true } or { DeclaringType.TypeKind: TypeKind.Struct }
-             && builder.IsVirtual )
+        // Silently ignore IsVirtual when the target type is sealed (but not a struct).
+        // Sealed classes can receive the introduced member as non-virtual.
+        // This also handles the case where the user sets IsVirtual = true in the build action.
+        if ( builder.IsVirtual && targetDeclaration.IsSealed && targetDeclaration.TypeKind != TypeKind.Struct )
+        {
+            builder.IsVirtual = false;
+        }
+
+        // Check that virtual member is not introduced to a struct.
+        if ( targetDeclaration is { TypeKind: TypeKind.Struct } && builder.IsVirtual )
         {
             diagnosticAdder.Report(
                 AdviceDiagnosticDescriptors.CannotIntroduceVirtualToTargetType.CreateRoslynDiagnostic(

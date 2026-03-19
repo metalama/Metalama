@@ -2,48 +2,48 @@
 [DeclarativeVirtualIntroduction]
 internal sealed class SealedTargetClass
 {
-  public int DeclarativeExplicitlyVirtualProperty
+  public global::System.Int32 DeclarativeExplicitlyVirtualProperty
   {
     get
     {
       global::System.Console.WriteLine("Introduced.");
-      return 42;
+      return (global::System.Int32)42;
     }
     set
     {
       global::System.Console.WriteLine("Introduced.");
     }
   }
-  public int DeclarativeImplicitlyVirtualProperty
+  public global::System.Int32 DeclarativeImplicitlyVirtualProperty
   {
     get
     {
       global::System.Console.WriteLine("Introduced.");
-      return 42;
+      return (global::System.Int32)42;
     }
     set
     {
       global::System.Console.WriteLine("Introduced.");
     }
   }
-  public int ExplicitlyVirtualProperty
+  public global::System.Int32 ExplicitlyVirtualProperty
   {
     get
     {
       global::System.Console.WriteLine("Introduced.");
-      return 42;
+      return (global::System.Int32)42;
     }
     set
     {
       global::System.Console.WriteLine("Introduced.");
     }
   }
-  public int ImplicitlyVirtualProperty
+  public global::System.Int32 ImplicitlyVirtualProperty
   {
     get
     {
       global::System.Console.WriteLine("Introduced.");
-      return 42;
+      return (global::System.Int32)42;
     }
     set
     {
