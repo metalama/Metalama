@@ -1045,9 +1045,11 @@ internal abstract partial class BaseTestRunner
 
             outputTextWriter = new StreamWriter( this._fileSystem.Open( testSyntaxTree.HtmlOutputPath, FileMode.Create ) );
 
+            // Pipeline diagnostics are excluded here because their source positions reference the input syntax tree,
+            // not the output syntax tree. Including them would place squiggles at nonsensical positions in the
+            // transformed output HTML. Pipeline diagnostics are already rendered on the input side above.
             outputDiagnostics =
                 testResult.OutputCompilationDiagnostics
-                    .Concat( testResult.PipelineDiagnostics )
                     .Where(
                         d => d.Location is { IsInSource: true, SourceTree: not null }
                              && d.Location.SourceTree?.FilePath == testSyntaxTree.InputSyntaxTree?.FilePath )
