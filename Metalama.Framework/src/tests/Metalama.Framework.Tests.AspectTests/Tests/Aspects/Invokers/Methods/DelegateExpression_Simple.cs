@@ -4,7 +4,6 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using System;
 using System.Linq;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.DelegateExpression_Simple;
@@ -26,8 +25,7 @@ public class DelegateAspect : MethodAspect
     [Template]
     public dynamic? Template( [CompileTime] IMethod target )
     {
-        var delegateExpr = target.CreateDelegateExpression();
-        Action action = delegateExpr.Value;
+        var action = target.CreateDelegateExpression().Value;
 
         return meta.Proceed();
     }

@@ -389,5 +389,142 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         => this.CreateInvokeExpression( args.Select( a => CapturedUserExpression.Create( this.Compilation, a ) ) );
 
     public IExpression CreateDelegateExpression()
-        => throw new NotImplementedException( "CreateDelegateExpression is not yet implemented." );
+    {
+        var method = this.Member;
+
+        // Check if the method has overloads in the declaring type.
+        var hasOverloads = method.DeclaringType.Methods.OfName( method.Name ).Count() > 1;
+
+        if ( hasOverloads )
+        {
+            // When there are overloads, we need to generate a typed delegate expression to disambiguate.
+            // Check that the method doesn't have ref/out/in parameters, which can't be represented by Action<>/Func<>.
+            foreach ( var param in method.Parameters )
+            {
+                if ( param.RefKind is RefKind.Ref or RefKind.Out or RefKind.In or RefKind.RefReadOnly )
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot create a delegate expression for the overloaded method '{method}' because it has a '{param.RefKind}' parameter '{param.Name}'. " +
+                        $"Action<> and Func<> delegates cannot represent ref/out/in parameters, and a typed delegate is needed to disambiguate overloads." );
+                }
+            }
+        }
+
+        // Determine the delegate type for the IExpression.
+        var isVoid = method.ReturnType.SpecialType == SpecialType.Void;
+        var factory = this.Compilation.Factory;
+
+        // Compute the IType for the delegate so the template expander treats it as a value, not a void statement.
+        IType delegateType;
+
+        if ( isVoid )
+        {
+            if ( method.Parameters.Count == 0 )
+            {
+                delegateType = factory.GetTypeByReflectionType( typeof(Action) );
+            }
+            else
+            {
+                var genericAction = factory.GetTypeByReflectionType( Type.GetType( "System.Action`" + method.Parameters.Count )! );
+                delegateType = ((INamedType) genericAction).MakeGenericInstance( method.Parameters.SelectAsArray( p => p.Type ) );
+            }
+        }
+        else
+        {
+            var genericFunc = factory.GetTypeByReflectionType( Type.GetType( "System.Func`" + (method.Parameters.Count + 1) )! );
+            var funcTypeArgs = method.Parameters.SelectAsArray( p => p.Type ).Append( method.ReturnType ).ToArray();
+            delegateType = ((INamedType) genericFunc).MakeGenericInstance( funcTypeArgs );
+        }
+
+        return new DelegateUserExpression(
+            context =>
+            {
+                // Build the method group expression: receiver.MethodName
+                SimpleNameSyntax name;
+
+                if ( method.IsGeneric )
+                {
+                    name = GenericName(
+                        SyntaxFactoryEx.SafeIdentifier( this.GetCleanTargetMemberName() ),
+                        TypeArgumentList(
+                            SeparatedList( method.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
+                }
+                else
+                {
+                    name = SyntaxFactoryEx.SafeIdentifierName( this.GetCleanTargetMemberName() );
+                }
+
+                var receiverInfo = this.GetReceiverInfo( context );
+                var receiverSyntax = receiverInfo.GetReceiverSyntax( this.Member, context );
+
+                ExpressionSyntax methodGroupExpression =
+                    MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, receiverSyntax, name )
+                        .WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
+
+                // Add aspect reference annotation if applicable.
+                if ( GetTargetType()?.IsConvertibleTo( this.Member.DeclaringType ) ?? false )
+                {
+                    methodGroupExpression = methodGroupExpression.WithAspectReferenceAnnotation(
+                        receiverInfo.WithSyntax( receiverSyntax ).AspectReferenceSpecification.WithTargetKind( AspectReferenceTargetKind.Self ) );
+                }
+
+                if ( !hasOverloads )
+                {
+                    // No overloads: return the simple method group expression.
+                    return methodGroupExpression;
+                }
+                else
+                {
+                    // Has overloads: wrap in new Action<...>(methodGroup) or new Func<..., TReturn>(methodGroup).
+                    var parameterTypes = method.Parameters.SelectAsImmutableArray( p => context.SyntaxGenerator.TypeSyntax( p.Type ) );
+
+                    TypeSyntax delegateTypeSyntax;
+
+                    if ( isVoid )
+                    {
+                        if ( parameterTypes.Length == 0 )
+                        {
+                            // Action (non-generic)
+                            delegateTypeSyntax = QualifiedName(
+                                AliasQualifiedName(
+                                    SyntaxFactoryEx.WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+                                    SyntaxFactoryEx.WellKnownIdentifierName( "System" ) ),
+                                SyntaxFactoryEx.WellKnownIdentifierName( "Action" ) );
+                        }
+                        else
+                        {
+                            // Action<T1, T2, ...>
+                            delegateTypeSyntax = QualifiedName(
+                                AliasQualifiedName(
+                                    SyntaxFactoryEx.WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+                                    SyntaxFactoryEx.WellKnownIdentifierName( "System" ) ),
+                                GenericName(
+                                    SyntaxFactoryEx.WellKnownIdentifier( "Action" ),
+                                    TypeArgumentList( SeparatedList<TypeSyntax>( parameterTypes ) ) ) );
+                        }
+                    }
+                    else
+                    {
+                        // Func<T1, T2, ..., TReturn>
+                        var allTypeArgs = parameterTypes.Add( context.SyntaxGenerator.TypeSyntax( method.ReturnType ) );
+
+                        delegateTypeSyntax = QualifiedName(
+                            AliasQualifiedName(
+                                SyntaxFactoryEx.WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+                                SyntaxFactoryEx.WellKnownIdentifierName( "System" ) ),
+                            GenericName(
+                                SyntaxFactoryEx.WellKnownIdentifier( "Func" ),
+                                TypeArgumentList( SeparatedList<TypeSyntax>( allTypeArgs ) ) ) );
+                    }
+
+                    // Generate: new DelegateType(methodGroupExpression)
+                    return ObjectCreationExpression( delegateTypeSyntax )
+                        .WithArgumentList(
+                            ArgumentList(
+                                SingletonSeparatedList(
+                                    Argument( methodGroupExpression ) ) ) );
+                }
+            },
+            delegateType );
+    }
 }

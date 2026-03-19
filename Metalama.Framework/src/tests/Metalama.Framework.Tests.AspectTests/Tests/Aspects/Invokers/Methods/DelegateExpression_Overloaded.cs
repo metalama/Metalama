@@ -4,7 +4,6 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using System;
 using System.Linq;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.DelegateExpression_Overloaded;
@@ -33,12 +32,10 @@ public class DelegateAspect : MethodAspect
     public dynamic? Template( [CompileTime] IMethod targetInt, [CompileTime] IMethod targetString )
     {
         meta.InsertComment( "Delegate to Method(int)" );
-        var intDelegate = targetInt.CreateDelegateExpression();
-        Action<int> actionInt = intDelegate.Value;
+        dynamic? intDelegate = targetInt.CreateDelegateExpression().Value;
 
         meta.InsertComment( "Delegate to Method(string)" );
-        var stringDelegate = targetString.CreateDelegateExpression();
-        Action<string> actionString = stringDelegate.Value;
+        dynamic? stringDelegate = targetString.CreateDelegateExpression().Value;
 
         return meta.Proceed();
     }

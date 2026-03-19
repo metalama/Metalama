@@ -4,13 +4,12 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using System;
 using System.Linq;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.DelegateExpression_Func;
 
 /*
- * Tests CreateDelegateExpression targeting an overloaded method with a return value.
+ * Tests CreateDelegateExpression targeting an overloaded method that returns a value.
  * Expected: typed delegate expression using Func<int, string> to disambiguate.
  */
 
@@ -22,16 +21,15 @@ public class DelegateAspect : MethodAspect
             nameof(this.Template),
             new
             {
-                target = builder.Target.DeclaringType!.Methods.OfName( "Method" )
-                    .Single( m => m.Parameters.Count == 1 && m.ReturnType.SpecialType == SpecialType.String )
+                target = builder.Target.DeclaringType!.Methods.OfName( "Convert" )
+                    .Single( m => m.Parameters.Count == 1 && m.Parameters[0].Type.SpecialType == SpecialType.Int32 )
             } );
     }
 
     [Template]
     public dynamic? Template( [CompileTime] IMethod target )
     {
-        var delegateExpr = target.CreateDelegateExpression();
-        Func<int, string> func = delegateExpr.Value;
+        dynamic? func = target.CreateDelegateExpression().Value;
 
         return meta.Proceed();
     }
@@ -40,9 +38,9 @@ public class DelegateAspect : MethodAspect
 // <target>
 public class TargetClass
 {
-    public void Method( int x ) { }
+    public string Convert( int x ) { return x.ToString(); }
 
-    public string Method( int x, string prefix = "" ) { return prefix + x; }
+    public string Convert( string s ) { return s; }
 
     [DelegateAspect]
     public void Invoker() { }
