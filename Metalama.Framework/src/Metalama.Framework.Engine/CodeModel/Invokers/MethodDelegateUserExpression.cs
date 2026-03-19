@@ -18,19 +18,22 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
 /// <summary>
 /// An <see cref="UserExpression"/> that represents a method referenced as a delegate.
-/// The generated syntax depends on the target type (when available) and on whether the method has overloads.
+/// The generated syntax depends on the target type (when available), on whether the method has overloads,
+/// and on whether an explicit delegate type was specified.
 /// </summary>
 internal sealed class MethodDelegateUserExpression : UserExpression
 {
     private readonly IMethod _method;
     private readonly MethodInvoker _invoker;
     private readonly bool _hasOverloads;
+    private readonly INamedType? _explicitDelegateType;
 
-    public MethodDelegateUserExpression( IMethod method, MethodInvoker invoker, bool hasOverloads, IType defaultDelegateType )
+    public MethodDelegateUserExpression( IMethod method, MethodInvoker invoker, bool hasOverloads, IType defaultDelegateType, INamedType? explicitDelegateType )
     {
         this._method = method;
         this._invoker = invoker;
         this._hasOverloads = hasOverloads;
+        this._explicitDelegateType = explicitDelegateType;
         this.Type = defaultDelegateType;
     }
 
@@ -42,6 +45,12 @@ internal sealed class MethodDelegateUserExpression : UserExpression
     {
         var methodGroupExpression = this.BuildMethodGroupExpression( syntaxSerializationContext );
 
+        // If an explicit delegate type was specified, always use it for disambiguation.
+        if ( this._explicitDelegateType != null )
+        {
+            return CreateDelegateCreationExpression( methodGroupExpression, this._explicitDelegateType, syntaxSerializationContext );
+        }
+
         if ( !this._hasOverloads )
         {
             // No overloads: a simple method group expression is always sufficient.
@@ -52,7 +61,7 @@ internal sealed class MethodDelegateUserExpression : UserExpression
         // There are overloads, so we need to disambiguate.
         // First, try using the target type if it's a compatible delegate type.
         if ( targetType is INamedType { TypeKind: TypeKind.Delegate } targetDelegateType
-             && this.IsCompatibleWithDelegate( targetDelegateType ) )
+             && IsCompatibleWithDelegate( this._method, targetDelegateType ) )
         {
             // The target type is a delegate that matches our method's signature.
             // Generate: new TargetDelegateType(methodGroup)
@@ -96,59 +105,27 @@ internal sealed class MethodDelegateUserExpression : UserExpression
         return methodGroupExpression;
     }
 
-    private bool IsCompatibleWithDelegate( INamedType delegateType )
+    /// <summary>
+    /// Checks if a method's signature is compatible with a delegate type using <see cref="SignatureMatcher"/>.
+    /// </summary>
+    private static bool IsCompatibleWithDelegate( IMethod method, INamedType delegateType )
     {
-        var invokeMethod = delegateType.Methods.OfName( "Invoke" ).SingleOrDefault();
+        // Use OfExactSignature to find the delegate's Invoke method with matching parameter types and ref kinds.
+        var parameterTypes = method.Parameters.SelectAsImmutableArray( p => p.Type );
+        var refKinds = method.Parameters.SelectAsImmutableArray( p => p.RefKind );
+
+        var invokeMethod = delegateType.Methods.OfExactSignature( "Invoke", parameterTypes, refKinds, isStatic: false );
 
         if ( invokeMethod == null )
         {
             return false;
         }
 
-        // Check parameter count.
-        if ( invokeMethod.Parameters.Count != this._method.Parameters.Count )
-        {
-            return false;
-        }
-
         // Check return type compatibility.
-        var isVoid = this._method.ReturnType.SpecialType == SpecialType.Void;
+        var isVoid = method.ReturnType.SpecialType == SpecialType.Void;
         var delegateIsVoid = invokeMethod.ReturnType.SpecialType == SpecialType.Void;
 
-        if ( isVoid != delegateIsVoid )
-        {
-            return false;
-        }
-
-        if ( !isVoid )
-        {
-            // The method's return type must be convertible to the delegate's return type.
-            if ( !this._method.Compilation.Comparers.Default.IsConvertibleTo( this._method.ReturnType, invokeMethod.ReturnType ) )
-            {
-                return false;
-            }
-        }
-
-        // Check parameter types and ref kinds.
-        for ( var i = 0; i < this._method.Parameters.Count; i++ )
-        {
-            var methodParam = this._method.Parameters[i];
-            var delegateParam = invokeMethod.Parameters[i];
-
-            // Ref kinds must match exactly.
-            if ( methodParam.RefKind != delegateParam.RefKind )
-            {
-                return false;
-            }
-
-            // Parameter types must be compatible.
-            if ( !this._method.Compilation.Comparers.Default.IsConvertibleTo( delegateParam.Type, methodParam.Type ) )
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return isVoid == delegateIsVoid;
     }
 
     private static ExpressionSyntax CreateDelegateCreationExpression(
@@ -177,7 +154,7 @@ internal sealed class MethodDelegateUserExpression : UserExpression
                 throw new InvalidOperationException(
                     $"Cannot create a delegate expression for the overloaded method '{this._method}' because it has a '{param.RefKind}' parameter '{param.Name}'. " +
                     $"Action<> and Func<> delegates cannot represent ref/out/in parameters, and a typed delegate is needed to disambiguate overloads. " +
-                    $"Assign the expression to a variable of a specific delegate type to disambiguate." );
+                    $"Use the 'delegateType' parameter of CreateDelegateExpression or assign the expression to a variable of a specific delegate type." );
             }
         }
 

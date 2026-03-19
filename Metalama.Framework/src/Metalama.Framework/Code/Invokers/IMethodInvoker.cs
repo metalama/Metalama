@@ -109,15 +109,22 @@ namespace Metalama.Framework.Code.Invokers
         /// <summary>
         /// Creates an <see cref="IExpression"/> that represents the current method as a delegate.
         /// </summary>
+        /// <param name="delegateType">An optional delegate type to use for disambiguation when the method has overloads.
+        /// When specified, this type is used to wrap the method group expression (e.g. <c>new MyDelegate(this.Method)</c>),
+        /// regardless of the target type context. No compatibility verification is performed between the method's signature
+        /// and the specified delegate type — any mismatch will result in a C# compilation error in the generated code.</param>
         /// <returns>An <see cref="IExpression"/> whose <see cref="IExpression.Value"/> represents a delegate pointing to the current method.</returns>
         /// <remarks>
         /// <para>
-        /// When the method has no overloads, this generates a simple method group expression (e.g. <c>this.Method</c>).
+        /// When the method has no overloads and no <paramref name="delegateType"/> is specified, this generates a simple
+        /// method group expression (e.g. <c>this.Method</c>).
         /// </para>
         /// <para>
-        /// When the method has overloads, the generated code depends on the target type context:
+        /// When the method has overloads, the generated code depends on the <paramref name="delegateType"/> and the target type context:
         /// </para>
         /// <list type="bullet">
+        /// <item>If <paramref name="delegateType"/> is specified, it is always used for disambiguation
+        /// (e.g. <c>new MyDelegate(this.Method)</c>).</item>
         /// <item>If the expression is assigned to a variable of a specific delegate type (e.g. <c>EventHandler</c>, or a custom delegate),
         /// and that delegate type is compatible with the method's signature, the target delegate type is used for disambiguation
         /// (e.g. <c>new MyDelegate(this.Method)</c>).</item>
@@ -126,15 +133,15 @@ namespace Metalama.Framework.Code.Invokers
         /// </list>
         /// <para>
         /// If the method has overloads and its signature contains <c>out</c>, <c>in</c>, or <c>ref</c> parameters,
-        /// and no compatible target delegate type is available, an exception is thrown because <c>Action&lt;&gt;</c>/<c>Func&lt;&gt;</c>
-        /// cannot represent such signatures.
+        /// and neither <paramref name="delegateType"/> nor a compatible target delegate type is available,
+        /// an exception is thrown because <c>Action&lt;&gt;</c>/<c>Func&lt;&gt;</c> cannot represent such signatures.
         /// </para>
         /// <para>
         /// By default, the delegate references the method on the current object (<c>this</c>), unless the method is static.
         /// Use <see cref="WithObject(dynamic?)"/> to specify a different target instance before calling this method.
         /// </para>
         /// </remarks>
-        IExpression CreateDelegateExpression();
+        IExpression CreateDelegateExpression( INamedType? delegateType = null );
 
         [Obsolete( "Use the WithOptions method." )]
         IMethodInvoker With( InvokerOptions options );

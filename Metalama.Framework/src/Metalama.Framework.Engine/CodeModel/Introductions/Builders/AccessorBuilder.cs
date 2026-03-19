@@ -170,7 +170,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     IExpression IMethodInvoker.CreateInvokeExpression( IEnumerable<object?> args ) => this.Invoker.CreateInvokeExpression( args );
 
-    IExpression IMethodInvoker.CreateDelegateExpression() => this.Invoker.CreateDelegateExpression();
+    IExpression IMethodInvoker.CreateDelegateExpression( INamedType? delegateType ) => this.Invoker.CreateDelegateExpression( delegateType );
 
     object? IMethodInvoker.Invoke( params object?[] args ) => this.Invoker.Invoke( args );
 

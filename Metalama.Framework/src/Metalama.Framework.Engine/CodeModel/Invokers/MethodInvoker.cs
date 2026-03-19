@@ -388,18 +388,18 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
     public IExpression CreateInvokeExpression( params IEnumerable<object?> args )
         => this.CreateInvokeExpression( args.Select( a => CapturedUserExpression.Create( this.Compilation, a ) ) );
 
-    public IExpression CreateDelegateExpression()
+    public IExpression CreateDelegateExpression( INamedType? delegateType = null )
     {
         var method = this.Member;
 
         // Check if the method has overloads in the declaring type.
         var hasOverloads = method.DeclaringType.Methods.OfName( method.Name ).Count() > 1;
 
-        // Compute the default delegate type (Action<> or Func<>) for the IExpression.Type property.
-        // This type is used when the expression is consumed without a specific target type (e.g. assigned to 'var').
-        var defaultDelegateType = GetDefaultDelegateType( method, this.Compilation.Factory );
+        // Compute the default delegate type for the IExpression.Type property.
+        // If an explicit delegate type is provided, use it. Otherwise, compute Action<>/Func<>.
+        var defaultDelegateType = delegateType ?? GetDefaultDelegateType( method, this.Compilation.Factory );
 
-        return new MethodDelegateUserExpression( method, this, hasOverloads, defaultDelegateType );
+        return new MethodDelegateUserExpression( method, this, hasOverloads, defaultDelegateType, delegateType );
     }
 
     private static IType GetDefaultDelegateType( IMethod method, IDeclarationFactory factory )
