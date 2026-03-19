@@ -206,13 +206,9 @@ namespace Metalama.Framework.Engine.Advising
                 _category,
                 Error );
 
-        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
-            CannotIntroduceVirtualToTargetType = new(
-                "LAMA0525",
-                "Cannot introduce a virtual member into a struct.",
-                "The aspect '{0}' cannot introduce virtual member '{1}' into a type '{2}' because it is a struct.",
-                _category,
-                Error );
+        // LAMA0525 was removed. It was previously used to report errors when introducing virtual members into
+        // sealed types or structs. Virtual introductions into sealed types and structs are now silently accepted
+        // (the virtual modifier is dropped).
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceIndexerWithoutParameters = new(
