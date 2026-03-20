@@ -44,11 +44,11 @@ public sealed class IncrementalAspectRepositoryTests : UnitTestClass
         var ex = Assert.Throws<InvalidOperationException>( () => repository.HasAspect( classB, typeof(object) ) );
 
         // Verify the error message mentions "partial compilation" (not "current project").
-        Assert.Contains( "partial compilation", ex.Message );
-        Assert.Contains( "ICompilation.IsPartial", ex.Message );
+        Assert.Contains( "partial compilation", ex.Message, StringComparison.Ordinal );
+        Assert.Contains( "ICompilation.IsPartial", ex.Message, StringComparison.Ordinal );
 
         // Verify the error message does NOT suggest checking IsDesignTime (issue #755).
-        Assert.DoesNotContain( "IsDesignTime", ex.Message );
+        Assert.DoesNotContain( "IsDesignTime", ex.Message, StringComparison.Ordinal );
     }
 
     [Fact]
@@ -77,9 +77,9 @@ public sealed class IncrementalAspectRepositoryTests : UnitTestClass
 
         var ex = Assert.Throws<InvalidOperationException>( () => repository.GetAspectInstances( classB ) );
 
-        Assert.Contains( "partial compilation", ex.Message );
-        Assert.Contains( "ICompilation.IsPartial", ex.Message );
-        Assert.DoesNotContain( "IsDesignTime", ex.Message );
+        Assert.Contains( "partial compilation", ex.Message, StringComparison.Ordinal );
+        Assert.Contains( "ICompilation.IsPartial", ex.Message, StringComparison.Ordinal );
+        Assert.DoesNotContain( "IsDesignTime", ex.Message, StringComparison.Ordinal );
     }
 
     [Fact]
