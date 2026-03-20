@@ -41,17 +41,6 @@ public sealed class CacheKeyAttribute : FieldOrPropertyAspect
 {
     public override void BuildAspect( IAspectBuilder<IFieldOrProperty> builder )
     {
-        if ( builder.Target is IField field && field.IsAutoPropertyBackingField() )
-        {
-            builder.Diagnostics.Report(
-                CachingDiagnosticDescriptors.CacheKey.ErrorAppliedToBackingField.WithArguments( builder.Target ),
-                builder.Target );
-
-            builder.SkipAspect();
-
-            return;
-        }
-
         builder.Outbound.Select( f => f.DeclaringType ).RequireAspect<ImplementFormattableAspect>();
     }
 }

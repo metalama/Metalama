@@ -176,15 +176,4 @@ internal static class CachingDiagnosticDescriptors
                 "[Cache] aspect cannot be applied to the method because a parameter is ineligible.",
                 _category );
     }
-
-    public static class CacheKey
-    {
-        public static readonly DiagnosticDefinition<IFieldOrProperty> ErrorAppliedToBackingField =
-            new(
-                "LAMA5112",
-                Error,
-                "The [CacheKey] aspect cannot be applied to the backing field of property '{0}'. Apply the aspect directly to the property instead.",
-                "[CacheKey] cannot be applied to a property backing field.",
-                _category );
-    }
 }

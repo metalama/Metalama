@@ -3,11 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Patterns.Caching.Aspects;
-#if TEST_OPTIONS
-// @RemoveOutputCode
-#endif
 
-namespace Metalama.Patterns.Caching.AspectTests.CacheKeyTests.Diagnostics.BackingField;
+namespace Metalama.Patterns.Caching.AspectTests.CacheKeyTests.BackingField;
 
 public class Target
 {
