@@ -31,7 +31,8 @@ namespace Metalama.Framework.Engine.Templating.Expressions
                 this.Type,
                 syntaxSerializationContext.CompilationModel,
                 this.IsReferenceable,
-                this.CanBeNull );
+                this.CanBeNull )
+            { OriginalUserExpression = this };
 
         public abstract IType Type { get; }
 

@@ -14,7 +14,7 @@ internal class TupleElementInvoker : FieldOrPropertyInvoker
         options,
         target ) { }
 
-    internal override string GetCleanTargetMemberName() => this.Member.Name;
+    protected override string GetCleanTargetMemberName() => this.Member.Name;
 
     protected override IFieldOrPropertyInvoker CreateInvoker( IFieldOrProperty fieldOrProperty, InvokerOptions options, IExpression? target )
         => new TupleElementInvoker( fieldOrProperty, options, target );

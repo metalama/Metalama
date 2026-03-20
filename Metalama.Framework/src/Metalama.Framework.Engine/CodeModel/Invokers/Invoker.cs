@@ -70,16 +70,16 @@ internal abstract partial class Invoker<T>
         }
     }
 
-    internal T Member { get; }
+    protected T Member { get; }
 
     protected ICompilation Compilation => this.Member.Compilation;
 
-    internal readonly record struct ReceiverExpressionSyntax(
+    protected readonly record struct ReceiverExpressionSyntax(
         ExpressionSyntax Syntax,
         bool RequiresNullConditionalAccessMember,
         AspectReferenceSpecification AspectReferenceSpecification );
 
-    internal virtual string GetCleanTargetMemberName()
+    protected virtual string GetCleanTargetMemberName()
     {
         var definition = this.Member.Definition;
 
@@ -89,7 +89,7 @@ internal abstract partial class Invoker<T>
                 : definition.Name;
     }
 
-    internal ReceiverTypedExpressionSyntax GetReceiverInfo( SyntaxSerializationContext syntaxSerializationContext )
+    protected ReceiverTypedExpressionSyntax GetReceiverInfo( SyntaxSerializationContext syntaxSerializationContext )
     {
         var order = this.GetAspectReferenceOrder();
 
@@ -140,7 +140,7 @@ internal abstract partial class Invoker<T>
         }
     }
 
-    internal static INamedType? GetTargetType()
+    protected static INamedType? GetTargetType()
         => TemplateExpansionContext.CurrentTargetDeclaration?.DeclarationKind switch
         {
             DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when TemplateExpansionContext.CurrentTargetDeclaration is INamedType type => type,

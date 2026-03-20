@@ -87,8 +87,34 @@ namespace Metalama.Framework.Code
             int parameterCount,
             Func<TPayload, int, (IType Type, RefKind RefKind)> parameterGetter,
             bool? isStatic,
-            int? typeParameterCount = null,
-            ConversionKind conversionKind = ConversionKind.Identical )
+            int? typeParameterCount = null )
+            where TMember : class, IHasParameters
+            => members.OfCompatibleSignature( payload, name, parameterCount, parameterGetter, isStatic, ConversionKind.Identical, typeParameterCount );
+
+        /// <summary>
+        /// Attempts to find a member with a signature matching the specified constraints using the given <see cref="ConversionKind"/>
+        /// for parameter type comparison.
+        /// </summary>
+        /// <typeparam name="TPayload">Payload type for the <paramref name="parameterGetter"/>.</typeparam>
+        /// <typeparam name="TMember">Type of members.</typeparam>
+        /// <param name="members">A collection of members.</param>
+        /// <param name="payload">Payload object, passed to <paramref name="parameterGetter"/>.</param>
+        /// <param name="name">Required name of the method.</param>
+        /// <param name="parameterCount">Required number of parameters.</param>
+        /// <param name="parameterGetter">Delegate that gets <see cref="IType"/> and <see cref="RefKind"/> or a parameters on the gives index.</param>
+        /// <param name="isStatic">Specifies whether the staticity should be matched (it is normally not a part of signature).</param>
+        /// <param name="conversionKind">The <see cref="ConversionKind"/> to use for parameter type comparison.</param>
+        /// <param name="typeParameterCount">Required number of type parameters, or <see langword="null"/> if there is no requirement.</param>
+        /// <returns>Member matching requirements or <see langword="null"/> if there is none.</returns>
+        public static TMember? OfCompatibleSignature<TMember, TPayload>(
+            this IMemberCollection<TMember> members,
+            TPayload payload,
+            string? name,
+            int parameterCount,
+            Func<TPayload, int, (IType Type, RefKind RefKind)> parameterGetter,
+            bool? isStatic,
+            ConversionKind conversionKind,
+            int? typeParameterCount = null )
             where TMember : class, IHasParameters
         {
             var compilation = members.DeclaringType.Compilation;

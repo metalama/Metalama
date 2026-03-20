@@ -117,13 +117,13 @@ public static class MethodCollectionExtensions
         bool? isStatic,
         ConversionKind conversionKind )
     {
-        return methods.OfExactSignature(
+        return methods.OfCompatibleSignature(
             (parameterTypes, refKinds),
             name,
             parameterTypes.Count,
             GetParameter,
             isStatic,
-            conversionKind: conversionKind );
+            conversionKind );
 
         static (IType Type, RefKind RefKind) GetParameter( (IReadOnlyList<IType> ParameterTypes, IReadOnlyList<RefKind>? RefKinds) context, int index )
             => (context.ParameterTypes[index], context.RefKinds?[index] ?? RefKind.None);

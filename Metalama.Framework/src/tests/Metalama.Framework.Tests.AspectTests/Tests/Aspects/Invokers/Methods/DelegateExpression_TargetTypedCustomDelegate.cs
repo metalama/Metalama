@@ -9,10 +9,9 @@ using System.Linq;
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.DelegateExpression_TargetTypedCustomDelegate;
 
 /*
- * Tests CreateDelegateExpression with a custom delegate type passed as the delegateType parameter.
- * When passing an overloaded method's delegate expression to a method expecting a custom delegate type,
- * the delegateType parameter must be used to generate the correct disambiguation expression.
- * Expected: new MyIntAction(this.Method)
+ * Tests CreateDelegateExpression with a custom delegate type, when the delegate expression is passed
+ * to a method whose parameter type exactly matches the method's signature. The expression should be
+ * simplified to a bare method group because the target type enables overload resolution.
  */
 
 public delegate void MyIntAction( int x );
@@ -26,16 +25,19 @@ public class DelegateAspect : MethodAspect
 
         var delegateType = (INamedType) builder.Target.Compilation.Factory.GetTypeByReflectionType( typeof(MyIntAction) );
 
+        var acceptDelegate = builder.Target.DeclaringType!.Methods.OfName( "AcceptDelegate" ).Single();
+
         builder.Override(
             nameof(this.Template),
-            new { target = targetInt, delegateType } );
+            new { target = targetInt, delegateType, acceptDelegate } );
     }
 
     [Template]
-    public dynamic? Template( [CompileTime] IMethod target, [CompileTime] INamedType delegateType )
+    public dynamic? Template( [CompileTime] IMethod target, [CompileTime] INamedType delegateType, [CompileTime] IMethod acceptDelegate )
     {
-        // Use the delegateType parameter to generate correct disambiguation for a custom delegate.
-        TargetClass.AcceptDelegate( target.CreateDelegateExpression( delegateType ).Value );
+        // The delegate expression with explicit delegate type is passed to a method expecting MyIntAction.
+        // Since MyIntAction is an exact match, the expression simplifies to a bare method group.
+        acceptDelegate.Invoke( target.CreateDelegateExpression( delegateType ) );
 
         return meta.Proceed();
     }

@@ -21,17 +21,19 @@ public class DelegateAspect : MethodAspect
         var targetInt = builder.Target.DeclaringType!.Methods.OfName( "Method" )
             .Single( m => m.Parameters.Count == 1 && m.Parameters[0].Type.SpecialType == SpecialType.Int32 );
 
+        var acceptDelegate = builder.Target.DeclaringType!.Methods.OfName( "AcceptDelegate" ).Single();
+
         builder.Override(
             nameof(this.Template),
-            new { target = targetInt } );
+            new { target = targetInt, acceptDelegate } );
     }
 
     [Template]
-    public dynamic? Template( [CompileTime] IMethod target )
+    public dynamic? Template( [CompileTime] IMethod target, [CompileTime] IMethod acceptDelegate )
     {
         // The delegate expression is passed to a method expecting Delegate (base type, not a matching delegate).
         // Since Delegate is not a specific delegate type, the expression should fall back to Action<int>.
-        TargetClass.AcceptDelegate( target.CreateDelegateExpression().Value );
+        acceptDelegate.Invoke( target.CreateDelegateExpression() );
 
         return meta.Proceed();
     }

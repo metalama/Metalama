@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
 internal abstract partial class Invoker<T>
 {
-    internal readonly record struct ReceiverTypedExpressionSyntax
+    protected readonly record struct ReceiverTypedExpressionSyntax
     {
         private readonly TypedExpressionSyntaxImpl _typedExpressionSyntax;
 

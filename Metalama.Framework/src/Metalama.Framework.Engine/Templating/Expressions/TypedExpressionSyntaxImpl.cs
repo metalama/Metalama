@@ -37,6 +37,14 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
         public bool CanBeNull { get; }
 
+        /// <summary>
+        /// Gets the original <see cref="UserExpression"/> that produced this <see cref="TypedExpressionSyntaxImpl"/>,
+        /// or <c>null</c> if this was not created from a <see cref="UserExpression"/>. This allows re-invoking
+        /// <see cref="UserExpression.ToSyntax"/> with a different <c>targetType</c> when the expression is later used
+        /// in a context where the target type is known.
+        /// </summary>
+        internal UserExpression? OriginalUserExpression { get; init; }
+
         public ExpressionStatementSyntax ToStatement() => SyntaxFactory.ExpressionStatement( this.Syntax.RemoveParenthesis() );
 
         public TypedExpressionSyntaxImpl( ExpressionSyntax syntax, TypedExpressionSyntaxImpl prototype, bool? canBeNull = null )

@@ -12,7 +12,7 @@ public class TargetClass
   [DelegateAspect]
   public void Invoker()
   {
-    global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.DelegateExpression_TargetTypedCustomDelegate.TargetClass.AcceptDelegate(new global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.DelegateExpression_TargetTypedCustomDelegate.MyIntAction(this.Method));
+    global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.DelegateExpression_TargetTypedCustomDelegate.TargetClass.AcceptDelegate(this.Method);
     return;
   }
 }
