@@ -659,5 +659,30 @@ internal class C : TypeAspect
             this.AssertScope( compilation.RoslynCompilation, invokedMethod, TemplatingScope.RunTimeOnly );
         }
 #endif
+
+        /// <summary>
+        /// Regression test for https://github.com/metalama/Metalama.Compiler/issues/165.
+        /// A user-defined type named System.SR should be classified as RunTimeOnly, not RunTimeOrCompileTime,
+        /// even though an internal System.SR type exists in BCL reference assemblies.
+        /// </summary>
+        [Fact]
+        public void UserTypeCollidingWithInternalBclType()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = """
+                                namespace System
+                                {
+                                    internal static partial class SR
+                                    {
+                                        public static string GetValue() => "hello";
+                                    }
+                                }
+                                """;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.OfName( "SR" ).Single();
+            this.AssertScope( type, TemplatingScope.RunTimeOnly );
+        }
     }
 }

@@ -171,6 +171,7 @@
     
   
     <!-- These are test-only dependencies for standalone projects. -->
+    <PackageVersion Include="Catglobe.ResXFileCodeGenerator" Version="4.1.2" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="1.23.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.2.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.18.1" />
