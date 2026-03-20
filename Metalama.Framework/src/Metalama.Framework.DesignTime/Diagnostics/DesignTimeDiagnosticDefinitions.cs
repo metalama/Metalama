@@ -24,6 +24,18 @@ namespace Metalama.Framework.DesignTime.Diagnostics
 
         internal ImmutableDictionary<string, SuppressionDescriptor> SupportedSuppressionDescriptors { get; }
 
+        /// <summary>
+        /// Gets the IDs of standard (built-in) diagnostics that may carry code fixes. These are the wrapper
+        /// diagnostic IDs (LAMA0301-LAMA0304) used when a user diagnostic is not registered in the user profile.
+        /// The code fix provider must include these in <c>FixableDiagnosticIds</c> so that Roslyn invokes it
+        /// even for wrapped diagnostics.
+        /// </summary>
+        internal static ImmutableArray<string> FixableStandardDiagnosticIds { get; } = ImmutableArray.Create(
+            DesignTimeDiagnosticDescriptors.UserError.Id,
+            DesignTimeDiagnosticDescriptors.UserWarning.Id,
+            DesignTimeDiagnosticDescriptors.UserInfo.Id,
+            DesignTimeDiagnosticDescriptors.UserHidden.Id );
+
         // TODO: Diagnostics from the Premium add-in?
 
         /// <summary>
