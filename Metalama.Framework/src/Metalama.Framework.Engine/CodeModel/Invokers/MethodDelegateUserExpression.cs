@@ -25,19 +25,19 @@ internal sealed class MethodDelegateUserExpression : UserExpression
 {
     private const int _maxActionFuncParameters = 16;
 
-    private readonly IMethod _method;
     private readonly MethodInvoker _invoker;
     private readonly bool _hasOverloads;
     private readonly INamedType? _explicitDelegateType;
 
-    public MethodDelegateUserExpression( IMethod method, MethodInvoker invoker, bool hasOverloads, IType defaultDelegateType, INamedType? explicitDelegateType )
+    public MethodDelegateUserExpression( MethodInvoker invoker, bool hasOverloads, IType defaultDelegateType, INamedType? explicitDelegateType )
     {
-        this._method = method;
         this._invoker = invoker;
         this._hasOverloads = hasOverloads;
         this._explicitDelegateType = explicitDelegateType;
         this.Type = defaultDelegateType;
     }
+
+    private IMethod Method => this._invoker.Member;
 
     public override IType Type { get; }
 
@@ -62,11 +62,19 @@ internal sealed class MethodDelegateUserExpression : UserExpression
         }
 
         // There are overloads, so we need to disambiguate.
-        // First, try using the target type if it's a compatible delegate type.
+        // Try using the target type if it's a compatible delegate type.
         if ( targetType is INamedType { TypeKind: TypeKind.Delegate } targetDelegateType
-             && IsCompatibleWithDelegate( this._method, targetDelegateType ) )
+             && IsCompatibleWithDelegate( this.Method, targetDelegateType ) )
         {
-            // The target type is a delegate that matches our method's signature.
+            if ( IsExactMatchWithDelegate( this.Method, targetDelegateType ) )
+            {
+                // The target delegate type is an exact match for the method's signature.
+                // The C# compiler can resolve the overload from the target type context,
+                // so a simple method group expression is sufficient.
+                return methodGroupExpression;
+            }
+
+            // The target type is a compatible (but not exact) delegate. We need explicit disambiguation.
             // Generate: new TargetDelegateType(methodGroup)
             return CreateDelegateCreationExpression( methodGroupExpression, targetDelegateType, syntaxSerializationContext );
         }
@@ -79,12 +87,12 @@ internal sealed class MethodDelegateUserExpression : UserExpression
     {
         SimpleNameSyntax name;
 
-        if ( this._method.IsGeneric )
+        if ( this.Method.IsGeneric )
         {
             name = GenericName(
                 SyntaxFactoryEx.SafeIdentifier( this._invoker.GetCleanTargetMemberName() ),
                 TypeArgumentList(
-                    SeparatedList( this._method.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
+                    SeparatedList( this.Method.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
         }
         else
         {
@@ -92,14 +100,14 @@ internal sealed class MethodDelegateUserExpression : UserExpression
         }
 
         var receiverInfo = this._invoker.GetReceiverInfo( context );
-        var receiverSyntax = receiverInfo.GetReceiverSyntax( this._method, context );
+        var receiverSyntax = receiverInfo.GetReceiverSyntax( this.Method, context );
 
         ExpressionSyntax methodGroupExpression =
             MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, receiverSyntax, name )
                 .WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
 
         // Add aspect reference annotation if applicable.
-        if ( Invoker<IMethod>.GetTargetType()?.IsConvertibleTo( this._method.DeclaringType ) ?? false )
+        if ( Invoker<IMethod>.GetTargetType()?.IsConvertibleTo( this.Method.DeclaringType ) ?? false )
         {
             methodGroupExpression = methodGroupExpression.WithAspectReferenceAnnotation(
                 receiverInfo.WithSyntax( receiverSyntax ).AspectReferenceSpecification.WithTargetKind( AspectReferenceTargetKind.Self ) );
@@ -120,7 +128,7 @@ internal sealed class MethodDelegateUserExpression : UserExpression
         // Use ConversionKind.Default for delegate compatibility: this allows implicit reference conversions
         // (contravariance for parameters), while by-ref parameters still require exact type match
         // because SignatureMatcher checks RefKind equality.
-        var invokeMethod = delegateType.Methods.OfExactSignature( "Invoke", parameterTypes, refKinds, isStatic: false, ConversionKind.Default );
+        var invokeMethod = delegateType.Methods.OfCompatibleSignature( "Invoke", parameterTypes, refKinds, isStatic: false, ConversionKind.Default );
 
         if ( invokeMethod == null )
         {
@@ -143,6 +151,31 @@ internal sealed class MethodDelegateUserExpression : UserExpression
         return methodReturnType.IsConvertibleTo( delegateReturnType );
     }
 
+    /// <summary>
+    /// Checks if a method's signature is an exact (identical) match with a delegate type.
+    /// When this is the case, the C# compiler can resolve the overload from the target type context
+    /// without explicit disambiguation (i.e., a bare method group is sufficient).
+    /// </summary>
+    private static bool IsExactMatchWithDelegate( IMethod method, INamedType delegateType )
+    {
+        var parameterTypes = method.Parameters.SelectAsImmutableArray( p => p.Type );
+        var refKinds = method.Parameters.SelectAsImmutableArray( p => p.RefKind );
+
+        // Use ConversionKind.Identical to require exact type equality for parameters.
+        var invokeMethod = delegateType.Methods.OfCompatibleSignature( "Invoke", parameterTypes, refKinds, isStatic: false, ConversionKind.Identical );
+
+        if ( invokeMethod == null )
+        {
+            return false;
+        }
+
+        // Check return type: must be exactly identical.
+        var methodReturnType = method.ReturnType;
+        var delegateReturnType = invokeMethod.ReturnType;
+
+        return methodReturnType.Equals( delegateReturnType );
+    }
+
     private static ExpressionSyntax CreateDelegateCreationExpression(
         ExpressionSyntax methodGroupExpression,
         INamedType delegateType,
@@ -162,28 +195,28 @@ internal sealed class MethodDelegateUserExpression : UserExpression
         SyntaxSerializationContext context )
     {
         // Check that the method doesn't have ref/out/in parameters, which can't be represented by Action<>/Func<>.
-        foreach ( var param in this._method.Parameters )
+        foreach ( var param in this.Method.Parameters )
         {
             if ( param.RefKind is RefKind.Ref or RefKind.Out or RefKind.In or RefKind.RefReadOnly )
             {
                 throw new InvalidOperationException(
-                    $"Cannot create a delegate expression for the overloaded method '{this._method}' because it has a '{param.RefKind}' parameter '{param.Name}'. " +
+                    $"Cannot create a delegate expression for the overloaded method '{this.Method}' because it has a '{param.RefKind}' parameter '{param.Name}'. " +
                     $"Action<> and Func<> delegates cannot represent ref/out/in parameters, and a typed delegate is needed to disambiguate overloads. " +
                     $"Use the 'delegateType' parameter of CreateDelegateExpression or assign the expression to a variable of a specific delegate type." );
             }
         }
 
         // Check that the parameter count doesn't exceed the Action<>/Func<> limit.
-        if ( this._method.Parameters.Count > _maxActionFuncParameters )
+        if ( this.Method.Parameters.Count > _maxActionFuncParameters )
         {
             throw new InvalidOperationException(
-                $"Cannot create a delegate expression for the method '{this._method}' because it has {this._method.Parameters.Count} parameters, " +
+                $"Cannot create a delegate expression for the method '{this.Method}' because it has {this.Method.Parameters.Count} parameters, " +
                 $"which exceeds the maximum of {_maxActionFuncParameters} supported by Action<> and Func<>. " +
                 $"Use the 'delegateType' parameter of CreateDelegateExpression to specify a custom delegate type." );
         }
 
-        var isVoid = this._method.ReturnType.SpecialType == SpecialType.Void;
-        var parameterTypes = this._method.Parameters.SelectAsImmutableArray( p => context.SyntaxGenerator.TypeSyntax( p.Type ) );
+        var isVoid = this.Method.ReturnType.SpecialType == SpecialType.Void;
+        var parameterTypes = this.Method.Parameters.SelectAsImmutableArray( p => context.SyntaxGenerator.TypeSyntax( p.Type ) );
 
         TypeSyntax delegateTypeSyntax;
 
@@ -213,7 +246,7 @@ internal sealed class MethodDelegateUserExpression : UserExpression
         else
         {
             // Func<T1, T2, ..., TReturn>
-            var allTypeArgs = parameterTypes.Add( context.SyntaxGenerator.TypeSyntax( this._method.ReturnType ) );
+            var allTypeArgs = parameterTypes.Add( context.SyntaxGenerator.TypeSyntax( this.Method.ReturnType ) );
 
             delegateTypeSyntax = QualifiedName(
                 AliasQualifiedName(

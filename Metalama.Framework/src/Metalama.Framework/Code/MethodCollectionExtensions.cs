@@ -99,6 +99,8 @@ public static class MethodCollectionExtensions
 
     /// <summary>
     /// Gets a method that matches the specified signature using the specified <see cref="ConversionKind"/> for parameter type comparison.
+    /// Unlike <see cref="OfExactSignature(IMethodCollection, string, IReadOnlyList{IType}, IReadOnlyList{RefKind}?, bool?)"/> which requires identical types,
+    /// this overload allows specifying a <see cref="ConversionKind"/> such as <see cref="ConversionKind.Default"/> for implicit conversions.
     /// </summary>
     /// <param name="methods">A collection of methods.</param>
     /// <param name="name">Name of the method.</param>
@@ -107,7 +109,7 @@ public static class MethodCollectionExtensions
     /// <param name="isStatic">Staticity of the method.</param>
     /// <param name="conversionKind">The <see cref="ConversionKind"/> to use for parameter type comparison.</param>
     /// <returns>A <see cref="IMethod"/> that matches the given signature.</returns>
-    public static IMethod? OfExactSignature(
+    public static IMethod? OfCompatibleSignature(
         this IMethodCollection methods,
         string name,
         IReadOnlyList<IType> parameterTypes,

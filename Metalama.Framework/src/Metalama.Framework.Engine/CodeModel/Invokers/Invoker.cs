@@ -70,7 +70,7 @@ internal abstract partial class Invoker<T>
         }
     }
 
-    protected T Member { get; }
+    internal T Member { get; }
 
     protected ICompilation Compilation => this.Member.Compilation;
 

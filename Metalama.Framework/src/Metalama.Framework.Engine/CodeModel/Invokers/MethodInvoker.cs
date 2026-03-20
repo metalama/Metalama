@@ -399,7 +399,7 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         // If an explicit delegate type is provided, use it. Otherwise, compute Action<>/Func<>.
         var defaultDelegateType = delegateType ?? GetDefaultDelegateType( method, this.Compilation.Factory );
 
-        return new MethodDelegateUserExpression( method, this, hasOverloads, defaultDelegateType, delegateType );
+        return new MethodDelegateUserExpression( this, hasOverloads, defaultDelegateType, delegateType );
     }
 
     private static IType GetDefaultDelegateType( IMethod method, IDeclarationFactory factory )

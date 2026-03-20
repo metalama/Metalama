@@ -305,8 +305,8 @@ class C
             var matchedExact = type.Methods.OfExactSignature( "Foo", new IType[] { derivedType } );
             Assert.Null( matchedExact );
 
-            // With Default, Derived DOES match Base (implicit reference conversion).
-            var matchedDefault = type.Methods.OfExactSignature( "Foo", new IType[] { derivedType }, null, null, ConversionKind.Default );
+            // With Default via OfCompatibleSignature, Derived DOES match Base (implicit reference conversion).
+            var matchedDefault = type.Methods.OfCompatibleSignature( "Foo", new IType[] { derivedType }, null, null, ConversionKind.Default );
             Assert.Same( type.Methods.ElementAt( 0 ), matchedDefault );
         }
 
@@ -331,11 +331,11 @@ class C
             var baseType = compilation.Types.OfName( "Base" ).Single();
             var derivedType = compilation.Types.OfName( "Derived" ).Single();
 
-            // Identical finds exact match only.
-            var matchedBase = type.Methods.OfExactSignature( "Foo", new IType[] { baseType }, null, null, ConversionKind.Identical );
+            // Identical via OfCompatibleSignature finds exact match only.
+            var matchedBase = type.Methods.OfCompatibleSignature( "Foo", new IType[] { baseType }, null, null, ConversionKind.Identical );
             Assert.Same( type.Methods.ElementAt( 0 ), matchedBase );
 
-            var matchedDerived = type.Methods.OfExactSignature( "Foo", new IType[] { derivedType }, null, null, ConversionKind.Identical );
+            var matchedDerived = type.Methods.OfCompatibleSignature( "Foo", new IType[] { derivedType }, null, null, ConversionKind.Identical );
             Assert.Same( type.Methods.ElementAt( 1 ), matchedDerived );
         }
     }
