@@ -109,7 +109,7 @@ internal static class NuGetHelper
 
         if ( value == null
              || Uri.IsWellFormedUriString( value, UriKind.Absolute )
-             || value.Contains( '%', StringComparison.Ordinal ) )
+             || value.IndexOf( '%' ) >= 0 )
         {
             // Skip null values, absolute URIs (https://...), and values containing
             // environment variable references (%VAR%) since the actual path depends
