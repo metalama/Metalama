@@ -113,6 +113,17 @@ namespace Metalama.Framework.Engine.Templating
                     _category,
                     Error );
 
+        internal static readonly DiagnosticDefinition<(ISymbol DeclaringSymbol, ISymbol ReferencedSymbol, TemplatingScope DeclaringScope)>
+            CannotReferenceCompileTimeOnlyRoslyn
+                = new(
+                    "LAMA0291",
+                    "Cannot reference a compile-time-only Roslyn type in a non-compile-time-only declaration.",
+                    "Cannot reference '{1}' in '{0}' because '{1}' is compile-time-only but '{0}' is {2}. " +
+                    "Roslyn types are treated as compile-time-only because the project references Metalama.Framework.Sdk. " +
+                    "To change this behavior, set <MetalamaRoslynIsCompileTimeOnly>false</MetalamaRoslynIsCompileTimeOnly> in your project file.",
+                    _category,
+                    Error );
+
         internal static readonly DiagnosticDefinition<ISymbol>
             CompileTimeTypeNeedsRebuild
                 = new(

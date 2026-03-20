@@ -128,7 +128,7 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override bool? WriteLicenseUsageData => this.GetNullableBooleanOption( MSBuildPropertyNames.MetalamaWriteLicenseUsageData );
 
     [Memo]
-    public override bool RoslynIsCompileTimeOnly => this.GetBooleanOption( MSBuildPropertyNames.MetalamaRoslynIsCompileTimeOnly, true );
+    public override bool RoslynIsCompileTimeOnly => this.GetBooleanOption( MSBuildPropertyNames.MetalamaRoslynIsCompileTimeOnly );
 
     [Memo]
     public override string? CompileTimeTargetFrameworks => this.GetStringOption( MSBuildPropertyNames.MetalamaCompileTimeTargetFrameworks );

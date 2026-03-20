@@ -89,7 +89,7 @@ public record TestContextOptions
 
     internal bool HasBuildTouchFile { get; init; }
 
-    internal bool RoslynIsCompileTimeOnly { get; init; } = true;
+    internal bool RoslynIsCompileTimeOnly { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether run-time code should be validated for references to compile-time-only code.
