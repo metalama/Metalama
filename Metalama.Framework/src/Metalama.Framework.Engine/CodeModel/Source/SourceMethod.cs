@@ -100,8 +100,7 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
         if ( !this.IsGeneric )
         {
             throw new System.ArgumentException(
-                $"The method '{this.ToDisplayString()}' is not a generic method definition and cannot be used with MakeGenericInstance. Only generic method definitions (methods that have their own type parameters) can be constructed as generic instances.",
-                nameof(typeArguments) );
+                $"The method '{this.ToDisplayString()}' is not a generic method definition and cannot be used with MakeGenericInstance. Only generic method definitions (methods that have their own type parameters) can be constructed as generic instances." );
         }
 
         if ( typeArguments.Any( GenericContext.ReferencesAnyIntroducedType ) )
