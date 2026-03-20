@@ -530,6 +530,53 @@ class C  {
             this.AssertScope( compilation.RoslynCompilation, symbol, TemplatingScope.RunTimeOnly, SymbolClassificationContext.RunTimeOnly );
         }
 
+        [Fact]
+        public void RoslynTypesDefaultNotCompileTimeOnly()
+        {
+            // Verifies that Roslyn types are NOT classified as compile-time-only by default.
+            // This is the expected behavior for projects that reference Metalama.Framework
+            // but not Metalama.Framework.Sdk. See #722.
+
+            const string code = """
+                                using Microsoft.CodeAnalysis;
+                                using Microsoft.CodeAnalysis.CSharp;
+
+                                class C
+                                {
+                                    void M()
+                                    {
+                                        ISymbol symbol;
+                                        CSharpSyntaxNode node;
+                                    }
+                                }
+                                """;
+
+            // Use default options — no explicit RoslynIsCompileTimeOnly setting.
+            using var testContext = this.CreateTestContext();
+
+            var additionalReferences =
+                new[] { typeof(ISymbol), typeof(CSharpSyntaxNode) }.SelectAsReadOnlyList( type => MetadataReference.CreateFromFile( type.Assembly.Location ) );
+
+            var compilation = testContext.CreateCompilationModel( code, additionalReferences: additionalReferences );
+
+            var syntaxTree = compilation.RoslynCompilation.SyntaxTrees.First();
+            var semanticModel = compilation.RoslynCompilation.GetSemanticModel( syntaxTree );
+            var nodes = syntaxTree.GetRoot().DescendantNodes().ToArray();
+
+            // With the default (false), Roslyn types should NOT be compile-time-only.
+            AssertScope( "ISymbol", TemplatingScope.RunTimeOrCompileTime );
+            AssertScope( "CSharpSyntaxNode", TemplatingScope.RunTimeOrCompileTime );
+
+            // Resharper disable once LocalFunctionHidesMethod
+            void AssertScope( string text, TemplatingScope scope )
+            {
+                var node = nodes.Single( n => n.ToString() == text );
+                var symbol = semanticModel.GetSymbolInfo( node ).Symbol!;
+
+                this.AssertScope( compilation.RoslynCompilation, symbol, scope, SymbolClassificationContext.RunTimeOnly );
+            }
+        }
+
         [Theory]
         [InlineData( true )]
         [InlineData( false )]
