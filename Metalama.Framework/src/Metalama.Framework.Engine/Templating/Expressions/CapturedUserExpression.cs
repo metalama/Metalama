@@ -27,6 +27,7 @@ internal sealed class CapturedUserExpression : UserExpression
         => expression switch
         {
             IExpression typedExpression => typedExpression,
+            TypedExpressionSyntax tes => tes.ToUserExpression( compilation ),
             _ => new CapturedUserExpression( compilation, expression )
         };
 
@@ -73,26 +74,5 @@ internal sealed class CapturedUserExpression : UserExpression
            this._compilation.Factory.GetSpecialType( SpecialType.Object );
 
     protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
-    {
-        // If the wrapped value is a TypedExpressionSyntax(Impl) that was originally produced by a UserExpression
-        // and we now have a targetType, re-invoke the original expression's ToSyntax with the target type.
-        // This enables context-dependent code generation (e.g., simplifying delegate creation expressions
-        // to bare method groups when the target type is a matching delegate type).
-        if ( targetType != null )
-        {
-            var originalExpression = this._expression switch
-            {
-                TypedExpressionSyntaxImpl impl => impl.OriginalUserExpression,
-                TypedExpressionSyntax wrapper => ((TypedExpressionSyntaxImpl) wrapper.Implementation).OriginalUserExpression,
-                _ => null
-            };
-
-            if ( originalExpression != null )
-            {
-                return originalExpression.ToTypedExpressionSyntax( syntaxSerializationContext, targetType ).Syntax;
-            }
-        }
-
-        return TypedExpressionSyntaxImpl.FromValue( this._expression, syntaxSerializationContext ).Syntax;
-    }
+        => TypedExpressionSyntaxImpl.FromValue( this._expression, syntaxSerializationContext ).Syntax;
 }

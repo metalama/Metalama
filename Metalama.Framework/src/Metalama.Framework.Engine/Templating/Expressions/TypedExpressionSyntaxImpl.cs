@@ -38,12 +38,11 @@ namespace Metalama.Framework.Engine.Templating.Expressions
         public bool CanBeNull { get; }
 
         /// <summary>
-        /// Gets the original <see cref="UserExpression"/> that produced this <see cref="TypedExpressionSyntaxImpl"/>,
-        /// or <c>null</c> if this was not created from a <see cref="UserExpression"/>. This allows re-invoking
-        /// <see cref="UserExpression.ToSyntax"/> with a different <c>targetType</c> when the expression is later used
-        /// in a context where the target type is known.
+        /// Gets the original <see cref="UserExpression"/> that produced this instance, or <c>null</c>.
+        /// When set, <see cref="ToUserExpression"/> returns this value instead of creating a new <see cref="SyntaxUserExpression"/>,
+        /// preserving the ability to regenerate syntax with a different target type.
         /// </summary>
-        internal UserExpression? OriginalUserExpression { get; init; }
+        private UserExpression? _originatingUserExpression;
 
         public ExpressionStatementSyntax ToStatement() => SyntaxFactory.ExpressionStatement( this.Syntax.RemoveParenthesis() );
 
@@ -57,6 +56,11 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
         public IUserExpression ToUserExpression( ICompilation compilation )
         {
+            if ( this._originatingUserExpression != null )
+            {
+                return this._originatingUserExpression;
+            }
+
             var factory = compilation.GetCompilationModel().Factory;
 
             var type = this.ExpressionType != null
@@ -65,6 +69,8 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
             return new SyntaxUserExpression( this.Syntax, type );
         }
+
+        internal void SetOriginatingUserExpression( UserExpression userExpression ) => this._originatingUserExpression = userExpression;
 
         public static implicit operator TypedExpressionSyntax( TypedExpressionSyntaxImpl impl ) => new( impl );
 
