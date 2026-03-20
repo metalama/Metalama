@@ -13,11 +13,9 @@ namespace Metalama.Framework.Tests.UnitTests.Aspects;
 
 public sealed class IncrementalAspectRepositoryTests : UnitTestClass
 {
-    [Fact]
-    public void HasAspect_TypeNotInPartialCompilation_ThrowsWithPartialCompilationMessage()
+    private static (CompilationModel CompilationModel, Microsoft.CodeAnalysis.CSharp.CSharpCompilation RoslynCompilation) CreatePartialCompilationModel(
+        TestContext testContext )
     {
-        using var testContext = this.CreateTestContext();
-
         var code = new Dictionary<string, string>
         {
             ["ClassA.cs"] = "public class ClassA { }",
@@ -30,9 +28,18 @@ public sealed class IncrementalAspectRepositoryTests : UnitTestClass
         var syntaxTreeA = compilation.SyntaxTrees.Single( t => t.FilePath == "ClassA.cs" );
         var partialCompilation = PartialCompilation.CreatePartial( compilation, syntaxTreeA );
 
-        // Create a CompilationModel from the partial compilation.
         var project = new ProjectModel( compilation, testContext.ServiceProvider );
         var compilationModel = CompilationModel.CreateInitialInstance( project, partialCompilation );
+
+        return (compilationModel, compilation);
+    }
+
+    [Fact]
+    public void HasAspect_TypeNotInPartialCompilation_ThrowsWithPartialCompilationMessage()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var (compilationModel, compilation) = CreatePartialCompilationModel( testContext );
 
         // Get ClassB — it's in the project but NOT in the partial compilation.
         var classBSymbol = compilation.GetTypeByMetadataName( "ClassB" )!;
@@ -57,19 +64,7 @@ public sealed class IncrementalAspectRepositoryTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
 
-        var code = new Dictionary<string, string>
-        {
-            ["ClassA.cs"] = "public class ClassA { }",
-            ["ClassB.cs"] = "public class ClassB { }"
-        };
-
-        var compilation = testContext.CreateCSharpCompilation( code );
-
-        var syntaxTreeA = compilation.SyntaxTrees.Single( t => t.FilePath == "ClassA.cs" );
-        var partialCompilation = PartialCompilation.CreatePartial( compilation, syntaxTreeA );
-
-        var project = new ProjectModel( compilation, testContext.ServiceProvider );
-        var compilationModel = CompilationModel.CreateInitialInstance( project, partialCompilation );
+        var (compilationModel, compilation) = CreatePartialCompilationModel( testContext );
 
         var classBSymbol = compilation.GetTypeByMetadataName( "ClassB" )!;
         var classB = compilationModel.Factory.GetNamedType( classBSymbol );
@@ -89,19 +84,7 @@ public sealed class IncrementalAspectRepositoryTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
 
-        var code = new Dictionary<string, string>
-        {
-            ["ClassA.cs"] = "public class ClassA { }",
-            ["ClassB.cs"] = "public class ClassB { }"
-        };
-
-        var compilation = testContext.CreateCSharpCompilation( code );
-
-        var syntaxTreeA = compilation.SyntaxTrees.Single( t => t.FilePath == "ClassA.cs" );
-        var partialCompilation = PartialCompilation.CreatePartial( compilation, syntaxTreeA );
-
-        var project = new ProjectModel( compilation, testContext.ServiceProvider );
-        var compilationModel = CompilationModel.CreateInitialInstance( project, partialCompilation );
+        var (compilationModel, compilation) = CreatePartialCompilationModel( testContext );
 
         // ClassA IS in the partial compilation, so this should not throw.
         var classASymbol = compilation.GetTypeByMetadataName( "ClassA" )!;
@@ -112,5 +95,38 @@ public sealed class IncrementalAspectRepositoryTests : UnitTestClass
         // Should not throw — ClassA is in the partial compilation.
         var result = repository.HasAspect( classA, typeof(object) );
         Assert.False( result );
+    }
+
+    [Fact]
+    public void HasAspect_ExternalType_CompleteCompilation_ThrowsWithProjectMessage()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var code = new Dictionary<string, string>
+        {
+            ["ClassA.cs"] = "public class ClassA { }"
+        };
+
+        var compilation = testContext.CreateCSharpCompilation( code );
+
+        // Create a complete (non-partial) CompilationModel.
+        var project = new ProjectModel( compilation, testContext.ServiceProvider );
+        var compilationModel = CompilationModel.CreateInitialInstance( project, compilation );
+
+        // Get System.String — an external type not in the current project.
+        var stringSymbol = compilation.GetTypeByMetadataName( "System.String" )!;
+        var stringType = compilationModel.Factory.GetNamedType( stringSymbol );
+
+        var repository = compilationModel.AspectRepository;
+
+        var ex = Assert.Throws<InvalidOperationException>( () => repository.HasAspect( stringType, typeof(object) ) );
+
+        // Verify the error message mentions the current project and BelongsToCurrentProject.
+        Assert.Contains( "current project", ex.Message, StringComparison.Ordinal );
+        Assert.Contains( "BelongsToCurrentProject", ex.Message, StringComparison.Ordinal );
+
+        // Verify the error message does NOT mention partial compilation guidance.
+        Assert.DoesNotContain( "partial compilation", ex.Message, StringComparison.Ordinal );
+        Assert.DoesNotContain( "IsDesignTime", ex.Message, StringComparison.Ordinal );
     }
 }
