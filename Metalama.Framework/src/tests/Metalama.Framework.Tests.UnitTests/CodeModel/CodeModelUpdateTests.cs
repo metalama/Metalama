@@ -749,6 +749,85 @@ class C
     }
 
     [Fact]
+    public void AddMethodToEmptyType_InitializeBefore_AllMethods_Complete()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+class C
+{
+}";
+
+        var immutableCompilation = testContext.CreateCompilationModel( code );
+        var compilation = immutableCompilation.CreateMutableClone();
+
+        var type = Assert.Single( compilation.Types );
+
+        // Memoize the AllMethods collection before adding a method.
+        var allMethodsBefore = type.AllMethods.Count;
+
+        // Add a method.
+        var methodBuilder = new MethodBuilder( null!, type, "M" );
+        methodBuilder.Freeze();
+        compilation.AddTransformation( methodBuilder.ToTransformation() );
+
+        // Assert that AllMethods reflects the newly added method.
+        Assert.Equal( allMethodsBefore + 1, type.AllMethods.Count );
+        Assert.Single( type.AllMethods.OfName( "M" ) );
+    }
+
+    [Fact]
+    public void AddMethodToEmptyType_DontInitializeBefore_AllMethods_Complete()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+class C
+{
+}";
+
+        var immutableCompilation = testContext.CreateCompilationModel( code );
+        var compilation = immutableCompilation.CreateMutableClone();
+
+        var type = Assert.Single( compilation.Types );
+
+        // Add a method without accessing AllMethods first.
+        var methodBuilder = new MethodBuilder( null!, type, "M" );
+        methodBuilder.Freeze();
+        compilation.AddTransformation( methodBuilder.ToTransformation() );
+
+        // Assert that AllMethods includes the newly added method.
+        Assert.Single( type.AllMethods.OfName( "M" ) );
+    }
+
+    [Fact]
+    public void AddMethodToEmptyType_InitializeBefore_AllMethods_ByName()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+class C
+{
+}";
+
+        var immutableCompilation = testContext.CreateCompilationModel( code );
+        var compilation = immutableCompilation.CreateMutableClone();
+
+        var type = Assert.Single( compilation.Types );
+
+        // Memoize AllMethods.OfName before adding a method.
+        Assert.Empty( type.AllMethods.OfName( "M" ) );
+
+        // Add a method.
+        var methodBuilder = new MethodBuilder( null!, type, "M" );
+        methodBuilder.Freeze();
+        compilation.AddTransformation( methodBuilder.ToTransformation() );
+
+        // Assert that AllMethods.OfName reflects the newly added method.
+        Assert.Single( type.AllMethods.OfName( "M" ) );
+    }
+
+    [Fact]
     public void AddMethodToGenericType_ParameterTypesMappedInDerivedType()
     {
         using var testContext = this.CreateTestContext();
