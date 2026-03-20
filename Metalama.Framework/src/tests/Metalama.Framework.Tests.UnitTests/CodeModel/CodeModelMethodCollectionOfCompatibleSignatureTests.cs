@@ -323,6 +323,63 @@ class C
 
 #if ROSLYN_4_12_0_OR_GREATER
         [Fact]
+        public void Matches_OverloadResolutionPriority()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = """
+                                using System;
+                                using System.Runtime.CompilerServices;
+
+                                class C
+                                {
+                                    public void Foo(int x) { } // 0
+                                    [OverloadResolutionPriority(1)]
+                                    public void Foo(object x) { } // 1
+
+                                    public void Bar(int x) { } // 0
+                                    [OverloadResolutionPriority(-1)]
+                                    public void Bar(object x) { } // 1
+
+                                    [OverloadResolutionPriority(2)]
+                                    public void Baz(int x) { } // 0
+                                    [OverloadResolutionPriority(1)]
+                                    public void Baz(object x) { } // 1
+                                    public void Baz(string x) { } // 2
+                                }
+
+                                namespace System.Runtime.CompilerServices
+                                {
+                                    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+                                    sealed class OverloadResolutionPriorityAttribute : Attribute
+                                    {
+                                        public OverloadResolutionPriorityAttribute(int priority) { Priority = priority; }
+                                        public int Priority { get; }
+                                    }
+                                }
+                                """;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.OfName( "C" ).Single();
+            var intType = compilation.Factory.GetTypeByReflectionType( typeof(int) );
+
+            // When calling Foo(int), both Foo(int) and Foo(object) are compatible.
+            // Foo(object) has higher priority (1 > 0), so it should come first.
+            var fooMethods = type.Methods.OfCompatibleSignature( "Foo", [intType] ).ToArray();
+            Assert.Equal( [type.Methods.ElementAt( 1 ), type.Methods.ElementAt( 0 )], fooMethods );
+
+            // When calling Bar(int), both Bar(int) and Bar(object) are compatible.
+            // Bar(int) has higher priority (0 > -1), so it should come first.
+            var barMethods = type.Methods.OfCompatibleSignature( "Bar", [intType] ).ToArray();
+            Assert.Equal( [type.Methods.ElementAt( 2 ), type.Methods.ElementAt( 3 )], barMethods );
+
+            // When calling Baz(int), Baz(int) and Baz(object) are compatible (not Baz(string)).
+            // Priority order: Baz(int)=2, Baz(object)=1.
+            var bazMethods = type.Methods.OfCompatibleSignature( "Baz", [intType] ).ToArray();
+            Assert.Equal( [type.Methods.ElementAt( 4 ), type.Methods.ElementAt( 5 )], bazMethods );
+        }
+
+        [Fact]
         public void Matches_ParamsCollections()
         {
             using var testContext = this.CreateTestContext();
