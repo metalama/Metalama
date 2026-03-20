@@ -45,7 +45,11 @@ public readonly struct DeclarationEnhancements<T>
 
     internal DeclarationEnhancements( T declaration )
     {
-        this._declaration = declaration;
+        // When the declaration is a generic type instance (e.g. Foo<int>) or a member of a generic type instance,
+        // redirect to the definition (e.g. Foo<T>), because enhancements are always applied to the definition.
+        this._declaration = declaration is IMemberOrNamedType memberOrNamedType
+            ? (T) (object) memberOrNamedType.Definition
+            : declaration;
     }
 
     private T Declaration => this._declaration ?? throw new InvalidOperationException( $"The DeclarationEnhancements is not initialized." );
