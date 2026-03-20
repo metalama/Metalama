@@ -125,7 +125,7 @@ internal static class NuGetHelper
             }
 
             // Skip values containing environment variables (e.g. %PACKAGEHOME%).
-            if ( value.Contains( '%', StringComparison.Ordinal ) )
+            if ( value.IndexOf( "%", StringComparison.Ordinal ) >= 0 )
             {
                 continue;
             }
@@ -144,7 +144,7 @@ internal static class NuGetHelper
         {
             if ( childIncrement.Name == "clear" )
             {
-                foreach ( var targetElement in target.Elements() )
+                foreach ( var targetElement in target.Elements().ToList() )
                 {
                     targetElement.Remove();
                 }
