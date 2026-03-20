@@ -264,5 +264,63 @@ class Instances
             Assert.True( comparer.IsConvertibleTo( typeInstanceF, typeF, ConversionKind.TypeDefinition, bypassSymbols ) );
             Assert.True( comparer.IsConvertibleTo( typeInstanceFG, typeF, ConversionKind.TypeDefinition, bypassSymbols ) );
         }
+
+        [Theory]
+        [InlineData( false )]
+        [InlineData( true )]
+        public void ConversionKindIdentical( bool bypassSymbols )
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class A {}
+
+interface I {}
+
+class B : A, I
+{
+    public static implicit operator int(B a) => 42;
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var typeA = compilation.Types.OfName( "A" ).Single();
+            var typeB = compilation.Types.OfName( "B" ).Single();
+            var typeI = compilation.Types.OfName( "I" ).Single();
+
+            var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
+
+            // Identical requires exact type equality.
+            Assert.True( comparer.IsConvertibleTo( typeA, typeA, ConversionKind.Identical, bypassSymbols ) );
+            Assert.True( comparer.IsConvertibleTo( typeB, typeB, ConversionKind.Identical, bypassSymbols ) );
+            Assert.True( comparer.IsConvertibleTo( typeI, typeI, ConversionKind.Identical, bypassSymbols ) );
+
+            // Derived/base types are NOT identical.
+            Assert.False( comparer.IsConvertibleTo( typeA, typeB, ConversionKind.Identical, bypassSymbols ) );
+            Assert.False( comparer.IsConvertibleTo( typeB, typeA, ConversionKind.Identical, bypassSymbols ) );
+
+            // Interface implementations are NOT identical.
+            Assert.False( comparer.IsConvertibleTo( typeB, typeI, ConversionKind.Identical, bypassSymbols ) );
+            Assert.False( comparer.IsConvertibleTo( typeI, typeB, ConversionKind.Identical, bypassSymbols ) );
+
+            // int to object is NOT identical (even though it's a boxing conversion).
+            Assert.False(
+                comparer.IsConvertibleTo(
+                    compilation.Factory.GetTypeByReflectionType( typeof(int) ),
+                    typeof(object),
+                    ConversionKind.Identical,
+                    bypassSymbols ) );
+
+            // int to int IS identical.
+            Assert.True(
+                comparer.IsConvertibleTo(
+                    compilation.Factory.GetTypeByReflectionType( typeof(int) ),
+                    typeof(int),
+                    ConversionKind.Identical,
+                    bypassSymbols ) );
+
+            // B to int is NOT identical (even though there's an implicit operator).
+            Assert.False( comparer.IsConvertibleTo( typeB, typeof(int), ConversionKind.Identical, bypassSymbols ) );
+        }
     }
 }

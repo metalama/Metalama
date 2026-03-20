@@ -97,6 +97,36 @@ public static class MethodCollectionExtensions
             => (context.ParameterTypes[index], context.RefKinds?[index] ?? RefKind.None);
     }
 
+    /// <summary>
+    /// Gets a method that matches the specified signature using the specified <see cref="ConversionKind"/> for parameter type comparison.
+    /// </summary>
+    /// <param name="methods">A collection of methods.</param>
+    /// <param name="name">Name of the method.</param>
+    /// <param name="parameterTypes">List of parameter types.</param>
+    /// <param name="refKinds">List of parameter reference kinds, or <c>null</c> if all parameters should be by-value.</param>
+    /// <param name="isStatic">Staticity of the method.</param>
+    /// <param name="conversionKind">The <see cref="ConversionKind"/> to use for parameter type comparison.</param>
+    /// <returns>A <see cref="IMethod"/> that matches the given signature.</returns>
+    public static IMethod? OfExactSignature(
+        this IMethodCollection methods,
+        string name,
+        IReadOnlyList<IType> parameterTypes,
+        IReadOnlyList<RefKind>? refKinds,
+        bool? isStatic,
+        ConversionKind conversionKind )
+    {
+        return methods.OfExactSignature(
+            (parameterTypes, refKinds),
+            name,
+            parameterTypes.Count,
+            GetParameter,
+            isStatic,
+            conversionKind: conversionKind );
+
+        static (IType Type, RefKind RefKind) GetParameter( (IReadOnlyList<IType> ParameterTypes, IReadOnlyList<RefKind>? RefKinds) context, int index )
+            => (context.ParameterTypes[index], context.RefKinds?[index] ?? RefKind.None);
+    }
+
     // TODO: Add this method:
     // IMethod? OfExactSignature(
     //     string name,

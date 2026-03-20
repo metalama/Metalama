@@ -105,6 +105,11 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
             left = translatedLeft;
         }
 
+        if ( kind == ConversionKind.Identical )
+        {
+            return this.Equals( left, right );
+        }
+
         if ( left.GetSymbol() is { } leftSymbol && right.GetSymbol() is { } rightSymbol && !bypassSymbols )
         {
             // If there is conversion between the original symbols, there should be conversion between the modified types.
@@ -152,6 +157,11 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
         }
 
         left.ThrowIfBelongsToDifferentCompilationThan( right );
+
+        if ( kind == ConversionKind.Identical )
+        {
+            return SymbolEqualityComparer.Default.Equals( left, right );
+        }
 
         if ( kind == ConversionKind.TypeDefinition )
         {

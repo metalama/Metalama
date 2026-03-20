@@ -404,6 +404,19 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
     private static IType GetDefaultDelegateType( IMethod method, IDeclarationFactory factory )
     {
+        // If any parameter has a ref kind, Action<>/Func<> cannot represent it.
+        // Fall back to System.Delegate.
+        if ( method.Parameters.Any( p => p.RefKind is RefKind.Ref or RefKind.Out or RefKind.In or RefKind.RefReadOnly ) )
+        {
+            return factory.GetTypeByReflectionType( typeof(Delegate) );
+        }
+
+        // Action<> supports up to 16 parameters; Func<> supports up to 16 input parameters + 1 return.
+        if ( method.Parameters.Count > 16 )
+        {
+            return factory.GetTypeByReflectionType( typeof(Delegate) );
+        }
+
         var isVoid = method.ReturnType.SpecialType == SpecialType.Void;
 
         if ( isVoid )

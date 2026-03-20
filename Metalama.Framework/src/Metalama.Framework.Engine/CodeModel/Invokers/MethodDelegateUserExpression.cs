@@ -23,6 +23,8 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 /// </summary>
 internal sealed class MethodDelegateUserExpression : UserExpression
 {
+    private const int _maxActionFuncParameters = 16;
+
     private readonly IMethod _method;
     private readonly MethodInvoker _invoker;
     private readonly bool _hasOverloads;
@@ -53,9 +55,20 @@ internal sealed class MethodDelegateUserExpression : UserExpression
 
         if ( !this._hasOverloads )
         {
-            // No overloads: a simple method group expression is always sufficient.
-            // If targetType is a delegate, the C# compiler will handle the conversion.
-            return methodGroupExpression;
+            // No overloads. In C# 10+, method groups have a natural type when unambiguous,
+            // so a bare method group expression (e.g. this.Method) is valid even in typeless contexts like var.
+            // In C# < 10, method groups do not have a natural type, so we must wrap in Action<>/Func<>
+            // when there is no target type to provide context.
+            var languageVersion = syntaxSerializationContext.CompilationContext.Compilation.GetLanguageVersion();
+
+            if ( targetType is INamedType { TypeKind: TypeKind.Delegate } || languageVersion >= (LanguageVersion) 1000 )
+            {
+                // Either there's a target delegate type or C# 10+ supports natural types for method groups.
+                return methodGroupExpression;
+            }
+
+            // C# < 10 and no target type: wrap in Action<>/Func<> to ensure valid code.
+            return this.CreateActionOrFuncExpression( methodGroupExpression, syntaxSerializationContext );
         }
 
         // There are overloads, so we need to disambiguate.
@@ -106,26 +119,38 @@ internal sealed class MethodDelegateUserExpression : UserExpression
     }
 
     /// <summary>
-    /// Checks if a method's signature is compatible with a delegate type using <see cref="SignatureMatcher"/>.
+    /// Checks if a method's signature is compatible with a delegate type, honoring C# method-group-to-delegate
+    /// conversion rules (contravariant parameters, covariant return type, and exact match for by-ref parameters).
     /// </summary>
     private static bool IsCompatibleWithDelegate( IMethod method, INamedType delegateType )
     {
-        // Use OfExactSignature to find the delegate's Invoke method with matching parameter types and ref kinds.
         var parameterTypes = method.Parameters.SelectAsImmutableArray( p => p.Type );
         var refKinds = method.Parameters.SelectAsImmutableArray( p => p.RefKind );
 
-        var invokeMethod = delegateType.Methods.OfExactSignature( "Invoke", parameterTypes, refKinds, isStatic: false );
+        // Use ConversionKind.Default for delegate compatibility: this allows implicit reference conversions
+        // (contravariance for parameters), while by-ref parameters still require exact type match
+        // because SignatureMatcher checks RefKind equality.
+        var invokeMethod = delegateType.Methods.OfExactSignature( "Invoke", parameterTypes, refKinds, isStatic: false, ConversionKind.Default );
 
         if ( invokeMethod == null )
         {
             return false;
         }
 
-        // Check return type compatibility.
-        var isVoid = method.ReturnType.SpecialType == SpecialType.Void;
-        var delegateIsVoid = invokeMethod.ReturnType.SpecialType == SpecialType.Void;
+        // Check return type compatibility (covariance).
+        var methodReturnType = method.ReturnType;
+        var delegateReturnType = invokeMethod.ReturnType;
 
-        return isVoid == delegateIsVoid;
+        var isVoid = methodReturnType.SpecialType == SpecialType.Void;
+        var delegateIsVoid = delegateReturnType.SpecialType == SpecialType.Void;
+
+        if ( isVoid || delegateIsVoid )
+        {
+            return isVoid && delegateIsVoid;
+        }
+
+        // For non-void return types, the method's return type must be convertible to the delegate's return type.
+        return methodReturnType.IsConvertibleTo( delegateReturnType );
     }
 
     private static ExpressionSyntax CreateDelegateCreationExpression(
@@ -156,6 +181,15 @@ internal sealed class MethodDelegateUserExpression : UserExpression
                     $"Action<> and Func<> delegates cannot represent ref/out/in parameters, and a typed delegate is needed to disambiguate overloads. " +
                     $"Use the 'delegateType' parameter of CreateDelegateExpression or assign the expression to a variable of a specific delegate type." );
             }
+        }
+
+        // Check that the parameter count doesn't exceed the Action<>/Func<> limit.
+        if ( this._method.Parameters.Count > _maxActionFuncParameters )
+        {
+            throw new InvalidOperationException(
+                $"Cannot create a delegate expression for the method '{this._method}' because it has {this._method.Parameters.Count} parameters, " +
+                $"which exceeds the maximum of {_maxActionFuncParameters} supported by Action<> and Func<>. " +
+                $"Use the 'delegateType' parameter of CreateDelegateExpression to specify a custom delegate type." );
         }
 
         var isVoid = this._method.ReturnType.SpecialType == SpecialType.Void;
