@@ -34,26 +34,14 @@ internal sealed class ImplementFormattableAspect : TypeAspect
 
             foreach ( var fieldOrProperty in fieldOrProperties )
             {
-                // When [CacheKey] is applied to a backing field via [field: CacheKey], resolve
-                // the corresponding property so that the generated code accesses the property instead
-                // of the inaccessible compiler-generated backing field.
-                var resolvedMember = fieldOrProperty;
-
-                if ( fieldOrProperty is IField { IsImplicitlyDeclared: true } field && field.IsAutoPropertyBackingField() )
-                {
-                    var propertyName = field.Name.Substring( 1, field.Name.IndexOf( ">", StringComparison.Ordinal ) - 1 );
-
-                    resolvedMember = meta.Target.Type.Properties.OfName( propertyName ).Single();
-                }
-
                 stringBuilder.Append( " " );
 
                 meta.InvokeTemplate(
                     nameof(FormatFieldOrProperty),
                     args: new
                     {
-                        T = resolvedMember.Type,
-                        fieldOrProperty = resolvedMember,
+                        T = fieldOrProperty.Type,
+                        fieldOrProperty,
                         stringBuilder = stringBuilderExpression,
                         formatterRepository = formatterRepositoryExpression
                     } );
