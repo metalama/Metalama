@@ -21,8 +21,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                 = new(
                     "LAMA0301",
                     Error,
-                    "{0}: {1} The diagnostic ID {0} was changed to a generic diagnostic ID due to a Roslyn limitation."
-                    + " Please restart your IDE to fix that.",
+                    "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
+                    + " Please restart your IDE to see it under its correct ID.",
                     "A Metalama user error." );
 
         internal static readonly DiagnosticDefinition<(string Id, string Message)>
@@ -30,8 +30,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                 = new(
                     "LAMA0302",
                     Warning,
-                    "{0}: {1} The diagnostic ID {0} was changed to a generic diagnostic ID due to a Roslyn limitation."
-                    + " Please restart your IDE to fix that.",
+                    "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
+                    + " Please restart your IDE to see it under its correct ID.",
                     "A Metalama user warning.",
                     _category );
 
@@ -40,8 +40,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                 = new(
                     "LAMA0303",
                     Info,
-                    "{0}: {1} The diagnostic ID {0} was changed to a generic diagnostic ID due to a Roslyn limitation."
-                    + " Please restart your IDE to fix that.",
+                    "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
+                    + " Please restart your IDE to see it under its correct ID.",
                     "A Metalama user info.",
                     _category );
 
@@ -50,8 +50,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                 = new(
                     "LAMA0304",
                     Hidden,
-                    "{0}: {1} The diagnostic ID {0} was changed to a generic diagnostic ID due to a Roslyn limitation."
-                    + " Please restart your IDE to fix that.",
+                    "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
+                    + " Please restart your IDE to see it under its correct ID.",
                     "A Metalama user hidden message.",
                     _category );
 
@@ -60,8 +60,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                 = new(
                     "LAMA0306",
                     Warning,
-                    "An aspect tried to suppress the diagnostic {0} on '{1}', but this suppression could not be applied due to a Roslyn limitation."
-                    + " Please restart your IDE to fix that.",
+                    "An aspect tried to suppress diagnostic '{0}' on '{1}', but '{0}' was not registered in the current session due to an IDE limitation."
+                    + " Please restart your IDE to apply the suppression.",
                     "An aspect tried to suppress an unregistered diagnostic.",
                     _category );
     }

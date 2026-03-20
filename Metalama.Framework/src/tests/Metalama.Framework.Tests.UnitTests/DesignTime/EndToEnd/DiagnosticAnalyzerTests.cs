@@ -238,8 +238,8 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
     [InlineData( "LAMA0304" )]
     public void DiagnosticMessageIsClear( string diagnosticId )
     {
-        // Regression test for #737: The diagnostic messages should not contain the confusing "user profile" wording,
-        // and all severities should tell the user to restart their IDE.
+        // Regression test for #737: The diagnostic messages should mention "IDE limitation" (not "Roslyn limitation"
+        // or "user profile"), and all severities should tell the user to restart their IDE.
         var descriptor = diagnosticId switch
         {
             "LAMA0301" => DesignTimeDiagnosticDescriptors.UserError,
@@ -252,7 +252,9 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
         var message = string.Format( CultureInfo.InvariantCulture, descriptor.MessageFormat, "TEST01", "Some message." );
 
         Assert.Contains( "restart your IDE", message, StringComparison.OrdinalIgnoreCase );
+        Assert.Contains( "IDE limitation", message, StringComparison.OrdinalIgnoreCase );
         Assert.DoesNotContain( "user profile", message, StringComparison.OrdinalIgnoreCase );
+        Assert.DoesNotContain( "Roslyn limitation", message, StringComparison.OrdinalIgnoreCase );
     }
 
     [Fact]
