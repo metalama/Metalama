@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Services;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
 
 namespace Metalama.Framework.Engine.CodeModel.Collections;
 
@@ -17,6 +16,7 @@ internal abstract class AllMemberOrNamedTypesCollection<TItem, TCollection> : IM
     where TCollection : class, IMemberOrNamedTypeCollection<TItem>
 {
     private volatile HashSet<TItem>? _members;
+    private volatile int _cachedRevision = -1;
 
     protected AllMemberOrNamedTypesCollection( INamedType declaringType )
     {
@@ -63,9 +63,15 @@ internal abstract class AllMemberOrNamedTypesCollection<TItem, TCollection> : IM
 
     private HashSet<TItem> GetItems()
     {
-        if ( this._members == null )
+        var currentRevision = this.DeclaringType.GetCompilationModel().Revision;
+
+        if ( this._members == null || this._cachedRevision != currentRevision )
         {
-            Interlocked.CompareExchange( ref this._members, this.GetItemsCore( null ), null );
+            var members = this.GetItemsCore( null );
+            this._members = members;
+            this._cachedRevision = currentRevision;
+
+            return members;
         }
 
         return this._members;
