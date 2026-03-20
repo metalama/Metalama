@@ -8,7 +8,6 @@ using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Project;
 using System;
 using System.Collections.Generic;
 using System.Linq;
