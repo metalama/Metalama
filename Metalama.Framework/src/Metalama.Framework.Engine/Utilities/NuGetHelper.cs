@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,6 +12,14 @@ namespace Metalama.Framework.Engine.Utilities;
 
 internal static class NuGetHelper
 {
+    // Sections in nuget.config where the "value" attribute of <add> elements is a local path.
+    private static readonly HashSet<string> _pathSections =
+        new( StringComparer.OrdinalIgnoreCase ) { "fallbackPackageFolders" };
+
+    // Sections where the "value" attribute may be either a URL or a local path.
+    private static readonly HashSet<string> _mixedPathSections =
+        new( StringComparer.OrdinalIgnoreCase ) { "packageSources" };
+
     public static List<string> GetConfigFiles( string projectPath )
     {
         List<string> configFiles = new();
@@ -57,10 +66,73 @@ internal static class NuGetHelper
                 continue;
             }
 
+            var configDirectory = Path.GetDirectoryName( Path.GetFullPath( configFile ) ).AssertNotNull();
+
+            ResolveRelativePaths( document.Root, configDirectory );
+
             MergeChildrenNodes( mergedDocument.Root!, document.Root );
         }
 
         return mergedDocument;
+    }
+
+    private static void ResolveRelativePaths( XElement root, string configDirectory )
+    {
+        foreach ( var section in root.Elements() )
+        {
+            var sectionName = section.Name.LocalName;
+
+            if ( _pathSections.Contains( sectionName ) )
+            {
+                ResolvePathsInSection( section, configDirectory, urlsAllowed: false );
+            }
+            else if ( _mixedPathSections.Contains( sectionName ) )
+            {
+                ResolvePathsInSection( section, configDirectory, urlsAllowed: true );
+            }
+        }
+    }
+
+    private static void ResolvePathsInSection( XElement section, string configDirectory, bool urlsAllowed )
+    {
+        foreach ( var element in section.Elements( "add" ) )
+        {
+            var valueAttribute = element.Attribute( "value" );
+
+            if ( valueAttribute == null )
+            {
+                continue;
+            }
+
+            var value = valueAttribute.Value;
+
+            if ( string.IsNullOrEmpty( value ) )
+            {
+                continue;
+            }
+
+            // Skip URLs.
+            if ( urlsAllowed && Uri.TryCreate( value, UriKind.Absolute, out var uri ) &&
+                 (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) )
+            {
+                continue;
+            }
+
+            // Skip absolute paths.
+            if ( Path.IsPathRooted( value ) )
+            {
+                continue;
+            }
+
+            // Skip values containing environment variables (e.g. %PACKAGEHOME%).
+            if ( value.Contains( '%', StringComparison.Ordinal ) )
+            {
+                continue;
+            }
+
+            // Resolve the relative path against the config file's directory.
+            valueAttribute.Value = Path.GetFullPath( Path.Combine( configDirectory, value ) );
+        }
     }
 
     private static void MergeChildrenNodes( XElement target, XElement increment )
