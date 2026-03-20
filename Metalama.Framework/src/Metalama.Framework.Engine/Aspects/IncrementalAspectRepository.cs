@@ -51,8 +51,8 @@ internal sealed class IncrementalAspectRepository : AspectRepository
                     MetalamaStringFormatter.Format(
                         $"Cannot call this method with the {declaration.DeclarationKind} '{declaration}' because it is not a part of the current partial compilation. " )
                     +
-                    "When the compilation is partial, this method can only be used with types that are included in the partial compilation " +
-                    "(typically the current type, its base types, and other types in the same file). " +
+                    "At design time, the compilation is partial: only the inheritance closure of modified types is built. " +
+                    "This method can only be used with types included in this partial compilation (typically the current type, its base types, and other types in the same file). " +
                     "Check the `ICompilation.IsPartial` property and verify the type is included in `ICompilation.Types`." );
             }
             else
