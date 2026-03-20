@@ -295,6 +295,86 @@ public class NuGetHelperTests : UnitTestClass
     }
 
     [Fact]
+    public void ConfigRepositoryPathRelativePathIsResolvedToAbsolute()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string config = """
+                              <configuration>
+                                  <config>
+                                      <add key="repositoryPath" value="packages/installed" />
+                                      <add key="globalPackagesFolder" value="cache/global" />
+                                      <add key="defaultPushSource" value="https://MyRepo/api/v2/package" />
+                                  </config>
+                              </configuration>
+                              """;
+
+        var path = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( path, config );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path ) ).AssertNotNull().ToString();
+
+        var resolvedRepoPath = Path.GetFullPath( Path.Combine( testContext.BaseDirectory, "packages/installed" ) );
+        var resolvedGlobalPath = Path.GetFullPath( Path.Combine( testContext.BaseDirectory, "cache/global" ) );
+
+        var expectedMergedConfig =
+            $"""
+            <configuration>
+              <config>
+                <add key="repositoryPath" value="{resolvedRepoPath}" />
+                <add key="globalPackagesFolder" value="{resolvedGlobalPath}" />
+                <add key="defaultPushSource" value="https://MyRepo/api/v2/package" />
+              </config>
+            </configuration>
+            """;
+
+        AssertEx.WhitespaceInvariantEqual( expectedMergedConfig, mergedConfig );
+    }
+
+    [Fact]
+    public void EnvironmentVariablePathsAreNotResolved()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string config = """
+                              <configuration>
+                                  <config>
+                                      <add key="repositoryPath" value="%PACKAGEHOME%/External" />
+                                  </config>
+                                  <packageSources>
+                                      <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                  </packageSources>
+                                  <fallbackPackageFolders>
+                                      <add key="EnvFallback" value="%NUGET_FALLBACK%/packages" />
+                                  </fallbackPackageFolders>
+                              </configuration>
+                              """;
+
+        var path = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( path, config );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path ) ).AssertNotNull().ToString();
+
+        // Values containing environment variables (%VAR%) should NOT be resolved.
+        var expectedMergedConfig =
+            """
+            <configuration>
+              <config>
+                <add key="repositoryPath" value="%PACKAGEHOME%/External" />
+              </config>
+              <packageSources>
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              </packageSources>
+              <fallbackPackageFolders>
+                <add key="EnvFallback" value="%NUGET_FALLBACK%/packages" />
+              </fallbackPackageFolders>
+            </configuration>
+            """;
+
+        AssertEx.WhitespaceInvariantEqual( expectedMergedConfig, mergedConfig );
+    }
+
+    [Fact]
     public void ConsolidatedPackageSourceMappingClearRemovesAllInheritedMappings()
     {
         // Reproduces the Metalama.Consolidated + Metalama scenario where:

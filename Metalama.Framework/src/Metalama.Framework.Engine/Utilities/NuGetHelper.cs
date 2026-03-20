@@ -69,32 +69,63 @@ internal static class NuGetHelper
 
     private static void ResolveRelativePaths( XDocument document, string configFileDirectory )
     {
-        var packageSources = document.Root?.Element( "packageSources" );
+        // Sections where each <add> element's "value" attribute can be a local path.
+        ResolveRelativePathsInSection( document.Root?.Element( "packageSources" ), configFileDirectory );
+        ResolveRelativePathsInSection( document.Root?.Element( "fallbackPackageFolders" ), configFileDirectory );
 
-        if ( packageSources == null )
+        // In the <config> section, specific keys can contain paths.
+        var configSection = document.Root?.Element( "config" );
+
+        if ( configSection != null )
+        {
+            foreach ( var add in configSection.Elements( "add" ) )
+            {
+                var key = add.Attribute( "key" )?.Value;
+
+                if ( key is "repositoryPath" or "globalPackagesFolder" )
+                {
+                    ResolveRelativePathInAttribute( add, configFileDirectory );
+                }
+            }
+        }
+    }
+
+    private static void ResolveRelativePathsInSection( XElement? section, string configFileDirectory )
+    {
+        if ( section == null )
         {
             return;
         }
 
-        foreach ( var add in packageSources.Elements( "add" ) )
+        foreach ( var add in section.Elements( "add" ) )
         {
-            var value = add.Attribute( "value" )?.Value;
+            ResolveRelativePathInAttribute( add, configFileDirectory );
+        }
+    }
 
-            if ( value == null || Uri.IsWellFormedUriString( value, UriKind.Absolute ) )
-            {
-                continue;
-            }
+    private static void ResolveRelativePathInAttribute( XElement element, string configFileDirectory )
+    {
+        var value = element.Attribute( "value" )?.Value;
 
-            if ( Path.IsPathRooted( value ) )
-            {
-                // Already absolute — just normalize separators.
-                add.SetAttributeValue( "value", Path.GetFullPath( value ) );
-            }
-            else
-            {
-                // Relative — resolve against the config file's directory.
-                add.SetAttributeValue( "value", Path.GetFullPath( Path.Combine( configFileDirectory, value ) ) );
-            }
+        if ( value == null
+             || Uri.IsWellFormedUriString( value, UriKind.Absolute )
+             || value.Contains( '%', StringComparison.Ordinal ) )
+        {
+            // Skip null values, absolute URIs (https://...), and values containing
+            // environment variable references (%VAR%) since the actual path depends
+            // on variable expansion at runtime.
+            return;
+        }
+
+        if ( Path.IsPathRooted( value ) )
+        {
+            // Already absolute — just normalize separators.
+            element.SetAttributeValue( "value", Path.GetFullPath( value ) );
+        }
+        else
+        {
+            // Relative — resolve against the config file's directory.
+            element.SetAttributeValue( "value", Path.GetFullPath( Path.Combine( configFileDirectory, value ) ) );
         }
     }
 
