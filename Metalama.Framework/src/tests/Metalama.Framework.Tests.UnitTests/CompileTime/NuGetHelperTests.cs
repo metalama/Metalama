@@ -254,6 +254,47 @@ public class NuGetHelperTests : UnitTestClass
     }
 
     [Fact]
+    public void FallbackPackageFoldersRelativePathsAreResolvedToAbsolute()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string parentConfig = """
+                                    <configuration>
+                                        <packageSources>
+                                            <clear />
+                                            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                        </packageSources>
+                                        <fallbackPackageFolders>
+                                            <add key="SomeFallback" value="nuget/fallback" />
+                                        </fallbackPackageFolders>
+                                    </configuration>
+                                    """;
+
+        var path1 = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( path1, parentConfig );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path1 ) ).AssertNotNull().ToString();
+
+        // The relative path "nuget/fallback" should be resolved relative to the config file's directory.
+        var resolvedFallbackPath = Path.GetFullPath( Path.Combine( testContext.BaseDirectory, "nuget/fallback" ) );
+
+        var expectedMergedConfig =
+            $"""
+            <configuration>
+              <packageSources>
+                <clear />
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              </packageSources>
+              <fallbackPackageFolders>
+                <add key="SomeFallback" value="{resolvedFallbackPath}" />
+              </fallbackPackageFolders>
+            </configuration>
+            """;
+
+        AssertEx.WhitespaceInvariantEqual( expectedMergedConfig, mergedConfig );
+    }
+
+    [Fact]
     public void ConsolidatedPackageSourceMappingClearRemovesAllInheritedMappings()
     {
         // Reproduces the Metalama.Consolidated + Metalama scenario where:
