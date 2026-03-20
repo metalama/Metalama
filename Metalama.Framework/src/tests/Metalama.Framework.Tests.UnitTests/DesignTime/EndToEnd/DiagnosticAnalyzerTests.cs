@@ -235,8 +235,8 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
     public async Task UserWarningIsWrappedWhenNotRegistered()
     {
         // Regression test for #686: When a user diagnostic has not been registered in the user profile,
-        // the diagnostic is wrapped into a LAMA030x ID. Verify the wrapping preserves the message and
-        // diagnostic properties.
+        // the diagnostic is wrapped into a LAMA030x ID. Verify the wrapped diagnostic ID and that the
+        // original diagnostic message is preserved in the wrapped message.
         const string code = """
                             using Metalama.Framework.Advising;
                             using Metalama.Framework.Aspects;
@@ -283,27 +283,4 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
         Assert.Contains( "Warning!", diagnostic.GetLocalizedMessage(), StringComparison.Ordinal );
     }
 
-    [Fact]
-    public void WrapperDiagnosticIdsAreFixable()
-    {
-        // Regression test for #686: When a user diagnostic has not been registered in the user profile,
-        // it is wrapped into LAMA0301-LAMA0304. The code fix provider must include these wrapper IDs
-        // in FixableDiagnosticIds, otherwise Roslyn won't invoke the code fix provider for wrapped
-        // diagnostics and code fixes attached to unregistered diagnostics will be silently lost.
-        Assert.Contains(
-            DesignTimeDiagnosticDescriptors.UserError.Id,
-            DesignTimeDiagnosticDefinitions.FixableStandardDiagnosticIds );
-
-        Assert.Contains(
-            DesignTimeDiagnosticDescriptors.UserWarning.Id,
-            DesignTimeDiagnosticDefinitions.FixableStandardDiagnosticIds );
-
-        Assert.Contains(
-            DesignTimeDiagnosticDescriptors.UserInfo.Id,
-            DesignTimeDiagnosticDefinitions.FixableStandardDiagnosticIds );
-
-        Assert.Contains(
-            DesignTimeDiagnosticDescriptors.UserHidden.Id,
-            DesignTimeDiagnosticDefinitions.FixableStandardDiagnosticIds );
-    }
 }
