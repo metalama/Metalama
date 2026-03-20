@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if TEST_OPTIONS
-// @Skipped(Weird under docker)
 // @RequiredConstant(NET5_0_OR_GREATER) - Return type covariance not supported in .NET Framework
 // @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
 #endif
@@ -63,7 +62,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.Diff
 
             foreach ( var field in clonableFields )
             {
-                field.WithObject( clone ).Value = meta.Cast( field.Type, ((ICloneable) field.Value!).Clone() );
+                field.WithObject( (IExpression) clone ).Value = meta.Cast( field.Type, ((ICloneable) field.Value!).Clone() );
             }
 
             return clone;
