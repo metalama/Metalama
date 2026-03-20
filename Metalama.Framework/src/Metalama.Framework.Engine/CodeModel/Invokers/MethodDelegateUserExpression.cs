@@ -55,20 +55,10 @@ internal sealed class MethodDelegateUserExpression : UserExpression
 
         if ( !this._hasOverloads )
         {
-            // No overloads. In C# 10+, method groups have a natural type when unambiguous,
+            // No overloads: a simple method group expression is always sufficient.
+            // Metalama requires C# 10+, where method groups have a natural type when unambiguous,
             // so a bare method group expression (e.g. this.Method) is valid even in typeless contexts like var.
-            // In C# < 10, method groups do not have a natural type, so we must wrap in Action<>/Func<>
-            // when there is no target type to provide context.
-            var languageVersion = syntaxSerializationContext.CompilationContext.Compilation.GetLanguageVersion();
-
-            if ( targetType is INamedType { TypeKind: TypeKind.Delegate } || languageVersion >= (LanguageVersion) 1000 )
-            {
-                // Either there's a target delegate type or C# 10+ supports natural types for method groups.
-                return methodGroupExpression;
-            }
-
-            // C# < 10 and no target type: wrap in Action<>/Func<> to ensure valid code.
-            return this.CreateActionOrFuncExpression( methodGroupExpression, syntaxSerializationContext );
+            return methodGroupExpression;
         }
 
         // There are overloads, so we need to disambiguate.
