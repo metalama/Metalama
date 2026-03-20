@@ -55,6 +55,56 @@ public class SymbolSignatureMatcherTests : UnitTestClass
         Assert.Same( oldOverload, Assert.Single( foundOverloads ) );
     }
 
+#if ROSLYN_4_12_0_OR_GREATER
+    [Fact]
+    public void OverloadResolutionPriorityOrdering()
+    {
+        using var context = this.CreateTestContext();
+
+        const string code = """
+                            using System;
+                            using System.Runtime.CompilerServices;
+
+                            class C
+                            {
+                                public void Foo(int x) { }
+                                [OverloadResolutionPriority(1)]
+                                public void Foo(object x) { }
+                            }
+
+                            namespace System.Runtime.CompilerServices
+                            {
+                                [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+                                sealed class OverloadResolutionPriorityAttribute : Attribute
+                                {
+                                    public OverloadResolutionPriorityAttribute(int priority) { Priority = priority; }
+                                    public int Priority { get; }
+                                }
+                            }
+                            """;
+
+        var compilation = context.CreateCSharpCompilation( code );
+        var compilationContext = compilation.GetCompilationContext();
+        var type = compilation.GetTypeByMetadataName( "C" ).AssertNotNull();
+
+        var intType = compilation.GetSpecialType( SpecialType.System_Int32 );
+
+        var results = type.GetMethodsOfCompatibleSignature(
+            compilationContext,
+            "Foo",
+            new ITypeSymbol?[] { intType },
+            compilationContext,
+            isStatic: null ).ToArray();
+
+        Assert.Equal( 2, results.Length );
+
+        // The method with OverloadResolutionPriority(1) should come first.
+        Assert.Equal( "Foo", results[0].Name );
+        Assert.Equal( SpecialType.System_Object, results[0].Parameters[0].Type.SpecialType );
+        Assert.Equal( SpecialType.System_Int32, results[1].Parameters[0].Type.SpecialType );
+    }
+#endif
+
     [Fact]
     public void InterpolatedStringHandlerOverloadAdded()
     {

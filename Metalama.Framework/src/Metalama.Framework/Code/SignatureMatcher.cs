@@ -36,7 +36,7 @@ namespace Metalama.Framework.Code
         {
             var compilation = members.DeclaringType.Compilation;
 
-            return OfSignature(
+            var results = OfSignature(
                 members,
                 (payload, argumentGetter, compilation),
                 name,
@@ -44,6 +44,8 @@ namespace Metalama.Framework.Code
                 IsMatchingParameter,
                 isStatic,
                 true );
+
+            return OrderByOverloadResolutionPriority( results );
 
             static bool IsMatchingParameter(
                 (TPayload InnerPayload, Func<TPayload, int, (IType? Type, RefKind? RefKind)>? ArgumentGetter, ICompilation Compilation) payload,
@@ -243,6 +245,27 @@ namespace Metalama.Framework.Code
                     }
                 }
             }
+        }
+
+        private const string _overloadResolutionPriorityAttributeFullName = "System.Runtime.CompilerServices.OverloadResolutionPriorityAttribute";
+
+        private static IEnumerable<TMember> OrderByOverloadResolutionPriority<TMember>( IEnumerable<TMember> members )
+            where TMember : class, IMethodBase
+        {
+            return members.OrderByDescending( GetOverloadResolutionPriority );
+        }
+
+        private static int GetOverloadResolutionPriority( IMethodBase member )
+        {
+            var attribute = member.Attributes
+                .FirstOrDefault( a => a.Type.FullName == _overloadResolutionPriorityAttributeFullName );
+
+            if ( attribute == null )
+            {
+                return 0;
+            }
+
+            return (int) attribute.ConstructorArguments[0].Value!;
         }
 
         private static IType? GetParamsElementType( IType type )

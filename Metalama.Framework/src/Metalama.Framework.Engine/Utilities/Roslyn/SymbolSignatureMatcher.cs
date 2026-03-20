@@ -27,7 +27,7 @@ internal static class SymbolSignatureMatcher
         CompilationContext compatibleSymbolCompilation )
         where TSymbol : ISymbol
     {
-        return containingType.GetMembersOfCompatibleSignature<TSymbol, ImmutableArray<IParameterSymbol>>(
+        var results = containingType.GetMembersOfCompatibleSignature<TSymbol, ImmutableArray<IParameterSymbol>>(
             containingTypeCompilation,
             compatibleSymbol.GetParameters(),
             compatibleSymbol.Name,
@@ -35,6 +35,8 @@ internal static class SymbolSignatureMatcher
             GetParameter,
             compatibleSymbolCompilation,
             compatibleSymbol.IsStatic );
+
+        return OrderByOverloadResolutionPriority( results );
 
         static (ITypeSymbol? Type, RefKind? RefKind) GetParameter( ImmutableArray<IParameterSymbol> parameters, int index )
         {
@@ -59,7 +61,7 @@ internal static class SymbolSignatureMatcher
         CompilationContext argumentTypesCompilation,
         bool? isStatic = false )
     {
-        return containingType.GetMembersOfCompatibleSignature<IMethodSymbol, IReadOnlyList<ITypeSymbol?>?>(
+        var results = containingType.GetMembersOfCompatibleSignature<IMethodSymbol, IReadOnlyList<ITypeSymbol?>?>(
             containingTypeCompilation,
             argumentTypes,
             name,
@@ -67,6 +69,8 @@ internal static class SymbolSignatureMatcher
             GetParameter,
             argumentTypesCompilation,
             isStatic );
+
+        return OrderByOverloadResolutionPriority( results );
 
         static (ITypeSymbol? Type, RefKind? RefKind) GetParameter( IReadOnlyList<ITypeSymbol?>? argumentTypes, int index )
             => argumentTypes?[index] != null
@@ -262,6 +266,28 @@ internal static class SymbolSignatureMatcher
                 }
             }
         }
+    }
+
+    private const string _overloadResolutionPriorityAttributeName = "OverloadResolutionPriorityAttribute";
+
+    private static IEnumerable<TSymbol> OrderByOverloadResolutionPriority<TSymbol>( IEnumerable<TSymbol> members )
+        where TSymbol : ISymbol
+    {
+        return members.OrderByDescending( static m => GetOverloadResolutionPriority( m ) );
+    }
+
+    private static int GetOverloadResolutionPriority( ISymbol symbol )
+    {
+        var attribute = symbol.GetAttributes()
+            .FirstOrDefault( a => a.AttributeClass?.Name == _overloadResolutionPriorityAttributeName
+                                  && a.AttributeClass.ContainingNamespace?.ToDisplayString() == "System.Runtime.CompilerServices" );
+
+        if ( attribute == null || attribute.ConstructorArguments.Length == 0 )
+        {
+            return 0;
+        }
+
+        return (int) attribute.ConstructorArguments[0].Value!;
     }
 
     private static ITypeSymbol? GetParamsElementType( ITypeSymbol type, CompilationContext compilation )
