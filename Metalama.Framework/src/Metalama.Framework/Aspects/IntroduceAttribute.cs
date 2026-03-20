@@ -146,6 +146,8 @@ namespace Metalama.Framework.Aspects
 
             if ( isEffectivelyVirtual )
             {
+                // Only reject static types. Sealed classes and structs are allowed because the virtual
+                // modifier will be silently ignored and the member will be introduced as non-virtual.
                 builder.AddRule(
                     new EligibilityRule<IDeclaration>(
                         EligibleScenarios.Inheritance,
@@ -153,9 +155,9 @@ namespace Metalama.Framework.Aspects
                         {
                             var t = x.GetClosestNamedType();
 
-                            return t is { TypeKind: not TypeKind.Struct } and { IsStatic: false, IsSealed: false };
+                            return t is { IsStatic: false };
                         },
-                        _ => $"the aspect contains an virtual declarative introduction and therefore cannot be applied to sealed types, static types and structs" ) );
+                        _ => $"the aspect contains a virtual declarative introduction and therefore cannot be applied to static types" ) );
             }
         }
 

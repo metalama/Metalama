@@ -19,7 +19,11 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Inva
 
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            builder.Diagnostics.Report( ManualAssert.WithArguments( "Manually assert that 3 errors are reported on this class." ) );
+            if ( builder.Target.IsStatic )
+            {
+                builder.Diagnostics.Report( ManualAssert.WithArguments( "Manually assert that 2 errors are reported on this class." ) );
+            }
+
             builder.IntroduceMethod( nameof(Method_ImplicitlyVirtual) );
         }
 
