@@ -6,6 +6,7 @@ using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
 using System.IO;
+using System.Linq;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CompileTime;
@@ -13,7 +14,136 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 public class NuGetHelperTests : UnitTestClass
 {
     [Fact]
-    public void Test()
+    public void RelativeFallbackPackageFoldersAreResolvedToAbsolutePaths()
+    {
+        using var testContext = this.CreateTestContext();
+
+        // Create a nuget.config with a relative path in fallbackPackageFolders, as in issue #1414.
+        const string content = """
+                               <configuration>
+                                   <packageSources>
+                                       <clear />
+                                       <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                   </packageSources>
+                                   <fallbackPackageFolders>
+                                       <add key="SomeFallback" value="nuget/fallback" />
+                                   </fallbackPackageFolders>
+                               </configuration>
+                               """;
+
+        var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( configPath, content );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+
+        // The relative path "nuget/fallback" should be resolved to an absolute path
+        // relative to the directory containing the nuget.config file.
+        var fallbackElement = mergedConfig.Root.AssertNotNull()
+            .Element( "fallbackPackageFolders" ).AssertNotNull()
+            .Element( "add" ).AssertNotNull();
+
+        var value = fallbackElement.Attribute( "value" ).AssertNotNull().Value;
+        var expectedAbsolutePath = Path.Combine( testContext.BaseDirectory, "nuget", "fallback" );
+
+        Assert.Equal( expectedAbsolutePath, value );
+    }
+
+    [Fact]
+    public void RelativePackageSourcePathsAreResolvedToAbsolutePaths()
+    {
+        using var testContext = this.CreateTestContext();
+
+        // A nuget.config with a relative local package source path.
+        const string content = """
+                               <configuration>
+                                   <packageSources>
+                                       <clear />
+                                       <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                       <add key="LocalPackages" value="packages/local" />
+                                   </packageSources>
+                               </configuration>
+                               """;
+
+        var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( configPath, content );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+
+        var localSourceElement = mergedConfig.Root.AssertNotNull()
+            .Element( "packageSources" ).AssertNotNull()
+            .Elements( "add" )
+            .First( e => e.Attribute( "key" )?.Value == "LocalPackages" );
+
+        var value = localSourceElement.Attribute( "value" ).AssertNotNull().Value;
+        var expectedAbsolutePath = Path.Combine( testContext.BaseDirectory, "packages", "local" );
+
+        Assert.Equal( expectedAbsolutePath, value );
+    }
+
+    [Fact]
+    public void AbsolutePathsAreNotModified()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var absolutePath = Path.Combine( testContext.BaseDirectory, "abs", "fallback" );
+
+        var content = $"""
+                       <configuration>
+                           <packageSources>
+                               <clear />
+                               <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                           </packageSources>
+                           <fallbackPackageFolders>
+                               <add key="SomeFallback" value="{absolutePath}" />
+                           </fallbackPackageFolders>
+                       </configuration>
+                       """;
+
+        var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( configPath, content );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+
+        var fallbackElement = mergedConfig.Root.AssertNotNull()
+            .Element( "fallbackPackageFolders" ).AssertNotNull()
+            .Element( "add" ).AssertNotNull();
+
+        var value = fallbackElement.Attribute( "value" ).AssertNotNull().Value;
+
+        Assert.Equal( absolutePath, value );
+    }
+
+    [Fact]
+    public void HttpUrlsAreNotModified()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string content = """
+                               <configuration>
+                                   <packageSources>
+                                       <clear />
+                                       <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                   </packageSources>
+                               </configuration>
+                               """;
+
+        var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( configPath, content );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+
+        var nugetOrgElement = mergedConfig.Root.AssertNotNull()
+            .Element( "packageSources" ).AssertNotNull()
+            .Elements( "add" )
+            .First( e => e.Attribute( "key" )?.Value == "nuget.org" );
+
+        var value = nugetOrgElement.Attribute( "value" ).AssertNotNull().Value;
+
+        Assert.Equal( "https://api.nuget.org/v3/index.json", value );
+    }
+
+    [Fact]
+    public void MergeTest()
     {
         using var testContext = this.CreateTestContext();
 
