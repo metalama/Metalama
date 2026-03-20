@@ -143,6 +143,163 @@ public class NuGetHelperTests : UnitTestClass
     }
 
     [Fact]
+    public void FileUrlsAreNotModified()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string content = """
+                               <configuration>
+                                   <packageSources>
+                                       <clear />
+                                       <add key="local" value="file://C:/local-packages" />
+                                   </packageSources>
+                               </configuration>
+                               """;
+
+        var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( configPath, content );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+
+        var localElement = mergedConfig.Root.AssertNotNull()
+            .Element( "packageSources" ).AssertNotNull()
+            .Elements( "add" )
+            .First( e => e.Attribute( "key" )?.Value == "local" );
+
+        var value = localElement.Attribute( "value" ).AssertNotNull().Value;
+
+        Assert.Equal( "file://C:/local-packages", value );
+    }
+
+    [Fact]
+    public void EnvironmentVariablePathsAreNotResolved()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string content = """
+                               <configuration>
+                                   <packageSources>
+                                       <clear />
+                                       <add key="envSource" value="%MY_NUGET_SOURCE_UNDEFINED_VAR%" />
+                                   </packageSources>
+                                   <fallbackPackageFolders>
+                                       <add key="envFallback" value="%MY_NUGET_FALLBACK_UNDEFINED_VAR%" />
+                                   </fallbackPackageFolders>
+                               </configuration>
+                               """;
+
+        var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( configPath, content );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+
+        var envSourceElement = mergedConfig.Root.AssertNotNull()
+            .Element( "packageSources" ).AssertNotNull()
+            .Elements( "add" )
+            .First( e => e.Attribute( "key" )?.Value == "envSource" );
+
+        var envFallbackElement = mergedConfig.Root.AssertNotNull()
+            .Element( "fallbackPackageFolders" ).AssertNotNull()
+            .Elements( "add" )
+            .First( e => e.Attribute( "key" )?.Value == "envFallback" );
+
+        // Undefined environment variables should not be modified — NuGet handles expansion at runtime.
+        Assert.Equal( "%MY_NUGET_SOURCE_UNDEFINED_VAR%", envSourceElement.Attribute( "value" ).AssertNotNull().Value );
+        Assert.Equal( "%MY_NUGET_FALLBACK_UNDEFINED_VAR%", envFallbackElement.Attribute( "value" ).AssertNotNull().Value );
+    }
+
+    [Fact]
+    public void ConfigRepositoryPathRelativePathIsResolvedToAbsolute()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string content = """
+                               <configuration>
+                                   <config>
+                                       <add key="repositoryPath" value="packages/repo" />
+                                   </config>
+                               </configuration>
+                               """;
+
+        var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( configPath, content );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+
+        var repoPathElement = mergedConfig.Root.AssertNotNull()
+            .Element( "config" ).AssertNotNull()
+            .Elements( "add" )
+            .First( e => e.Attribute( "key" )?.Value == "repositoryPath" );
+
+        var value = repoPathElement.Attribute( "value" ).AssertNotNull().Value;
+        var expectedAbsolutePath = Path.Combine( testContext.BaseDirectory, "packages", "repo" );
+
+        Assert.Equal( expectedAbsolutePath, value );
+    }
+
+    [Fact]
+    public void ConfigGlobalPackagesFolderRelativePathIsResolvedToAbsolute()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string content = """
+                               <configuration>
+                                   <config>
+                                       <add key="globalPackagesFolder" value="my-packages" />
+                                   </config>
+                               </configuration>
+                               """;
+
+        var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( configPath, content );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+
+        var element = mergedConfig.Root.AssertNotNull()
+            .Element( "config" ).AssertNotNull()
+            .Elements( "add" )
+            .First( e => e.Attribute( "key" )?.Value == "globalPackagesFolder" );
+
+        var value = element.Attribute( "value" ).AssertNotNull().Value;
+        var expectedAbsolutePath = Path.Combine( testContext.BaseDirectory, "my-packages" );
+
+        Assert.Equal( expectedAbsolutePath, value );
+    }
+
+    [Fact]
+    public void ConfigNonPathKeysAreNotModified()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string content = """
+                               <configuration>
+                                   <config>
+                                       <add key="defaultPushSource" value="https://MyRepo/ES/api/v2/package" />
+                                       <add key="http_proxy" value="host" />
+                                   </config>
+                               </configuration>
+                               """;
+
+        var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( configPath, content );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+
+        var pushSourceElement = mergedConfig.Root.AssertNotNull()
+            .Element( "config" ).AssertNotNull()
+            .Elements( "add" )
+            .First( e => e.Attribute( "key" )?.Value == "defaultPushSource" );
+
+        var proxyElement = mergedConfig.Root.AssertNotNull()
+            .Element( "config" ).AssertNotNull()
+            .Elements( "add" )
+            .First( e => e.Attribute( "key" )?.Value == "http_proxy" );
+
+        Assert.Equal( "https://MyRepo/ES/api/v2/package", pushSourceElement.Attribute( "value" ).AssertNotNull().Value );
+        Assert.Equal( "host", proxyElement.Attribute( "value" ).AssertNotNull().Value );
+    }
+
+    [Fact]
     public void MergeTest()
     {
         using var testContext = this.CreateTestContext();
