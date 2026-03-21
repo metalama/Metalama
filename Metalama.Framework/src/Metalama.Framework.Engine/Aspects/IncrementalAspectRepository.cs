@@ -8,7 +8,6 @@ using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Project;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,21 +45,23 @@ internal sealed class IncrementalAspectRepository : AspectRepository
 
         if ( !this._compilation.PartialCompilation.Types.Contains( type ) )
         {
-            if ( MetalamaExecutionContext.Current.ExecutionScenario.IsDesignTime )
+            if ( this._compilation.PartialCompilation.IsPartial )
             {
                 throw new InvalidOperationException(
                     MetalamaStringFormatter.Format(
-                        $"Cannot call this method with the {declaration.DeclarationKind} '{declaration}' because it not a part of the current partial compilation." )
+                        $"Cannot call this method with the {declaration.DeclarationKind} '{declaration}' because it is not a part of the current partial compilation. " )
                     +
-                    $"At design time, you can only use this method within the current type and its ancestors. " +
-                    "Use the `MetalamaExecutionContext.Current.ExecutionScenario.IsDesignTime` expression to check if your code is running at design time. " +
-                    "Also check the IDeclaration.BelongsToCurrentProject property." );
+                    "At design time, the compilation is partial: only the inheritance closure of modified types is built. " +
+                    "This method can only be used with types included in this partial compilation (typically the current type, its base types, and other types in the same file). " +
+                    "Check the `ICompilation.IsPartial` property and verify the type is included in `ICompilation.Types`." );
             }
             else
             {
                 throw new InvalidOperationException(
                     MetalamaStringFormatter.Format(
-                        $"Cannot call this method with the {declaration.DeclarationKind} '{declaration}' because it not a part of the current project. Check the IDeclaration.BelongsToCurrentProject property." ) );
+                        $"Cannot call this method with the {declaration.DeclarationKind} '{declaration}' because it is not a part of the current project. " )
+                    +
+                    "Check the `IDeclaration.BelongsToCurrentProject` property." );
             }
         }
     }

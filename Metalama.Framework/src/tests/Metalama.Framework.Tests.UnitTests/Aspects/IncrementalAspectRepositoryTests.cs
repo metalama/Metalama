@@ -1,0 +1,132 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Framework.Engine.CodeModel;
+using Metalama.Testing.UnitTesting;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Xunit;
+
+namespace Metalama.Framework.Tests.UnitTests.Aspects;
+
+public sealed class IncrementalAspectRepositoryTests : UnitTestClass
+{
+    private static (CompilationModel CompilationModel, Microsoft.CodeAnalysis.CSharp.CSharpCompilation RoslynCompilation) CreatePartialCompilationModel(
+        TestContext testContext )
+    {
+        var code = new Dictionary<string, string>
+        {
+            ["ClassA.cs"] = "public class ClassA { }",
+            ["ClassB.cs"] = "public class ClassB { }"
+        };
+
+        var compilation = testContext.CreateCSharpCompilation( code );
+
+        // Create a partial compilation that only includes ClassA.
+        var syntaxTreeA = compilation.SyntaxTrees.Single( t => t.FilePath == "ClassA.cs" );
+        var partialCompilation = PartialCompilation.CreatePartial( compilation, syntaxTreeA );
+
+        var project = new ProjectModel( compilation, testContext.ServiceProvider );
+        var compilationModel = CompilationModel.CreateInitialInstance( project, partialCompilation );
+
+        return (compilationModel, compilation);
+    }
+
+    [Fact]
+    public void HasAspect_TypeNotInPartialCompilation_ThrowsWithPartialCompilationMessage()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var (compilationModel, compilation) = CreatePartialCompilationModel( testContext );
+
+        // Get ClassB — it's in the project but NOT in the partial compilation.
+        var classBSymbol = compilation.GetTypeByMetadataName( "ClassB" )!;
+        var classB = compilationModel.Factory.GetNamedType( classBSymbol );
+
+        // Calling HasAspect on ClassB should throw because it's not in the partial compilation.
+        var repository = compilationModel.AspectRepository;
+
+        var ex = Assert.Throws<InvalidOperationException>( () => repository.HasAspect( classB, typeof(object) ) );
+
+        // Verify the error message explains partial compilations and design time.
+        Assert.Contains( "partial compilation", ex.Message, StringComparison.Ordinal );
+        Assert.Contains( "design time", ex.Message, StringComparison.OrdinalIgnoreCase );
+        Assert.Contains( "ICompilation.IsPartial", ex.Message, StringComparison.Ordinal );
+
+        // Verify the error message does NOT suggest checking IsDesignTime (issue #755).
+        Assert.DoesNotContain( "IsDesignTime", ex.Message, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public void GetAspectInstances_TypeNotInPartialCompilation_ThrowsWithPartialCompilationMessage()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var (compilationModel, compilation) = CreatePartialCompilationModel( testContext );
+
+        var classBSymbol = compilation.GetTypeByMetadataName( "ClassB" )!;
+        var classB = compilationModel.Factory.GetNamedType( classBSymbol );
+
+        var repository = compilationModel.AspectRepository;
+
+        var ex = Assert.Throws<InvalidOperationException>( () => repository.GetAspectInstances( classB ) );
+
+        Assert.Contains( "partial compilation", ex.Message, StringComparison.Ordinal );
+        Assert.Contains( "design time", ex.Message, StringComparison.OrdinalIgnoreCase );
+        Assert.Contains( "ICompilation.IsPartial", ex.Message, StringComparison.Ordinal );
+        Assert.DoesNotContain( "IsDesignTime", ex.Message, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public void HasAspect_TypeInPartialCompilation_DoesNotThrow()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var (compilationModel, compilation) = CreatePartialCompilationModel( testContext );
+
+        // ClassA IS in the partial compilation, so this should not throw.
+        var classASymbol = compilation.GetTypeByMetadataName( "ClassA" )!;
+        var classA = compilationModel.Factory.GetNamedType( classASymbol );
+
+        var repository = compilationModel.AspectRepository;
+
+        // Should not throw — ClassA is in the partial compilation.
+        var result = repository.HasAspect( classA, typeof(object) );
+        Assert.False( result );
+    }
+
+    [Fact]
+    public void HasAspect_ExternalType_CompleteCompilation_ThrowsWithProjectMessage()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var code = new Dictionary<string, string>
+        {
+            ["ClassA.cs"] = "public class ClassA { }"
+        };
+
+        var compilation = testContext.CreateCSharpCompilation( code );
+
+        // Create a complete (non-partial) CompilationModel.
+        var project = new ProjectModel( compilation, testContext.ServiceProvider );
+        var compilationModel = CompilationModel.CreateInitialInstance( project, compilation );
+
+        // Get System.String — an external type not in the current project.
+        var stringSymbol = compilation.GetTypeByMetadataName( "System.String" )!;
+        var stringType = compilationModel.Factory.GetNamedType( stringSymbol );
+
+        var repository = compilationModel.AspectRepository;
+
+        var ex = Assert.Throws<InvalidOperationException>( () => repository.HasAspect( stringType, typeof(object) ) );
+
+        // Verify the error message mentions the current project and BelongsToCurrentProject.
+        Assert.Contains( "current project", ex.Message, StringComparison.Ordinal );
+        Assert.Contains( "BelongsToCurrentProject", ex.Message, StringComparison.Ordinal );
+
+        // Verify the error message does NOT mention partial compilation guidance.
+        Assert.DoesNotContain( "partial compilation", ex.Message, StringComparison.Ordinal );
+        Assert.DoesNotContain( "IsDesignTime", ex.Message, StringComparison.Ordinal );
+    }
+}
