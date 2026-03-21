@@ -110,6 +110,13 @@ namespace Metalama.Framework.Engine.Templating
                              && this._alreadyReportedDiagnostics.Contains( symbol.ContainingSymbol ));
                 }
 
+                static bool IsRoslynSymbol( ISymbol symbol )
+                {
+                    var ns = (symbol as INamedTypeSymbol)?.ContainingNamespace ?? symbol.ContainingType?.ContainingNamespace;
+
+                    return ns?.GetFullName()?.StartsWith( "Microsoft.CodeAnalysis", StringComparison.Ordinal ) == true;
+                }
+
                 if ( node == null || (node.IsKind( SyntaxKind.IdentifierName ) && node is IdentifierNameSyntax { IsVar: true }) )
                 {
                     // We skip 'var' because the semantic model sometimes resolve it to dynamic for no reason,
@@ -206,8 +213,12 @@ namespace Metalama.Framework.Engine.Templating
 
                                 if ( AvoidDuplicates( referencedSymbol ) )
                                 {
+                                    var diagnostic = IsRoslynSymbol( referencedSymbol )
+                                        ? TemplatingDiagnosticDescriptors.CannotReferenceCompileTimeOnlyRoslyn
+                                        : TemplatingDiagnosticDescriptors.CannotReferenceCompileTimeOnly;
+
                                     this.Report(
-                                        TemplatingDiagnosticDescriptors.CannotReferenceCompileTimeOnly.CreateRoslynDiagnostic(
+                                        diagnostic.CreateRoslynDiagnostic(
                                             node.GetLocation(),
                                             (this._currentDeclaration!, referencedSymbol, this._currentScope.Value) ) );
                                 }

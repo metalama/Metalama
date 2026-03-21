@@ -48,6 +48,7 @@
     <!-- Packaging -->
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="/" />
+        <None Include="build\**\*" Pack="true" PackagePath="build" />
     </ItemGroup>
 
 </Project>

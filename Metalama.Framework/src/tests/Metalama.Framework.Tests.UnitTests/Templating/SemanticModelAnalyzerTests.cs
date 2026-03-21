@@ -386,6 +386,71 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         }
 
         [Fact]
+        public void RoslynTypeInRunTimeCode_ReportsLama0291_WhenRoslynIsCompileTimeOnly()
+        {
+            using var testContext = this.CreateTestContext( new TestContextOptions { RoslynIsCompileTimeOnly = true } );
+
+            var roslynReference = MetadataReference.CreateFromFile( typeof(ISymbol).Assembly.Location );
+
+            var compilation = testContext.CreateCSharpCompilation(
+                """
+                using Microsoft.CodeAnalysis;
+
+                class X { void M() { ISymbol s; } }
+                """,
+                additionalReferences: new[] { roslynReference } );
+
+            List<Diagnostic> diagnostics = new();
+            var syntaxTree = compilation.SyntaxTrees[0];
+            var semanticModel = compilation.GetSemanticModel( syntaxTree );
+
+            TemplatingCodeValidator.Validate(
+                testContext.ServiceProvider,
+                semanticModel,
+                diagnostics.Add,
+                null,
+                false,
+                false,
+                testContext.CancellationToken );
+
+            Assert.Contains( diagnostics, d => d.Id == TemplatingDiagnosticDescriptors.CannotReferenceCompileTimeOnlyRoslyn.Id );
+            Assert.DoesNotContain( diagnostics, d => d.Id == TemplatingDiagnosticDescriptors.CannotReferenceCompileTimeOnly.Id );
+        }
+
+        [Fact]
+        public void RoslynTypeInRunTimeCode_NoDiagnostic_WhenRoslynIsNotCompileTimeOnly()
+        {
+            // Default behavior (RoslynIsCompileTimeOnly=false): Roslyn types are allowed in run-time code.
+            using var testContext = this.CreateTestContext();
+
+            var roslynReference = MetadataReference.CreateFromFile( typeof(ISymbol).Assembly.Location );
+
+            var compilation = testContext.CreateCSharpCompilation(
+                """
+                using Microsoft.CodeAnalysis;
+
+                class X { void M() { ISymbol s; } }
+                """,
+                additionalReferences: new[] { roslynReference } );
+
+            List<Diagnostic> diagnostics = new();
+            var syntaxTree = compilation.SyntaxTrees[0];
+            var semanticModel = compilation.GetSemanticModel( syntaxTree );
+
+            TemplatingCodeValidator.Validate(
+                testContext.ServiceProvider,
+                semanticModel,
+                diagnostics.Add,
+                null,
+                false,
+                false,
+                testContext.CancellationToken );
+
+            Assert.DoesNotContain( diagnostics, d => d.Id == TemplatingDiagnosticDescriptors.CannotReferenceCompileTimeOnlyRoslyn.Id );
+            Assert.DoesNotContain( diagnostics, d => d.Id == TemplatingDiagnosticDescriptors.CannotReferenceCompileTimeOnly.Id );
+        }
+
+        [Fact]
         public void WellKnownTypesNotReported()
         {
             using var testContext = this.CreateTestContext();
