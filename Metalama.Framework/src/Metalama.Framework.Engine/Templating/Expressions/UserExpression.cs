@@ -26,18 +26,13 @@ namespace Metalama.Framework.Engine.Templating.Expressions
         /// Creates a <see cref="TypedExpressionSyntaxImpl"/> for the given <see cref="SyntaxGenerationContext"/>.
         /// </summary>
         internal TypedExpressionSyntaxImpl ToTypedExpressionSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
-        {
-            var impl = new TypedExpressionSyntaxImpl(
+            => new(
                 this.ToSyntax( syntaxSerializationContext, targetType ),
-                this.Type,
+                targetType ?? this.Type,
                 syntaxSerializationContext.CompilationModel,
                 this.IsReferenceable,
-                this.CanBeNull );
-
-            impl.SetOriginatingUserExpression( this );
-
-            return impl;
-        }
+                this.CanBeNull,
+                this );
 
         public abstract IType Type { get; }
 
