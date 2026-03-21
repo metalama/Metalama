@@ -123,11 +123,13 @@ namespace Metalama.Framework.Code.Invokers
         /// When the method has overloads, the generated code depends on the <paramref name="delegateType"/> and the target type context:
         /// </para>
         /// <list type="bullet">
-        /// <item>If <paramref name="delegateType"/> is specified, it is always used for disambiguation
-        /// (e.g. <c>new MyDelegate(this.Method)</c>).</item>
+        /// <item>If <paramref name="delegateType"/> is specified, it is used to select the appropriate overload. The generated expression
+        /// may use an explicit delegate-construction expression (e.g. <c>new MyDelegate(this.Method)</c>) or a bare method group when the
+        /// surrounding target typing already enforces the same delegate type.</item>
         /// <item>If the expression is assigned to a variable of a specific delegate type (e.g. <c>EventHandler</c>, or a custom delegate),
-        /// and that delegate type is compatible with the method's signature, the target delegate type is used for disambiguation
-        /// (e.g. <c>new MyDelegate(this.Method)</c>).</item>
+        /// and that delegate type is compatible with the method's signature, the target delegate type is used for disambiguation. The resulting
+        /// code may similarly be either an explicit delegate-construction expression or a bare method group, depending on what is required
+        /// by the C# compiler to resolve the overload.</item>
         /// <item>Otherwise, <c>Action&lt;&gt;</c> or <c>Func&lt;&gt;</c> is used for disambiguation
         /// (e.g. <c>new Action&lt;int&gt;(this.Method)</c>).</item>
         /// </list>

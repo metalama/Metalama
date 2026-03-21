@@ -393,7 +393,7 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         var method = this.Member;
 
         // Check if the method has overloads in the declaring type.
-        var hasOverloads = method.DeclaringType.Methods.OfName( method.Name ).Count() > 1;
+        var hasOverloads = method.DeclaringType.Methods.OfName( method.Name ).Skip( 1 ).Any();
 
         // Compute the default delegate type for the IExpression.Type property.
         // If an explicit delegate type is provided, use it. Otherwise, compute Action<>/Func<>.

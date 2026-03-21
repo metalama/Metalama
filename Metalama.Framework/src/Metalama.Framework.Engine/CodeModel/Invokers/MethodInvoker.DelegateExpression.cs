@@ -103,9 +103,17 @@ internal sealed partial class MethodInvoker
 
             if ( !this._hasOverloads )
             {
-                // No overloads: a simple method group expression is always sufficient.
-                // Metalama requires C# 10+, where method groups have a natural type when unambiguous,
-                // so a bare method group expression (e.g. this.Method) is valid even in typeless contexts like var.
+                // No overloads: a bare method group is sufficient when the target type is a concrete delegate type
+                // (compiler handles the conversion) or when there is no target type (C# 10+ natural function type).
+                // However, method groups cannot be implicitly converted to non-delegate types (e.g. object,
+                // System.Delegate), so we emit an explicit delegate creation in those cases.
+                if ( targetType != null
+                     && targetType is not INamedType { TypeKind: TypeKind.Delegate }
+                     && this.Type is INamedType { TypeKind: TypeKind.Delegate } defaultDelegate )
+                {
+                    return CreateDelegateCreationExpression( methodGroupExpression, defaultDelegate, syntaxSerializationContext );
+                }
+
                 return methodGroupExpression;
             }
 
@@ -168,19 +176,58 @@ internal sealed partial class MethodInvoker
         /// Checks if a method's signature is compatible with a delegate type, honoring C# method-group-to-delegate
         /// conversion rules (contravariant parameters, covariant return type, and exact match for by-ref parameters).
         /// </summary>
+        /// <remarks>
+        /// Parameter compatibility is checked in the correct direction for delegate conversion:
+        /// <b>delegate</b> parameter types must be convertible to <b>method</b> parameter types (contravariance),
+        /// not the other way around. For by-ref parameters, types must match exactly.
+        /// </remarks>
         private static bool IsCompatibleWithDelegate( IMethod method, INamedType delegateType )
         {
-            var parameterTypes = method.Parameters.SelectAsImmutableArray( p => p.Type );
-            var refKinds = method.Parameters.SelectAsImmutableArray( p => p.RefKind );
-
-            // Use ConversionKind.Default for delegate compatibility: this allows implicit reference conversions
-            // (contravariance for parameters), while by-ref parameters still require exact type match
-            // because SignatureMatcher checks RefKind equality.
-            var invokeMethod = delegateType.Methods.OfCompatibleSignature( "Invoke", parameterTypes, refKinds, isStatic: false, ConversionKind.Default );
+            // Get the delegate's Invoke method.
+            var invokeMethod = delegateType.Methods.OfName( "Invoke" ).SingleOrDefault();
 
             if ( invokeMethod == null )
             {
                 return false;
+            }
+
+            var methodParameters = method.Parameters;
+            var delegateParameters = invokeMethod.Parameters;
+
+            if ( methodParameters.Count != delegateParameters.Count )
+            {
+                return false;
+            }
+
+            // Check parameter compatibility.
+            for ( var i = 0; i < methodParameters.Count; i++ )
+            {
+                var methodParam = methodParameters[i];
+                var delegateParam = delegateParameters[i];
+
+                // RefKind must match exactly.
+                if ( methodParam.RefKind != delegateParam.RefKind )
+                {
+                    return false;
+                }
+
+                if ( methodParam.RefKind != RefKind.None )
+                {
+                    // For by-ref parameters, types must be exactly equal.
+                    if ( !methodParam.Type.Equals( delegateParam.Type ) )
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    // Contravariant parameter compatibility:
+                    // delegate parameter type must be convertible to method parameter type.
+                    if ( !delegateParam.Type.IsConvertibleTo( methodParam.Type ) )
+                    {
+                        return false;
+                    }
+                }
             }
 
             // Check return type compatibility (covariance).

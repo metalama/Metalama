@@ -9,11 +9,14 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
+using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Testing.UnitTesting;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Linq;
 using Xunit;
+using SpecialType = Metalama.Framework.Code.SpecialType;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel
 {
@@ -532,6 +535,154 @@ class TargetCode
                     {
                     }
                     """ );
+            }
+        }
+
+        [Fact]
+        public void DelegateExpression_ContravariantParameter()
+        {
+            const string code = @"
+class C
+{
+    void M(object o) {}
+    void M(int i) {}
+}
+delegate void StringDelegate(string s);
+";
+
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.OfName( "C" ).Single();
+            var method = type.Methods.OfName( "M" ).Single( m => m.Parameters[0].Type.SpecialType == SpecialType.Object );
+            var stringDelegateType = compilation.Types.OfName( "StringDelegate" ).Single();
+
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, method );
+
+            using ( TemplateExpansionContext.WithTestingContext( syntaxSerializationContext, testContext.ServiceProvider ) )
+            {
+                var delegateExpr = method
+                    .WithObject( new TypedExpressionSyntaxImpl(
+                        syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
+                    .CreateDelegateExpression();
+
+                // When target type is StringDelegate (param: string), and method has param object,
+                // the method is compatible by contravariance (string → object).
+                // Should use target delegate type for disambiguation, not fall back to Action<object>.
+                var typed = ((IUserExpression) delegateExpr).ToTypedExpressionSyntax( syntaxSerializationContext, stringDelegateType );
+
+                var syntax = typed.Syntax.NormalizeWhitespace().ToString();
+
+                Assert.Contains( "StringDelegate", syntax, System.StringComparison.Ordinal );
+                Assert.DoesNotContain( "Action", syntax, System.StringComparison.Ordinal );
+            }
+        }
+
+        [Fact]
+        public void DelegateExpression_ContravariantParameter_WrongDirection_NotCompatible()
+        {
+            const string code = @"
+class C
+{
+    void M(string s) {}
+    void M(int i) {}
+}
+delegate void ObjectDelegate(object o);
+";
+
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.OfName( "C" ).Single();
+            var method = type.Methods.OfName( "M" ).Single( m => m.Parameters[0].Type.SpecialType == SpecialType.String );
+            var objectDelegateType = compilation.Types.OfName( "ObjectDelegate" ).Single();
+
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, method );
+
+            using ( TemplateExpansionContext.WithTestingContext( syntaxSerializationContext, testContext.ServiceProvider ) )
+            {
+                var delegateExpr = method
+                    .WithObject( new TypedExpressionSyntaxImpl(
+                        syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
+                    .CreateDelegateExpression();
+
+                // M(string) is NOT compatible with ObjectDelegate(object) because
+                // object is not implicitly convertible to string (contravariance requires delegate param → method param).
+                // Should fall back to Action<string>.
+                var typed = ((IUserExpression) delegateExpr).ToTypedExpressionSyntax( syntaxSerializationContext, objectDelegateType );
+
+                var syntax = typed.Syntax.NormalizeWhitespace().ToString();
+
+                Assert.DoesNotContain( "ObjectDelegate", syntax, System.StringComparison.Ordinal );
+                Assert.Contains( "Action", syntax, System.StringComparison.Ordinal );
+            }
+        }
+
+        [Fact]
+        public void DelegateExpression_NonDelegateTargetType_EmitsExplicitCreation()
+        {
+            const string code = @"
+class C
+{
+    void M() {}
+}
+";
+
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.OfName( "C" ).Single();
+            var method = type.Methods.OfName( "M" ).Single();
+            var objectType = compilation.Factory.GetTypeByReflectionType( typeof(object) );
+
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, method );
+
+            using ( TemplateExpansionContext.WithTestingContext( syntaxSerializationContext, testContext.ServiceProvider ) )
+            {
+                var delegateExpr = method
+                    .WithObject( new TypedExpressionSyntaxImpl(
+                        syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
+                    .CreateDelegateExpression();
+
+                // When target type is 'object' (not a delegate type), a bare method group won't compile.
+                // Should emit explicit delegate creation (new Action(...)).
+                var typed = ((IUserExpression) delegateExpr).ToTypedExpressionSyntax( syntaxSerializationContext, objectType );
+
+                var syntax = typed.Syntax.NormalizeWhitespace().ToString();
+
+                Assert.Contains( "Action", syntax, System.StringComparison.Ordinal );
+            }
+        }
+
+        [Fact]
+        public void DelegateExpression_NullTargetType_EmitsBareMethodGroup()
+        {
+            const string code = @"
+class C
+{
+    void M() {}
+}
+";
+
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.OfName( "C" ).Single();
+            var method = type.Methods.OfName( "M" ).Single();
+
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, method );
+
+            using ( TemplateExpansionContext.WithTestingContext( syntaxSerializationContext, testContext.ServiceProvider ) )
+            {
+                var delegateExpr = method
+                    .WithObject( new TypedExpressionSyntaxImpl(
+                        syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
+                    .CreateDelegateExpression();
+
+                // When target type is null (e.g., var context), bare method group is sufficient (C# 10+).
+                var typed = ((IUserExpression) delegateExpr).ToTypedExpressionSyntax( syntaxSerializationContext );
+
+                var syntax = typed.Syntax.NormalizeWhitespace().ToString();
+
+                // Should NOT contain "new" — should be a bare method group.
+                Assert.DoesNotContain( "new", syntax, System.StringComparison.Ordinal );
+                Assert.Contains( "M", syntax, System.StringComparison.Ordinal );
             }
         }
 
