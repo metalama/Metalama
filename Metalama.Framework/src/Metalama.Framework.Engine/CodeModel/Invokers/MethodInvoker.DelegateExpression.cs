@@ -45,6 +45,45 @@ internal sealed partial class MethodInvoker
 
         protected override bool CanBeNull => false;
 
+        /// <summary>
+        /// Returns the actual type of the syntax produced by <see cref="ToSyntax"/> for the given <paramref name="targetType"/>.
+        /// This override is necessary because <see cref="ToSyntax"/> may produce syntax whose type differs from <see cref="Type"/>
+        /// (the default delegate type): when the target type is a compatible delegate, the output is either a target-typed
+        /// method group or a <c>new TargetDelegateType(methodGroup)</c> expression, both of which have the target type.
+        /// </summary>
+        protected override IType GetSyntaxType( IType? targetType )
+        {
+            if ( this._explicitDelegateType != null )
+            {
+                if ( targetType is INamedType { TypeKind: TypeKind.Delegate } targetDelegateType
+                     && IsExactMatchWithDelegate( this.Method, targetDelegateType ) )
+                {
+                    // Bare method group, target-typed by the compiler.
+                    return targetType;
+                }
+
+                // new ExplicitDelegateType(methodGroup).
+                return this._explicitDelegateType;
+            }
+
+            if ( !this._hasOverloads )
+            {
+                // Bare method group with a natural type (C# 10+).
+                return this.Type;
+            }
+
+            if ( targetType is INamedType { TypeKind: TypeKind.Delegate } compatibleTargetDelegateType
+                 && IsCompatibleWithDelegate( this.Method, compatibleTargetDelegateType ) )
+            {
+                // Either a bare method group (exact match, target-typed) or new TargetDelegateType(methodGroup).
+                // In both cases the expression type matches the target type.
+                return targetType;
+            }
+
+            // new Action<>/Func<>(methodGroup).
+            return this.Type;
+        }
+
         protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
         {
             var methodGroupExpression = this.BuildMethodGroupExpression( syntaxSerializationContext );
@@ -196,7 +235,8 @@ internal sealed partial class MethodInvoker
                 .WithArgumentList(
                     ArgumentList(
                         SingletonSeparatedList(
-                            Argument( methodGroupExpression ) ) ) );
+                            Argument( methodGroupExpression ) ) ) )
+                .WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
         }
 
         private ExpressionSyntax CreateActionOrFuncExpression(
@@ -271,7 +311,8 @@ internal sealed partial class MethodInvoker
                 .WithArgumentList(
                     ArgumentList(
                         SingletonSeparatedList(
-                            Argument( methodGroupExpression ) ) ) );
+                            Argument( methodGroupExpression ) ) ) )
+                .WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
         }
     }
 }

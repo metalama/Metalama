@@ -25,7 +25,9 @@ internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpres
 
     public object AsSyntaxNode => this.Expression;
 
-    // We add a cast to the original target type because the original expression may be target-typed, but may be used in a more weakly typed target.
+    // When targetType differs from this.Type, we add a cast to this.Type (not to targetType) because the original
+    // source expression may be target-typed in its original context. The cast ensures the expression retains its
+    // semantics when placed in a different context. The output type is always this.Type, so no GetSyntaxType override is needed.
     protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
     {
         if ( targetType?.Equals( this.Type ) != true )

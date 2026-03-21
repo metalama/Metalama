@@ -85,6 +85,27 @@ When starting work on a GitHub issue:
 
 When you need to debug anything, you can use ITestOutputService to write the test output.
 
+## Unit Test Patterns
+
+For `Metalama.Framework.Tests.UnitTests` (see `InvokerTests.cs`, `ExpressionFactoryTests.cs` as references):
+- Inherit `UnitTestClass`, use `CreateTestContext()` / `CreateCompilationModel(code)`
+- Use `SyntaxSerializationContext` + `TemplateExpansionContext.WithTestingContext(ctx, serviceProvider)`
+- Need `using Microsoft.CodeAnalysis;` for `NormalizeWhitespace()` extension on `SyntaxNode` — without it, only the `SyntaxToken` overload resolves
+- `TypedExpressionSyntaxImpl.Convert()` wraps casts in `ParenthesizedExpression()`, so output is `((Type)expr)` not `(Type)expr`
+- `AssertEx.DynamicEquals()` compares via `IExpression.ToExpressionSyntax()` chain
+- Type resolution: `compilation.Factory.GetTypeByReflectionType(typeof(int))` for built-in types, `compilation.Types.OfName("A").Single()` for user-defined types
+- Type comparison: `compilation.Comparers.Default.Equals(type1, type2)`
+
+## Syntax Generation and Simplification
+
+The syntax generation pipeline intentionally produces over-specified syntax (redundant casts, fully-qualified type names, explicit `new DelegateType(methodGroup)` wrappers) to ensure correctness. The `CodeFormatter` pipeline then simplifies in context:
+
+- **Annotation**: Nodes that may be redundant are annotated with `FormattingAnnotations.WithSimplifierAnnotation<T>()` (or `WithSimplifierAnnotationIfNecessary` which checks `SyntaxGenerationOptions.AddFormattingAnnotations`)
+- **Roslyn Simplifier**: `Simplifier.ReduceAsync` removes unnecessary namespace qualifications, redundant casts, etc.
+- **Custom Simplifier** (`CodeFormatter.CustomSimplifier`): Handles Metalama-specific patterns — delegate creation simplification (e.g., `new Action(() => { ... })` → `() => { ... }` in target-typed contexts), tuple cast simplification, nullable suppression removal
+- **Key files**: `FormattingAnnotations.cs` (SDK layer), `SyntaxExtensions.WithSimplifierAnnotationIfNecessary` (Engine), `CodeFormatter.cs` (pipeline), `CodeFormatter.CustomSimplifier.cs`
+- **Initialization**: `MetalamaEngineModuleInitializer` injects `Simplifier.Annotation` into `FormattingAnnotations` to avoid workspace dependency in SDK
+
 ## Framework Extensibility
 
 For creating extension packages (like HtmlWriter or Validation), see `Metalama.Framework/docs/extensibility.md`. It covers:
