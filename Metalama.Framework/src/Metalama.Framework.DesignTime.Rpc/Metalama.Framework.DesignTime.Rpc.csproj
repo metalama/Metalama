@@ -63,7 +63,7 @@
             <ILMergeOtherInputs Include="$(OutDir)MessagePack.dll" Internalize="True" />
             <ILMergeOtherInputs Include="$(OutDir)MessagePack.Annotations.dll" Internalize="True" />
             <ILMergeLibs Include="$(OutDir)"/>
-            <ILMergeLibs Include="$(NuGetPackageRoot)netstandard.library/$(NETStandardLibraryPackageVersion)/build/netstandard2.0/ref"/>
+            <ILMergeLibs Include="$([MSBuild]::NormalizePath($(NuGetPackageRoot), 'netstandard.library', '$(NETStandardLibraryPackageVersion)', 'build', 'netstandard2.0', 'ref'))"/>
             <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.AllowNullAttribute"/>
             <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.DisallowNullAttribute"/>
             <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute"/>

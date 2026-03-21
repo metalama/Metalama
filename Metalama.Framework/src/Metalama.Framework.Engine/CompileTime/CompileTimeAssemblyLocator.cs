@@ -375,6 +375,15 @@ internal sealed class CompileTimeAssemblyLocator
 
                     var compileTimeSymbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( symbolId, this._referenceCompilation );
 
+                    // Filter out symbols that are not externally visible (e.g. internal types in reference assemblies).
+                    // DocumentationCommentId matching can find internal types like System.SR that exist in BCL assemblies
+                    // (System.Buffers, System.Collections.Immutable, etc.) but are not accessible to user code.
+                    // Treating these as compile-time available causes false positives when user code defines a type with the same name.
+                    if ( compileTimeSymbol != null && !IsExternallyAccessible( compileTimeSymbol ) )
+                    {
+                        compileTimeSymbol = null;
+                    }
+
                     if ( compileTimeSymbol == null )
                     {
                         // We didn't find the exact symbol, but there could still be a more general overload.
@@ -404,6 +413,40 @@ internal sealed class CompileTimeAssemblyLocator
                     return availableSymbol != null;
                 }
         }
+    }
+
+    /// <summary>
+    /// Determines whether a symbol from a reference assembly is externally accessible (i.e., visible to code outside its assembly).
+    /// This filters out internal types like System.SR that exist in BCL assemblies but are implementation details.
+    /// </summary>
+    private static bool IsExternallyAccessible( ISymbol symbol )
+    {
+        var current = symbol;
+
+        while ( current != null )
+        {
+            switch ( current.DeclaredAccessibility )
+            {
+                case Accessibility.Public:
+                case Accessibility.Protected:
+                case Accessibility.ProtectedOrInternal:
+                    // These are visible externally.
+                    break;
+
+                case Accessibility.Internal:
+                case Accessibility.Private:
+                case Accessibility.ProtectedAndInternal:
+                case Accessibility.NotApplicable:
+                    return false;
+
+                default:
+                    return false;
+            }
+
+            current = current.ContainingType;
+        }
+
+        return true;
     }
 
     private IReadOnlyList<string> GetReferenceAssembliesManifest(
