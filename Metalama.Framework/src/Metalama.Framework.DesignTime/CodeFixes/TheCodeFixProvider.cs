@@ -56,7 +56,8 @@ namespace Metalama.Framework.DesignTime.CodeFixes
 
             var fixableDiagnosticIds = ImmutableArray.Create( GeneralDiagnosticDescriptors.TypeNotPartial.Id )
                 .Add( CodeFixHelper.SuggestionDiagnostic.Id )
-                .AddRange( designTimeDiagnosticDefinitions.UserDiagnosticDescriptors.Keys );
+                .AddRange( designTimeDiagnosticDefinitions.UserDiagnosticDescriptors.Keys )
+                .AddRange( DesignTimeDiagnosticDefinitions.FixableStandardDiagnosticIds );
 
             this.FixableDiagnosticIds = fixableDiagnosticIds;
 

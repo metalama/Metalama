@@ -276,8 +276,15 @@ public class TestOptions
     public bool? RequireOrderedAspects { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether Roslyn types (<c>Microsoft.CodeAnalysis.*</c>) should be treated as compile-time-only.
+    /// This is typically <c>true</c> for projects referencing <c>Metalama.Framework.Sdk</c>.
+    /// To enable this option in a test, add this comment to your test file: <c>// @RoslynIsCompileTimeOnly</c>.
+    /// </summary>
+    public bool? RoslynIsCompileTimeOnly { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether Metalama should produce logs and output them to the Xunit test log.
-    /// To enable this option in a test, add this comment to your test file: <c>// @EnableLogging</c>. 
+    /// To enable this option in a test, add this comment to your test file: <c>// @EnableLogging</c>.
     /// </summary>
     public bool? EnableLogging { get; set; }
 
@@ -445,6 +452,8 @@ public class TestOptions
         this.DependencyDefinedConstants.AddRange( baseOptions.DependencyDefinedConstants );
 
         this.RequireOrderedAspects ??= baseOptions.RequireOrderedAspects;
+
+        this.RoslynIsCompileTimeOnly ??= baseOptions.RoslynIsCompileTimeOnly;
 
         this.EnableLogging ??= baseOptions.EnableLogging;
 
@@ -730,6 +739,11 @@ public class TestOptions
 
                     break;
 
+                case "RoslynIsCompileTimeOnly":
+                    this.RoslynIsCompileTimeOnly = true;
+
+                    break;
+
                 case "EnableLogging":
                     this.EnableLogging = true;
 
@@ -831,6 +845,7 @@ public class TestOptions
         => testContextOptions with
         {
             RequireOrderedAspects = this.RequireOrderedAspects ?? testContextOptions.RequireOrderedAspects,
+            RoslynIsCompileTimeOnly = this.RoslynIsCompileTimeOnly ?? testContextOptions.RoslynIsCompileTimeOnly,
             FormatCompileTimeCode = this.FormatCompileTimeCode ?? testContextOptions.FormatCompileTimeCode,
             IgnoreUserProfileLicenses = this.IgnoreUserProfileLicenses ?? testContextOptions.IgnoreUserProfileLicenses,
             CodeFormattingOptions =

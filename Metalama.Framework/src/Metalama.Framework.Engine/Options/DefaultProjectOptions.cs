@@ -92,7 +92,7 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual bool? WriteLicenseUsageData => null;
 
-    public virtual bool RoslynIsCompileTimeOnly => true;
+    public virtual bool RoslynIsCompileTimeOnly => false;
 
     public virtual string? CompileTimeTargetFrameworks => null;
 

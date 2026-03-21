@@ -45,6 +45,12 @@ public sealed partial class CompilationModel
 
     private bool IsMutable { get; }
 
+    /// <summary>
+    /// Gets the current revision number, which is incremented each time a transformation is added. Used to detect
+    /// cache staleness in collections that cache computed results (e.g. <c>AllMethods</c>).
+    /// </summary>
+    internal int Revision { get; private set; }
+
     private TCollection GetMemberCollection<TOwner, TCollection>(
         ref ImmutableDictionary<IFullRef<TOwner>, TCollection> dictionary,
         bool requestMutableCollection,
@@ -222,6 +228,8 @@ public sealed partial class CompilationModel
         {
             return;
         }
+
+        this.Revision++;
 
         // Replaced declaration should be always removed before adding the replacement.
         // ReSharper disable once ConvertIfStatementToSwitchStatement

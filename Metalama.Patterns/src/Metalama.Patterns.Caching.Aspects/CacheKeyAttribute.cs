@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Eligibility;
 
 namespace Metalama.Patterns.Caching.Aspects;
 
@@ -39,6 +40,15 @@ namespace Metalama.Patterns.Caching.Aspects;
 /// <seealso href="@caching-keys"/>
 public sealed class CacheKeyAttribute : FieldOrPropertyAspect
 {
+    public override void BuildEligibility( IEligibilityBuilder<IFieldOrProperty> builder )
+    {
+        base.BuildEligibility( builder );
+
+        builder.MustSatisfy(
+            f => f is not IField field || !field.IsAutoPropertyBackingField(),
+            f => $"{f} must not be the backing field of a property; apply [CacheKey] directly to the property instead" );
+    }
+
     public override void BuildAspect( IAspectBuilder<IFieldOrProperty> builder )
     {
         builder.Outbound.Select( f => f.DeclaringType ).RequireAspect<ImplementFormattableAspect>();
