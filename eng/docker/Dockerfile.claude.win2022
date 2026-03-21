@@ -115,7 +115,7 @@ ENV USERPROFILE=C:\\Users\\ContainerAdministrator
 
 # Install Claude CLI and configure using cmd shell to avoid HCS issues with PowerShell
 SHELL ["cmd", "/S", "/C"]
-RUN C:\nodejs\npm.cmd install --global @anthropic-ai/claude-code@2.1.34
+RUN C:\nodejs\npm.cmd install --global @anthropic-ai/claude-code@2.1.72
 RUN mkdir C:\Users\ContainerAdministrator\.claude && echo {"hasCompletedOnboarding": true} > C:\Users\ContainerAdministrator\.claude.json && echo {"alwaysThinkingEnabled": true, "spinnerTipsEnabled": false} > C:\Users\ContainerAdministrator\.claude\settings.json
 
 # Restore PowerShell shell using full path
