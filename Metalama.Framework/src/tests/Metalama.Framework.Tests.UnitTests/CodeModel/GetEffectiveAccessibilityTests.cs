@@ -53,7 +53,7 @@ public sealed class GetEffectiveAccessibilityTests : UnitTestClass
         var compilation = testContext.CreateCompilationModel( code );
         var inner = compilation.Types.OfName( "Outer" ).Single().Types.OfName( "Inner" ).Single();
 
-        Assert.Equal( Accessibility.Private, ( (IMemberOrNamedType) inner ).GetEffectiveAccessibility() );
+        Assert.Equal( Accessibility.Private, inner.GetEffectiveAccessibility() );
         Assert.Equal( Accessibility.Private, inner.Methods.OfName( "M" ).Single().GetEffectiveAccessibility() );
     }
 
@@ -65,7 +65,7 @@ public sealed class GetEffectiveAccessibilityTests : UnitTestClass
         var compilation = testContext.CreateCompilationModel( "internal class C {}" );
         var type = compilation.Types.OfName( "C" ).Single();
 
-        Assert.Equal( Accessibility.Internal, ( (IMemberOrNamedType) type ).GetEffectiveAccessibility() );
+        Assert.Equal( Accessibility.Internal, type.GetEffectiveAccessibility() );
     }
 
     [Fact]

@@ -387,24 +387,14 @@ namespace Metalama.Framework.Code
         }
 
         /// <summary>
-        /// Gets the effective accessibility of a member or named type, taking into account the accessibility of all containing types.
-        /// For example, a <c>public</c> member inside an <c>internal</c> class has an effective accessibility of <c>internal</c>.
+        /// Gets the effective accessibility of a member, taking into account the accessibility of all containing types.
+        /// For example, a <c>public</c> method inside an <c>internal</c> class has an effective accessibility of <c>internal</c>.
         /// </summary>
-        /// <param name="member">The member or named type.</param>
+        /// <param name="member">The member.</param>
         /// <returns>The effective (minimum) accessibility considering all containing types.</returns>
-        public static Accessibility GetEffectiveAccessibility( this IMemberOrNamedType member )
+        public static Accessibility GetEffectiveAccessibility( this IMember member )
         {
-            var accessibility = member.Accessibility;
-
-            for ( var declaringType = member.DeclaringType; declaringType != null; declaringType = declaringType.DeclaringType )
-            {
-                if ( declaringType.Accessibility < accessibility )
-                {
-                    accessibility = declaringType.Accessibility;
-                }
-            }
-
-            return accessibility;
+            return GetEffectiveAccessibilityOfMemberOrNamedType( member );
         }
 
         /// <summary>
@@ -425,7 +415,7 @@ namespace Metalama.Framework.Code
 
                 case INamedType namedType:
                 {
-                    var accessibility = ( (IMemberOrNamedType) namedType ).GetEffectiveAccessibility();
+                    var accessibility = GetEffectiveAccessibilityOfMemberOrNamedType( namedType );
 
                     foreach ( var typeArgument in namedType.TypeArguments )
                     {
@@ -444,6 +434,21 @@ namespace Metalama.Framework.Code
                     // For dynamic, type parameters, function pointers, etc.
                     return Accessibility.Public;
             }
+        }
+
+        private static Accessibility GetEffectiveAccessibilityOfMemberOrNamedType( IMemberOrNamedType memberOrNamedType )
+        {
+            var accessibility = memberOrNamedType.Accessibility;
+
+            for ( var declaringType = memberOrNamedType.DeclaringType; declaringType != null; declaringType = declaringType.DeclaringType )
+            {
+                if ( declaringType.Accessibility < accessibility )
+                {
+                    accessibility = declaringType.Accessibility;
+                }
+            }
+
+            return accessibility;
         }
     }
 }
