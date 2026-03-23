@@ -193,6 +193,26 @@ namespace Metalama.Framework.Code.DeclarationBuilders
             var typedConstructorArguments = ImmutableArray.CreateBuilder<TypedConstant>( constructor.Parameters.Count );
             var isLastParameterParams = constructor.Parameters.Count > 0 && constructor.Parameters[^1].IsParams;
 
+            // Validate argument count.
+            if ( isLastParameterParams )
+            {
+                if ( constructorArguments.Count < constructor.Parameters.Count - 1 )
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(constructorArguments),
+                        $"Too few arguments: expected at least {constructor.Parameters.Count - 1} but got {constructorArguments.Count}." );
+                }
+            }
+            else
+            {
+                if ( constructorArguments.Count != constructor.Parameters.Count )
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(constructorArguments),
+                        $"Wrong number of arguments: expected {constructor.Parameters.Count} but got {constructorArguments.Count}." );
+                }
+            }
+
             for ( var i = 0; i < constructor.Parameters.Count; i++ )
             {
                 var parameterType = constructor.Parameters[i].Type;
@@ -201,43 +221,64 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                 {
                     // The current parameter is `params`.
                     var arrayType = (IArrayType) parameterType;
-                    var paramsParameterValues = new List<TypedConstant>();
 
-                    if ( constructorArguments.Count == constructor.Parameters.Count
-                         && TypedConstant.CheckAcceptableType(
-                             parameterType,
-                             constructorArguments[i],
-                             false,
-                             ((ICompilationInternal) constructor.DeclaringType.Compilation).Factory ) )
+                    if ( constructorArguments.Count <= i )
                     {
-                        var constructorArgument = constructorArguments[i];
-
-                        // An array is passed to the `params` parameter.
-                        if ( constructorArgument != null )
-                        {
-                            foreach ( var arrayItem in (IEnumerable) constructorArgument )
-                            {
-                                paramsParameterValues.Add( TypedConstant.UnwrapOrCreate( arrayItem, arrayType.ElementType ) );
-                            }
-
-                            typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( paramsParameterValues.ToImmutableArray(), parameterType ) );
-                        }
-                        else
-                        {
-                            // Null is explicitly passed for the params array parameter.
-                            typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( null, parameterType ) );
-                        }
+                        // No arguments provided for the params parameter — create an empty array.
+                        typedConstructorArguments.Add(
+                            TypedConstant.UnwrapOrCreate( ImmutableArray<TypedConstant>.Empty, parameterType ) );
                     }
                     else
                     {
-                        // A list is passed to the `params` parameter. Transform this into an array.
+                        var rawArgument = constructorArguments[i];
 
-                        for ( var j = i; j < constructorArguments.Count; j++ )
+                        if ( rawArgument is TypedConstant tc && constructorArguments.Count == constructor.Parameters.Count )
                         {
-                            paramsParameterValues.Add( TypedConstant.UnwrapOrCreate( constructorArguments[j], arrayType.ElementType ) );
+                            // A TypedConstant is passed directly for the params parameter — use it as-is.
+                            typedConstructorArguments.Add( tc );
                         }
+                        else
+                        {
+                            var paramsParameterValues = new List<TypedConstant>();
 
-                        typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( paramsParameterValues.ToImmutableArray(), parameterType ) );
+                            // Unwrap TypedConstant to get the underlying value for type checking.
+                            var constructorArgument = rawArgument is TypedConstant tcToUnwrap ? tcToUnwrap.Value : rawArgument;
+
+                            if ( constructorArguments.Count == constructor.Parameters.Count
+                                 && TypedConstant.CheckAcceptableType(
+                                     parameterType,
+                                     constructorArgument,
+                                     false,
+                                     ((ICompilationInternal) constructor.DeclaringType.Compilation).Factory ) )
+                            {
+                                // An array is passed to the `params` parameter.
+                                if ( constructorArgument != null )
+                                {
+                                    foreach ( var arrayItem in (IEnumerable) constructorArgument )
+                                    {
+                                        paramsParameterValues.Add( TypedConstant.UnwrapOrCreate( arrayItem, arrayType.ElementType ) );
+                                    }
+
+                                    typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( paramsParameterValues.ToImmutableArray(), parameterType ) );
+                                }
+                                else
+                                {
+                                    // Null is explicitly passed for the params array parameter.
+                                    typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( null, parameterType ) );
+                                }
+                            }
+                            else
+                            {
+                                // A list is passed to the `params` parameter. Transform this into an array.
+
+                                for ( var j = i; j < constructorArguments.Count; j++ )
+                                {
+                                    paramsParameterValues.Add( TypedConstant.UnwrapOrCreate( constructorArguments[j], arrayType.ElementType ) );
+                                }
+
+                                typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( paramsParameterValues.ToImmutableArray(), parameterType ) );
+                            }
+                        }
                     }
                 }
                 else
