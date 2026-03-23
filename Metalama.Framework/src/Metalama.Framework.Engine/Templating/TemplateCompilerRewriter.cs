@@ -761,16 +761,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             }
             else
             {
-                // Try to preserve the original literal text (e.g., "0xff" instead of "255").
-                var originalLiteralText = this.TryGetOriginalLiteralText( expression );
-
-                var literalToken = originalLiteralText != null
-                    ? this.MetaSyntaxFactory.LiteralWithText( originalLiteralText, expression )
-                    : this.MetaSyntaxFactory.Literal( expression );
-
                 literalExpression = this.MetaSyntaxFactory.LiteralExpression(
                     this.Transform( syntaxKind ),
-                    literalToken );
+                    this.MetaSyntaxFactory.Literal( expression ) );
             }
 
             return InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.RunTimeExpression) ) )
@@ -874,176 +867,45 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     }
 
     /// <summary>
-    /// Tries to find the original literal text for a compile-time expression. This allows preserving the source form
-    /// of numeric literals (e.g., <c>0xff</c>, <c>0b1010</c>, <c>42L</c>) when they are serialized back to run-time code.
+    /// Prepends <c>SetPreferredLiteralText</c> calls to the body for numeric literals found in the original template body.
     /// </summary>
-    private string? TryGetOriginalLiteralText( ExpressionSyntax expression )
+    private BlockSyntax PrependPreferredLiteralTextStatements( BlockSyntax body, SyntaxNode originalBody )
     {
-        return TryGetLiteralTextFromExpression( expression )
-               ?? TryGetLiteralTextFromDeclaration( expression );
+        var statements = this.CreatePreferredLiteralTextStatements( originalBody );
 
-        string? TryGetLiteralTextFromExpression( ExpressionSyntax expr )
+        return statements.Count > 0
+            ? body.WithStatements( body.Statements.InsertRange( 0, statements ) )
+            : body;
+    }
+
+    /// <summary>
+    /// Collects numeric literals from the original template body and generates
+    /// <c>SetPreferredLiteralText</c> calls to register their source text at the start of the template method.
+    /// </summary>
+    private List<StatementSyntax> CreatePreferredLiteralTextStatements( SyntaxNode originalBody )
+    {
+        var statements = new List<StatementSyntax>();
+
+        foreach ( var literal in originalBody.DescendantTokens() )
         {
-            // Direct literal expression.
-            if ( expr.IsKind( SyntaxKind.NumericLiteralExpression )
-                 && expr is LiteralExpressionSyntax { Token.RawKind: (int) SyntaxKind.NumericLiteralToken } literal )
+            if ( literal.RawKind != (int) SyntaxKind.NumericLiteralToken )
             {
-                return literal.Token.Text;
+                continue;
             }
 
-            return null;
+            var text = literal.Text;
+
+            // Generate: templateSyntaxFactory.SetPreferredLiteralText( <literal>, "<text>" );
+            statements.Add(
+                ExpressionStatement(
+                    InvocationExpression(
+                            this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.SetPreferredLiteralText) ) )
+                        .AddArgumentListArguments(
+                            Argument( (ExpressionSyntax) literal.Parent! ),
+                            Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( text ) ) ) ) ) );
         }
 
-        string? TryGetLiteralTextFromDeclaration( ExpressionSyntax expr )
-        {
-            // For an identifier, look up the declaring variable and check its initializer.
-            if ( !expr.IsKind( SyntaxKind.IdentifierName ) )
-            {
-                return null;
-            }
-
-            var identifier = (IdentifierNameSyntax) expr;
-
-            var symbol = this._syntaxTreeAnnotationMap.GetSymbol( expr );
-
-            if ( symbol is not ILocalSymbol localSymbol )
-            {
-                return null;
-            }
-
-            foreach ( var syntaxRef in localSymbol.DeclaringSyntaxReferences )
-            {
-                var declaratorNode = syntaxRef.GetSyntax();
-
-                if ( !declaratorNode.IsKind( SyntaxKind.VariableDeclarator ) )
-                {
-                    continue;
-                }
-
-                var declarator = (VariableDeclaratorSyntax) declaratorNode;
-
-                var initValue = declarator.Initializer?.Value;
-
-                if ( initValue == null )
-                {
-                    continue;
-                }
-
-                // Safety check: don't preserve literal text if the variable might be modified after declaration
-                // (e.g., passed as ref/out, assigned to, incremented, etc.).
-                if ( IsVariablePotentiallyMutated( identifier.Identifier.ValueText, declarator ) )
-                {
-                    return null;
-                }
-
-                // Direct literal initializer: var x = 0xff;
-                var literalText = TryGetLiteralTextFromExpression( initValue );
-
-                if ( literalText != null )
-                {
-                    return literalText;
-                }
-
-                // Unwrap meta.CompileTime(literal) or similar single-argument invocations.
-                if ( initValue.IsKind( SyntaxKind.InvocationExpression )
-                     && initValue is InvocationExpressionSyntax { ArgumentList.Arguments: [var singleArg] } )
-                {
-                    literalText = TryGetLiteralTextFromExpression( singleArg.Expression );
-
-                    if ( literalText != null )
-                    {
-                        return literalText;
-                    }
-                }
-
-                // Unwrap cast expressions: (int)0xff
-                if ( initValue.IsKind( SyntaxKind.CastExpression ) && initValue is CastExpressionSyntax castExpr )
-                {
-                    literalText = TryGetLiteralTextFromExpression( castExpr.Expression );
-
-                    if ( literalText != null )
-                    {
-                        return literalText;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        // Check if a variable could be modified after its declaration within the enclosing method body.
-        static bool IsVariablePotentiallyMutated( string variableName, VariableDeclaratorSyntax declarator )
-        {
-            // Find the enclosing block or method body.
-            var enclosingBlock = declarator.FirstAncestorOrSelf<BlockSyntax>();
-
-            if ( enclosingBlock == null )
-            {
-                return true; // Assume mutable if we can't determine.
-            }
-
-            var declaratorSpanEnd = declarator.Span.End;
-
-            foreach ( var descendant in enclosingBlock.DescendantNodes() )
-            {
-                // Only check nodes after the declaration.
-                if ( descendant.SpanStart <= declaratorSpanEnd )
-                {
-                    continue;
-                }
-
-                if ( descendant is not IdentifierNameSyntax id || id.Identifier.ValueText != variableName )
-                {
-                    continue;
-                }
-
-                var parent = id.Parent;
-
-                if ( parent == null )
-                {
-                    continue;
-                }
-
-                // Check for assignment: variable = ..., variable += ..., etc.
-                if ( parent.IsKind( SyntaxKind.SimpleAssignmentExpression )
-                     || parent.IsKind( SyntaxKind.AddAssignmentExpression )
-                     || parent.IsKind( SyntaxKind.SubtractAssignmentExpression )
-                     || parent.IsKind( SyntaxKind.MultiplyAssignmentExpression )
-                     || parent.IsKind( SyntaxKind.DivideAssignmentExpression )
-                     || parent.IsKind( SyntaxKind.ModuloAssignmentExpression )
-                     || parent.IsKind( SyntaxKind.AndAssignmentExpression )
-                     || parent.IsKind( SyntaxKind.OrAssignmentExpression )
-                     || parent.IsKind( SyntaxKind.ExclusiveOrAssignmentExpression )
-                     || parent.IsKind( SyntaxKind.LeftShiftAssignmentExpression )
-                     || parent.IsKind( SyntaxKind.RightShiftAssignmentExpression ) )
-                {
-                    var assignment = (AssignmentExpressionSyntax) parent;
-
-                    if ( assignment.Left == id )
-                    {
-                        return true;
-                    }
-                }
-
-                // Check for ref/out argument: Method(ref variable), Method(out variable).
-                if ( parent.IsKind( SyntaxKind.Argument )
-                     && ((ArgumentSyntax) parent).RefOrOutKeyword.RawKind != (int) SyntaxKind.None )
-                {
-                    return true;
-                }
-
-                // Check for increment/decrement: variable++, ++variable, variable--, --variable.
-                if ( parent.IsKind( SyntaxKind.PostIncrementExpression )
-                     || parent.IsKind( SyntaxKind.PostDecrementExpression )
-                     || parent.IsKind( SyntaxKind.PreIncrementExpression )
-                     || parent.IsKind( SyntaxKind.PreDecrementExpression ) )
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
+        return statements;
     }
 
     private ExpressionSyntax CreateTypeParameterSubstitutionDictionary( string propertyName, TypeSyntax dictionaryType )
@@ -1853,6 +1715,19 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             body = body?.WithStatements( body.Statements.InsertRange( 0, templateParameterDefaultStatements ) );
         }
 
+        // Generate SetPreferredLiteralText calls for all numeric literals in the original template body.
+        var originalBody = (SyntaxNode?) node.Body ?? node.ExpressionBody;
+
+        if ( body != null && originalBody != null )
+        {
+            var preferredLiteralStatements = this.CreatePreferredLiteralTextStatements( originalBody );
+
+            if ( preferredLiteralStatements.Count > 0 )
+            {
+                body = body.WithStatements( body.Statements.InsertRange( 0, preferredLiteralStatements ) );
+            }
+        }
+
         var result = this.CreateTemplateMethod(
             node,
             body,
@@ -1893,6 +1768,19 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 isVoid );
         }
 
+        // Generate SetPreferredLiteralText calls for all numeric literals.
+        var originalBody = (SyntaxNode?) node.Body ?? node.ExpressionBody;
+
+        if ( originalBody != null )
+        {
+            var preferredLiteralStatements = this.CreatePreferredLiteralTextStatements( originalBody );
+
+            if ( preferredLiteralStatements.Count > 0 )
+            {
+                body = body.WithStatements( body.Statements.InsertRange( 0, preferredLiteralStatements ) );
+            }
+        }
+
         // Create the parameter list.
         var parameters = node.Keyword.IsKind( SyntaxKind.GetKeyword )
             ? [this.CreateTemplateSyntaxFactoryParameter()]
@@ -1917,6 +1805,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             this.Indent( 3 );
 
             var body = (BlockSyntax) this.BuildRunTimeBlock( bodyExpression, false, false );
+            body = this.PrependPreferredLiteralTextStatements( body, node.ExpressionBody );
 
             var result = this.CreateTemplateMethod( node, body );
 
@@ -1929,6 +1818,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             this.Indent( 3 );
 
             var body = (BlockSyntax) this.BuildRunTimeBlock( initializerExpression, false, false );
+            body = this.PrependPreferredLiteralTextStatements( body, node.Initializer );
 
             var result = this.CreateTemplateMethod( node, body );
 
@@ -1950,6 +1840,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
             // This is template for field initializer.
             var body = (BlockSyntax) this.BuildRunTimeBlock( node.Initializer.AssertNotNull().Value, false, false );
+            body = this.PrependPreferredLiteralTextStatements( body, node.Initializer );
 
             var result = this.CreateTemplateMethod( node, body );
 

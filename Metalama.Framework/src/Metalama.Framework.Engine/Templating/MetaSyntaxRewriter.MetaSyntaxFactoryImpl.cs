@@ -89,15 +89,6 @@ namespace Metalama.Framework.Engine.Templating
                 return result;
             }
 
-            /// <summary>
-            /// Generates a call to <c>SyntaxFactory.Literal(text, value)</c> that preserves the original literal text.
-            /// </summary>
-            public ExpressionSyntax LiteralWithText( string literalText, ExpressionSyntax valueExpression )
-                => SyntaxFactory.InvocationExpression( this.SyntaxFactoryMethod( nameof(SyntaxFactory.Literal) ) )
-                    .AddArgumentListArguments(
-                        SyntaxFactory.Argument( SyntaxFactoryEx.LiteralNonNullExpression( literalText ) ),
-                        SyntaxFactory.Argument( valueExpression ) );
-
             public ExpressionSyntax Literal( SyntaxToken token )
                 => SyntaxFactory.InvocationExpression( this.SyntaxFactoryMethod( nameof(SyntaxFactory.Literal) ) )
                     .AddArgumentListArguments(

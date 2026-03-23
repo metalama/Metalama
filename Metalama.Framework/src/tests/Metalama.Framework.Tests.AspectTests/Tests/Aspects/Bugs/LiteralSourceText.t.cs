@@ -18,5 +18,6 @@ public void Method()
   global::System.Console.WriteLine(1_000_000);
   global::System.Console.WriteLine(0x00_ff_ff);
   global::System.Console.WriteLine(0b0000_1111_0000);
+  global::System.Console.WriteLine(0xff);
   return;
 }

@@ -13,42 +13,28 @@ public class TestAspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        // Compile-time literals serialized back to run-time code.
-        var ctBin = meta.CompileTime( 0b11111111 );
-        var ctHex = meta.CompileTime( 0xff );
-        var ctLowerL = meta.CompileTime( 42l );
-        var ctUpperL = meta.CompileTime( 42L );
-        var ctLowerU = meta.CompileTime( 42u );
-        var ctUpperU = meta.CompileTime( 42U );
-        var ctUl = meta.CompileTime( 42ul );
-        var ctLu = meta.CompileTime( 42lu );
-        var ctFloat = meta.CompileTime( 42.0f );
-        var ctFloatExp = meta.CompileTime( 42.0E-13f );
-        var ctDouble = meta.CompileTime( 42.0d );
-        var ctDoubleExp = meta.CompileTime( 42.0E-13d );
-        var ctDecimal = meta.CompileTime( 42.0m );
-        var ctDecimalExp = meta.CompileTime( 42.0E-13m );
-        var ctIntUnderscores = meta.CompileTime( 1_000_000 );
-        var ctHexUnderscores = meta.CompileTime( 0x00_ff_ff );
-        var ctBinUnderscores = meta.CompileTime( 0b0000_1111_0000 );
+        // Direct run-time literals should preserve source text.
+        Console.WriteLine( 0b11111111 );
+        Console.WriteLine( 0xff );
+        Console.WriteLine( 42l );
+        Console.WriteLine( 42L );
+        Console.WriteLine( 42u );
+        Console.WriteLine( 42U );
+        Console.WriteLine( 42ul );
+        Console.WriteLine( 42lu );
+        Console.WriteLine( 42.0f );
+        Console.WriteLine( 42.0E-13f );
+        Console.WriteLine( 42.0d );
+        Console.WriteLine( 42.0E-13d );
+        Console.WriteLine( 42.0m );
+        Console.WriteLine( 42.0E-13m );
+        Console.WriteLine( 1_000_000 );
+        Console.WriteLine( 0x00_ff_ff );
+        Console.WriteLine( 0b0000_1111_0000 );
 
-        Console.WriteLine( ctBin );
+        // Compile-time literals via meta.CompileTime should also preserve source text.
+        var ctHex = meta.CompileTime( 0xff );
         Console.WriteLine( ctHex );
-        Console.WriteLine( ctLowerL );
-        Console.WriteLine( ctUpperL );
-        Console.WriteLine( ctLowerU );
-        Console.WriteLine( ctUpperU );
-        Console.WriteLine( ctUl );
-        Console.WriteLine( ctLu );
-        Console.WriteLine( ctFloat );
-        Console.WriteLine( ctFloatExp );
-        Console.WriteLine( ctDouble );
-        Console.WriteLine( ctDoubleExp );
-        Console.WriteLine( ctDecimal );
-        Console.WriteLine( ctDecimalExp );
-        Console.WriteLine( ctIntUnderscores );
-        Console.WriteLine( ctHexUnderscores );
-        Console.WriteLine( ctBinUnderscores );
 
         return meta.Proceed();
     }
