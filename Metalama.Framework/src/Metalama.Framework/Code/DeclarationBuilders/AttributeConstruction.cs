@@ -145,18 +145,24 @@ namespace Metalama.Framework.Code.DeclarationBuilders
             constructorArguments ??= ImmutableArray<object?>.Empty;
             namedArguments ??= ImmutableArray<KeyValuePair<string, object?>>.Empty;
 
-            // Translate IType and System.Type arguments to System.Type to get the correct constructor.
-            // This handles IType implementations, CompileTimeType, RuntimeType, and other Type subclasses.
-            // Also unwrap TypedConstant values to use their runtime type for constructor resolution.
-            var constructorArgumentTypes =
-                constructorArguments
-                    .Select( x => x is TypedConstant tc ? tc.Value : x )
-                    .Select( x => x?.GetType() )
-                    .Select(
-                        x => x == null ? null :
-                            typeof(IType).IsAssignableFrom( x ) || typeof(Type).IsAssignableFrom( x ) ? typeof(Type) :
-                            x )
-                    .ToArray();
+            // Determine argument types for constructor resolution.
+            // For TypedConstant arguments, use their declared Type (not the runtime type of Value,
+            // which would be incorrect for enums where Value is the underlying integer type).
+            // For IType/Type arguments, map to System.Type (attribute constructor parameter type).
+            var constructorArgumentTypes = new IType?[constructorArguments.Count];
+
+            for ( var i = 0; i < constructorArguments.Count; i++ )
+            {
+                var arg = constructorArguments[i];
+
+                constructorArgumentTypes[i] = arg switch
+                {
+                    TypedConstant tc => tc.Type,
+                    null => null,
+                    IType or System.Type => TypeFactory.GetType( typeof(Type) ),
+                    _ => TypeFactory.GetType( arg.GetType() )
+                };
+            }
 
             var constructors = attributeType.Constructors.OfCompatibleSignature( constructorArgumentTypes ).ToList();
 
