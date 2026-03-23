@@ -650,6 +650,16 @@ namespace Metalama.Framework.Engine.CodeModel
 
         public bool IsPartial => this.PartialCompilation.IsPartial;
 
+        public IMethod? EntryPoint
+        {
+            get
+            {
+                var entryPointSymbol = this.RoslynCompilation.GetEntryPoint( CancellationToken.None );
+
+                return entryPointSymbol != null ? this.Factory.GetMethod( entryPointSymbol ) : null;
+            }
+        }
+
         [Memo]
         internal DeclarationCache Cache => new( this );
 
