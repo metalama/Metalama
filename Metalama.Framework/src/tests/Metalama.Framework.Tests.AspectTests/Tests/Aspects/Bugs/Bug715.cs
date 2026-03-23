@@ -13,7 +13,6 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
-using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug715;
 
@@ -31,7 +30,7 @@ public class Aspect : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
         builder.AddInitializer(
-            StatementFactory.Parse( "Console.WriteLine( \"initialized\" );" ),
+            StatementFactory.Parse( "global::System.Console.WriteLine( \"initialized\" );" ),
             InitializerKind.BeforeInstanceConstructor );
     }
 }

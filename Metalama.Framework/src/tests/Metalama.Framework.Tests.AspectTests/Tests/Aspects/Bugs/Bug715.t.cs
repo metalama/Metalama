@@ -5,6 +5,6 @@ internal class Target
   public Target(int x)
   {
     this.X = x;
-    Console.WriteLine("initialized");
+    global::System.Console.WriteLine("initialized");
   }
 }
