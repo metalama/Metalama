@@ -209,39 +209,6 @@ public sealed class CompileTimeDomainTests : UnitTestClass
         }
     }
 
-    /// <summary>
-    /// Regression test for issue #700: GetOrLoadAssembly should not throw when the assembly identity
-    /// differs from the loaded assembly's identity only in casing (e.g., after renaming a project from
-    /// MetaLamaTest to MetalamaTest).
-    /// </summary>
-    [Fact]
-    public void GetOrLoadAssembly_CasingDifference_DoesNotThrow()
-    {
-        using var testContext = this.CreateTestContext();
-        using var domain = testContext.Domain;
-
-        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
-        Directory.CreateDirectory( tempDir );
-
-        try
-        {
-            // Create assembly on disk with old casing (simulates cached compile-time assembly).
-            var path = CreateAssemblyOnDisk( tempDir, "MetaLamaTest", new Version( 0, 0, 0, 0 ), "public class C {}" );
-
-            // Create an AssemblyIdentity with new casing (simulates project rename).
-            var newIdentity = new AssemblyIdentity( "MetalamaTest" );
-
-            // This should succeed — assembly names are case-insensitive in .NET.
-            var assembly = domain.GetOrLoadAssembly( newIdentity, path );
-
-            Assert.NotNull( assembly );
-        }
-        finally
-        {
-            TryDeleteDirectory( tempDir );
-        }
-    }
-
     private static string CreateAssemblyOnDisk( string directory, string assemblyName, Version version, string code )
     {
         var compilation = CSharpCompilation.Create(

@@ -1882,5 +1882,59 @@ public class MyAspect
             Assert.Equal( templateLanguageVersion, loader.RootProject.Manifest!.LanguageVersion );
         }
 #endif
+
+        /// <summary>
+        /// Regression test for issue #700: Renaming a project with a case-only change (e.g., MetaLamaTest -> MetalamaTest)
+        /// should not cause an AssertionFailedException due to assembly identity mismatch. The project hash includes
+        /// the assembly name case-sensitively, so a case change produces a different hash and avoids cache collision.
+        /// </summary>
+        [Fact]
+        public void ProjectRenameCasingChange()
+        {
+            const string code = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+[assembly: CompileTime]
+public class ReferencedClass
+{
+}
+";
+
+            using var testContext = this.CreateTestContext();
+            var domain = testContext.Domain;
+
+            DiagnosticBag diagnosticBag = new();
+
+            // Build compile-time project with old casing.
+            var builder1 = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+
+            Assert.True(
+                builder1.TryGetCompileTimeProjectFromCompilation(
+                    testContext.CreateCSharpCompilation( code, assemblyName: "MetaLamaTest" ),
+                    null,
+                    diagnosticBag,
+                    false,
+                    testContext.CancellationToken,
+                    out var project1 ) );
+
+            Assert.NotNull( project1 );
+
+            // Build compile-time project with new casing (simulates project rename).
+            var builder2 = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+
+            Assert.True(
+                builder2.TryGetCompileTimeProjectFromCompilation(
+                    testContext.CreateCSharpCompilation( code, assemblyName: "MetalamaTest" ),
+                    null,
+                    diagnosticBag,
+                    false,
+                    testContext.CancellationToken,
+                    out var project2 ) );
+
+            Assert.NotNull( project2 );
+
+            // Verify they are different projects (different hash due to different assembly name casing).
+            Assert.NotSame( project1, project2 );
+        }
     }
 }

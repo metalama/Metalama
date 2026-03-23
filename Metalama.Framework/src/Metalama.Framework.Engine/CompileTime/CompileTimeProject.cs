@@ -207,11 +207,7 @@ internal sealed class CompileTimeProject : IProjectService
         Assembly? assembly = null,
         DiagnosticManifest? diagnosticManifest = null )
     {
-        if ( compiledAssemblyPath != null
-             && !string.Equals(
-                 compileTimeIdentity.Name,
-                 Path.GetFileNameWithoutExtension( compiledAssemblyPath ),
-                 StringComparison.OrdinalIgnoreCase ) )
+        if ( compiledAssemblyPath != null && compileTimeIdentity.Name != Path.GetFileNameWithoutExtension( compiledAssemblyPath ) )
         {
             throw new AssertionFailedException(
                 $"Assembly identify mismatch: the expected identity is '{compileTimeIdentity}', but the file path is '{compileTimeIdentity}'." );

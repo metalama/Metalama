@@ -239,7 +239,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
                     var assembly = ctx.me.LoadAssembly( ctx.path, ctx.compileTimeIdentity.ToAssemblyName() );
 
-                    if ( !string.Equals( assembly.FullName, ctx.compileTimeIdentity.ToString(), StringComparison.OrdinalIgnoreCase ) )
+                    if ( assembly.FullName != ctx.compileTimeIdentity.ToString() )
                     {
                         throw new AssertionFailedException(
                             $"Assembly identify mismatch: the expected identity is '{ctx.compileTimeIdentity}', but the identity of the loaded assembly is '{assembly.FullName}'." );
