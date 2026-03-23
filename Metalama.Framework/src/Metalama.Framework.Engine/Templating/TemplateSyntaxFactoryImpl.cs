@@ -501,6 +501,9 @@ namespace Metalama.Framework.Engine.Templating
         {
             var syntaxSerializationContext = this.SyntaxSerializationContext;
 
+            // Apply preferred literal text if available.
+            syntax = this.ApplyPreferredLiteralText( syntax );
+
             var expressionType = type != null
                 ? syntaxSerializationContext.CompilationModel.SerializableTypeIdResolver.ResolveId(
                     new SerializableTypeId( type ),
@@ -509,6 +512,51 @@ namespace Metalama.Framework.Engine.Templating
 
             return new TypedExpressionSyntaxImpl( syntax, expressionType, syntaxSerializationContext.CompilationModel );
         }
+
+        private ExpressionSyntax ApplyPreferredLiteralText( ExpressionSyntax syntax )
+        {
+            if ( syntax is LiteralExpressionSyntax { Token: { RawKind: (int) SyntaxKind.NumericLiteralToken } token } literalExpr
+                 && this._templateExpansionContext.TryGetPreferredLiteralText( token.Value, out var preferredText ) )
+            {
+                // Only apply when the current token has the default text representation.
+                // This avoids replacing literals that already have an intentional non-default spelling.
+                var defaultToken = CreateDefaultLiteralToken( token.Value );
+
+                if ( defaultToken != null && defaultToken.Value.Text == token.Text )
+                {
+                    var newToken = CreateLiteralTokenWithText( preferredText, token.Value! );
+                    syntax = literalExpr.WithToken( newToken );
+                }
+            }
+
+            return syntax;
+        }
+
+        private static SyntaxToken? CreateDefaultLiteralToken( object? value )
+            => value switch
+            {
+                int i => SyntaxFactory.Literal( i ),
+                uint u => SyntaxFactory.Literal( u ),
+                long l => SyntaxFactory.Literal( l ),
+                ulong ul => SyntaxFactory.Literal( ul ),
+                float f => SyntaxFactory.Literal( f ),
+                double d => SyntaxFactory.Literal( d ),
+                decimal m => SyntaxFactory.Literal( m ),
+                _ => null
+            };
+
+        private static SyntaxToken CreateLiteralTokenWithText( string text, object value )
+            => value switch
+            {
+                int i => SyntaxFactory.Literal( text, i ),
+                uint u => SyntaxFactory.Literal( text, u ),
+                long l => SyntaxFactory.Literal( text, l ),
+                ulong ul => SyntaxFactory.Literal( text, ul ),
+                float f => SyntaxFactory.Literal( text, f ),
+                double d => SyntaxFactory.Literal( text, d ),
+                decimal m => SyntaxFactory.Literal( text, m ),
+                _ => SyntaxFactory.Literal( text, Convert.ToInt32( value, System.Globalization.CultureInfo.InvariantCulture ) )
+            };
 
         public TypedExpressionSyntax RunTimeExpression( IUserExpression syntax, string? type = null )
             => syntax.ToTypedExpressionSyntax( this.SyntaxSerializationContext );
@@ -953,5 +1001,8 @@ namespace Metalama.Framework.Engine.Templating
             // Create an identifier expression for the backing field.
             return SyntaxFactoryEx.WellKnownIdentifierName( backingFieldName );
         }
+
+        public void SetPreferredLiteralText( object value, string text )
+            => this._templateExpansionContext.SetPreferredLiteralText( value, text );
     }
 }
