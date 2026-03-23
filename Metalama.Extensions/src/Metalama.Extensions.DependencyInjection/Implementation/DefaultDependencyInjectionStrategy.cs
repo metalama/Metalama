@@ -163,12 +163,52 @@ public class DefaultDependencyInjectionStrategy
     /// <summary>
     /// Pulls the dependency from a given constructor.
     /// </summary>
+    private static Accessibility GetEffectiveAccessibility( IMemberOrNamedType member )
+    {
+        var accessibility = member.Accessibility;
+
+        for ( var declaringType = member.DeclaringType; declaringType != null; declaringType = declaringType.DeclaringType )
+        {
+            if ( declaringType.Accessibility < accessibility )
+            {
+                accessibility = declaringType.Accessibility;
+            }
+        }
+
+        return accessibility;
+    }
+
+    private static Accessibility GetEffectiveAccessibility( IType type )
+    {
+        if ( type is INamedType namedType )
+        {
+            return GetEffectiveAccessibility( (IMemberOrNamedType) namedType );
+        }
+
+        // For non-named types (arrays, pointers, etc.), assume public.
+        return Accessibility.Public;
+    }
+
     protected virtual bool TryPullDependency(
         IAdviser<IConstructor> adviser,
         IFieldOrProperty dependencyFieldOrProperty,
         IDependencyPullStrategy dependencyPullStrategy )
     {
         var constructor = adviser.Target;
+
+        // Check that the dependency type is at least as accessible as the constructor.
+        var constructorEffectiveAccessibility = GetEffectiveAccessibility( constructor );
+        var dependencyTypeEffectiveAccessibility = GetEffectiveAccessibility( this.Properties.DependencyType );
+
+        if ( dependencyTypeEffectiveAccessibility < constructorEffectiveAccessibility )
+        {
+            adviser.Diagnostics.Report(
+                DiagnosticDescriptors.DependencyLessAccessibleThanConstructor.WithArguments( (this.Properties.DependencyType, constructor) ),
+                constructor );
+
+            return false;
+        }
+
         var pullStrategy = dependencyPullStrategy.CreateParameterPullStrategy();
 
         // Find a compatible type in the constructor.
