@@ -647,10 +647,11 @@ namespace Metalama.Framework.Engine.CompileTime
                     }
                 }
 
-                // If the type uses bodyless syntax (e.g. `class Aspect : TypeAspect;`), convert to a body with braces.
+                // If the type uses bodyless syntax (e.g. `class Aspect : TypeAspect;`), convert to a body with braces
+                // only when we have members to inject. Otherwise, keep the original semicolon form.
                 var nodeForTransform = node;
 
-                if ( node.SemicolonToken != default && node.OpenBraceToken == default )
+                if ( members.Count > 0 && node.SemicolonToken != default && node.OpenBraceToken == default )
                 {
                     nodeForTransform = node
                         .WithSemicolonToken( default )
