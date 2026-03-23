@@ -283,6 +283,35 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
     /// </summary>
     public string? BackingFieldName { get; init; }
 
+    private Dictionary<object, string>? _preferredLiteralTexts;
+
+    /// <summary>
+    /// Registers a preferred text representation for a numeric literal value.
+    /// When the value is later emitted as a run-time literal, the preferred text is used.
+    /// </summary>
+    internal void SetPreferredLiteralText( object value, string text )
+    {
+        this._preferredLiteralTexts ??= new Dictionary<object, string>();
+        this._preferredLiteralTexts[value] = text;
+    }
+
+    /// <summary>
+    /// Tries to get the preferred literal text for a value previously registered via <see cref="SetPreferredLiteralText"/>.
+    /// </summary>
+    internal bool TryGetPreferredLiteralText( object? value, out string text )
+    {
+        if ( value != null && this._preferredLiteralTexts != null && this._preferredLiteralTexts.TryGetValue( value, out var t ) )
+        {
+            text = t;
+
+            return true;
+        }
+
+        text = default!;
+
+        return false;
+    }
+
     public SyntaxSerializationService SyntaxSerializationService { get; }
 
     public SyntaxSerializationContext SyntaxSerializationContext { get; }
