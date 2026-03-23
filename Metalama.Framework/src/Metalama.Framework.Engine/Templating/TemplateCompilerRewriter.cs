@@ -881,6 +881,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     /// <summary>
     /// Collects numeric literals from the original template body and generates
     /// <c>SetPreferredLiteralText</c> calls to register their source text at the start of the template method.
+    /// Only registers literals whose text differs from the default representation (e.g., hex, binary, suffixed, with separators).
     /// </summary>
     private List<StatementSyntax> CreatePreferredLiteralTextStatements( SyntaxNode originalBody )
     {
@@ -895,6 +896,14 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
             var text = literal.Text;
 
+            // Skip literals whose text matches the default representation (e.g., plain "42", "0").
+            var defaultToken = CreateDefaultLiteralToken( literal.Value );
+
+            if ( defaultToken != null && defaultToken.Value.Text == text )
+            {
+                continue;
+            }
+
             // Generate: templateSyntaxFactory.SetPreferredLiteralText( <literal>, "<text>" );
             statements.Add(
                 ExpressionStatement(
@@ -906,6 +915,19 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
 
         return statements;
+
+        static SyntaxToken? CreateDefaultLiteralToken( object? value )
+            => value switch
+            {
+                int i => Literal( i ),
+                uint u => Literal( u ),
+                long l => Literal( l ),
+                ulong ul => Literal( ul ),
+                float f => Literal( f ),
+                double d => Literal( d ),
+                decimal m => Literal( m ),
+                _ => null
+            };
     }
 
     private ExpressionSyntax CreateTypeParameterSubstitutionDictionary( string propertyName, TypeSyntax dictionaryType )
