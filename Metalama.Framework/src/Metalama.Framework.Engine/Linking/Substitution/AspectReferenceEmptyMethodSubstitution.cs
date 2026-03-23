@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.Engine.Formatting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
