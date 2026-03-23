@@ -135,4 +135,11 @@ public interface ITemplateSyntaxFactory
     /// Gets the backing field for a property template that uses the C# 14 <c>field</c> keyword.
     /// </summary>
     ExpressionSyntax GetPropertyBackingField();
+
+    /// <summary>
+    /// Registers a preferred literal text representation for a given numeric value.
+    /// When the value is later emitted as a run-time literal, the preferred text is used
+    /// instead of the default representation (e.g., <c>"0xff"</c> instead of <c>"255"</c>).
+    /// </summary>
+    void SetPreferredLiteralText( object value, string text );
 }
