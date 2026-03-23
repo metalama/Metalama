@@ -8,7 +8,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Attributes.TypedConstant_EnumMember_;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Attributes.TypedConstant_NamedConstant_;
 
 public enum MyRunTimeEnum
 {
@@ -36,7 +36,7 @@ public class MyAspect : MethodAspect
                 typeof(MyAttribute),
                 namedArguments: new KeyValuePair<string, object?>[]
                 {
-                    new( "Property", TypedConstant.EnumMember( typeof(MyRunTimeEnum), nameof(MyRunTimeEnum.B) ) )
+                    new( "Property", TypedConstant.NamedConstant( typeof(MyRunTimeEnum), nameof(MyRunTimeEnum.B) ) )
                 } ) );
     }
 }

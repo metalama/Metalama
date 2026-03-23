@@ -269,13 +269,13 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
         }
 
         [Fact]
-        public void EnumMember()
+        public void NamedConstant()
         {
             using var testContext = this.CreateTestContext();
             var emptyCompilation = testContext.CreateCompilationModel( "" );
             using var userCodeContext = testContext.WithExecutionContext( emptyCompilation );
 
-            var c = TypedConstant.EnumMember( typeof(ConsoleColor), nameof(ConsoleColor.Blue) );
+            var c = TypedConstant.NamedConstant( typeof(ConsoleColor), nameof(ConsoleColor.Blue) );
 
             Assert.True( c.IsInitialized );
             Assert.IsAssignableFrom<IField>( c.Value );
@@ -283,14 +283,14 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
         }
 
         [Fact]
-        public void EnumMember_INamedType()
+        public void NamedConstant_INamedType()
         {
             using var testContext = this.CreateTestContext();
             var emptyCompilation = testContext.CreateCompilationModel( "" );
             using var userCodeContext = testContext.WithExecutionContext( emptyCompilation );
 
             var enumType = (INamedType) emptyCompilation.Factory.GetTypeByReflectionType( typeof(ConsoleColor) );
-            var c = TypedConstant.EnumMember( enumType, nameof(ConsoleColor.Blue) );
+            var c = TypedConstant.NamedConstant( enumType, nameof(ConsoleColor.Blue) );
 
             Assert.True( c.IsInitialized );
             Assert.IsAssignableFrom<IField>( c.Value );
@@ -298,23 +298,39 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
         }
 
         [Fact]
-        public void EnumMember_InvalidType()
+        public void NamedConstant_IField()
         {
             using var testContext = this.CreateTestContext();
             var emptyCompilation = testContext.CreateCompilationModel( "" );
             using var userCodeContext = testContext.WithExecutionContext( emptyCompilation );
 
-            Assert.Throws<ArgumentException>( () => TypedConstant.EnumMember( typeof(int), "Blue" ) );
+            var enumType = (INamedType) emptyCompilation.Factory.GetTypeByReflectionType( typeof(ConsoleColor) );
+            var field = enumType.Fields.OfName( nameof(ConsoleColor.Blue) ).Single();
+            var c = TypedConstant.NamedConstant( field );
+
+            Assert.True( c.IsInitialized );
+            Assert.IsAssignableFrom<IField>( c.Value );
+            Assert.Equal( enumType, c.Type );
         }
 
         [Fact]
-        public void EnumMember_InvalidMember()
+        public void NamedConstant_InvalidType()
         {
             using var testContext = this.CreateTestContext();
             var emptyCompilation = testContext.CreateCompilationModel( "" );
             using var userCodeContext = testContext.WithExecutionContext( emptyCompilation );
 
-            Assert.Throws<ArgumentException>( () => TypedConstant.EnumMember( typeof(ConsoleColor), "NonExistent" ) );
+            Assert.Throws<ArgumentOutOfRangeException>( () => TypedConstant.NamedConstant( typeof(int[]), "Blue" ) );
+        }
+
+        [Fact]
+        public void NamedConstant_InvalidMember()
+        {
+            using var testContext = this.CreateTestContext();
+            var emptyCompilation = testContext.CreateCompilationModel( "" );
+            using var userCodeContext = testContext.WithExecutionContext( emptyCompilation );
+
+            Assert.Throws<ArgumentException>( () => TypedConstant.NamedConstant( typeof(ConsoleColor), "NonExistent" ) );
         }
 
         [Theory]

@@ -6,10 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
-#pragma warning disable IDE0005 // Using directive is unnecessary - false positive, extension methods are used
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Formatting;
-#pragma warning restore IDE0005
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
