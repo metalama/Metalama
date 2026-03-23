@@ -173,8 +173,6 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public IObjectReader Tags => this._common.Tags;
 
-        ScopedDiagnosticSink IMetaApi.Diagnostics => new( this._common.DiagnosticSink, this, this.Declaration, this.Declaration );
-
         [ExcludeFromCodeCoverage]
         public void DebugBreak()
         {

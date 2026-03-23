@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Diagnostics;
 using System;
@@ -16,7 +15,6 @@ namespace Metalama.Framework.Code
     /// </summary>
     /// <seealso cref="IAttribute"/>
     /// <seealso cref="AttributeConstruction"/>
-    [CompileTime]
     [PublicAPI]
     public static class AttributeExtensions
     {
@@ -162,6 +160,31 @@ namespace Metalama.Framework.Code
         public static T Construct<T>( this IAttribute attribute )
             where T : Attribute
             => (T) ((ICompilationInternal) attribute.Compilation).Helpers.ConstructAttribute( attribute );
+
+        /// <summary>
+        /// Tries to construct a strongly-typed instance of the attribute represented by the current <see cref="IAttribute"/>. The attribute type
+        /// must not be a run-time-only type.
+        /// </summary>
+        /// <typeparam name="T">The expected attribute type.</typeparam>
+        /// <param name="attribute">The attribute to construct.</param>
+        /// <param name="constructedAttribute">When this method returns <c>true</c>, contains the constructed attribute instance; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the attribute was successfully constructed; otherwise, <c>false</c>.</returns>
+        public static bool TryConstruct<T>(
+            this IAttribute attribute,
+            [NotNullWhen( true )] out T? constructedAttribute )
+            where T : Attribute
+        {
+            if ( ((ICompilationInternal) attribute.Compilation).Helpers.TryConstructAttribute( attribute, default, out var result ) )
+            {
+                constructedAttribute = (T) result;
+
+                return true;
+            }
+
+            constructedAttribute = default;
+
+            return false;
+        }
 
         internal static object? GetNamedArgumentValue( this IAttribute attribute, string name )
         {
