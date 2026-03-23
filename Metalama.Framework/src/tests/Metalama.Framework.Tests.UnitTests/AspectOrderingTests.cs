@@ -289,15 +289,12 @@ class BaseAspect : TypeAspect { }
 class DerivedAspect : BaseAspect { }
 ";
 
-            var ordered = this.GetOrderedAspectLayers( code, "BaseAspect", "DerivedAspect" );
-
             // DerivedAspect should have layers: default, L1 (inherited), L2 (deduplicated), L3 (own).
-            Assert.Contains( "DerivedAspect:L1", ordered );
-            Assert.Contains( "DerivedAspect:L2", ordered );
-            Assert.Contains( "DerivedAspect:L3", ordered );
-
-            // Each layer name should appear exactly once per aspect.
-            Assert.Equal( 1, ordered.Split( ',' ).Count( s => s.Contains( "DerivedAspect:L2" ) ) );
+            // L2 should appear exactly once per aspect (not duplicated).
+            var ordered = this.GetOrderedAspectLayers( code, "BaseAspect", "DerivedAspect" );
+            Assert.Equal(
+                "DerivedAspect => 0, BaseAspect => 0, DerivedAspect:L1 => 1, BaseAspect:L1 => 1, DerivedAspect:L2 => 2, BaseAspect:L2 => 2, DerivedAspect:L3 => 3",
+                ordered );
         }
 
         [Fact]
