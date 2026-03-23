@@ -268,6 +268,55 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
             Assert.Contains( "The value should be of type", ex.Message, StringComparison.Ordinal );
         }
 
+        [Fact]
+        public void EnumMember()
+        {
+            using var testContext = this.CreateTestContext();
+            var emptyCompilation = testContext.CreateCompilationModel( "" );
+            using var userCodeContext = testContext.WithExecutionContext( emptyCompilation );
+
+            var c = TypedConstant.EnumMember( typeof(ConsoleColor), nameof(ConsoleColor.Blue) );
+
+            Assert.True( c.IsInitialized );
+            Assert.IsAssignableFrom<IField>( c.Value );
+            Assert.Equal( emptyCompilation.Factory.GetTypeByReflectionType( typeof(ConsoleColor) ), c.Type );
+        }
+
+        [Fact]
+        public void EnumMember_INamedType()
+        {
+            using var testContext = this.CreateTestContext();
+            var emptyCompilation = testContext.CreateCompilationModel( "" );
+            using var userCodeContext = testContext.WithExecutionContext( emptyCompilation );
+
+            var enumType = (INamedType) emptyCompilation.Factory.GetTypeByReflectionType( typeof(ConsoleColor) );
+            var c = TypedConstant.EnumMember( enumType, nameof(ConsoleColor.Blue) );
+
+            Assert.True( c.IsInitialized );
+            Assert.IsAssignableFrom<IField>( c.Value );
+            Assert.Equal( enumType, c.Type );
+        }
+
+        [Fact]
+        public void EnumMember_InvalidType()
+        {
+            using var testContext = this.CreateTestContext();
+            var emptyCompilation = testContext.CreateCompilationModel( "" );
+            using var userCodeContext = testContext.WithExecutionContext( emptyCompilation );
+
+            Assert.Throws<ArgumentException>( () => TypedConstant.EnumMember( typeof(int), "Blue" ) );
+        }
+
+        [Fact]
+        public void EnumMember_InvalidMember()
+        {
+            using var testContext = this.CreateTestContext();
+            var emptyCompilation = testContext.CreateCompilationModel( "" );
+            using var userCodeContext = testContext.WithExecutionContext( emptyCompilation );
+
+            Assert.Throws<ArgumentException>( () => TypedConstant.EnumMember( typeof(ConsoleColor), "NonExistent" ) );
+        }
+
         [Theory]
         [InlineData( (byte) 1 )]
         [InlineData( (sbyte) 1 )]

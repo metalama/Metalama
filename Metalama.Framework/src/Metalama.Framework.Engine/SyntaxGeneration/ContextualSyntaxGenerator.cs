@@ -821,6 +821,16 @@ public sealed partial class ContextualSyntaxGenerator
                 return Null;
             }
 
+            if ( value is IField field )
+            {
+                return
+                    MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            this.TypeSyntax( field.DeclaringType ),
+                            this.IdentifierName( field.Name ) )
+                        .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
+            }
+
             switch ( type.TypeKind )
             {
                 case TypeKind.Enum when type is INamedType enumType:

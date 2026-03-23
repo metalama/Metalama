@@ -394,6 +394,48 @@ namespace Metalama.Framework.Code
             return new TypedConstant( field, field.Type );
         }
 
+        /// <summary>
+        /// Creates a <see cref="TypedConstant"/> that references a member of an enum type by name.
+        /// When rendered to code, this produces a reference to the enum member (e.g., <c>MyEnum.MyValue</c>).
+        /// </summary>
+        /// <param name="enumType">The reflection <see cref="Type"/> of the enum. Must be an enum type.</param>
+        /// <param name="memberName">The name of the enum member.</param>
+        /// <returns>A <see cref="TypedConstant"/> representing the enum member reference.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="enumType"/> is not an enum type or when
+        /// <paramref name="memberName"/> does not correspond to a member of the enum.</exception>
+        public static TypedConstant EnumMember( Type enumType, string memberName )
+        {
+            var namedType = (INamedType) TypeFactory.GetType( enumType );
+
+            return EnumMember( namedType, memberName );
+        }
+
+        /// <summary>
+        /// Creates a <see cref="TypedConstant"/> that references a member of an enum type by name.
+        /// When rendered to code, this produces a reference to the enum member (e.g., <c>MyEnum.MyValue</c>).
+        /// </summary>
+        /// <param name="enumType">The <see cref="INamedType"/> of the enum. Must be an enum type.</param>
+        /// <param name="memberName">The name of the enum member.</param>
+        /// <returns>A <see cref="TypedConstant"/> representing the enum member reference.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="enumType"/> is not an enum type or when
+        /// <paramref name="memberName"/> does not correspond to a member of the enum.</exception>
+        public static TypedConstant EnumMember( INamedType enumType, string memberName )
+        {
+            if ( enumType.TypeKind != TypeKind.Enum )
+            {
+                throw new ArgumentException( $"The type '{enumType}' is not an enum type.", nameof(enumType) );
+            }
+
+            var field = enumType.Fields.OfName( memberName ).FirstOrDefault();
+
+            if ( field == null )
+            {
+                throw new ArgumentException( $"The enum type '{enumType}' does not have a member named '{memberName}'.", nameof(memberName) );
+            }
+
+            return Create( field );
+        }
+
         internal static TypedConstant UnwrapOrCreate( object? value, IType type )
             => value is TypedConstant typedConstant ? typedConstant : new TypedConstant( value, type );
 
