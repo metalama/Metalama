@@ -106,7 +106,7 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         string? assemblyName )
     {
         using ( UserCodeExecutionContext.WithContext(
-                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( "Deserializing" ), compilationContext ) ) )
+                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( $"Deserializing transitive aspects [from {assemblyName}]" ), compilationContext ) ) )
         {
             using var deflate = new DeflateStream( stream, CompressionMode.Decompress );
 
