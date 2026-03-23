@@ -761,9 +761,16 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             }
             else
             {
+                // Try to preserve the original literal text (e.g., "0xff" instead of "255").
+                var originalLiteralText = this.TryGetOriginalLiteralText( expression );
+
+                var literalToken = originalLiteralText != null
+                    ? this.MetaSyntaxFactory.LiteralWithText( originalLiteralText, expression )
+                    : this.MetaSyntaxFactory.Literal( expression );
+
                 literalExpression = this.MetaSyntaxFactory.LiteralExpression(
                     this.Transform( syntaxKind ),
-                    this.MetaSyntaxFactory.Literal( expression ) );
+                    literalToken );
             }
 
             return InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.RunTimeExpression) ) )
@@ -816,6 +823,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             case "SByte":
             case nameof(Single):
             case nameof(Double):
+            case nameof(Decimal):
                 return CreateRunTimeExpressionForLiteralCreateExpressionFactory( SyntaxKind.NumericLiteralExpression );
 
             case nameof(Char):
@@ -862,6 +870,155 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                     // We don't have a valid tree, but let the compilation continue. The call to IsSerializable wrote a diagnostic.
                     return LiteralExpression( SyntaxKind.DefaultLiteralExpression, Token( SyntaxKind.DefaultKeyword ) );
                 }
+        }
+    }
+
+    /// <summary>
+    /// Tries to find the original literal text for a compile-time expression. This allows preserving the source form
+    /// of numeric literals (e.g., <c>0xff</c>, <c>0b1010</c>, <c>42L</c>) when they are serialized back to run-time code.
+    /// </summary>
+    private string? TryGetOriginalLiteralText( ExpressionSyntax expression )
+    {
+        return TryGetLiteralTextFromExpression( expression )
+               ?? TryGetLiteralTextFromDeclaration( expression );
+
+        string? TryGetLiteralTextFromExpression( ExpressionSyntax expr )
+        {
+            // Direct literal expression.
+            if ( expr.IsKind( SyntaxKind.NumericLiteralExpression )
+                 && expr is LiteralExpressionSyntax { Token.RawKind: (int) SyntaxKind.NumericLiteralToken } literal )
+            {
+                return literal.Token.Text;
+            }
+
+            return null;
+        }
+
+        string? TryGetLiteralTextFromDeclaration( ExpressionSyntax expr )
+        {
+            // For an identifier, look up the declaring variable and check its initializer.
+            if ( expr is not IdentifierNameSyntax identifier )
+            {
+                return null;
+            }
+
+            var symbol = this._syntaxTreeAnnotationMap.GetSymbol( expr );
+
+            if ( symbol is not ILocalSymbol localSymbol )
+            {
+                return null;
+            }
+
+            foreach ( var syntaxRef in localSymbol.DeclaringSyntaxReferences )
+            {
+                if ( syntaxRef.GetSyntax() is not VariableDeclaratorSyntax declarator )
+                {
+                    continue;
+                }
+
+                var initValue = declarator.Initializer?.Value;
+
+                if ( initValue == null )
+                {
+                    continue;
+                }
+
+                // Safety check: don't preserve literal text if the variable might be modified after declaration
+                // (e.g., passed as ref/out, assigned to, incremented, etc.).
+                if ( IsVariablePotentiallyMutated( identifier.Identifier.ValueText, declarator ) )
+                {
+                    return null;
+                }
+
+                // Direct literal initializer: var x = 0xff;
+                var literalText = TryGetLiteralTextFromExpression( initValue );
+
+                if ( literalText != null )
+                {
+                    return literalText;
+                }
+
+                // Unwrap meta.CompileTime(literal) or similar single-argument invocations.
+                if ( initValue.IsKind( SyntaxKind.InvocationExpression )
+                     && initValue is InvocationExpressionSyntax { ArgumentList.Arguments: [var singleArg] } )
+                {
+                    literalText = TryGetLiteralTextFromExpression( singleArg.Expression );
+
+                    if ( literalText != null )
+                    {
+                        return literalText;
+                    }
+                }
+
+                // Unwrap cast expressions: (int)0xff
+                if ( initValue.IsKind( SyntaxKind.CastExpression ) && initValue is CastExpressionSyntax castExpr )
+                {
+                    literalText = TryGetLiteralTextFromExpression( castExpr.Expression );
+
+                    if ( literalText != null )
+                    {
+                        return literalText;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // Check if a variable could be modified after its declaration within the enclosing method body.
+        static bool IsVariablePotentiallyMutated( string variableName, VariableDeclaratorSyntax declarator )
+        {
+            // Find the enclosing block or method body.
+            var enclosingBlock = declarator.FirstAncestorOrSelf<BlockSyntax>();
+
+            if ( enclosingBlock == null )
+            {
+                return true; // Assume mutable if we can't determine.
+            }
+
+            var declaratorSpanEnd = declarator.Span.End;
+
+            foreach ( var descendant in enclosingBlock.DescendantNodes() )
+            {
+                // Only check nodes after the declaration.
+                if ( descendant.SpanStart <= declaratorSpanEnd )
+                {
+                    continue;
+                }
+
+                if ( descendant is not IdentifierNameSyntax id || id.Identifier.ValueText != variableName )
+                {
+                    continue;
+                }
+
+                var parent = id.Parent;
+
+                // Check for assignment: variable = ..., variable += ..., etc.
+                if ( parent is AssignmentExpressionSyntax assignment && assignment.Left == id )
+                {
+                    return true;
+                }
+
+                // Check for ref/out argument: Method(ref variable), Method(out variable).
+                if ( parent is ArgumentSyntax { RefOrOutKeyword.RawKind: not (int) SyntaxKind.None } )
+                {
+                    return true;
+                }
+
+                // Check for increment/decrement: variable++, ++variable, variable--, --variable.
+                if ( parent is PostfixUnaryExpressionSyntax or PrefixUnaryExpressionSyntax )
+                {
+                    var parentKind = parent.Kind();
+
+                    if ( parentKind is SyntaxKind.PostIncrementExpression or SyntaxKind.PostDecrementExpression
+                         or SyntaxKind.PreIncrementExpression or SyntaxKind.PreDecrementExpression )
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 
