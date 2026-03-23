@@ -647,7 +647,18 @@ namespace Metalama.Framework.Engine.CompileTime
                     }
                 }
 
-                var transformedNode = node.WithMembers( List( members ) )
+                // If the type uses bodyless syntax (e.g. `class Aspect : TypeAspect;`), convert to a body with braces.
+                var nodeForTransform = node;
+
+                if ( node.SemicolonToken != default && node.OpenBraceToken == default )
+                {
+                    nodeForTransform = node
+                        .WithSemicolonToken( default )
+                        .WithOpenBraceToken( Token( SyntaxKind.OpenBraceToken ) )
+                        .WithCloseBraceToken( Token( SyntaxKind.CloseBraceToken ) );
+                }
+
+                var transformedNode = nodeForTransform.WithMembers( List( members ) )
                     .WithBaseList( this.FilterBaseList( node.BaseList, node.SyntaxTree ) )
                     .WithAdditionalAnnotations( _hasCompileTimeCodeAnnotation )
                     .WithAttributeLists( this.VisitAttributeLists( node.AttributeLists ) );

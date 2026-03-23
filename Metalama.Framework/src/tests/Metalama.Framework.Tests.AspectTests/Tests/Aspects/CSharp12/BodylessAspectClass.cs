@@ -11,9 +11,9 @@
 
 using Metalama.Framework.Aspects;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp12.BodylessAspectClass_Error;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp12.BodylessAspectClass;
 
-// An aspect class with no body (semicolon instead of braces) should produce a clear error.
+// An aspect class with no body (semicolon instead of braces) should be handled correctly.
 internal class TheAspect : TypeAspect;
 
 // <target>
