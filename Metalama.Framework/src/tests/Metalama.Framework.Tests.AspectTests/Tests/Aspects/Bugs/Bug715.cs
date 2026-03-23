@@ -2,52 +2,30 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
-// @RequiredConstant(NET7_0_OR_GREATER)
-#endif
-
-#if ROSLYN_4_8_0_OR_GREATER && NET7_0_OR_GREATER
-
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.SyntaxBuilders;
+using Metalama.Framework.Diagnostics;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug715;
 
 /*
- * Tests that multi-line statements can be added as initializers to a primary constructor.
+ * Tests that diagnostic messages with multi-line arguments have their newlines
+ * escaped to spaces, so the message is not cut off.
  * This is a regression test for https://github.com/metalama/Metalama/issues/715.
- * Previously, only simple assignments were supported for primary constructor initializers,
- * and the error message for unsupported multi-line statements was cut off.
- * Now, the primary constructor is removed and replaced with a regular constructor,
- * so any statement is supported.
  */
 
 public class Aspect : TypeAspect
 {
+    private static readonly DiagnosticDefinition<string> _warning =
+        new( "BUG715", Severity.Warning, "The statement '{0}' is multi-line." );
+
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.AddInitializer(
-            StatementFactory.Parse( "global::System.Console.WriteLine( \"first\" );" ),
-            InitializerKind.BeforeInstanceConstructor );
-
-        builder.AddInitializer(
-            StatementFactory.Parse( "global::System.Console.WriteLine( \"second\" );" ),
-            InitializerKind.BeforeInstanceConstructor );
-
-        builder.AddInitializer(
-            StatementFactory.Parse( "if ( x > 0 )\n{\n    global::System.Console.WriteLine( \"positive\" );\n}" ),
-            InitializerKind.BeforeInstanceConstructor );
+        builder.Diagnostics.Report(
+            _warning.WithArguments( "bool CanExecute(object? parameter)\n{\n    return true;\n}" ) );
     }
 }
 
 // <target>
 [Aspect]
-internal class Target( int x )
-{
-    public int X { get; } = x;
-}
-
-#endif
+internal class Target;

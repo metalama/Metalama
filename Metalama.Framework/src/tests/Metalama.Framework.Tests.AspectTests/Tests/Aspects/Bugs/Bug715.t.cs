@@ -1,15 +1,3 @@
+// Warning BUG715 on `Target`: `The statement 'bool CanExecute(object? parameter) {     return true; }' is multi-line.`
 [Aspect]
-internal class Target
-{
-  public int X { get; }
-  public Target(int x)
-  {
-    this.X = x;
-    global::System.Console.WriteLine("first");
-    global::System.Console.WriteLine("second");
-    if (x > 0)
-    {
-      global::System.Console.WriteLine("positive");
-    }
-  }
-}
+internal class Target;
