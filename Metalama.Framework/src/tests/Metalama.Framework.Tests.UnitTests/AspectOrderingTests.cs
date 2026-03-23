@@ -258,6 +258,24 @@ class Aspect2 : Aspect1 {}
         }
 
         [Fact]
+        public void DuplicateLayersOnBaseAndDerived()
+        {
+            const string code = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+
+[Layers(""L"")]
+class BaseAspect : TypeAspect { }
+
+[Layers(""L"")]
+class DerivedAspect : BaseAspect { }
+";
+
+            var ordered = this.GetOrderedAspectLayers( code, "BaseAspect", "DerivedAspect" );
+            Assert.Equal( "DerivedAspect => 0, BaseAspect => 0, DerivedAspect:L => 1, BaseAspect:L => 1", ordered );
+        }
+
+        [Fact]
         public void ApplyToDerivedTypes()
         {
             const string code = @"
