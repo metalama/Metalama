@@ -518,12 +518,32 @@ namespace Metalama.Framework.Engine.Templating
             if ( syntax is LiteralExpressionSyntax { Token: { RawKind: (int) SyntaxKind.NumericLiteralToken } token } literalExpr
                  && this._templateExpansionContext.TryGetPreferredLiteralText( token.Value, out var preferredText ) )
             {
-                var newToken = CreateLiteralTokenWithText( preferredText, token.Value! );
-                syntax = literalExpr.WithToken( newToken );
+                // Only apply when the current token has the default text representation.
+                // This avoids replacing literals that already have an intentional non-default spelling.
+                var defaultToken = CreateDefaultLiteralToken( token.Value );
+
+                if ( defaultToken != null && defaultToken.Value.Text == token.Text )
+                {
+                    var newToken = CreateLiteralTokenWithText( preferredText, token.Value! );
+                    syntax = literalExpr.WithToken( newToken );
+                }
             }
 
             return syntax;
         }
+
+        private static SyntaxToken? CreateDefaultLiteralToken( object? value )
+            => value switch
+            {
+                int i => SyntaxFactory.Literal( i ),
+                uint u => SyntaxFactory.Literal( u ),
+                long l => SyntaxFactory.Literal( l ),
+                ulong ul => SyntaxFactory.Literal( ul ),
+                float f => SyntaxFactory.Literal( f ),
+                double d => SyntaxFactory.Literal( d ),
+                decimal m => SyntaxFactory.Literal( m ),
+                _ => null
+            };
 
         private static SyntaxToken CreateLiteralTokenWithText( string text, object value )
             => value switch

@@ -867,23 +867,11 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     }
 
     /// <summary>
-    /// Prepends <c>SetPreferredLiteralText</c> calls to the body for numeric literals found in the original template body.
+    /// Collects numeric literals from the original template body whose text differs from the default representation
+    /// (e.g., hex, binary, suffixed, with separators) and prepends <c>SetPreferredLiteralText</c> calls to register
+    /// their source text at the start of the body block.
     /// </summary>
     private BlockSyntax PrependPreferredLiteralTextStatements( BlockSyntax body, SyntaxNode originalBody )
-    {
-        var statements = this.CreatePreferredLiteralTextStatements( originalBody );
-
-        return statements.Count > 0
-            ? body.WithStatements( body.Statements.InsertRange( 0, statements ) )
-            : body;
-    }
-
-    /// <summary>
-    /// Collects numeric literals from the original template body and generates
-    /// <c>SetPreferredLiteralText</c> calls to register their source text at the start of the template method.
-    /// Only registers literals whose text differs from the default representation (e.g., hex, binary, suffixed, with separators).
-    /// </summary>
-    private List<StatementSyntax> CreatePreferredLiteralTextStatements( SyntaxNode originalBody )
     {
         var statements = new List<StatementSyntax>();
 
@@ -914,7 +902,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                             Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( text ) ) ) ) ) );
         }
 
-        return statements;
+        return statements.Count > 0
+            ? body.WithStatements( body.Statements.InsertRange( 0, statements ) )
+            : body;
 
         static SyntaxToken? CreateDefaultLiteralToken( object? value )
             => value switch
@@ -1738,16 +1728,11 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
 
         // Generate SetPreferredLiteralText calls for all numeric literals in the original template body.
-        var originalBody = (SyntaxNode?) node.Body ?? node.ExpressionBody;
+        var originalMethodBody = (SyntaxNode?) node.Body ?? node.ExpressionBody;
 
-        if ( body != null && originalBody != null )
+        if ( body != null && originalMethodBody != null )
         {
-            var preferredLiteralStatements = this.CreatePreferredLiteralTextStatements( originalBody );
-
-            if ( preferredLiteralStatements.Count > 0 )
-            {
-                body = body.WithStatements( body.Statements.InsertRange( 0, preferredLiteralStatements ) );
-            }
+            body = this.PrependPreferredLiteralTextStatements( body, originalMethodBody );
         }
 
         var result = this.CreateTemplateMethod(
@@ -1791,16 +1776,11 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
 
         // Generate SetPreferredLiteralText calls for all numeric literals.
-        var originalBody = (SyntaxNode?) node.Body ?? node.ExpressionBody;
+        var originalAccessorBody = (SyntaxNode?) node.Body ?? node.ExpressionBody;
 
-        if ( originalBody != null )
+        if ( originalAccessorBody != null )
         {
-            var preferredLiteralStatements = this.CreatePreferredLiteralTextStatements( originalBody );
-
-            if ( preferredLiteralStatements.Count > 0 )
-            {
-                body = body.WithStatements( body.Statements.InsertRange( 0, preferredLiteralStatements ) );
-            }
+            body = this.PrependPreferredLiteralTextStatements( body, originalAccessorBody );
         }
 
         // Create the parameter list.
