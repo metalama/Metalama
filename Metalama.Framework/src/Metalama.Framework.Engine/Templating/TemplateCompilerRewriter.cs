@@ -816,6 +816,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             case "SByte":
             case nameof(Single):
             case nameof(Double):
+            case nameof(Decimal):
                 return CreateRunTimeExpressionForLiteralCreateExpressionFactory( SyntaxKind.NumericLiteralExpression );
 
             case nameof(Char):
@@ -863,6 +864,60 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                     return LiteralExpression( SyntaxKind.DefaultLiteralExpression, Token( SyntaxKind.DefaultKeyword ) );
                 }
         }
+    }
+
+    /// <summary>
+    /// Collects numeric literals from the original template body whose text differs from the default representation
+    /// (e.g., hex, binary, suffixed, with separators) and prepends <c>SetPreferredLiteralText</c> calls to register
+    /// their source text at the start of the body block.
+    /// </summary>
+    private BlockSyntax PrependPreferredLiteralTextStatements( BlockSyntax body, SyntaxNode originalBody )
+    {
+        var statements = new List<StatementSyntax>();
+
+        foreach ( var literal in originalBody.DescendantTokens() )
+        {
+            if ( literal.RawKind != (int) SyntaxKind.NumericLiteralToken )
+            {
+                continue;
+            }
+
+            var text = literal.Text;
+
+            // Skip literals whose text matches the default representation (e.g., plain "42", "0").
+            var defaultToken = CreateDefaultLiteralToken( literal.Value );
+
+            if ( defaultToken != null && defaultToken.Value.Text == text )
+            {
+                continue;
+            }
+
+            // Generate: templateSyntaxFactory.SetPreferredLiteralText( <literal>, "<text>" );
+            statements.Add(
+                ExpressionStatement(
+                    InvocationExpression(
+                            this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.SetPreferredLiteralText) ) )
+                        .AddArgumentListArguments(
+                            Argument( (ExpressionSyntax) literal.Parent! ),
+                            Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( text ) ) ) ) ) );
+        }
+
+        return statements.Count > 0
+            ? body.WithStatements( body.Statements.InsertRange( 0, statements ) )
+            : body;
+
+        static SyntaxToken? CreateDefaultLiteralToken( object? value )
+            => value switch
+            {
+                int i => Literal( i ),
+                uint u => Literal( u ),
+                long l => Literal( l ),
+                ulong ul => Literal( ul ),
+                float f => Literal( f ),
+                double d => Literal( d ),
+                decimal m => Literal( m ),
+                _ => null
+            };
     }
 
     private ExpressionSyntax CreateTypeParameterSubstitutionDictionary( string propertyName, TypeSyntax dictionaryType )
@@ -1672,6 +1727,14 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             body = body?.WithStatements( body.Statements.InsertRange( 0, templateParameterDefaultStatements ) );
         }
 
+        // Generate SetPreferredLiteralText calls for all numeric literals in the original template body.
+        var originalMethodBody = (SyntaxNode?) node.Body ?? node.ExpressionBody;
+
+        if ( body != null && originalMethodBody != null )
+        {
+            body = this.PrependPreferredLiteralTextStatements( body, originalMethodBody );
+        }
+
         var result = this.CreateTemplateMethod(
             node,
             body,
@@ -1712,6 +1775,14 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 isVoid );
         }
 
+        // Generate SetPreferredLiteralText calls for all numeric literals.
+        var originalAccessorBody = (SyntaxNode?) node.Body ?? node.ExpressionBody;
+
+        if ( originalAccessorBody != null )
+        {
+            body = this.PrependPreferredLiteralTextStatements( body, originalAccessorBody );
+        }
+
         // Create the parameter list.
         var parameters = node.Keyword.IsKind( SyntaxKind.GetKeyword )
             ? [this.CreateTemplateSyntaxFactoryParameter()]
@@ -1736,6 +1807,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             this.Indent( 3 );
 
             var body = (BlockSyntax) this.BuildRunTimeBlock( bodyExpression, false, false );
+            body = this.PrependPreferredLiteralTextStatements( body, node.ExpressionBody );
 
             var result = this.CreateTemplateMethod( node, body );
 
@@ -1748,6 +1820,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             this.Indent( 3 );
 
             var body = (BlockSyntax) this.BuildRunTimeBlock( initializerExpression, false, false );
+            body = this.PrependPreferredLiteralTextStatements( body, node.Initializer );
 
             var result = this.CreateTemplateMethod( node, body );
 
@@ -1769,6 +1842,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
             // This is template for field initializer.
             var body = (BlockSyntax) this.BuildRunTimeBlock( node.Initializer.AssertNotNull().Value, false, false );
+            body = this.PrependPreferredLiteralTextStatements( body, node.Initializer );
 
             var result = this.CreateTemplateMethod( node, body );
 
