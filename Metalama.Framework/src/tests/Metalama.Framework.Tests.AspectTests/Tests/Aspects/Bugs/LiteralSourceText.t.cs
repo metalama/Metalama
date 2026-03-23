@@ -1,0 +1,24 @@
+// Warning CS0078 on `l`: `The 'l' suffix is easily confused with the digit '1' -- use 'L' for clarity`
+// Warning CS0078 on `l`: `The 'l' suffix is easily confused with the digit '1' -- use 'L' for clarity`
+[TestAspect]
+public void Method()
+{
+  global::System.Console.WriteLine(0b11111111);
+  global::System.Console.WriteLine(0xff);
+  global::System.Console.WriteLine(42l);
+  global::System.Console.WriteLine(42L);
+  global::System.Console.WriteLine(42u);
+  global::System.Console.WriteLine(42U);
+  global::System.Console.WriteLine(42ul);
+  global::System.Console.WriteLine(42lu);
+  global::System.Console.WriteLine(42.0f);
+  global::System.Console.WriteLine(42.0E-13f);
+  global::System.Console.WriteLine(42.0d);
+  global::System.Console.WriteLine(42.0E-13d);
+  global::System.Console.WriteLine(42.0m);
+  global::System.Console.WriteLine(42.0E-13m);
+  global::System.Console.WriteLine(1_000_000);
+  global::System.Console.WriteLine(0x00_ff_ff);
+  global::System.Console.WriteLine(0b0000_1111_0000);
+  return;
+}
