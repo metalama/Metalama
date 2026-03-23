@@ -31,14 +31,15 @@ namespace Metalama.Framework.Code
             string? name,
             int? argumentCount,
             Func<TPayload, int, (IType? Type, RefKind? RefKind)> argumentGetter,
-            bool? isStatic )
+            bool? isStatic,
+            ConversionKind conversionKind = ConversionKind.Default )
             where TMember : class, IMethodBase
         {
             var compilation = members.DeclaringType.Compilation;
 
             return OfSignature(
                 members,
-                (payload, argumentGetter, compilation),
+                (payload, argumentGetter, compilation, conversionKind),
                 name,
                 argumentCount,
                 IsMatchingParameter,
@@ -46,7 +47,7 @@ namespace Metalama.Framework.Code
                 true );
 
             static bool IsMatchingParameter(
-                (TPayload InnerPayload, Func<TPayload, int, (IType? Type, RefKind? RefKind)>? ArgumentGetter, ICompilation Compilation) payload,
+                (TPayload InnerPayload, Func<TPayload, int, (IType? Type, RefKind? RefKind)>? ArgumentGetter, ICompilation Compilation, ConversionKind ConversionKind) payload,
                 int parameterIndex,
                 IType expectedType,
                 RefKind expectedRefKind )
@@ -61,7 +62,8 @@ namespace Metalama.Framework.Code
                 return
                     (parameterInfo.Value.Type == null || payload.Compilation.Comparers.Default.IsConvertibleTo(
                         parameterInfo.Value.Type,
-                        expectedType ))
+                        expectedType,
+                        payload.ConversionKind ))
                     && (parameterInfo.Value.RefKind == null || expectedRefKind == parameterInfo.Value.RefKind);
             }
         }
@@ -87,12 +89,39 @@ namespace Metalama.Framework.Code
             bool? isStatic,
             int? typeParameterCount = null )
             where TMember : class, IHasParameters
+            => members.OfCompatibleSignature( payload, name, parameterCount, parameterGetter, isStatic, ConversionKind.Identical, typeParameterCount );
+
+        /// <summary>
+        /// Attempts to find a member with a signature matching the specified constraints using the given <see cref="ConversionKind"/>
+        /// for parameter type comparison.
+        /// </summary>
+        /// <typeparam name="TPayload">Payload type for the <paramref name="parameterGetter"/>.</typeparam>
+        /// <typeparam name="TMember">Type of members.</typeparam>
+        /// <param name="members">A collection of members.</param>
+        /// <param name="payload">Payload object, passed to <paramref name="parameterGetter"/>.</param>
+        /// <param name="name">Required name of the method.</param>
+        /// <param name="parameterCount">Required number of parameters.</param>
+        /// <param name="parameterGetter">Delegate that gets <see cref="IType"/> and <see cref="RefKind"/> or a parameters on the gives index.</param>
+        /// <param name="isStatic">Specifies whether the staticity should be matched (it is normally not a part of signature).</param>
+        /// <param name="conversionKind">The <see cref="ConversionKind"/> to use for parameter type comparison.</param>
+        /// <param name="typeParameterCount">Required number of type parameters, or <see langword="null"/> if there is no requirement.</param>
+        /// <returns>Member matching requirements or <see langword="null"/> if there is none.</returns>
+        public static TMember? OfCompatibleSignature<TMember, TPayload>(
+            this IMemberCollection<TMember> members,
+            TPayload payload,
+            string? name,
+            int parameterCount,
+            Func<TPayload, int, (IType Type, RefKind RefKind)> parameterGetter,
+            bool? isStatic,
+            ConversionKind conversionKind,
+            int? typeParameterCount = null )
+            where TMember : class, IHasParameters
         {
             var compilation = members.DeclaringType.Compilation;
 
             var matching = OfSignature(
                 members,
-                (payload, parameterGetter, compilation),
+                (payload, parameterGetter, compilation, conversionKind),
                 name,
                 parameterCount,
                 IsMatchingParameter,
@@ -104,16 +133,15 @@ namespace Metalama.Framework.Code
             return matching.FirstOrDefault();
 
             static bool IsMatchingParameter(
-                (TPayload InnerPayload, Func<TPayload, int, (IType Type, RefKind RefKind)> ParameterGetter, ICompilation Compilation) payload,
+                (TPayload InnerPayload, Func<TPayload, int, (IType Type, RefKind RefKind)> ParameterGetter, ICompilation Compilation, ConversionKind ConversionKind) payload,
                 int parameterIndex,
                 IType expectedType,
                 RefKind expectedRefKind )
             {
                 var parameterInfo = payload.ParameterGetter( payload.InnerPayload, parameterIndex );
 
-                // TODO: This comparison does not work for generic type parameters.
                 return
-                    payload.Compilation.Comparers.Default.Equals( expectedType, parameterInfo.Type )
+                    payload.Compilation.Comparers.Default.IsConvertibleTo( parameterInfo.Type, expectedType, payload.ConversionKind )
                     && expectedRefKind == parameterInfo.RefKind;
             }
         }

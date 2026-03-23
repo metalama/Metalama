@@ -106,6 +106,45 @@ namespace Metalama.Framework.Code.Invokers
         /// </remarks>
         IExpression CreateInvokeExpression( params IEnumerable<dynamic?> args );
 
+        /// <summary>
+        /// Creates an <see cref="IExpression"/> that represents the current method as a delegate.
+        /// </summary>
+        /// <param name="delegateType">An optional delegate type to use for disambiguation when the method has overloads.
+        /// When specified, this type is used to wrap the method group expression (e.g. <c>new MyDelegate(this.Method)</c>),
+        /// regardless of the target type context. No compatibility verification is performed between the method's signature
+        /// and the specified delegate type — any mismatch will result in a C# compilation error in the generated code.</param>
+        /// <returns>An <see cref="IExpression"/> whose <see cref="IExpression.Value"/> represents a delegate pointing to the current method.</returns>
+        /// <remarks>
+        /// <para>
+        /// When the method has no overloads and no <paramref name="delegateType"/> is specified, this generates a simple
+        /// method group expression (e.g. <c>this.Method</c>).
+        /// </para>
+        /// <para>
+        /// When the method has overloads, the generated code depends on the <paramref name="delegateType"/> and the target type context:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>If <paramref name="delegateType"/> is specified, it is used to select the appropriate overload. The generated expression
+        /// may use an explicit delegate-construction expression (e.g. <c>new MyDelegate(this.Method)</c>) or a bare method group when the
+        /// surrounding target typing already enforces the same delegate type.</item>
+        /// <item>If the expression is assigned to a variable of a specific delegate type (e.g. <c>EventHandler</c>, or a custom delegate),
+        /// and that delegate type is compatible with the method's signature, the target delegate type is used for disambiguation. The resulting
+        /// code may similarly be either an explicit delegate-construction expression or a bare method group, depending on what is required
+        /// by the C# compiler to resolve the overload.</item>
+        /// <item>Otherwise, <c>Action&lt;&gt;</c> or <c>Func&lt;&gt;</c> is used for disambiguation
+        /// (e.g. <c>new Action&lt;int&gt;(this.Method)</c>).</item>
+        /// </list>
+        /// <para>
+        /// If the method has overloads and its signature contains <c>out</c>, <c>in</c>, or <c>ref</c> parameters,
+        /// and neither <paramref name="delegateType"/> nor a compatible target delegate type is available,
+        /// an exception is thrown because <c>Action&lt;&gt;</c>/<c>Func&lt;&gt;</c> cannot represent such signatures.
+        /// </para>
+        /// <para>
+        /// By default, the delegate references the method on the current object (<c>this</c>), unless the method is static.
+        /// Use <see cref="WithObject(dynamic?)"/> to specify a different target instance before calling this method.
+        /// </para>
+        /// </remarks>
+        IExpression CreateDelegateExpression( INamedType? delegateType = null );
+
         [Obsolete( "Use the WithOptions method." )]
         IMethodInvoker With( InvokerOptions options );
 

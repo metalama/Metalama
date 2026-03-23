@@ -39,6 +39,11 @@ namespace Metalama.Framework.Code
         /// </remarks>
         TypeDefinition,
 
+        /// <summary>
+        /// Requires the types to be exactly identical (type equality). No conversions are accepted.
+        /// </summary>
+        Identical,
+
         [Obsolete( "Use Reference.", true )]
         ImplicitReference = Reference
     }

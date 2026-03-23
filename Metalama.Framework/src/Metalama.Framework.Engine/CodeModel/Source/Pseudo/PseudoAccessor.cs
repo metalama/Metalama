@@ -151,6 +151,8 @@ internal abstract class PseudoAccessor : IMethodImpl
 
     IExpression IMethodInvoker.CreateInvokeExpression( IEnumerable<object?> args ) => this.Invoker.CreateInvokeExpression( args );
 
+    IExpression IMethodInvoker.CreateDelegateExpression( INamedType? delegateType ) => this.Invoker.CreateDelegateExpression( delegateType );
+
     object? IMethodInvoker.Invoke( params object?[] args ) => this.Invoker.Invoke( args );
 
     object? IMethodInvoker.Invoke( IEnumerable<IExpression> args ) => this.Invoker.Invoke( args );

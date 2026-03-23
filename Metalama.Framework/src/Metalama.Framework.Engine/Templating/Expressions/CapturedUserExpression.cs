@@ -27,6 +27,7 @@ internal sealed class CapturedUserExpression : UserExpression
         => expression switch
         {
             IExpression typedExpression => typedExpression,
+            TypedExpressionSyntax tes => tes.ToUserExpression( compilation ),
             _ => new CapturedUserExpression( compilation, expression )
         };
 

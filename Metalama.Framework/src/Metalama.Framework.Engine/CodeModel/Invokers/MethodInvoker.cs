@@ -22,7 +22,7 @@ using MethodKind = Metalama.Framework.Code.MethodKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
-internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
+internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 {
     private readonly bool _skipTypeArgumentInference;
 
@@ -387,4 +387,58 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
     public IExpression CreateInvokeExpression( params IEnumerable<object?> args )
         => this.CreateInvokeExpression( args.Select( a => CapturedUserExpression.Create( this.Compilation, a ) ) );
+
+    public IExpression CreateDelegateExpression( INamedType? delegateType = null )
+    {
+        var method = this.Member;
+
+        // Check if the method has overloads in the declaring type.
+        var hasOverloads = method.DeclaringType.Methods.OfName( method.Name ).Skip( 1 ).Any();
+
+        // Compute the default delegate type for the IExpression.Type property.
+        // If an explicit delegate type is provided, use it. Otherwise, compute Action<>/Func<>.
+        var defaultDelegateType = delegateType ?? GetDefaultDelegateType( method, this.Compilation.Factory );
+
+        return new DelegateExpression( this, hasOverloads, defaultDelegateType, delegateType );
+    }
+
+    private static IType GetDefaultDelegateType( IMethod method, IDeclarationFactory factory )
+    {
+        // If any parameter has a ref kind, Action<>/Func<> cannot represent it.
+        // Fall back to System.Delegate.
+        if ( method.Parameters.Any( p => p.RefKind is RefKind.Ref or RefKind.Out or RefKind.In or RefKind.RefReadOnly ) )
+        {
+            return factory.GetTypeByReflectionType( typeof(Delegate) );
+        }
+
+        // Action<> supports up to 16 parameters; Func<> supports up to 16 input parameters + 1 return.
+        if ( method.Parameters.Count > 16 )
+        {
+            return factory.GetTypeByReflectionType( typeof(Delegate) );
+        }
+
+        var isVoid = method.ReturnType.SpecialType == SpecialType.Void;
+
+        if ( isVoid )
+        {
+            if ( method.Parameters.Count == 0 )
+            {
+                return factory.GetTypeByReflectionType( typeof(Action) );
+            }
+            else
+            {
+                var genericAction = factory.GetTypeByReflectionType( Type.GetType( "System.Action`" + method.Parameters.Count )! );
+
+                return ((INamedType) genericAction).MakeGenericInstance( method.Parameters.SelectAsArray( p => p.Type ) );
+            }
+        }
+        else
+        {
+            var genericFunc = factory.GetTypeByReflectionType( Type.GetType( "System.Func`" + (method.Parameters.Count + 1) )! );
+            var funcTypeArgs = method.Parameters.SelectAsArray( p => p.Type ).Append( method.ReturnType ).ToArray();
+
+            return ((INamedType) genericFunc).MakeGenericInstance( funcTypeArgs );
+        }
+    }
+
 }
