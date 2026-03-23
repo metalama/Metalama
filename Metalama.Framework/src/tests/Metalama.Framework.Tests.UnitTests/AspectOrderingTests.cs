@@ -276,6 +276,31 @@ class DerivedAspect : BaseAspect { }
         }
 
         [Fact]
+        public void OverlappingAndAdditionalLayersOnDerived()
+        {
+            const string code = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+
+[Layers(""L1"", ""L2"")]
+class BaseAspect : TypeAspect { }
+
+[Layers(""L2"", ""L3"")]
+class DerivedAspect : BaseAspect { }
+";
+
+            var ordered = this.GetOrderedAspectLayers( code, "BaseAspect", "DerivedAspect" );
+
+            // DerivedAspect should have layers: default, L1 (inherited), L2 (deduplicated), L3 (own).
+            Assert.Contains( "DerivedAspect:L1", ordered );
+            Assert.Contains( "DerivedAspect:L2", ordered );
+            Assert.Contains( "DerivedAspect:L3", ordered );
+
+            // Each layer name should appear exactly once per aspect.
+            Assert.Equal( 1, ordered.Split( ',' ).Count( s => s.Contains( "DerivedAspect:L2" ) ) );
+        }
+
+        [Fact]
         public void ApplyToDerivedTypes()
         {
             const string code = @"

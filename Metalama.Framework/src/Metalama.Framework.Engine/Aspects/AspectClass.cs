@@ -179,10 +179,15 @@ public sealed class AspectClass : TemplateClass, IBoundAspectClass
                     break;
 
                 case nameof(LayersAttribute):
-                    layers.AddRange(
-                        attribute.ConstructorArguments[0]
-                            .Values.Select( v => (string?) v.Value )
-                            .Where( v => !string.IsNullOrEmpty( v ) ) );
+                    foreach ( var layerValue in attribute.ConstructorArguments[0]
+                                 .Values.Select( v => (string?) v.Value )
+                                 .Where( v => !string.IsNullOrEmpty( v ) ) )
+                    {
+                        if ( !layers.Contains( layerValue ) )
+                        {
+                            layers.Add( layerValue );
+                        }
+                    }
 
                     break;
 
