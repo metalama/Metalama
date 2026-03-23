@@ -88,6 +88,31 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                 namedArguments );
 
         /// <summary>
+        /// Creates a new <see cref="AttributeConstruction"/> by explicitly specifying the constructor and loosely-typed arguments.
+        /// The arguments are automatically converted to <see cref="TypedConstant"/> based on the constructor parameter types.
+        /// </summary>
+        /// <param name="constructor">The attribute constructor.</param>
+        /// <param name="constructorArguments">The constructor arguments.</param>
+        /// <param name="namedArguments">The named arguments (i.e., the assigned fields and properties).</param>
+        /// <returns>A new <see cref="AttributeConstruction"/> instance.</returns>
+        public static AttributeConstruction Create(
+            IConstructor constructor,
+            IReadOnlyList<object?>? constructorArguments,
+            IReadOnlyList<KeyValuePair<string, object?>>? namedArguments = null )
+        {
+            constructorArguments ??= ImmutableArray<object?>.Empty;
+            namedArguments ??= ImmutableArray<KeyValuePair<string, object?>>.Empty;
+
+            // Map constructor arguments.
+            var typedConstructorArguments = MapConstructorArguments( constructor, constructorArguments );
+
+            // Map named arguments.
+            var typedNamedArguments = MapNamedArguments( constructor, namedArguments );
+
+            return new AttributeConstruction( constructor, typedConstructorArguments, typedNamedArguments );
+        }
+
+        /// <summary>
         /// Creates a new <see cref="AttributeConstruction"/> by specifying the reflection <see cref="System.Type"/> of the attribute.
         /// The method will attempt to find a suitable constructor.
         /// </summary>
@@ -122,8 +147,10 @@ namespace Metalama.Framework.Code.DeclarationBuilders
 
             // Translate IType and System.Type arguments to System.Type to get the correct constructor.
             // This handles IType implementations, CompileTimeType, RuntimeType, and other Type subclasses.
+            // Also unwrap TypedConstant values to use their runtime type for constructor resolution.
             var constructorArgumentTypes =
                 constructorArguments
+                    .Select( x => x is TypedConstant tc ? tc.Value : x )
                     .Select( x => x?.GetType() )
                     .Select(
                         x => x == null ? null :
@@ -145,6 +172,18 @@ namespace Metalama.Framework.Code.DeclarationBuilders
             var constructor = constructors[0];
 
             // Map constructor arguments.
+            var typedConstructorArguments = MapConstructorArguments( constructor, constructorArguments );
+
+            // Map named arguments.
+            var typedNamedArguments = MapNamedArguments( constructor, namedArguments );
+
+            return new AttributeConstruction( constructor, typedConstructorArguments, typedNamedArguments );
+        }
+
+        private static ImmutableArray<TypedConstant> MapConstructorArguments(
+            IConstructor constructor,
+            IReadOnlyList<object?> constructorArguments )
+        {
             var typedConstructorArguments = ImmutableArray.CreateBuilder<TypedConstant>( constructor.Parameters.Count );
             var isLastParameterParams = constructor.Parameters.Count > 0 && constructor.Parameters[^1].IsParams;
 
@@ -163,7 +202,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                              parameterType,
                              constructorArguments[i],
                              false,
-                             ((ICompilationInternal) attributeType.Compilation).Factory ) )
+                             ((ICompilationInternal) constructor.DeclaringType.Compilation).Factory ) )
                     {
                         var constructorArgument = constructorArguments[i];
 
@@ -201,7 +240,13 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                 }
             }
 
-            // Map named arguments.
+            return typedConstructorArguments.MoveToImmutable();
+        }
+
+        private static ImmutableArray<KeyValuePair<string, TypedConstant>> MapNamedArguments(
+            IConstructor constructor,
+            IReadOnlyList<KeyValuePair<string, object?>> namedArguments )
+        {
             var typedNamedArguments = ImmutableArray.CreateBuilder<KeyValuePair<string, TypedConstant>>( namedArguments.Count );
 
             foreach ( var argument in namedArguments )
@@ -217,7 +262,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                     new KeyValuePair<string, TypedConstant>( argument.Key, TypedConstant.UnwrapOrCreate( argument.Value, fieldOrProperty.Type ) ) );
             }
 
-            return new AttributeConstruction( constructor, typedConstructorArguments.MoveToImmutable(), typedNamedArguments.MoveToImmutable() );
+            return typedNamedArguments.MoveToImmutable();
         }
     }
 }
