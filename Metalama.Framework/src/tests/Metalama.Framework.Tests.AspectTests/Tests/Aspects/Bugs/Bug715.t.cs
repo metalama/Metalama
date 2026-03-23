@@ -5,6 +5,11 @@ internal class Target
   public Target(int x)
   {
     this.X = x;
-    global::System.Console.WriteLine("initialized");
+    global::System.Console.WriteLine("first");
+    global::System.Console.WriteLine("second");
+    if (x > 0)
+    {
+      global::System.Console.WriteLine("positive");
+    }
   }
 }

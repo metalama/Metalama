@@ -30,7 +30,15 @@ public class Aspect : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
         builder.AddInitializer(
-            StatementFactory.Parse( "global::System.Console.WriteLine( \"initialized\" );" ),
+            StatementFactory.Parse( "global::System.Console.WriteLine( \"first\" );" ),
+            InitializerKind.BeforeInstanceConstructor );
+
+        builder.AddInitializer(
+            StatementFactory.Parse( "global::System.Console.WriteLine( \"second\" );" ),
+            InitializerKind.BeforeInstanceConstructor );
+
+        builder.AddInitializer(
+            StatementFactory.Parse( "if ( x > 0 )\n{\n    global::System.Console.WriteLine( \"positive\" );\n}" ),
             InitializerKind.BeforeInstanceConstructor );
     }
 }
