@@ -823,12 +823,7 @@ public sealed partial class ContextualSyntaxGenerator
 
             if ( value is IField field )
             {
-                return
-                    MemberAccessExpression(
-                            SyntaxKind.SimpleMemberAccessExpression,
-                            this.TypeSyntax( field.DeclaringType ),
-                            this.IdentifierName( field.Name ) )
-                        .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
+                return this.FieldReference( field );
             }
 
             switch ( type.TypeKind )
