@@ -1,5 +1,3 @@
-// Warning CS0078 on `l`: `The 'l' suffix is easily confused with the digit '1' -- use 'L' for clarity`
-// Warning CS0078 on `l`: `The 'l' suffix is easily confused with the digit '1' -- use 'L' for clarity`
 [TestAspect]
 public void Method()
 {
