@@ -897,10 +897,12 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         string? TryGetLiteralTextFromDeclaration( ExpressionSyntax expr )
         {
             // For an identifier, look up the declaring variable and check its initializer.
-            if ( expr is not IdentifierNameSyntax identifier )
+            if ( !expr.IsKind( SyntaxKind.IdentifierName ) )
             {
                 return null;
             }
+
+            var identifier = (IdentifierNameSyntax) expr;
 
             var symbol = this._syntaxTreeAnnotationMap.GetSymbol( expr );
 
@@ -911,10 +913,14 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
             foreach ( var syntaxRef in localSymbol.DeclaringSyntaxReferences )
             {
-                if ( syntaxRef.GetSyntax() is not VariableDeclaratorSyntax declarator )
+                var declaratorNode = syntaxRef.GetSyntax();
+
+                if ( !declaratorNode.IsKind( SyntaxKind.VariableDeclarator ) )
                 {
                     continue;
                 }
+
+                var declarator = (VariableDeclaratorSyntax) declaratorNode;
 
                 var initValue = declarator.Initializer?.Value;
 
@@ -993,28 +999,46 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
                 var parent = id.Parent;
 
-                // Check for assignment: variable = ..., variable += ..., etc.
-                if ( parent is AssignmentExpressionSyntax assignment && assignment.Left == id )
+                if ( parent == null )
                 {
-                    return true;
+                    continue;
+                }
+
+                // Check for assignment: variable = ..., variable += ..., etc.
+                if ( parent.IsKind( SyntaxKind.SimpleAssignmentExpression )
+                     || parent.IsKind( SyntaxKind.AddAssignmentExpression )
+                     || parent.IsKind( SyntaxKind.SubtractAssignmentExpression )
+                     || parent.IsKind( SyntaxKind.MultiplyAssignmentExpression )
+                     || parent.IsKind( SyntaxKind.DivideAssignmentExpression )
+                     || parent.IsKind( SyntaxKind.ModuloAssignmentExpression )
+                     || parent.IsKind( SyntaxKind.AndAssignmentExpression )
+                     || parent.IsKind( SyntaxKind.OrAssignmentExpression )
+                     || parent.IsKind( SyntaxKind.ExclusiveOrAssignmentExpression )
+                     || parent.IsKind( SyntaxKind.LeftShiftAssignmentExpression )
+                     || parent.IsKind( SyntaxKind.RightShiftAssignmentExpression ) )
+                {
+                    var assignment = (AssignmentExpressionSyntax) parent;
+
+                    if ( assignment.Left == id )
+                    {
+                        return true;
+                    }
                 }
 
                 // Check for ref/out argument: Method(ref variable), Method(out variable).
-                if ( parent is ArgumentSyntax { RefOrOutKeyword.RawKind: not (int) SyntaxKind.None } )
+                if ( parent.IsKind( SyntaxKind.Argument )
+                     && ((ArgumentSyntax) parent).RefOrOutKeyword.RawKind != (int) SyntaxKind.None )
                 {
                     return true;
                 }
 
                 // Check for increment/decrement: variable++, ++variable, variable--, --variable.
-                if ( parent is PostfixUnaryExpressionSyntax or PrefixUnaryExpressionSyntax )
+                if ( parent.IsKind( SyntaxKind.PostIncrementExpression )
+                     || parent.IsKind( SyntaxKind.PostDecrementExpression )
+                     || parent.IsKind( SyntaxKind.PreIncrementExpression )
+                     || parent.IsKind( SyntaxKind.PreDecrementExpression ) )
                 {
-                    var parentKind = parent.Kind();
-
-                    if ( parentKind is SyntaxKind.PostIncrementExpression or SyntaxKind.PostDecrementExpression
-                         or SyntaxKind.PreIncrementExpression or SyntaxKind.PreDecrementExpression )
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
 
