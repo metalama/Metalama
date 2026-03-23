@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Code.Types;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -383,6 +384,66 @@ namespace Metalama.Framework.Code
             // Check if the field name matches the backing field pattern: <PropertyName>k__BackingField
             return field.Name.StartsWith( "<", StringComparison.Ordinal )
                    && field.Name.EndsWith( ">k__BackingField", StringComparison.Ordinal );
+        }
+
+        /// <summary>
+        /// Gets the effective accessibility of a member or named type, taking into account the accessibility of all containing types.
+        /// For example, a <c>public</c> member inside an <c>internal</c> class has an effective accessibility of <c>internal</c>.
+        /// </summary>
+        /// <param name="member">The member or named type.</param>
+        /// <returns>The effective (minimum) accessibility considering all containing types.</returns>
+        public static Accessibility GetEffectiveAccessibility( this IMemberOrNamedType member )
+        {
+            var accessibility = member.Accessibility;
+
+            for ( var declaringType = member.DeclaringType; declaringType != null; declaringType = declaringType.DeclaringType )
+            {
+                if ( declaringType.Accessibility < accessibility )
+                {
+                    accessibility = declaringType.Accessibility;
+                }
+            }
+
+            return accessibility;
+        }
+
+        /// <summary>
+        /// Gets the effective accessibility of a type, taking into account the accessibility of containing types,
+        /// element types (for arrays and pointers), and type arguments (for generic types).
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns>The minimum effective accessibility across all component types.</returns>
+        public static Accessibility GetEffectiveAccessibility( this IType type )
+        {
+            switch ( type )
+            {
+                case IArrayType arrayType:
+                    return arrayType.ElementType.GetEffectiveAccessibility();
+
+                case IPointerType pointerType:
+                    return pointerType.PointedAtType.GetEffectiveAccessibility();
+
+                case INamedType namedType:
+                {
+                    var accessibility = ( (IMemberOrNamedType) namedType ).GetEffectiveAccessibility();
+
+                    foreach ( var typeArgument in namedType.TypeArguments )
+                    {
+                        var typeArgumentAccessibility = typeArgument.GetEffectiveAccessibility();
+
+                        if ( typeArgumentAccessibility < accessibility )
+                        {
+                            accessibility = typeArgumentAccessibility;
+                        }
+                    }
+
+                    return accessibility;
+                }
+
+                default:
+                    // For dynamic, type parameters, function pointers, etc.
+                    return Accessibility.Public;
+            }
         }
     }
 }
