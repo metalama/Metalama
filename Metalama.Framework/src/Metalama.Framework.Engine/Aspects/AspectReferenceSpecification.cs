@@ -96,7 +96,8 @@ namespace Metalama.Framework.Engine.Aspects
         public override string ToString()
         {
             // TODO: Cache strings.
-            return $"{this.AspectLayerId.FullName}${this.Order}${this.TargetKind}${this.Flags}${this.TargetDeclarationId}";
+            return $"{this.AspectLayerId.FullName}${this.Order}${this.TargetKind}${this.Flags}"
+                + ( string.IsNullOrEmpty( this.TargetDeclarationId ) ? string.Empty : $"${this.TargetDeclarationId}" );
         }
     }
 }

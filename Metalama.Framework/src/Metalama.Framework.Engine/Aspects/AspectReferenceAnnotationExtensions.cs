@@ -81,7 +81,7 @@ namespace Metalama.Framework.Engine.Aspects
         /// <summary>
         /// Gets the documentation comment ID for a Metalama declaration, or <c>null</c> if the declaration is not symbol-backed
         /// or if the declaration requires complex resolution by <see cref="Linking.AspectReferenceResolver"/> (interface members,
-        /// explicit interface implementations, base class members). Only returns an ID when the symbol will take the simple
+        /// explicit interface implementations, overrides). Only returns an ID when the symbol will take the simple
         /// resolution path in the linker.
         /// </summary>
         internal static string? GetTargetDeclarationId( ICompilationElement declaration )
@@ -106,8 +106,7 @@ namespace Metalama.Framework.Engine.Aspects
                 return null;
             }
 
-            // Skip symbols that are from a different type than expected in the intermediate compilation.
-            // For base class members, GetSymbolInfo resolves to the derived type's version of the symbol,
+            // Skip overrides because GetSymbolInfo resolves to the derived type's version of the symbol,
             // which differs from the declaration ID's resolution.
             if ( symbol is IMethodSymbol { IsOverride: true } or IPropertySymbol { IsOverride: true } or IEventSymbol { IsOverride: true } )
             {
