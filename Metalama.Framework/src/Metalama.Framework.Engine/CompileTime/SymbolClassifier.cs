@@ -880,6 +880,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         }
 
                         var memberScope = GetScopeFromAttributes( tracer, symbol );
+                        var memberExplicitScope = memberScope;
 
                         // If we have no attribute, look at the associated symbol (property/event).
                         if ( memberScope == null && symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol } )
@@ -888,16 +889,21 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         }
 
                         // If we still have no scope, look at the containing symbol.
+                        TemplatingScopeAndRule? containingTypeScope = null;
+
                         if ( memberScope == null && symbol.ContainingSymbol != null )
                         {
-                            memberScope = this.GetTemplatingScopeCore( symbol.ContainingSymbol, options, symbolsBeingProcessedIncludingCurrent, tracer )
+                            containingTypeScope = this.GetTemplatingScopeCore( symbol.ContainingSymbol, options, symbolsBeingProcessedIncludingCurrent, tracer )
                                           ?? (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
+
+                            memberScope = containingTypeScope;
 
                             if ( memberScope.Value.Scope == TemplatingScope.Conflict )
                             {
                                 // If the declaring type has conflict scope, we consider it has neutral scope,
                                 // otherwise we would report errors on all type members and this is confusing.
                                 memberScope = null;
+                                containingTypeScope = null;
                             }
                             else if ( memberScope.Value.Scope is TemplatingScope.ImplicitlyRunTimeOrCompileTime )
                             {
@@ -910,6 +916,19 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             }
                         }
 
+                        // Check for explicit scope conflicts between member attributes and containing type.
+                        if ( memberExplicitScope != null && symbol.ContainingSymbol != null )
+                        {
+                            var typeScope = this.GetTemplatingScopeCore( symbol.ContainingSymbol, options, symbolsBeingProcessedIncludingCurrent, tracer )
+                                            ?? (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
+
+                            if ( ( memberExplicitScope.Value.Scope is TemplatingScope.CompileTimeOnly && typeScope.Scope is TemplatingScope.RunTimeOnly )
+                                 || ( memberExplicitScope.Value.Scope is TemplatingScope.RunTimeOnly && typeScope.Scope is TemplatingScope.CompileTimeOnly ) )
+                            {
+                                return OnConflict();
+                            }
+                        }
+
                         // If the scope is given by other means, we do not try to guess by signature.
                         if ( memberScope is
                             {
@@ -918,6 +937,30 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                 or TemplatingScope.ImplicitlyRunTimeOrCompileTime)
                             } )
                         {
+                            // Before returning, check for implicit scope conflicts from parameters
+                            // when the scope was inherited from the containing type. (#787)
+                            if ( containingTypeScope?.Scope is TemplatingScope.RunTimeOnly
+                                 && memberExplicitScope == null
+                                 && symbol.Kind == SymbolKind.Method
+                                 && symbol is IMethodSymbol methodForConflictCheck )
+                            {
+                                var conflictCheckOptions = options | GetTemplatingScopeOptions.TypeParametersAreNeutral;
+
+                                foreach ( var parameter in methodForConflictCheck.Parameters )
+                                {
+                                    var paramTypeScope = this.GetTemplatingScopeCore(
+                                        parameter.Type,
+                                        conflictCheckOptions,
+                                        symbolsBeingProcessedIncludingCurrent,
+                                        tracer );
+
+                                    if ( paramTypeScope?.Scope is TemplatingScope.CompileTimeOnly )
+                                    {
+                                        return OnConflict();
+                                    }
+                                }
+                            }
+
                             return memberScope;
                         }
 

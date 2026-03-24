@@ -873,6 +873,8 @@ static class AttributeExtensions
             this.AssertScope( method, TemplatingScope.Conflict, diagnosticAdder: diagnosticBag );
 
             Assert.NotEmpty( diagnosticBag );
+            Assert.Contains( diagnosticBag, d => d.Id == TemplatingDiagnosticDescriptors.TemplatingScopeConflict.Id
+                                                  || d.Id == TemplatingDiagnosticDescriptors.UnexplainedTemplatingScopeConflict.Id );
         }
 
         /// <summary>
@@ -903,7 +905,8 @@ class C
             // This should be reported as a scope conflict.
             this.AssertScope( method, TemplatingScope.Conflict, diagnosticAdder: diagnosticBag );
 
-            Assert.NotEmpty( diagnosticBag );
+            var diagnostic = Assert.Single( diagnosticBag );
+            Assert.Equal( TemplatingDiagnosticDescriptors.TemplatingScopeConflict.Id, diagnostic.Id );
         }
 
         /// <summary>
