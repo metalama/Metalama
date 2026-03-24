@@ -36,7 +36,7 @@ using TypedConstant = Metalama.Framework.Code.TypedConstant;
 namespace Metalama.Framework.Engine.Advising;
 
 // ReSharper disable once PossibleInterfaceMemberAmbiguity
-internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagnosticSource, IAdviserInternal
+internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagnosticSource, IAdviserInternal, IDisposable
     where T : IDeclaration
 {
     private readonly AdviceFactoryState _state;
@@ -1842,6 +1842,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
     public void AddAspect( IDeclaration declaration, IAspect aspect )
     {
+        this.ThrowIfDisposed();
+
         using ( this.WithNonUserCode() )
         {
             this.ValidateTarget( declaration );
@@ -1884,6 +1886,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
     public void RequireAspect( IDeclaration declaration, Type aspectType )
     {
+        this.ThrowIfDisposed();
+
         if ( this.Target.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.Namespace )
         {
             throw new NotSupportedException( "This feature is not supported on compilations or namespaces. Use fabrics." );
@@ -1935,6 +1939,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     public void AddAnnotation<TDeclaration>( TDeclaration declaration, IAnnotation<TDeclaration> annotation, bool export = false )
         where TDeclaration : class, IDeclaration
     {
+        this.ThrowIfDisposed();
+
         using ( this.WithNonUserCode() )
         {
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.AddAnnotation );

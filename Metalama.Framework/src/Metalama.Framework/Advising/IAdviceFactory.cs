@@ -24,7 +24,7 @@ namespace Metalama.Framework.Advising
     [InternalImplement]
     [CompileTime]
     [PublicAPI]
-    public interface IAdviceFactory : IDisposable
+    public interface IAdviceFactory
     {
         /// <summary>
         /// Gets the immutable <see cref="ICompilation"/> representing the code <i>before</i> any change done by the current aspect. 

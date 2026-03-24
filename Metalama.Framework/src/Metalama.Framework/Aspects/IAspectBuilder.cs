@@ -52,7 +52,7 @@ namespace Metalama.Framework.Aspects
     /// <seealso href="@aspect-design"/>
     /// <seealso href="@architecture"/>
     [CompileTime]
-    public interface IAspectBuilder : IAdviser, IDisposable
+    public interface IAspectBuilder : IAdviser
     {
         /// <summary>
         /// Gets the current <see cref="IProject"/>, which represents the <c>csproj</c> file and allows to share project-local data.
