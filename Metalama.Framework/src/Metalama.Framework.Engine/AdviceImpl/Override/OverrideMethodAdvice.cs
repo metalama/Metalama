@@ -6,6 +6,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Transformations;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
@@ -41,6 +42,14 @@ internal sealed class OverrideMethodAdvice : OverrideMemberAdvice<IMethod, IMeth
                     new OverrideMethodTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef(), this._boundTemplate ) );
 
                 break;
+        }
+
+        // If the target method does not have an implementation (e.g. partial method without implementation part),
+        // emit a transformation to update the HasImplementation flag in the code model.
+        if ( !targetMethod.HasImplementation )
+        {
+            context.AddTransformation(
+                new SetHasImplementationTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef().As<IMember>() ) );
         }
 
         return this.CreateSuccessResult( targetMethod );

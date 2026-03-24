@@ -146,6 +146,9 @@ namespace Metalama.Framework.Engine.CodeModel
         private ImmutableDictionary<IRef, DeclarationBuilderData> _redirections =
             ImmutableDictionary.Create<IRef, DeclarationBuilderData>( RefEqualityComparer.Default );
 
+        private ImmutableHashSet<IRef> _membersWithSetImplementation =
+            ImmutableHashSet.Create<IRef>( RefEqualityComparer.Default );
+
         private ImmutableDictionary<IRef<IDeclaration>, int> _depthsCache =
             ImmutableDictionary.Create<IRef<IDeclaration>, int>( RefEqualityComparer<IDeclaration>.Default );
 
@@ -351,6 +354,7 @@ namespace Metalama.Framework.Engine.CodeModel
             this.SerializableTypeIdResolver = new SerializableTypeIdResolverForIType( this );
             this._depthsCache = prototype._depthsCache;
             this._redirections = prototype._redirections;
+            this._membersWithSetImplementation = prototype._membersWithSetImplementation;
             this._allMemberAttributesByType = prototype._allMemberAttributesByType;
             this.AspectRepository = prototype.AspectRepository;
             this.HierarchicalOptionsManager = prototype.HierarchicalOptionsManager;
@@ -597,6 +601,14 @@ namespace Metalama.Framework.Engine.CodeModel
         internal bool TryGetRedirectedDeclaration( IRef reference, [NotNullWhen( true )] out DeclarationBuilderData? redirected )
         {
             return this._redirections.TryGetValue( reference, out redirected );
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether a member has been given an implementation by a transformation (e.g., an override of a partial method without implementation).
+        /// </summary>
+        internal bool HasSetImplementation( IRef<IMember> memberRef )
+        {
+            return this._membersWithSetImplementation.Contains( memberRef );
         }
 
         [Memo]

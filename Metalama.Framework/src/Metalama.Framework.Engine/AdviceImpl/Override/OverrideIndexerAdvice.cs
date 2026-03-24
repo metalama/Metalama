@@ -6,6 +6,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Transformations;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
@@ -29,6 +30,14 @@ internal sealed class OverrideIndexerAdvice : OverrideMemberAdvice<IIndexer, IIn
     protected override OverrideMemberAdviceResult<IIndexer> Implement( AdviceImplementationContext context )
     {
         var targetDeclaration = this.TargetDeclaration;
+
+        // If the target does not have an implementation (e.g. partial indexer without implementation part),
+        // emit a transformation to update the HasImplementation flag in the code model.
+        if ( !targetDeclaration.HasImplementation )
+        {
+            context.AddTransformation(
+                new SetHasImplementationTransformation( this.AspectLayerInstance, targetDeclaration.ToFullRef().As<IMember>() ) );
+        }
 
         context.AddTransformation(
             new OverrideIndexerTransformation( this.AspectLayerInstance, targetDeclaration.ToFullRef(), this._getTemplate, this._setTemplate ) );
