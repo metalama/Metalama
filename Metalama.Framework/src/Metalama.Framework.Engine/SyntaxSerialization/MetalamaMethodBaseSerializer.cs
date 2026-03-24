@@ -158,8 +158,14 @@ internal abstract class MetalamaMethodBaseSerializer<TInput, TOutput> : ObjectSe
             }
         }
 
-        // In the new .NET, the API is marked for nullability, so we have to suppress the warning.
-        invokeGetMethod = PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, invokeGetMethod );
+        var memberKind = method.DeclarationKind == DeclarationKind.Constructor ? "constructor" : "method";
+
+        invokeGetMethod = SyntaxUtility.CoalesceWithMissingMemberException(
+            invokeGetMethod,
+            typeof(MissingMethodException),
+            method.ToDisplayString(),
+            memberKind,
+            serializationContext );
 
         return invokeGetMethod.NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );
     }

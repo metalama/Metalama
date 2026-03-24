@@ -36,13 +36,16 @@ internal sealed class CompileTimeEventInfoSerializer : ObjectSerializer<CompileT
                     [
                         Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( eventName ) ) ),
                         Argument( SyntaxUtility.CreateBindingFlags( @event, serializationContext ) )
-                    ] ) ) )
-            .NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );
+                    ] ) ) );
 
-        // In the new .NET, the API is marked for nullability, so we have to suppress the warning.
-        result = PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, result );
+        result = SyntaxUtility.CoalesceWithMissingMemberException(
+            result,
+            typeof(MissingMemberException),
+            @event.ToDisplayString(),
+            "event",
+            serializationContext );
 
-        return result;
+        return result.NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );
     }
 
     public CompileTimeEventInfoSerializer( SyntaxSerializationService service ) : base( service ) { }

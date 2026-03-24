@@ -24,7 +24,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             // TODO: This should emit a call to Intrinsics.
 
             this.AssertEqual(
-                @"new global::Metalama.Framework.RunTime.FieldOrPropertyInfo(typeof(global::Target).GetField(""Field"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance)!)",
+                @"new global::Metalama.Framework.RunTime.FieldOrPropertyInfo((typeof(global::Target).GetField(""Field"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance) ?? throw new global::System.MissingFieldException(""The field 'Target.Field' could not be found using reflection."")))",
                 serialized );
 
             this.TestExpression<FieldInfo>(
@@ -46,7 +46,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             // TODO: This should emit a call to Intrinsics.
 
             this.AssertEqual(
-                @"new global::Metalama.Framework.RunTime.FieldOrPropertyInfo(typeof(global::Target<>).GetField(""Field"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance)!)",
+                @"new global::Metalama.Framework.RunTime.FieldOrPropertyInfo((typeof(global::Target<>).GetField(""Field"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance) ?? throw new global::System.MissingFieldException(""The field 'Target<TKey>.Field' could not be found using reflection."")))",
                 serialized );
 
             this.TestExpression<FieldInfo>(
