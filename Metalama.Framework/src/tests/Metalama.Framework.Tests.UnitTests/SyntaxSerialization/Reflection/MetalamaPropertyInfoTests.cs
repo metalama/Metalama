@@ -25,7 +25,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeProperty( code );
 
             this.AssertEqual(
-                @"new global::Metalama.Framework.RunTime.FieldOrPropertyInfo(typeof(global::Target).GetProperty(""Property"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance)!)",
+                @"new global::Metalama.Framework.RunTime.FieldOrPropertyInfo((typeof(global::Target).GetProperty(""Property"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance) ?? throw new global::System.MissingMemberException(""The property 'Target.Property' could not be found using reflection."")))",
                 serialized );
 
             this.TestExpression<PropertyInfo>(
@@ -47,7 +47,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeProperty( code );
 
             this.AssertEqual(
-                @"new global::Metalama.Framework.RunTime.FieldOrPropertyInfo(typeof(global::Target<>).GetProperty(""Property"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance)!)",
+                @"new global::Metalama.Framework.RunTime.FieldOrPropertyInfo((typeof(global::Target<>).GetProperty(""Property"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance) ?? throw new global::System.MissingMemberException(""The property 'Target<T>.Property' could not be found using reflection."")))",
                 serialized );
 
             this.TestExpression<PropertyInfo>(
@@ -69,7 +69,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeProperty( code );
 
             this.AssertEqual(
-                @"new global::Metalama.Framework.RunTime.FieldOrPropertyInfo(typeof(global::Target).GetProperty(""Property"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance)!)",
+                @"new global::Metalama.Framework.RunTime.FieldOrPropertyInfo((typeof(global::Target).GetProperty(""Property"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance) ?? throw new global::System.MissingMemberException(""The property 'Target.Property' could not be found using reflection."")))",
                 serialized );
 
             this.TestExpression<PropertyInfo>(
@@ -91,7 +91,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeIndexerWithTarget( code );
 
             this.AssertEqual(
-                @"typeof(global::Target).GetProperty(""Item"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, null, typeof(global::System.String), new global::System.Type[] { typeof(global::System.Int32) }, null)!",
+                @"(typeof(global::Target).GetProperty(""Item"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, null, typeof(global::System.String), new global::System.Type[] { typeof(global::System.Int32) }, null) ?? throw new global::System.MissingMemberException(""The indexer 'Target.this[int]' could not be found using reflection.""))",
                 serialized );
 
             this.TestExpression<PropertyInfo>(
@@ -121,7 +121,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = testContext.Serialize( CompileTimePropertyInfo.Create( (SourceIndexer) property ) ).NormalizeWhitespace().ToString();
 
             this.AssertEqual(
-                @"typeof(global::System.String).GetProperty(""Chars"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, null, typeof(global::System.Char), new global::System.Type[] { typeof(global::System.Int32) }, null)!",
+                @"(typeof(global::System.String).GetProperty(""Chars"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, null, typeof(global::System.Char), new global::System.Type[] { typeof(global::System.Int32) }, null) ?? throw new global::System.MissingMemberException(""The indexer 'string.this[int]' could not be found using reflection.""))",
                 serialized );
 
             this.TestExpression<PropertyInfo>(

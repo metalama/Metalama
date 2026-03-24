@@ -37,7 +37,7 @@ internal class TheClass
   private ICachingService _cachingService;
   static TheClass()
   {
-    _cacheRegistration_CachedMethod = CachedMethodMetadata.Register(typeof(TheClass).GetMethod("CachedMethod", BindingFlags.Public | BindingFlags.Instance, null, new[] { typeof(int), typeof(IDisposable) }, null).ThrowIfMissing("TheClass.CachedMethod(int, IDisposable)"), new CachedMethodConfiguration() { AbsoluteExpiration = null, AutoReload = null, IgnoreThisParameter = null, Priority = null, ProfileName = (string? )null, SlidingExpiration = null }, false);
+    _cacheRegistration_CachedMethod = CachedMethodMetadata.Register((typeof(TheClass).GetMethod("CachedMethod", BindingFlags.Public | BindingFlags.Instance, null, new[] { typeof(int), typeof(IDisposable) }, null) ?? throw new MissingMethodException("The method 'TheClass.CachedMethod(int, IDisposable)' could not be found using reflection.")).ThrowIfMissing("TheClass.CachedMethod(int, IDisposable)"), new CachedMethodConfiguration() { AbsoluteExpiration = null, AutoReload = null, IgnoreThisParameter = null, Priority = null, ProfileName = (string? )null, SlidingExpiration = null }, false);
   }
   public TheClass(ICachingService? cachingService = null)
   {
