@@ -15,23 +15,28 @@ namespace Metalama.Framework.Engine.SyntaxSerialization;
 internal sealed class IndexSerializer : ObjectSerializer<Index>
 {
     public override ExpressionSyntax Serialize( Index obj, SyntaxSerializationContext serializationContext )
-        => ObjectCreationExpression(
-                serializationContext.GetTypeSyntax( typeof(Index) ),
-                ArgumentList(
-                    SeparatedList(
-                        new[]
-                        {
-                            Argument(
-                                LiteralExpression(
-                                    SyntaxKind.NumericLiteralExpression,
-                                    Literal( obj.Value ) ) ),
-                            Argument(
-                                obj.IsFromEnd
-                                    ? LiteralExpression( SyntaxKind.TrueLiteralExpression )
-                                    : LiteralExpression( SyntaxKind.FalseLiteralExpression ) )
-                        } ) ),
-                null )
+        => SerializeIndex( obj, serializationContext )
             .NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );
+
+    /// <summary>
+    /// Serializes an <see cref="Index"/> to its C# expression form without whitespace normalization.
+    /// Used by <see cref="RangeSerializer"/> to compose range expressions.
+    /// </summary>
+    internal static ExpressionSyntax SerializeIndex( Index obj, SyntaxSerializationContext serializationContext )
+    {
+        var valueLiteral = LiteralExpression( SyntaxKind.NumericLiteralExpression, Literal( obj.Value ) );
+
+        if ( obj.IsFromEnd )
+        {
+            // Generate ^n syntax.
+            return PrefixUnaryExpression( SyntaxKind.IndexExpression, valueLiteral );
+        }
+        else
+        {
+            // For from-start, use the integer literal (implicit conversion to Index).
+            return valueLiteral;
+        }
+    }
 
     public IndexSerializer( SyntaxSerializationService service ) : base( service ) { }
 }

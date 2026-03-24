@@ -13,25 +13,13 @@ namespace Metalama.Framework.Engine.SyntaxSerialization;
 
 internal sealed class RangeSerializer : ObjectSerializer<Range>
 {
-    private readonly IndexSerializer _indexSerializer;
-
     public override ExpressionSyntax Serialize( Range obj, SyntaxSerializationContext serializationContext )
-        => ObjectCreationExpression(
-                serializationContext.GetTypeSyntax( typeof(Range) ),
-                ArgumentList(
-                    SeparatedList(
-                        new[]
-                        {
-                            Argument( this._indexSerializer.Serialize( obj.Start, serializationContext ) ),
-                            Argument( this._indexSerializer.Serialize( obj.End, serializationContext ) )
-                        } ) ),
-                null )
+        => RangeExpression(
+                IndexSerializer.SerializeIndex( obj.Start, serializationContext ),
+                IndexSerializer.SerializeIndex( obj.End, serializationContext ) )
             .NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );
 
-    public RangeSerializer( SyntaxSerializationService service, IndexSerializer indexSerializer ) : base( service )
-    {
-        this._indexSerializer = indexSerializer;
-    }
+    public RangeSerializer( SyntaxSerializationService service ) : base( service ) { }
 }
 
 #endif

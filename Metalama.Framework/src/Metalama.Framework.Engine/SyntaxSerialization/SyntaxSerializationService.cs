@@ -69,9 +69,8 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             this.RegisterSerializer( new CultureInfoSerializer( this ) );
 
 #if !NET472
-            var indexSerializer = new IndexSerializer( this );
-            this.RegisterSerializer( indexSerializer );
-            this.RegisterSerializer( new RangeSerializer( this, indexSerializer ) );
+            this.RegisterSerializer( new IndexSerializer( this ) );
+            this.RegisterSerializer( new RangeSerializer( this ) );
 #endif
 
             // Collections

@@ -18,9 +18,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization
 
             var range = new Range( new Index( 1 ), new Index( 3 ) );
 
-            Assert.Equal(
-                "new global::System.Range(new global::System.Index(1, false), new global::System.Index(3, false))",
-                testContext.Serialize( range ).ToString() );
+            Assert.Equal( "1..3", testContext.Serialize( range ).ToString() );
         }
 
         [Fact]
@@ -30,9 +28,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization
 
             var range = new Range( new Index( 0 ), new Index( 1, true ) );
 
-            Assert.Equal(
-                "new global::System.Range(new global::System.Index(0, false), new global::System.Index(1, true))",
-                testContext.Serialize( range ).ToString() );
+            Assert.Equal( "0..^1", testContext.Serialize( range ).ToString() );
         }
     }
 }
