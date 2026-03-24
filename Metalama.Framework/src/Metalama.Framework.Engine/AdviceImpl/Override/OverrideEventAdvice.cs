@@ -6,6 +6,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Transformations;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
@@ -34,6 +35,14 @@ internal sealed class OverrideEventAdvice : OverrideMemberAdvice<IEvent, IEvent>
     protected override OverrideMemberAdviceResult<IEvent> Implement( AdviceImplementationContext context )
     {
         // TODO: order should be self if the target is introduced on the same layer.
+        // If the target does not have an implementation (e.g. partial event without implementation part),
+        // emit a transformation to update the HasImplementation flag in the code model.
+        if ( !this.TargetDeclaration.HasImplementation )
+        {
+            context.AddTransformation(
+                new SetHasImplementationTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef().As<IMember>() ) );
+        }
+
         context.AddTransformation(
             new OverrideEventTransformation(
                 this.AspectLayerInstance,

@@ -36,7 +36,7 @@ using TypedConstant = Metalama.Framework.Code.TypedConstant;
 namespace Metalama.Framework.Engine.Advising;
 
 // ReSharper disable once PossibleInterfaceMemberAmbiguity
-internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagnosticSource, IAdviserInternal
+internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagnosticSource, IAdviserInternal, IDisposable
     where T : IDeclaration
 {
     private readonly AdviceFactoryState _state;
@@ -306,8 +306,20 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
     public ICompilation MutableCompilation => this._state.MutableCompilation;
 
+    private void ThrowIfDisposed()
+    {
+        if ( this._state.IsDisposed )
+        {
+            throw new ObjectDisposedException(
+                nameof(IAdviceFactory),
+                "The IAdviceFactory has been disposed and can no longer be used. Advice can only be added during the BuildAspect phase, not from templates." );
+        }
+    }
+
     private void Validate( IDeclaration declaration, AdviceKind adviceKind, params IDeclaration[] otherTargets )
     {
+        this.ThrowIfDisposed();
+
         var rule = EligibilityRuleFactory.GetAdviceEligibilityRule( adviceKind );
 
         if ( (rule.GetEligibility( declaration ) & EligibleScenarios.Default) == 0 )
@@ -326,6 +338,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
     private void CheckContractEligibility( IDeclaration declaration, ContractDirection contractDirection )
     {
+        this.ThrowIfDisposed();
         var rule = EligibilityRuleFactory.GetContractAdviceEligibilityRule( contractDirection );
 
         if ( (rule.GetEligibility( declaration ) & EligibleScenarios.Default) == 0 )
@@ -449,6 +462,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     private Advice.AdviceConstructorParameters<TDeclaration> GetAdviceConstructorParameters<TDeclaration>( TDeclaration target, bool requireTemplate = true )
         where TDeclaration : class, IDeclaration
     {
+        this.ThrowIfDisposed();
+
         if ( requireTemplate && this._templateClassInstance == null )
         {
             throw new InvalidOperationException( "The template class instance cannot be null." );
@@ -1630,6 +1645,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         IAttributeData attribute,
         OverrideStrategy whenExists = OverrideStrategy.Default )
     {
+        this.ThrowIfDisposed();
         this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceAttribute );
 
         ValidateNotExtensionBlock( targetDeclaration, "an attribute" );
@@ -1646,6 +1662,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            this.ThrowIfDisposed();
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.RemoveAttributes );
 
             return new RemoveAttributesAdvice(
@@ -1825,6 +1842,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
     public void AddAspect( IDeclaration declaration, IAspect aspect )
     {
+        this.ThrowIfDisposed();
+
         using ( this.WithNonUserCode() )
         {
             this.ValidateTarget( declaration );
@@ -1867,6 +1886,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
     public void RequireAspect( IDeclaration declaration, Type aspectType )
     {
+        this.ThrowIfDisposed();
+
         if ( this.Target.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.Namespace )
         {
             throw new NotSupportedException( "This feature is not supported on compilations or namespaces. Use fabrics." );
@@ -1918,6 +1939,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     public void AddAnnotation<TDeclaration>( TDeclaration declaration, IAnnotation<TDeclaration> annotation, bool export = false )
         where TDeclaration : class, IDeclaration
     {
+        this.ThrowIfDisposed();
+
         using ( this.WithNonUserCode() )
         {
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.AddAnnotation );
@@ -1942,4 +1965,6 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     string IDiagnosticSource.DiagnosticSourceDescription => this._state.AspectInstance.DiagnosticSourceDescription;
 
     IAdviceFactory IAdviserInternal.AdviceFactory => this;
+
+    public void Dispose() => this._state.Dispose();
 }

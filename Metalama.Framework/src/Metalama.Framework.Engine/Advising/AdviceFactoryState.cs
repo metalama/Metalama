@@ -97,4 +97,11 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
     public int AspectOrder { get; }
 
     public IAspectClassResolver AspectClassResolver { get; }
+
+    public bool IsDisposed { get; private set; }
+
+    public void Dispose()
+    {
+        this.IsDisposed = true;
+    }
 }

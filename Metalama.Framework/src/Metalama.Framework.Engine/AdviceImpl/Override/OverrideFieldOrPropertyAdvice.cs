@@ -5,6 +5,8 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
+using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Transformations;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
@@ -30,6 +32,14 @@ internal sealed class OverrideFieldOrPropertyAdvice : OverrideMemberAdvice<IFiel
         // TODO: Translate templates to this compilation.
         // TODO: order should be self if the target is introduced on the same layer.
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
+
+        // If the target does not have an implementation (e.g. partial property without implementation part),
+        // emit a transformation to update the HasImplementation flag in the code model.
+        if ( !targetDeclaration.HasImplementation )
+        {
+            context.AddTransformation(
+                new SetHasImplementationTransformation( this.AspectLayerInstance, targetDeclaration.ToFullRef() ) );
+        }
 
         var promotedField = OverrideHelper.OverrideProperty(
             context.ServiceProvider,
