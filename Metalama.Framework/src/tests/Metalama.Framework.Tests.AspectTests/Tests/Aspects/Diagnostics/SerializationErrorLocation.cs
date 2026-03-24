@@ -3,8 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Aspects.Diagnostics.SerializationErrorLocation;
@@ -12,11 +10,15 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Diagnostics.Serialization
 internal class LogAttribute : OverrideMethodAspect
 {
     [Introduce]
-    private static string GetParametersDescription( IEnumerable<string> parameters ) => string.Join( "; ", parameters );
+    private static string GetDescription( object value ) => value.ToString()!;
 
     public override dynamic? OverrideMethod()
     {
-        Console.WriteLine( GetParametersDescription( meta.Target.Parameters.Select( p => p.Name ) ) );
+        // meta.Target.Parameters is a compile-time IParameterList. Passing it to an introduced method
+        // requires serialization, which fails because IParameterList is not serializable.
+        // Using meta.RunTime forces the compile-time value to be serialized.
+        object method = meta.Target.Method;
+        Console.WriteLine( GetDescription( meta.RunTime( method ) ) );
 
         return meta.Proceed();
     }
