@@ -36,8 +36,7 @@ internal sealed class CompileTimeEventInfoSerializer : ObjectSerializer<CompileT
                     [
                         Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( eventName ) ) ),
                         Argument( SyntaxUtility.CreateBindingFlags( @event, serializationContext ) )
-                    ] ) ) )
-            .NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );
+                    ] ) ) );
 
         result = SyntaxUtility.CoalesceWithMissingMemberException(
             result,
@@ -46,7 +45,7 @@ internal sealed class CompileTimeEventInfoSerializer : ObjectSerializer<CompileT
             "event",
             serializationContext );
 
-        return result;
+        return result.NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );
     }
 
     public CompileTimeEventInfoSerializer( SyntaxSerializationService service ) : base( service ) { }

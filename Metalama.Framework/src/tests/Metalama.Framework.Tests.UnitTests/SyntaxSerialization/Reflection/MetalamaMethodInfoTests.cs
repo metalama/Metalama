@@ -20,7 +20,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeTargetDotMethod( code );
 
             Assert.Equal(
-                @"((global::System.Reflection.MethodInfo)typeof(global::Target).GetMethod(""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, global::System.Type.EmptyTypes, null)!)",
+                @"((global::System.Reflection.MethodInfo)(typeof(global::Target).GetMethod(""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, global::System.Type.EmptyTypes, null) ?? throw new global::System.MissingMethodException(""The method 'Target.Method()' could not be found using reflection."")))",
                 serialized );
 
             this.TestExpression<MethodInfo>(
@@ -41,7 +41,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeTargetDotMethod( code );
 
             Assert.Equal(
-                @"((global::System.Reflection.MethodInfo)global::Metalama.Framework.RunTime.ReflectionHelper.GetMethod(typeof(global::Target), ""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, ""T Method[T](T)"")!)",
+                @"((global::System.Reflection.MethodInfo)(global::Metalama.Framework.RunTime.ReflectionHelper.GetMethod(typeof(global::Target), ""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, ""T Method[T](T)"") ?? throw new global::System.MissingMethodException(""The method 'Target.Method<T>(T)' could not be found using reflection."")))",
                 serialized );
 
             this.TestExpression<MethodInfo>(
@@ -62,7 +62,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeTargetDotMethod( code );
 
             Assert.Equal(
-                @"((global::System.Reflection.MethodInfo)typeof(global::Target).GetMethod(""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, new[] { typeof(global::System.Int32).MakeByRefType() }, null)!)",
+                @"((global::System.Reflection.MethodInfo)(typeof(global::Target).GetMethod(""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, new[] { typeof(global::System.Int32).MakeByRefType() }, null) ?? throw new global::System.MissingMethodException(""The method 'Target.Method(out int)' could not be found using reflection."")))",
                 serialized );
 
             this.TestExpression<MethodInfo>(

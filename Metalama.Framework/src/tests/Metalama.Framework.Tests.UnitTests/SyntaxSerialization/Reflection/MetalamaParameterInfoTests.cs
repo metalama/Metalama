@@ -25,7 +25,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeParameter( code );
 
             this.AssertEqual(
-                @"typeof(global::Target).GetMethod(""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, new[] { typeof(global::System.Int32) }, null)!.GetParameters()[0]",
+                @"(typeof(global::Target).GetMethod(""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, new[] { typeof(global::System.Int32) }, null) ?? throw new global::System.MissingMethodException(""The method 'Target.Method(int)' could not be found using reflection."")).GetParameters()[0]",
                 serialized );
 
             this.TestExpression<ParameterInfo>(
@@ -46,7 +46,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeParameter( code );
 
             this.AssertEqual(
-                @"global::Metalama.Framework.RunTime.ReflectionHelper.GetMethod(typeof(global::Target), ""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, ""Int32 Method[T](T)"")!.GetParameters()[0]",
+                @"(global::Metalama.Framework.RunTime.ReflectionHelper.GetMethod(typeof(global::Target), ""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, ""Int32 Method[T](T)"") ?? throw new global::System.MissingMethodException(""The method 'Target.Method<T>(T)' could not be found using reflection."")).GetParameters()[0]",
                 serialized );
 
             this.TestExpression<ParameterInfo>(
@@ -67,7 +67,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeParameter( code );
 
             this.AssertEqual(
-                @"global::Metalama.Framework.RunTime.ReflectionHelper.GetMethod(typeof(global::Target<>), ""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, ""Int32 Method[U](System.Tuple`2[T,U])"")!.GetParameters()[0]",
+                @"(global::Metalama.Framework.RunTime.ReflectionHelper.GetMethod(typeof(global::Target<>), ""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, ""Int32 Method[U](System.Tuple`2[T,U])"") ?? throw new global::System.MissingMethodException(""The method 'Target<T>.Method<U>(Tuple<T, U>)' could not be found using reflection."")).GetParameters()[0]",
                 serialized );
 
             this.TestExpression<ParameterInfo>(
@@ -88,7 +88,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeParameter( code );
 
             this.AssertEqual(
-                @"typeof(global::Target).GetMethod(""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, new[] { typeof(global::System.Single), typeof(global::System.Int32) }, null)!.GetParameters()[1]",
+                @"(typeof(global::Target).GetMethod(""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, new[] { typeof(global::System.Single), typeof(global::System.Int32) }, null) ?? throw new global::System.MissingMethodException(""The method 'Target.Method(float, int)' could not be found using reflection."")).GetParameters()[1]",
                 serialized );
 
             this.TestExpression<ParameterInfo>(
@@ -109,7 +109,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeReturnParameter( code );
 
             this.AssertEqual(
-                @"typeof(global::Target).GetMethod(""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, new[] { typeof(global::System.Single), typeof(global::System.Int32) }, null)!.ReturnParameter",
+                @"(typeof(global::Target).GetMethod(""Method"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, new[] { typeof(global::System.Single), typeof(global::System.Int32) }, null) ?? throw new global::System.MissingMethodException(""The method 'Target.Method(float, int)' could not be found using reflection."")).ReturnParameter",
                 serialized );
 
             this.TestExpression<ParameterInfo>(
@@ -129,7 +129,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeReturnParameterOfProperty( code );
 
             this.AssertEqual(
-                @"typeof(global::Target).GetMethod(""get_Property"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, global::System.Type.EmptyTypes, null)!.ReturnParameter",
+                @"(typeof(global::Target).GetMethod(""get_Property"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static, null, global::System.Type.EmptyTypes, null) ?? throw new global::System.MissingMethodException(""The method 'Target.Property.get' could not be found using reflection."")).ReturnParameter",
                 serialized );
 
             this.TestExpression<ParameterInfo>(
@@ -149,7 +149,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeIndexerParameter( code );
 
             this.AssertEqual(
-                @"typeof(global::Target).GetProperty(""Item"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, null, typeof(global::System.Int32), new global::System.Type[] { typeof(global::System.Int32) }, null)!.GetIndexParameters()[0]",
+                @"(typeof(global::Target).GetProperty(""Item"", global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, null, typeof(global::System.Int32), new global::System.Type[] { typeof(global::System.Int32) }, null) ?? throw new global::System.MissingMemberException(""The indexer 'Target.this[int]' could not be found using reflection."")).GetIndexParameters()[0]",
                 serialized );
 
             this.TestExpression<ParameterInfo>(
