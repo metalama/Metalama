@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Assets;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using Xunit;
 
@@ -66,7 +67,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization
         public void TestUnsupportedAnonymousType()
         {
             using var testContext = this.CreateSerializationTestContext( "" );
-            Assert.Throws<DiagnosticException>( () => testContext.Serialize( new { A = "F" } ) );
+            Assert.Throws<InvalidOperationException>( () => testContext.Serialize( new { A = "F" } ) );
         }
 
         [Fact]
