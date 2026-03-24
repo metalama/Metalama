@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
@@ -10,6 +9,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -244,12 +244,16 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
         /// <param name="o">An object to serialize.</param>
         /// <param name="serializationContext"></param>
         /// <returns>An expression that would create the object.</returns>
-        /// <exception cref="DiagnosticException">When the object cannot be serialized, for example if it's of an unsupported type.</exception>
+        /// <exception cref="InvalidOperationException">When the object cannot be serialized, for example if it's of an unsupported type.</exception>
         public ExpressionSyntax Serialize<T>( T? o, SyntaxSerializationContext serializationContext )
         {
             if ( !this.TrySerialize( o, serializationContext, out var expression ) )
             {
-                throw SerializationDiagnosticDescriptors.UnsupportedSerialization.CreateException( o!.GetType() );
+                throw new InvalidOperationException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        SerializationDiagnosticDescriptors.UnsupportedSerializationMessage,
+                        o!.GetType().Name ) );
             }
             else
             {
