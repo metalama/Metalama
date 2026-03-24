@@ -53,6 +53,20 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             throw GeneralDiagnosticDescriptors.MemberRequiresNArguments.CreateException( (this.Member, parametersCount, args.Count) );
         }
 
+        // Detect the common mistake of passing an array as a single argument
+        // (e.g., method.Invoke(new object[] { 1 })) when the target parameter is not an array type.
+        for ( var i = 0; i < args.Count && i < parametersCount; i++ )
+        {
+            var argType = args[i].Type;
+            var paramType = this.Member.Parameters[i].Type;
+
+            if ( argType.TypeKind == TypeKind.Array && paramType.TypeKind != TypeKind.Array && !this.Member.Parameters[i].IsParams )
+            {
+                throw GeneralDiagnosticDescriptors.ArrayPassedAsSingleArgument.CreateException(
+                    (this.Member, argType.ToString() ?? "array", this.Member.Parameters[i].Name, paramType.ToString() ?? "unknown") );
+            }
+        }
+
         this.CheckInvocationOptionsAndTarget();
 
         switch ( this.Member.MethodKind )
