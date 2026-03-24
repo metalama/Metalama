@@ -635,7 +635,7 @@ internal class TestResult : IDisposable
         }
     }
 
-    private static IEnumerable<SyntaxTrivia> FormatErrorMessageAsComments( string? errorMessage )
+    internal static IEnumerable<SyntaxTrivia> FormatErrorMessageAsComments( string? errorMessage )
     {
         if ( string.IsNullOrEmpty( errorMessage ) )
         {
