@@ -132,7 +132,8 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                             aspectLayer,
                             AspectReferenceOrder.Previous,
                             targetKind,
-                            AspectReferenceFlags.Inlineable );
+                            AspectReferenceFlags.Inlineable,
+                            AspectReferenceAnnotationExtensions.GetTargetDeclarationId( targetProperty ) );
         }
     }
 
@@ -154,7 +155,8 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                 aspectLayer,
                 AspectReferenceOrder.Previous,
                 targetKind,
-                AspectReferenceFlags.Inlineable );
+                AspectReferenceFlags.Inlineable,
+                AspectReferenceAnnotationExtensions.GetTargetDeclarationId( targetIndexer ) );
 
     public override ExpressionSyntax GetOperatorReference( AspectLayerId aspectLayer, IMethod targetOperator, ContextualSyntaxGenerator syntaxGenerator )
     {

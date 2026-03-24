@@ -69,26 +69,39 @@ internal sealed partial class LinkerAnalysisStep
 
             if ( node.TryGetAspectReference( out var aspectReference ) )
             {
-                var nodeWithSymbol = node.Kind() switch
+                ISymbol? referencedSymbol;
+
+                if ( aspectReference.TargetDeclarationId != null )
                 {
-                    SyntaxKind.ConditionalAccessExpression when node is ConditionalAccessExpressionSyntax conditionalAccess => GetConditionalMemberName( conditionalAccess ),
-                    _ => node
-                };
-
-                var symbolInfo = this._semanticModel.GetSymbolInfo( nodeWithSymbol );
-
-                var referencedSymbol =
-                    symbolInfo switch
+                    // Fast path: resolve the symbol using the declaration ID through Compilation.Assembly,
+                    // which is much faster than SemanticModel.GetSymbolInfo.
+                    referencedSymbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( aspectReference.TargetDeclarationId, this._semanticModel.Compilation );
+                }
+                else
+                {
+                    // Slow path: resolve using SemanticModel.GetSymbolInfo.
+                    var nodeWithSymbol = node.Kind() switch
                     {
-                        // Normal situation with valid symbol.
-                        { Symbol: { } symbol } => symbol,
-
-                        // In most invalid code situations, there is one candidate symbol.
-                        { CandidateSymbols: [{ } symbol] } => symbol,
-
-                        // Otherwise we will skip this reference completely, which will cause it not to be transformed.
-                        _ => null
+                        SyntaxKind.ConditionalAccessExpression when node is ConditionalAccessExpressionSyntax conditionalAccess => GetConditionalMemberName(
+                            conditionalAccess ),
+                        _ => node
                     };
+
+                    var symbolInfo = this._semanticModel.GetSymbolInfo( nodeWithSymbol );
+
+                    referencedSymbol =
+                        symbolInfo switch
+                        {
+                            // Normal situation with valid symbol.
+                            { Symbol: { } symbol } => symbol,
+
+                            // In most invalid code situations, there is one candidate symbol.
+                            { CandidateSymbols: [{ } symbol] } => symbol,
+
+                            // Otherwise we will skip this reference completely, which will cause it not to be transformed.
+                            _ => null
+                        };
+                }
 
                 if ( referencedSymbol == null )
                 {

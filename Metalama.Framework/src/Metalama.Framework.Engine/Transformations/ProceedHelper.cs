@@ -272,6 +272,7 @@ internal static class ProceedHelper
                 aspectLayerId,
                 AspectReferenceOrder.Previous,
                 referenceTargetKind,
-                AspectReferenceFlags.Inlineable );
+                AspectReferenceFlags.Inlineable,
+                AspectReferenceAnnotationExtensions.GetTargetDeclarationId( targetMember ) );
     }
 }

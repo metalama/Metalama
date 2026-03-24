@@ -3,6 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Code;
+using Metalama.Framework.Engine.CodeModel;
 using Microsoft.CodeAnalysis;
 using System.Linq;
 
@@ -69,10 +71,23 @@ namespace Metalama.Framework.Engine.Aspects
             AspectLayerId aspectLayerId,
             AspectReferenceOrder order,
             AspectReferenceTargetKind targetKind = AspectReferenceTargetKind.Self,
-            AspectReferenceFlags flags = AspectReferenceFlags.None )
+            AspectReferenceFlags flags = AspectReferenceFlags.None,
+            string? targetDeclarationId = null )
             where T : SyntaxNode
         {
-            return node.WithAspectReferenceAnnotation( new AspectReferenceSpecification( aspectLayerId, order, targetKind, flags ) );
+            return node.WithAspectReferenceAnnotation( new AspectReferenceSpecification( aspectLayerId, order, targetKind, flags, targetDeclarationId ) );
+        }
+
+        /// <summary>
+        /// Gets the documentation comment ID for a Metalama declaration, or <c>null</c> if the declaration is not symbol-backed.
+        /// This ID can be used by the linker to resolve the symbol through <c>Compilation.Assembly</c> instead of
+        /// the slower <c>SemanticModel.GetSymbolInfo</c>.
+        /// </summary>
+        internal static string? GetTargetDeclarationId( ICompilationElement declaration )
+        {
+            var symbol = declaration.GetSymbol();
+
+            return symbol != null ? DocumentationCommentId.CreateDeclarationId( symbol ) : null;
         }
     }
 }

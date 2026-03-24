@@ -31,16 +31,25 @@ namespace Metalama.Framework.Engine.Aspects
         /// </summary>
         public AspectReferenceFlags Flags { get; }
 
+        /// <summary>
+        /// Gets the documentation comment ID of the target declaration, or <c>null</c> if the target declaration is not known.
+        /// When set, this allows the linker to resolve the referenced symbol through <c>Compilation.Assembly</c> instead of
+        /// the slower <c>SemanticModel.GetSymbolInfo</c>.
+        /// </summary>
+        public string? TargetDeclarationId { get; }
+
         public AspectReferenceSpecification(
             AspectLayerId aspectLayerId,
             AspectReferenceOrder order,
             AspectReferenceTargetKind targetKind = AspectReferenceTargetKind.Self,
-            AspectReferenceFlags flags = AspectReferenceFlags.None )
+            AspectReferenceFlags flags = AspectReferenceFlags.None,
+            string? targetDeclarationId = null )
         {
             this.AspectLayerId = aspectLayerId;
             this.Order = order;
             this.TargetKind = targetKind;
             this.Flags = flags;
+            this.TargetDeclarationId = targetDeclarationId;
         }
 
         internal AspectReferenceSpecification WithTargetKind( AspectReferenceTargetKind targetKind )
@@ -49,12 +58,18 @@ namespace Metalama.Framework.Engine.Aspects
                 this.AspectLayerId,
                 this.Order,
                 targetKind,
-                this.Flags );
+                this.Flags,
+                this.TargetDeclarationId );
         }
 
         internal AspectReferenceSpecification WithOrder( AspectReferenceOrder order )
         {
-            return new AspectReferenceSpecification( this.AspectLayerId, order, this.TargetKind, this.Flags );
+            return new AspectReferenceSpecification( this.AspectLayerId, order, this.TargetKind, this.Flags, this.TargetDeclarationId );
+        }
+
+        internal AspectReferenceSpecification WithTargetDeclarationId( string? targetDeclarationId )
+        {
+            return new AspectReferenceSpecification( this.AspectLayerId, this.Order, this.TargetKind, this.Flags, targetDeclarationId );
         }
 
         public static AspectReferenceSpecification FromString( string str )
@@ -73,13 +88,15 @@ namespace Metalama.Framework.Engine.Aspects
 
             Invariant.Assert( parseSuccess3 );
 
-            return new AspectReferenceSpecification( AspectLayerId.FromString( parts[0] ), order, targetKind, flags );
+            var targetDeclarationId = parts.Length > 4 && parts[4].Length > 0 ? parts[4] : (string?) null;
+
+            return new AspectReferenceSpecification( AspectLayerId.FromString( parts[0] ), order, targetKind, flags, targetDeclarationId );
         }
 
         public override string ToString()
         {
             // TODO: Cache strings.
-            return $"{this.AspectLayerId.FullName}${this.Order}${this.TargetKind}${this.Flags}";
+            return $"{this.AspectLayerId.FullName}${this.Order}${this.TargetKind}${this.Flags}${this.TargetDeclarationId}";
         }
     }
 }
