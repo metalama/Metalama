@@ -1,0 +1,4 @@
+[TheAspect]
+internal class C
+{
+}
