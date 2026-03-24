@@ -189,5 +189,7 @@ namespace Metalama.Framework.Engine.Aspects
         IAdviser<TNewDeclaration> IAdviser.With<TNewDeclaration>( TNewDeclaration declaration ) => this.With( declaration );
 
         public void AddContributor( IPipelineContributor contributor ) => this._aspectBuilderState.AddContributor( contributor );
+
+        public void Dispose() => this.AdviceFactory.Dispose();
     }
 }

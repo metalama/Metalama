@@ -257,6 +257,7 @@ internal sealed class AspectDriver : IAspectDriver
                         buildAspectExecutionContext ) )
             {
                 aspectInstance.Skip();
+                aspectBuilder.Dispose();
 
                 return
                     new AspectInstanceResult(
@@ -266,6 +267,9 @@ internal sealed class AspectDriver : IAspectDriver
                         ImmutableArray<ITransformation>.Empty,
                         ImmutableArray<IPipelineContributor>.Empty );
             }
+
+            // Dispose the aspect builder so that any attempt to use it from templates will throw.
+            aspectBuilder.Dispose();
 
             var aspectResult = aspectBuilderState.ToResult();
 
