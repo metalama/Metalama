@@ -19,7 +19,7 @@ using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
-using Metalama.Framework.Engine.Utilities.Comparers;
+using Metalama.Framework.Engine.CodeModel.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -350,15 +350,14 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             var finalType = type.Translate( finalCompilationModel );
 
             var constructors = new List<ConstructorDeclarationSyntax>();
-            var existingSignatures = new HashSet<(ISymbol Type, RefKind RefKind)[]>( ConstructorSignatureEqualityComparer.Instance );
+            var existingSignatures = new HashSet<(IType Type, RefKind RefKind)[]>( ConstructorSignatureEqualityComparer.Instance );
 
             // Go through all types that will get generated constructors and index existing constructors.
             foreach ( var constructor in initialType.Constructors )
             {
                 existingSignatures.Add(
                     constructor.Parameters.SelectAsArray(
-                        p => ((ISymbol) p.Type.GetSymbol().AssertSymbolNullNotImplemented( UnsupportedFeatures.DesignTimeIntroducedTypeConstructorParameters ),
-                              p.RefKind) ) );
+                        p => (p.Type, p.RefKind) ) );
             }
 
             // Additionally, add all introduced constructors to the list.
@@ -373,10 +372,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 existingSignatures.Add(
                     introducedConstructor.Parameters
                         .SelectAsArray(
-                            p => (
-                                (ISymbol) p.Type.GetSymbol()
-                                    .AssertSymbolNullNotImplemented( UnsupportedFeatures.DesignTimeIntroducedTypeConstructorParameters ),
-                                p.RefKind) ) );
+                            p => (p.Type, p.RefKind) ) );
             }
 
             foreach ( var constructor in type.Constructors )
@@ -399,9 +395,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var initialParameters = initialConstructor.Parameters.ToImmutableArray();
 
                 var finalSignature = finalParameters.SelectAsArray(
-                    p => (
-                        (ISymbol) p.Type.GetSymbol()
-                            .AssertSymbolNullNotImplemented( UnsupportedFeatures.DesignTimeIntroducedTypeConstructorParameters ), p.RefKind) );
+                    p => (p.Type, p.RefKind) );
 
                 if ( !existingSignatures.Add( finalSignature ) )
                 {
@@ -442,10 +436,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                     if ( existingSignatures.Add(
                             nonOptionalParameters.SelectAsArray(
-                                p => (
-                                    (ISymbol) p.Type.GetSymbol()
-                                        .AssertSymbolNullNotImplemented( UnsupportedFeatures.DesignTimeIntroducedTypeConstructorParameters ),
-                                    p.RefKind) ) ) )
+                                p => (p.Type, p.RefKind) ) ) )
                     {
                         constructors.Add(
                             ConstructorDeclaration(
@@ -674,15 +665,15 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 LineFeed );
         }
 
-        private sealed class ConstructorSignatureEqualityComparer : IEqualityComparer<(ISymbol Type, RefKind RefKind)[]>
+        private sealed class ConstructorSignatureEqualityComparer : IEqualityComparer<(IType Type, RefKind RefKind)[]>
         {
             public static ConstructorSignatureEqualityComparer Instance { get; } = new();
 
-            private readonly StructuralSymbolComparer _symbolComparer = StructuralSymbolComparer.Default;
+            private readonly SignatureTypeComparer _typeComparer = SignatureTypeComparer.Instance;
 
             private ConstructorSignatureEqualityComparer() { }
 
-            public bool Equals( (ISymbol Type, RefKind RefKind)[]? x, (ISymbol Type, RefKind RefKind)[]? y )
+            public bool Equals( (IType Type, RefKind RefKind)[]? x, (IType Type, RefKind RefKind)[]? y )
             {
                 if ( x == null || y == null )
                 {
@@ -697,7 +688,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 return this.Equals( x, y, x.Length );
             }
 
-            private bool Equals( (ISymbol Type, RefKind RefKind)[] x, (ISymbol Type, RefKind RefKind)[] y, int count )
+            private bool Equals( (IType Type, RefKind RefKind)[] x, (IType Type, RefKind RefKind)[] y, int count )
             {
                 for ( var i = 0; i < count; i++ )
                 {
@@ -706,7 +697,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                         return false;
                     }
 
-                    if ( !this._symbolComparer.Equals( x[i].Type, y[i].Type ) )
+                    if ( !this._typeComparer.Equals( x[i].Type, y[i].Type ) )
                     {
                         return false;
                     }
@@ -715,13 +706,13 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 return true;
             }
 
-            public int GetHashCode( (ISymbol Type, RefKind RefKind)[] obj )
+            public int GetHashCode( (IType Type, RefKind RefKind)[] obj )
             {
                 var hashCode = obj.Length;
 
                 for ( var i = 0; i < obj.Length; i++ )
                 {
-                    hashCode = HashCode.Combine( hashCode, this._symbolComparer.GetHashCode( obj[i].Type ), (int) obj[i].RefKind );
+                    hashCode = HashCode.Combine( hashCode, this._typeComparer.GetHashCode( obj[i].Type ), (int) obj[i].RefKind );
                 }
 
                 return hashCode;

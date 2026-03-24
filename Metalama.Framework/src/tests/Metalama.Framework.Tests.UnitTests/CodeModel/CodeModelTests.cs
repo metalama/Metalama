@@ -2754,4 +2754,40 @@ class C
         Assert.False( readOnlyAutoProperty.GetMethod!.IsImplicitlyDeclared, "ReadOnly auto-property getter should not be implicitly declared" );
         Assert.True( readOnlyAutoProperty.SetMethod!.IsImplicitlyDeclared, "ReadOnly auto-property pseudo setter SHOULD be implicitly declared" );
     }
+
+    [Fact]
+    public void EntryPoint_WithMain()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+class Program
+{
+    static void Main() { }
+}
+";
+
+        var roslynCompilation = testContext.CreateCSharpCompilation( code, outputKind: Microsoft.CodeAnalysis.OutputKind.ConsoleApplication );
+        var compilation = testContext.CreateCompilationModel( roslynCompilation );
+
+        Assert.NotNull( compilation.EntryPoint );
+        Assert.Equal( "Main", compilation.EntryPoint!.Name );
+    }
+
+    [Fact]
+    public void EntryPoint_WithoutMain()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+class MyClass
+{
+    public void DoSomething() { }
+}
+";
+
+        var compilation = testContext.CreateCompilationModel( code );
+
+        Assert.Null( compilation.EntryPoint );
+    }
 }
