@@ -27,6 +27,13 @@ namespace Metalama.Framework.Engine.Diagnostics
 
         public override string Format( string? format, object? arg, IFormatProvider? formatProvider )
         {
+            return EscapeNewLines( this.FormatCore( format, arg, formatProvider ) );
+        }
+
+        internal static string EscapeNewLines( string s ) => s.ReplaceOrdinal( "\r\n", " " ).ReplaceOrdinal( "\n", " " );
+
+        private string FormatCore( string? format, object? arg, IFormatProvider? formatProvider )
+        {
             try
             {
                 switch ( arg )
