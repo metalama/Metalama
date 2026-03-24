@@ -84,6 +84,12 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
                 }:
                 return new ResolvedAttributeRef( delegateInvokeMethod.GetReturnTypeAttributes(), delegateInvokeMethod, RefTargetKind.Return );
 
+            case RefTargetKind.Return:
+                // [return:] on a non-method declaration (e.g. an indexer) is invalid C# (CS0657) and the attribute is ignored.
+                var invalidReturnSymbol = this.GetSymbolIgnoringRefKind( this.CompilationContext );
+
+                return new ResolvedAttributeRef( ImmutableArray<AttributeData>.Empty, invalidReturnSymbol, RefTargetKind.Return );
+
             case RefTargetKind.Field when this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind: SymbolKind.Event } and IEventSymbol @event:
                 // Roslyn does not expose the backing field of an event, so we don't have access to its attributes.
                 return new ResolvedAttributeRef( ImmutableArray<AttributeData>.Empty, @event, RefTargetKind.Field );

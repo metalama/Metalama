@@ -821,6 +821,11 @@ public sealed partial class ContextualSyntaxGenerator
                 return Null;
             }
 
+            if ( value is IField field )
+            {
+                return this.FieldReference( field );
+            }
+
             switch ( type.TypeKind )
             {
                 case TypeKind.Enum when type is INamedType enumType:
