@@ -10,7 +10,7 @@ namespace Metalama.Framework.Engine
         public const string DerivedFabricsOnIntroducedTypes = "Derived fabrics on introduced types.";
         public const string IntroducedTypeSerialization = "Introduced type serialization.";
         public const string IntroducedTypeReflectionWrappers = "Introduced type reflection wrappers.";
-        public const string DesignTimeIntroducedTypeConstructorParameters = "Design time support for introducing constructor parameters of introduced type.";
+
         public const string IntroducedTypeStateMachines = "Introduced type state machines.";
         public const string Uncategorized = "Uncategorized";
 
