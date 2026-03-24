@@ -975,25 +975,24 @@ namespace Metalama.Framework.Engine.Templating
                 }
 
                 // Report error when a member's scope is incompatible with its declaring type's scope. (#787)
-                if ( scope != TemplatingScope.Conflict && declaredSymbol.Kind != SymbolKind.NamedType && typeScope.HasValue )
+                // Template members in compile-time types are legitimately run-time (they get introduced into run-time targets).
+                if ( scope != TemplatingScope.Conflict && declaredSymbol.Kind != SymbolKind.NamedType && typeScope.HasValue
+                     && templateInfo.IsNone )
                 {
-                    if ( rule == TemplatingRule.Attribute )
+                    var isIncompatible = (scope, typeScope.Value) switch
                     {
-                        // The member has an explicit scope attribute. Check compatibility with the declaring type.
-                        var isIncompatible = (scope, typeScope.Value) switch
-                        {
-                            (TemplatingScope.CompileTimeOnly, TemplatingScope.RunTimeOnly) => true,
-                            (TemplatingScope.RunTimeOrCompileTime, TemplatingScope.RunTimeOnly) => true,
-                            _ => false
-                        };
+                        (TemplatingScope.CompileTimeOnly, TemplatingScope.RunTimeOnly) => true,
+                        (TemplatingScope.RunTimeOrCompileTime, TemplatingScope.RunTimeOnly) => true,
+                        (TemplatingScope.RunTimeOnly, TemplatingScope.CompileTimeOnly) => true,
+                        _ => false
+                    };
 
-                        if ( isIncompatible )
-                        {
-                            this.Report(
-                                TemplatingDiagnosticDescriptors.MemberScopeIncompatibleWithDeclaringType.CreateRoslynDiagnostic(
-                                    declaredSymbol.GetDiagnosticLocation(),
-                                    (declaredSymbol, scope.ToDisplayString(), declaredSymbol.ContainingType!, typeScope.Value.ToDisplayString()) ) );
-                        }
+                    if ( isIncompatible )
+                    {
+                        this.Report(
+                            TemplatingDiagnosticDescriptors.MemberScopeIncompatibleWithDeclaringType.CreateRoslynDiagnostic(
+                                declaredSymbol.GetDiagnosticLocation(),
+                                (declaredSymbol, scope.ToDisplayString(), declaredSymbol.ContainingType!, typeScope.Value.ToDisplayString()) ) );
                     }
                     else if ( typeScope == TemplatingScope.RunTimeOnly
                               && scope == TemplatingScope.RunTimeOnly
