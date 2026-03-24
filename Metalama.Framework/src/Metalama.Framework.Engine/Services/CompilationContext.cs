@@ -128,7 +128,9 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
             isNullOblivious = (nullableContext & NullableContext.AnnotationsEnabled) == 0;
         }
 
-        return this.GetSyntaxGenerationContext( options, isPartial, isNullOblivious );
+        var endOfLine = Formatting.EndOfLineHelper.DetermineEndOfLineStyleFast( tree );
+
+        return this.GetSyntaxGenerationContext( options, isPartial, isNullOblivious, endOfLine );
     }
 
     internal SyntaxGenerationContext GetSyntaxGenerationContext(
