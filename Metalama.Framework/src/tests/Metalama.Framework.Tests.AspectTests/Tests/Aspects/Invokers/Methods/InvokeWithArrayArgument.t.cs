@@ -1,2 +1,12 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0014 on `Invoker`: `An array of type 'object[]' was passed as a single argument to 'TargetClass.Method(int)', but the parameter 'x' expects type 'int'. The IMethodInvoker.Invoke method uses 'params', so each argument should be passed individually (e.g., method.Invoke(arg1, arg2)), or use method.Invoke(IEnumerable<IExpression>) to pass a dynamic collection of arguments.`
+public class TargetClass
+{
+  public void Method(int x)
+  {
+  }
+  [InvokerAspect]
+  public void Invoker()
+  {
+    this.Method((global::System.Int32)new object[] { 1 }[0]);
+    return;
+  }
+}

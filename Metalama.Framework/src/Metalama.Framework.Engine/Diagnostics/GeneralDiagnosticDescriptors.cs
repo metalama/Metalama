@@ -48,17 +48,6 @@ namespace Metalama.Framework.Engine.Diagnostics
             MemberRequiresAtLeastNArguments =
                 new( "LAMA0013", _category, "Member '{0}' requires at least {1} arguments but received {2}.", Error, "Member requires more arguments." );
 
-        internal static readonly DiagnosticDefinition<(IDeclaration Member, string ArgumentType, string ParameterName, string ParameterType)>
-            ArrayPassedAsSingleArgument =
-                new(
-                    "LAMA0014",
-                    _category,
-                    "An array of type '{1}' was passed as a single argument to '{0}', but the parameter '{2}' expects type '{3}'. "
-                    + "The IMethodInvoker.Invoke method uses 'params', so each argument should be passed individually "
-                    + "(e.g., method.Invoke(arg1, arg2)), or use method.Invoke(IEnumerable<IExpression>) to pass a dynamic collection of arguments.",
-                    Error,
-                    "Array argument passed to non-array parameter." );
-
         internal static readonly DiagnosticDefinition<IMemberOrNamedType> CannotProvideInstanceForLocalFunction =
             new(
                 "LAMA0018",

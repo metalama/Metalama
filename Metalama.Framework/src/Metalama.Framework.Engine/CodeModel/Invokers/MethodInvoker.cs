@@ -40,6 +40,20 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
     {
         var parametersCount = this.Member.Parameters.Count;
 
+        // Detect when a single array argument is passed to a method whose parameters don't expect an array.
+        // This happens when the user writes method.Invoke(new object[] { 1, 2 }) — the params mechanism
+        // wraps the array as a single argument. Unpack the array elements as individual arguments.
+        if ( args.Count == 1 && args[0].Type is IArrayType arrayType )
+        {
+            var shouldUnpack = parametersCount != 1
+                               || (this.Member.Parameters[0].Type.TypeKind != TypeKind.Array && !this.Member.Parameters[0].IsParams);
+
+            if ( shouldUnpack )
+            {
+                args = UnpackArrayArgument( args[0], parametersCount, arrayType.ElementType );
+            }
+        }
+
         if ( parametersCount > 0 && this.Member.Parameters[parametersCount - 1].IsParams )
         {
             // The this.Declaration has a 'params' param.
@@ -51,20 +65,6 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         else if ( args.Count != parametersCount )
         {
             throw GeneralDiagnosticDescriptors.MemberRequiresNArguments.CreateException( (this.Member, parametersCount, args.Count) );
-        }
-
-        // Detect the common mistake of passing an array as a single argument
-        // (e.g., method.Invoke(new object[] { 1 })) when the target parameter is not an array type.
-        for ( var i = 0; i < args.Count && i < parametersCount; i++ )
-        {
-            var argType = args[i].Type;
-            var paramType = this.Member.Parameters[i].Type;
-
-            if ( argType.TypeKind == TypeKind.Array && paramType.TypeKind != TypeKind.Array && !this.Member.Parameters[i].IsParams )
-            {
-                throw GeneralDiagnosticDescriptors.ArrayPassedAsSingleArgument.CreateException(
-                    (this.Member, argType.ToString() ?? "array", this.Member.Parameters[i].Name, paramType.ToString() ?? "unknown") );
-            }
         }
 
         this.CheckInvocationOptionsAndTarget();
@@ -119,6 +119,39 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                 throw new NotImplementedException(
                     $"Cannot generate syntax to invoke the this.Declaration '{this.Member}' because this.Declaration kind {this.Member.MethodKind} is not implemented." );
         }
+    }
+
+    /// <summary>
+    /// Unpacks a single array expression into individual element-access expressions, one per parameter.
+    /// For example, given <c>new object[] { 1, "hello" }</c> and a method with 2 parameters,
+    /// produces expressions for <c>array[0]</c> and <c>array[1]</c>.
+    /// </summary>
+    private static IReadOnlyList<IExpression> UnpackArrayArgument( IExpression arrayExpression, int parameterCount, IType elementType )
+    {
+        if ( parameterCount == 0 )
+        {
+            return [];
+        }
+
+        var unpackedArgs = new IExpression[parameterCount];
+
+        for ( var i = 0; i < parameterCount; i++ )
+        {
+            var index = i;
+
+            unpackedArgs[i] = new DelegateUserExpression(
+                context =>
+                {
+                    var arraySyntax = arrayExpression.ToTypedExpressionSyntax( context ).Syntax;
+
+                    return ElementAccessExpression( arraySyntax )
+                        .AddArgumentListArguments(
+                            Argument( LiteralExpression( SyntaxKind.NumericLiteralExpression, Literal( index ) ) ) );
+                },
+                elementType );
+        }
+
+        return unpackedArgs;
     }
 
     public object? Invoke( IEnumerable<object?> args ) => this.Invoke( args.ToArray() );
