@@ -68,6 +68,10 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             this.RegisterSerializer( new DateTimeOffsetSerializer( this ) );
             this.RegisterSerializer( new CultureInfoSerializer( this ) );
 
+            var indexSerializer = new IndexSerializer( this );
+            this.RegisterSerializer( indexSerializer );
+            this.RegisterSerializer( new RangeSerializer( this, indexSerializer ) );
+
             // Collections
             this.RegisterSerializer( new ListSerializer( this ) );
             this.RegisterSerializer( new DictionarySerializer( this ) );
