@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Transformations;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
@@ -40,6 +41,14 @@ internal sealed class OverrideConstructorAdvice : OverrideMemberAdvice<IConstruc
         }
 
         context.AddTransformation( new OverrideConstructorTransformation( this.AspectLayerInstance, constructor.ToFullRef(), this._boundTemplate ) );
+
+        // If the target constructor does not have an implementation (e.g. partial constructor without implementation part),
+        // emit a transformation to update the HasImplementation flag in the code model.
+        if ( !constructor.HasImplementation )
+        {
+            context.AddTransformation(
+                new SetHasImplementationTransformation( this.AspectLayerInstance, constructor.ToFullRef().As<IMember>() ) );
+        }
 
         return this.CreateSuccessResult( constructor );
     }

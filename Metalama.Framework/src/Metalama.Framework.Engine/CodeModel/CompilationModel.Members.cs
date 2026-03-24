@@ -265,6 +265,11 @@ public sealed partial class CompilationModel
         {
             this.AddAnnotation( addAnnotationTransformation );
         }
+
+        if ( transformation is SetHasImplementationTransformation setHasImplementation )
+        {
+            this._membersWithSetImplementation = this._membersWithSetImplementation.Add( setHasImplementation.TargetMember );
+        }
     }
 
     private void AddAnnotation( AddAnnotationTransformation addAnnotationTransformation )
