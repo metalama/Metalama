@@ -1,0 +1,1 @@
+// Error LAMA0704 on `TargetClass`: `The dependency 'IList<IInternalService>' cannot be pulled from the constructor 'TargetClass.TargetClass()' because 'IList<IInternalService>' has lower accessibility than the constructor.`

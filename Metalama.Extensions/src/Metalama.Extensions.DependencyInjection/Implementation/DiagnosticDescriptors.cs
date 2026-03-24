@@ -40,6 +40,14 @@ internal static class DiagnosticDescriptors
             "Cannot use the [IntroduceDependency] advice because the target declaration is not a type or a type member.",
             _category );
 
+    internal static readonly DiagnosticDefinition<(IType DependencyType, IConstructor Constructor)>
+        DependencyLessAccessibleThanConstructor = new(
+            "LAMA0704",
+            Severity.Error,
+            "The dependency '{0}' cannot be pulled from the constructor '{1}' because '{0}' has lower accessibility than the constructor.",
+            "The dependency type has lower accessibility than the constructor that would pull it.",
+            _category );
+
     internal static readonly SuppressionDefinition NonNullableFieldMustContainValue = new( "CS8618" );
 
     internal static readonly SuppressionDefinition FieldIsNeverUsed = new( "CS0169" );
