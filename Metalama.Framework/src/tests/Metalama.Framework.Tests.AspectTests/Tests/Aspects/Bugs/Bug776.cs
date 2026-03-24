@@ -20,13 +20,8 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Bugs.Bug776
     }
 
     // <target>
-    internal class Program
+    internal class TargetCode
     {
-        private static void TestMain()
-        {
-            throw new Exception( "Test exception message" );
-        }
-
         [Log]
         private static void Method()
         {

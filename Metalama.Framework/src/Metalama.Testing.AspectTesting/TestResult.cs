@@ -594,7 +594,7 @@ internal class TestResult : IDisposable
                 if ( !this.Success && (this.TestInput!.Options.ReportErrorMessage.GetValueOrDefault()
                                        || diagnosticsForOutputTree.All( c => c.Severity != DiagnosticSeverity.Error )) )
                 {
-                    comments.Add( SyntaxFactory.Comment( $"// {this.ErrorMessage} \n" ) );
+                    comments.AddRange( FormatErrorMessageAsComments( this.ErrorMessage ) );
                 }
 
                 // We exclude LAMA0222 from the results because it contains randomly-generated info and tests need to be deterministic.
@@ -614,7 +614,7 @@ internal class TestResult : IDisposable
             {
                 if ( !this.Success )
                 {
-                    comments.Add( SyntaxFactory.Comment( $"// {this.ErrorMessage} \n" ) );
+                    comments.AddRange( FormatErrorMessageAsComments( this.ErrorMessage ) );
                 }
                 else if ( !consolidatedCompilationUnit.ChildNodes().Any() )
                 {
@@ -632,6 +632,21 @@ internal class TestResult : IDisposable
                     path: Path.GetFileName(
                         testSyntaxTree.FilePath
                         ?? throw new InvalidOperationException( "Output syntax tree has no path" ) ) );
+        }
+    }
+
+    private static IEnumerable<SyntaxTrivia> FormatErrorMessageAsComments( string? errorMessage )
+    {
+        if ( string.IsNullOrEmpty( errorMessage ) )
+        {
+            yield break;
+        }
+
+        foreach ( var line in errorMessage!.Split( '\n' ) )
+        {
+            var trimmedLine = line.TrimEnd( '\r' );
+
+            yield return SyntaxFactory.Comment( $"// {trimmedLine}\n" );
         }
     }
 
