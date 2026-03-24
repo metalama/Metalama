@@ -88,7 +88,7 @@ namespace Metalama.Framework.Engine.Aspects
 
             Invariant.Assert( parseSuccess3 );
 
-            var targetDeclarationId = parts.Length > 4 && parts[4].Length > 0 ? parts[4] : (string?) null;
+            var targetDeclarationId = parts.Length > 4 && parts[4].Length > 0 ? parts[4] : null;
 
             return new AspectReferenceSpecification( AspectLayerId.FromString( parts[0] ), order, targetKind, flags, targetDeclarationId );
         }

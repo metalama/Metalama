@@ -167,8 +167,7 @@ internal sealed partial class MethodInvoker
             {
                 methodGroupExpression = methodGroupExpression.WithAspectReferenceAnnotation(
                     receiverInfo.WithSyntax( receiverSyntax ).AspectReferenceSpecification
-                        .WithTargetKind( AspectReferenceTargetKind.Self )
-                        .WithTargetDeclarationId( AspectReferenceAnnotationExtensions.GetTargetDeclarationId( this.Method ) ) );
+                        .WithTargetKind( AspectReferenceTargetKind.Self ) );
             }
 
             return methodGroupExpression;

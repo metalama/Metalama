@@ -79,15 +79,42 @@ namespace Metalama.Framework.Engine.Aspects
         }
 
         /// <summary>
-        /// Gets the documentation comment ID for a Metalama declaration, or <c>null</c> if the declaration is not symbol-backed.
-        /// This ID can be used by the linker to resolve the symbol through <c>Compilation.Assembly</c> instead of
-        /// the slower <c>SemanticModel.GetSymbolInfo</c>.
+        /// Gets the documentation comment ID for a Metalama declaration, or <c>null</c> if the declaration is not symbol-backed
+        /// or if the declaration requires complex resolution by <see cref="Linking.AspectReferenceResolver"/> (interface members,
+        /// explicit interface implementations, base class members). Only returns an ID when the symbol will take the simple
+        /// resolution path in the linker.
         /// </summary>
         internal static string? GetTargetDeclarationId( ICompilationElement declaration )
         {
+            // Skip declarations that require complex ResolveTarget handling:
+            // - Interface members: ResolveTarget calls FindImplementationForInterfaceMember.
+            // - Explicit interface implementations: ResolveTarget handles these specially.
+            // - Members whose symbol requires generic context mapping.
+            if ( declaration is IMember member )
+            {
+                if ( member.DeclaringType.TypeKind == Code.TypeKind.Interface
+                     || member.IsExplicitInterfaceImplementation )
+                {
+                    return null;
+                }
+            }
+
             var symbol = declaration.GetSymbol();
 
-            return symbol != null ? DocumentationCommentId.CreateDeclarationId( symbol ) : null;
+            if ( symbol == null )
+            {
+                return null;
+            }
+
+            // Skip symbols that are from a different type than expected in the intermediate compilation.
+            // For base class members, GetSymbolInfo resolves to the derived type's version of the symbol,
+            // which differs from the declaration ID's resolution.
+            if ( symbol is IMethodSymbol { IsOverride: true } or IPropertySymbol { IsOverride: true } or IEventSymbol { IsOverride: true } )
+            {
+                return null;
+            }
+
+            return DocumentationCommentId.CreateDeclarationId( symbol );
         }
     }
 }

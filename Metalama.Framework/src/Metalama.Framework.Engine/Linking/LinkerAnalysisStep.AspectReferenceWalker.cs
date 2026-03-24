@@ -69,15 +69,28 @@ internal sealed partial class LinkerAnalysisStep
 
             if ( node.TryGetAspectReference( out var aspectReference ) )
             {
-                ISymbol? referencedSymbol;
+                ISymbol? referencedSymbol = null;
 
                 if ( aspectReference.TargetDeclarationId != null )
                 {
                     // Fast path: resolve the symbol using the declaration ID through Compilation.Assembly,
                     // which is much faster than SemanticModel.GetSymbolInfo.
                     referencedSymbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( aspectReference.TargetDeclarationId, this._semanticModel.Compilation );
+
+                    // Validate that the resolved symbol can be used directly by the resolver.
+                    // Fall back to GetSymbolInfo for symbols that require complex resolution in ResolveTarget
+                    // (interface members, explicit interface implementations, or helper methods).
+                    if ( referencedSymbol != null
+                         && (referencedSymbol.ContainingType?.TypeKind == TypeKind.Interface
+                             || referencedSymbol.IsExplicitInterfaceMemberImplementation()
+                             || (referencedSymbol.Kind == SymbolKind.Method
+                                 && referencedSymbol is IMethodSymbol { ContainingType.Name: LinkerInjectionHelperProvider.HelperTypeName })) )
+                    {
+                        referencedSymbol = null;
+                    }
                 }
-                else
+
+                if ( referencedSymbol == null )
                 {
                     // Slow path: resolve using SemanticModel.GetSymbolInfo.
                     var nodeWithSymbol = node.Kind() switch

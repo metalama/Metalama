@@ -146,8 +146,7 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
         {
             expression = expression.WithAspectReferenceAnnotation(
                 receiverInfo.AspectReferenceSpecification
-                    .WithTargetKind( targetKind )
-                    .WithTargetDeclarationId( AspectReferenceAnnotationExtensions.GetTargetDeclarationId( this.Member ) ) );
+                    .WithTargetKind( targetKind ) );
         }
 
         return expression;

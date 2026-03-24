@@ -66,8 +66,7 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
         {
             expression = expression.WithAspectReferenceAnnotation(
                 receiverInfo.AspectReferenceSpecification
-                    .WithTargetKind( targetKind )
-                    .WithTargetDeclarationId( AspectReferenceAnnotationExtensions.GetTargetDeclarationId( this.Member ) ) );
+                    .WithTargetKind( targetKind ) );
         }
 
         return expression;
