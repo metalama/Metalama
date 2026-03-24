@@ -974,6 +974,53 @@ namespace Metalama.Framework.Engine.Templating
                     this._classifier.ReportScopeError( node, declaredSymbol, this );
                 }
 
+                // Report error when a member's scope is incompatible with its declaring type's scope. (#787)
+                if ( scope != TemplatingScope.Conflict && declaredSymbol.Kind != SymbolKind.NamedType && typeScope.HasValue )
+                {
+                    if ( rule == TemplatingRule.Attribute )
+                    {
+                        // The member has an explicit scope attribute. Check compatibility with the declaring type.
+                        var isIncompatible = (scope, typeScope.Value) switch
+                        {
+                            (TemplatingScope.CompileTimeOnly, TemplatingScope.RunTimeOnly) => true,
+                            (TemplatingScope.RunTimeOrCompileTime, TemplatingScope.RunTimeOnly) => true,
+                            _ => false
+                        };
+
+                        if ( isIncompatible )
+                        {
+                            this.Report(
+                                TemplatingDiagnosticDescriptors.MemberScopeIncompatibleWithDeclaringType.CreateRoslynDiagnostic(
+                                    declaredSymbol.GetDiagnosticLocation(),
+                                    (declaredSymbol, scope.ToDisplayString(), declaredSymbol.ContainingType!, typeScope.Value.ToDisplayString()) ) );
+                        }
+                    }
+                    else if ( typeScope == TemplatingScope.RunTimeOnly
+                              && scope == TemplatingScope.RunTimeOnly
+                              && declaredSymbol.Kind == SymbolKind.Method
+                              && declaredSymbol is IMethodSymbol methodSymbol )
+                    {
+                        // The method inherited RunTimeOnly from its declaring type, but it may have compile-time parameters.
+                        foreach ( var parameter in methodSymbol.Parameters )
+                        {
+                            this._observer?.OnSymbolClassifierUsed( this._symbolClassificationContext == SymbolClassificationContext.RunTimeOnly );
+
+                            var paramTypeScope = this._classifier.GetTemplatingScope( parameter.Type, this._symbolClassificationContext );
+
+                            if ( paramTypeScope is TemplatingScope.CompileTimeOnly )
+                            {
+                                this.Report(
+                                    TemplatingDiagnosticDescriptors.MemberScopeIncompatibleWithDeclaringType.CreateRoslynDiagnostic(
+                                        declaredSymbol.GetDiagnosticLocation(),
+                                        (declaredSymbol, TemplatingScope.CompileTimeOnly.ToDisplayString() + " (inferred from parameter types)",
+                                         declaredSymbol.ContainingType!, typeScope.Value.ToDisplayString()) ) );
+
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 // Report error when we have compile-time code but no namespace import for fast detection.
                 if ( scope != TemplatingScope.RunTimeOnly
                      && rule != TemplatingRule.WellKnown
