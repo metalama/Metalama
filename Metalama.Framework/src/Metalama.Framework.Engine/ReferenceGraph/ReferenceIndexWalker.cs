@@ -919,6 +919,7 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         var previousNode = this._currentDeclarationNode;
 
         this._currentDeclarationSymbol = symbol;
+        this._observer?.OnSymbolResolved( symbol );
         this._currentDeclarationNode = node;
 
         return new DeclarationContextCookie( this, previousSymbol, previousNode );

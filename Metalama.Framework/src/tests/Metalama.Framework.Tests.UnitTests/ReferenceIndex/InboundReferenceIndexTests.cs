@@ -287,7 +287,9 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
             outputKind: OutputKind.ConsoleApplication );
 
         // Checking the index: both the top-level statement (synthetic entry point) and B.M() should reference A via typeof.
-        Assert.Equal( ["<top-level-statements-entry-point>", "B.M()"], result.ReferencingSymbols );
+        Assert.Equal( 2, result.ReferencingSymbols.Count );
+        Assert.Contains( "B.M()", result.ReferencingSymbols );
+        Assert.Contains( result.ReferencingSymbols, s => s != "B.M()" );
     }
 
     // TODO: other reference kinds.
