@@ -6,7 +6,7 @@ public class TargetClass
   [InvokerAspect]
   public void Invoker()
   {
-    this.Method((global::System.Int32)new object[] { 1, "hello" }[0], (global::System.String)new object[] { 1, "hello" }[1]);
+    this.Method((global::System.Int32)1, (global::System.String)"hello");
     return;
   }
 }

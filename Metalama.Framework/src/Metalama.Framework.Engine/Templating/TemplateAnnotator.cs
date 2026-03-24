@@ -1161,7 +1161,35 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                     this._templateMemberClassifier.SymbolClassifier.GetTemplatingScope( parameter ).GetExpressionExecutionScope()
                     != CompileTimeOnly;
 
-                if ( expressionScope.IsCompileTimeMemberReturningRunTimeValue() || isDynamicParameter )
+                // When a non-dynamic array creation expression (e.g. new object[] { 1 }) is passed to a dynamic[] parameter,
+                // it should be evaluated at compile time so its elements are unpacked as individual arguments. (#784)
+                // We detect this BEFORE visiting to choose the correct scope context.
+                var isArrayCreationForDynamicParam = false;
+
+                if ( isDynamicParameter
+                     && argument.Expression is ArrayCreationExpressionSyntax or ImplicitArrayCreationExpressionSyntax )
+                {
+                    var argumentType = this._syntaxTreeAnnotationMap.GetExpressionType( argument.Expression );
+
+                    // Only treat object[] as a params wrapper that should be unpacked. Typed arrays (int[], string[], etc.)
+                    // are actual argument values, not params wrappers.
+                    isArrayCreationForDynamicParam =
+                        argumentType?.Kind == SymbolKind.ArrayType
+                        && argumentType is IArrayTypeSymbol arrayTypeSymbol
+                        && arrayTypeSymbol.ElementType.SpecialType == SpecialType.System_Object;
+                }
+
+                if ( isArrayCreationForDynamicParam )
+                {
+                    // Visit with compile-time context so the array creation and its elements stay compile-time. (#784)
+                    using ( this.WithScopeContext(
+                               this._currentScopeContext.CompileTimeOnly(
+                                   $"array argument for dynamic parameter '{parameter?.Name}'" ) ) )
+                    {
+                        transformedArgumentExpression = this.Visit( argument.Expression );
+                    }
+                }
+                else if ( expressionScope.IsCompileTimeMemberReturningRunTimeValue() || isDynamicParameter )
                 {
                     // dynamic or dynamic[]
 
@@ -1220,7 +1248,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                     }
                 }
 
-                if ( isDynamicParameter )
+                if ( isDynamicParameter && !isArrayCreationForDynamicParam )
                 {
                     // Make sure that RunTimeOrCompileTime is interpreted as run-time, so we get the meta-expression we need.
                     transformedArgumentExpression = transformedArgumentExpression
@@ -1230,9 +1258,9 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                 // The scope of the argument itself copies the scope of the method.
                 var transformedArgument = argument.WithExpression( transformedArgumentExpression )
                     .WithTriviaFrom( argument )
-                    .AddScopeAnnotation( expressionScope );
+                    .AddScopeAnnotation( isArrayCreationForDynamicParam ? CompileTimeOnly : expressionScope );
 
-                if ( isDynamicParameter )
+                if ( isDynamicParameter && !isArrayCreationForDynamicParam )
                 {
                     transformedArgument = transformedArgument.AddTargetRequiresUserExpressionAnnotation();
                 }
