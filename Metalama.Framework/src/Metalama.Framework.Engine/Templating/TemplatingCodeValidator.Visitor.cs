@@ -981,7 +981,7 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     var isIncompatible = (scope, typeScope.Value) switch
                     {
-                        (TemplatingScope.CompileTimeOnly, TemplatingScope.RunTimeOnly) => true,
+                        _ when scope.MustExecuteAtCompileTime() && typeScope.Value == TemplatingScope.RunTimeOnly => true,
                         (TemplatingScope.RunTimeOrCompileTime, TemplatingScope.RunTimeOnly) => true,
                         (TemplatingScope.RunTimeOnly, TemplatingScope.CompileTimeOnly) => true,
                         _ => false
@@ -996,10 +996,11 @@ namespace Metalama.Framework.Engine.Templating
                     }
                     else if ( typeScope == TemplatingScope.RunTimeOnly
                               && scope == TemplatingScope.RunTimeOnly
+                              && rule != TemplatingRule.Attribute
                               && declaredSymbol.Kind == SymbolKind.Method
                               && declaredSymbol is IMethodSymbol methodSymbol )
                     {
-                        // The method inherited RunTimeOnly from its declaring type, but it may have compile-time parameters.
+                        // The method inherited RunTimeOnly from its declaring type (not explicitly attributed), but it may have compile-time parameters.
                         foreach ( var parameter in methodSymbol.Parameters )
                         {
                             this._observer?.OnSymbolClassifierUsed( this._symbolClassificationContext == SymbolClassificationContext.RunTimeOnly );
