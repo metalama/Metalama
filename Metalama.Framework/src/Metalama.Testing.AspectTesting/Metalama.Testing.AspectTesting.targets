@@ -162,8 +162,12 @@
 
         <ItemGroup>
             <_MetalamaTestCompilationReference Include="@(ReferencePathWithRefAssemblies)" />
+            <!-- Exclude references from test infrastructure NuGet packages. -->
             <_MetalamaTestCompilationReference Remove="@(_MetalamaTestCompilationReference)"
                 Condition="'%(_MetalamaTestCompilationReference.NuGetPackageId)' != '' AND $(_MetalamaTestExcludedPackageIds.Contains(';%(_MetalamaTestCompilationReference.NuGetPackageId);'))" />
+            <!-- Exclude the test project's own output assembly (#754). -->
+            <_MetalamaTestCompilationReference Remove="@(_MetalamaTestCompilationReference)"
+                Condition="'%(Filename)%(Extension)' == '$(TargetFileName)'" />
         </ItemGroup>
 
         <WriteLinesToFile File='$(IntermediateOutputPath)assemblies.txt' Overwrite='true'

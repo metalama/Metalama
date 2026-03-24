@@ -26,11 +26,11 @@ namespace Metalama.Framework.Tests.UnitTests.TestFramework;
 public sealed class TestCompilationReferencesTests : UnitTestClass
 {
     [Fact]
-    public void CreateProjectReceivesOnlyProvidedReferences()
+    public void CreateProjectDoesNotAddExtraReferences()
     {
-        // Issue #754: Verify that BaseTestRunner.CreateProject passes through the references
-        // from TestProjectReferences to the test compilation. The actual filtering of test
-        // infrastructure assemblies happens in the MSBuild targets (MetalamaTestExcludedReference),
+        // Issue #754: Verify that BaseTestRunner.CreateProject passes through only the references
+        // from TestProjectReferences, without adding the test project or other assemblies.
+        // In the real flow, references come from assemblies.txt (filtered by MSBuild targets),
         // so CreateProject should faithfully use whatever references it receives.
 
         using var testContext = this.CreateTestContext();
@@ -42,8 +42,19 @@ public sealed class TestCompilationReferencesTests : UnitTestClass
             .WithUntypedService( typeof(IFileSystem), fileSystem )
             .WithService( new FakeMetadataReader( directory ) );
 
-        // Use only the curated metadata references (no test infrastructure).
-        var metadataReferences = testContext.GetMetadataReferences().ToImmutableArray();
+        // Simulate the filtered references that assemblies.txt would provide after MSBuild filtering.
+        // Explicitly exclude the test project assembly and test infrastructure, just as the
+        // MSBuild targets do. This tests that CreateProject faithfully passes through
+        // only the provided references.
+        var testProjectAssemblyName = this.GetType().Assembly.GetName().Name!;
+
+        var metadataReferences = testContext.GetMetadataReferences()
+            .Where( r => r.FilePath == null
+                         || (!Path.GetFileNameWithoutExtension( r.FilePath )!
+                             .StartsWith( testProjectAssemblyName, StringComparison.OrdinalIgnoreCase )
+                             && !Path.GetFileName( r.FilePath )!
+                                 .StartsWith( "xunit", StringComparison.OrdinalIgnoreCase )) )
+            .ToImmutableArray();
 
         var testProjectReferences = new TestProjectReferences(
             metadataReferences,
@@ -61,12 +72,16 @@ public sealed class TestCompilationReferencesTests : UnitTestClass
             .Select( r => Path.GetFileName( r.FilePath )! )
             .ToHashSet( StringComparer.OrdinalIgnoreCase );
 
-        // When properly filtered references are provided (as the MSBuild targets now ensure),
-        // the test compilation should not contain xUnit or other test infrastructure assemblies.
+        // The test project itself must not be referenced by test compilations.
+        // This is the core of issue #754.
+        Assert.DoesNotContain( referenceFileNames,
+            name => name.StartsWith( testProjectAssemblyName, StringComparison.OrdinalIgnoreCase ) );
+
+        // Test infrastructure assemblies should not be present.
         Assert.DoesNotContain( referenceFileNames,
             name => name.StartsWith( "xunit", StringComparison.OrdinalIgnoreCase ) );
 
-        // But it should contain Metalama.Framework (user-facing API).
+        // Metalama.Framework (user-facing API) should still be present.
         Assert.Contains( referenceFileNames,
             name => name.StartsWith( "Metalama.Framework", StringComparison.OrdinalIgnoreCase ) );
     }
