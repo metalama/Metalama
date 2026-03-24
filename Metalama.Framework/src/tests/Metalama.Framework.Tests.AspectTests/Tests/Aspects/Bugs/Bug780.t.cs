@@ -4,6 +4,7 @@
 [CheckHasImplementationAspect]
 internal partial class TargetClass
 {
+  partial void PartialWithoutImpl();
   partial void PartialWithoutImpl()
   {
     global::System.Console.WriteLine("Overridden.");
