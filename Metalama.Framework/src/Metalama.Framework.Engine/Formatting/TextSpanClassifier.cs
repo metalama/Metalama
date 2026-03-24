@@ -349,23 +349,9 @@ namespace Metalama.Framework.Engine.Formatting
                     continue;
                 }
 
-                var structure = trivia.GetStructure();
-
-                if ( structure != null )
+                if ( trivia.HasStructure )
                 {
-                    if ( structure.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
-                         && structure is DocumentationCommentTriviaSyntax documentationComment )
-                    {
-                        // Mark each node of a documentation comment trivia separately.
-                        foreach ( var node in documentationComment.ChildNodes() )
-                        {
-                            this.Mark( node, classification );
-                        }
-
-                        continue;
-                    }
-
-                    // Don't highlight #directives and skipped tokens.
+                    // Don't highlight structured trivia: XML documentation comments, #directives, and skipped tokens.
                     continue;
                 }
 
