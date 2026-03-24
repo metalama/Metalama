@@ -354,14 +354,9 @@ namespace Metalama.Framework.Engine.Formatting
                 if ( structure != null )
                 {
                     if ( structure.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
-                         && structure is DocumentationCommentTriviaSyntax documentationComment )
+                         || structure.IsKind( SyntaxKind.MultiLineDocumentationCommentTrivia ) )
                     {
-                        // Mark each node of a documentation comment trivia separately.
-                        foreach ( var node in documentationComment.ChildNodes() )
-                        {
-                            this.Mark( node, classification );
-                        }
-
+                        // Don't highlight XML documentation comments.
                         continue;
                     }
 
