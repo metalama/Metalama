@@ -887,6 +887,13 @@ internal static class TemplateBindingHelper
                             $"The value of parameter '{parameter.Name}' for template '{template.Symbol}' must be of type IType or Type." ) )
                 };
 
+                if ( typeModel.SpecialType == OurSpecialType.Void )
+                {
+                    throw new ArgumentOutOfRangeException(
+                        parameter.Name,
+                        "The type argument cannot be 'void'." );
+                }
+
                 templateArguments.Add( new TemplateTypeArgumentFactory( typeModel, parameter.Name ) );
             }
         }

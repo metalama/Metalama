@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `M`: `'Exception of type 'System.ArgumentOutOfRangeException' thrown while executing BuildAspect for aspect [Aspect] applied to 'TargetCode.M()': The type argument cannot be 'void'. (Parameter 'T'). Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

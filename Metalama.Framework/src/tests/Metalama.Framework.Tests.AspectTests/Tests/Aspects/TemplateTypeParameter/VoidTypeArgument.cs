@@ -7,6 +7,8 @@ using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.TemplateTypeParameters.VoidTypeArgument;
 
+#pragma warning disable CS0168
+
 public class Aspect : MethodAspect
 {
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
