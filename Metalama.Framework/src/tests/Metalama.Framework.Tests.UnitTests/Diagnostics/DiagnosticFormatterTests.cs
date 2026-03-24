@@ -25,6 +25,9 @@ namespace Metalama.Framework.Tests.UnitTests.Diagnostics
         [InlineData( Accessibility.ProtectedInternal, "protected internal" )]
         [InlineData( new[] { "a", "b" }, "'a', 'b'" )]
         [InlineData( new[] { 1, 2 }, "1, 2" )]
+        [InlineData( "line1\nline2", "line1 line2" )]
+        [InlineData( "line1\r\nline2", "line1 line2" )]
+        [InlineData( "bool CanExecute(object? parameter)\n{\n    return true;\n}", "bool CanExecute(object? parameter) {     return true; }" )]
         public void Format( object value, string expected )
         {
             MetalamaEngineModuleInitializer.EnsureInitialized();
