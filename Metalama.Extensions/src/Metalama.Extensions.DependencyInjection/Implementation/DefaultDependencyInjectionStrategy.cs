@@ -169,6 +169,20 @@ public class DefaultDependencyInjectionStrategy
         IDependencyPullStrategy dependencyPullStrategy )
     {
         var constructor = adviser.Target;
+
+        // Check that the dependency type is at least as accessible as the constructor.
+        var constructorEffectiveAccessibility = constructor.GetEffectiveAccessibility();
+        var dependencyTypeEffectiveAccessibility = this.Properties.DependencyType.GetEffectiveAccessibility();
+
+        if ( dependencyTypeEffectiveAccessibility < constructorEffectiveAccessibility )
+        {
+            adviser.Diagnostics.Report(
+                DiagnosticDescriptors.DependencyLessAccessibleThanConstructor.WithArguments( (this.Properties.DependencyType, constructor) ),
+                constructor );
+
+            return false;
+        }
+
         var pullStrategy = dependencyPullStrategy.CreateParameterPullStrategy();
 
         // Find a compatible type in the constructor.

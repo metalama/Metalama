@@ -258,6 +258,46 @@ class Aspect2 : Aspect1 {}
         }
 
         [Fact]
+        public void DuplicateLayersOnBaseAndDerived()
+        {
+            const string code = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+
+[Layers(""L"")]
+class BaseAspect : TypeAspect { }
+
+[Layers(""L"")]
+class DerivedAspect : BaseAspect { }
+";
+
+            var ordered = this.GetOrderedAspectLayers( code, "BaseAspect", "DerivedAspect" );
+            Assert.Equal( "DerivedAspect => 0, BaseAspect => 0, DerivedAspect:L => 1, BaseAspect:L => 1", ordered );
+        }
+
+        [Fact]
+        public void OverlappingAndAdditionalLayersOnDerived()
+        {
+            const string code = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+
+[Layers(""L1"", ""L2"")]
+class BaseAspect : TypeAspect { }
+
+[Layers(""L2"", ""L3"")]
+class DerivedAspect : BaseAspect { }
+";
+
+            // DerivedAspect should have layers: default, L1 (inherited), L2 (deduplicated), L3 (own).
+            // L2 should appear exactly once per aspect (not duplicated).
+            var ordered = this.GetOrderedAspectLayers( code, "BaseAspect", "DerivedAspect" );
+            Assert.Equal(
+                "DerivedAspect => 0, BaseAspect => 0, DerivedAspect:L1 => 1, BaseAspect:L1 => 1, DerivedAspect:L2 => 2, BaseAspect:L2 => 2, DerivedAspect:L3 => 3",
+                ordered );
+        }
+
+        [Fact]
         public void ApplyToDerivedTypes()
         {
             const string code = @"
