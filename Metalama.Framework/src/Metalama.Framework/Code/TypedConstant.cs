@@ -394,6 +394,55 @@ namespace Metalama.Framework.Code
             return new TypedConstant( field, field.Type );
         }
 
+        /// <summary>
+        /// Creates a <see cref="TypedConstant"/> that references a named constant (such as an enum member or a <see langword="const"/> field) by name.
+        /// When rendered to code, this produces a reference to the field (e.g., <c>MyEnum.MyValue</c> or <c>MyClass.MyConst</c>).
+        /// </summary>
+        /// <param name="declaringType">The reflection <see cref="Type"/> of the type declaring the constant. Must be a named type.</param>
+        /// <param name="memberName">The name of the constant field or enum member.</param>
+        /// <returns>A <see cref="TypedConstant"/> representing the named constant reference.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="memberName"/> does not correspond to a constant member of the type.</exception>
+        public static TypedConstant NamedConstant( Type declaringType, string memberName )
+        {
+            var namedType = TypeFactory.GetNamedType( declaringType );
+
+            return NamedConstant( namedType, memberName );
+        }
+
+        /// <summary>
+        /// Creates a <see cref="TypedConstant"/> that references a named constant (such as an enum member or a <see langword="const"/> field) by name.
+        /// When rendered to code, this produces a reference to the field (e.g., <c>MyEnum.MyValue</c> or <c>MyClass.MyConst</c>).
+        /// </summary>
+        /// <param name="declaringType">The <see cref="INamedType"/> of the type declaring the constant.</param>
+        /// <param name="memberName">The name of the constant field or enum member.</param>
+        /// <returns>A <see cref="TypedConstant"/> representing the named constant reference.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="memberName"/> does not correspond to a constant member of the type.</exception>
+        public static TypedConstant NamedConstant( INamedType declaringType, string memberName )
+        {
+            var field = declaringType.Fields.OfName( memberName ).FirstOrDefault();
+
+            if ( field == null )
+            {
+                throw new ArgumentException( $"The type '{declaringType}' does not have a member named '{memberName}'.", nameof(memberName) );
+            }
+
+            if ( field.ConstantValue == null )
+            {
+                throw new ArgumentException( $"The field '{declaringType}.{memberName}' is not a constant field.", nameof(memberName) );
+            }
+
+            return Create( field );
+        }
+
+        /// <summary>
+        /// Creates a <see cref="TypedConstant"/> that references a constant field. This is equivalent to <see cref="Create(IField)"/>.
+        /// When rendered to code, this produces a reference to the field (e.g., <c>MyEnum.MyValue</c> or <c>MyClass.MyConst</c>).
+        /// </summary>
+        /// <param name="field">A constant field, i.e., <see cref="IField.ConstantValue"/> must not be <c>null</c>.</param>
+        /// <returns>A <see cref="TypedConstant"/> representing the named constant reference.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="field"/> is not a constant field.</exception>
+        public static TypedConstant NamedConstant( IField field ) => Create( field );
+
         internal static TypedConstant UnwrapOrCreate( object? value, IType type )
             => value is TypedConstant typedConstant ? typedConstant : new TypedConstant( value, type );
 

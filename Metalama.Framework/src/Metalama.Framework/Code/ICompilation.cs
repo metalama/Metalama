@@ -91,5 +91,10 @@ namespace Metalama.Framework.Code
         /// Gets a service that allows to create declaration and type instances for the current <see cref="ICompilation"/>.
         /// </summary>
         IDeclarationFactory Factory { get; }
+
+        /// <summary>
+        /// Gets the entry point (<c>Main</c> method) of the compilation, or <c>null</c> if the compilation does not have an entry point.
+        /// </summary>
+        IMethod? EntryPoint { get; }
     }
 }
