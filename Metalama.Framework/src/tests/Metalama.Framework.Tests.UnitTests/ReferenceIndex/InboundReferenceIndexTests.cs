@@ -272,20 +272,40 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Equal( ["A", "B<T>", "C", "D<T>"], result.Observer.ResolvedSymbolNames );
     }
 
+    [Fact]
+    public void TypeOfInTopLevelStatement()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["Program.cs"] = "_ = typeof(A);", ["A.cs"] = "class A;", ["B.cs"] = "class B { object M() => typeof(A); }"
+        };
+
+        var result = this.BuildIndex(
+            code,
+            compilation => compilation.Types.OfName( "A" ),
+            ReferenceKinds.TypeOf,
+            outputKind: OutputKind.ConsoleApplication );
+
+        // Checking the index: both the top-level statement (synthetic entry point) and B.M() should reference A via typeof.
+        Assert.Equal( ["<top-level-statements-entry-point>", "B.M()"], result.ReferencingSymbols );
+    }
+
     // TODO: other reference kinds.
 
     private (InboundReferenceIndex Index, ReferenceIndexObserver Observer, IReadOnlyCollection<string> ReferencingSymbols ) BuildIndex(
         Dictionary<string, string> code,
         Func<ICompilation, IEnumerable<IDeclaration>> getDeclarations,
         ReferenceKinds referenceKinds,
-        bool includeDerivedTypes = false )
+        bool includeDerivedTypes = false,
+        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
     {
         var observer = new ReferenceIndexObserver();
         var additionalServices = new AdditionalServiceCollection();
         additionalServices.AddProjectService( observer );
         additionalServices.AddProjectService( SymbolClassificationService.CreateTestInstance() );
         using var testContext = this.CreateTestContext( additionalServices );
-        var compilation = testContext.CreateCompilationModel( code );
+        var roslynCompilation = testContext.CreateCSharpCompilation( code, outputKind: outputKind );
+        var compilation = testContext.CreateCompilationModel( roslynCompilation );
 
         List<ReferenceIndexerRequirements> validators = new();
 
