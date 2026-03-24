@@ -889,9 +889,9 @@ internal static class TemplateBindingHelper
 
                 if ( typeModel.SpecialType == OurSpecialType.Void )
                 {
-                    throw new ArgumentOutOfRangeException(
-                        parameter.Name,
-                        "The type argument cannot be 'void'." );
+                    throw new InvalidAdviceParametersException(
+                        MetalamaStringFormatter.Format(
+                            $"The type parameter '{parameter.Name}' of template '{template.Symbol}' cannot be 'void'." ) );
                 }
 
                 templateArguments.Add( new TemplateTypeArgumentFactory( typeModel, parameter.Name ) );
