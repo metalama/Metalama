@@ -39,6 +39,10 @@ internal sealed class BuiltInSerializerFactoryProvider : SerializerFactoryProvid
         this.AddSerializer<DottedString, DottedStringSerializer>();
         this.AddSerializer<Guid, GuidSerializer>();
         this.AddSerializer<CultureInfo, CultureInfoSerializer>();
+#if !NET472
+        this.AddSerializer<Index, IndexSerializer>();
+        this.AddSerializer<Range, RangeSerializer>();
+#endif
 
         // collections
         this.AddSerializer( typeof(List<>), typeof(ListSerializer<>) );
