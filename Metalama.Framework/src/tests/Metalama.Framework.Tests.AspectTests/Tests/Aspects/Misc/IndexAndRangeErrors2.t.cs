@@ -1,3 +1,29 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0200 on `meta.CompileTime( ^1 )`: `A compile-time value of type 'Index' was used in a context where a run-time value was expected.`
-// Error LAMA0200 on `meta.CompileTime( ..^1 )`: `A compile-time value of type 'Range' was used in a context where a run-time value was expected.`
+using System;
+using System.Linq;
+using Metalama.Framework.Aspects;
+#pragma warning disable CS0618 // Type or member is obsolete
+namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.IndexAndRangeErrors2
+{
+#pragma warning disable CS0067, CS8618, CS0162, CS0169, CS0414, CA1822, CA1823, IDE0051, IDE0052
+  public class UseIndexAndRangeAttribute : OverrideMethodAspect
+  {
+    public override dynamic? OverrideMethod() => throw new System.NotSupportedException("Compile-time-only code cannot be called at run-time.");
+  }
+#pragma warning restore CS0067, CS8618, CS0162, CS0169, CS0414, CA1822, CA1823, IDE0051, IDE0052
+  internal class GenericType<T1, T2>
+  {
+  }
+  internal class TargetCode : GenericType<int, int>
+  {
+    [UseIndexAndRange]
+    private int Method(int a, int b, int c, int d)
+    {
+      var runTimeCollection = global::System.MemoryExtensions.AsSpan(new global::System.String[] { "int", "int" });
+      var runTimeCollectionWithCompileTimeIndex = runTimeCollection[^1];
+      global::System.Console.WriteLine(runTimeCollectionWithCompileTimeIndex);
+      var runTimeCollectionWithCompileTimeRange = runTimeCollection[global::System.Index.FromStart(0)..^1].Length;
+      global::System.Console.WriteLine(runTimeCollectionWithCompileTimeRange);
+      return a;
+    }
+  }
+}

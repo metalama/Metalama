@@ -14,6 +14,12 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Reflection;
+#if NET472
+using System.Runtime.Serialization;
+#else
+using System.Runtime.CompilerServices;
+#endif
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.SyntaxSerialization
@@ -24,8 +30,11 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
     /// </summary>
     internal sealed class SyntaxSerializationService : IProjectService
     {
-        // Set of serializers indexed by the real implementation type they are able to handle (e.g. CompileTimeMethodInfo). 
+        // Set of serializers indexed by the real implementation type they are able to handle (e.g. CompileTimeMethodInfo).
         private readonly ConcurrentDictionary<Type, ObjectSerializer> _serializerByInputType = new();
+
+        // Fallback index by type full name, used when the Type identity doesn't match due to compile-time assembly type embedding.
+        private readonly ConcurrentDictionary<string, ObjectSerializer> _serializerByInputTypeName = new();
 
         // Set of serializers indexed by the contract type they are able to handle. (e.g. MethodInfo). Used for compile-time validation.
         private readonly ConcurrentDictionary<Type, Type> _supportedContractTypes = new();
@@ -67,6 +76,11 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             this.RegisterSerializer( new TimeSpanSerializer( this ) );
             this.RegisterSerializer( new DateTimeOffsetSerializer( this ) );
             this.RegisterSerializer( new CultureInfoSerializer( this ) );
+
+#if !NET472
+            this.RegisterSerializer( new IndexSerializer( this ) );
+            this.RegisterSerializer( new RangeSerializer( this ) );
+#endif
 
             // Collections
             this.RegisterSerializer( new ListSerializer( this ) );
@@ -119,6 +133,11 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
         {
             _ = this._serializerByInputType.TryAdd( serializer.InputType, serializer );
 
+            if ( serializer.InputType.FullName != null )
+            {
+                _ = this._serializerByInputTypeName.TryAdd( serializer.InputType.FullName, serializer );
+            }
+
             foreach ( var inputType in serializer.AllSupportedTypes )
             {
                 if ( inputType.IsPublic )
@@ -166,6 +185,15 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
 
             if ( this._serializerByInputType.TryGetValue( concreteTypeDeclaration, out serializer )
                  && ValidateContractType( contractTypeDeclaration, serializer ) )
+            {
+                return true;
+            }
+
+            // When the type comes from a compile-time assembly (which may embed its own type definitions),
+            // the Type identity doesn't match the registered serializer's Type. Fall back to name-based lookup.
+            // We skip ValidateContractType here because it also uses Type identity which would fail for the same reason.
+            if ( serializer == null && concreteTypeDeclaration.FullName != null
+                                   && this._serializerByInputTypeName.TryGetValue( concreteTypeDeclaration.FullName, out serializer ) )
             {
                 return true;
             }
@@ -273,12 +301,53 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
                 return false;
             }
 
+            // When the object's type comes from a compile-time assembly (which embeds its own type definitions),
+            // the Type identity doesn't match the serializer's TInput. Convert the object to the expected type
+            // using reflection-based field copying so the cast in ObjectSerializer<TInput>.Serialize succeeds.
+            object objToSerialize = o;
+            var objType = o.GetType();
+
+            if ( objType != serializer.InputType && objType.FullName == serializer.InputType.FullName )
+            {
+                objToSerialize = ConvertCrossAssemblyObject( o, serializer.InputType );
+            }
+
             using ( serializationContext.WithSerializeObject( o ) )
             {
-                expression = serializer.Serialize( o, serializationContext );
+                expression = serializer.Serialize( objToSerialize, serializationContext );
             }
 
             return true;
+        }
+
+        private static object ConvertCrossAssemblyObject( object source, Type targetType )
+        {
+            var sourceType = source.GetType();
+#if NET472
+            var result = FormatterServices.GetUninitializedObject( targetType );
+#else
+            var result = RuntimeHelpers.GetUninitializedObject( targetType );
+#endif
+
+            foreach ( var targetField in targetType.GetFields( BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic ) )
+            {
+                var sourceField = sourceType.GetField( targetField.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic );
+
+                if ( sourceField != null )
+                {
+                    var value = sourceField.GetValue( source );
+
+                    if ( value != null && value.GetType() != targetField.FieldType
+                                       && value.GetType().FullName == targetField.FieldType.FullName )
+                    {
+                        value = ConvertCrossAssemblyObject( value, targetField.FieldType );
+                    }
+
+                    targetField.SetValue( result, value );
+                }
+            }
+
+            return result;
         }
     }
 }
