@@ -120,14 +120,54 @@
         </ItemGroup>
     </Target>
 
+    <!--
+        Exclude test infrastructure references from test compilations (issue #754).
+        Test input files are compiled as standalone mini-projects and should only receive
+        references that a real user project would have, not the full set of references
+        from the test project (xUnit, test SDK, mocking libraries, etc.).
+
+        Users can customize exclusions by adding/removing MetalamaTestExcludedReference items.
+    -->
+    <ItemGroup>
+        <!-- Test frameworks -->
+        <MetalamaTestExcludedReference Include="xunit" />
+        <MetalamaTestExcludedReference Include="xunit.abstractions" />
+        <MetalamaTestExcludedReference Include="xunit.assert" />
+        <MetalamaTestExcludedReference Include="xunit.extensibility.core" />
+        <MetalamaTestExcludedReference Include="xunit.extensibility.execution" />
+        <MetalamaTestExcludedReference Include="xunit.runner.visualstudio" />
+        <!-- Test SDK and platform -->
+        <MetalamaTestExcludedReference Include="Microsoft.NET.Test.Sdk" />
+        <MetalamaTestExcludedReference Include="Microsoft.TestPlatform.TestHost" />
+        <MetalamaTestExcludedReference Include="Microsoft.TestPlatform.ObjectModel" />
+        <!-- Mocking libraries -->
+        <MetalamaTestExcludedReference Include="FakeItEasy" />
+        <MetalamaTestExcludedReference Include="FakeItEasy.Analyzer.CSharp" />
+        <!-- Test utilities that are not part of the user-facing API -->
+        <MetalamaTestExcludedReference Include="Metalama.Backstage.Testing" />
+        <MetalamaTestExcludedReference Include="coverlet.collector" />
+    </ItemGroup>
+
     <Target Name='WriteReferenceAssemblies' AfterTargets="Build">
 
         <ItemGroup>
             <TfmFilteredExtensionAssembly Include="@(MetalamaExtensionAssembly)" Condition="'%(MetalamaExtensionAssembly.TargetFramework)' == '' Or $([MSBuild]::IsTargetFrameworkCompatible($(TargetFramework), %(MetalamaExtensionAssembly.TargetFramework)))" />
         </ItemGroup>
 
+        <!-- Filter out test infrastructure references from assemblies.txt (#754).
+             Build a semicolon-delimited string of excluded package IDs for exact matching. -->
+        <PropertyGroup>
+            <_MetalamaTestExcludedPackageIds>;@(MetalamaTestExcludedReference, ';');</_MetalamaTestExcludedPackageIds>
+        </PropertyGroup>
+
+        <ItemGroup>
+            <_MetalamaTestCompilationReference Include="@(ReferencePathWithRefAssemblies)" />
+            <_MetalamaTestCompilationReference Remove="@(_MetalamaTestCompilationReference)"
+                Condition="'%(_MetalamaTestCompilationReference.NuGetPackageId)' != '' AND $(_MetalamaTestExcludedPackageIds.Contains(';%(_MetalamaTestCompilationReference.NuGetPackageId);'))" />
+        </ItemGroup>
+
         <WriteLinesToFile File='$(IntermediateOutputPath)assemblies.txt' Overwrite='true'
-                          Lines='@(ReferencePathWithRefAssemblies)' />
+                          Lines='@(_MetalamaTestCompilationReference)' />
         <WriteLinesToFile File='$(IntermediateOutputPath)compile-time-assemblies.txt' Overwrite='true'
                           Lines='@(MetalamaCompileTimeAssembly)' />
         <WriteLinesToFile File='$(IntermediateOutputPath)extensions.txt' Overwrite='true'
