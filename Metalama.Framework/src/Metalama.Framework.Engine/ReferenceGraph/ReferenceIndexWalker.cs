@@ -533,6 +533,24 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         }
     }
 
+    public override void VisitGlobalStatement( GlobalStatementSyntax node )
+    {
+        if ( this._options.MustDescendIntoImplementation() )
+        {
+            // Top-level statements compile into a synthetic <Main>$ method in the Program class.
+            // We need to enter a declaration context so that references within top-level statements are indexed.
+            var entryPointMethod = this.SemanticModel.GetEnclosingSymbol( node.Statement.SpanStart );
+
+            if ( entryPointMethod != null )
+            {
+                using ( this.EnterDeclaration( node, entryPointMethod ) )
+                {
+                    this.Visit( node.Statement );
+                }
+            }
+        }
+    }
+
     public override void VisitConversionOperatorDeclaration( ConversionOperatorDeclarationSyntax node )
     {
         using ( this.EnterDeclaration( node ) )
@@ -890,6 +908,18 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         var previousNode = this._currentDeclarationNode;
 
         this._currentDeclarationSymbol = null;
+        this._currentDeclarationNode = node;
+
+        return new DeclarationContextCookie( this, previousSymbol, previousNode );
+    }
+
+    private DeclarationContextCookie EnterDeclaration( SyntaxNode node, ISymbol symbol )
+    {
+        var previousSymbol = this._currentDeclarationSymbol;
+        var previousNode = this._currentDeclarationNode;
+
+        this._currentDeclarationSymbol = symbol;
+        this._observer?.OnSymbolResolved( symbol );
         this._currentDeclarationNode = node;
 
         return new DeclarationContextCookie( this, previousSymbol, previousNode );
