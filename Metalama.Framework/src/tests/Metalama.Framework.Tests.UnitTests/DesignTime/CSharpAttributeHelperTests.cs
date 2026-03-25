@@ -655,6 +655,126 @@ namespace Test
             AssertEx.EolInvariantEqual( expectedSyntax, newRoot.ToFullString() );
         }
 
+        [Fact]
+        public async Task When_AttributeAppliedToProperty_Then_NoExtraBlankLineAsync()
+        {
+            const string syntax = @"
+namespace Test
+{
+    public class Class1
+    {
+        public string Name { get; set; }
+
+        public int Value { get; set; }
+    }
+}
+";
+
+            const string expectedSyntax = @"
+namespace Test
+{
+    public class Class1
+    {
+        public string Name { get; set; }
+
+        [TestAttribute]
+        public int Value { get; set; }
+    }
+}
+";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<PropertyDeclarationSyntax>()
+                .First( x => x.Identifier.ToString() == "Value" );
+
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
+
+            AssertEx.EolInvariantEqual( expectedSyntax, newRoot.ToFullString() );
+        }
+
+        [Fact]
+        public async Task When_AttributeAppliedToPropertyWithExplicitCrLf_Then_NoExtraBlankLineAsync()
+        {
+            // Simulate a file with \r\n line endings - the bug in #779 was related to line ending handling.
+            var syntax = "namespace Test\r\n{\r\n    public class Class1\r\n    {\r\n        public string Name { get; set; }\r\n\r\n        public int Value { get; set; }\r\n    }\r\n}\r\n";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<PropertyDeclarationSyntax>()
+                .First( x => x.Identifier.ToString() == "Value" );
+
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
+
+            var result = newRoot.ToFullString();
+
+            // There should be exactly one newline between the attribute and the property declaration,
+            // not a blank line.
+            Assert.DoesNotContain( "[TestAttribute]\r\n\r\n", result, StringComparison.Ordinal );
+            Assert.DoesNotContain( "[TestAttribute]\n\n", result, StringComparison.Ordinal );
+            Assert.DoesNotContain( "[TestAttribute]\r\n\n", result, StringComparison.Ordinal );
+            Assert.DoesNotContain( "[TestAttribute]\n\r\n", result, StringComparison.Ordinal );
+        }
+
+        [Fact]
+        public async Task When_AttributeAppliedToPropertyWithMixedLineEndings_Then_NoExtraBlankLineAsync()
+        {
+            // Simulate a file with mixed line endings (\r\n and \n) - this is the exact scenario from #779.
+            // The file mostly uses \r\n but the blank line between properties uses \n only.
+            var syntax = "namespace Test\r\n{\r\n    public class Class1\r\n    {\r\n        public string Name { get; set; }\r\n\n        public int Value { get; set; }\r\n    }\r\n}\r\n";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<PropertyDeclarationSyntax>()
+                .First( x => x.Identifier.ToString() == "Value" );
+
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
+
+            var result = newRoot.ToFullString();
+
+            // There should be exactly one newline between the attribute and the property declaration.
+            Assert.DoesNotContain( "[TestAttribute]\r\n\r\n", result, StringComparison.Ordinal );
+            Assert.DoesNotContain( "[TestAttribute]\n\n", result, StringComparison.Ordinal );
+            Assert.DoesNotContain( "[TestAttribute]\r\n\n", result, StringComparison.Ordinal );
+            Assert.DoesNotContain( "[TestAttribute]\n\r\n", result, StringComparison.Ordinal );
+        }
+
+        [Fact]
+        public async Task When_AttributeAppliedToPropertyWithLfOnly_Then_NoExtraBlankLineAsync()
+        {
+            // Simulate a file with \n-only line endings.
+            var syntax = "namespace Test\n{\n    public class Class1\n    {\n        public string Name { get; set; }\n\n        public int Value { get; set; }\n    }\n}\n";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<PropertyDeclarationSyntax>()
+                .First( x => x.Identifier.ToString() == "Value" );
+
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
+
+            var result = newRoot.ToFullString();
+
+            // There should be exactly one newline between the attribute and the property declaration.
+            Assert.DoesNotContain( "[TestAttribute]\r\n\r\n", result, StringComparison.Ordinal );
+            Assert.DoesNotContain( "[TestAttribute]\n\n", result, StringComparison.Ordinal );
+            Assert.DoesNotContain( "[TestAttribute]\r\n\n", result, StringComparison.Ordinal );
+            Assert.DoesNotContain( "[TestAttribute]\n\r\n", result, StringComparison.Ordinal );
+        }
+
+        [Fact]
+        public async Task When_SyntaxGenerationContextCreatedFromLfOnlyTree_Then_EndOfLineIsLfAsync()
+        {
+            // Verify that a SyntaxGenerationContext created from a \n-only file uses \n for line endings (#779).
+            var syntax = "namespace Test\n{\n    public class Class1\n    {\n        public int Value { get; set; }\n    }\n}\n";
+
+            var root = await this.GetSyntaxRootAsync( syntax );
+
+            var originalDeclaration = root.DescendantNodes()
+                .OfType<PropertyDeclarationSyntax>()
+                .First( x => x.Identifier.ToString() == "Value" );
+
+            var (_, context) = await this.GetModelAndContextAsync( originalDeclaration );
+
+            // The context should detect that the file uses \n line endings.
+            Assert.Equal( "\n", context.EndOfLine );
+        }
+
         private Task<SyntaxNode> AddAttributeThroughSymbolAsync( string attributeName, SyntaxNode originalDeclaration )
             => this.AddAttributeThroughSymbolAsync( originalDeclaration, new AttributeDescription( attributeName ) );
 

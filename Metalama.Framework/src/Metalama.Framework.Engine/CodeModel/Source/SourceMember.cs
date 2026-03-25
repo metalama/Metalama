@@ -38,20 +38,33 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         public bool IsExtern => this.Symbol.IsExtern;
 
         public bool HasImplementation
-            => this.Symbol.Kind switch
+        {
+            get
             {
-                SymbolKind.Method when this.Symbol is IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
+                var hasImplementationFromSymbol = this.Symbol.Kind switch
+                {
+                    SymbolKind.Method when this.Symbol is IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
 #if ROSLYN_4_12_0_OR_GREATER
-                SymbolKind.Property when this.Symbol is IPropertySymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
+                    SymbolKind.Property when this.Symbol is IPropertySymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
 #endif
 #if ROSLYN_5_0_0_OR_GREATER
-                SymbolKind.Event when this.Symbol is IEventSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
+                    SymbolKind.Event when this.Symbol is IEventSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
 #endif
-                SymbolKind.Field when this.Symbol is IFieldSymbol { IsConst: true } => false,
-                _ when this.Symbol is { IsAbstract: true } => false,
-                _ when this.Symbol is { IsExtern: true } => false,
-                _ => true
-            };
+                    SymbolKind.Field when this.Symbol is IFieldSymbol { IsConst: true } => false,
+                    _ when this.Symbol is { IsAbstract: true } => false,
+                    _ when this.Symbol is { IsExtern: true } => false,
+                    _ => true
+                };
+
+                if ( hasImplementationFromSymbol )
+                {
+                    return true;
+                }
+
+                // Check if a transformation has given this member an implementation (e.g., an override of a partial method without implementation).
+                return this.Compilation.HasSetImplementation( this.ToMemberRef() );
+            }
+        }
 
         public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
         {

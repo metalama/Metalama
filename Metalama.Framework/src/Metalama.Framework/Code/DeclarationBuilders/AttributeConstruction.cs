@@ -88,6 +88,31 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                 namedArguments );
 
         /// <summary>
+        /// Creates a new <see cref="AttributeConstruction"/> by explicitly specifying the constructor and loosely-typed arguments.
+        /// The arguments are automatically converted to <see cref="TypedConstant"/> based on the constructor parameter types.
+        /// </summary>
+        /// <param name="constructor">The attribute constructor.</param>
+        /// <param name="constructorArguments">The constructor arguments.</param>
+        /// <param name="namedArguments">The named arguments (i.e., the assigned fields and properties).</param>
+        /// <returns>A new <see cref="AttributeConstruction"/> instance.</returns>
+        public static AttributeConstruction Create(
+            IConstructor constructor,
+            IReadOnlyList<object?>? constructorArguments,
+            IReadOnlyList<KeyValuePair<string, object?>>? namedArguments = null )
+        {
+            constructorArguments ??= ImmutableArray<object?>.Empty;
+            namedArguments ??= ImmutableArray<KeyValuePair<string, object?>>.Empty;
+
+            // Map constructor arguments.
+            var typedConstructorArguments = MapConstructorArguments( constructor, constructorArguments );
+
+            // Map named arguments.
+            var typedNamedArguments = MapNamedArguments( constructor, namedArguments );
+
+            return new AttributeConstruction( constructor, typedConstructorArguments, typedNamedArguments );
+        }
+
+        /// <summary>
         /// Creates a new <see cref="AttributeConstruction"/> by specifying the reflection <see cref="System.Type"/> of the attribute.
         /// The method will attempt to find a suitable constructor.
         /// </summary>
@@ -120,16 +145,24 @@ namespace Metalama.Framework.Code.DeclarationBuilders
             constructorArguments ??= ImmutableArray<object?>.Empty;
             namedArguments ??= ImmutableArray<KeyValuePair<string, object?>>.Empty;
 
-            // Translate IType and System.Type arguments to System.Type to get the correct constructor.
-            // This handles IType implementations, CompileTimeType, RuntimeType, and other Type subclasses.
-            var constructorArgumentTypes =
-                constructorArguments
-                    .Select( x => x?.GetType() )
-                    .Select(
-                        x => x == null ? null :
-                            typeof(IType).IsAssignableFrom( x ) || typeof(Type).IsAssignableFrom( x ) ? typeof(Type) :
-                            x )
-                    .ToArray();
+            // Determine argument types for constructor resolution.
+            // For TypedConstant arguments, use their declared Type (not the runtime type of Value,
+            // which would be incorrect for enums where Value is the underlying integer type).
+            // For IType/Type arguments, map to System.Type (attribute constructor parameter type).
+            var constructorArgumentTypes = new IType?[constructorArguments.Count];
+
+            for ( var i = 0; i < constructorArguments.Count; i++ )
+            {
+                var arg = constructorArguments[i];
+
+                constructorArgumentTypes[i] = arg switch
+                {
+                    TypedConstant tc => tc.Type,
+                    null => null,
+                    IType or System.Type => TypeFactory.GetType( typeof(Type) ),
+                    _ => TypeFactory.GetType( arg.GetType() )
+                };
+            }
 
             var constructors = attributeType.Constructors.OfCompatibleSignature( constructorArgumentTypes ).ToList();
 
@@ -145,8 +178,40 @@ namespace Metalama.Framework.Code.DeclarationBuilders
             var constructor = constructors[0];
 
             // Map constructor arguments.
+            var typedConstructorArguments = MapConstructorArguments( constructor, constructorArguments );
+
+            // Map named arguments.
+            var typedNamedArguments = MapNamedArguments( constructor, namedArguments );
+
+            return new AttributeConstruction( constructor, typedConstructorArguments, typedNamedArguments );
+        }
+
+        private static ImmutableArray<TypedConstant> MapConstructorArguments(
+            IConstructor constructor,
+            IReadOnlyList<object?> constructorArguments )
+        {
             var typedConstructorArguments = ImmutableArray.CreateBuilder<TypedConstant>( constructor.Parameters.Count );
             var isLastParameterParams = constructor.Parameters.Count > 0 && constructor.Parameters[^1].IsParams;
+
+            // Validate argument count.
+            if ( isLastParameterParams )
+            {
+                if ( constructorArguments.Count < constructor.Parameters.Count - 1 )
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(constructorArguments),
+                        $"Too few arguments: expected at least {constructor.Parameters.Count - 1} but got {constructorArguments.Count}." );
+                }
+            }
+            else
+            {
+                if ( constructorArguments.Count != constructor.Parameters.Count )
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(constructorArguments),
+                        $"Wrong number of arguments: expected {constructor.Parameters.Count} but got {constructorArguments.Count}." );
+                }
+            }
 
             for ( var i = 0; i < constructor.Parameters.Count; i++ )
             {
@@ -156,43 +221,64 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                 {
                     // The current parameter is `params`.
                     var arrayType = (IArrayType) parameterType;
-                    var paramsParameterValues = new List<TypedConstant>();
 
-                    if ( constructorArguments.Count == constructor.Parameters.Count
-                         && TypedConstant.CheckAcceptableType(
-                             parameterType,
-                             constructorArguments[i],
-                             false,
-                             ((ICompilationInternal) attributeType.Compilation).Factory ) )
+                    if ( constructorArguments.Count <= i )
                     {
-                        var constructorArgument = constructorArguments[i];
-
-                        // An array is passed to the `params` parameter.
-                        if ( constructorArgument != null )
-                        {
-                            foreach ( var arrayItem in (IEnumerable) constructorArgument )
-                            {
-                                paramsParameterValues.Add( TypedConstant.UnwrapOrCreate( arrayItem, arrayType.ElementType ) );
-                            }
-
-                            typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( paramsParameterValues.ToImmutableArray(), parameterType ) );
-                        }
-                        else
-                        {
-                            // Null is explicitly passed for the params array parameter.
-                            typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( null, parameterType ) );
-                        }
+                        // No arguments provided for the params parameter — create an empty array.
+                        typedConstructorArguments.Add(
+                            TypedConstant.UnwrapOrCreate( ImmutableArray<TypedConstant>.Empty, parameterType ) );
                     }
                     else
                     {
-                        // A list is passed to the `params` parameter. Transform this into an array.
+                        var rawArgument = constructorArguments[i];
 
-                        for ( var j = i; j < constructorArguments.Count; j++ )
+                        if ( rawArgument is TypedConstant tc && constructorArguments.Count == constructor.Parameters.Count )
                         {
-                            paramsParameterValues.Add( TypedConstant.UnwrapOrCreate( constructorArguments[j], arrayType.ElementType ) );
+                            // A TypedConstant is passed directly for the params parameter — use it as-is.
+                            typedConstructorArguments.Add( tc );
                         }
+                        else
+                        {
+                            var paramsParameterValues = new List<TypedConstant>();
 
-                        typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( paramsParameterValues.ToImmutableArray(), parameterType ) );
+                            // Unwrap TypedConstant to get the underlying value for type checking.
+                            var constructorArgument = rawArgument is TypedConstant tcToUnwrap ? tcToUnwrap.Value : rawArgument;
+
+                            if ( constructorArguments.Count == constructor.Parameters.Count
+                                 && TypedConstant.CheckAcceptableType(
+                                     parameterType,
+                                     constructorArgument,
+                                     false,
+                                     ((ICompilationInternal) constructor.DeclaringType.Compilation).Factory ) )
+                            {
+                                // An array is passed to the `params` parameter.
+                                if ( constructorArgument != null )
+                                {
+                                    foreach ( var arrayItem in (IEnumerable) constructorArgument )
+                                    {
+                                        paramsParameterValues.Add( TypedConstant.UnwrapOrCreate( arrayItem, arrayType.ElementType ) );
+                                    }
+
+                                    typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( paramsParameterValues.ToImmutableArray(), parameterType ) );
+                                }
+                                else
+                                {
+                                    // Null is explicitly passed for the params array parameter.
+                                    typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( null, parameterType ) );
+                                }
+                            }
+                            else
+                            {
+                                // A list is passed to the `params` parameter. Transform this into an array.
+
+                                for ( var j = i; j < constructorArguments.Count; j++ )
+                                {
+                                    paramsParameterValues.Add( TypedConstant.UnwrapOrCreate( constructorArguments[j], arrayType.ElementType ) );
+                                }
+
+                                typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( paramsParameterValues.ToImmutableArray(), parameterType ) );
+                            }
+                        }
                     }
                 }
                 else
@@ -201,7 +287,13 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                 }
             }
 
-            // Map named arguments.
+            return typedConstructorArguments.MoveToImmutable();
+        }
+
+        private static ImmutableArray<KeyValuePair<string, TypedConstant>> MapNamedArguments(
+            IConstructor constructor,
+            IReadOnlyList<KeyValuePair<string, object?>> namedArguments )
+        {
             var typedNamedArguments = ImmutableArray.CreateBuilder<KeyValuePair<string, TypedConstant>>( namedArguments.Count );
 
             foreach ( var argument in namedArguments )
@@ -217,7 +309,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                     new KeyValuePair<string, TypedConstant>( argument.Key, TypedConstant.UnwrapOrCreate( argument.Value, fieldOrProperty.Type ) ) );
             }
 
-            return new AttributeConstruction( constructor, typedConstructorArguments.MoveToImmutable(), typedNamedArguments.MoveToImmutable() );
+            return typedNamedArguments.MoveToImmutable();
         }
     }
 }

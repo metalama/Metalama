@@ -697,5 +697,14 @@ namespace Metalama.Framework.Engine.Templating
                 + "Remove one of the conflicting assembly references.",
                 _category,
                 Error );
+
+        internal static readonly DiagnosticDefinition<(ISymbol Member, string MemberScope, ISymbol DeclaringType, string DeclaringTypeScope)>
+            MemberScopeIncompatibleWithDeclaringType
+                = new(
+                    "LAMA0292",
+                    Error,
+                    "Execution scope mismatch: the member '{0}' is {1}, but the declaring type '{2}' is {3}.",
+                    "Execution scope mismatch: the scope of a member is not compatible with the scope of its declaring type.",
+                    _category );
     }
 }
