@@ -1,21 +1,20 @@
 // Final Compilation.Emit failed.
-// Error CS0229 on `Property`: `Ambiguity between 'TargetCode.Property' and 'TargetCode.Property'`
-// Error CS0229 on `Property`: `Ambiguity between 'TargetCode.Property' and 'TargetCode.Property'`
 // Error CS0102 on `Property`: `The type 'TargetCode' already contains a definition for 'Property'`
 internal class TargetCode
 {
+  private int _property;
   [Aspect]
   private int Property
   {
     get
     {
       global::System.Console.WriteLine("Aspect");
-      return this.Property;
+      return this._property;
     }
     set
     {
       global::System.Console.WriteLine("Aspect");
-      this.Property = value;
+      this._property = value;
     }
   }
   private int Property { get; set; }
