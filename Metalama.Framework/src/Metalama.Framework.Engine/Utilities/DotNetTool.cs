@@ -40,6 +40,7 @@ public sealed class DotNetTool
 
         // We must avoid passing the following environment variables to the child process, otherwise there can be a mismatch
         // between SDK versions and the build will fail.
+        startInfo.Environment.Remove( "DOTNET_HOST_PATH" );
         startInfo.Environment.Remove( "DOTNET_ROOT_X64" );
         startInfo.Environment.Remove( "MSBUILD_EXE_PATH" );
         startInfo.Environment.Remove( "MSBuildSDKsPath" );
