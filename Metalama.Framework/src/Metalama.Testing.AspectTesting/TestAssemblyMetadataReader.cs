@@ -82,9 +82,15 @@ namespace Metalama.Testing.AspectTesting
             {
                 var lines = ReadStringsFromFile( propertyName );
 
+                // Issue #754: The test project's own output assembly should not be included
+                // in the test compilation references. The MSBuild ReferencePathWithRefAssemblies
+                // item group can include the test project assembly, which breaks isolation.
+                var testAssemblyFileName = Path.GetFileName( assembly.AssemblyPath );
+
                 return lines.SelectAsReadOnlyCollection(
                         t => TargetedAssemblyReference.ParsePipeSeparatedString( t, path => FindImplementationAssembly( projectDirectory, path ) ) )
-                    .Where( t => t.SatisfiesCurrentProcess )
+                    .Where( t => t.SatisfiesCurrentProcess
+                                 && !string.Equals( Path.GetFileName( t.Path ), testAssemblyFileName, StringComparison.OrdinalIgnoreCase ) )
                     .ToImmutableArray();
             }
 
