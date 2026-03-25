@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
         private const string _category = "Metalama.Serialization";
 
         internal const string UnsupportedSerializationMessage =
-            "A compile-time value of type '{0}' could not be converted to a run-time value because the type is not serializable.";
+            "A compile-time value of type '{0}' could not be converted to a run-time value.";
 
         internal static readonly DiagnosticDefinition<object> UnsupportedSerialization = new(
             "LAMA0200",
