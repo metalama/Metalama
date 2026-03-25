@@ -23,6 +23,7 @@ public static class ProcessKindHelper
 
             case "servicehub.roslyncodeanalysisservice":
             case "servicehub.roslyncodeanalysisservices":
+            case "devhub":
                 return ProcessKind.RoslynCodeAnalysisService;
 
             case "csc":

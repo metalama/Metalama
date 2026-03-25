@@ -1110,6 +1110,42 @@ namespace Metalama.Framework.Engine.CompileTime
 
                                     // If the property implicitly implements any interface property with init accessor, we need to add explicit implementation because
                                     // changing it to ordinary setter would cause an error.
+                                    var accessors = new List<AccessorDeclarationSyntax>();
+
+                                    if ( interfaceProperty.GetMethod != null )
+                                    {
+                                        accessors.Add(
+                                            AccessorDeclaration(
+                                                SyntaxKind.GetAccessorDeclaration,
+                                                List<AttributeListSyntax>(),
+                                                TokenList(),
+                                                Token( SyntaxKind.GetKeyword ),
+                                                null,
+                                                ArrowExpressionClause(
+                                                    MemberAccessExpression(
+                                                        SyntaxKind.SimpleMemberAccessExpression,
+                                                        ThisExpression(),
+                                                        SyntaxFactoryEx.SafeIdentifierName( interfaceProperty.Name ) ) ),
+                                                Token( SyntaxKind.SemicolonToken ) ) );
+                                    }
+
+                                    accessors.Add(
+                                        AccessorDeclaration(
+                                            SyntaxKind.InitAccessorDeclaration,
+                                            List<AttributeListSyntax>(),
+                                            TokenList(),
+                                            Token( SyntaxKind.InitKeyword ),
+                                            null,
+                                            ArrowExpressionClause(
+                                                AssignmentExpression(
+                                                    SyntaxKind.SimpleAssignmentExpression,
+                                                    MemberAccessExpression(
+                                                        SyntaxKind.SimpleMemberAccessExpression,
+                                                        ThisExpression(),
+                                                        SyntaxFactoryEx.SafeIdentifierName( interfaceProperty.Name ) ),
+                                                    SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ),
+                                            Token( SyntaxKind.SemicolonToken ) ) );
+
                                     yield return
                                         PropertyDeclaration(
                                             List<AttributeListSyntax>(),
@@ -1119,39 +1155,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                                 (NameSyntax) this._syntaxGenerationContext.SyntaxGenerator.TypeSyntax( interfaceProperty.ContainingType ) ),
                                             rewrittenProperty.Identifier,
                                             AccessorList(
-                                                List(
-                                                    new[]
-                                                    {
-                                                        interfaceProperty.GetMethod != null
-                                                            ? AccessorDeclaration(
-                                                                SyntaxKind.GetAccessorDeclaration,
-                                                                List<AttributeListSyntax>(),
-                                                                TokenList(),
-                                                                Token( SyntaxKind.GetKeyword ),
-                                                                null,
-                                                                ArrowExpressionClause(
-                                                                    MemberAccessExpression(
-                                                                        SyntaxKind.SimpleMemberAccessExpression,
-                                                                        ThisExpression(),
-                                                                        SyntaxFactoryEx.SafeIdentifierName( interfaceProperty.Name ) ) ),
-                                                                Token( SyntaxKind.SemicolonToken ) )
-                                                            : null,
-                                                        AccessorDeclaration(
-                                                            SyntaxKind.InitAccessorDeclaration,
-                                                            List<AttributeListSyntax>(),
-                                                            TokenList(),
-                                                            Token( SyntaxKind.InitKeyword ),
-                                                            null,
-                                                            ArrowExpressionClause(
-                                                                AssignmentExpression(
-                                                                    SyntaxKind.SimpleAssignmentExpression,
-                                                                    MemberAccessExpression(
-                                                                        SyntaxKind.SimpleMemberAccessExpression,
-                                                                        ThisExpression(),
-                                                                        SyntaxFactoryEx.SafeIdentifierName( interfaceProperty.Name ) ),
-                                                                    SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ),
-                                                            Token( SyntaxKind.SemicolonToken ) )
-                                                    }.WhereNotNull() ) ) );
+                                                List( accessors ) ) );
                                 }
                             }
                         }

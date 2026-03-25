@@ -6,7 +6,6 @@ using Metalama.Backstage.Utilities;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Utilities;
-using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
@@ -285,7 +284,6 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
         if ( string.IsNullOrEmpty( this._sourceGeneratorTouchFile ) )
         {
             this._sourceGeneratorTouchFile = this.ProjectOptions.SourceGeneratorTouchFile;
-            Invariant.AssertNot( string.IsNullOrEmpty( this._sourceGeneratorTouchFile ) );
 
             if ( !string.IsNullOrEmpty( this._sourceGeneratorTouchFile ) )
             {
