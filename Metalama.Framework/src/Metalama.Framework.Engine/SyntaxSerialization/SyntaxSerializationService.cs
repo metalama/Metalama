@@ -15,7 +15,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.SyntaxSerialization
@@ -319,7 +319,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
         private static object ConvertCrossAssemblyObject( object source, Type targetType )
         {
             var sourceType = source.GetType();
-            var result = RuntimeHelpers.GetUninitializedObject( targetType );
+            var result = FormatterServices.GetUninitializedObject( targetType );
 
             foreach ( var targetField in targetType.GetFields( BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic ) )
             {
