@@ -154,6 +154,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
         public SerializableTypes GetSerializableTypes( CompilationContext compilationContext )
             => new(
                 this._supportedContractTypes.Keys.Distinct()
+                    .Where( t => t.FullName != null && compilationContext.Compilation.GetTypeByMetadataName( t.FullName ) != null )
                     .Select( compilationContext.ReflectionMapper.GetTypeSymbol )
                     .ToImmutableHashSet<ITypeSymbol>( compilationContext.SymbolComparer ) );
 
