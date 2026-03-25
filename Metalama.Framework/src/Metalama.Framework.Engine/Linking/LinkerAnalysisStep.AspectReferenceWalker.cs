@@ -69,26 +69,52 @@ internal sealed partial class LinkerAnalysisStep
 
             if ( node.TryGetAspectReference( out var aspectReference ) )
             {
-                var nodeWithSymbol = node.Kind() switch
+                ISymbol? referencedSymbol = null;
+
+                if ( aspectReference.TargetDeclarationId != null )
                 {
-                    SyntaxKind.ConditionalAccessExpression when node is ConditionalAccessExpressionSyntax conditionalAccess => GetConditionalMemberName( conditionalAccess ),
-                    _ => node
-                };
+                    // Fast path: resolve the symbol using the declaration ID through Compilation.Assembly,
+                    // which is much faster than SemanticModel.GetSymbolInfo.
+                    referencedSymbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( aspectReference.TargetDeclarationId, this._semanticModel.Compilation );
 
-                var symbolInfo = this._semanticModel.GetSymbolInfo( nodeWithSymbol );
-
-                var referencedSymbol =
-                    symbolInfo switch
+                    // Validate that the resolved symbol can be used directly by the resolver.
+                    // Fall back to GetSymbolInfo for symbols that require complex resolution in ResolveTarget
+                    // (interface members, explicit interface implementations, or helper methods).
+                    if ( referencedSymbol != null
+                         && (referencedSymbol.ContainingType?.TypeKind == TypeKind.Interface
+                             || referencedSymbol.IsExplicitInterfaceMemberImplementation()
+                             || (referencedSymbol.Kind == SymbolKind.Method
+                                 && referencedSymbol is IMethodSymbol { ContainingType.Name: LinkerInjectionHelperProvider.HelperTypeName })) )
                     {
-                        // Normal situation with valid symbol.
-                        { Symbol: { } symbol } => symbol,
+                        referencedSymbol = null;
+                    }
+                }
 
-                        // In most invalid code situations, there is one candidate symbol.
-                        { CandidateSymbols: [{ } symbol] } => symbol,
-
-                        // Otherwise we will skip this reference completely, which will cause it not to be transformed.
-                        _ => null
+                if ( referencedSymbol == null )
+                {
+                    // Slow path: resolve using SemanticModel.GetSymbolInfo.
+                    var nodeWithSymbol = node.Kind() switch
+                    {
+                        SyntaxKind.ConditionalAccessExpression when node is ConditionalAccessExpressionSyntax conditionalAccess => GetConditionalMemberName(
+                            conditionalAccess ),
+                        _ => node
                     };
+
+                    var symbolInfo = this._semanticModel.GetSymbolInfo( nodeWithSymbol );
+
+                    referencedSymbol =
+                        symbolInfo switch
+                        {
+                            // Normal situation with valid symbol.
+                            { Symbol: { } symbol } => symbol,
+
+                            // In most invalid code situations, there is one candidate symbol.
+                            { CandidateSymbols: [{ } symbol] } => symbol,
+
+                            // Otherwise we will skip this reference completely, which will cause it not to be transformed.
+                            _ => null
+                        };
+                }
 
                 if ( referencedSymbol == null )
                 {

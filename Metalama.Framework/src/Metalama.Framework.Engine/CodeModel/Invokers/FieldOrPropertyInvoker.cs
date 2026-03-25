@@ -64,7 +64,9 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
         // Only create an aspect reference when the declaring type of the invoked declaration is ancestor of the target of the template (or it's declaring type).
         if ( GetTargetType()?.IsConvertibleTo( this.Member.DeclaringType ) ?? false )
         {
-            expression = expression.WithAspectReferenceAnnotation( receiverInfo.AspectReferenceSpecification.WithTargetKind( targetKind ) );
+            expression = expression.WithAspectReferenceAnnotation(
+                receiverInfo.AspectReferenceSpecification
+                    .WithTargetKind( targetKind ) );
         }
 
         return expression;

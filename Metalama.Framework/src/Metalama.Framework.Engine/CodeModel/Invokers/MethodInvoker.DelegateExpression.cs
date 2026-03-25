@@ -166,7 +166,8 @@ internal sealed partial class MethodInvoker
             if ( GetTargetType()?.IsConvertibleTo( this.Method.DeclaringType ) ?? false )
             {
                 methodGroupExpression = methodGroupExpression.WithAspectReferenceAnnotation(
-                    receiverInfo.WithSyntax( receiverSyntax ).AspectReferenceSpecification.WithTargetKind( AspectReferenceTargetKind.Self ) );
+                    receiverInfo.WithSyntax( receiverSyntax ).AspectReferenceSpecification
+                        .WithTargetKind( AspectReferenceTargetKind.Self ) );
             }
 
             return methodGroupExpression;

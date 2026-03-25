@@ -338,7 +338,8 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             {
                 memberAccessExpression =
                     memberAccessExpression.WithAspectReferenceAnnotation(
-                        receiverTypedExpressionSyntax.AspectReferenceSpecification.WithTargetKind( targetKind ) );
+                        receiverTypedExpressionSyntax.AspectReferenceSpecification
+                            .WithTargetKind( targetKind ) );
             }
 
             return
@@ -365,7 +366,8 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             if ( GetTargetType()?.IsConvertibleTo( this.Member.DeclaringType ) ?? false )
             {
                 expression = expression.WithAspectReferenceAnnotation(
-                    receiverTypedExpressionSyntax.AspectReferenceSpecification.WithTargetKind( targetKind ) );
+                    receiverTypedExpressionSyntax.AspectReferenceSpecification
+                        .WithTargetKind( targetKind ) );
             }
 
             return expression;

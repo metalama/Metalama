@@ -22,7 +22,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeConstructor( code );
 
             this.AssertEqual(
-                @"((global::System.Reflection.ConstructorInfo)typeof(global::Target).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, null, new[] { typeof(global::System.Int32) }, null)!)",
+                @"((global::System.Reflection.ConstructorInfo)(typeof(global::Target).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, null, new[] { typeof(global::System.Int32) }, null) ?? throw new global::System.MissingMethodException(""The constructor 'Target.Target(int)' could not be found using reflection."")))",
                 serialized );
 
             this.TestExpression<ConstructorInfo>(
@@ -42,7 +42,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeConstructor( code );
 
             this.AssertEqual(
-                @"((global::System.Reflection.ConstructorInfo)global::Metalama.Framework.RunTime.ReflectionHelper.GetConstructor(typeof(global::Target<>), global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, ""Void .ctor(T)"")!)",
+                @"((global::System.Reflection.ConstructorInfo)(global::Metalama.Framework.RunTime.ReflectionHelper.GetConstructor(typeof(global::Target<>), global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, ""Void .ctor(T)"") ?? throw new global::System.MissingMethodException(""The constructor 'Target<T>.Target(T)' could not be found using reflection."")))",
                 serialized );
 
             this.TestExpression<ConstructorInfo>(
@@ -62,7 +62,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var serialized = this.SerializeConstructor( code );
 
             this.AssertEqual(
-                @"((global::System.Reflection.ConstructorInfo)typeof(global::Target).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, null, global::System.Type.EmptyTypes, null)!)",
+                @"((global::System.Reflection.ConstructorInfo)(typeof(global::Target).GetConstructor(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance, null, global::System.Type.EmptyTypes, null) ?? throw new global::System.MissingMethodException(""The constructor 'Target.Target()' could not be found using reflection."")))",
                 serialized );
 
             this.TestExpression<ConstructorInfo>(

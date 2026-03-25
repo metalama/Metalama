@@ -5,9 +5,9 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.ReflectionMocks;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Reflection;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -37,11 +37,14 @@ internal sealed class CompileTimeFieldInfoSerializer : ObjectSerializer<CompileT
                 MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, typeCreation, IdentifierName( "GetField" ) ),
                 ArgumentList(
                     SeparatedList(
-                        [Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( field.Name ) ) ), Argument( allBindingFlags )] ) ) )
-            .NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );
+                        [Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( field.Name ) ) ), Argument( allBindingFlags )] ) ) );
 
-        // In the new .NET, the API is marked for nullability, so we have to suppress the warning.
-        fieldInfo = PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, fieldInfo );
+        fieldInfo = SyntaxUtility.CoalesceWithMissingMemberException(
+            fieldInfo,
+            typeof(MissingFieldException),
+            field.ToDisplayString(),
+            "field",
+            serializationContext );
 
         return fieldInfo;
     }

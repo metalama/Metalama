@@ -110,8 +110,14 @@ internal sealed class CompileTimePropertyInfoSerializer : ObjectSerializer<Compi
                 throw new AssertionFailedException( $"Unexpected type: {propertyOrIndexer.DeclarationKind}." );
         }
 
-        // In the new .NET, the API is marked for nullability, so we have to suppress the warning.
-        result = PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, result );
+        var memberKind = propertyOrIndexer.DeclarationKind == DeclarationKind.Indexer ? "indexer" : "property";
+
+        result = SyntaxUtility.CoalesceWithMissingMemberException(
+            result,
+            typeof(MissingMemberException),
+            propertyOrIndexer.ToDisplayString(),
+            memberKind,
+            serializationContext );
 
         return result;
     }
