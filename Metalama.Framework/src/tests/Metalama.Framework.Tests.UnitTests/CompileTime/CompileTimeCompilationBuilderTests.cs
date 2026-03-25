@@ -1933,8 +1933,11 @@ public class ReferencedClass
 
             Assert.NotNull( project2 );
 
-            // Verify they are different projects (different hash due to different assembly name casing).
-            Assert.NotSame( project1, project2 );
+            // Verify that the two builds use different cache artifact paths even under a case-insensitive comparison.
+            Assert.NotEqual(
+                project1!.CompiledAssemblyPath,
+                project2!.CompiledAssemblyPath,
+                StringComparer.OrdinalIgnoreCase );
         }
     }
 }
