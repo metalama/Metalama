@@ -17,7 +17,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization
             using var testContext = this.CreateSerializationTestContext( "" );
 
             var index = new Index( 5 );
-            Assert.Equal( "5", testContext.Serialize( index ).ToString() );
+            Assert.Equal( "global::System.Index.FromStart(5)", testContext.Serialize( index ).ToString() );
         }
 
         [Fact]
@@ -35,7 +35,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization
             using var testContext = this.CreateSerializationTestContext( "" );
 
             var index = new Index( 0 );
-            Assert.Equal( "0", testContext.Serialize( index ).ToString() );
+            Assert.Equal( "global::System.Index.FromStart(0)", testContext.Serialize( index ).ToString() );
         }
     }
 }

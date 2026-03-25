@@ -33,8 +33,13 @@ internal sealed class IndexSerializer : ObjectSerializer<Index>
         }
         else
         {
-            // For from-start, use the integer literal (implicit conversion to Index).
-            return valueLiteral;
+            // Generate Index.FromStart(n) to ensure the expression type is System.Index.
+            return InvocationExpression(
+                MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    serializationContext.GetTypeSyntax( typeof(Index) ),
+                    IdentifierName( "FromStart" ) ),
+                ArgumentList( SingletonSeparatedList( Argument( valueLiteral ) ) ) );
         }
     }
 
