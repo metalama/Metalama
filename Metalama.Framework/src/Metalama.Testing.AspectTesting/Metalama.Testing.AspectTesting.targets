@@ -162,8 +162,12 @@
 
         <ItemGroup>
             <_MetalamaTestCompilationReference Include="@(ReferencePathWithRefAssemblies)" />
+            <!-- Exclude references whose NuGetPackageId matches an excluded package AND whose file path
+                 actually contains the package ID (case-insensitive). This second check prevents excluding
+                 framework assemblies (e.g. mscorlib.dll) that inherit the NuGetPackageId of a transitive
+                 dependency but reside outside NuGet package folders. -->
             <_MetalamaTestCompilationReference Remove="@(_MetalamaTestCompilationReference)"
-                Condition="'%(_MetalamaTestCompilationReference.NuGetPackageId)' != '' AND $(_MetalamaTestExcludedPackageIds.Contains(';%(_MetalamaTestCompilationReference.NuGetPackageId);'))" />
+                Condition="'%(_MetalamaTestCompilationReference.NuGetPackageId)' != '' AND $(_MetalamaTestExcludedPackageIds.Contains(';%(_MetalamaTestCompilationReference.NuGetPackageId);')) AND $([System.String]::Copy('%(_MetalamaTestCompilationReference.Identity)').ToLower().Contains($([System.String]::Copy('%(_MetalamaTestCompilationReference.NuGetPackageId)').ToLower())))" />
         </ItemGroup>
 
         <WriteLinesToFile File='$(IntermediateOutputPath)assemblies.txt' Overwrite='true'
