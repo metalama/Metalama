@@ -3,6 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Code;
+using Metalama.Framework.Engine.CodeModel;
 using Microsoft.CodeAnalysis;
 using System.Linq;
 
@@ -69,10 +71,49 @@ namespace Metalama.Framework.Engine.Aspects
             AspectLayerId aspectLayerId,
             AspectReferenceOrder order,
             AspectReferenceTargetKind targetKind = AspectReferenceTargetKind.Self,
-            AspectReferenceFlags flags = AspectReferenceFlags.None )
+            AspectReferenceFlags flags = AspectReferenceFlags.None,
+            string? targetDeclarationId = null )
             where T : SyntaxNode
         {
-            return node.WithAspectReferenceAnnotation( new AspectReferenceSpecification( aspectLayerId, order, targetKind, flags ) );
+            return node.WithAspectReferenceAnnotation( new AspectReferenceSpecification( aspectLayerId, order, targetKind, flags, targetDeclarationId ) );
+        }
+
+        /// <summary>
+        /// Gets the documentation comment ID for a Metalama declaration, or <c>null</c> if the declaration is not symbol-backed
+        /// or if the declaration requires complex resolution by <see cref="Linking.AspectReferenceResolver"/> (interface members,
+        /// explicit interface implementations, overrides). Only returns an ID when the symbol will take the simple
+        /// resolution path in the linker.
+        /// </summary>
+        internal static string? GetTargetDeclarationId( ICompilationElement declaration )
+        {
+            // Skip declarations that require complex ResolveTarget handling:
+            // - Interface members: ResolveTarget calls FindImplementationForInterfaceMember.
+            // - Explicit interface implementations: ResolveTarget handles these specially.
+            // - Members whose symbol requires generic context mapping.
+            if ( declaration is IMember member )
+            {
+                if ( member.DeclaringType.TypeKind == Code.TypeKind.Interface
+                     || member.IsExplicitInterfaceImplementation )
+                {
+                    return null;
+                }
+            }
+
+            var symbol = declaration.GetSymbol();
+
+            if ( symbol == null )
+            {
+                return null;
+            }
+
+            // Skip overrides because GetSymbolInfo resolves to the derived type's version of the symbol,
+            // which differs from the declaration ID's resolution.
+            if ( symbol is IMethodSymbol { IsOverride: true } or IPropertySymbol { IsOverride: true } or IEventSymbol { IsOverride: true } )
+            {
+                return null;
+            }
+
+            return DocumentationCommentId.CreateDeclarationId( symbol );
         }
     }
 }
