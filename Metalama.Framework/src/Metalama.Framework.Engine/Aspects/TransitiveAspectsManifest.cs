@@ -105,11 +105,19 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         CompilationContext compilationContext,
         string? assemblyName )
     {
-        using var deflate = new DeflateStream( stream, CompressionMode.Decompress );
+        var description = assemblyName != null
+            ? $"Deserializing transitive aspects from '{assemblyName}'."
+            : "Deserializing transitive aspects from a referenced assembly.";
 
-        var formatter = CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext );
+        using ( UserCodeExecutionContext.WithContext(
+                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( description ), compilationContext ) ) )
+        {
+            using var deflate = new DeflateStream( stream, CompressionMode.Decompress );
 
-        return (TransitiveAspectsManifest) formatter.Deserialize( deflate, assemblyName ).AssertNotNull();
+            var formatter = CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext );
+
+            return (TransitiveAspectsManifest) formatter.Deserialize( deflate, assemblyName ).AssertNotNull();
+        }
     }
 
     public IEnumerable<string> InheritableAspectTypes => this.InheritableAspects.Keys;
