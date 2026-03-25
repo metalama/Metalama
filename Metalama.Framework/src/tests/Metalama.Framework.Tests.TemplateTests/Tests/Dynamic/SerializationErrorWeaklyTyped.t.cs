@@ -1,2 +1,2 @@
 // The compiled template failed.
-// Error LAMA0200 on `Method`: `A compile-time value of type 'SourceMethod' was used in a context where a run-time value was expected.`
+// Error LAMA0041 on `Method`: `'Exception of type 'System.InvalidOperationException' thrown while executing the template method 'Aspect.Template()' in the context of the aspect '<null>' applied to '<null>': A compile-time value of type 'SourceMethod' was used in a context where a run-time value was expected. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`
