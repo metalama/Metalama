@@ -279,9 +279,20 @@ internal sealed class ExceptionReporter : IExceptionReporter
             // This is essential for async exceptions where the exception's own StackTrace
             // only shows the throw-to-catch chain, but not the broader context of the entry
             // point that caught the exception (e.g., CodeLens, Preview, AspectExplorer).
-            xmlWriter.WriteElementString(
-                "ReportingCallStack",
-                Environment.NewLine + ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( Environment.StackTrace ) + Environment.NewLine );
+            try
+            {
+                var reportingCallStack =
+                    Environment.NewLine
+                    + ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( Environment.StackTrace )
+                    + Environment.NewLine;
+
+                xmlWriter.WriteElementString( "ReportingCallStack", reportingCallStack );
+            }
+            catch
+            {
+                // Best-effort: ignore failures when capturing or sanitizing the reporting call stack
+                // so that exception reporting remains resilient.
+            }
 
             xmlWriter.WriteStartElement( "Assemblies" );
 
