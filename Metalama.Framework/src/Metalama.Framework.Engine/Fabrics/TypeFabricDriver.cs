@@ -5,6 +5,7 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
@@ -141,6 +142,8 @@ internal sealed class TypeFabricDriver : FabricDriver
         public override void AddContributor( IPipelineContributor contributor ) => this._aspectBuilder.AddContributor( contributor );
 
         public IAdviceFactory Advice { get; }
+
+        public ScopedDiagnosticSink Diagnostics => this._aspectBuilder.Diagnostics;
 
         public override string Namespace => this.Type.ContainingNamespace.FullName;
     }
