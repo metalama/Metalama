@@ -13,8 +13,6 @@
     "CS0626",  // Method, operator, or accessor is marked external and has no attributes on it
     "CS0649",  // Field is never assigned to (will always have default value)
     "CS0659",  // Class overrides Object.Equals but does not override Object.GetHashCode
-    "CS8424",  // Iterator specifying non-nullable return type but code block returns null values
-    "CS8425",  // Async-iterator does not have the proper return type
     "CS8600",  // Converting null literal or possible null value to non-nullable type
     "CS8602",  // Dereference of a possibly null reference
     "CS8603",  // Possible null reference return
