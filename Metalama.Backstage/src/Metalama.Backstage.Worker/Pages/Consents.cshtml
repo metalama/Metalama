@@ -10,6 +10,12 @@
     <script>
         function onSubmit(token) {
             if ($('#subscribeToNewsletterCheckbox').is(':checked')) {
+                var email = $('#EmailAddress').val();
+                if (!email || email.trim() === '') {
+                    $('#emailValidationError').show();
+                    grecaptcha.reset();
+                    return;
+                }
                 $('#recaptchaResponse').val(token);
             }
 
@@ -22,9 +28,26 @@
                 // Check or uncheck all other checkboxes based on 'Accept All' state
                 var isChecked = $(this).is(':checked');
                 $('input[type="checkbox"]:enabled').not(this).prop('checked', isChecked);
+                updateEmailFieldVisibility();
             });
 
+            $('#subscribeToNewsletterCheckbox').change(function () {
+                updateEmailFieldVisibility();
+            });
 
+            function updateEmailFieldVisibility() {
+                var isChecked = $('#subscribeToNewsletterCheckbox').is(':checked');
+                $('#emailFieldGroup').toggle(isChecked);
+                if (isChecked) {
+                    $('#EmailAddress').attr('required', 'required');
+                } else {
+                    $('#EmailAddress').removeAttr('required');
+                    $('#emailValidationError').hide();
+                }
+            }
+
+            // Initialize visibility on page load.
+            updateEmailFieldVisibility();
         });
     </script>
 }
@@ -42,8 +65,9 @@
                         course.</label>
                     <small>You can unsubscribe or change your preferences at any time.</small>
                 </p>
-                <p>
+                <p id="emailFieldGroup">
                     <label asp-for="EmailAddress">Email:</label> <input type="text" asp-for="EmailAddress">
+                    <span id="emailValidationError" class="text-danger" style="display:none;">Please enter your email address.</span>
                 </p>
 
             </div>
