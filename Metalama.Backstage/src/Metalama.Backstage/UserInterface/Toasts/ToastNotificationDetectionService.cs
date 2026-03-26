@@ -148,11 +148,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         if ( !notificationReported && this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
         {
             this._toastNotificationService.Show(
-                new ToastNotification(
-                    ToastNotificationKinds.VsxNotInstalled,
-                    "Install Metalama Tools for Visual Studio",
-                    "Enhance your Metalama coding experience: syntax highlighting, CodeLens, and diff preview.",
-                    this._webLinks.InstallVsx ) );
+                new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
         }
     }
 

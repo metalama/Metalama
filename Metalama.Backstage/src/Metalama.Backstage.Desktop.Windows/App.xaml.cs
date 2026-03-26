@@ -91,9 +91,28 @@ internal sealed partial class App
         if ( Uri.TryCreate( e.Argument, UriKind.Absolute, out var uri )
              && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) )
         {
-            Process.Start( new ProcessStartInfo( e.Argument ) { UseShellExecute = true } );
-            ToastNotificationManagerCompat.History.Clear();
-            Environment.Exit( 0 );
+            try
+            {
+                Process.Start( new ProcessStartInfo( e.Argument ) { UseShellExecute = true } );
+            }
+            catch ( Exception ex )
+            {
+                try
+                {
+                    var loggerFactory = BackstageServiceFactory.ServiceProvider?.GetLoggerFactory();
+                    var logger = loggerFactory?.GetLogger( "App" );
+                    logger?.Error?.Log( $"Failed to launch browser for toast activation URL '{e.Argument}': {ex}" );
+                }
+                catch
+                {
+                    // Ignore logging failures to avoid masking the original issue.
+                }
+            }
+            finally
+            {
+                ToastNotificationManagerCompat.History.Clear();
+                Environment.Exit( 0 );
+            }
 
             return;
         }
