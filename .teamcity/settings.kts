@@ -8,7 +8,7 @@ import jetbrains.buildServer.configs.kotlin.failureConditions.*
 import jetbrains.buildServer.configs.kotlin.triggers.*
 import jetbrains.buildServer.configs.kotlin.projectFeatures.*
 
-version = "2025.07"
+version = "2025.11"
 
 project {
 
