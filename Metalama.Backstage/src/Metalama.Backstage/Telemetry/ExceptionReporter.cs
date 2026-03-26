@@ -275,6 +275,14 @@ internal sealed class ExceptionReporter : IExceptionReporter
 
             xmlWriter.WriteEndElement();
 
+            // Include the call stack at the point where the exception is being reported.
+            // This is essential for async exceptions where the exception's own StackTrace
+            // only shows the throw-to-catch chain, but not the broader context of the entry
+            // point that caught the exception (e.g., CodeLens, Preview, AspectExplorer).
+            xmlWriter.WriteElementString(
+                "ReportingCallStack",
+                Environment.NewLine + ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( Environment.StackTrace ) + Environment.NewLine );
+
             xmlWriter.WriteStartElement( "Assemblies" );
 
             foreach ( var assembly in AppDomain.CurrentDomain.GetAssemblies() )

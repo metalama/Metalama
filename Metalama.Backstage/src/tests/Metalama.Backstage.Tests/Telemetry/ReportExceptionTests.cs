@@ -270,4 +270,90 @@ public sealed class ReportExceptionTests : TestsBase
 
         this.AssertFilesCount( 2 );
     }
+
+    [Fact]
+    public async Task AsyncExceptionReportContainsCompleteStackTrace()
+    {
+        // Simulate an exception thrown in a deep async method and propagated through await chain,
+        // as happens in VS Extension entry points (CodeLens, Preview, AspectExplorer).
+        Exception? caughtException = null;
+
+        try
+        {
+            await OuterAsyncMethod();
+        }
+        catch ( Exception e )
+        {
+            caughtException = e;
+        }
+
+        Assert.NotNull( caughtException );
+
+        this.ReportException( caughtException );
+        this.AssertFilesCount( 1 );
+
+        var xml = this.FileSystem.ReadAllText( this.FileSystem.Mock.AllFiles.Single() );
+        this.Logger.WriteLine( "XML report:" );
+        this.Logger.WriteLine( xml );
+
+        var doc = XDocument.Parse( xml );
+        var stackTraceElement = doc.Descendants( "StackTrace" ).First();
+        var stackTrace = stackTraceElement.Value;
+
+        this.Logger.WriteLine( "StackTrace element content:" );
+        this.Logger.WriteLine( stackTrace );
+
+        // The stack trace should contain the original throw site (ThrowingMethod).
+        Assert.Contains( "ThrowingMethod", stackTrace );
+
+        // The stack trace should contain the intermediate async method.
+        Assert.Contains( "InnerAsyncMethod", stackTrace );
+
+        // The stack trace should contain the outer async method.
+        Assert.Contains( "OuterAsyncMethod", stackTrace );
+
+        return;
+
+        static async Task ThrowingMethod()
+        {
+            await Task.Yield();
+
+            throw new InvalidOperationException( "Test async exception" );
+        }
+
+        static async Task InnerAsyncMethod()
+        {
+            await ThrowingMethod();
+        }
+
+        static async Task OuterAsyncMethod()
+        {
+            await InnerAsyncMethod();
+        }
+    }
+
+    [Fact]
+    public void ExceptionReportContainsReportingCallStack()
+    {
+        // The crash report should include the call stack at the point where the exception
+        // was reported, providing context about the entry point that caught the exception.
+        var exception = new TestException( "Test", CreateStackFrame( "DeepMethod", 1 ) );
+
+        this.ReportException( exception );
+        this.AssertFilesCount( 1 );
+
+        var xml = this.FileSystem.ReadAllText( this.FileSystem.Mock.AllFiles.Single() );
+        this.Logger.WriteLine( "XML report:" );
+        this.Logger.WriteLine( xml );
+
+        var doc = XDocument.Parse( xml );
+
+        // The report should contain a ReportingCallStack element that shows where ReportException was called from.
+        var reportingCallStack = doc.Descendants( "ReportingCallStack" ).FirstOrDefault();
+        Assert.NotNull( reportingCallStack );
+        Assert.NotEmpty( reportingCallStack.Value );
+
+        this.Logger.WriteLine( "ReportingCallStack:" );
+        this.Logger.WriteLine( reportingCallStack.Value );
+    }
 }
