@@ -187,8 +187,7 @@ public sealed class InvalidateCacheAttribute : MethodAspect
 
         foreach ( var method in methods.OrderBy( x => x.ToString() ) )
         {
-            // ReSharper disable once InvokeAsExtensionMethod
-            b.Add( RunTimeHelpers.ThrowIfMissing( method.ToMethodInfo(), method.ToDisplayString() ) );
+            b.Add( method.ToMethodInfo()! );
         }
 
         field.Value = b.ToValue();

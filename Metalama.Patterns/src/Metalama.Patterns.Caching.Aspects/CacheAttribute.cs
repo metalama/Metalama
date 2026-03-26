@@ -240,7 +240,7 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
     [Template]
     private static void CachedMethodRegistrationInitializer( IMethod method, IField field, IType? awaitableResultType, [CompileTime] CachingOptions options )
         => field.Value = CachedMethodMetadata.Register(
-            method.ToMethodInfo().ThrowIfMissing( method.ToDisplayString() ),
+            method.ToMethodInfo()!,
             new CachedMethodConfiguration()
             {
                 AbsoluteExpiration = options.AbsoluteExpiration,
