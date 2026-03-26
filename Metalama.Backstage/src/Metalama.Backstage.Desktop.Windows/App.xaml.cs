@@ -97,16 +97,9 @@ internal sealed partial class App
             }
             catch ( Exception ex )
             {
-                try
-                {
-                    var loggerFactory = BackstageServiceFactory.ServiceProvider?.GetLoggerFactory();
-                    var logger = loggerFactory?.GetLogger( "App" );
-                    logger?.Error?.Log( $"Failed to launch browser for toast activation URL '{e.Argument}': {ex}" );
-                }
-                catch
-                {
-                    // Ignore logging failures to avoid masking the original issue.
-                }
+                var loggerFactory = BackstageServiceFactory.ServiceProvider?.GetLoggerFactory();
+                var logger = loggerFactory?.GetLogger( "App" );
+                logger?.Error?.Log( $"Failed to launch browser for toast activation URL '{e.Argument}': {ex}" );
             }
             finally
             {
