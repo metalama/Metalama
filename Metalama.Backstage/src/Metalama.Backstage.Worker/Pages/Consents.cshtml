@@ -13,6 +13,7 @@
                 var email = $('#EmailAddress').val();
                 if (!email || email.trim() === '') {
                     $('#emailValidationError').show();
+                    $('#EmailAddress').attr('aria-invalid', 'true');
                     grecaptcha.reset();
                     return;
                 }
@@ -35,6 +36,13 @@
                 updateEmailFieldVisibility();
             });
 
+            $('#EmailAddress').on('input', function () {
+                if ($(this).val().trim() !== '') {
+                    $('#emailValidationError').hide();
+                    $(this).removeAttr('aria-invalid');
+                }
+            });
+
             function updateEmailFieldVisibility() {
                 var isChecked = $('#subscribeToNewsletterCheckbox').is(':checked');
                 $('#emailFieldGroup').toggle(isChecked);
@@ -43,6 +51,7 @@
                 } else {
                     $('#EmailAddress').removeAttr('required');
                     $('#emailValidationError').hide();
+                    $('#EmailAddress').removeAttr('aria-invalid');
                 }
             }
 
@@ -65,9 +74,9 @@
                         course.</label>
                     <small>You can unsubscribe or change your preferences at any time.</small>
                 </p>
-                <p id="emailFieldGroup">
-                    <label asp-for="EmailAddress">Email:</label> <input type="text" asp-for="EmailAddress">
-                    <span id="emailValidationError" class="text-danger" style="display:none;">Please enter your email address.</span>
+                <p id="emailFieldGroup" style="display:none;">
+                    <label asp-for="EmailAddress">Email:</label> <input type="email" asp-for="EmailAddress" autocomplete="email" aria-describedby="emailValidationError">
+                    <span id="emailValidationError" class="text-danger" role="alert" style="display:none;">Please enter your email address.</span>
                 </p>
 
             </div>
