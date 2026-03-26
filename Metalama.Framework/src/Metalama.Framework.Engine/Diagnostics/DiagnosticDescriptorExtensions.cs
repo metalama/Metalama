@@ -33,13 +33,14 @@ public static class DiagnosticDescriptorExtensions
         T arguments,
         IEnumerable<Location>? additionalLocations = null,
         string? deduplicationKey = null,
-        ImmutableDictionary<string, string?>? properties = null )
+        ImmutableDictionary<string, string?>? properties = null,
+        string? description = null )
         where T : notnull
     {
         // ConvertDiagnosticArguments treats an array as multiple arguments, so we need to wrap it in another array.
         var argumentArray = ConvertDiagnosticArguments( typeof(T).IsArray ? new[] { arguments } : arguments );
 
-        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, null, additionalLocations, deduplicationKey, properties );
+        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, null, additionalLocations, deduplicationKey, properties, description );
     }
 
     /// <summary>
@@ -52,13 +53,14 @@ public static class DiagnosticDescriptorExtensions
         IDiagnosticSource? diagnosticSource,
         IEnumerable<Location>? additionalLocations = null,
         string? deduplicationKey = null,
-        ImmutableDictionary<string, string?>? properties = null )
+        ImmutableDictionary<string, string?>? properties = null,
+        string? description = null )
         where T : notnull
     {
         // ConvertDiagnosticArguments treats an array as multiple arguments, so we need to wrap it in another array.
         var argumentArray = ConvertDiagnosticArguments( typeof(T).IsArray ? new[] { arguments } : arguments );
 
-        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, diagnosticSource, additionalLocations, deduplicationKey, properties );
+        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, diagnosticSource, additionalLocations, deduplicationKey, properties, description );
     }
 
     // If this was named CreateRoslynDiagnostic, type safety of the generic versions would be lost.
@@ -69,11 +71,12 @@ public static class DiagnosticDescriptorExtensions
         IDiagnosticSource? diagnosticSource = null,
         IEnumerable<Location>? additionalLocations = null,
         string? deduplicationKey = null,
-        ImmutableDictionary<string, string?>? properties = null )
+        ImmutableDictionary<string, string?>? properties = null,
+        string? description = null )
     {
         var argumentArray = ConvertDiagnosticArguments( arguments );
 
-        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, diagnosticSource, additionalLocations, deduplicationKey, properties );
+        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, diagnosticSource, additionalLocations, deduplicationKey, properties, description );
     }
 
     private static object?[] ConvertDiagnosticArguments( object? arguments )
@@ -108,7 +111,8 @@ public static class DiagnosticDescriptorExtensions
         IDiagnosticSource? diagnosticSource,
         IEnumerable<Location>? additionalLocations,
         string? deduplicationKey,
-        ImmutableDictionary<string, string?>? properties )
+        ImmutableDictionary<string, string?>? properties,
+        string? description = null )
     {
         var propertiesWithAdditions = properties;
 
@@ -116,6 +120,9 @@ public static class DiagnosticDescriptorExtensions
         {
             ImmutableDictionaryExtensions.AddOrCreate( ref propertiesWithAdditions, UserDiagnosticSink.DeduplicationPropertyKey, deduplicationKey );
         }
+
+        var diagnosticSourceDescription = diagnosticSource == null ? null : $"Reported by {diagnosticSource.DiagnosticSourceDescription}.";
+        var effectiveDescription = description ?? diagnosticSourceDescription;
 
         return Diagnostic.Create(
             definition.Id,
@@ -129,6 +136,6 @@ public static class DiagnosticDescriptorExtensions
             location: location,
             additionalLocations: additionalLocations,
             properties: propertiesWithAdditions,
-            description: diagnosticSource == null ? null : $"Reported by {diagnosticSource.DiagnosticSourceDescription}." );
+            description: effectiveDescription );
     }
 }
