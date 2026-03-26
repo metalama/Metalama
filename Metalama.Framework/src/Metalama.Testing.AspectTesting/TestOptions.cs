@@ -32,7 +32,6 @@ namespace Metalama.Testing.AspectTesting;
 /// Options specified in test files override options from configuration files. This class is JSON-serializable.
 /// </para>
 /// </remarks>
-/// <seealso cref="AspectTestClass"/>
 /// <seealso href="@aspect-testing"/>
 [PublicAPI]
 [JsonObject]
