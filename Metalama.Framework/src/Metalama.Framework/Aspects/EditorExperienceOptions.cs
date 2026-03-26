@@ -29,6 +29,9 @@ namespace Metalama.Framework.Aspects;
 /// the IDE will offer to apply the aspect directly to the source code, transforming it in place.</param>
 /// <param name="LiveTemplateSuggestionTitle">The title for the live template menu item. Use the vertical pipe (<c>|</c>)
 /// to create nested sub-menus.</param>
+/// <param name="HideFromAspectExplorer">Whether the aspect should be hidden from the Aspect Explorer tool window in the IDE.
+/// When <c>true</c>, the aspect will not appear in the Aspect Explorer, which is useful for internal or infrastructure aspects
+/// that are not relevant to end users.</param>
 /// <seealso cref="EditorExperienceAttribute"/>
 /// <seealso cref="IAspectClass.EditorExperienceOptions"/>
 /// <seealso href="@live-template"/>

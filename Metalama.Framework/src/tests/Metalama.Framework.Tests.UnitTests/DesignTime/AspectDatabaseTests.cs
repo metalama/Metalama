@@ -699,4 +699,39 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
         // HiddenAspect should NOT appear in the aspect classes list.
         AssertAspectClasses( ["Y:global::VisibleAspect"], aspectClasses );
     }
+
+    [Fact]
+    public async Task HideFromAspectExplorerIsInheritedTest()
+    {
+        const string code =
+            """
+            using Metalama.Framework.Aspects;
+
+            [EditorExperience( HideFromAspectExplorer = true )]
+            class HiddenBaseAspect : TypeAspect { }
+
+            class DerivedAspect : HiddenBaseAspect { }
+
+            class VisibleAspect : TypeAspect { }
+
+            [DerivedAspect]
+            class Target1;
+
+            [VisibleAspect]
+            class Target2;
+            """;
+
+        using var testContext = this.CreateTestContext();
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+
+        var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
+        var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
+
+        var aspectDatabase = new AspectDatabase( factory.ServiceProvider );
+
+        var aspectClasses = await aspectDatabase.GetAspectClassesAsync( projectKey, testContext.CancellationToken );
+
+        // DerivedAspect should inherit HideFromAspectExplorer from HiddenBaseAspect and NOT appear.
+        AssertAspectClasses( ["Y:global::VisibleAspect"], aspectClasses );
+    }
 }
