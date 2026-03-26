@@ -76,7 +76,11 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             var diagnosticDefinition =
                 canIgnoreException ? GeneralDiagnosticDescriptors.IgnorableUnhandledException : GeneralDiagnosticDescriptors.UnhandledException;
 
-            reportDiagnostic( diagnosticDefinition.CreateRoslynDiagnostic( node?.GetLocation(), (exception.Message, reportFile) ) );
+            reportDiagnostic(
+                diagnosticDefinition.CreateRoslynDiagnostic(
+                    node?.GetLocation(),
+                    (exception.Message, reportFile),
+                    description: exceptionText.ToString() ) );
 
             this._exceptionReporter?.ReportException( exception, localReportPath: reportFile );
 
