@@ -134,7 +134,8 @@ public sealed class UserCodeInvoker : IProjectService, IGlobalService
                     (context.Description,
                      exceptionType,
                      exceptionMessage,
-                     reportFile) ) );
+                     reportFile),
+                    description: userException.ToString() ) );
         }
 
         return true;
