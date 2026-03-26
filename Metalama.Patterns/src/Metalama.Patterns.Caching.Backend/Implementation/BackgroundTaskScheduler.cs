@@ -258,13 +258,6 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
         CancellationToken taskCancellationToken,
         int? observedTaskId )
     {
-        if ( this._disposeCancellationTokenSource.IsCancellationRequested || taskCancellationToken.IsCancellationRequested )
-        {
-            this.NotifyTaskCompletedAndDecrementTaskCount( observedTaskId );
-
-            return;
-        }
-
         if ( lastTask != null )
         {
             try
@@ -275,6 +268,13 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
             {
                 this.OnBackgroundTaskException( e );
             }
+        }
+
+        if ( this._disposeCancellationTokenSource.IsCancellationRequested || taskCancellationToken.IsCancellationRequested )
+        {
+            this.NotifyTaskCompletedAndDecrementTaskCount( observedTaskId );
+
+            return;
         }
 
         CancellationTokenSource? combinedCancellationTokenSource = null;
@@ -332,66 +332,76 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
         Stopwatch stopwatch,
         int? observedTaskId )
     {
-        object? retryState = null;
-        Exception? lastException = null;
-        var attempt = 0;
+        var semaphoreHeld = true;
 
-        while ( true )
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            object? retryState = null;
+            Exception? lastException = null;
+            var attempt = 0;
 
-            var retryTask = this._retryPolicy!.TryAsync( OperationKind.Background, attempt, lastException, ref retryState, cancellationToken );
-
-            if ( !retryTask.IsCompleted )
+            while ( true )
             {
-                // Don't hold the semaphore while waiting for retry delay.
-                this._semaphore.Release();
-                this.IncrementTaskCount( -1 );
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var retryTask = this._retryPolicy!.TryAsync(
+                    OperationKind.Background, attempt, lastException, ref retryState, cancellationToken );
+
+                if ( !retryTask.IsCompleted )
+                {
+                    // Don't hold the semaphore while waiting for retry delay.
+                    this._semaphore.Release();
+                    semaphoreHeld = false;
+                    this.IncrementTaskCount( -1 );
+
+                    try
+                    {
+                        await retryTask;
+                    }
+                    finally
+                    {
+                        await this._semaphore.WaitAsync( cancellationToken );
+                        semaphoreHeld = true;
+                        this.IncrementTaskCount( 1 );
+                        stopwatch.Restart();
+                    }
+                }
 
                 try
                 {
-                    await retryTask;
+                    await task( cancellationToken );
+
+                    if ( stopwatch.ElapsedMilliseconds > 10000 )
+                    {
+                        this._logger.Warning.IfEnabled?.Write(
+                            FormattedMessageBuilder.Formatted(
+                                "The background task {Task} lasted for {Duration}. The system might be overloaded.",
+                                task.Method,
+                                stopwatch.Elapsed ) );
+                    }
+
+                    return;
                 }
-                finally
+                catch ( OperationCanceledException )
                 {
-                    await this._semaphore.WaitAsync( cancellationToken );
-                    this.IncrementTaskCount( 1 );
-                    stopwatch.Restart();
+                    throw;
+                }
+                catch ( Exception e )
+                {
+                    lastException = e;
+                    Interlocked.Increment( ref this._backgroundTaskExceptions );
+                    attempt++;
                 }
             }
-
-            try
-            {
-                await task( cancellationToken );
-
-                if ( stopwatch.ElapsedMilliseconds > 10000 )
-                {
-                    this._logger.Warning.IfEnabled?.Write(
-                        FormattedMessageBuilder.Formatted(
-                            "The background task {Task} lasted for {Duration}. The system might be overloaded.",
-                            task.Method,
-                            stopwatch.Elapsed ) );
-                }
-
-                // Task succeeded, release semaphore, notify observer, decrement count and return.
-                this._semaphore.Release();
-                this.NotifyTaskCompletedAndDecrementTaskCount( observedTaskId );
-
-                return;
-            }
-            catch ( OperationCanceledException )
+        }
+        finally
+        {
+            if ( semaphoreHeld )
             {
                 this._semaphore.Release();
-                this.NotifyTaskCompletedAndDecrementTaskCount( observedTaskId );
+            }
 
-                throw;
-            }
-            catch ( Exception e )
-            {
-                lastException = e;
-                Interlocked.Increment( ref this._backgroundTaskExceptions );
-                attempt++;
-            }
+            this.NotifyTaskCompletedAndDecrementTaskCount( observedTaskId );
         }
     }
 
@@ -432,12 +442,21 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
     /// </summary>
     private void NotifyTaskCompletedAndDecrementTaskCount( int? observedTaskId )
     {
-        if ( observedTaskId != null )
+        try
         {
-            this._backgroundTaskSchedulerObserver?.OnTaskCompleted( observedTaskId.Value );
+            if ( observedTaskId != null )
+            {
+                this._backgroundTaskSchedulerObserver?.OnTaskCompleted( observedTaskId.Value );
+            }
         }
-
-        this.DecrementTaskCount();
+        catch ( Exception e )
+        {
+            this.OnBackgroundTaskException( e );
+        }
+        finally
+        {
+            this.DecrementTaskCount();
+        }
     }
 
     private void DecrementTaskCount()
