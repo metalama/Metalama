@@ -38,14 +38,16 @@ public sealed record EditorExperienceOptions(
     bool? SuggestAsAddAttribute = null,
     string? AddAttributeSuggestionTitle = null,
     bool? SuggestAsLiveTemplate = null,
-    string? LiveTemplateSuggestionTitle = null )
+    string? LiveTemplateSuggestionTitle = null,
+    bool? HideFromAspectExplorer = null )
 {
     internal EditorExperienceOptions Override( EditorExperienceOptions overriding )
         => new(
             AddAttributeSuggestionTitle: overriding.AddAttributeSuggestionTitle ?? this.AddAttributeSuggestionTitle,
             LiveTemplateSuggestionTitle: overriding.LiveTemplateSuggestionTitle ?? this.LiveTemplateSuggestionTitle,
             SuggestAsAddAttribute: overriding.SuggestAsAddAttribute ?? this.SuggestAsAddAttribute,
-            SuggestAsLiveTemplate: overriding.SuggestAsLiveTemplate ?? this.SuggestAsLiveTemplate );
+            SuggestAsLiveTemplate: overriding.SuggestAsLiveTemplate ?? this.SuggestAsLiveTemplate,
+            HideFromAspectExplorer: overriding.HideFromAspectExplorer ?? this.HideFromAspectExplorer );
 
     public static EditorExperienceOptions Default { get; } = new();
 }
