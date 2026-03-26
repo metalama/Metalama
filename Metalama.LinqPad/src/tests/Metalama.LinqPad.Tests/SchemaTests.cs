@@ -5,6 +5,7 @@
 using LINQPad.Extensibility.DataContext;
 using Metalama.Framework.Workspaces;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -75,6 +76,39 @@ public sealed class SchemaTests : UnitTestClass
         xml.Add( new XElement( "schema", schema.Select( item => (object) ConvertToXml( item ) ) ) );
         var xmlString = xml.ToString();
         this._logger.WriteLine( xmlString );
+    }
+
+    [Fact]
+    public async Task ProjectsShouldBeSortedByName()
+    {
+        var solutionPath = Path.GetFullPath(
+            Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "..", "..", "..", "..", "MultiProjectSolution", "MultiProjectSolution.sln" ) );
+
+        Assert.True( File.Exists( solutionPath ), $"Solution file not found at: {solutionPath}" );
+
+        var workspaceCollection = new WorkspaceCollection();
+
+        using var workspace = await workspaceCollection.LoadAsync( solutionPath );
+
+        var factory = new SchemaFactory( ( type, _ ) => type.ToString() );
+
+        var schema = factory.GetSchema( "workspace", workspace );
+
+        // Find the "Projects" node which contains individual project items.
+        var projectsItem = schema.FirstOrDefault( item => item.Text == "Projects" );
+        Assert.NotNull( projectsItem );
+        Assert.NotNull( projectsItem.Children );
+        Assert.True( projectsItem.Children.Count >= 3, $"Expected at least 3 projects, found {projectsItem.Children.Count}" );
+
+        var projectNames = projectsItem.Children.Select( c => c.Text ).ToList();
+
+        this._logger.WriteLine( "Project order: " + string.Join( ", ", projectNames ) );
+
+        // Verify projects are sorted alphabetically by name.
+        var sortedNames = projectNames.OrderBy( n => n, StringComparer.OrdinalIgnoreCase ).ToList();
+        Assert.Equal( sortedNames, projectNames );
     }
 
     private static XElement ConvertToXml( ExplorerItem item )
