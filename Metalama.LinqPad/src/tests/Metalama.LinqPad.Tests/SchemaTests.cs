@@ -6,6 +6,7 @@ using LINQPad.Extensibility.DataContext;
 using Metalama.Framework.Workspaces;
 using Metalama.Testing.UnitTesting;
 using System;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -90,7 +91,7 @@ public sealed class SchemaTests : UnitTestClass
 
         var workspaceCollection = new WorkspaceCollection();
 
-        using var workspace = await workspaceCollection.LoadAsync( solutionPath );
+        using var workspace = await workspaceCollection.LoadAsync( ImmutableArray.Create( solutionPath ), restore: false );
 
         var factory = new SchemaFactory( ( type, _ ) => type.ToString() );
 
