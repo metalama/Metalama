@@ -10,6 +10,7 @@ namespace Metalama.Patterns.Caching.Aspects.Helpers;
 [PublicAPI]
 public static class RunTimeHelpers
 {
+    [Obsolete( "This method is no longer necessary because Metalama now generates the null check automatically." )]
     public static MethodInfo ThrowIfMissing( this MethodInfo? methodInfo, string methodSignature )
         => methodInfo ?? throw new MissingMethodException( $"The method '{methodSignature}' could not be found." );
 }
