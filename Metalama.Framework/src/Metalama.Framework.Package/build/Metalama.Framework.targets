@@ -67,8 +67,8 @@
     <Target Name="ExportMetalamaFrameworkProperties" BeforeTargets="PrepareForBuild">
         <Error Text="The IntermediateOutputPath property is not defined." Condition="'$(IntermediateOutputPath)'==''"/>
         <PropertyGroup>
-            <MetalamaBuildTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(IntermediateOutputPath),'MetalamaBuild.touch'))</MetalamaBuildTouchFile>
-            <MetalamaSourceGeneratorTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(IntermediateOutputPath),'MetalamaSourceGenerator.touch'))</MetalamaSourceGeneratorTouchFile>
+            <MetalamaBuildTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(BaseIntermediateOutputPath),'MetalamaBuild.touch'))</MetalamaBuildTouchFile>
+            <MetalamaSourceGeneratorTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(BaseIntermediateOutputPath),'MetalamaSourceGenerator.touch'))</MetalamaSourceGeneratorTouchFile>
         </PropertyGroup>
     </Target>
 
