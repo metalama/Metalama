@@ -59,6 +59,20 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
         }
 
         [Fact]
+        public void ValueTuple9_NestedRestTuple()
+        {
+            // Validates nested rest tuples with more than one element.
+            this.TestSerialization( (1, 2, 3, 4, 5, 6, 7, 8, 9) );
+        }
+
+        [Fact]
+        public void ValueTuple10_DeeperNestedRestTuple()
+        {
+            // Ensures the ValueTupleRestSerializer composes correctly with deeper nesting.
+            this.TestSerialization( (1, 2, 3, 4, 5, 6, 7, 8, 9, 10) );
+        }
+
+        [Fact]
         public void ValueTuple2_WithNullableString()
         {
             this.TestSerialization( (42, (string?) null) );
