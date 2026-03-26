@@ -16,7 +16,7 @@ internal class TargetCode
     {
         public override void AmendType( ITypeAmender amender )
         {
-            amender.Advice.IntroduceMethod( amender.Type, nameof(M) );
+            amender.IntroduceMethod( nameof(M) );
         }
 
         [Template]

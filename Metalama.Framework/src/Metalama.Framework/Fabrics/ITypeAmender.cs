@@ -2,7 +2,9 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using System;
 using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Fabrics
@@ -15,19 +17,20 @@ namespace Metalama.Framework.Fabrics
     /// <remarks>
     /// <para>
     /// Through this interface, you can access all members of the containing type using LINQ-like queries through the <see cref="IAmender{T}"/> base interface,
-    /// and add advice directly to the type's members using the <see cref="Advice"/> property. This allows type fabrics to function as type-level aspects
+    /// and add advice directly to the type using extension methods from <see cref="AdviserExtensions"/>. This allows type fabrics to function as type-level aspects
     /// without creating a separate reusable aspect class.
     /// </para>
     /// </remarks>
     /// <seealso cref="TypeFabric"/>
     /// <seealso cref="IAmender{T}"/>
+    /// <seealso cref="IAdviser{T}"/>
     /// <seealso cref="INamedType"/>
     /// <seealso cref="IAdviceFactory"/>
     /// <seealso href="@fabrics"/>
     /// <seealso href="@fabrics-advising"/>
     /// <seealso href="@advising-code"/>
     /// <seealso href="@validation"/>
-    public interface ITypeAmender : IAmender<INamedType>
+    public interface ITypeAmender : IAmender<INamedType>, IAdviser<INamedType>
     {
         /// <summary>
         /// Gets the target type of the current fabric (i.e. the declaring type of the nested type).
@@ -40,6 +43,7 @@ namespace Metalama.Framework.Fabrics
         /// without creating a separate aspect.
         /// </summary>
         /// <seealso href="@advising-code"/>
+        [Obsolete( "Use extension methods from AdviserExtensions directly on this ITypeAmender instance instead." )]
         IAdviceFactory Advice { get; }
     }
 }
