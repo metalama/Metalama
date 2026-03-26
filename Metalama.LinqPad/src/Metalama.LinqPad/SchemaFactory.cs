@@ -47,7 +47,7 @@ internal sealed class SchemaFactory
 
             rootSchema.Add( projectsItem );
 
-            foreach ( var project in workspace.Projects )
+            foreach ( var project in workspace.Projects.OrderBy( p => p.Name ) )
             {
                 var nameLiteral = SyntaxFactory.Literal( project.Name ).Text;
                 var frameworkLiteral = SyntaxFactory.Literal( project.TargetFramework ).Text;
