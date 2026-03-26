@@ -260,7 +260,7 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
     {
         if ( this._disposeCancellationTokenSource.IsCancellationRequested || taskCancellationToken.IsCancellationRequested )
         {
-            this.DecrementTaskCount();
+            this.NotifyTaskCompletedAndDecrementTaskCount( observedTaskId );
 
             return;
         }
@@ -294,7 +294,7 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
         }
         catch ( OperationCanceledException )
         {
-            this.DecrementTaskCount();
+            this.NotifyTaskCompletedAndDecrementTaskCount( observedTaskId );
 
             return;
         }
@@ -313,25 +313,24 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
 
             if ( this._retryPolicy != null )
             {
-                await this.TryAndReleaseSemaphoreAsync( task, combinedCancellationToken, stopwatch );
+                await this.TryAndReleaseSemaphoreAsync( task, combinedCancellationToken, stopwatch, observedTaskId );
             }
             else
             {
-                await this.RunTaskWithoutRetryAsync( task, combinedCancellationToken, stopwatch );
+                await this.RunTaskWithoutRetryAsync( task, combinedCancellationToken, stopwatch, observedTaskId );
             }
         }
         finally
         {
             combinedCancellationTokenSource?.Dispose();
-
-            this._backgroundTaskSchedulerObserver?.OnTaskCompleted( observedTaskId!.Value );
         }
     }
 
     private async Task TryAndReleaseSemaphoreAsync(
         Func<CancellationToken, Task> task,
         CancellationToken cancellationToken,
-        Stopwatch stopwatch )
+        Stopwatch stopwatch,
+        int? observedTaskId )
     {
         object? retryState = null;
         Exception? lastException = null;
@@ -374,16 +373,16 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
                             stopwatch.Elapsed ) );
                 }
 
-                // Task succeeded, release semaphore, decrement count and return.
+                // Task succeeded, release semaphore, notify observer, decrement count and return.
                 this._semaphore.Release();
-                this.DecrementTaskCount();
+                this.NotifyTaskCompletedAndDecrementTaskCount( observedTaskId );
 
                 return;
             }
             catch ( OperationCanceledException )
             {
                 this._semaphore.Release();
-                this.DecrementTaskCount();
+                this.NotifyTaskCompletedAndDecrementTaskCount( observedTaskId );
 
                 throw;
             }
@@ -399,7 +398,8 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
     private async Task RunTaskWithoutRetryAsync(
         Func<CancellationToken, Task> task,
         CancellationToken cancellationToken,
-        Stopwatch stopwatch )
+        Stopwatch stopwatch,
+        int? observedTaskId )
     {
         try
         {
@@ -421,8 +421,23 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
         finally
         {
             this._semaphore.Release();
-            this.DecrementTaskCount();
+            this.NotifyTaskCompletedAndDecrementTaskCount( observedTaskId );
         }
+    }
+
+    /// <summary>
+    /// Notifies the observer that a task has completed and then decrements the task count.
+    /// The observer is notified before the count is decremented to ensure that
+    /// <see cref="WhenBackgroundTasksCompleted"/> callers observe all completions.
+    /// </summary>
+    private void NotifyTaskCompletedAndDecrementTaskCount( int? observedTaskId )
+    {
+        if ( observedTaskId != null )
+        {
+            this._backgroundTaskSchedulerObserver?.OnTaskCompleted( observedTaskId.Value );
+        }
+
+        this.DecrementTaskCount();
     }
 
     private void DecrementTaskCount()
