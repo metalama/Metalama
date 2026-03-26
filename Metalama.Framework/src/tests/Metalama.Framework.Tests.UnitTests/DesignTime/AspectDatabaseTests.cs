@@ -666,4 +666,37 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
         // The original compilation should no longer be referenced anywhere.
         Assert.False( compilationReference.IsAlive );
     }
+
+    [Fact]
+    public async Task HideFromAspectExplorerTest()
+    {
+        const string code =
+            """
+            using Metalama.Framework.Aspects;
+
+            class VisibleAspect : TypeAspect { }
+
+            [EditorExperience( HideFromAspectExplorer = true )]
+            class HiddenAspect : TypeAspect { }
+
+            [VisibleAspect]
+            class Target1;
+
+            [HiddenAspect]
+            class Target2;
+            """;
+
+        using var testContext = this.CreateTestContext();
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+
+        var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
+        var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
+
+        var aspectDatabase = new AspectDatabase( factory.ServiceProvider );
+
+        var aspectClasses = await aspectDatabase.GetAspectClassesAsync( projectKey, testContext.CancellationToken );
+
+        // HiddenAspect should NOT appear in the aspect classes list.
+        AssertAspectClasses( ["Y:global::VisibleAspect"], aspectClasses );
+    }
 }
