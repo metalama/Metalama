@@ -304,13 +304,13 @@ public sealed class ReportExceptionTests : TestsBase
         this.Logger.WriteLine( stackTrace );
 
         // The stack trace should contain the original throw site (ThrowingMethod).
-        Assert.Contains( "ThrowingMethod", stackTrace );
+        Assert.Contains( "ThrowingMethod", stackTrace, StringComparison.Ordinal );
 
         // The stack trace should contain the intermediate async method.
-        Assert.Contains( "InnerAsyncMethod", stackTrace );
+        Assert.Contains( "InnerAsyncMethod", stackTrace, StringComparison.Ordinal );
 
         // The stack trace should contain the outer async method.
-        Assert.Contains( "OuterAsyncMethod", stackTrace );
+        Assert.Contains( "OuterAsyncMethod", stackTrace, StringComparison.Ordinal );
 
         return;
 
