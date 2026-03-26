@@ -243,8 +243,16 @@ internal sealed class Templates : ITemplateProvider
                 }
                 else if ( templateArgs.CommonOptions.DiagnosticCommentVerbosity! > 0 )
                 {
-                    meta.InsertComment(
-                        $"Not calling OnChildPropertyChanged('{parentNode.DottedPropertyPath}','{node.Name}') because a base type already provides OnChildPropertyChanged support for the parent property." );
+                    if ( templateArgs.OnChildPropertyChangedMethod == null )
+                    {
+                        meta.InsertComment(
+                            $"Not calling OnChildPropertyChanged('{parentNode.DottedPropertyPath}','{node.Name}') because the type is sealed and OnChildPropertyChanged is not available." );
+                    }
+                    else
+                    {
+                        meta.InsertComment(
+                            $"Not calling OnChildPropertyChanged('{parentNode.DottedPropertyPath}','{node.Name}') because a base type already provides OnChildPropertyChanged support for the parent property." );
+                    }
                 }
             }
             else
