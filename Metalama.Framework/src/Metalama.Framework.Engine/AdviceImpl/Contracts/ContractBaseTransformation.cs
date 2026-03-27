@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Templating.MetaModel;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Introspection;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -111,7 +112,8 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
         var parameter = target.DeclarationKind switch
         {
             DeclarationKind.Parameter when target is IParameter { IsReturnParameter: true } => "return value",
-            DeclarationKind.Parameter when target is IParameter param => $"parameter '{param.Name}'",
+            DeclarationKind.Parameter when target is IParameter param =>
+                $"parameter '{(SyntaxFacts.GetKeywordKind( param.Name ) != SyntaxKind.None ? "@" + param.Name : param.Name)}'",
             _ => $"unexpected declaration '{target}'"
         };
 
