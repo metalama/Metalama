@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -250,6 +251,47 @@ delegate int D(int x, string y);
         // Verify declaration roundtrip via ResolveToDeclaration.
         var resolvedDeclaration = idWithTargetKind.ResolveToDeclaration( compilation.GetCompilationModel() );
         Assert.Same( returnParameter, resolvedDeclaration );
+    }
+
+    [Fact]
+    public void KeywordParameterAndReturnParameterDistinctIds()
+    {
+        const string code = @"
+class C
+{
+    string M(string @return) => @return;
+}
+";
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+        var type = compilation.Types.Single();
+        var method = type.Methods.OfName( "M" ).Single();
+        var returnParameter = method.ReturnParameter;
+        var regularParameter = method.Parameters.Single();
+
+        // Verify the parameter name is "return" (without @, as Roslyn strips it).
+        Assert.Equal( "return", regularParameter.Name );
+
+        // Get IDs for both parameters.
+        var returnParamId = returnParameter.ToSerializableId();
+        var regularParamId = regularParameter.ToSerializableId();
+
+        this.TestOutput.WriteLine( $"Return parameter ID: {returnParamId.Id}" );
+        this.TestOutput.WriteLine( $"Regular parameter ID: {regularParamId.Id}" );
+
+        // The IDs must be different.
+        Assert.NotEqual( returnParamId.Id, regularParamId.Id );
+
+        // Verify the return parameter ID contains ";Return".
+        Assert.Contains( ";Return", returnParamId.Id, StringComparison.Ordinal );
+
+        // Verify the regular parameter ID contains ";Parameter=0".
+        Assert.Contains( ";Parameter=0", regularParamId.Id, StringComparison.Ordinal );
+
+        // Roundtrip both parameters.
+        Roundtrip( returnParameter, compilation, this.TestOutput );
+        Roundtrip( regularParameter, compilation, this.TestOutput );
     }
 
     [Fact]

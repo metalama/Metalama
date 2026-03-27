@@ -6,21 +6,21 @@ using System;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Fabrics;
 
-namespace Metalama.Framework.Tests.AspectTests.Aspects.Fabrics.TypeFabricInCompileTimeType;
+namespace Metalama.Framework.Tests.AspectTests.Aspects.Fabrics.TypeFabricAsAdviser;
 
 // <target>
-[CompileTime]
 internal class TargetCode
 {
     private class Fabric : TypeFabric
     {
         public override void AmendType( ITypeAmender amender )
         {
-            amender.IntroduceMethod( nameof(M) );
+            // Use amender directly as IAdviser<INamedType> instead of going through amender.Advice.
+            amender.IntroduceMethod( nameof(IntroducedMethod) );
         }
 
         [Template]
-        private void M()
+        private void IntroducedMethod()
         {
             Console.WriteLine( "introduced" );
         }
