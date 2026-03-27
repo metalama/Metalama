@@ -76,6 +76,10 @@ internal class ConsentsPageModel : PageModel
 
     public bool IsDeviceOnline { get; set; }
 
+#pragma warning disable CA1822 // Accessed as Model.BackUrl in Razor
+    public string BackUrl => GlobalState.SelectedAction == SelectedAction.Register ? "/LicenseKey" : "/ChooseLicenseKind";
+#pragma warning restore CA1822
+
     private async Task PrepareCaptchaAsync()
     {
         var recaptchaSiteKey = await this._recaptcha.GetRecaptchaSiteKeyAsync();
