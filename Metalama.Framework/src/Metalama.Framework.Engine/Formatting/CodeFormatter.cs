@@ -235,6 +235,11 @@ public sealed partial class CodeFormatter : IProjectService
             var newSyntaxRoot = (await formattedSolution.GetDocument( syntaxTreePair.Value ).AssertNotNull().GetSyntaxRootAsync( cancellationToken ))
                 .AssertNotNull();
 
+            // Normalize EOLs to match the original syntax tree's style, because Roslyn's Formatter
+            // may have changed them (e.g. to \r\n on Windows).
+            var originalEol = EndOfLineHelper.DetermineEndOfLineStyleFast( oldSyntaxTree );
+            newSyntaxRoot = EndOfLineHelper.NormalizeEndOfLines( newSyntaxRoot, originalEol );
+
             var newSyntaxTree = oldSyntaxTree.WithRootAndOptions( newSyntaxRoot, oldSyntaxTree.Options );
 
             syntaxTreeReplacements.Add( SyntaxTreeTransformation.ReplaceTree( oldSyntaxTree, newSyntaxTree ) );
@@ -249,6 +254,34 @@ public sealed partial class CodeFormatter : IProjectService
 
         var formattedSolution = await this.FormatAsync( project.Solution, syntaxTreeMap.Values, null, true, cancellationToken );
 
-        return (await formattedSolution.Projects.Single().GetCompilationAsync( cancellationToken )).AssertNotNull();
+        var formattedCompilation = (await formattedSolution.Projects.Single().GetCompilationAsync( cancellationToken )).AssertNotNull();
+
+        // Normalize EOLs to match each original syntax tree's style, processing trees in parallel.
+        var eolReplacements = new ConcurrentBag<(string FilePath, SyntaxNode NormalizedRoot)>();
+
+        await this._concurrentTaskRunner.RunConcurrentlyAsync(
+            syntaxTreeMap.AsEnumerable(),
+            async syntaxTreePair =>
+            {
+                var oldSyntaxTree = syntaxTreePair.Key;
+                var originalEol = EndOfLineHelper.DetermineEndOfLineStyleFast( oldSyntaxTree );
+                var formattedDocument = formattedSolution.GetDocument( syntaxTreePair.Value ).AssertNotNull();
+                var formattedRoot = (await formattedDocument.GetSyntaxRootAsync( cancellationToken )).AssertNotNull();
+                var normalizedRoot = EndOfLineHelper.NormalizeEndOfLines( formattedRoot, originalEol );
+
+                eolReplacements.Add( (oldSyntaxTree.FilePath, normalizedRoot) );
+            },
+            cancellationToken );
+
+        foreach ( var replacement in eolReplacements )
+        {
+            var formattedSyntaxTree = formattedCompilation.SyntaxTrees.Single( t => t.FilePath == replacement.FilePath );
+
+            formattedCompilation = formattedCompilation.ReplaceSyntaxTree(
+                formattedSyntaxTree,
+                formattedSyntaxTree.WithRootAndOptions( replacement.NormalizedRoot, formattedSyntaxTree.Options ) );
+        }
+
+        return formattedCompilation;
     }
 }
