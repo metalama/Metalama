@@ -74,15 +74,22 @@ internal sealed class FabricManager
             .SelectMany( x => this.CreateDrivers( compileTimeProject, x, compilationModel, diagnosticAdder ) )
             .ToOrderedList( x => x );
 
-        var allFabricTypeNames = fabricTypeNames.Concat( transitiveFabricTypeNames ).ToImmutableArray();
-
         var typeFabricDrivers = fabricDrivers.OfType<TypeFabricDriver>().Concat( transitiveFabricDrivers.OfType<TypeFabricDriver>() ).ToImmutableArray();
 
         var contributors = ImmutableArray.CreateBuilder<IPipelineContributor>();
 
+        // Track fabric type names that contribute aspects (for the Aspect Explorer).
+        // Validation-only fabrics should not appear as aspect classes.
+        var aspectContributingFabricTypeNames = new HashSet<string>();
+
         if ( !typeFabricDrivers.IsEmpty )
         {
             contributors.Add( new FabricAspectSource( this, typeFabricDrivers ) );
+
+            foreach ( var driver in typeFabricDrivers )
+            {
+                aspectContributingFabricTypeNames.Add( driver.FabricTypeFullName );
+            }
         }
 
         // Execute static drivers now.
@@ -95,6 +102,11 @@ internal sealed class FabricManager
                 {
                     contributors.AddRange( result.Contributors );
                     this._listener?.AddStaticFabricResult( result );
+
+                    if ( result.Contributors.Any( c => c is IAspectSource ) )
+                    {
+                        aspectContributingFabricTypeNames.Add( driver.FabricTypeFullName );
+                    }
                 }
                 else
                 {
@@ -109,6 +121,10 @@ internal sealed class FabricManager
         Execute( fabricDrivers.OfType<NamespaceFabricDriver>() );
 
         var pipelineContributorSources = new PipelineContributorSources( contributors.ToImmutable() );
+
+        var allFabricTypeNames = fabricTypeNames.Concat( transitiveFabricTypeNames )
+            .Where( aspectContributingFabricTypeNames.Contains )
+            .ToImmutableArray();
 
         return (pipelineContributorSources, allFabricTypeNames);
     }
