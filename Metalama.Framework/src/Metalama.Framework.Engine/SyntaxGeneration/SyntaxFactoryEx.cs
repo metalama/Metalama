@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Formatting;
+using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -302,11 +303,10 @@ public static partial class SyntaxFactoryEx
 
         if ( diagnostics.HasError() )
         {
-#pragma warning disable CA1307 // StringComparison overload not available on net472
-            var sanitizedText = text.Replace( "\r\n", "\\n" ).Replace( "\r", "\\r" ).Replace( "\n", "\\n" );
-#pragma warning restore CA1307
-
-            throw new DiagnosticException( $"Code '{sanitizedText}' could not be parsed as an expression.", diagnostics.ToImmutableArray(), false );
+            throw new DiagnosticException(
+                $"Code '{EscapeNewLinesForDiagnostic( text )}' could not be parsed as an expression.",
+                diagnostics.ToImmutableArray(),
+                false );
         }
 
         return expression;
@@ -321,15 +321,17 @@ public static partial class SyntaxFactoryEx
 
         if ( enumerable.HasError() )
         {
-#pragma warning disable CA1307 // StringComparison overload not available on net472
-            var sanitizedText = text.Replace( "\r\n", "\\n" ).Replace( "\r", "\\r" ).Replace( "\n", "\\n" );
-#pragma warning restore CA1307
-
-            throw new DiagnosticException( $"Code '{sanitizedText}' could not be parsed as a statement.", enumerable.ToImmutableArray(), false );
+            throw new DiagnosticException(
+                $"Code '{EscapeNewLinesForDiagnostic( text )}' could not be parsed as a statement.",
+                enumerable.ToImmutableArray(),
+                false );
         }
 
         return statement;
     }
+
+    private static string EscapeNewLinesForDiagnostic( string text )
+        => text.ReplaceOrdinal( "\r\n", "\\n" ).ReplaceOrdinal( "\r", "\\r" ).ReplaceOrdinal( "\n", "\\n" );
 
 #pragma warning disable LAMA0850 // Intentional use for missing/empty tokens
     private static ExpressionSyntax EmptyExpression => SyntaxFactory.IdentifierName( SyntaxFactory.MissingToken( SyntaxKind.IdentifierToken ) );
