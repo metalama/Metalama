@@ -115,7 +115,7 @@ internal sealed class AspectDatabase : IGlobalService
 
         var aspectClassesIds = aspectClasses
             .OfType<AspectClass>()
-            .Where( aspectClass => !aspectClass.IsAbstract )
+            .Where( aspectClass => !aspectClass.IsAbstract && aspectClass.EditorExperienceOptions.HideFromAspectExplorer != true )
             .Select( aspectClass => aspectClass.TypeId.Id );
 
         var fabrics = pipeline.Fabrics ?? ImmutableArray<string>.Empty;

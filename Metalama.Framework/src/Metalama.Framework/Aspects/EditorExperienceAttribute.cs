@@ -92,4 +92,14 @@ public sealed class EditorExperienceAttribute : Attribute
         get => this.Options.AddAttributeSuggestionTitle;
         set => this.Options = this.Options with { AddAttributeSuggestionTitle = value };
     }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the aspect should be hidden from the Aspect Explorer tool window in the IDE.
+    /// This property is <c>false</c> by default, meaning the aspect is visible in the Aspect Explorer.
+    /// </summary>
+    public bool HideFromAspectExplorer
+    {
+        get => this.Options.HideFromAspectExplorer.GetValueOrDefault();
+        set => this.Options = this.Options with { HideFromAspectExplorer = value };
+    }
 }
