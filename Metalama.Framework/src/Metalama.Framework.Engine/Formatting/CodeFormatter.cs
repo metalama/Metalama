@@ -263,23 +263,23 @@ public sealed partial class CodeFormatter : IProjectService
         // Normalize EOLs to match each original syntax tree's style, processing trees in parallel.
         var eolReplacements = new ConcurrentBag<(string FilePath, SyntaxNode NormalizedRoot)>();
 
-        await Task.WhenAll(
-            syntaxTreeMap.AsEnumerable()
-                .Select(
-                    async syntaxTreePair =>
-                    {
-                        var oldSyntaxTree = syntaxTreePair.Key;
-                        var originalEol = EndOfLineHelper.DetermineEndOfLineStyleFast( oldSyntaxTree );
+        await this._concurrentTaskRunner.RunConcurrentlyAsync(
+            syntaxTreeMap.AsEnumerable(),
+            async syntaxTreePair =>
+            {
+                var oldSyntaxTree = syntaxTreePair.Key;
+                var originalEol = EndOfLineHelper.DetermineEndOfLineStyleFast( oldSyntaxTree );
 
-                        if ( originalEol != "\r\n" )
-                        {
-                            var formattedDocument = formattedSolution.GetDocument( syntaxTreePair.Value ).AssertNotNull();
-                            var formattedRoot = (await formattedDocument.GetSyntaxRootAsync( cancellationToken )).AssertNotNull();
-                            var normalizedRoot = EndOfLineHelper.NormalizeEndOfLines( formattedRoot, originalEol );
+                if ( originalEol != "\r\n" )
+                {
+                    var formattedDocument = formattedSolution.GetDocument( syntaxTreePair.Value ).AssertNotNull();
+                    var formattedRoot = (await formattedDocument.GetSyntaxRootAsync( cancellationToken )).AssertNotNull();
+                    var normalizedRoot = EndOfLineHelper.NormalizeEndOfLines( formattedRoot, originalEol );
 
-                            eolReplacements.Add( (oldSyntaxTree.FilePath, normalizedRoot) );
-                        }
-                    } ) );
+                    eolReplacements.Add( (oldSyntaxTree.FilePath, normalizedRoot) );
+                }
+            },
+            cancellationToken );
 
         foreach ( var replacement in eolReplacements )
         {
