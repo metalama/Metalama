@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -271,5 +272,113 @@ delegate int D(int x, string y);
         {
             Roundtrip( parameter, compilation, this.TestOutput );
         }
+    }
+
+    [Fact]
+    public void FileLocalTypes_HaveDistinctIds()
+    {
+        // Two file-local types with the same name and namespace but in different files
+        // must produce different SerializableDeclarationIds.
+        const string code1 = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+    public int X;
+}
+";
+
+        const string code2 = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+    public string Y;
+}
+";
+
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilation(
+            new Dictionary<string, string>
+            {
+                { "File1.cs", code1 },
+                { "File2.cs", code2 }
+            } );
+
+        var fileLocalTypes = compilation.GetContainedDeclarations()
+            .OfType<INamedType>()
+            .Where( t => t.Name == "FileLocalType" )
+            .ToList();
+
+        Assert.Equal( 2, fileLocalTypes.Count );
+
+        var id1 = fileLocalTypes[0].ToSerializableId();
+        var id2 = fileLocalTypes[1].ToSerializableId();
+
+        this.TestOutput.WriteLine( $"File-local type 1 ID: {id1.Id}" );
+        this.TestOutput.WriteLine( $"File-local type 2 ID: {id2.Id}" );
+
+        // The two file-local types must have different serializable IDs.
+        Assert.NotEqual( id1, id2 );
+
+        // Both must roundtrip correctly.
+        Roundtrip( fileLocalTypes[0], compilation, this.TestOutput );
+        Roundtrip( fileLocalTypes[1], compilation, this.TestOutput );
+    }
+
+    [Fact]
+    public void FileLocalTypes_MembersHaveDistinctIds()
+    {
+        // Members of file-local types with the same name must also have distinct IDs.
+        const string code1 = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+    public void M() {}
+}
+";
+
+        const string code2 = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+    public void M() {}
+}
+";
+
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilation(
+            new Dictionary<string, string>
+            {
+                { "File1.cs", code1 },
+                { "File2.cs", code2 }
+            } );
+
+        var fileLocalTypes = compilation.GetContainedDeclarations()
+            .OfType<INamedType>()
+            .Where( t => t.Name == "FileLocalType" )
+            .ToList();
+
+        Assert.Equal( 2, fileLocalTypes.Count );
+
+        var method1 = fileLocalTypes[0].Methods.OfName( "M" ).Single();
+        var method2 = fileLocalTypes[1].Methods.OfName( "M" ).Single();
+
+        var methodId1 = method1.ToSerializableId();
+        var methodId2 = method2.ToSerializableId();
+
+        this.TestOutput.WriteLine( $"Method 1 ID: {methodId1.Id}" );
+        this.TestOutput.WriteLine( $"Method 2 ID: {methodId2.Id}" );
+
+        // Methods on different file-local types must have different IDs.
+        Assert.NotEqual( methodId1, methodId2 );
+
+        // Both must roundtrip correctly.
+        Roundtrip( method1, compilation, this.TestOutput );
+        Roundtrip( method2, compilation, this.TestOutput );
     }
 }
