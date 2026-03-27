@@ -30,7 +30,8 @@
 
     <!-- These are the latest versions of dependencies, which we use in test projects to avoid vulnerability warnings -->
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
-    <MessagePackLatestVersion>3.1.4</MessagePackLatestVersion>
+    <!-- MessagePack 2.x is required for compatibility with StreamJsonRpc (3.x is incompatible). -->
+    <MessagePackLatestVersion>2.5.198</MessagePackLatestVersion>
     <StreamJsonRpcLatestVersion>2.22.23</StreamJsonRpcLatestVersion>
     <SystemTextJsonLatestVersion>9.0.10</SystemTextJsonLatestVersion>
     <MicrosoftBclAsyncInterfacesLatestVersion>9.0.10</MicrosoftBclAsyncInterfacesLatestVersion>
@@ -52,9 +53,7 @@
     <PackageVersion Include="JetBrains.Profiler.SelfApi" Version="2.5.14" />
     <PackageVersion Include="JetBrains.Profiler.Api" Version="1.4.10" />
     <PackageVersion Include="System.Text.Json" Version="$(SystemTextJsonVersion)" /> 
-    <!-- With K4os.Hash.xxHash, make sure that the dependency on System.Memory is not higher
-         than the one required by the lowest version of Visual Studio supported by the VSX. -->
-    <PackageVersion Include="K4os.Hash.xxHash" Version="1.0.8" />
+    <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
@@ -77,7 +76,9 @@
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.0.16" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
-    <PackageVersion Include="System.Memory" Version="4.5.5" />
+    <PackageVersion Include="System.Buffers" Version="4.6.0" /> <!-- Given by System.Memory -->
+    <PackageVersion Include="System.Memory" Version="4.6.0" />
+    <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="$(SystemTextRegularExpressionsLatestVersion)" />
     <PackageVersion Include="System.Threading" Version="4.3.0" />
