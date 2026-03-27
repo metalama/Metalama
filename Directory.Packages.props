@@ -32,7 +32,6 @@
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
     <!-- MessagePack 2.x is required for compatibility with StreamJsonRpc (3.x is incompatible). -->
     <MessagePackLatestVersion>2.5.198</MessagePackLatestVersion>
-    <SystemBuffersLatestVersion>4.6.1</SystemBuffersLatestVersion>
     <StreamJsonRpcLatestVersion>2.22.23</StreamJsonRpcLatestVersion>
     <SystemTextJsonLatestVersion>9.0.10</SystemTextJsonLatestVersion>
     <MicrosoftBclAsyncInterfacesLatestVersion>9.0.10</MicrosoftBclAsyncInterfacesLatestVersion>
@@ -43,7 +42,7 @@
     <SystemTextRegularExpressionsLatestVersion>4.3.1</SystemTextRegularExpressionsLatestVersion>
     <SystemFormatsAsn1LatestVersion>9.0.10</SystemFormatsAsn1LatestVersion>
     <SystemIOPipelinesLatestVersion>9.0.10</SystemIOPipelinesLatestVersion>
-
+    <SystemBuffersLatestVersion>4.6.1</SystemBuffersLatestVersion>
 
   </PropertyGroup>
   <ItemGroup>
@@ -77,11 +76,11 @@
     <PackageVersion Include="System.DirectoryServices" Version="8.0.0" />
     <PackageVersion Include="System.IO.Abstractions" Version="22.0.16" />
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.0.16" />
-    <PackageVersion Include="System.Buffers" Version="4.5.1" /> <!-- Given by System.Memory -->
     <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
-    <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
+    <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
+    <PackageVersion Include="System.Buffers" Version="4.5.1" /> <!-- Given by System.Memory -->
     <PackageVersion Include="System.Memory" Version="4.6.0" />
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="$(SystemTextRegularExpressionsLatestVersion)" />
@@ -100,7 +99,9 @@
 
     <PackageVersion Include="Microsoft.Win32.Registry" Version="5.0.0" />
 
-    <PackageVersion Include="DiffEngine" Version="15.5.3" />
+    <PackageVersion Include="DiffEngine" Version="19.1.2" />
+    <PackageVersion Include="Metalama.Extensions.DiffEngine" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.HtmlWriter" Version="$(MetalamaVersion)" />
     <PackageVersion Include="DiffPlex" Version="1.7.2" />
     <PackageVersion Include="LibGit2Sharp" Version="0.30.0" />
     <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)" />
@@ -151,8 +152,6 @@
     <PackageVersion Include="Metalama.Testing.AspectTesting" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Testing.UnitTesting" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.DependencyInjection" Version="$(MetalamaVersion)" />
-    <PackageVersion Include="Metalama.Extensions.DiffEngine" Version="$(MetalamaVersion)" />
-    <PackageVersion Include="Metalama.Extensions.HtmlWriter" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.Metrics" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.Multicast" Version="$(MetalamaVersion)" />
 
