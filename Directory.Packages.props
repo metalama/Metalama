@@ -41,7 +41,6 @@
     <SystemTextRegularExpressionsLatestVersion>4.3.1</SystemTextRegularExpressionsLatestVersion>
     <SystemFormatsAsn1LatestVersion>9.0.10</SystemFormatsAsn1LatestVersion>
     <SystemIOPipelinesLatestVersion>9.0.10</SystemIOPipelinesLatestVersion>
-    <SystemBuffersLatestVersion>4.6.0</SystemBuffersLatestVersion>
 
 
   </PropertyGroup>
@@ -79,7 +78,7 @@
     <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
-    <PackageVersion Include="System.Memory" Version="4.6.0" />
+    <PackageVersion Include="System.Memory" Version="4.5.5" />
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="$(SystemTextRegularExpressionsLatestVersion)" />
     <PackageVersion Include="System.Threading" Version="4.3.0" />
@@ -91,7 +90,6 @@
     <PackageVersion Include="System.Linq.Parallel" Version="4.3.0" />
     <PackageVersion Include="System.Reflection.Emit" Version="4.7.0" />
     <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
-    <PackageVersion Include="System.Buffers" Version="4.5.1" />
     <PackageVersion Include="System.Collections.Immutable" Version="8.0.0" />
     <PackageVersion Include="System.Reflection.Metadata" Version="8.0.0" /> 
 
@@ -127,7 +125,6 @@
     <!-- The following package is ILMerged so we can take any version we want,
      however all dependencies must be lower or equal than the minimal we must suppport. -->
 
-    <PackageVersion Include="MessagePack" Version="2.5.187" />
     <PackageVersion Include="StreamJsonRpc" Version="2.20.17" />
     <!-- The following packages are dependencies of StreamJsonRpc and we must match the version. 
         We now target the .NET SDK 8 and equivalent VS.
@@ -137,8 +134,6 @@
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
 
 
-    <PackageVersion Include="Metalama.Extensions.DiffEngine" Version="$(MetalamaVersion)" />
-    <PackageVersion Include="Metalama.Extensions.HtmlWriter" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Backstage" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Backstage.Commands" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Backstage.Tools" Version="$(MetalamaVersion)" />
