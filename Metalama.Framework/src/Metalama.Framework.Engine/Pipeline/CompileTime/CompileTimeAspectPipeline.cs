@@ -103,7 +103,9 @@ public class CompileTimeAspectPipeline : AspectPipeline
         }
 
         // Report error if the compilation does not have the METALAMA preprocessor symbol.
-        if ( !(compilation.SyntaxTrees.FirstOrDefault()?.Options.PreprocessorSymbolNames.Contains( "METALAMA" ) ?? false) )
+        // Skip this check if there are no syntax trees (empty project).
+        if ( compilation.SyntaxTrees.Any()
+             && !compilation.SyntaxTrees.First().Options.PreprocessorSymbolNames.Contains( "METALAMA" ) )
         {
             reportDiagnostic( GeneralDiagnosticDescriptors.MissingMetalamaPreprocessorSymbol.CreateRoslynDiagnostic( null, default ) );
 
