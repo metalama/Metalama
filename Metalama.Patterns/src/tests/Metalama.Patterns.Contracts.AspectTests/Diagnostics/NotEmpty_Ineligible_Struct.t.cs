@@ -1,0 +1,1 @@
+// Error LAMA0037 on `NotEmpty`: `The aspect 'NotEmpty' cannot be applied to the field 'NotEmpty_Ineligible_Struct.field' because the type of 'NotEmpty_Ineligible_Struct.field' must be a string, array, or collection type.`
