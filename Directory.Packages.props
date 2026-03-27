@@ -34,6 +34,8 @@
     <StreamJsonRpcLatestVersion>2.22.23</StreamJsonRpcLatestVersion>
     <SystemTextJsonLatestVersion>9.0.10</SystemTextJsonLatestVersion>
     <MicrosoftBclAsyncInterfacesLatestVersion>9.0.10</MicrosoftBclAsyncInterfacesLatestVersion>
+    <SystemMemoryLatestVersion>4.6.3</SystemMemoryLatestVersion>
+    <SystemBuffersLatestVersion>4.6.1</SystemBuffersLatestVersion>
 
     <!-- SystemTextJsonVersion depends on the Roslyn version; here is the fallback. -->
     <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.0</SystemTextJsonVersion>
@@ -78,7 +80,9 @@
     <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
+    <PackageVersion Include="System.Buffers" Version="4.6.0" />
     <PackageVersion Include="System.Memory" Version="4.5.5" />
+    <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="$(SystemTextRegularExpressionsLatestVersion)" />
     <PackageVersion Include="System.Threading" Version="4.3.0" />
@@ -147,6 +151,8 @@
     <PackageVersion Include="Metalama.Testing.AspectTesting" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Testing.UnitTesting" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.DependencyInjection" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.DiffEngine" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.HtmlWriter" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.Metrics" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.Multicast" Version="$(MetalamaVersion)" />
 
