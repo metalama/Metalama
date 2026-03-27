@@ -4,7 +4,6 @@
 
 #if TEST_OPTIONS
 // @ExpectedEndOfLine(LF)
-// @Skipped
 #endif
 
 using System;
