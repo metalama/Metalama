@@ -18,6 +18,7 @@ using Microsoft.CodeAnalysis;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using AnalyzerConfigOptions = Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptions;
 
 namespace Metalama.Framework.DesignTime.SourceGeneration
@@ -252,7 +253,15 @@ namespace Metalama.Framework.DesignTime.SourceGeneration
                 return "";
             }
 
-            return touchText.GetText( cancellationToken )?.ToString() ?? "";
+            var content = touchText.GetText( cancellationToken )?.ToString() ?? "";
+
+            // Include the last write time so that changes made by the MSBuild <Touch> task
+            // (which only updates the timestamp without changing content) are detected.
+            var lastWriteTime = File.Exists( normalizedTouchFilePath )
+                ? File.GetLastWriteTimeUtc( normalizedTouchFilePath ).Ticks.ToString( CultureInfo.InvariantCulture )
+                : "";
+
+            return content + "|" + lastWriteTime;
         }
     }
 }

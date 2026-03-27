@@ -72,44 +72,15 @@
         </PropertyGroup>
     </Target>
 
-    <!-- Inline task that writes a touch file, silently ignoring IOException when another TFM build process holds the lock.
-         This is needed because touch files are now in $(BaseIntermediateOutputPath), shared across TFMs. -->
-    <UsingTask TaskName="WriteTouchFile" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-        <ParameterGroup>
-            <File ParameterType="System.String" Required="true"/>
-        </ParameterGroup>
-        <Task>
-            <Code Type="Fragment" Language="cs"><![CDATA[
-                if (!System.IO.File.Exists(File))
-                {
-                    try
-                    {
-                        var directory = System.IO.Path.GetDirectoryName(File);
-                        if (!string.IsNullOrEmpty(directory))
-                        {
-                            System.IO.Directory.CreateDirectory(directory);
-                        }
-                        System.IO.File.WriteAllText(File, System.Guid.NewGuid().ToString());
-                    }
-                    catch (System.IO.IOException)
-                    {
-                        // Another process is writing this file concurrently. This is expected
-                        // when multiple TFMs build in parallel since they share the same obj directory.
-                    }
-                }
-            ]]></Code>
-        </Task>
-    </UsingTask>
-
     <Target Name="CreateMetalamaTouchFiles" BeforeTargets="BeforeCompile">
-        <!-- We create a touch file with a new arbitrary content every time that the file is absent. This file is used to signal
+        <!-- We create a touch file every time that the file is absent. This file is used to signal
              the design-time Metalama pipeline that a build has started. When the design-time pipeline needs this information again, it will
              delete the file. It should do that only when the source code has changed (even if it is not saved). We don't overwrite an existing
              file because this would break incremental build.
-             We use a custom inline task instead of WriteLinesToFile to silently handle IOException when
-             multiple TFMs race to create the same file in the shared obj directory. -->
-        <WriteTouchFile File="$(MetalamaBuildTouchFile)"/>
-        <WriteTouchFile File="$(MetalamaSourceGeneratorTouchFile)"/>
+             We use Touch with AlwaysCreate=true which handles concurrent access gracefully when
+             multiple TFMs build in parallel since they share the same obj directory. -->
+        <Touch Files="$(MetalamaBuildTouchFile)" AlwaysCreate="true"/>
+        <Touch Files="$(MetalamaSourceGeneratorTouchFile)" AlwaysCreate="true"/>
         <ItemGroup>
             <AdditionalFiles Include="$(MetalamaBuildTouchFile)" Visible="False"/>
             <AdditionalFiles Include="$(MetalamaSourceGeneratorTouchFile)"  Visible="False"/>

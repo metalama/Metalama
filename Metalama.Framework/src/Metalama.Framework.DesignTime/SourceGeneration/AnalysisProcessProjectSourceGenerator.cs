@@ -14,6 +14,7 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 namespace Metalama.Framework.DesignTime.SourceGeneration;
 
@@ -274,9 +275,14 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
             RetryHelper.Retry( () => File.WriteAllText( touchFile, newGuid ) );
         }
 
-        this.LastTouchId = newGuid;
+        // Include the last write time to match the format returned by GetTouchId,
+        // which combines content and timestamp for change detection.
+        var lastWriteTime = File.GetLastWriteTimeUtc( touchFile ).Ticks.ToString( CultureInfo.InvariantCulture );
+        var touchId = newGuid + "|" + lastWriteTime;
 
-        this._observer?.OnTouchFileWritten( this.ProjectKey, newGuid );
+        this.LastTouchId = touchId;
+
+        this._observer?.OnTouchFileWritten( this.ProjectKey, touchId );
     }
 
     private bool TryGetTouchFilePath( [NotNullWhen( true )] out string? path )
