@@ -28,6 +28,12 @@ public interface ITypeComparer : IEqualityComparer<IType>, IEqualityComparer<INa
     /// <returns></returns>
     bool IsConvertibleTo( IType left, IType right, ConversionKind kind = ConversionKind.Default );
 
+    /// <summary>
+    /// Equivalent to the <c>is</c> operator in C#. Gets a value indicating whether the left <see cref="IType"/> is assignable to right <see cref="IType"/>,
+    /// with additional behavior controlled by <paramref name="flags"/>.
+    /// </summary>
+    bool IsConvertibleTo( IType left, IType right, ConversionKind kind, ConversionFlags flags );
+
     [Obsolete( "This method has been renamed IsConvertibleTo." )]
     bool Is( IType left, Type right, ConversionKind kind = ConversionKind.Default );
 

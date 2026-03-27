@@ -42,13 +42,15 @@ public static partial class SerializableDeclarationIdProvider
 
         isReturnParameter = false;
 
-        var indexOfAt = id.Id.IndexOfOrdinal( ';' );
+        var idString = id.Id;
+
+        var indexOfAt = idString.IndexOfOrdinal( ';' );
 
         if ( indexOfAt > 0 )
         {
             // We have a parameter or a type parameter.
 
-            var parts = id.Id.Split( _separators );
+            var parts = idString.Split( _separators );
 
             var parentId = parts[0];
             var kind = parts[1];
@@ -75,9 +77,9 @@ public static partial class SerializableDeclarationIdProvider
                 _ => null
             };
         }
-        else if ( id.Id.StartsWith( _assemblyPrefix, StringComparison.OrdinalIgnoreCase ) )
+        else if ( idString.StartsWith( _assemblyPrefix, StringComparison.OrdinalIgnoreCase ) )
         {
-            if ( !AssemblyIdentity.TryParseDisplayName( id.Id.Substring( _assemblyPrefix.Length ), out var assemblyIdentity ) )
+            if ( !AssemblyIdentity.TryParseDisplayName( idString.Substring( _assemblyPrefix.Length ), out var assemblyIdentity ) )
             {
                 throw new AssertionFailedException( $"Cannot parse the id '{id.Id}'." );
             }
@@ -94,13 +96,13 @@ public static partial class SerializableDeclarationIdProvider
         else
         {
             // Special case for the global namespace that's not handled by GetFirstSymbolForDeclarationId, see https://github.com/dotnet/roslyn/issues/66976.
-            if ( id.Id == "N:" )
+            if ( idString == "N:" )
             {
                 return compilation.Assembly.GlobalNamespace;
             }
-            else if ( id.Id.StartsWith( SerializableTypeId.Prefix, StringComparison.Ordinal ) )
+            else if ( idString.StartsWith( SerializableTypeId.Prefix, StringComparison.Ordinal ) )
             {
-                if ( !compilationContext.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( id.Id ), out var typeSymbol ) )
+                if ( !compilationContext.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( idString ), out var typeSymbol ) )
                 {
                     return null;
                 }
@@ -111,7 +113,7 @@ public static partial class SerializableDeclarationIdProvider
                 }
             }
 
-            var symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( id.ToString(), compilation );
+            var symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( idString, compilation );
 
             // Make sure to return the non-nullable type.
             if ( symbol?.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter
@@ -125,4 +127,5 @@ public static partial class SerializableDeclarationIdProvider
             }
         }
     }
+
 }

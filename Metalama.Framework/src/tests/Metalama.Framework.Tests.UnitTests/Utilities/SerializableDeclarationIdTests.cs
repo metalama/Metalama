@@ -314,4 +314,44 @@ delegate int D(int x, string y);
             Roundtrip( parameter, compilation, this.TestOutput );
         }
     }
+
+    [Fact]
+    public void FileLocalTypes_CannotGetSerializableId()
+    {
+        // File-local types cannot have serializable IDs because the ID would be
+        // path-dependent, and serializable IDs must be cross-machine.
+        const string code = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+    public void M<T>(int p) {}
+}
+";
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+
+        var fileLocalType = compilation.GetContainedDeclarations()
+            .OfType<INamedType>()
+            .Single( t => t.Name == "FileLocalType" );
+
+        // The type itself should not get a serializable ID.
+        Assert.False( fileLocalType.TryGetSerializableId( out _ ) );
+
+        // Members should not get a serializable ID either.
+        var method = fileLocalType.Methods.OfName( "M" ).Single();
+        Assert.False( method.TryGetSerializableId( out _ ) );
+
+        // Parameters of members should not get a serializable ID.
+        var parameter = method.Parameters.Single();
+        Assert.False( parameter.TryGetSerializableId( out _ ) );
+
+        // Type parameters of members should not get a serializable ID.
+        var typeParameter = method.TypeParameters.Single();
+        Assert.False( typeParameter.TryGetSerializableId( out _ ) );
+
+        // GetSerializableId should throw for file-local types.
+        Assert.Throws<ArgumentException>( () => fileLocalType.ToSerializableId() );
+    }
 }

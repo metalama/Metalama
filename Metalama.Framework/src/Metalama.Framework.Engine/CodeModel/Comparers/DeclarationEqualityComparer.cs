@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
+using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -77,7 +78,12 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
     bool ITypeComparer.IsConvertibleTo( IType left, IType right, ConversionKind kind ) => this.IsConvertibleTo( left, right, kind );
 
+    bool ITypeComparer.IsConvertibleTo( IType left, IType right, ConversionKind kind, ConversionFlags flags ) => this.IsConvertibleTo( left, right, kind, flags );
+
     private bool IsConvertibleTo( IType left, IType right, ConversionKind kind ) => this.IsConvertibleTo( left, right, kind, bypassSymbols: false );
+
+    private bool IsConvertibleTo( IType left, IType right, ConversionKind kind, ConversionFlags flags )
+        => this.IsConvertibleTo( left, right, kind, flags, bypassSymbols: false );
 
     bool ITypeComparer.IsConvertibleTo( IType left, Type right, ConversionKind kind ) => this.IsConvertibleTo( left, right, kind );
 
@@ -87,6 +93,9 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
     /// because the types in question are guaranteed to be symbol-based and without introductions.
     /// </param>
     internal bool IsConvertibleTo( IType left, IType right, ConversionKind kind, bool bypassSymbols )
+        => this.IsConvertibleTo( left, right, kind, ConversionFlags.Default, bypassSymbols );
+
+    internal bool IsConvertibleTo( IType left, IType right, ConversionKind kind, ConversionFlags flags, bool bypassSymbols )
     {
         if ( kind != ConversionKind.TypeDefinition )
         {
@@ -103,6 +112,12 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
         else if ( left.TryForCompilation( right.Compilation, out var translatedLeft ) )
         {
             left = translatedLeft;
+        }
+
+        if ( (flags & ConversionFlags.TypeParameterEquivalence) != 0
+             && AreTypesEquivalentByMethodTypeParameterOrdinal( left, right ) )
+        {
+            return true;
         }
 
         if ( kind == ConversionKind.Identical )
@@ -216,6 +231,49 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
         }
 
         return type.BaseType != null && IsOfTypeDefinition( type.BaseType, typeDefinition );
+    }
+
+    /// <summary>
+    /// Determines whether two types are structurally equivalent when method-level type parameters
+    /// are compared by ordinal position rather than by identity. This is needed when comparing
+    /// method signatures from different declaring types, where their type parameters are distinct
+    /// objects but represent the same positional slot.
+    /// </summary>
+    private static bool AreTypesEquivalentByMethodTypeParameterOrdinal( IType left, IType right )
+    {
+        if ( left is ITypeParameter { TypeParameterKind: Code.TypeParameterKind.Method } leftTp
+             && right is ITypeParameter { TypeParameterKind: Code.TypeParameterKind.Method } rightTp )
+        {
+            return leftTp.Index == rightTp.Index;
+        }
+
+        if ( left is IArrayType leftArray && right is IArrayType rightArray )
+        {
+            return leftArray.Rank == rightArray.Rank
+                   && AreTypesEquivalentByMethodTypeParameterOrdinal( leftArray.ElementType, rightArray.ElementType );
+        }
+
+        if ( left is INamedType leftNamed && right is INamedType rightNamed
+                                           && leftNamed.TypeArguments.Count > 0
+                                           && leftNamed.TypeArguments.Count == rightNamed.TypeArguments.Count )
+        {
+            if ( !leftNamed.Definition.Equals( rightNamed.Definition ) )
+            {
+                return false;
+            }
+
+            for ( var i = 0; i < leftNamed.TypeArguments.Count; i++ )
+            {
+                if ( !AreTypesEquivalentByMethodTypeParameterOrdinal( leftNamed.TypeArguments[i], rightNamed.TypeArguments[i] ) )
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return left.Equals( right );
     }
 
     private bool IsOfTypeDefinition( IType type, INamedType typeDefinition )

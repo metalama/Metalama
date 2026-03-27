@@ -129,6 +129,35 @@ public static class MethodCollectionExtensions
             => (context.ParameterTypes[index], context.RefKinds?[index] ?? RefKind.None);
     }
 
+    /// Gets a method that exactly matches the specified signature, including the number of generic type parameters.
+    /// </summary>
+    /// <param name="methods">A collection of methods.</param>
+    /// <param name="name">Name of the method.</param>
+    /// <param name="typeParameterCount">Required number of generic type parameters.</param>
+    /// <param name="parameterTypes">List of parameter types.</param>
+    /// <param name="refKinds">List of parameter reference kinds, or <c>null</c> if all parameters should be by-value.</param>
+    /// <param name="isStatic">Staticity of the method.</param>
+    /// <returns>A <see cref="IMethod"/> that matches the given signature, or <c>null</c> if no match is found.</returns>
+    public static IMethod? OfExactSignature(
+        this IMethodCollection methods,
+        string name,
+        int typeParameterCount,
+        IReadOnlyList<IType> parameterTypes,
+        IReadOnlyList<RefKind>? refKinds = null,
+        bool? isStatic = null )
+    {
+        return methods.OfExactSignature(
+            (parameterTypes, refKinds),
+            name,
+            parameterTypes.Count,
+            GetParameter,
+            isStatic,
+            typeParameterCount );
+
+        static (IType Type, RefKind RefKind) GetParameter( (IReadOnlyList<IType> ParameterTypes, IReadOnlyList<RefKind>? RefKinds) context, int index )
+            => (context.ParameterTypes[index], context.RefKinds?[index] ?? RefKind.None);
+    }
+
     /// <summary>
     /// Gets a method that exactly matches the specified signature given using the <c>System.Reflection</c> API.
     /// By-ref reflection types (<see cref="Type.IsByRef"/> == <see langword="true"/>) do not match any parameter.
