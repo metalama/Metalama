@@ -100,6 +100,8 @@
     <PackageVersion Include="Microsoft.Win32.Registry" Version="5.0.0" />
 
     <PackageVersion Include="DiffEngine" Version="15.5.3" />
+    <PackageVersion Include="Metalama.Extensions.DiffEngine" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.HtmlWriter" Version="$(MetalamaVersion)" />
     <PackageVersion Include="DiffPlex" Version="1.7.2" />
     <PackageVersion Include="LibGit2Sharp" Version="0.30.0" />
     <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)" />
