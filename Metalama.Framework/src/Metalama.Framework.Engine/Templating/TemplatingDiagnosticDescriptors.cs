@@ -474,8 +474,8 @@ namespace Metalama.Framework.Engine.Templating
         internal static readonly DiagnosticDefinition<None> DynamicInLambdaUnsupported
             = new(
                 "LAMA0263",
-                "Lambdas or anonymous functions returning a dynamic type are not supported. Consider casting the result to IExpression. For void expressions, use a lambda statement.",
-                "Lambdas or anonymous functions returning a dynamic type are not supported except. Consider casting the result to IExpression.  For void expressions, use a lambda statement.",
+                "Lambdas or anonymous functions returning a dynamic type are not supported. Consider using a local function. Alternatively, cast the result to IExpression. For void expressions, use a lambda statement.",
+                "Lambdas or anonymous functions returning a dynamic type are not supported. Consider using a local function. Alternatively, cast the result to IExpression. For void expressions, use a lambda statement.",
                 _category,
                 Error );
 
