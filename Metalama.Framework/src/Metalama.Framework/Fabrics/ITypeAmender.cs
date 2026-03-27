@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
+using Metalama.Framework.Diagnostics;
 
 namespace Metalama.Framework.Fabrics
 {
@@ -41,5 +42,10 @@ namespace Metalama.Framework.Fabrics
         /// </summary>
         /// <seealso href="@advising-code"/>
         IAdviceFactory Advice { get; }
+
+        /// <summary>
+        /// Gets a service that allows to report or suppress diagnostics scoped to the target type.
+        /// </summary>
+        ScopedDiagnosticSink Diagnostics { get; }
     }
 }
