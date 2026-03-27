@@ -283,6 +283,113 @@ class C
         }
 
         [Fact]
+        public void Matches_ParameterReflectionType()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public void Foo(object x)
+    {
+    }
+
+    public void Foo(int x)
+    {
+    }
+
+    public void Foo(string x)
+    {
+    }
+
+    public void Foo(int[] x)
+    {
+    }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.ElementAt( 0 );
+
+            var matchedMethod1 = type.Methods.OfExactSignature( "Foo", new[] { typeof(object) } );
+            Assert.Same( type.Methods.ElementAt( 0 ), matchedMethod1 );
+            var matchedMethod2 = type.Methods.OfExactSignature( "Foo", new[] { typeof(int) } );
+            Assert.Same( type.Methods.ElementAt( 1 ), matchedMethod2 );
+            var matchedMethod3 = type.Methods.OfExactSignature( "Foo", new[] { typeof(string) } );
+            Assert.Same( type.Methods.ElementAt( 2 ), matchedMethod3 );
+            var matchedMethod4 = type.Methods.OfExactSignature( "Foo", new[] { typeof(int[]) } );
+            Assert.Same( type.Methods.ElementAt( 3 ), matchedMethod4 );
+            var matchedMethod5 = type.Methods.OfExactSignature( "Foo", new[] { typeof(string[]) } );
+            Assert.Null( matchedMethod5 );
+        }
+
+        [Fact]
+        public void Matches_ParameterReflectionType_IsStatic()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public void Foo()
+    {
+    }
+
+    public static void Bar()
+    {
+    }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.ElementAt( 0 );
+
+            var matchedMethod1 = type.Methods.OfExactSignature( "Foo", Array.Empty<Type>(), isStatic: false );
+            Assert.Same( type.Methods.ElementAt( 0 ), matchedMethod1 );
+            var matchedMethod2 = type.Methods.OfExactSignature( "Foo", Array.Empty<Type>(), isStatic: true );
+            Assert.Null( matchedMethod2 );
+            var matchedMethod3 = type.Methods.OfExactSignature( "Bar", Array.Empty<Type>(), isStatic: true );
+            Assert.Same( type.Methods.ElementAt( 1 ), matchedMethod3 );
+            var matchedMethod4 = type.Methods.OfExactSignature( "Bar", Array.Empty<Type>(), isStatic: false );
+            Assert.Null( matchedMethod4 );
+        }
+
+        [Fact]
+        public void Constructor_Matches_ParameterReflectionType()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public C()
+    {
+    }
+
+    public C(int x)
+    {
+    }
+
+    public C(string x)
+    {
+    }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.ElementAt( 0 );
+
+            var matchedCtor1 = type.Constructors.OfExactSignature( new[] { typeof(int) } );
+            Assert.Same( type.Constructors.ElementAt( 1 ), matchedCtor1 );
+            var matchedCtor2 = type.Constructors.OfExactSignature( new[] { typeof(string) } );
+            Assert.Same( type.Constructors.ElementAt( 2 ), matchedCtor2 );
+            var matchedCtor3 = type.Constructors.OfExactSignature( Array.Empty<Type>() );
+            Assert.Same( type.Constructors.ElementAt( 0 ), matchedCtor3 );
+            var matchedCtor4 = type.Constructors.OfExactSignature( new[] { typeof(double) } );
+            Assert.Null( matchedCtor4 );
+        }
+
+        [Fact]
         public void Matches_WithConversionKind_Default()
         {
             using var testContext = this.CreateTestContext();

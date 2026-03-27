@@ -72,8 +72,24 @@ public static class ConstructorCollectionExtensions
             => (context.ParameterTypes[index], context.RefKinds?[index] ?? RefKind.None);
     }
 
-    // TODO: add this method
-    // IConstructor? OfExactSignature( IReadOnlyList<Type> parameterTypes );
+    /// <summary>
+    /// Gets a constructor that exactly matches the specified signature given using the <c>System.Reflection</c> API.
+    /// </summary>
+    /// <param name="constructors">A collection of constructors.</param>
+    /// <param name="parameterTypes">List of parameter types as reflection <see cref="Type"/> objects.</param>
+    /// <returns>A <see cref="IConstructor"/> that matches the given signature.</returns>
+    public static IConstructor? OfExactSignature( this IConstructorCollection constructors, IReadOnlyList<Type> parameterTypes )
+    {
+        return constructors.OfExactSignature(
+            (parameterTypes, (ICompilationInternal) constructors.DeclaringType.Compilation),
+            null,
+            parameterTypes.Count,
+            GetParameter,
+            false );
+
+        static (IType Type, RefKind RefKind) GetParameter( (IReadOnlyList<Type> ParameterTypes, ICompilationInternal Compilation) context, int index )
+            => (context.Compilation.Factory.GetTypeByReflectionType( context.ParameterTypes[index] ), RefKind.None);
+    }
 
     /// <summary>
     /// Gets a constructor that exactly matches the signature of the specified method.

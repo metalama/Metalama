@@ -129,13 +129,30 @@ public static class MethodCollectionExtensions
             => (context.ParameterTypes[index], context.RefKinds?[index] ?? RefKind.None);
     }
 
-    // TODO: Add this method:
-    // IMethod? OfExactSignature(
-    //     string name,
-    //     int genericParameterCount,
-    //     IReadOnlyList<Type> parameterTypes,
-    //     bool? isStatic = null,
-    //     bool declaredOnly = true );
+    /// <summary>
+    /// Gets a method that exactly matches the specified signature given using the <c>System.Reflection</c> API.
+    /// </summary>
+    /// <param name="methods">A collection of methods.</param>
+    /// <param name="name">Name of the method.</param>
+    /// <param name="parameterTypes">List of parameter types as reflection <see cref="Type"/> objects.</param>
+    /// <param name="isStatic">Staticity of the method.</param>
+    /// <returns>A <see cref="IMethod"/> that matches the given signature.</returns>
+    public static IMethod? OfExactSignature(
+        this IMethodCollection methods,
+        string name,
+        IReadOnlyList<Type> parameterTypes,
+        bool? isStatic = null )
+    {
+        return methods.OfExactSignature(
+            (parameterTypes, (ICompilationInternal) methods.DeclaringType.Compilation),
+            name,
+            parameterTypes.Count,
+            GetParameter,
+            isStatic );
+
+        static (IType Type, RefKind RefKind) GetParameter( (IReadOnlyList<Type> ParameterTypes, ICompilationInternal Compilation) context, int index )
+            => (context.Compilation.Factory.GetTypeByReflectionType( context.ParameterTypes[index] ), RefKind.None);
+    }
 
     /// <summary>
     /// Gets a method that exactly matches the signature of the specified method.
