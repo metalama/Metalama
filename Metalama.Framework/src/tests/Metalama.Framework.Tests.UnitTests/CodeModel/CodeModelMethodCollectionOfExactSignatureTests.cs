@@ -283,6 +283,54 @@ class C
         }
 
         [Fact]
+        public void OfExactSignature_IMethod_Matches_GenericTypeParameterInComposedTypes()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+using System.Collections.Generic;
+
+class C
+{
+    public void Foo<T>(List<T> x)
+    {
+    }
+
+    public void Bar<T>(T[] x)
+    {
+    }
+}
+
+class D
+{
+    public void Foo<T>(List<T> x)
+    {
+    }
+
+    public void Bar<T>(T[] x)
+    {
+    }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var typeC = compilation.Types.OfName( "C" ).Single();
+            var typeD = compilation.Types.OfName( "D" ).Single();
+
+            // Match List<T> parameter type across methods from different types.
+            var templateFoo = typeD.Methods.OfName( "Foo" ).Single();
+            var matchedFoo = typeC.Methods.OfExactSignature( templateFoo );
+            Assert.NotNull( matchedFoo );
+            Assert.Same( typeC.Methods.OfName( "Foo" ).Single(), matchedFoo );
+
+            // Match T[] parameter type across methods from different types.
+            var templateBar = typeD.Methods.OfName( "Bar" ).Single();
+            var matchedBar = typeC.Methods.OfExactSignature( templateBar );
+            Assert.NotNull( matchedBar );
+            Assert.Same( typeC.Methods.OfName( "Bar" ).Single(), matchedBar );
+        }
+
+        [Fact]
         public void Matches_WithConversionKind_Default()
         {
             using var testContext = this.CreateTestContext();
@@ -336,13 +384,21 @@ class C
             var type = compilation.Types.ElementAt( 0 );
             var intType = compilation.Factory.GetTypeByReflectionType( typeof(int) );
 
-            // Current OfExactSignature(string, ...) cannot distinguish by generic arity.
-            // This test documents the limitation: it returns the first match regardless of type parameter count.
-            var matchedMethod = type.Methods.OfExactSignature( "Foo", new[] { intType } );
+            // The new overload with typeParameterCount allows distinguishing methods by generic arity (#842).
+            var matchedNonGeneric = type.Methods.OfExactSignature( "Foo", 0, new[] { intType } );
+            Assert.NotNull( matchedNonGeneric );
+            Assert.Same( type.Methods.ElementAt( 0 ), matchedNonGeneric );
 
-            // The method Foo(int x) (non-generic) should be the match, but there's no way to specify generic arity.
-            // This test will need to be updated when the API is enhanced to support generic parameter constraints.
-            Assert.NotNull( matchedMethod );
+            var matchedOneTypeParam = type.Methods.OfExactSignature( "Foo", 1, new[] { intType } );
+            Assert.NotNull( matchedOneTypeParam );
+            Assert.Same( type.Methods.ElementAt( 1 ), matchedOneTypeParam );
+
+            var matchedTwoTypeParams = type.Methods.OfExactSignature( "Foo", 2, new[] { intType } );
+            Assert.NotNull( matchedTwoTypeParams );
+            Assert.Same( type.Methods.ElementAt( 2 ), matchedTwoTypeParams );
+
+            var matchedThreeTypeParams = type.Methods.OfExactSignature( "Foo", 3, new[] { intType } );
+            Assert.Null( matchedThreeTypeParams );
         }
 
         [Fact]
@@ -415,12 +471,10 @@ class D
 
             // Use D.Foo<T>(T) as the template to find C.Foo<T>(T).
             // Both methods have 1 type parameter and the parameter type is the method's own type parameter.
-            // OfExactSignature should match these as equivalent signatures.
+            // OfExactSignature should match these as equivalent signatures (#842).
             var template = typeD.Methods.ElementAt( 0 );
             var matchedMethod = typeC.Methods.OfExactSignature( template );
 
-            // BUG (#842): Currently returns null because D's T and C's T are different type symbols.
-            // After the fix, this should return C.Foo<T>(T).
             Assert.NotNull( matchedMethod );
             Assert.Same( typeC.Methods.ElementAt( 0 ), matchedMethod );
         }
