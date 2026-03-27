@@ -20,7 +20,6 @@ using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -179,9 +178,8 @@ public sealed class PipelineCancellationTests : UnitTestClass
             }
 
             var content = RetryHelper.Retry( () => File.ReadAllText( touchFile ) );
-            var lastWriteTime = File.GetLastWriteTimeUtc( touchFile ).Ticks.ToString( CultureInfo.InvariantCulture );
 
-            return content + "|" + lastWriteTime;
+            return TouchFileHelper.GetTouchId( content, touchFile );
         }
 
         bool ExecutePipeline( int version )
