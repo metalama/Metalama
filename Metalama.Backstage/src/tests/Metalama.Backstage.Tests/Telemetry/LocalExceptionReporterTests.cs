@@ -7,6 +7,7 @@ using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using System;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -45,5 +46,19 @@ public sealed class LocalExceptionReporterTests : TestsBase
         var reporter = new LocalExceptionReporter( this.ServiceProvider );
         reporter.ReportException( new InvalidOperationException(), "currentReport.txt" );
         Assert.NotEmpty( this.UserInterface.Notifications );
+    }
+
+    [Fact]
+    public void CrashReportContainsReportingCallStack()
+    {
+        var reporter = new LocalExceptionReporter( this.ServiceProvider );
+        reporter.ReportException( new InvalidOperationException( "Test exception" ), null );
+
+        var files = this.FileSystem.EnumerateFiles( this._crashReportsDirectory, "*.txt" ).ToList();
+        Assert.Single( files );
+
+        var content = this.FileSystem.ReadAllText( files[0] );
+        Assert.Contains( "===== Reporting Call Stack =====", content, StringComparison.Ordinal );
+        Assert.Contains( "ReportException", content, StringComparison.Ordinal );
     }
 }
