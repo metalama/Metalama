@@ -76,6 +76,8 @@ internal class ConsentsPageModel : PageModel
 
     public bool IsDeviceOnline { get; set; }
 
+    public string BackUrl { get; private set; } = "/ChooseLicenseKind";
+
     private async Task PrepareCaptchaAsync()
     {
         var recaptchaSiteKey = await this._recaptcha.GetRecaptchaSiteKeyAsync();
@@ -89,6 +91,8 @@ internal class ConsentsPageModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
+        this.BackUrl = GlobalState.SelectedAction == SelectedAction.Register ? "/LicenseKey" : "/ChooseLicenseKind";
+
         await this.PrepareCaptchaAsync();
 
         // If newsletter is not available, we keep the email address empty, so the field validation is not triggered.
@@ -102,6 +106,8 @@ internal class ConsentsPageModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        this.BackUrl = GlobalState.SelectedAction == SelectedAction.Register ? "/LicenseKey" : "/ChooseLicenseKind";
+
         await this.PrepareCaptchaAsync();
 
         if ( !this.ModelState.IsValid )
