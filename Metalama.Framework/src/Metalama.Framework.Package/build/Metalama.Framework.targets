@@ -65,24 +65,22 @@
     </Target>
 
     <Target Name="ExportMetalamaFrameworkProperties" BeforeTargets="PrepareForBuild">
-        <Error Text="The IntermediateOutputPath property is not defined." Condition="'$(IntermediateOutputPath)'==''"/>
+        <Error Text="The BaseIntermediateOutputPath property is not defined." Condition="'$(BaseIntermediateOutputPath)'==''"/>
         <PropertyGroup>
             <MetalamaBuildTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(IntermediateOutputPath),'MetalamaBuild.touch'))</MetalamaBuildTouchFile>
-            <MetalamaSourceGeneratorTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(IntermediateOutputPath),'MetalamaSourceGenerator.touch'))</MetalamaSourceGeneratorTouchFile>
+            <MetalamaSourceGeneratorTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(BaseIntermediateOutputPath),'MetalamaSourceGenerator.touch'))</MetalamaSourceGeneratorTouchFile>
         </PropertyGroup>
     </Target>
 
     <Target Name="CreateMetalamaTouchFiles" BeforeTargets="BeforeCompile">
-        <!-- We create a touch file with a new arbitrary content every time that the file is absent. This file is used to signal
+        <!-- We create a touch file every time that the file is absent. This file is used to signal
              the design-time Metalama pipeline that a build has started. When the design-time pipeline needs this information again, it will
              delete the file. It should do that only when the source code has changed (even if it is not saved). We don't overwrite an existing
-             file because this would break incremental build -->
-        <WriteLinesToFile File="$(MetalamaBuildTouchFile)" Lines=">$([System.Guid]::NewGuid())"
-                          Condition="!Exists('$(MetalamaBuildTouchFile)')"/>
-
-        <!-- We create the generator touch file so that it is included in the project. This file is changed by the Roslyn analysis process. -->
-        <WriteLinesToFile File="$(MetalamaSourceGeneratorTouchFile)" Lines=">$([System.Guid]::NewGuid())"
-                          Condition="!Exists('$(MetalamaSourceGeneratorTouchFile)')"/>
+             file because this would break incremental build.
+             We use Touch with AlwaysCreate=true which handles concurrent access gracefully when
+             multiple TFMs build in parallel since they share the same obj directory. -->
+        <Touch Files="$(MetalamaBuildTouchFile)" AlwaysCreate="true"/>
+        <Touch Files="$(MetalamaSourceGeneratorTouchFile)" AlwaysCreate="true"/>
         <ItemGroup>
             <AdditionalFiles Include="$(MetalamaBuildTouchFile)" Visible="False"/>
             <AdditionalFiles Include="$(MetalamaSourceGeneratorTouchFile)"  Visible="False"/>

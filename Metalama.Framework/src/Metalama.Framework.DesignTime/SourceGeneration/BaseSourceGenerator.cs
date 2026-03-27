@@ -252,7 +252,9 @@ namespace Metalama.Framework.DesignTime.SourceGeneration
                 return "";
             }
 
-            return touchText.GetText( cancellationToken )?.ToString() ?? "";
+            var content = touchText.GetText( cancellationToken )?.ToString() ?? "";
+
+            return TouchFileHelper.GetTouchId( content, normalizedTouchFilePath );
         }
     }
 }

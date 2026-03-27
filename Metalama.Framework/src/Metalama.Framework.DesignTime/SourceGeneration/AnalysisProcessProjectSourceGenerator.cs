@@ -274,9 +274,11 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
             RetryHelper.Retry( () => File.WriteAllText( touchFile, newGuid ) );
         }
 
-        this.LastTouchId = newGuid;
+        var touchId = TouchFileHelper.GetTouchId( newGuid, touchFile );
 
-        this._observer?.OnTouchFileWritten( this.ProjectKey, newGuid );
+        this.LastTouchId = touchId;
+
+        this._observer?.OnTouchFileWritten( this.ProjectKey, touchId );
     }
 
     private bool TryGetTouchFilePath( [NotNullWhen( true )] out string? path )

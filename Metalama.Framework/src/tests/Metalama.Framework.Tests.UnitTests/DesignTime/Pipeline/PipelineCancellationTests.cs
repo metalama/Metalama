@@ -172,9 +172,14 @@ public sealed class PipelineCancellationTests : UnitTestClass
 
             this.TestOutput.WriteLine( $"Reading the touch file '{touchFile}'." );
 
-            return File.Exists( touchFile )
-                ? RetryHelper.Retry( () => File.ReadAllText( touchFile ) )
-                : "";
+            if ( !File.Exists( touchFile ) )
+            {
+                return "";
+            }
+
+            var content = RetryHelper.Retry( () => File.ReadAllText( touchFile ) );
+
+            return TouchFileHelper.GetTouchId( content, touchFile );
         }
 
         bool ExecutePipeline( int version )

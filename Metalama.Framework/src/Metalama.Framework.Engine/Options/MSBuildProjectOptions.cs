@@ -246,7 +246,7 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     [return: NotNullIfNotNull( nameof(defaultValue) )]
     private string? GetStringOption( string name, string? defaultValue = null )
     {
-        if ( this._source.TryGetValue( name, out var flagString ) )
+        if ( this._source.TryGetValue( name, out var flagString ) && !string.IsNullOrWhiteSpace( flagString ) )
         {
             return flagString;
         }
