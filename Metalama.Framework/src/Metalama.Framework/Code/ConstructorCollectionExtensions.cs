@@ -72,8 +72,71 @@ public static class ConstructorCollectionExtensions
             => (context.ParameterTypes[index], context.RefKinds?[index] ?? RefKind.None);
     }
 
-    // TODO: add this method
-    // IConstructor? OfExactSignature( IReadOnlyList<Type> parameterTypes );
+    /// <summary>
+    /// Gets a constructor that exactly matches the specified signature given using the <c>System.Reflection</c> API.
+    /// By-ref reflection types (<see cref="Type.IsByRef"/> == <see langword="true"/>) do not match any parameter.
+    /// Non-by-ref reflection types match parameters with <see cref="RefKind.None"/> or <see cref="RefKind.In"/>.
+    /// </summary>
+    /// <param name="constructors">A collection of constructors.</param>
+    /// <param name="parameterTypes">List of parameter types as reflection <see cref="Type"/> objects.</param>
+    /// <returns>A <see cref="IConstructor"/> that matches the given signature.</returns>
+    public static IConstructor? OfExactSignature( this IConstructorCollection constructors, IReadOnlyList<Type> parameterTypes )
+    {
+        // By-ref reflection types are not supported by this overload.
+        for ( var i = 0; i < parameterTypes.Count; i++ )
+        {
+            if ( parameterTypes[i].IsByRef )
+            {
+                return null;
+            }
+        }
+
+        var compilation = (ICompilationInternal) constructors.DeclaringType.Compilation;
+
+        foreach ( var constructor in constructors )
+        {
+            if ( constructor.IsExplicitInterfaceImplementation )
+            {
+                continue;
+            }
+
+            if ( constructor.Parameters.Count != parameterTypes.Count )
+            {
+                continue;
+            }
+
+            var match = true;
+
+            for ( var i = 0; i < parameterTypes.Count; i++ )
+            {
+                var parameter = constructor.Parameters[i];
+
+                // Non-by-ref reflection types match only plain and 'in' parameters.
+                if ( parameter.RefKind != RefKind.None && parameter.RefKind != RefKind.In )
+                {
+                    match = false;
+
+                    break;
+                }
+
+                var metalmaType = compilation.Factory.GetTypeByReflectionType( parameterTypes[i] );
+
+                if ( !compilation.Comparers.Default.IsConvertibleTo( metalmaType, parameter.Type, ConversionKind.Identical ) )
+                {
+                    match = false;
+
+                    break;
+                }
+            }
+
+            if ( match )
+            {
+                return constructor;
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Gets a constructor that exactly matches the signature of the specified method.

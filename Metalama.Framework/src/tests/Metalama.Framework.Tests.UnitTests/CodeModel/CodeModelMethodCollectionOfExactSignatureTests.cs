@@ -331,6 +331,130 @@ class D
         }
 
         [Fact]
+        public void Matches_ParameterReflectionType()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public void Foo(object x)
+    {
+    }
+
+    public void Foo(int x)
+    {
+    }
+
+    public void Foo(string x)
+    {
+    }
+
+    public void Foo(int[] x)
+    {
+    }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.ElementAt( 0 );
+
+            var matchedMethod1 = type.Methods.OfExactSignature( "Foo", new[] { typeof(object) } );
+            Assert.Same( type.Methods.ElementAt( 0 ), matchedMethod1 );
+            var matchedMethod2 = type.Methods.OfExactSignature( "Foo", new[] { typeof(int) } );
+            Assert.Same( type.Methods.ElementAt( 1 ), matchedMethod2 );
+            var matchedMethod3 = type.Methods.OfExactSignature( "Foo", new[] { typeof(string) } );
+            Assert.Same( type.Methods.ElementAt( 2 ), matchedMethod3 );
+            var matchedMethod4 = type.Methods.OfExactSignature( "Foo", new[] { typeof(int[]) } );
+            Assert.Same( type.Methods.ElementAt( 3 ), matchedMethod4 );
+            var matchedMethod5 = type.Methods.OfExactSignature( "Foo", new[] { typeof(string[]) } );
+            Assert.Null( matchedMethod5 );
+        }
+
+        [Fact]
+        public void Matches_ParameterReflectionType_IsStatic()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public void Foo()
+    {
+    }
+
+    public static void Bar()
+    {
+    }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.ElementAt( 0 );
+
+            var matchedMethod1 = type.Methods.OfExactSignature( "Foo", Array.Empty<Type>(), isStatic: false );
+            Assert.Same( type.Methods.ElementAt( 0 ), matchedMethod1 );
+            var matchedMethod2 = type.Methods.OfExactSignature( "Foo", Array.Empty<Type>(), isStatic: true );
+            Assert.Null( matchedMethod2 );
+            var matchedMethod3 = type.Methods.OfExactSignature( "Bar", Array.Empty<Type>(), isStatic: true );
+            Assert.Same( type.Methods.ElementAt( 1 ), matchedMethod3 );
+            var matchedMethod4 = type.Methods.OfExactSignature( "Bar", Array.Empty<Type>(), isStatic: false );
+            Assert.Null( matchedMethod4 );
+        }
+
+        [Fact]
+        public void ByRefReflectionType_DoesNotMatch()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public void Foo(int x) {}
+    public void Bar(in int x) {}
+    public void Baz(ref int x) {}
+    public void Qux(out int x) { x = 0; }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.ElementAt( 0 );
+
+            // By-ref reflection types do not match any parameter.
+            Assert.Null( type.Methods.OfExactSignature( "Foo", new[] { typeof(int).MakeByRefType() } ) );
+            Assert.Null( type.Methods.OfExactSignature( "Bar", new[] { typeof(int).MakeByRefType() } ) );
+            Assert.Null( type.Methods.OfExactSignature( "Baz", new[] { typeof(int).MakeByRefType() } ) );
+            Assert.Null( type.Methods.OfExactSignature( "Qux", new[] { typeof(int).MakeByRefType() } ) );
+        }
+
+        [Fact]
+        public void NonByRefReflectionType_MatchesPlainAndIn()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public void Foo(int x) {}
+    public void Bar(in int x) {}
+    public void Baz(ref int x) {}
+    public void Qux(out int x) { x = 0; }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.ElementAt( 0 );
+
+            // Non-by-ref reflection types match plain and 'in' parameters.
+            Assert.NotNull( type.Methods.OfExactSignature( "Foo", new[] { typeof(int) } ) );
+            Assert.NotNull( type.Methods.OfExactSignature( "Bar", new[] { typeof(int) } ) );
+
+            // Non-by-ref reflection types do not match 'ref' or 'out' parameters.
+            Assert.Null( type.Methods.OfExactSignature( "Baz", new[] { typeof(int) } ) );
+            Assert.Null( type.Methods.OfExactSignature( "Qux", new[] { typeof(int) } ) );
+        }
+
+        [Fact]
         public void Matches_WithConversionKind_Default()
         {
             using var testContext = this.CreateTestContext();

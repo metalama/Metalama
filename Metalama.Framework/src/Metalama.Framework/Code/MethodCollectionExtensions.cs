@@ -160,6 +160,83 @@ public static class MethodCollectionExtensions
     }
 
     /// <summary>
+    /// Gets a method that exactly matches the specified signature given using the <c>System.Reflection</c> API.
+    /// By-ref reflection types (<see cref="Type.IsByRef"/> == <see langword="true"/>) do not match any parameter.
+    /// Non-by-ref reflection types match parameters with <see cref="RefKind.None"/> or <see cref="RefKind.In"/>.
+    /// </summary>
+    /// <param name="methods">A collection of methods.</param>
+    /// <param name="name">Name of the method.</param>
+    /// <param name="parameterTypes">List of parameter types as reflection <see cref="Type"/> objects.</param>
+    /// <param name="isStatic">Staticity of the method.</param>
+    /// <returns>A <see cref="IMethod"/> that matches the given signature.</returns>
+    public static IMethod? OfExactSignature(
+        this IMethodCollection methods,
+        string name,
+        IReadOnlyList<Type> parameterTypes,
+        bool? isStatic = null )
+    {
+        // By-ref reflection types are not supported by this overload.
+        for ( var i = 0; i < parameterTypes.Count; i++ )
+        {
+            if ( parameterTypes[i].IsByRef )
+            {
+                return null;
+            }
+        }
+
+        var compilation = (ICompilationInternal) methods.DeclaringType.Compilation;
+
+        foreach ( var method in methods.OfName( name ) )
+        {
+            if ( method.IsExplicitInterfaceImplementation )
+            {
+                continue;
+            }
+
+            if ( isStatic != null && method.IsStatic != isStatic )
+            {
+                continue;
+            }
+
+            if ( method.Parameters.Count != parameterTypes.Count )
+            {
+                continue;
+            }
+
+            var match = true;
+
+            for ( var i = 0; i < parameterTypes.Count; i++ )
+            {
+                var parameter = method.Parameters[i];
+
+                // Non-by-ref reflection types match only plain and 'in' parameters.
+                if ( parameter.RefKind != RefKind.None && parameter.RefKind != RefKind.In )
+                {
+                    match = false;
+
+                    break;
+                }
+
+                var metalmaType = compilation.Factory.GetTypeByReflectionType( parameterTypes[i] );
+
+                if ( !compilation.Comparers.Default.IsConvertibleTo( metalmaType, parameter.Type, ConversionKind.Identical ) )
+                {
+                    match = false;
+
+                    break;
+                }
+            }
+
+            if ( match )
+            {
+                return method;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Gets a method that exactly matches the signature of the specified method.
     /// </summary>
     /// <param name="methods">A collection of methods.</param>
