@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -253,6 +254,47 @@ delegate int D(int x, string y);
     }
 
     [Fact]
+    public void KeywordParameterAndReturnParameterDistinctIds()
+    {
+        const string code = @"
+class C
+{
+    string M(string @return) => @return;
+}
+";
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+        var type = compilation.Types.Single();
+        var method = type.Methods.OfName( "M" ).Single();
+        var returnParameter = method.ReturnParameter;
+        var regularParameter = method.Parameters.Single();
+
+        // Verify the parameter name is "return" (without @, as Roslyn strips it).
+        Assert.Equal( "return", regularParameter.Name );
+
+        // Get IDs for both parameters.
+        var returnParamId = returnParameter.ToSerializableId();
+        var regularParamId = regularParameter.ToSerializableId();
+
+        this.TestOutput.WriteLine( $"Return parameter ID: {returnParamId.Id}" );
+        this.TestOutput.WriteLine( $"Regular parameter ID: {regularParamId.Id}" );
+
+        // The IDs must be different.
+        Assert.NotEqual( returnParamId.Id, regularParamId.Id );
+
+        // Verify the return parameter ID contains ";Return".
+        Assert.Contains( ";Return", returnParamId.Id, StringComparison.Ordinal );
+
+        // Verify the regular parameter ID contains ";Parameter=0".
+        Assert.Contains( ";Parameter=0", regularParamId.Id, StringComparison.Ordinal );
+
+        // Roundtrip both parameters.
+        Roundtrip( returnParameter, compilation, this.TestOutput );
+        Roundtrip( regularParameter, compilation, this.TestOutput );
+    }
+
+    [Fact]
     public void DelegateParameterRoundtrip()
     {
         const string code = @"
@@ -271,5 +313,45 @@ delegate int D(int x, string y);
         {
             Roundtrip( parameter, compilation, this.TestOutput );
         }
+    }
+
+    [Fact]
+    public void FileLocalTypes_CannotGetSerializableId()
+    {
+        // File-local types cannot have serializable IDs because the ID would be
+        // path-dependent, and serializable IDs must be cross-machine.
+        const string code = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+    public void M<T>(int p) {}
+}
+";
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+
+        var fileLocalType = compilation.GetContainedDeclarations()
+            .OfType<INamedType>()
+            .Single( t => t.Name == "FileLocalType" );
+
+        // The type itself should not get a serializable ID.
+        Assert.False( fileLocalType.TryGetSerializableId( out _ ) );
+
+        // Members should not get a serializable ID either.
+        var method = fileLocalType.Methods.OfName( "M" ).Single();
+        Assert.False( method.TryGetSerializableId( out _ ) );
+
+        // Parameters of members should not get a serializable ID.
+        var parameter = method.Parameters.Single();
+        Assert.False( parameter.TryGetSerializableId( out _ ) );
+
+        // Type parameters of members should not get a serializable ID.
+        var typeParameter = method.TypeParameters.Single();
+        Assert.False( typeParameter.TryGetSerializableId( out _ ) );
+
+        // GetSerializableId should throw for file-local types.
+        Assert.Throws<ArgumentException>( () => fileLocalType.ToSerializableId() );
     }
 }

@@ -251,7 +251,8 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                 case OverrideStrategy.Override:
                     Invariant.Assert( !hasNoBody );
 
-                    if ( !builder.ReturnType.IsConvertibleTo( existingMethod.ReturnType, ConversionKind.Reference ) )
+                    if ( !targetDeclaration.Compilation.Comparers.Default.IsConvertibleTo(
+                             builder.ReturnType, existingMethod.ReturnType, ConversionKind.Reference, ConversionFlags.TypeParameterEquivalence ) )
                     {
                         return
                             this.CreateFailedResult(
