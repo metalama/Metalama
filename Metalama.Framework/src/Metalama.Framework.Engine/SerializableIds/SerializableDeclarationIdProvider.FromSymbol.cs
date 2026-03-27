@@ -81,7 +81,7 @@ public static partial class SerializableDeclarationIdProvider
                 }
 
             case SymbolKind.NamedType when symbol is INamedTypeSymbol:
-                // File-local types need special handling - fall through to default but with file path appended.
+                // File-local types need special handling - fall through to default but with hash appended.
                 goto default;
 
             case SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType
@@ -112,10 +112,10 @@ public static partial class SerializableDeclarationIdProvider
                                 return false;
                             }
 
-                            // For file-local types (or members of file-local types), append the source file path
+                            // For file-local types (or members of file-local types), append a hash of the source file path
                             // to disambiguate types with the same name in different files.
-                            var fileLocalPath = GetFileLocalFilePath( symbol );
-                            var idString = AppendFileLocalSuffix( documentationId, fileLocalPath );
+                            var fileLocalHash = GetFileLocalHash( symbol );
+                            var idString = AppendFileLocalSuffix( documentationId, fileLocalHash );
 
                             if ( targetKind == RefTargetKind.Default )
                             {

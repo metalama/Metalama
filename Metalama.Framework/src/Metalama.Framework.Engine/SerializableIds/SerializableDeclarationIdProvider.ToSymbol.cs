@@ -42,8 +42,8 @@ public static partial class SerializableDeclarationIdProvider
 
         isReturnParameter = false;
 
-        // Handle file-local type discriminator: strip the |filePath suffix before further processing.
-        var (effectiveIdString, fileLocalPath) = ParseFileLocalSuffix( id.Id );
+        // Handle file-local type discriminator: strip the |hash suffix before further processing.
+        var (effectiveIdString, fileLocalHash) = ParseFileLocalSuffix( id.Id );
 
         var indexOfAt = effectiveIdString.IndexOfOrdinal( ';' );
 
@@ -57,7 +57,7 @@ public static partial class SerializableDeclarationIdProvider
             var kind = parts[1];
             var ordinal = parts.Length == 3 ? int.Parse( parts[2], CultureInfo.InvariantCulture ) : -1;
 
-            var parent = ResolveSymbolForDocId( parentId, compilation, fileLocalPath );
+            var parent = ResolveSymbolForDocId( parentId, compilation, fileLocalHash );
 
             if ( kind == nameof(RefTargetKind.Return) )
             {
@@ -114,7 +114,7 @@ public static partial class SerializableDeclarationIdProvider
                 }
             }
 
-            var symbol = ResolveSymbolForDocId( effectiveIdString, compilation, fileLocalPath );
+            var symbol = ResolveSymbolForDocId( effectiveIdString, compilation, fileLocalHash );
 
             // Make sure to return the non-nullable type.
             if ( symbol?.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter
@@ -130,22 +130,22 @@ public static partial class SerializableDeclarationIdProvider
     }
 
     /// <summary>
-    /// Resolves a documentation comment ID to a symbol, optionally filtering by file path for file-local types.
+    /// Resolves a documentation comment ID to a symbol, optionally filtering by file-local hash for file-local types.
     /// </summary>
-    private static ISymbol? ResolveSymbolForDocId( string docId, Compilation compilation, string? fileLocalPath )
+    private static ISymbol? ResolveSymbolForDocId( string docId, Compilation compilation, string? fileLocalHash )
     {
-        if ( fileLocalPath == null )
+        if ( fileLocalHash == null )
         {
             return DocumentationCommentId.GetFirstSymbolForDeclarationId( docId, compilation );
         }
 
         // For file-local types, we may get multiple symbols with the same documentation comment ID.
-        // We need to find the one in the correct file.
+        // We need to find the one with the matching hash.
         var symbols = DocumentationCommentId.GetSymbolsForDeclarationId( docId, compilation );
 
         foreach ( var candidate in symbols )
         {
-            if ( GetFileLocalFilePath( candidate ) == fileLocalPath )
+            if ( GetFileLocalHash( candidate ) == fileLocalHash )
             {
                 return candidate;
             }

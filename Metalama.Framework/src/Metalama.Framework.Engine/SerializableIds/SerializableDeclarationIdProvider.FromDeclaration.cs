@@ -92,10 +92,10 @@ public static partial class SerializableDeclarationIdProvider
                         exception );
                 }
 
-                // For file-local types (or members of file-local types), append the source file path
+                // For file-local types (or members of file-local types), append a hash of the source file path
                 // to disambiguate types with the same name in different files.
-                var fileLocalPath = GetFileLocalFilePath( declaration );
-                var idString = AppendFileLocalSuffix( documentationId, fileLocalPath );
+                var fileLocalHash = GetFileLocalHash( declaration );
+                var idString = AppendFileLocalSuffix( documentationId, fileLocalHash );
 
                 id = new SerializableDeclarationId( targetKind == RefTargetKind.Default ? idString : $"{idString};{targetKind}" );
 

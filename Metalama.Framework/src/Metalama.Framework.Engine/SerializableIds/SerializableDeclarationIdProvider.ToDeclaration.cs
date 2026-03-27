@@ -17,8 +17,8 @@ public static partial class SerializableDeclarationIdProvider
 {
     internal static ICompilationElement? ResolveToDeclaration( this SerializableDeclarationId id, CompilationModel compilation )
     {
-        // Handle file-local type discriminator: strip the |filePath suffix before further processing.
-        var (effectiveIdString, fileLocalPath) = ParseFileLocalSuffix( id.Id );
+        // Handle file-local type discriminator: strip the |hash suffix before further processing.
+        var (effectiveIdString, fileLocalHash) = ParseFileLocalSuffix( id.Id );
 
         var indexOfAt = effectiveIdString.IndexOfOrdinal( ';' );
 
@@ -32,7 +32,7 @@ public static partial class SerializableDeclarationIdProvider
             var kind = parts[1];
             var ordinal = parts.Length == 3 ? int.Parse( parts[2], CultureInfo.InvariantCulture ) : -1;
 
-            var parent = ResolveDeclarationForDocId( parentId, compilation, fileLocalPath );
+            var parent = ResolveDeclarationForDocId( parentId, compilation, fileLocalHash );
 
             return (parent, kind) switch
             {
@@ -76,27 +76,27 @@ public static partial class SerializableDeclarationIdProvider
         }
         else
         {
-            return ResolveDeclarationForDocId( effectiveIdString, compilation, fileLocalPath );
+            return ResolveDeclarationForDocId( effectiveIdString, compilation, fileLocalHash );
         }
     }
 
     /// <summary>
-    /// Resolves a documentation comment ID to a declaration, optionally filtering by file path for file-local types.
+    /// Resolves a documentation comment ID to a declaration, optionally filtering by file-local hash for file-local types.
     /// </summary>
-    private static IDeclaration? ResolveDeclarationForDocId( string docId, CompilationModel compilation, string? fileLocalPath )
+    private static IDeclaration? ResolveDeclarationForDocId( string docId, CompilationModel compilation, string? fileLocalHash )
     {
-        if ( fileLocalPath == null )
+        if ( fileLocalHash == null )
         {
             return DocumentationIdHelper.GetFirstDeclarationForDeclarationId( docId, compilation );
         }
 
         // For file-local types, we may get multiple declarations with the same documentation comment ID.
-        // We need to find the one in the correct file.
+        // We need to find the one with the matching hash.
         var allDeclarations = DocumentationIdHelper.GetDeclarationsForDeclarationId( docId, compilation );
 
         foreach ( var candidate in allDeclarations )
         {
-            if ( GetFileLocalFilePath( candidate ) == fileLocalPath )
+            if ( GetFileLocalHash( candidate ) == fileLocalHash )
             {
                 return candidate;
             }
