@@ -371,6 +371,20 @@ internal sealed partial class LinkerInjectionStep
                 ref baseList,
                 ref parameterList );
 
+            // When parameters are introduced into a record's primary constructor, the compiler-generated
+            // Deconstruct method will include the new parameters. We need to inject a Deconstruct overload
+            // with the original parameters so existing deconstruction code remains valid (#698).
+            var originalParameterList = node.GetParameterList();
+
+            if ( node is RecordDeclarationSyntax recordDeclaration
+                 && originalParameterList is { Parameters.Count: > 0 }
+                 && parameterList != originalParameterList
+                 && !HasUserDefinedDeconstruct( node, originalParameterList.Parameters.Count ) )
+            {
+                members.Add(
+                    GenerateOriginalDeconstructOverload( recordDeclaration, originalParameterList, syntaxGenerationContext ) );
+            }
+
             // Process the type members.
             foreach ( var member in node.Members )
             {
@@ -1059,6 +1073,71 @@ internal sealed partial class LinkerInjectionStep
                                     .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ) ) ) );
                 }
             }
+        }
+
+        /// <summary>
+        /// Checks whether the type declaration already contains a user-defined Deconstruct method
+        /// with the specified number of out parameters.
+        /// </summary>
+        private static bool HasUserDefinedDeconstruct( TypeDeclarationSyntax typeDeclaration, int parameterCount )
+        {
+            foreach ( var member in typeDeclaration.Members )
+            {
+                if ( member.IsKind( SyntaxKind.MethodDeclaration )
+                     && member is MethodDeclarationSyntax method
+                     && method.Identifier.ValueText == "Deconstruct"
+                     && method.ParameterList.Parameters.Count == parameterCount
+                     && method.ParameterList.Parameters.All( p => p.Modifiers.Any( m => m.IsKind( SyntaxKind.OutKeyword ) ) ) )
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Generates a Deconstruct method overload with the original record primary constructor parameters,
+        /// so that existing deconstruction code remains valid when new parameters are introduced (#698).
+        /// </summary>
+        private static MethodDeclarationSyntax GenerateOriginalDeconstructOverload(
+            RecordDeclarationSyntax recordDeclaration,
+            ParameterListSyntax originalParameterList,
+            SyntaxGenerationContext context )
+        {
+            return MethodDeclaration(
+                    List<AttributeListSyntax>(),
+                    TokenList( TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
+                    PredefinedType( TokenWithTrailingSpace( SyntaxKind.VoidKeyword ) ),
+                    null,
+                    Identifier( "Deconstruct" ),
+                    null,
+                    ParameterList(
+                        SeparatedList(
+                            originalParameterList.Parameters.SelectAsArray(
+                                p =>
+                                    Parameter(
+                                        List<AttributeListSyntax>(),
+                                        TokenList( TokenWithTrailingSpace( SyntaxKind.OutKeyword ) ),
+                                        p.Type,
+                                        p.Identifier,
+                                        null ) ) ) ),
+                    List<TypeParameterConstraintClauseSyntax>(),
+                    Block(
+                        originalParameterList.Parameters.SelectAsArray(
+                            p =>
+                                (StatementSyntax) ExpressionStatement(
+                                    AssignmentExpression(
+                                        SyntaxKind.SimpleAssignmentExpression,
+                                        WellKnownIdentifierName( p.Identifier ),
+                                        MemberAccessExpression(
+                                                SyntaxKind.SimpleMemberAccessExpression,
+                                                ThisExpression(),
+                                                WellKnownIdentifierName( p.Identifier ) )
+                                            .WithSimplifierAnnotationIfNecessary( context ) ) ) ) ),
+                    null,
+                    default )
+                .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
         }
 
         private ConstructorInitializerSyntax? AppendInitializerArguments(
