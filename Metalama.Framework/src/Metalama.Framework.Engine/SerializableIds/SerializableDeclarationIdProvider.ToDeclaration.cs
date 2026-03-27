@@ -17,13 +17,15 @@ public static partial class SerializableDeclarationIdProvider
 {
     internal static ICompilationElement? ResolveToDeclaration( this SerializableDeclarationId id, CompilationModel compilation )
     {
-        var indexOfAt = id.Id.IndexOfOrdinal( ';' );
+        var idString = id.Id;
+
+        var indexOfAt = idString.IndexOfOrdinal( ';' );
 
         if ( indexOfAt > 0 )
         {
             // We have a parameter or a type parameter.
 
-            var parts = id.Id.Split( _separators );
+            var parts = idString.Split( _separators );
 
             var parentId = parts[0];
             var kind = parts[1];
@@ -51,18 +53,18 @@ public static partial class SerializableDeclarationIdProvider
                 _ => null
             };
         }
-        else if ( id.Id.StartsWith( _assemblyPrefix, StringComparison.OrdinalIgnoreCase ) )
+        else if ( idString.StartsWith( _assemblyPrefix, StringComparison.OrdinalIgnoreCase ) )
         {
-            if ( !AssemblyIdentity.TryParseDisplayName( id.Id.Substring( _assemblyPrefix.Length ), out var assemblyIdentity ) )
+            if ( !AssemblyIdentity.TryParseDisplayName( idString.Substring( _assemblyPrefix.Length ), out var assemblyIdentity ) )
             {
                 throw new AssertionFailedException( $"Cannot parse the id '{id.Id}'." );
             }
 
             return compilation.Factory.GetAssembly( assemblyIdentity );
         }
-        else if ( id.Id.StartsWith( SerializableTypeId.Prefix, StringComparison.Ordinal ) )
+        else if ( idString.StartsWith( SerializableTypeId.Prefix, StringComparison.Ordinal ) )
         {
-            if ( !compilation.CompilationContext.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( id.Id ), out var typeSymbol ) )
+            if ( !compilation.CompilationContext.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( idString ), out var typeSymbol ) )
             {
                 return null;
             }
@@ -73,7 +75,7 @@ public static partial class SerializableDeclarationIdProvider
         }
         else
         {
-            return DocumentationIdHelper.GetFirstDeclarationForDeclarationId( id.ToString(), compilation );
+            return DocumentationIdHelper.GetFirstDeclarationForDeclarationId( idString, compilation );
         }
     }
 }

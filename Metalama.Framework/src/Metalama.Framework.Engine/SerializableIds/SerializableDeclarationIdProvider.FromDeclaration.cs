@@ -43,6 +43,13 @@ public static partial class SerializableDeclarationIdProvider
 
             case DeclarationKind.Parameter when declaration is IParameter parameter:
                 {
+                    if ( IsInFileLocalType( declaration ) )
+                    {
+                        id = default;
+
+                        return false;
+                    }
+
                     var parentId = DocumentationIdHelper.CreateDeclarationId( parameter.ContainingDeclaration.AssertNotNull() ).AssertNotNull();
 
                     id = new SerializableDeclarationId( $"{parentId};Parameter={parameter.Index}" );
@@ -52,6 +59,13 @@ public static partial class SerializableDeclarationIdProvider
 
             case DeclarationKind.TypeParameter when declaration is ITypeParameter typeParameter:
                 {
+                    if ( IsInFileLocalType( declaration ) )
+                    {
+                        id = default;
+
+                        return false;
+                    }
+
                     var parentId = DocumentationIdHelper.CreateDeclarationId( typeParameter.ContainingDeclaration! ).AssertNotNull();
 
                     id = new SerializableDeclarationId( $"{parentId};TypeParameter={typeParameter.Index}" );
@@ -79,6 +93,13 @@ public static partial class SerializableDeclarationIdProvider
                 return TryGetSerializableId( eventRaisePseudoAccessor.DeclaringMember, RefTargetKind.EventRaise, out id );
 
             default:
+                if ( IsInFileLocalType( declaration ) )
+                {
+                    id = default;
+
+                    return false;
+                }
+
                 string documentationId;
 
                 try
