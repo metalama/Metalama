@@ -86,39 +86,7 @@ internal sealed partial class LinkerRewritingDriver
             if ( constructorDeclaration.Parent?.SyntaxKind.IsRecordDeclaration == true
                  && constructorDeclaration.Parent is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } recordDeclaration )
             {
-                members.Add(
-                    MethodDeclaration(
-                        List<AttributeListSyntax>(),
-                        TokenList( TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
-                        PredefinedType( TokenWithTrailingSpace( SyntaxKind.VoidKeyword ) ),
-                        null,
-                        Identifier( "Deconstruct" ),
-                        null,
-                        ParameterList(
-                            SeparatedList(
-                                recordDeclaration.ParameterList.Parameters.SelectAsArray(
-                                    p =>
-                                        Parameter(
-                                            List<AttributeListSyntax>(),
-                                            TokenList( TokenWithTrailingSpace( SyntaxKind.OutKeyword ) ),
-                                            p.Type,
-                                            p.Identifier,
-                                            null ) ) ) ),
-                        List<TypeParameterConstraintClauseSyntax>(),
-                        Block(
-                            recordDeclaration.ParameterList.Parameters.SelectAsArray(
-                                p =>
-                                    (StatementSyntax) ExpressionStatement(
-                                        AssignmentExpression(
-                                            SyntaxKind.SimpleAssignmentExpression,
-                                            WellKnownIdentifierName( p.Identifier ),
-                                            MemberAccessExpression(
-                                                    SyntaxKind.SimpleMemberAccessExpression,
-                                                    ThisExpression(),
-                                                    WellKnownIdentifierName( p.Identifier ) )
-                                                .WithSimplifierAnnotationIfNecessary( context ) ) ) ) ),
-                        null,
-                        default ) );
+                members.Add( RecordDeconstructSyntaxHelper.GenerateDeconstructMethod( recordDeclaration.ParameterList, context ) );
             }
         }
 

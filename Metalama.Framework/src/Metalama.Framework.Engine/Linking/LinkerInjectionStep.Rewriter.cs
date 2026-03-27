@@ -376,13 +376,13 @@ internal sealed partial class LinkerInjectionStep
             // with the original parameters so existing deconstruction code remains valid (#698).
             var originalParameterList = node.GetParameterList();
 
-            if ( node is RecordDeclarationSyntax recordDeclaration
+            if ( node is RecordDeclarationSyntax
                  && originalParameterList is { Parameters.Count: > 0 }
                  && parameterList != originalParameterList
                  && !HasUserDefinedDeconstruct( node, originalParameterList.Parameters.Count ) )
             {
                 members.Add(
-                    GenerateOriginalDeconstructOverload( recordDeclaration, originalParameterList, syntaxGenerationContext ) );
+                    RecordDeconstructSyntaxHelper.GenerateDeconstructMethod( originalParameterList, syntaxGenerationContext ) );
             }
 
             // Process the type members.
@@ -1086,6 +1086,10 @@ internal sealed partial class LinkerInjectionStep
                 if ( member.IsKind( SyntaxKind.MethodDeclaration )
                      && member is MethodDeclarationSyntax method
                      && method.Identifier.ValueText == "Deconstruct"
+                     && method.TypeParameterList == null
+                     && !method.Modifiers.Any( m => m.IsKind( SyntaxKind.StaticKeyword ) )
+                     && method.ReturnType is PredefinedTypeSyntax predefinedReturnType
+                     && predefinedReturnType.Keyword.IsKind( SyntaxKind.VoidKeyword )
                      && method.ParameterList.Parameters.Count == parameterCount
                      && method.ParameterList.Parameters.All( p => p.Modifiers.Any( m => m.IsKind( SyntaxKind.OutKeyword ) ) ) )
                 {
@@ -1094,50 +1098,6 @@ internal sealed partial class LinkerInjectionStep
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// Generates a Deconstruct method overload with the original record primary constructor parameters,
-        /// so that existing deconstruction code remains valid when new parameters are introduced (#698).
-        /// </summary>
-        private static MethodDeclarationSyntax GenerateOriginalDeconstructOverload(
-            RecordDeclarationSyntax recordDeclaration,
-            ParameterListSyntax originalParameterList,
-            SyntaxGenerationContext context )
-        {
-            return MethodDeclaration(
-                    List<AttributeListSyntax>(),
-                    TokenList( TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
-                    PredefinedType( TokenWithTrailingSpace( SyntaxKind.VoidKeyword ) ),
-                    null,
-                    Identifier( "Deconstruct" ),
-                    null,
-                    ParameterList(
-                        SeparatedList(
-                            originalParameterList.Parameters.SelectAsArray(
-                                p =>
-                                    Parameter(
-                                        List<AttributeListSyntax>(),
-                                        TokenList( TokenWithTrailingSpace( SyntaxKind.OutKeyword ) ),
-                                        p.Type,
-                                        p.Identifier,
-                                        null ) ) ) ),
-                    List<TypeParameterConstraintClauseSyntax>(),
-                    Block(
-                        originalParameterList.Parameters.SelectAsArray(
-                            p =>
-                                (StatementSyntax) ExpressionStatement(
-                                    AssignmentExpression(
-                                        SyntaxKind.SimpleAssignmentExpression,
-                                        WellKnownIdentifierName( p.Identifier ),
-                                        MemberAccessExpression(
-                                                SyntaxKind.SimpleMemberAccessExpression,
-                                                ThisExpression(),
-                                                WellKnownIdentifierName( p.Identifier ) )
-                                            .WithSimplifierAnnotationIfNecessary( context ) ) ) ) ),
-                    null,
-                    default )
-                .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
         }
 
         private ConstructorInitializerSyntax? AppendInitializerArguments(
