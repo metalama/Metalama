@@ -51,8 +51,10 @@ public static partial class SerializableDeclarationIdProvider
             case SymbolKind.Parameter when symbol is IParameterSymbol parameterSymbol:
                 {
                     var parentId = DocumentationCommentId.CreateDeclarationId( parameterSymbol.ContainingSymbol ).AssertNotNull();
+                    var paramFileLocalHash = GetFileLocalHash( parameterSymbol );
+                    var parentIdWithHash = AppendFileLocalSuffix( parentId, paramFileLocalHash );
 
-                    id = new SerializableDeclarationId( $"{parentId};Parameter={parameterSymbol.Ordinal}" );
+                    id = new SerializableDeclarationId( $"{parentIdWithHash};Parameter={parameterSymbol.Ordinal}" );
 
                     return true;
                 }
@@ -60,8 +62,10 @@ public static partial class SerializableDeclarationIdProvider
             case SymbolKind.TypeParameter when symbol is ITypeParameterSymbol typeParameterSymbol:
                 {
                     var parentId = DocumentationCommentId.CreateDeclarationId( typeParameterSymbol.ContainingSymbol ).AssertNotNull();
+                    var typeParamFileLocalHash = GetFileLocalHash( typeParameterSymbol );
+                    var parentIdWithHash = AppendFileLocalSuffix( parentId, typeParamFileLocalHash );
 
-                    id = new SerializableDeclarationId( $"{parentId};TypeParameter={typeParameterSymbol.Ordinal}" );
+                    id = new SerializableDeclarationId( $"{parentIdWithHash};TypeParameter={typeParameterSymbol.Ordinal}" );
 
                     return true;
                 }

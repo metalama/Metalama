@@ -44,8 +44,10 @@ public static partial class SerializableDeclarationIdProvider
             case DeclarationKind.Parameter when declaration is IParameter parameter:
                 {
                     var parentId = DocumentationIdHelper.CreateDeclarationId( parameter.ContainingDeclaration.AssertNotNull() ).AssertNotNull();
+                    var paramFileLocalHash = GetFileLocalHash( declaration );
+                    var parentIdWithHash = AppendFileLocalSuffix( parentId, paramFileLocalHash );
 
-                    id = new SerializableDeclarationId( $"{parentId};Parameter={parameter.Index}" );
+                    id = new SerializableDeclarationId( $"{parentIdWithHash};Parameter={parameter.Index}" );
 
                     return true;
                 }
@@ -53,8 +55,10 @@ public static partial class SerializableDeclarationIdProvider
             case DeclarationKind.TypeParameter when declaration is ITypeParameter typeParameter:
                 {
                     var parentId = DocumentationIdHelper.CreateDeclarationId( typeParameter.ContainingDeclaration! ).AssertNotNull();
+                    var typeParamFileLocalHash = GetFileLocalHash( declaration );
+                    var parentIdWithHash = AppendFileLocalSuffix( parentId, typeParamFileLocalHash );
 
-                    id = new SerializableDeclarationId( $"{parentId};TypeParameter={typeParameter.Index}" );
+                    id = new SerializableDeclarationId( $"{parentIdWithHash};TypeParameter={typeParameter.Index}" );
 
                     return true;
                 }

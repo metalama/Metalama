@@ -381,4 +381,114 @@ file class FileLocalType
         Roundtrip( method1, compilation, this.TestOutput );
         Roundtrip( method2, compilation, this.TestOutput );
     }
+
+    [Fact]
+    public void FileLocalTypes_ParametersHaveDistinctIds()
+    {
+        // Parameters of methods on file-local types with the same name must have distinct IDs.
+        const string code1 = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+    public void M(int p) {}
+}
+";
+
+        const string code2 = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+    public void M(int p) {}
+}
+";
+
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilation(
+            new Dictionary<string, string>
+            {
+                { "File1.cs", code1 },
+                { "File2.cs", code2 }
+            } );
+
+        var fileLocalTypes = compilation.GetContainedDeclarations()
+            .OfType<INamedType>()
+            .Where( t => t.Name == "FileLocalType" )
+            .ToList();
+
+        Assert.Equal( 2, fileLocalTypes.Count );
+
+        var param1 = fileLocalTypes[0].Methods.OfName( "M" ).Single().Parameters.Single();
+        var param2 = fileLocalTypes[1].Methods.OfName( "M" ).Single().Parameters.Single();
+
+        var paramId1 = param1.ToSerializableId();
+        var paramId2 = param2.ToSerializableId();
+
+        this.TestOutput.WriteLine( $"Parameter 1 ID: {paramId1.Id}" );
+        this.TestOutput.WriteLine( $"Parameter 2 ID: {paramId2.Id}" );
+
+        // Parameters on different file-local types must have different IDs.
+        Assert.NotEqual( paramId1, paramId2 );
+
+        // Both must roundtrip correctly.
+        Roundtrip( param1, compilation, this.TestOutput );
+        Roundtrip( param2, compilation, this.TestOutput );
+    }
+
+    [Fact]
+    public void FileLocalTypes_TypeParametersHaveDistinctIds()
+    {
+        // Type parameters of methods on file-local types with the same name must have distinct IDs.
+        const string code1 = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+    public void M<T>() {}
+}
+";
+
+        const string code2 = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+    public void M<T>() {}
+}
+";
+
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilation(
+            new Dictionary<string, string>
+            {
+                { "File1.cs", code1 },
+                { "File2.cs", code2 }
+            } );
+
+        var fileLocalTypes = compilation.GetContainedDeclarations()
+            .OfType<INamedType>()
+            .Where( t => t.Name == "FileLocalType" )
+            .ToList();
+
+        Assert.Equal( 2, fileLocalTypes.Count );
+
+        var typeParam1 = fileLocalTypes[0].Methods.OfName( "M" ).Single().TypeParameters.Single();
+        var typeParam2 = fileLocalTypes[1].Methods.OfName( "M" ).Single().TypeParameters.Single();
+
+        var typeParamId1 = typeParam1.ToSerializableId();
+        var typeParamId2 = typeParam2.ToSerializableId();
+
+        this.TestOutput.WriteLine( $"TypeParameter 1 ID: {typeParamId1.Id}" );
+        this.TestOutput.WriteLine( $"TypeParameter 2 ID: {typeParamId2.Id}" );
+
+        // Type parameters on different file-local types must have different IDs.
+        Assert.NotEqual( typeParamId1, typeParamId2 );
+
+        // Both must roundtrip correctly.
+        Roundtrip( typeParam1, compilation, this.TestOutput );
+        Roundtrip( typeParam2, compilation, this.TestOutput );
+    }
 }
