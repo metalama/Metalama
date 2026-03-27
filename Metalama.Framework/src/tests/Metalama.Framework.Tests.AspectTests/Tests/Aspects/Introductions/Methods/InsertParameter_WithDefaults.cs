@@ -7,33 +7,33 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.InsertParameter
+namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.InsertParameter_WithDefaults
 {
     /*
-     * Tests that InsertParameter allows inserting parameters at a specific index
-     * in an introduced method, before the template's own parameters.
+     * Tests that InsertParameter works correctly when inserting parameters with default values
+     * before template parameters that also have default values.
      */
 
     public class IntroductionAttribute : TypeAspect
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            // Introduce a method based on a template that has parameters,
-            // inserting additional parameters at the start of the parameter list.
             builder.IntroduceMethod(
                 nameof(Template),
                 buildMethod: introduced =>
                 {
                     introduced.Name = "IntroducedMethod";
 
-                    // Insert parameters at the beginning, before the template's 'message' parameter.
+                    // Insert a required parameter at the beginning.
                     introduced.InsertParameter( 0, "x", typeof(int) );
-                    introduced.InsertParameter( 1, "y", typeof(int) );
+
+                    // Insert an optional parameter after the required one.
+                    introduced.InsertParameter( 1, "y", typeof(int), defaultValue: TypedConstant.Create( 42 ) );
                 } );
         }
 
         [Template]
-        public void Template( string message )
+        public void Template( string message = "default" )
         {
             Console.WriteLine( message );
         }

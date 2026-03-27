@@ -48,6 +48,38 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
         return this.AddParameter( name, iType, refKind, typedConstant );
     }
 
+    public IParameterBuilder InsertParameter( int index, string name, IType type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
+    {
+        this.CheckNotFrozen();
+
+        if ( index < 0 || index > this.Parameters.Count )
+        {
+            throw new ArgumentOutOfRangeException( nameof(index) );
+        }
+
+        var parameter = new ParameterBuilder( this, index, name, type, refKind, this.AspectLayerInstance );
+        parameter.DefaultValue = defaultValue;
+        this.Parameters.Insert( index, parameter );
+
+        // Update indices of parameters after the insertion point.
+        for ( var i = index + 1; i < this.Parameters.Count; i++ )
+        {
+            ((ParameterBuilder) this.Parameters[i]).SetIndex( i );
+        }
+
+        return parameter;
+    }
+
+    public IParameterBuilder InsertParameter( int index, string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
+    {
+        this.CheckNotFrozen();
+
+        var iType = this.Compilation.Factory.GetTypeByReflectionType( type );
+        TypedConstant? typedConstant = defaultValue != null ? TypedConstant.Create( defaultValue.Value.Value, iType ) : null;
+
+        return this.InsertParameter( index, name, iType, refKind, typedConstant );
+    }
+
     IParameterList IHasParameters.Parameters => this.Parameters;
 
     IParameterBuilderList IHasParametersBuilder.Parameters => this.Parameters;

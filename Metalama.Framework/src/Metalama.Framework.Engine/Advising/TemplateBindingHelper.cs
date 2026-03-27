@@ -72,7 +72,10 @@ internal static class TemplateBindingHelper
             for ( var i = 0; i < template.TemplateMember.TemplateClassMember.RunTimeParameters.Length; i++ )
             {
                 var templateParameter = template.TemplateMember.TemplateClassMember.RunTimeParameters[i];
-                var parameter = targetMethod.Parameters[i];
+
+                // Look up the target parameter by name rather than by index, because the user may have
+                // inserted parameters before template parameters using InsertParameter.
+                var parameter = targetMethod.Parameters[templateParameter.Name];
                 ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( parameter.Name );
                 parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, parameter.Type );
                 mappingBuilder.Add( templateParameter.Name, parameterSyntax );
