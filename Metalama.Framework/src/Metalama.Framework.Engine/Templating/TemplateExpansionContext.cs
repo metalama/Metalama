@@ -242,26 +242,23 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
 
     private static UserCodeDescription CreateUserCodeDescription( BoundTemplateMethod? methodTemplate, MetaApi metaApi )
     {
+        const string introducingFormat =
+            "executing the template method '{0}' in the context of the aspect '{1}' introducing '{2}'";
+
+        const string appliedToFormat =
+            "executing the template method '{0}' in the context of the aspect '{1}' applied to '{2}'";
+
         var templateSymbol = (object?) methodTemplate?.TemplateMember.Symbol ?? metaApi.Template.Symbol;
         var aspectName = metaApi.AspectInstance?.AspectClass.FullName;
         var declaration = metaApi.MethodOrNull ?? metaApi.Declaration;
 
-        string verb;
-        object? target;
+        var isIntroducing = declaration.Origin.Kind == DeclarationOriginKind.Aspect;
 
-        if ( declaration.Origin.Kind == DeclarationOriginKind.Aspect )
-        {
-            verb = "introducing";
-            target = declaration;
-        }
-        else
-        {
-            verb = "applied to";
-            target = metaApi.AspectInstance?.TargetDeclaration;
-        }
+        object? target = isIntroducing ? declaration : metaApi.AspectInstance?.TargetDeclaration;
+        var format = isIntroducing ? introducingFormat : appliedToFormat;
 
         return UserCodeDescription.Create(
-            $"executing the template method '{{0}}' in the context of the aspect '{{1}}' {verb} '{{2}}'",
+            format,
             templateSymbol,
             aspectName,
             target );
