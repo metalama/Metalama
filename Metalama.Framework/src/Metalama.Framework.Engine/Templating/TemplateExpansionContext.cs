@@ -176,11 +176,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         Func<TemplateKind, IUserExpression>? proceedExpressionProvider,
         AspectLayerId aspectLayerId ) : base(
         serviceProvider,
-        UserCodeDescription.Create(
-            "executing the template method '{0}' in the context of the aspect '{1}' applied to '{2}'",
-            methodTemplate?.TemplateMember.Symbol,
-            metaApi.AspectInstance?.AspectClass.FullName,
-            metaApi.AspectInstance?.TargetDeclaration ),
+        CreateUserCodeDescription( methodTemplate, metaApi ),
         syntaxGenerationContext.CompilationContext,
         aspectLayerId,
         (CompilationModel?) metaApi.Compilation,
@@ -242,6 +238,30 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         this.TemplateGenericArguments = templateTypeArguments.ToImmutable();
 
         this.SyntaxFactory = new TemplateSyntaxFactoryImpl( this );
+    }
+
+    private static UserCodeDescription CreateUserCodeDescription( BoundTemplateMethod? methodTemplate, MetaApi metaApi )
+    {
+        var templateSymbol = (object?) methodTemplate?.TemplateMember.Symbol ?? metaApi.Template.Symbol;
+        var aspectName = metaApi.AspectInstance?.AspectClass.FullName;
+        var declaration = metaApi.MethodOrNull ?? metaApi.Declaration;
+
+        if ( declaration.Origin.Kind == DeclarationOriginKind.Aspect )
+        {
+            return UserCodeDescription.Create(
+                "executing the template method '{0}' in the context of the aspect '{1}' introducing '{2}'",
+                templateSymbol,
+                aspectName,
+                declaration );
+        }
+        else
+        {
+            return UserCodeDescription.Create(
+                "executing the template method '{0}' in the context of the aspect '{1}' applied to '{2}'",
+                templateSymbol,
+                aspectName,
+                metaApi.AspectInstance?.TargetDeclaration );
+        }
     }
 
     private TemplateExpansionContext( TemplateExpansionContext prototype, LocalFunctionInfo localFunctionInfo ) : base( prototype )
