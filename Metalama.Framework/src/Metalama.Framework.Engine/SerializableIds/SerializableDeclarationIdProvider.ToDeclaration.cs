@@ -17,19 +17,22 @@ public static partial class SerializableDeclarationIdProvider
 {
     internal static ICompilationElement? ResolveToDeclaration( this SerializableDeclarationId id, CompilationModel compilation )
     {
-        var indexOfAt = id.Id.IndexOfOrdinal( ';' );
+        // Handle file-local type discriminator: strip the |filePath suffix before further processing.
+        var (effectiveIdString, fileLocalPath) = ParseFileLocalSuffix( id.Id );
+
+        var indexOfAt = effectiveIdString.IndexOfOrdinal( ';' );
 
         if ( indexOfAt > 0 )
         {
             // We have a parameter or a type parameter.
 
-            var parts = id.Id.Split( _separators );
+            var parts = effectiveIdString.Split( _separators );
 
             var parentId = parts[0];
             var kind = parts[1];
             var ordinal = parts.Length == 3 ? int.Parse( parts[2], CultureInfo.InvariantCulture ) : -1;
 
-            var parent = DocumentationIdHelper.GetFirstDeclarationForDeclarationId( parentId, compilation );
+            var parent = ResolveDeclarationForDocId( parentId, compilation, fileLocalPath );
 
             return (parent, kind) switch
             {
@@ -51,18 +54,18 @@ public static partial class SerializableDeclarationIdProvider
                 _ => null
             };
         }
-        else if ( id.Id.StartsWith( _assemblyPrefix, StringComparison.OrdinalIgnoreCase ) )
+        else if ( effectiveIdString.StartsWith( _assemblyPrefix, StringComparison.OrdinalIgnoreCase ) )
         {
-            if ( !AssemblyIdentity.TryParseDisplayName( id.Id.Substring( _assemblyPrefix.Length ), out var assemblyIdentity ) )
+            if ( !AssemblyIdentity.TryParseDisplayName( effectiveIdString.Substring( _assemblyPrefix.Length ), out var assemblyIdentity ) )
             {
                 throw new AssertionFailedException( $"Cannot parse the id '{id.Id}'." );
             }
 
             return compilation.Factory.GetAssembly( assemblyIdentity );
         }
-        else if ( id.Id.StartsWith( SerializableTypeId.Prefix, StringComparison.Ordinal ) )
+        else if ( effectiveIdString.StartsWith( SerializableTypeId.Prefix, StringComparison.Ordinal ) )
         {
-            if ( !compilation.CompilationContext.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( id.Id ), out var typeSymbol ) )
+            if ( !compilation.CompilationContext.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( effectiveIdString ), out var typeSymbol ) )
             {
                 return null;
             }
@@ -73,7 +76,33 @@ public static partial class SerializableDeclarationIdProvider
         }
         else
         {
-            return DocumentationIdHelper.GetFirstDeclarationForDeclarationId( id.ToString(), compilation );
+            return ResolveDeclarationForDocId( effectiveIdString, compilation, fileLocalPath );
         }
+    }
+
+    /// <summary>
+    /// Resolves a documentation comment ID to a declaration, optionally filtering by file path for file-local types.
+    /// </summary>
+    private static IDeclaration? ResolveDeclarationForDocId( string docId, CompilationModel compilation, string? fileLocalPath )
+    {
+        if ( fileLocalPath == null )
+        {
+            return DocumentationIdHelper.GetFirstDeclarationForDeclarationId( docId, compilation );
+        }
+
+        // For file-local types, we may get multiple declarations with the same documentation comment ID.
+        // We need to find the one in the correct file.
+        var allDeclarations = DocumentationIdHelper.GetDeclarationsForDeclarationId( docId, compilation );
+
+        foreach ( var candidate in allDeclarations )
+        {
+            if ( GetFileLocalFilePath( candidate ) == fileLocalPath )
+            {
+                return candidate;
+            }
+        }
+
+        // Fallback: return the first match if no file-local match found.
+        return allDeclarations.Count == 0 ? null : allDeclarations[0];
     }
 }

@@ -92,7 +92,12 @@ public static partial class SerializableDeclarationIdProvider
                         exception );
                 }
 
-                id = new SerializableDeclarationId( targetKind == RefTargetKind.Default ? documentationId : $"{documentationId};{targetKind}" );
+                // For file-local types (or members of file-local types), append the source file path
+                // to disambiguate types with the same name in different files.
+                var fileLocalPath = GetFileLocalFilePath( declaration );
+                var idString = AppendFileLocalSuffix( documentationId, fileLocalPath );
+
+                id = new SerializableDeclarationId( targetKind == RefTargetKind.Default ? idString : $"{idString};{targetKind}" );
 
                 return true;
         }

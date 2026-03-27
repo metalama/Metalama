@@ -79,6 +79,29 @@ namespace Metalama.Framework.Engine.SerializableIds
             return results.Count == 0 ? null : results[0];
         }
 
+        /// <summary>
+        /// Gets all declarations that match the declaration id string.
+        /// </summary>
+        public static IReadOnlyList<IDeclaration> GetDeclarationsForDeclarationId( string id, CompilationModel compilation )
+        {
+            if ( id == null )
+            {
+                throw new ArgumentNullException( nameof(id) );
+            }
+
+            if ( compilation == null )
+            {
+                throw new ArgumentNullException( nameof(compilation) );
+            }
+
+            var results = new List<IDeclaration>();
+
+            var parser = new Parser( compilation );
+            parser.ParseDeclaredSymbolId( id, results );
+
+            return results;
+        }
+
         private static int GetTotalTypeParameterCount( INamedType? namedType )
         {
             var n = 0;
