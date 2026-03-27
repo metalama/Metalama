@@ -13,10 +13,10 @@ param(
     [string[]]$BuildArgs   # Arguments passed to `Build.ps1` within the container.
 )
 
-# Require PowerShell 7.4 or higher (the version installed on GitHub build agents)
-if ($PSVersionTable.PSVersion -lt [Version]'7.4')
+# Require PowerShell 7.5 or higher (run with pwsh, not powershell)
+if ($PSVersionTable.PSVersion -lt [Version]'7.5')
 {
-    Write-Error "This script requires PowerShell 7.4 or higher (run with 'pwsh', not 'powershell'). Current version: $($PSVersionTable.PSVersion)"
+    Write-Error "This script requires PowerShell 7.5 or higher (run with 'pwsh', not 'powershell'). Current version: $($PSVersionTable.PSVersion)"
     exit 1
 }
 
