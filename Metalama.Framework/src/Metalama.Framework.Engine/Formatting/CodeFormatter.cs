@@ -260,25 +260,34 @@ public sealed partial class CodeFormatter : IProjectService
 
         var formattedCompilation = (await formattedSolution.Projects.Single().GetCompilationAsync( cancellationToken )).AssertNotNull();
 
-        // Normalize EOLs to match each original syntax tree's style.
-        foreach ( var syntaxTreePair in syntaxTreeMap )
+        // Normalize EOLs to match each original syntax tree's style, processing trees in parallel.
+        var eolReplacements = new ConcurrentBag<(string FilePath, SyntaxNode NormalizedRoot)>();
+
+        await Task.WhenAll(
+            syntaxTreeMap.AsEnumerable()
+                .Select(
+                    async syntaxTreePair =>
+                    {
+                        var oldSyntaxTree = syntaxTreePair.Key;
+                        var originalEol = EndOfLineHelper.DetermineEndOfLineStyleFast( oldSyntaxTree );
+
+                        if ( originalEol != "\r\n" )
+                        {
+                            var formattedDocument = formattedSolution.GetDocument( syntaxTreePair.Value ).AssertNotNull();
+                            var formattedRoot = (await formattedDocument.GetSyntaxRootAsync( cancellationToken )).AssertNotNull();
+                            var normalizedRoot = EndOfLineHelper.NormalizeEndOfLines( formattedRoot, originalEol );
+
+                            eolReplacements.Add( (oldSyntaxTree.FilePath, normalizedRoot) );
+                        }
+                    } ) );
+
+        foreach ( var replacement in eolReplacements )
         {
-            var oldSyntaxTree = syntaxTreePair.Key;
-            var originalEol = EndOfLineHelper.DetermineEndOfLineStyleFast( oldSyntaxTree );
+            var formattedSyntaxTree = formattedCompilation.SyntaxTrees.Single( t => t.FilePath == replacement.FilePath );
 
-            if ( originalEol != "\r\n" )
-            {
-                var formattedDocument = formattedSolution.GetDocument( syntaxTreePair.Value ).AssertNotNull();
-                var formattedRoot = (await formattedDocument.GetSyntaxRootAsync( cancellationToken )).AssertNotNull();
-                var normalizedRoot = EndOfLineHelper.NormalizeEndOfLines( formattedRoot, originalEol );
-
-                // Find and replace the corresponding syntax tree in the compilation.
-                var formattedSyntaxTree = formattedCompilation.SyntaxTrees.Single( t => t.FilePath == oldSyntaxTree.FilePath );
-
-                formattedCompilation = formattedCompilation.ReplaceSyntaxTree(
-                    formattedSyntaxTree,
-                    formattedSyntaxTree.WithRootAndOptions( normalizedRoot, formattedSyntaxTree.Options ) );
-            }
+            formattedCompilation = formattedCompilation.ReplaceSyntaxTree(
+                formattedSyntaxTree,
+                formattedSyntaxTree.WithRootAndOptions( replacement.NormalizedRoot, formattedSyntaxTree.Options ) );
         }
 
         return formattedCompilation;
