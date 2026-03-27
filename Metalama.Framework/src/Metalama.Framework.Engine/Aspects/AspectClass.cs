@@ -137,7 +137,8 @@ public sealed class AspectClass : TemplateClass, IBoundAspectClass
             this.EditorExperienceOptions = new EditorExperienceOptions
             {
                 SuggestAsAddAttribute = baseClass.EditorExperienceOptions.SuggestAsAddAttribute,
-                SuggestAsLiveTemplate = baseClass.EditorExperienceOptions.SuggestAsLiveTemplate
+                SuggestAsLiveTemplate = baseClass.EditorExperienceOptions.SuggestAsLiveTemplate,
+                HideFromAspectExplorer = baseClass.EditorExperienceOptions.HideFromAspectExplorer
             };
         }
         else
