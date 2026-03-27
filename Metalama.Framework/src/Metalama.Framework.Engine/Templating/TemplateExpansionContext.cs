@@ -246,22 +246,25 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         var aspectName = metaApi.AspectInstance?.AspectClass.FullName;
         var declaration = metaApi.MethodOrNull ?? metaApi.Declaration;
 
+        string verb;
+        object? target;
+
         if ( declaration.Origin.Kind == DeclarationOriginKind.Aspect )
         {
-            return UserCodeDescription.Create(
-                "executing the template method '{0}' in the context of the aspect '{1}' introducing '{2}'",
-                templateSymbol,
-                aspectName,
-                declaration );
+            verb = "introducing";
+            target = declaration;
         }
         else
         {
-            return UserCodeDescription.Create(
-                "executing the template method '{0}' in the context of the aspect '{1}' applied to '{2}'",
-                templateSymbol,
-                aspectName,
-                metaApi.AspectInstance?.TargetDeclaration );
+            verb = "applied to";
+            target = metaApi.AspectInstance?.TargetDeclaration;
         }
+
+        return UserCodeDescription.Create(
+            $"executing the template method '{{0}}' in the context of the aspect '{{1}}' {verb} '{{2}}'",
+            templateSymbol,
+            aspectName,
+            target );
     }
 
     private TemplateExpansionContext( TemplateExpansionContext prototype, LocalFunctionInfo localFunctionInfo ) : base( prototype )
