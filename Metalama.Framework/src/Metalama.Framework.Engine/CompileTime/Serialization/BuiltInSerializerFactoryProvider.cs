@@ -44,6 +44,17 @@ internal sealed class BuiltInSerializerFactoryProvider : SerializerFactoryProvid
         this.AddSerializer<Range, RangeSerializer>();
 #endif
 
+        // value tuples
+        this.AddSerializer<ValueTuple, ValueTupleSerializer>();
+        this.AddSerializer( typeof(ValueTuple<>), typeof(ValueTupleSerializer<>) );
+        this.AddSerializer( typeof(ValueTuple<,>), typeof(ValueTupleSerializer<,>) );
+        this.AddSerializer( typeof(ValueTuple<,,>), typeof(ValueTupleSerializer<,,>) );
+        this.AddSerializer( typeof(ValueTuple<,,,>), typeof(ValueTupleSerializer<,,,>) );
+        this.AddSerializer( typeof(ValueTuple<,,,,>), typeof(ValueTupleSerializer<,,,,>) );
+        this.AddSerializer( typeof(ValueTuple<,,,,,>), typeof(ValueTupleSerializer<,,,,,>) );
+        this.AddSerializer( typeof(ValueTuple<,,,,,,>), typeof(ValueTupleSerializer<,,,,,,>) );
+        this.AddSerializer( typeof(ValueTuple<,,,,,,,>), typeof(ValueTupleRestSerializer<,,,,,,,>) );
+
         // collections
         this.AddSerializer( typeof(List<>), typeof(ListSerializer<>) );
         this.AddSerializer( typeof(Dictionary<,>), typeof(DictionarySerializer<,>) );
