@@ -379,7 +379,7 @@ internal sealed partial class LinkerInjectionStep
             if ( node is RecordDeclarationSyntax
                  && originalParameterList is { Parameters.Count: > 0 }
                  && parameterList != originalParameterList
-                 && !HasUserDefinedDeconstruct( node, originalParameterList.Parameters.Count ) )
+                 && !this.HasUserDefinedDeconstruct( node, originalParameterList.Parameters.Count ) )
             {
                 members.Add(
                     RecordDeconstructSyntaxHelper.GenerateDeconstructMethod( originalParameterList, syntaxGenerationContext ) );
@@ -1076,28 +1076,28 @@ internal sealed partial class LinkerInjectionStep
         }
 
         /// <summary>
-        /// Checks whether the type declaration already contains a user-defined Deconstruct method
-        /// with the specified number of out parameters.
+        /// Checks whether the type already contains a user-defined Deconstruct method
+        /// with the specified number of out parameters, across all partial declarations.
         /// </summary>
-        private static bool HasUserDefinedDeconstruct( TypeDeclarationSyntax typeDeclaration, int parameterCount )
+        private bool HasUserDefinedDeconstruct( TypeDeclarationSyntax typeDeclaration, int parameterCount )
         {
-            foreach ( var member in typeDeclaration.Members )
+            var semanticModel = this._semanticModelProvider.GetSemanticModel( typeDeclaration.SyntaxTree );
+            var typeSymbol = semanticModel.GetDeclaredSymbol( typeDeclaration );
+
+            if ( typeSymbol == null )
             {
-                if ( member.IsKind( SyntaxKind.MethodDeclaration )
-                     && member is MethodDeclarationSyntax method
-                     && method.Identifier.ValueText == "Deconstruct"
-                     && method.TypeParameterList == null
-                     && !method.Modifiers.Any( m => m.IsKind( SyntaxKind.StaticKeyword ) )
-                     && method.ReturnType is PredefinedTypeSyntax predefinedReturnType
-                     && predefinedReturnType.Keyword.IsKind( SyntaxKind.VoidKeyword )
-                     && method.ParameterList.Parameters.Count == parameterCount
-                     && method.ParameterList.Parameters.All( p => p.Modifiers.Any( m => m.IsKind( SyntaxKind.OutKeyword ) ) ) )
-                {
-                    return true;
-                }
+                return false;
             }
 
-            return false;
+            return typeSymbol.GetMembers( "Deconstruct" )
+                .OfType<IMethodSymbol>()
+                .Any(
+                    m => !m.IsImplicitlyDeclared
+                         && !m.IsStatic
+                         && m.ReturnsVoid
+                         && !m.IsGenericMethod
+                         && m.Parameters.Length == parameterCount
+                         && m.Parameters.All( p => p.RefKind == Microsoft.CodeAnalysis.RefKind.Out ) );
         }
 
         private ConstructorInitializerSyntax? AppendInitializerArguments(
