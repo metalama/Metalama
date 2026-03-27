@@ -141,8 +141,11 @@ namespace Metalama.Framework.Code
                 var parameterInfo = payload.ParameterGetter( payload.InnerPayload, parameterIndex );
 
                 return
-                    (AreTypesEquivalentByMethodTypeParameterOrdinal( parameterInfo.Type, expectedType )
-                     || payload.Compilation.Comparers.Default.IsConvertibleTo( parameterInfo.Type, expectedType, payload.ConversionKind ))
+                    payload.Compilation.Comparers.Default.IsConvertibleTo(
+                        parameterInfo.Type,
+                        expectedType,
+                        payload.ConversionKind,
+                        ConversionFlags.TypeParameterEquivalence )
                     && expectedRefKind == parameterInfo.RefKind;
             }
         }
@@ -272,49 +275,6 @@ namespace Metalama.Framework.Code
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// Determines whether two types are structurally equivalent when method-level type parameters
-        /// are compared by ordinal position rather than by identity. This is needed when comparing
-        /// method signatures from different declaring types, where their type parameters are distinct
-        /// objects but represent the same positional slot.
-        /// </summary>
-        private static bool AreTypesEquivalentByMethodTypeParameterOrdinal( IType left, IType right )
-        {
-            if ( left is ITypeParameter { TypeParameterKind: TypeParameterKind.Method } leftTp
-                 && right is ITypeParameter { TypeParameterKind: TypeParameterKind.Method } rightTp )
-            {
-                return leftTp.Index == rightTp.Index;
-            }
-
-            if ( left is IArrayType leftArray && right is IArrayType rightArray )
-            {
-                return leftArray.Rank == rightArray.Rank
-                       && AreTypesEquivalentByMethodTypeParameterOrdinal( leftArray.ElementType, rightArray.ElementType );
-            }
-
-            if ( left is INamedType leftNamed && right is INamedType rightNamed
-                                               && leftNamed.TypeArguments.Count > 0
-                                               && leftNamed.TypeArguments.Count == rightNamed.TypeArguments.Count )
-            {
-                if ( !leftNamed.Definition.Equals( rightNamed.Definition ) )
-                {
-                    return false;
-                }
-
-                for ( var i = 0; i < leftNamed.TypeArguments.Count; i++ )
-                {
-                    if ( !AreTypesEquivalentByMethodTypeParameterOrdinal( leftNamed.TypeArguments[i], rightNamed.TypeArguments[i] ) )
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-
-            return false;
         }
 
         private static IType? GetParamsElementType( IType type )
