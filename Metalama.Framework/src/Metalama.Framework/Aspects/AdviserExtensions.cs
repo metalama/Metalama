@@ -5,6 +5,8 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
+using Metalama.Framework.Fabrics;
+using Metalama.Framework.Project;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Diagnostics;
@@ -1721,6 +1723,32 @@ public static class AdviserExtensions
     /// <param name="aspectType">The aspect type. It must have a default constructor.</param>
     public static void RequireAspect( this IAdviser adviser, Type aspectType )
         => ((IAdviserInternal) adviser).AdviceFactory.RequireAspect( adviser.Target, aspectType );
+
+    /// <summary>
+    /// Adds an aspect to the target type, using the aspect type's default constructor.
+    /// </summary>
+    /// <remarks>
+    /// This overload resolves the ambiguity between <see cref="AddAspect{TAspect}(IAdviser)"/> and <c>AspectQueryExtensions.AddAspect</c>
+    /// for <see cref="ITypeAmender"/>, which implements both <see cref="IAdviser"/> and <c>IQuery</c>.
+    /// </remarks>
+    /// <param name="amender">The type amender.</param>
+    /// <typeparam name="TAspect">The aspect type. It must have a default constructor.</typeparam>
+    public static void AddAspect<TAspect>( this ITypeAmender amender )
+        where TAspect : class, IAspect, new()
+        => amender.Project.ServiceProvider.GetRequiredService<IAspectQueryService>().AddAspect( amender, typeof(TAspect), _ => new TAspect() );
+
+    /// <summary>
+    /// Adds an aspect to the target type, unless there is already an aspect of that type on the declaration.
+    /// </summary>
+    /// <remarks>
+    /// This overload resolves the ambiguity between <see cref="RequireAspect{TAspect}(IAdviser)"/> and <c>AspectQueryExtensions.RequireAspect</c>
+    /// for <see cref="ITypeAmender"/>, which implements both <see cref="IAdviser"/> and <c>IQuery</c>.
+    /// </remarks>
+    /// <param name="amender">The type amender.</param>
+    /// <typeparam name="TAspect">The aspect type. It must have a default constructor.</typeparam>
+    public static void RequireAspect<TAspect>( this ITypeAmender amender )
+        where TAspect : class, IAspect, new()
+        => amender.Project.ServiceProvider.GetRequiredService<IAspectQueryService>().RequireAspect( amender, typeof(TAspect) );
 
     /// <summary>
     /// Gets an <see cref="IAdviser{T}"/> for a specific namespace of the current compilation.

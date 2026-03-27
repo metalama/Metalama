@@ -115,9 +115,10 @@ internal sealed class TypeFabricDriver : FabricDriver
 
     public override FormattableString FormatPredecessor() => $"type fabric on '{this._targetTypeFullName}'";
 
-    private sealed class Amender : BaseAmender<INamedType>, ITypeAmender
+    private sealed class Amender : BaseAmender<INamedType>, ITypeAmender, IAdviserInternal
     {
         private readonly IAspectBuilderInternal _aspectBuilder;
+        private readonly IAdviser<INamedType> _adviser;
 
         public Amender(
             INamedType namedType,
@@ -134,17 +135,38 @@ internal sealed class TypeFabricDriver : FabricDriver
         {
             this._aspectBuilder = aspectBuilder;
             this.Type = namedType;
+
+#pragma warning disable CS0618 // ITypeAmender.Advice is obsolete
             this.Advice = ((IAdviceFactoryImpl) aspectBuilder.AdviceFactory).WithTemplateClassInstance( templateClassInstance );
+#pragma warning restore CS0618
+            this._adviser = (IAdviser<INamedType>) this.Advice;
         }
 
         public INamedType Type { get; }
 
         public override void AddContributor( IPipelineContributor contributor ) => this._aspectBuilder.AddContributor( contributor );
 
+#pragma warning disable CS0618 // ITypeAmender.Advice is obsolete
         public IAdviceFactory Advice { get; }
+#pragma warning restore CS0618
 
         public ScopedDiagnosticSink Diagnostics => this._aspectBuilder.Diagnostics;
 
         public override string Namespace => this.Type.ContainingNamespace.FullName;
+
+        // IAdviser<INamedType> implementation, delegated to the advice factory.
+        INamedType IAdviser<INamedType>.Target => this.Type;
+
+        IDeclaration IAdviser.Target => this.Type;
+
+        ScopedDiagnosticSink IAdviser.Diagnostics => this._adviser.Diagnostics;
+
+        ICompilation IAdviser.Compilation => this._adviser.Compilation;
+
+        ICompilation IAdviser.MutableCompilation => this._adviser.MutableCompilation;
+
+        IAdviser<TNewDeclaration> IAdviser.With<TNewDeclaration>( TNewDeclaration declaration ) => this._adviser.With( declaration );
+
+        IAdviceFactory IAdviserInternal.AdviceFactory => this.Advice;
     }
 }
