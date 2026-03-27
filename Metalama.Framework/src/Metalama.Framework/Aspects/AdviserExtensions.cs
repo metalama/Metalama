@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Fabrics;
+using Metalama.Framework.Project;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Diagnostics;
@@ -1734,7 +1735,7 @@ public static class AdviserExtensions
     /// <typeparam name="TAspect">The aspect type. It must have a default constructor.</typeparam>
     public static void AddAspect<TAspect>( this ITypeAmender amender )
         where TAspect : class, IAspect, new()
-        => ((IAdviserInternal) amender).AdviceFactory.AddAspect( amender.Type, new TAspect() );
+        => amender.Project.ServiceProvider.GetRequiredService<IAspectQueryService>().AddAspect( amender, typeof(TAspect), _ => new TAspect() );
 
     /// <summary>
     /// Adds an aspect to the target type, unless there is already an aspect of that type on the declaration.
@@ -1747,7 +1748,7 @@ public static class AdviserExtensions
     /// <typeparam name="TAspect">The aspect type. It must have a default constructor.</typeparam>
     public static void RequireAspect<TAspect>( this ITypeAmender amender )
         where TAspect : class, IAspect, new()
-        => ((IAdviserInternal) amender).AdviceFactory.RequireAspect( amender.Type, typeof(TAspect) );
+        => amender.Project.ServiceProvider.GetRequiredService<IAspectQueryService>().RequireAspect( amender, typeof(TAspect) );
 
     /// <summary>
     /// Gets an <see cref="IAdviser{T}"/> for a specific namespace of the current compilation.
