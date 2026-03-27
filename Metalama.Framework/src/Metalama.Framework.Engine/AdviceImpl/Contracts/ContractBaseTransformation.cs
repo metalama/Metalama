@@ -8,11 +8,11 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Templating.MetaModel;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Introspection;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -113,7 +113,7 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
         {
             DeclarationKind.Parameter when target is IParameter { IsReturnParameter: true } => "return value",
             DeclarationKind.Parameter when target is IParameter param =>
-                $"parameter '{(SyntaxFacts.GetKeywordKind( param.Name ) != SyntaxKind.None ? "@" + param.Name : param.Name)}'",
+                $"parameter '{SyntaxFactoryEx.SafeIdentifier( param.Name ).Text}'",
             _ => $"unexpected declaration '{target}'"
         };
 
