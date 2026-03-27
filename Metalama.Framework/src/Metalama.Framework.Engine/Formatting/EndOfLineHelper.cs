@@ -10,6 +10,12 @@ namespace Metalama.Framework.Engine.Formatting
     internal static class EndOfLineHelper
     {
         /// <summary>
+        /// Normalizes all <see cref="SyntaxKind.EndOfLineTrivia"/> in a syntax tree to use the specified EOL string.
+        /// </summary>
+        public static SyntaxNode NormalizeEndOfLines( SyntaxNode root, string endOfLine )
+            => new EndOfLineNormalizingRewriter( endOfLine ).Visit( root )!;
+
+        /// <summary>
         /// Returns the first EOL string without allocating memory.
         /// </summary>
         public static string DetermineEndOfLineStyleFast( SyntaxTree syntaxTree )
@@ -87,6 +93,21 @@ namespace Metalama.Framework.Engine.Formatting
             }
 
             return null;
+        }
+
+        private sealed class EndOfLineNormalizingRewriter : CSharpSyntaxRewriter
+        {
+            private readonly SyntaxTrivia _endOfLineTrivia;
+
+            public EndOfLineNormalizingRewriter( string endOfLine ) : base( visitIntoStructuredTrivia: true )
+            {
+                this._endOfLineTrivia = SyntaxFactory.EndOfLine( endOfLine );
+            }
+
+            public override SyntaxTrivia VisitTrivia( SyntaxTrivia trivia )
+                => trivia.IsKind( SyntaxKind.EndOfLineTrivia )
+                    ? this._endOfLineTrivia
+                    : base.VisitTrivia( trivia );
         }
     }
 }
