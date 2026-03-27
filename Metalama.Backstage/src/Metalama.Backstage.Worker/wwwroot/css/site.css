@@ -171,3 +171,22 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
 .continue-button {
   text-align: right;
 }
+
+.navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.back-button a {
+  color: #b1b0b2;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 10px 20px;
+  transition: color 0.3s ease;
+}
+
+.back-button a:hover {
+  color: #fff;
+}
