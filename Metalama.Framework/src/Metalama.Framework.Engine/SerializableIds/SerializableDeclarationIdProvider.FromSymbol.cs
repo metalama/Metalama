@@ -50,22 +50,32 @@ public static partial class SerializableDeclarationIdProvider
 
             case SymbolKind.Parameter when symbol is IParameterSymbol parameterSymbol:
                 {
-                    var parentId = DocumentationCommentId.CreateDeclarationId( parameterSymbol.ContainingSymbol ).AssertNotNull();
-                    var paramFileLocalHash = GetFileLocalHash( parameterSymbol );
-                    var parentIdWithHash = AppendFileLocalSuffix( parentId, paramFileLocalHash );
+                    if ( IsInFileLocalType( parameterSymbol ) )
+                    {
+                        id = default;
 
-                    id = new SerializableDeclarationId( $"{parentIdWithHash};Parameter={parameterSymbol.Ordinal}" );
+                        return false;
+                    }
+
+                    var parentId = DocumentationCommentId.CreateDeclarationId( parameterSymbol.ContainingSymbol ).AssertNotNull();
+
+                    id = new SerializableDeclarationId( $"{parentId};Parameter={parameterSymbol.Ordinal}" );
 
                     return true;
                 }
 
             case SymbolKind.TypeParameter when symbol is ITypeParameterSymbol typeParameterSymbol:
                 {
-                    var parentId = DocumentationCommentId.CreateDeclarationId( typeParameterSymbol.ContainingSymbol ).AssertNotNull();
-                    var typeParamFileLocalHash = GetFileLocalHash( typeParameterSymbol );
-                    var parentIdWithHash = AppendFileLocalSuffix( parentId, typeParamFileLocalHash );
+                    if ( IsInFileLocalType( typeParameterSymbol ) )
+                    {
+                        id = default;
 
-                    id = new SerializableDeclarationId( $"{parentIdWithHash};TypeParameter={typeParameterSymbol.Ordinal}" );
+                        return false;
+                    }
+
+                    var parentId = DocumentationCommentId.CreateDeclarationId( typeParameterSymbol.ContainingSymbol ).AssertNotNull();
+
+                    id = new SerializableDeclarationId( $"{parentId};TypeParameter={typeParameterSymbol.Ordinal}" );
 
                     return true;
                 }
@@ -85,7 +95,13 @@ public static partial class SerializableDeclarationIdProvider
                 }
 
             case SymbolKind.NamedType when symbol is INamedTypeSymbol:
-                // File-local types need special handling - fall through to default but with hash appended.
+                if ( IsInFileLocalType( symbol ) )
+                {
+                    id = default;
+
+                    return false;
+                }
+
                 goto default;
 
             case SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType
@@ -107,6 +123,13 @@ public static partial class SerializableDeclarationIdProvider
                     case SymbolKind.Property:
                     case SymbolKind.TypeParameter:
                         {
+                            if ( IsInFileLocalType( symbol ) )
+                            {
+                                id = default;
+
+                                return false;
+                            }
+
                             var documentationId = DocumentationCommentId.CreateDeclarationId( symbol );
 
                             if ( documentationId == null )
@@ -116,18 +139,13 @@ public static partial class SerializableDeclarationIdProvider
                                 return false;
                             }
 
-                            // For file-local types (or members of file-local types), append a hash of the source file path
-                            // to disambiguate types with the same name in different files.
-                            var fileLocalHash = GetFileLocalHash( symbol );
-                            var idString = AppendFileLocalSuffix( documentationId, fileLocalHash );
-
                             if ( targetKind == RefTargetKind.Default )
                             {
-                                id = new SerializableDeclarationId( idString );
+                                id = new SerializableDeclarationId( documentationId );
                             }
                             else
                             {
-                                id = new SerializableDeclarationId( $"{idString};{targetKind}" );
+                                id = new SerializableDeclarationId( $"{documentationId};{targetKind}" );
                             }
 
                             return true;

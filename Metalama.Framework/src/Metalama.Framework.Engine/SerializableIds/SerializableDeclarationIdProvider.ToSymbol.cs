@@ -42,22 +42,21 @@ public static partial class SerializableDeclarationIdProvider
 
         isReturnParameter = false;
 
-        // Handle file-local type discriminator: strip the |hash suffix before further processing.
-        var (effectiveIdString, fileLocalHash) = ParseFileLocalSuffix( id.Id );
+        var idString = id.Id;
 
-        var indexOfAt = effectiveIdString.IndexOfOrdinal( ';' );
+        var indexOfAt = idString.IndexOfOrdinal( ';' );
 
         if ( indexOfAt > 0 )
         {
             // We have a parameter or a type parameter.
 
-            var parts = effectiveIdString.Split( _separators );
+            var parts = idString.Split( _separators );
 
             var parentId = parts[0];
             var kind = parts[1];
             var ordinal = parts.Length == 3 ? int.Parse( parts[2], CultureInfo.InvariantCulture ) : -1;
 
-            var parent = ResolveSymbolForDocId( parentId, compilation, fileLocalHash );
+            var parent = DocumentationCommentId.GetFirstSymbolForDeclarationId( parentId, compilation );
 
             if ( kind == nameof(RefTargetKind.Return) )
             {
@@ -78,9 +77,9 @@ public static partial class SerializableDeclarationIdProvider
                 _ => null
             };
         }
-        else if ( effectiveIdString.StartsWith( _assemblyPrefix, StringComparison.OrdinalIgnoreCase ) )
+        else if ( idString.StartsWith( _assemblyPrefix, StringComparison.OrdinalIgnoreCase ) )
         {
-            if ( !AssemblyIdentity.TryParseDisplayName( effectiveIdString.Substring( _assemblyPrefix.Length ), out var assemblyIdentity ) )
+            if ( !AssemblyIdentity.TryParseDisplayName( idString.Substring( _assemblyPrefix.Length ), out var assemblyIdentity ) )
             {
                 throw new AssertionFailedException( $"Cannot parse the id '{id.Id}'." );
             }
@@ -97,13 +96,13 @@ public static partial class SerializableDeclarationIdProvider
         else
         {
             // Special case for the global namespace that's not handled by GetFirstSymbolForDeclarationId, see https://github.com/dotnet/roslyn/issues/66976.
-            if ( effectiveIdString == "N:" )
+            if ( idString == "N:" )
             {
                 return compilation.Assembly.GlobalNamespace;
             }
-            else if ( effectiveIdString.StartsWith( SerializableTypeId.Prefix, StringComparison.Ordinal ) )
+            else if ( idString.StartsWith( SerializableTypeId.Prefix, StringComparison.Ordinal ) )
             {
-                if ( !compilationContext.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( effectiveIdString ), out var typeSymbol ) )
+                if ( !compilationContext.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( idString ), out var typeSymbol ) )
                 {
                     return null;
                 }
@@ -114,7 +113,7 @@ public static partial class SerializableDeclarationIdProvider
                 }
             }
 
-            var symbol = ResolveSymbolForDocId( effectiveIdString, compilation, fileLocalHash );
+            var symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( idString, compilation );
 
             // Make sure to return the non-nullable type.
             if ( symbol?.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter
@@ -129,29 +128,4 @@ public static partial class SerializableDeclarationIdProvider
         }
     }
 
-    /// <summary>
-    /// Resolves a documentation comment ID to a symbol, optionally filtering by file-local hash for file-local types.
-    /// </summary>
-    private static ISymbol? ResolveSymbolForDocId( string docId, Compilation compilation, string? fileLocalHash )
-    {
-        if ( fileLocalHash == null )
-        {
-            return DocumentationCommentId.GetFirstSymbolForDeclarationId( docId, compilation );
-        }
-
-        // For file-local types, we may get multiple symbols with the same documentation comment ID.
-        // We need to find the one with the matching hash.
-        var symbols = DocumentationCommentId.GetSymbolsForDeclarationId( docId, compilation );
-
-        foreach ( var candidate in symbols )
-        {
-            if ( GetFileLocalHash( candidate ) == fileLocalHash )
-            {
-                return candidate;
-            }
-        }
-
-        // Fallback: return the first match if no file-local match found.
-        return symbols.IsEmpty ? null : symbols[0];
-    }
 }

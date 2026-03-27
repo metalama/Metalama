@@ -12,7 +12,7 @@ using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -275,220 +275,42 @@ delegate int D(int x, string y);
     }
 
     [Fact]
-    public void FileLocalTypes_HaveDistinctIds()
+    public void FileLocalTypes_CannotGetSerializableId()
     {
-        // Two file-local types with the same name and namespace but in different files
-        // must produce different SerializableDeclarationIds.
-        const string code1 = @"
+        // File-local types cannot have serializable IDs because the ID would be
+        // path-dependent, and serializable IDs must be cross-machine.
+        const string code = @"
 namespace TestNamespace;
 
 file class FileLocalType
 {
-    public int X;
-}
-";
-
-        const string code2 = @"
-namespace TestNamespace;
-
-file class FileLocalType
-{
-    public string Y;
+    public void M<T>(int p) {}
 }
 ";
 
         using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
 
-        var compilation = testContext.CreateCompilation(
-            new Dictionary<string, string>
-            {
-                { "File1.cs", code1 },
-                { "File2.cs", code2 }
-            } );
-
-        var fileLocalTypes = compilation.GetContainedDeclarations()
+        var fileLocalType = compilation.GetContainedDeclarations()
             .OfType<INamedType>()
-            .Where( t => t.Name == "FileLocalType" )
-            .ToList();
+            .Single( t => t.Name == "FileLocalType" );
 
-        Assert.Equal( 2, fileLocalTypes.Count );
+        // The type itself should not get a serializable ID.
+        Assert.False( fileLocalType.TryGetSerializableId( out _ ) );
 
-        var id1 = fileLocalTypes[0].ToSerializableId();
-        var id2 = fileLocalTypes[1].ToSerializableId();
+        // Members should not get a serializable ID either.
+        var method = fileLocalType.Methods.OfName( "M" ).Single();
+        Assert.False( method.TryGetSerializableId( out _ ) );
 
-        this.TestOutput.WriteLine( $"File-local type 1 ID: {id1.Id}" );
-        this.TestOutput.WriteLine( $"File-local type 2 ID: {id2.Id}" );
+        // Parameters of members should not get a serializable ID.
+        var parameter = method.Parameters.Single();
+        Assert.False( parameter.TryGetSerializableId( out _ ) );
 
-        // The two file-local types must have different serializable IDs.
-        Assert.NotEqual( id1, id2 );
+        // Type parameters of members should not get a serializable ID.
+        var typeParameter = method.TypeParameters.Single();
+        Assert.False( typeParameter.TryGetSerializableId( out _ ) );
 
-        // Both must roundtrip correctly.
-        Roundtrip( fileLocalTypes[0], compilation, this.TestOutput );
-        Roundtrip( fileLocalTypes[1], compilation, this.TestOutput );
-    }
-
-    [Fact]
-    public void FileLocalTypes_MembersHaveDistinctIds()
-    {
-        // Members of file-local types with the same name must also have distinct IDs.
-        const string code1 = @"
-namespace TestNamespace;
-
-file class FileLocalType
-{
-    public void M() {}
-}
-";
-
-        const string code2 = @"
-namespace TestNamespace;
-
-file class FileLocalType
-{
-    public void M() {}
-}
-";
-
-        using var testContext = this.CreateTestContext();
-
-        var compilation = testContext.CreateCompilation(
-            new Dictionary<string, string>
-            {
-                { "File1.cs", code1 },
-                { "File2.cs", code2 }
-            } );
-
-        var fileLocalTypes = compilation.GetContainedDeclarations()
-            .OfType<INamedType>()
-            .Where( t => t.Name == "FileLocalType" )
-            .ToList();
-
-        Assert.Equal( 2, fileLocalTypes.Count );
-
-        var method1 = fileLocalTypes[0].Methods.OfName( "M" ).Single();
-        var method2 = fileLocalTypes[1].Methods.OfName( "M" ).Single();
-
-        var methodId1 = method1.ToSerializableId();
-        var methodId2 = method2.ToSerializableId();
-
-        this.TestOutput.WriteLine( $"Method 1 ID: {methodId1.Id}" );
-        this.TestOutput.WriteLine( $"Method 2 ID: {methodId2.Id}" );
-
-        // Methods on different file-local types must have different IDs.
-        Assert.NotEqual( methodId1, methodId2 );
-
-        // Both must roundtrip correctly.
-        Roundtrip( method1, compilation, this.TestOutput );
-        Roundtrip( method2, compilation, this.TestOutput );
-    }
-
-    [Fact]
-    public void FileLocalTypes_ParametersHaveDistinctIds()
-    {
-        // Parameters of methods on file-local types with the same name must have distinct IDs.
-        const string code1 = @"
-namespace TestNamespace;
-
-file class FileLocalType
-{
-    public void M(int p) {}
-}
-";
-
-        const string code2 = @"
-namespace TestNamespace;
-
-file class FileLocalType
-{
-    public void M(int p) {}
-}
-";
-
-        using var testContext = this.CreateTestContext();
-
-        var compilation = testContext.CreateCompilation(
-            new Dictionary<string, string>
-            {
-                { "File1.cs", code1 },
-                { "File2.cs", code2 }
-            } );
-
-        var fileLocalTypes = compilation.GetContainedDeclarations()
-            .OfType<INamedType>()
-            .Where( t => t.Name == "FileLocalType" )
-            .ToList();
-
-        Assert.Equal( 2, fileLocalTypes.Count );
-
-        var param1 = fileLocalTypes[0].Methods.OfName( "M" ).Single().Parameters.Single();
-        var param2 = fileLocalTypes[1].Methods.OfName( "M" ).Single().Parameters.Single();
-
-        var paramId1 = param1.ToSerializableId();
-        var paramId2 = param2.ToSerializableId();
-
-        this.TestOutput.WriteLine( $"Parameter 1 ID: {paramId1.Id}" );
-        this.TestOutput.WriteLine( $"Parameter 2 ID: {paramId2.Id}" );
-
-        // Parameters on different file-local types must have different IDs.
-        Assert.NotEqual( paramId1, paramId2 );
-
-        // Both must roundtrip correctly.
-        Roundtrip( param1, compilation, this.TestOutput );
-        Roundtrip( param2, compilation, this.TestOutput );
-    }
-
-    [Fact]
-    public void FileLocalTypes_TypeParametersHaveDistinctIds()
-    {
-        // Type parameters of methods on file-local types with the same name must have distinct IDs.
-        const string code1 = @"
-namespace TestNamespace;
-
-file class FileLocalType
-{
-    public void M<T>() {}
-}
-";
-
-        const string code2 = @"
-namespace TestNamespace;
-
-file class FileLocalType
-{
-    public void M<T>() {}
-}
-";
-
-        using var testContext = this.CreateTestContext();
-
-        var compilation = testContext.CreateCompilation(
-            new Dictionary<string, string>
-            {
-                { "File1.cs", code1 },
-                { "File2.cs", code2 }
-            } );
-
-        var fileLocalTypes = compilation.GetContainedDeclarations()
-            .OfType<INamedType>()
-            .Where( t => t.Name == "FileLocalType" )
-            .ToList();
-
-        Assert.Equal( 2, fileLocalTypes.Count );
-
-        var typeParam1 = fileLocalTypes[0].Methods.OfName( "M" ).Single().TypeParameters.Single();
-        var typeParam2 = fileLocalTypes[1].Methods.OfName( "M" ).Single().TypeParameters.Single();
-
-        var typeParamId1 = typeParam1.ToSerializableId();
-        var typeParamId2 = typeParam2.ToSerializableId();
-
-        this.TestOutput.WriteLine( $"TypeParameter 1 ID: {typeParamId1.Id}" );
-        this.TestOutput.WriteLine( $"TypeParameter 2 ID: {typeParamId2.Id}" );
-
-        // Type parameters on different file-local types must have different IDs.
-        Assert.NotEqual( typeParamId1, typeParamId2 );
-
-        // Both must roundtrip correctly.
-        Roundtrip( typeParam1, compilation, this.TestOutput );
-        Roundtrip( typeParam2, compilation, this.TestOutput );
+        // GetSerializableId should throw for file-local types.
+        Assert.Throws<ArgumentException>( () => fileLocalType.ToSerializableId() );
     }
 }

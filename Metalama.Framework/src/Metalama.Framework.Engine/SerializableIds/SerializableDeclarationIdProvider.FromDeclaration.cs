@@ -43,22 +43,32 @@ public static partial class SerializableDeclarationIdProvider
 
             case DeclarationKind.Parameter when declaration is IParameter parameter:
                 {
-                    var parentId = DocumentationIdHelper.CreateDeclarationId( parameter.ContainingDeclaration.AssertNotNull() ).AssertNotNull();
-                    var paramFileLocalHash = GetFileLocalHash( declaration );
-                    var parentIdWithHash = AppendFileLocalSuffix( parentId, paramFileLocalHash );
+                    if ( IsInFileLocalType( declaration ) )
+                    {
+                        id = default;
 
-                    id = new SerializableDeclarationId( $"{parentIdWithHash};Parameter={parameter.Index}" );
+                        return false;
+                    }
+
+                    var parentId = DocumentationIdHelper.CreateDeclarationId( parameter.ContainingDeclaration.AssertNotNull() ).AssertNotNull();
+
+                    id = new SerializableDeclarationId( $"{parentId};Parameter={parameter.Index}" );
 
                     return true;
                 }
 
             case DeclarationKind.TypeParameter when declaration is ITypeParameter typeParameter:
                 {
-                    var parentId = DocumentationIdHelper.CreateDeclarationId( typeParameter.ContainingDeclaration! ).AssertNotNull();
-                    var typeParamFileLocalHash = GetFileLocalHash( declaration );
-                    var parentIdWithHash = AppendFileLocalSuffix( parentId, typeParamFileLocalHash );
+                    if ( IsInFileLocalType( declaration ) )
+                    {
+                        id = default;
 
-                    id = new SerializableDeclarationId( $"{parentIdWithHash};TypeParameter={typeParameter.Index}" );
+                        return false;
+                    }
+
+                    var parentId = DocumentationIdHelper.CreateDeclarationId( typeParameter.ContainingDeclaration! ).AssertNotNull();
+
+                    id = new SerializableDeclarationId( $"{parentId};TypeParameter={typeParameter.Index}" );
 
                     return true;
                 }
@@ -83,6 +93,13 @@ public static partial class SerializableDeclarationIdProvider
                 return TryGetSerializableId( eventRaisePseudoAccessor.DeclaringMember, RefTargetKind.EventRaise, out id );
 
             default:
+                if ( IsInFileLocalType( declaration ) )
+                {
+                    id = default;
+
+                    return false;
+                }
+
                 string documentationId;
 
                 try
@@ -96,12 +113,7 @@ public static partial class SerializableDeclarationIdProvider
                         exception );
                 }
 
-                // For file-local types (or members of file-local types), append a hash of the source file path
-                // to disambiguate types with the same name in different files.
-                var fileLocalHash = GetFileLocalHash( declaration );
-                var idString = AppendFileLocalSuffix( documentationId, fileLocalHash );
-
-                id = new SerializableDeclarationId( targetKind == RefTargetKind.Default ? idString : $"{idString};{targetKind}" );
+                id = new SerializableDeclarationId( targetKind == RefTargetKind.Default ? documentationId : $"{documentationId};{targetKind}" );
 
                 return true;
         }
