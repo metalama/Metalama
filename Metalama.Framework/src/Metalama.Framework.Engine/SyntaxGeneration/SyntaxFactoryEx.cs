@@ -302,7 +302,11 @@ public static partial class SyntaxFactoryEx
 
         if ( diagnostics.HasError() )
         {
-            throw new DiagnosticException( $"Code '{text}' could not be parsed as an expression.", diagnostics.ToImmutableArray(), false );
+#pragma warning disable CA1307 // StringComparison overload not available on net472
+            var sanitizedText = text.Replace( "\r\n", "\\n" ).Replace( "\r", "\\r" ).Replace( "\n", "\\n" );
+#pragma warning restore CA1307
+
+            throw new DiagnosticException( $"Code '{sanitizedText}' could not be parsed as an expression.", diagnostics.ToImmutableArray(), false );
         }
 
         return expression;
@@ -317,7 +321,11 @@ public static partial class SyntaxFactoryEx
 
         if ( enumerable.HasError() )
         {
-            throw new DiagnosticException( $"Code '{text}' could not be parsed as a statement.", enumerable.ToImmutableArray(), false );
+#pragma warning disable CA1307 // StringComparison overload not available on net472
+            var sanitizedText = text.Replace( "\r\n", "\\n" ).Replace( "\r", "\\r" ).Replace( "\n", "\\n" );
+#pragma warning restore CA1307
+
+            throw new DiagnosticException( $"Code '{sanitizedText}' could not be parsed as a statement.", enumerable.ToImmutableArray(), false );
         }
 
         return statement;
