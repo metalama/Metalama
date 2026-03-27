@@ -23,7 +23,7 @@ namespace Metalama.Framework.Tests.PublicPipeline.Aspects.Fabrics.Target_RecordS
                 {
                     if (method.IsImplicitlyDeclared)
                     {
-                        amender.Advice.Override( method, nameof(Template) );
+                        amender.With( method ).Override( nameof(Template) );
                     }
                 }
             }

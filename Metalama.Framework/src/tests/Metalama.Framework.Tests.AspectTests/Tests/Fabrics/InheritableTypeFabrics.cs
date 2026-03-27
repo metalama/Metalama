@@ -22,7 +22,7 @@ namespace Metalama.Framework.Tests.PublicPipeline.Aspects.Fabrics.InheritableTyp
             {
                 foreach (var method in amender.Type.Methods)
                 {
-                    amender.Advice.Override( method, nameof(Template) );
+                    amender.With( method ).Override( nameof(Template) );
                 }
             }
 

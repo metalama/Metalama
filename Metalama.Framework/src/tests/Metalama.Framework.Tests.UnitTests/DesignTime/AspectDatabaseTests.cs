@@ -527,6 +527,68 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
     }
 
     [Fact]
+    public async Task ContractReturnParameterAndKeywordParamNameTest()
+    {
+        const string code =
+            """
+            using Metalama.Framework.Aspects;
+            using Metalama.Framework.Code;
+            using System;
+
+            internal class NotNullAttribute : ContractAspect
+            {
+                public override void Validate( dynamic? value )
+                {
+                    if (value is null)
+                    {
+                        throw new ArgumentNullException();
+                    }
+                }
+            }
+
+            class Target
+            {
+                [return: NotNull]
+                string M([NotNull] string @return) => @return;
+            }
+            """;
+
+        using var testContext = this.CreateTestContext();
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+
+        var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
+        var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
+
+        var aspectDatabase = new AspectDatabase( factory.ServiceProvider );
+
+        var aspectInstances = await aspectDatabase.GetAspectInstancesAsync(
+            projectKey,
+            "project",
+            new SerializableTypeId( "Y:global::NotNullAttribute" ),
+            CancellationToken.None );
+
+        Assert.NotNull( aspectInstances );
+
+        // Both the return parameter contract and the @return parameter contract should be present
+        // with distinct target declaration IDs.
+        AssertAspectInstances(
+            [
+                "M:Target.M(System.String)~System.String",
+                "M:Target.M(System.String)~System.String;Parameter=0"
+            ],
+            aspectInstances );
+
+        // The display strings should differentiate between the return value and the @return parameter.
+        // The parameter named @return should display with the @ prefix to distinguish it from the return value.
+        AssertAspectTransformations(
+            [
+                "Add contract to parameter '@return' of method 'Target.M(string)'",
+                "Add contract to return value of method 'Target.M(string)'"
+            ],
+            aspectInstances );
+    }
+
+    [Fact]
     public async Task AddThroughFabricTest()
     {
         const string code =
