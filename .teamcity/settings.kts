@@ -8,7 +8,7 @@ import jetbrains.buildServer.configs.kotlin.failureConditions.*
 import jetbrains.buildServer.configs.kotlin.triggers.*
 import jetbrains.buildServer.configs.kotlin.projectFeatures.*
 
-version = "2025.11"
+version = "2025.07"
 
 project {
 
@@ -44,7 +44,7 @@ object DebugBuild : BuildType({
             "", 
             label ="DockerBuild.ps1 Arguments",
             description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
-        param("Build.Timeout", "30")
+        param("Build.Timeout", "60")
     }
 
     vcs {
@@ -161,7 +161,7 @@ object ReleaseBuild : BuildType({
             "", 
             label ="DockerBuild.ps1 Arguments",
             description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
-        param("Build.Timeout", "30")
+        param("Build.Timeout", "60")
     }
 
     vcs {
@@ -267,7 +267,7 @@ object PublicBuild : BuildType({
             "", 
             label ="DockerBuild.ps1 Arguments",
             description = "Arguments to append to the 'Build' build step.", allowEmpty = true)
-        param("Build.Timeout", "30")
+        param("Build.Timeout", "60")
     }
 
     vcs {
