@@ -26,6 +26,14 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Inse
 
                     // Insert a parameter, then rename the template parameter so it no longer matches.
                     introduced.InsertParameter( 0, "x", typeof(int) );
+
+                    // Verify that InsertParameter correctly updated the index of the shifted parameter.
+                    if ( introduced.Parameters[1].Index != 1 )
+                    {
+                        throw new InvalidOperationException(
+                            $"Expected Parameters[1].Index to be 1, but got {introduced.Parameters[1].Index}." );
+                    }
+
                     introduced.Parameters[1].Name = "renamedMessage";
                 } );
         }
