@@ -102,6 +102,19 @@ internal sealed class LocalExceptionReporter : IBackstageService
 
                 // ReSharper disable once EmptyGeneralCatchClause
                 catch { }
+
+                // Include the call stack at the point where the exception is being reported.
+                // This is essential for async exceptions where the exception's own StackTrace
+                // only shows the throw-to-catch chain, but not the broader context of the entry
+                // point that caught the exception (e.g., CodeLens, Preview, AspectExplorer).
+                try
+                {
+                    exceptionText.AppendLine( "===== Reporting Call Stack =====" );
+                    exceptionText.AppendLine( ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( Environment.StackTrace ) );
+                }
+
+                // ReSharper disable once EmptyGeneralCatchClause
+                catch { }
 #pragma warning restore CA1305
 
                 this._fileSystem.WriteAllText( localReportPath, exceptionText.ToString() );

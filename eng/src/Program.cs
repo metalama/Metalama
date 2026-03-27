@@ -17,6 +17,7 @@ using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Defin
 
 var product = new Product( MetalamaDependencies.Metalama )
 {
+    BuildTimeout = TimeSpan.FromMinutes( 60 ),
     OverriddenBuildAgentRequirements = new ContainerRequirements( ContainerHostKind.Windows )
     {
         Components =

@@ -9,6 +9,7 @@ using Microsoft.Toolkit.Uwp.Notifications;
 using Spectre.Console.Cli;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -85,6 +86,30 @@ internal sealed partial class App
 
     private static void OnToastNotificationActivated( ToastNotificationActivatedEventArgsCompat e )
     {
+        // If the argument is a URL, open it in the browser. This handles the case where
+        // protocol activation from toast buttons is routed through the COM activator.
+        if ( Uri.TryCreate( e.Argument, UriKind.Absolute, out var uri )
+             && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) )
+        {
+            try
+            {
+                Process.Start( new ProcessStartInfo( e.Argument ) { UseShellExecute = true } );
+            }
+            catch ( Exception ex )
+            {
+                var loggerFactory = BackstageServiceFactory.ServiceProvider?.GetLoggerFactory();
+                var logger = loggerFactory?.GetLogger( "App" );
+                logger?.Error?.Log( $"Failed to launch browser for toast activation URL '{e.Argument}': {ex}" );
+            }
+            finally
+            {
+                ToastNotificationManagerCompat.History.Clear();
+                Environment.Exit( 0 );
+            }
+
+            return;
+        }
+
         RunAppAsync( e.Argument.Split( ' ' ) )
             .ContinueWith(
                 _ =>
