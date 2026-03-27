@@ -83,6 +83,12 @@ internal sealed class ClassicDesignTimeObservabilityStrategyImpl : DesignTimeObs
     {
         var isOverride = this._baseOnChildPropertyChangedMethod != null;
 
+        if ( this.Builder.Target.IsSealed && !isOverride )
+        {
+            // For sealed types, OnChildPropertyChanged is unnecessary because no derived type can override it.
+            return;
+        }
+
         this.Builder
             .WithTemplateProvider( this )
             .IntroduceMethod(
