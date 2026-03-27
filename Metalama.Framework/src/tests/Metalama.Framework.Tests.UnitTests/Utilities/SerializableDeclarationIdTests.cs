@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -283,10 +284,10 @@ class C
         Assert.NotEqual( returnParamId.Id, regularParamId.Id );
 
         // Verify the return parameter ID contains ";Return".
-        Assert.Contains( ";Return", returnParamId.Id );
+        Assert.Contains( ";Return", returnParamId.Id, StringComparison.Ordinal );
 
         // Verify the regular parameter ID contains ";Parameter=0".
-        Assert.Contains( ";Parameter=0", regularParamId.Id );
+        Assert.Contains( ";Parameter=0", regularParamId.Id, StringComparison.Ordinal );
 
         // Roundtrip both parameters.
         Roundtrip( returnParameter, compilation, this.TestOutput );
