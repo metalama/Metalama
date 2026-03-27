@@ -19,6 +19,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
     private readonly IIdeExtensionStatusService? _ideExtensionStatusService;
     private readonly ILicenseRegistrationService? _licenseRegistrationService;
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
+    private readonly WebLinks _webLinks;
     private readonly object _initializationSync = new();
     private readonly ILogger _logger;
 
@@ -32,6 +33,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         this._ideExtensionStatusService = serviceProvider.GetBackstageService<IIdeExtensionStatusService>();
         this._toastNotificationService = serviceProvider.GetRequiredBackstageService<IToastNotificationService>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
+        this._webLinks = serviceProvider.GetRequiredBackstageService<WebLinks>();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
     }
 
@@ -145,7 +147,8 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         // Suggest to install Visual Studio Tools for Metalama.
         if ( !notificationReported && this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
         {
-            this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.VsxNotInstalled ) );
+            this._toastNotificationService.Show(
+                new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
         }
     }
 
