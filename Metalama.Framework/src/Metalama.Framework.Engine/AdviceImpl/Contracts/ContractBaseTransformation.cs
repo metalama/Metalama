@@ -8,6 +8,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Templating.MetaModel;
 using Metalama.Framework.Engine.Transformations;
@@ -111,7 +112,8 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
         var parameter = target.DeclarationKind switch
         {
             DeclarationKind.Parameter when target is IParameter { IsReturnParameter: true } => "return value",
-            DeclarationKind.Parameter when target is IParameter param => $"parameter '{param.Name}'",
+            DeclarationKind.Parameter when target is IParameter param =>
+                $"parameter '{SyntaxFactoryEx.SafeIdentifier( param.Name ).Text}'",
             _ => $"unexpected declaration '{target}'"
         };
 
