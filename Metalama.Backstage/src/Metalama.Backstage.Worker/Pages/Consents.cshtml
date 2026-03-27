@@ -103,17 +103,22 @@
             </label>
         </div>
     </div>
-    <div class="continue-button">
-        @if (Model.IsDeviceOnline)
-        {
-            <button type="submit" class="g-recaptcha" data-sitekey="@Model.RecaptchaSiteKey" data-callback="onSubmit">
-                Continue
-            </button>
-        }
-        else
-        {
-            <button type="submit">Continue</button>
-        }
+    <div class="navigation-buttons">
+        <div class="back-button">
+            <a href="@Model.BackUrl">&larr; Back</a>
+        </div>
+        <div class="continue-button">
+            @if (Model.IsDeviceOnline)
+            {
+                <button type="submit" class="g-recaptcha" data-sitekey="@Model.RecaptchaSiteKey" data-callback="onSubmit">
+                    Continue
+                </button>
+            }
+            else
+            {
+                <button type="submit">Continue</button>
+            }
+        </div>
     </div>
 
 </form>
