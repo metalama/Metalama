@@ -17,6 +17,11 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
 {
     public ParameterBuilderList Parameters { get; } = [];
 
+    /// <summary>
+    /// Gets a value indicating whether <see cref="InsertParameter(int, string, IType, RefKind, TypedConstant?)"/> was called, which shifts template parameter indices.
+    /// </summary>
+    internal bool HasInsertedParameters { get; private set; }
+
     protected override void FreezeChildren()
     {
         base.FreezeChildren();
@@ -46,6 +51,46 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
         TypedConstant? typedConstant = defaultValue != null ? TypedConstant.Create( defaultValue.Value.Value, iType ) : null;
 
         return this.AddParameter( name, iType, refKind, typedConstant );
+    }
+
+    public IParameterBuilder InsertParameter( int index, string name, IType type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
+    {
+        this.CheckNotFrozen();
+
+        if ( index < 0 || index > this.Parameters.Count )
+        {
+            throw new ArgumentOutOfRangeException( nameof(index) );
+        }
+
+        // Validate that inserting at this index doesn't displace an extension receiver ('this') parameter from position 0.
+        if ( index == 0 && this.Parameters.Count > 0 && this.Parameters[0] is ParameterBuilder { IsThis: true } )
+        {
+            throw new InvalidOperationException( "Cannot insert a parameter before the 'this' parameter of an extension method." );
+        }
+
+        var parameter = new ParameterBuilder( this, index, name, type, refKind, this.AspectLayerInstance );
+        parameter.DefaultValue = defaultValue;
+        this.Parameters.Insert( index, parameter );
+
+        // Update indices of parameters after the insertion point.
+        for ( var i = index + 1; i < this.Parameters.Count; i++ )
+        {
+            ((ParameterBuilder) this.Parameters[i]).SetIndex( i );
+        }
+
+        this.HasInsertedParameters = true;
+
+        return parameter;
+    }
+
+    public IParameterBuilder InsertParameter( int index, string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
+    {
+        this.CheckNotFrozen();
+
+        var iType = this.Compilation.Factory.GetTypeByReflectionType( type );
+        TypedConstant? typedConstant = defaultValue != null ? TypedConstant.Create( defaultValue.Value.Value, iType ) : null;
+
+        return this.InsertParameter( index, name, iType, refKind, typedConstant );
     }
 
     IParameterList IHasParameters.Parameters => this.Parameters;

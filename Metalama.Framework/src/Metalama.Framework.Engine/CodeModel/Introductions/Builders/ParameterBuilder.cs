@@ -24,6 +24,7 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
     private IType _type;
     private bool _isParams;
     private bool _isThis;
+    private int _index;
 
     public ParameterBuilder(
         IHasParameters declaringMember,
@@ -34,7 +35,7 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
         AspectLayerInstance aspectLayerInstance ) : base( declaringMember.GetCompilationModel(), aspectLayerInstance )
     {
         this.DeclaringMember = declaringMember;
-        this.Index = index;
+        this._index = index;
         this._name = name;
         this._type = this.Translate( type );
         this._refKind = refKind;
@@ -83,7 +84,9 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
         }
     }
 
-    public override int Index { get; }
+    public override int Index => this._index;
+
+    internal void SetIndex( int index ) => this._index = index;
 
     public override TypedConstant? DefaultValue
     {

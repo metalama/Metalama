@@ -35,5 +35,27 @@ namespace Metalama.Framework.Code.DeclarationBuilders
         /// <param name="defaultValue">Default value.</param>
         /// <returns>A <see cref="IParameterBuilder"/> that allows you to further build the new parameter.</returns>
         IParameterBuilder AddParameter( string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null );
+
+        /// <summary>
+        /// Inserts a parameter at the specified index in the method's parameter list.
+        /// </summary>
+        /// <param name="index">The zero-based index at which the parameter should be inserted.</param>
+        /// <param name="name">Parameter name.</param>
+        /// <param name="type">Parameter type.</param>
+        /// <param name="refKind"><c>out</c>, <c>ref</c>...</param>
+        /// <param name="defaultValue">Default value.</param>
+        /// <returns>A <see cref="IParameterBuilder"/> that allows you to further build the new parameter.</returns>
+        IParameterBuilder InsertParameter( int index, string name, IType type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = default );
+
+        /// <summary>
+        /// Inserts a parameter at the specified index in the method's parameter list.
+        /// </summary>
+        /// <param name="index">The zero-based index at which the parameter should be inserted.</param>
+        /// <param name="name">Parameter name.</param>
+        /// <param name="type">Parameter type.</param>
+        /// <param name="refKind"><c>out</c>, <c>ref</c>...</param>
+        /// <param name="defaultValue">Default value.</param>
+        /// <returns>A <see cref="IParameterBuilder"/> that allows you to further build the new parameter.</returns>
+        IParameterBuilder InsertParameter( int index, string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null );
     }
 }

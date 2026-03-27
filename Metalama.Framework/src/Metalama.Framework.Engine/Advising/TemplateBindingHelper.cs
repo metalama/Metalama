@@ -7,6 +7,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
@@ -72,7 +73,24 @@ internal static class TemplateBindingHelper
             for ( var i = 0; i < template.TemplateMember.TemplateClassMember.RunTimeParameters.Length; i++ )
             {
                 var templateParameter = template.TemplateMember.TemplateClassMember.RunTimeParameters[i];
-                var parameter = targetMethod.Parameters[i];
+
+                // When InsertParameter was used, template parameter indices no longer correspond to target
+                // parameter indices, so use name-based lookup. Otherwise use index-based lookup, which
+                // correctly handles parameter renaming (e.g. operators, swapped parameter names).
+                IParameter parameter;
+
+                if ( targetMethod is MethodBaseBuilder { HasInsertedParameters: true } )
+                {
+                    parameter = targetMethod.Parameters.SingleOrDefault( p => p.Name == templateParameter.Name )
+                                ?? throw new InvalidOperationException(
+                                    $"Cannot bind template parameter '{templateParameter.Name}' (index {i}) to introduced method '{targetMethod}': "
+                                    + $"no target parameter named '{templateParameter.Name}' was found. "
+                                    + "When using InsertParameter, template parameter names must match target parameter names." );
+                }
+                else
+                {
+                    parameter = targetMethod.Parameters[i];
+                }
                 ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( parameter.Name );
                 parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, parameter.Type );
                 mappingBuilder.Add( templateParameter.Name, parameterSyntax );
@@ -134,7 +152,23 @@ internal static class TemplateBindingHelper
             for ( var i = 0; i < template.TemplateMember.TemplateClassMember.RunTimeParameters.Length; i++ )
             {
                 var templateParameter = template.TemplateMember.TemplateClassMember.RunTimeParameters[i];
-                var parameter = targetConstructor.Parameters[i];
+
+                // When InsertParameter was used, template parameter indices no longer correspond to target
+                // parameter indices, so use name-based lookup. Otherwise use index-based lookup.
+                IParameter parameter;
+
+                if ( targetConstructor is MethodBaseBuilder { HasInsertedParameters: true } )
+                {
+                    parameter = targetConstructor.Parameters.SingleOrDefault( p => p.Name == templateParameter.Name )
+                                ?? throw new InvalidOperationException(
+                                    $"Cannot bind template parameter '{templateParameter.Name}' (index {i}) to introduced constructor '{targetConstructor}': "
+                                    + $"no target parameter named '{templateParameter.Name}' was found. "
+                                    + "When using InsertParameter, template parameter names must match target parameter names." );
+                }
+                else
+                {
+                    parameter = targetConstructor.Parameters[i];
+                }
                 ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( parameter.Name );
                 parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, parameter.Type );
                 mappingBuilder.Add( templateParameter.Name, parameterSyntax );

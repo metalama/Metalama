@@ -325,6 +325,12 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
     public IParameterBuilder AddParameter( string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
         => throw new NotSupportedException( "Cannot directly add parameters to accessors." );
 
+    public IParameterBuilder InsertParameter( int index, string name, IType type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
+        => throw new NotSupportedException( "Cannot directly insert parameters into accessors." );
+
+    public IParameterBuilder InsertParameter( int index, string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
+        => throw new NotSupportedException( "Cannot directly insert parameters into accessors." );
+
     public IReadOnlyList<IMethod> ExplicitInterfaceImplementations
         => (containingDeclaration: this.ContainingDeclaration, this.MethodKind) switch
         {
