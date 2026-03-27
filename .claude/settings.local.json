@@ -50,7 +50,10 @@
       "SlashCommand(/fix-binlog-warnings)",
       "Bash(code:*)",
       "Bash(git merge-base:*)",
-      "Bash(gh search:*)"
+      "Bash(gh search:*)",
+      "Bash(find /c/src/Metalama-2026.1/Metalama -type f \\\\\\(-name *.xml -o -name *.config \\\\\\))",
+      "Read(//c/src/Metalama-2026.1/**)",
+      "Read(//c/src/PostSharp.Engineering/**)"
     ],
     "deny": [],
     "ask": []
