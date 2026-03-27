@@ -237,14 +237,22 @@ internal sealed class Templates : ITemplateProvider
             if ( parentNode.ReferencedFieldOrProperty.Accessibility != Accessibility.Private )
             {
                 // Don't notify if we're joining on to existing NotifyChildPropertyChanged support from a base type, or we'll be stuck in a loop.
-                if ( parentNode.InpcBaseHandling != InpcBaseHandling.OnChildPropertyChanged )
+                if ( parentNode.InpcBaseHandling != InpcBaseHandling.OnChildPropertyChanged && templateArgs.OnChildPropertyChangedMethod != null )
                 {
-                    templateArgs.OnChildPropertyChangedMethod!.WithOptions( InvokerOptions.Final ).Invoke( parentNode.DottedPropertyPath, node.Name );
+                    templateArgs.OnChildPropertyChangedMethod.WithOptions( InvokerOptions.Final ).Invoke( parentNode.DottedPropertyPath, node.Name );
                 }
                 else if ( templateArgs.CommonOptions.DiagnosticCommentVerbosity! > 0 )
                 {
-                    meta.InsertComment(
-                        $"Not calling OnChildPropertyChanged('{parentNode.DottedPropertyPath}','{node.Name}') because a base type already provides OnChildPropertyChanged support for the parent property." );
+                    if ( templateArgs.OnChildPropertyChangedMethod == null )
+                    {
+                        meta.InsertComment(
+                            $"Not calling OnChildPropertyChanged('{parentNode.DottedPropertyPath}','{node.Name}') because the type is sealed and OnChildPropertyChanged is not available." );
+                    }
+                    else
+                    {
+                        meta.InsertComment(
+                            $"Not calling OnChildPropertyChanged('{parentNode.DottedPropertyPath}','{node.Name}') because a base type already provides OnChildPropertyChanged support for the parent property." );
+                    }
                 }
             }
             else
@@ -834,7 +842,7 @@ internal sealed class Templates : ITemplateProvider
             }
         }
 
-        if ( nodeIsAccessible )
+        if ( nodeIsAccessible && templateArgs.OnChildPropertyChangedMethod != null )
         {
             switchBuilder.AddDefault(
                 StatementFactory.FromTemplate(
@@ -877,9 +885,9 @@ internal sealed class Templates : ITemplateProvider
                 templateArgs.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( r.Name );
             }
 
-            if ( nodeIsAccessible )
+            if ( nodeIsAccessible && templateArgs.OnChildPropertyChangedMethod != null )
             {
-                templateArgs.OnChildPropertyChangedMethod!.WithOptions( InvokerOptions.Final ).Invoke( node.DottedPropertyPath, childNode.Name );
+                templateArgs.OnChildPropertyChangedMethod.WithOptions( InvokerOptions.Final ).Invoke( node.DottedPropertyPath, childNode.Name );
             }
         }
     }
