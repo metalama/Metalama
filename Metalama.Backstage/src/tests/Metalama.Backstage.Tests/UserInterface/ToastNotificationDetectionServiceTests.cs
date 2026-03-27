@@ -8,6 +8,7 @@ using Metalama.Backstage.Tests.Licensing;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Toasts;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -165,5 +166,27 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         {
             Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.VsxNotInstalled );
         }
+    }
+
+    [Fact]
+    public async Task VsxNotInstalledNotificationHasUri()
+    {
+        this.UserDeviceDetection.IsInteractiveDevice = true;
+        this.UserDeviceDetection.IsVisualStudioInstalled = true;
+        this.ServiceProvider.GetRequiredBackstageService<IIdeExtensionStatusService>().IsVisualStudioExtensionInstalled = false;
+
+        // Register a trial version.
+        Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
+
+        // Initialize
+        this._backstageServicesInitializer.Initialize();
+        await this.DetectToastNotificationsAsync();
+
+        var notification = this.UserInterface.Notifications.Single( n => n.Kind == ToastNotificationKinds.VsxNotInstalled );
+        var webLinks = new WebLinks();
+
+        // The notification must have a Uri so the "Install" button can navigate to the VS Marketplace.
+        Assert.NotNull( notification.Uri );
+        Assert.Equal( webLinks.InstallVsx, notification.Uri );
     }
 }
