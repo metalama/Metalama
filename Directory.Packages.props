@@ -147,6 +147,8 @@
     <PackageVersion Include="Metalama.Testing.AspectTesting" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Testing.UnitTesting" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.DependencyInjection" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.DiffEngine" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.HtmlWriter" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.Metrics" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.Multicast" Version="$(MetalamaVersion)" />
 
