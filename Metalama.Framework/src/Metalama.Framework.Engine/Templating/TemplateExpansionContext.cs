@@ -770,6 +770,28 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         return block.AddStatements( CreateYieldBreakStatement() );
     }
 
+    internal bool CheckYieldInTryCatch( BlockSyntax block )
+    {
+        if ( this._methodTemplate?.MustInterpretAsAsyncIteratorTemplate() != true )
+        {
+            return true;
+        }
+
+        if ( !new HasYieldInTryCatchVisitor().Visit( block ) )
+        {
+            return true;
+        }
+
+        var aspectClass = this.MetaApi.AspectInstance?.AspectClass;
+
+        this.Diagnostics.Report(
+            TemplatingDiagnosticDescriptors.CannotUseNormalTemplateWithTryCatchOnAsyncIterator.CreateRoslynDiagnostic(
+                this.TargetDeclaration?.GetDiagnosticLocation(),
+                (aspectClass?.ShortName ?? "unknown", this.TargetDeclaration!) ) );
+
+        return false;
+    }
+
     private sealed class HasAnyYieldVisitor : SafeSyntaxVisitor<bool>
     {
         public override bool DefaultVisit( SyntaxNode node )

@@ -81,6 +81,17 @@ When starting work on a GitHub issue:
 - don't loose time solving cosmetic warnings (such as redundant usings) until the finalizing stage of a commit
 - `Build.ps1 build` does not build test projects, only packable projects.
 
+## Nested Types in Separate Files
+
+When a class has nested types that are large enough to warrant their own file, use the **partial class** pattern:
+
+- The nested type stays as a `private` (or appropriate access) nested class
+- Place it in a separate file named `OuterClass.NestedType.cs`
+- The file uses `partial class OuterClass` to contain the nested type
+- Use block-scoped namespace syntax (not file-scoped) in the nested type file
+
+Example: `TemplateExpansionContext.ProceedUserExpression.cs` contains `private sealed class ProceedUserExpression` inside `internal sealed partial class TemplateExpansionContext`.
+
 ## Debugging Tests
 
 When you need to debug anything, you can use ITestOutputService to write the test output.

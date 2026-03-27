@@ -706,5 +706,16 @@ namespace Metalama.Framework.Engine.Templating
                     "Execution scope mismatch: the member '{0}' is {1}, but the declaring type '{2}' is {3}.",
                     "Execution scope mismatch: the scope of a member is not compatible with the scope of its declaring type.",
                     _category );
+
+        internal static readonly DiagnosticDefinition<(string AspectName, IDeclaration TargetMethod)>
+            CannotUseNormalTemplateWithTryCatchOnAsyncIterator
+                = new(
+                    "LAMA0293",
+                    "Cannot apply a normal template with try-catch to an async iterator method.",
+                    "The aspect '{0}' cannot override the async iterator method '{1}' because the expanded template contains "
+                    + "'yield return' inside a try block with a catch clause, which is not allowed by C#. "
+                    + "Use a dedicated async iterator template or restructure the template to avoid wrapping 'meta.Proceed()' in a try-catch block.",
+                    _category,
+                    Error );
     }
 }

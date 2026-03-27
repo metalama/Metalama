@@ -73,6 +73,15 @@ namespace Metalama.Framework.Engine.Templating
 
             block = (BlockSyntax) new FlattenBlocksRewriter().Visit( output )!;
 
+            // Check if the expanded template contains yield statements inside try-catch blocks,
+            // which is not allowed by C# (e.g., when a normal template with try-catch targets an async iterator method).
+            if ( !templateExpansionContext.CheckYieldInTryCatch( block ) )
+            {
+                block = null;
+
+                return false;
+            }
+
             // If we're generating an async iterator method, but there is no yield statement, we would get an error.
             // Prevent that by adding `yield break;` at the end of the method body.
             block = templateExpansionContext.AddYieldBreakIfNecessary( block );

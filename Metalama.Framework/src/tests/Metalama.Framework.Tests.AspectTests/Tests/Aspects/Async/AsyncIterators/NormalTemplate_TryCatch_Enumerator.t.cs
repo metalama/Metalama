@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0293 on `AsyncEnumerator`: `The aspect 'Aspect' cannot override the async iterator method 'TargetCode.AsyncEnumerator(int)' because the expanded template contains 'yield return' inside a try block with a catch clause, which is not allowed by C#. Use a dedicated async iterator template or restructure the template to avoid wrapping 'meta.Proceed()' in a try-catch block.`
