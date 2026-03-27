@@ -17,6 +17,12 @@ namespace Metalama.Backstage.Infrastructure
         string ApplicationDataDirectory { get; }
 
         /// <summary>
+        /// Gets the directory that serves as a common repository for local (non-roaming) application-specific data.
+        /// On Windows, this is <c>%LOCALAPPDATA%\Metalama</c>.
+        /// </summary>
+        string ApplicationLocalDataDirectory { get; }
+
+        /// <summary>
         /// Gets the path of the current user's application temporary folder.
         /// </summary>
         string TempDirectory { get; }

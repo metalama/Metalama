@@ -16,62 +16,24 @@ public sealed class TelemetryDirectoryTests : TestsBase
     public TelemetryDirectoryTests( ITestOutputHelper logger ) : base( logger ) { }
 
     [Fact]
-    public void TelemetryUploadQueueDirectoryShouldNotBeUnderApplicationData()
+    public void TelemetryDirectoriesShouldBeUnderApplicationLocalDataDirectory()
     {
         var directories = this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>();
-        var applicationDataDirectory = directories.ApplicationDataDirectory;
-        var telemetryUploadQueueDirectory = directories.TelemetryUploadQueueDirectory;
+        var localDataDirectory = directories.ApplicationLocalDataDirectory;
 
-        Assert.False(
-            telemetryUploadQueueDirectory.StartsWith( applicationDataDirectory, StringComparison.OrdinalIgnoreCase ),
-            $"TelemetryUploadQueueDirectory '{telemetryUploadQueueDirectory}' should not be under ApplicationDataDirectory '{applicationDataDirectory}'." );
+        Assert.StartsWith( localDataDirectory, directories.TelemetryUploadQueueDirectory, StringComparison.OrdinalIgnoreCase );
+        Assert.StartsWith( localDataDirectory, directories.TelemetryLogsDirectory, StringComparison.OrdinalIgnoreCase );
+        Assert.StartsWith( localDataDirectory, directories.TelemetryExceptionsDirectory, StringComparison.OrdinalIgnoreCase );
+        Assert.StartsWith( localDataDirectory, directories.TelemetryUploadPackagesDirectory, StringComparison.OrdinalIgnoreCase );
     }
 
     [Fact]
-    public void TelemetryLogsDirectoryShouldNotBeUnderApplicationData()
+    public void ApplicationLocalDataDirectoryShouldNotBeUnderTempDirectory()
     {
         var directories = this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>();
-        var applicationDataDirectory = directories.ApplicationDataDirectory;
-        var telemetryLogsDirectory = directories.TelemetryLogsDirectory;
 
         Assert.False(
-            telemetryLogsDirectory.StartsWith( applicationDataDirectory, StringComparison.OrdinalIgnoreCase ),
-            $"TelemetryLogsDirectory '{telemetryLogsDirectory}' should not be under ApplicationDataDirectory '{applicationDataDirectory}'." );
-    }
-
-    [Fact]
-    public void TelemetryExceptionsDirectoryShouldNotBeUnderApplicationData()
-    {
-        var directories = this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>();
-        var applicationDataDirectory = directories.ApplicationDataDirectory;
-        var telemetryExceptionsDirectory = directories.TelemetryExceptionsDirectory;
-
-        Assert.False(
-            telemetryExceptionsDirectory.StartsWith( applicationDataDirectory, StringComparison.OrdinalIgnoreCase ),
-            $"TelemetryExceptionsDirectory '{telemetryExceptionsDirectory}' should not be under ApplicationDataDirectory '{applicationDataDirectory}'." );
-    }
-
-    [Fact]
-    public void TelemetryUploadPackagesDirectoryShouldNotBeUnderApplicationData()
-    {
-        var directories = this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>();
-        var applicationDataDirectory = directories.ApplicationDataDirectory;
-        var telemetryUploadPackagesDirectory = directories.TelemetryUploadPackagesDirectory;
-
-        Assert.False(
-            telemetryUploadPackagesDirectory.StartsWith( applicationDataDirectory, StringComparison.OrdinalIgnoreCase ),
-            $"TelemetryUploadPackagesDirectory '{telemetryUploadPackagesDirectory}' should not be under ApplicationDataDirectory '{applicationDataDirectory}'." );
-    }
-
-    [Fact]
-    public void TelemetryDirectoriesShouldBeUnderTempDirectory()
-    {
-        var directories = this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>();
-        var tempDirectory = directories.TempDirectory;
-
-        Assert.StartsWith( tempDirectory, directories.TelemetryUploadQueueDirectory, StringComparison.OrdinalIgnoreCase );
-        Assert.StartsWith( tempDirectory, directories.TelemetryLogsDirectory, StringComparison.OrdinalIgnoreCase );
-        Assert.StartsWith( tempDirectory, directories.TelemetryExceptionsDirectory, StringComparison.OrdinalIgnoreCase );
-        Assert.StartsWith( tempDirectory, directories.TelemetryUploadPackagesDirectory, StringComparison.OrdinalIgnoreCase );
+            directories.ApplicationLocalDataDirectory.StartsWith( directories.TempDirectory, StringComparison.OrdinalIgnoreCase ),
+            $"ApplicationLocalDataDirectory '{directories.ApplicationLocalDataDirectory}' should not be under TempDirectory '{directories.TempDirectory}'." );
     }
 }

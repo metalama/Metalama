@@ -71,6 +71,8 @@ namespace Metalama.Backstage.Infrastructure
             var incorrectApplicationDataDirectory = GetApplicationDataDirectory( Environment.SpecialFolder.ApplicationData, ".metalama" );
             var correctApplicationDataDirectory = GetApplicationDataDirectory( Environment.SpecialFolder.LocalApplicationData, "Metalama" );
 
+            this.ApplicationLocalDataDirectory = correctApplicationDataDirectory;
+
             // On OSX, when running on .NET 6.0 or 7.0, we need to check that the standard directory returned on .NET 8 is not used, in which case we should use it.
             // This makes sure that that we are not using a different directory when mixing .NET 6.0 and .NET 8.0.
             var osxForwardCompatibleApplicationDataDirectory =
@@ -126,19 +128,22 @@ namespace Metalama.Backstage.Infrastructure
         public string ApplicationDataDirectory { get; }
 
         /// <inheritdoc />
+        public string ApplicationLocalDataDirectory { get; }
+
+        /// <inheritdoc />
         public string TempDirectory { get; } = Path.Combine( MetalamaPathUtilities.GetTempPath(), "Metalama" );
 
         /// <inheritdoc />
-        public string TelemetryLogsDirectory => Path.Combine( this.TempDirectory, "Telemetry", "Logs" );
+        public string TelemetryLogsDirectory => Path.Combine( this.ApplicationLocalDataDirectory, "Telemetry", "Logs" );
 
         /// <inheritdoc />
-        public string TelemetryExceptionsDirectory => Path.Combine( this.TempDirectory, "Telemetry", "Exceptions" );
+        public string TelemetryExceptionsDirectory => Path.Combine( this.ApplicationLocalDataDirectory, "Telemetry", "Exceptions" );
 
         /// <inheritdoc />
-        public string TelemetryUploadQueueDirectory => Path.Combine( this.TempDirectory, "Telemetry", "UploadQueue" );
+        public string TelemetryUploadQueueDirectory => Path.Combine( this.ApplicationLocalDataDirectory, "Telemetry", "UploadQueue" );
 
         /// <inheritdoc />
-        public string TelemetryUploadPackagesDirectory => Path.Combine( this.TempDirectory, "Telemetry", "Packages" );
+        public string TelemetryUploadPackagesDirectory => Path.Combine( this.ApplicationLocalDataDirectory, "Telemetry", "Packages" );
 
         public string CrashReportsDirectory
             => this._serviceProvider.GetRequiredBackstageService<ITempFileManager>()
