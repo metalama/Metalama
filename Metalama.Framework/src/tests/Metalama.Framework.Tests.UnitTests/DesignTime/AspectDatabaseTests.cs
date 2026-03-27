@@ -707,8 +707,8 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
         var aspectClasses = await aspectDatabase.GetAspectClassesAsync( projectKey, testContext.CancellationToken );
 
         // A fabric that only validates (reports diagnostics) should not appear as an "aspect class"
-        // in the Aspect Explorer. It should either not be listed, or be listed with validation info.
-        // Currently it is listed as an aspect class with no instances, making it falsely appear "unused".
+        // in the Aspect Explorer. It should not be listed among aspect classes.
+        // Previously it was listed as an aspect class with no instances, making it falsely appear "unused".
         AssertAspectClasses( [], aspectClasses );
     }
 
