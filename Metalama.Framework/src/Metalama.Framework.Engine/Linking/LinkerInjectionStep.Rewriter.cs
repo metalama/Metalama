@@ -371,6 +371,20 @@ internal sealed partial class LinkerInjectionStep
                 ref baseList,
                 ref parameterList );
 
+            // When parameters are introduced into a record's primary constructor, the compiler-generated
+            // Deconstruct method will include the new parameters. We need to inject a Deconstruct overload
+            // with the original parameters so existing deconstruction code remains valid (#698).
+            var originalParameterList = node.GetParameterList();
+
+            if ( node is RecordDeclarationSyntax
+                 && originalParameterList is { Parameters.Count: > 0 }
+                 && parameterList != originalParameterList
+                 && !this.HasUserDefinedDeconstruct( node, originalParameterList.Parameters.Count ) )
+            {
+                members.Add(
+                    RecordDeconstructSyntaxHelper.GenerateDeconstructMethod( originalParameterList, syntaxGenerationContext ) );
+            }
+
             // Process the type members.
             foreach ( var member in node.Members )
             {
@@ -1059,6 +1073,31 @@ internal sealed partial class LinkerInjectionStep
                                     .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ) ) ) );
                 }
             }
+        }
+
+        /// <summary>
+        /// Checks whether the type already contains a user-defined Deconstruct method
+        /// with the specified number of out parameters, across all partial declarations.
+        /// </summary>
+        private bool HasUserDefinedDeconstruct( TypeDeclarationSyntax typeDeclaration, int parameterCount )
+        {
+            var semanticModel = this._semanticModelProvider.GetSemanticModel( typeDeclaration.SyntaxTree );
+            var typeSymbol = semanticModel.GetDeclaredSymbol( typeDeclaration );
+
+            if ( typeSymbol == null )
+            {
+                return false;
+            }
+
+            return typeSymbol.GetMembers( "Deconstruct" )
+                .OfType<IMethodSymbol>()
+                .Any(
+                    m => !m.IsImplicitlyDeclared
+                         && !m.IsStatic
+                         && m.ReturnsVoid
+                         && !m.IsGenericMethod
+                         && m.Parameters.Length == parameterCount
+                         && m.Parameters.All( p => p.RefKind == Microsoft.CodeAnalysis.RefKind.Out ) );
         }
 
         private ConstructorInitializerSyntax? AppendInitializerArguments(
