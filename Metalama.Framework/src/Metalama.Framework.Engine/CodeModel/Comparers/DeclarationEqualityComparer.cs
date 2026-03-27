@@ -273,7 +273,7 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
             return true;
         }
 
-        return false;
+        return left.Equals( right );
     }
 
     private bool IsOfTypeDefinition( IType type, INamedType typeDefinition )

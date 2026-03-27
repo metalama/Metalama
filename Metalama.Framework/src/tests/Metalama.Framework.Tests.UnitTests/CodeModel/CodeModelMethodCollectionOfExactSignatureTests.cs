@@ -480,6 +480,42 @@ class D
         }
 
         [Fact]
+        public void OfExactSignature_IMethod_Matches_MixedGenericAndConcreteTypeArguments()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+using System.Collections.Generic;
+
+class C
+{
+    public void Foo<T>(Dictionary<T, int> x)
+    {
+    }
+}
+
+class D
+{
+    public void Foo<T>(Dictionary<T, int> x)
+    {
+    }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var typeC = compilation.Types.OfName( "C" ).Single();
+            var typeD = compilation.Types.OfName( "D" ).Single();
+
+            // Match Dictionary<T, int> parameter type across methods from different types.
+            // The int type argument is a concrete (non-type-parameter) leaf that must be compared
+            // via normal type equality, not rejected as a non-method-type-parameter.
+            var template = typeD.Methods.OfName( "Foo" ).Single();
+            var matchedFoo = typeC.Methods.OfExactSignature( template );
+            Assert.NotNull( matchedFoo );
+            Assert.Same( typeC.Methods.OfName( "Foo" ).Single(), matchedFoo );
+        }
+
+        [Fact]
         public void Matches_WithConversionKind_Identical()
         {
             using var testContext = this.CreateTestContext();
