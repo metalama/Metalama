@@ -62,6 +62,12 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
             throw new ArgumentOutOfRangeException( nameof(index) );
         }
 
+        // Validate that inserting at this index doesn't displace an extension receiver ('this') parameter from position 0.
+        if ( index == 0 && this.Parameters.Count > 0 && this.Parameters[0] is ParameterBuilder { IsThis: true } )
+        {
+            throw new InvalidOperationException( "Cannot insert a parameter before the 'this' parameter of an extension method." );
+        }
+
         var parameter = new ParameterBuilder( this, index, name, type, refKind, this.AspectLayerInstance );
         parameter.DefaultValue = defaultValue;
         this.Parameters.Insert( index, parameter );
