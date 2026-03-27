@@ -750,6 +750,82 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         return block.AddStatements( CreateYieldBreakStatement() );
     }
 
+    internal bool CheckYieldInTryCatch( BlockSyntax block )
+    {
+        if ( this._methodTemplate?.MustInterpretAsAsyncIteratorTemplate() != true )
+        {
+            return true;
+        }
+
+        if ( !new HasYieldInTryCatchVisitor().Visit( block ) )
+        {
+            return true;
+        }
+
+        var aspectClass = this.MetaApi.AspectInstance?.AspectClass;
+
+        this.Diagnostics.Report(
+            TemplatingDiagnosticDescriptors.CannotUseNormalTemplateWithTryCatchOnAsyncIterator.CreateRoslynDiagnostic(
+                this.TargetDeclaration?.GetDiagnosticLocation(),
+                (aspectClass?.ShortName ?? "unknown", this.TargetDeclaration!) ) );
+
+        return false;
+    }
+
+    /// <summary>
+    /// Visitor that detects yield statements inside try blocks that have catch clauses.
+    /// C# does not allow yield return/break inside a try block with a catch clause.
+    /// </summary>
+    private sealed class HasYieldInTryCatchVisitor : SafeSyntaxVisitor<bool>
+    {
+        private bool _insideTryWithCatch;
+
+        public override bool DefaultVisit( SyntaxNode node )
+        {
+            foreach ( var child in node.ChildNodesAndTokens() )
+            {
+                var childNode = child.AsNode();
+
+                if ( childNode != null && this.Visit( childNode ) )
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public override bool VisitTryStatement( TryStatementSyntax node )
+        {
+            if ( node.Catches.Count > 0 )
+            {
+                var previousValue = this._insideTryWithCatch;
+                this._insideTryWithCatch = true;
+
+                // Only check the try block, not catch/finally blocks.
+                var result = this.Visit( node.Block );
+
+                this._insideTryWithCatch = previousValue;
+
+                return result;
+            }
+
+            // try-finally without catch is fine for yield.
+            return this.DefaultVisit( node );
+        }
+
+        public override bool VisitYieldStatement( YieldStatementSyntax node ) => this._insideTryWithCatch;
+
+        // Don't descend into local functions or lambdas — they have their own scope for yield.
+        public override bool VisitLocalFunctionStatement( LocalFunctionStatementSyntax node ) => false;
+
+        public override bool VisitParenthesizedLambdaExpression( ParenthesizedLambdaExpressionSyntax node ) => false;
+
+        public override bool VisitSimpleLambdaExpression( SimpleLambdaExpressionSyntax node ) => false;
+
+        public override bool VisitAnonymousMethodExpression( AnonymousMethodExpressionSyntax node ) => false;
+    }
+
     private sealed class HasAnyYieldVisitor : SafeSyntaxVisitor<bool>
     {
         public override bool DefaultVisit( SyntaxNode node )
