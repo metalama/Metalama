@@ -76,9 +76,7 @@ internal class ConsentsPageModel : PageModel
 
     public bool IsDeviceOnline { get; set; }
 
-#pragma warning disable CA1822 // Accessed as Model.BackUrl in Razor
-    public string BackUrl => GlobalState.SelectedAction == SelectedAction.Register ? "/LicenseKey" : "/ChooseLicenseKind";
-#pragma warning restore CA1822
+    public string BackUrl { get; private set; } = "/ChooseLicenseKind";
 
     private async Task PrepareCaptchaAsync()
     {
@@ -93,6 +91,8 @@ internal class ConsentsPageModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
+        this.BackUrl = GlobalState.SelectedAction == SelectedAction.Register ? "/LicenseKey" : "/ChooseLicenseKind";
+
         await this.PrepareCaptchaAsync();
 
         // If newsletter is not available, we keep the email address empty, so the field validation is not triggered.
@@ -106,6 +106,8 @@ internal class ConsentsPageModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        this.BackUrl = GlobalState.SelectedAction == SelectedAction.Register ? "/LicenseKey" : "/ChooseLicenseKind";
+
         await this.PrepareCaptchaAsync();
 
         if ( !this.ModelState.IsValid )
