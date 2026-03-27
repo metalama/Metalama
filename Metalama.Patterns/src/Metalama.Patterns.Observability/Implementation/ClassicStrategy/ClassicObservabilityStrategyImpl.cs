@@ -304,6 +304,8 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
                     } )
                 .ToList();
 
+        var isOverride = this._baseOnChildPropertyChangedMethod != null;
+
         if ( this._propertyPathsForOnChildPropertyChangedMethod.Count == 0 && nodesForOnChildPropertyChanged.Count == 0 )
         {
             // This method is not necessary.
@@ -312,7 +314,13 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
             return true;
         }
 
-        var isOverride = this._baseOnChildPropertyChangedMethod != null;
+        if ( this.CurrentType.IsSealed && !isOverride )
+        {
+            // For sealed types, OnChildPropertyChanged is unnecessary because no derived type can override it.
+            this._onChildPropertyChangedMethod.Value = null;
+
+            return true;
+        }
 
         var result = this.AspectBuilder
             .With( this.CurrentType )
