@@ -1,5 +1,9 @@
 public record struct TargetRecordStruct
 {
+  public void Deconstruct(out int X)
+  {
+    X = this.X;
+  }
   [Dependency(IsLazy = true)]
   private ILogger _logger
   {

@@ -1,6 +1,10 @@
 [Override]
 public record class TargetClass
 {
+  public void Deconstruct(out int x)
+  {
+    x = this.x;
+  }
   public int Z;
   public global::System.Int32 x { get; init; }
   public global::System.Int32 introduced { get; init; }
