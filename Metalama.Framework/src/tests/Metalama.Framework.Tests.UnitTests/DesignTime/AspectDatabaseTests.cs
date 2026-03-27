@@ -668,6 +668,51 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
     }
 
     [Fact]
+    public async Task ValidationOnlyFabricNotShownAsUnusedAspectTest()
+    {
+        const string code =
+            """
+            using Metalama.Framework.Code;
+            using Metalama.Framework.Diagnostics;
+            using Metalama.Framework.Fabrics;
+            using System.Linq;
+
+            class ValidatingFabric : ProjectFabric
+            {
+                private static readonly DiagnosticDefinition<IDeclaration> _warning =
+                    new( "MY001", Severity.Warning, "Warning on {0}." );
+
+                public override void AmendProject(IProjectAmender amender)
+                {
+                    amender.SelectMany( x => x.Types.SelectMany( t => t.Methods ) ).ReportDiagnostic( t => _warning.WithArguments( t ) );
+                }
+            }
+
+            class Target
+            {
+                void M() { }
+            }
+            """;
+
+        using var testContext = this.CreateTestContext();
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+
+        var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
+        var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
+
+        var aspectDatabase = new AspectDatabase( factory.ServiceProvider );
+
+        Assert.True( await aspectDatabase.HasValidConfigurationAsync( projectKey, testContext.CancellationToken ) );
+
+        var aspectClasses = await aspectDatabase.GetAspectClassesAsync( projectKey, testContext.CancellationToken );
+
+        // A fabric that only validates (reports diagnostics) should not appear as an "aspect class"
+        // in the Aspect Explorer. It should not be listed among aspect classes.
+        // Previously it was listed as an aspect class with no instances, making it falsely appear "unused".
+        AssertAspectClasses( [], aspectClasses );
+    }
+
+    [Fact]
     public async Task HideFromAspectExplorerTest()
     {
         const string code =
