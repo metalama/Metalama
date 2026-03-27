@@ -1,0 +1,1 @@
+// Error LAMA0037 on `NotEmpty`: `The aspect 'NotEmpty' cannot be applied to the parameter 'NotEmpty_Ineligible_Parameter.Method(int)/value' because the type of 'NotEmpty_Ineligible_Parameter.Method(int)/value' must be a string, array, or collection type.`
