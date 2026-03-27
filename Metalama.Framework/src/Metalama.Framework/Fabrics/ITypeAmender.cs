@@ -50,6 +50,6 @@ namespace Metalama.Framework.Fabrics
         /// <summary>
         /// Gets a service that allows to report or suppress diagnostics scoped to the target type.
         /// </summary>
-        ScopedDiagnosticSink Diagnostics { get; }
+        new ScopedDiagnosticSink Diagnostics { get; }
     }
 }
