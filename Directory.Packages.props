@@ -76,6 +76,7 @@
     <PackageVersion Include="System.DirectoryServices" Version="8.0.0" />
     <PackageVersion Include="System.IO.Abstractions" Version="22.0.16" />
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.0.16" />
+    <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
     <PackageVersion Include="System.Memory" Version="4.6.0" />
