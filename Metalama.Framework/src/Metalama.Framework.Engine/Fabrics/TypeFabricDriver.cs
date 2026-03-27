@@ -150,6 +150,8 @@ internal sealed class TypeFabricDriver : FabricDriver
         public IAdviceFactory Advice { get; }
 #pragma warning restore CS0618
 
+        public ScopedDiagnosticSink Diagnostics => this._aspectBuilder.Diagnostics;
+
         public override string Namespace => this.Type.ContainingNamespace.FullName;
 
         // IAdviser<INamedType> implementation, delegated to the advice factory.

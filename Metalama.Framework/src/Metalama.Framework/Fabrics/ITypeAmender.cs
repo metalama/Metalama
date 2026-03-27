@@ -6,6 +6,7 @@ using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Diagnostics;
 
 namespace Metalama.Framework.Fabrics
 {
@@ -45,5 +46,10 @@ namespace Metalama.Framework.Fabrics
         /// <seealso href="@advising-code"/>
         [Obsolete( "Use extension methods from AdviserExtensions directly on this ITypeAmender instance instead." )]
         IAdviceFactory Advice { get; }
+
+        /// <summary>
+        /// Gets a service that allows to report or suppress diagnostics scoped to the target type.
+        /// </summary>
+        ScopedDiagnosticSink Diagnostics { get; }
     }
 }

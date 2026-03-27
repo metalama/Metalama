@@ -848,6 +848,11 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                     {
                         nodeOrToken = nodeOrToken.AddColoringAnnotation( TextSpanClassification.TemplateKeyword );
                     }
+                    else if ( symbol is IMethodSymbol
+                              && this._symbolScopeClassifier.GetTemplateInfo( symbol ).AttributeType == TemplateAttributeType.Template )
+                    {
+                        nodeOrToken = nodeOrToken.AddColoringAnnotation( TextSpanClassification.TemplateKeyword );
+                    }
                     else
                     {
                         var node = nodeOrToken.AsNode() ?? nodeOrToken.Parent;
