@@ -114,14 +114,14 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
             left = translatedLeft;
         }
 
+        if ( (flags & ConversionFlags.TypeParameterEquivalence) != 0
+             && AreTypesEquivalentByMethodTypeParameterOrdinal( left, right ) )
+        {
+            return true;
+        }
+
         if ( kind == ConversionKind.Identical )
         {
-            if ( (flags & ConversionFlags.TypeParameterEquivalence) != 0
-                 && AreTypesEquivalentByMethodTypeParameterOrdinal( left, right ) )
-            {
-                return true;
-            }
-
             return this.Equals( left, right );
         }
 
