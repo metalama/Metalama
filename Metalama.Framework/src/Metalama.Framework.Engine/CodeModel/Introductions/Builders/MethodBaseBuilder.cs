@@ -17,6 +17,11 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
 {
     public ParameterBuilderList Parameters { get; } = [];
 
+    /// <summary>
+    /// Gets a value indicating whether <see cref="InsertParameter(int, string, IType, RefKind, TypedConstant?)"/> was called, which shifts template parameter indices.
+    /// </summary>
+    internal bool HasInsertedParameters { get; private set; }
+
     protected override void FreezeChildren()
     {
         base.FreezeChildren();
@@ -66,6 +71,8 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
         {
             ((ParameterBuilder) this.Parameters[i]).SetIndex( i );
         }
+
+        this.HasInsertedParameters = true;
 
         return parameter;
     }

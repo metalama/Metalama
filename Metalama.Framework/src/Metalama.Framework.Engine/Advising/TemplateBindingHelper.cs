@@ -7,6 +7,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
@@ -73,9 +74,13 @@ internal static class TemplateBindingHelper
             {
                 var templateParameter = template.TemplateMember.TemplateClassMember.RunTimeParameters[i];
 
-                // Look up the target parameter by name rather than by index, because the user may have
-                // inserted parameters before template parameters using InsertParameter.
-                var parameter = targetMethod.Parameters[templateParameter.Name];
+                // When InsertParameter was used, template parameter indices no longer correspond to target
+                // parameter indices, so use name-based lookup. Otherwise use index-based lookup, which
+                // correctly handles parameter renaming (e.g. operators, swapped parameter names).
+                var useNameBasedLookup = targetMethod is MethodBaseBuilder { HasInsertedParameters: true };
+                var parameter = useNameBasedLookup
+                    ? targetMethod.Parameters[templateParameter.Name]
+                    : targetMethod.Parameters[i];
                 ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( parameter.Name );
                 parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, parameter.Type );
                 mappingBuilder.Add( templateParameter.Name, parameterSyntax );
