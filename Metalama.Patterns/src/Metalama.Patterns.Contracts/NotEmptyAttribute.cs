@@ -36,8 +36,47 @@ public sealed class NotEmptyAttribute : ContractBaseAttribute
         base.BuildEligibility( builder );
 
         builder.MustSatisfy(
-            f => f.Type is INamedType t && (t.Equals( SpecialType.String ) || TryGetCompatibleTargetInterface( t, out _, out _ )),
-            f => $"the type of {f} must string or implement ICollection, ICollection<T> or IReadOnlyCollection<T>" );
+            f => IsEligibleType( f.Type ),
+            f => $"the type of {f} must be a string, array, or collection type" );
+    }
+
+    /// <inheritdoc/>
+    public override void BuildEligibility( IEligibilityBuilder<IParameter> builder )
+    {
+        base.BuildEligibility( builder );
+
+        builder.MustSatisfy(
+            p => IsEligibleType( p.Type ),
+            p => $"the type of {p} must be a string, array, or collection type" );
+    }
+
+    [CompileTime]
+    private static bool IsEligibleType( IType type )
+        => type is IArrayType
+           || type.Equals( SpecialType.String )
+           || (type is INamedType namedType
+               && (namedType.IsConvertibleTo( typeof(ICollection) )
+                   || namedType.Definition.IsConvertibleTo( typeof(ImmutableArray<>) )
+                   || ImplementsGenericCollectionInterface( namedType )));
+
+    [CompileTime]
+    private static bool ImplementsGenericCollectionInterface( INamedType namedType )
+    {
+        foreach ( var t in namedType.GetSelfAndAllImplementedInterfaces() )
+        {
+            if ( t.IsGeneric )
+            {
+                var definition = t.Definition;
+
+                if ( definition.ContainingNamespace.FullName == "System.Collections.Generic"
+                     && definition.Name is "IReadOnlyCollection" or "ICollection" )
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /// <inheritdoc/>
