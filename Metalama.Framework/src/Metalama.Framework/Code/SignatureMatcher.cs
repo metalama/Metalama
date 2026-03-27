@@ -141,7 +141,11 @@ namespace Metalama.Framework.Code
                 var parameterInfo = payload.ParameterGetter( payload.InnerPayload, parameterIndex );
 
                 return
-                    payload.Compilation.Comparers.Default.IsConvertibleTo( parameterInfo.Type, expectedType, payload.ConversionKind )
+                    payload.Compilation.Comparers.Default.IsConvertibleTo(
+                        parameterInfo.Type,
+                        expectedType,
+                        payload.ConversionKind,
+                        ConversionFlags.TypeParameterEquivalence )
                     && expectedRefKind == parameterInfo.RefKind;
             }
         }
