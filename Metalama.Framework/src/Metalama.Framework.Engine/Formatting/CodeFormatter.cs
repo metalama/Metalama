@@ -238,11 +238,7 @@ public sealed partial class CodeFormatter : IProjectService
             // Normalize EOLs to match the original syntax tree's style, because Roslyn's Formatter
             // may have changed them (e.g. to \r\n on Windows).
             var originalEol = EndOfLineHelper.DetermineEndOfLineStyleFast( oldSyntaxTree );
-
-            if ( originalEol != "\r\n" )
-            {
-                newSyntaxRoot = EndOfLineHelper.NormalizeEndOfLines( newSyntaxRoot, originalEol );
-            }
+            newSyntaxRoot = EndOfLineHelper.NormalizeEndOfLines( newSyntaxRoot, originalEol );
 
             var newSyntaxTree = oldSyntaxTree.WithRootAndOptions( newSyntaxRoot, oldSyntaxTree.Options );
 
@@ -269,15 +265,11 @@ public sealed partial class CodeFormatter : IProjectService
             {
                 var oldSyntaxTree = syntaxTreePair.Key;
                 var originalEol = EndOfLineHelper.DetermineEndOfLineStyleFast( oldSyntaxTree );
+                var formattedDocument = formattedSolution.GetDocument( syntaxTreePair.Value ).AssertNotNull();
+                var formattedRoot = (await formattedDocument.GetSyntaxRootAsync( cancellationToken )).AssertNotNull();
+                var normalizedRoot = EndOfLineHelper.NormalizeEndOfLines( formattedRoot, originalEol );
 
-                if ( originalEol != "\r\n" )
-                {
-                    var formattedDocument = formattedSolution.GetDocument( syntaxTreePair.Value ).AssertNotNull();
-                    var formattedRoot = (await formattedDocument.GetSyntaxRootAsync( cancellationToken )).AssertNotNull();
-                    var normalizedRoot = EndOfLineHelper.NormalizeEndOfLines( formattedRoot, originalEol );
-
-                    eolReplacements.Add( (oldSyntaxTree.FilePath, normalizedRoot) );
-                }
+                eolReplacements.Add( (oldSyntaxTree.FilePath, normalizedRoot) );
             },
             cancellationToken );
 
