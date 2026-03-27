@@ -317,7 +317,7 @@ public static partial class SyntaxFactoryEx
 
         if ( enumerable.HasError() )
         {
-            throw new DiagnosticException( $"Code could not be parsed as a statement.", enumerable.ToImmutableArray(), false );
+            throw new DiagnosticException( $"Code '{text}' could not be parsed as a statement.", enumerable.ToImmutableArray(), false );
         }
 
         return statement;
