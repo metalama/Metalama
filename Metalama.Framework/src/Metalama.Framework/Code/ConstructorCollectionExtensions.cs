@@ -88,7 +88,19 @@ public static class ConstructorCollectionExtensions
             false );
 
         static (IType Type, RefKind RefKind) GetParameter( (IReadOnlyList<Type> ParameterTypes, ICompilationInternal Compilation) context, int index )
-            => (context.Compilation.Factory.GetTypeByReflectionType( context.ParameterTypes[index] ), RefKind.None);
+        {
+            var reflectionType = context.ParameterTypes[index];
+
+            if ( reflectionType.IsByRef )
+            {
+                throw new ArgumentException(
+                    $"By-ref parameter types (Type.IsByRef == true) are not supported by this overload. "
+                    + $"Use the overload that accepts IType and RefKind for constructors with ref or out parameters.",
+                    nameof(parameterTypes) );
+            }
+
+            return (context.Compilation.Factory.GetTypeByReflectionType( reflectionType ), RefKind.None);
+        }
     }
 
     /// <summary>
