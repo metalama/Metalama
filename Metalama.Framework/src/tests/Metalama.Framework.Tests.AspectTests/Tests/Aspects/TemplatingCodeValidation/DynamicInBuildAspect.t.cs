@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0233 on `This`: `Cannot use 'meta.This' in 'A.BuildAspect(IAspectBuilder<IMethod>)' because it is only allowed inside a template. Use ExpressionFactory.This() instead of meta.This.`
