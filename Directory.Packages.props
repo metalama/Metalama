@@ -44,7 +44,6 @@
     <SystemIOPipelinesLatestVersion>9.0.10</SystemIOPipelinesLatestVersion>
     <SystemBuffersLatestVersion>4.6.1</SystemBuffersLatestVersion>
 
-
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="PostSharp.Engineering.BuildTools" Version="$(PostSharpEngineeringVersion)" />
@@ -80,6 +79,7 @@
     <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
+    <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
     <PackageVersion Include="System.Buffers" Version="4.5.1" /> <!-- Given by System.Memory -->
     <PackageVersion Include="System.Memory" Version="4.6.0" />
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
@@ -99,7 +99,9 @@
 
     <PackageVersion Include="Microsoft.Win32.Registry" Version="5.0.0" />
 
-    <PackageVersion Include="DiffEngine" Version="15.5.3" />
+    <PackageVersion Include="DiffEngine" Version="19.1.2" />
+    <PackageVersion Include="Metalama.Extensions.DiffEngine" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.HtmlWriter" Version="$(MetalamaVersion)" />
     <PackageVersion Include="DiffPlex" Version="1.7.2" />
     <PackageVersion Include="LibGit2Sharp" Version="0.30.0" />
     <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)" />
@@ -128,7 +130,6 @@
     <!-- The following package is ILMerged so we can take any version we want,
      however all dependencies must be lower or equal than the minimal we must suppport. -->
 
-    <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
     <PackageVersion Include="StreamJsonRpc" Version="2.20.17" />
     <!-- The following packages are dependencies of StreamJsonRpc and we must match the version. 
         We now target the .NET SDK 8 and equivalent VS.
