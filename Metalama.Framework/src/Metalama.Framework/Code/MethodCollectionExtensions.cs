@@ -131,6 +131,8 @@ public static class MethodCollectionExtensions
 
     /// <summary>
     /// Gets a method that exactly matches the specified signature given using the <c>System.Reflection</c> API.
+    /// By-ref reflection types (<see cref="Type.IsByRef"/> == <see langword="true"/>) do not match any parameter.
+    /// Non-by-ref reflection types match parameters with <see cref="RefKind.None"/> or <see cref="RefKind.In"/>.
     /// </summary>
     /// <param name="methods">A collection of methods.</param>
     /// <param name="name">Name of the method.</param>
@@ -143,24 +145,65 @@ public static class MethodCollectionExtensions
         IReadOnlyList<Type> parameterTypes,
         bool? isStatic = null )
     {
-        return methods.OfExactSignature(
-            (parameterTypes, (ICompilationInternal) methods.DeclaringType.Compilation),
-            name,
-            parameterTypes.Count,
-            GetParameter,
-            isStatic );
-
-        static (IType Type, RefKind RefKind) GetParameter( (IReadOnlyList<Type> ParameterTypes, ICompilationInternal Compilation) context, int index )
+        // By-ref reflection types are not supported by this overload.
+        for ( var i = 0; i < parameterTypes.Count; i++ )
         {
-            var reflectionType = context.ParameterTypes[index];
-
-            if ( reflectionType.IsByRef )
+            if ( parameterTypes[i].IsByRef )
             {
-                return (context.Compilation.Factory.GetTypeByReflectionType( reflectionType.GetElementType()! ), RefKind.In);
+                return null;
+            }
+        }
+
+        var compilation = (ICompilationInternal) methods.DeclaringType.Compilation;
+
+        foreach ( var method in methods.OfName( name ) )
+        {
+            if ( method.IsExplicitInterfaceImplementation )
+            {
+                continue;
             }
 
-            return (context.Compilation.Factory.GetTypeByReflectionType( reflectionType ), RefKind.None);
+            if ( isStatic != null && method.IsStatic != isStatic )
+            {
+                continue;
+            }
+
+            if ( method.Parameters.Count != parameterTypes.Count )
+            {
+                continue;
+            }
+
+            var match = true;
+
+            for ( var i = 0; i < parameterTypes.Count; i++ )
+            {
+                var parameter = method.Parameters[i];
+
+                // Non-by-ref reflection types match only plain and 'in' parameters.
+                if ( parameter.RefKind != RefKind.None && parameter.RefKind != RefKind.In )
+                {
+                    match = false;
+
+                    break;
+                }
+
+                var metalmaType = compilation.Factory.GetTypeByReflectionType( parameterTypes[i] );
+
+                if ( !compilation.Comparers.Default.IsConvertibleTo( metalmaType, parameter.Type, ConversionKind.Identical ) )
+                {
+                    match = false;
+
+                    break;
+                }
+            }
+
+            if ( match )
+            {
+                return method;
+            }
         }
+
+        return null;
     }
 
     /// <summary>

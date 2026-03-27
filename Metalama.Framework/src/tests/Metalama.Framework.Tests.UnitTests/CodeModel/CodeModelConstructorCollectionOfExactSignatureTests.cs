@@ -48,7 +48,7 @@ class C
         }
 
         [Fact]
-        public void Matches_ByRefReflectionType_AsInParameter()
+        public void ByRefReflectionType_DoesNotMatch()
         {
             using var testContext = this.CreateTestContext();
 
@@ -63,13 +63,33 @@ class C
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.ElementAt( 0 );
 
-            // By-ref reflection types are treated as 'in' parameters.
-            var matchedCtor1 = type.Constructors.OfExactSignature( new[] { typeof(int).MakeByRefType() } );
-            Assert.Same( type.Constructors.ElementAt( 1 ), matchedCtor1 );
+            // By-ref reflection types do not match any parameter.
+            Assert.Null( type.Constructors.OfExactSignature( new[] { typeof(int).MakeByRefType() } ) );
+        }
 
-            // By-ref reflection type does not match an unqualified parameter.
-            var matchedCtor2 = type.Constructors.OfExactSignature( new[] { typeof(int) } );
-            Assert.Same( type.Constructors.ElementAt( 0 ), matchedCtor2 );
+        [Fact]
+        public void NonByRefReflectionType_MatchesPlainAndIn()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public C(int x) {}
+    public C(in string y) {}
+    public C(ref double z) {}
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.ElementAt( 0 );
+
+            // Non-by-ref reflection types match plain and 'in' parameters.
+            Assert.NotNull( type.Constructors.OfExactSignature( new[] { typeof(int) } ) );
+            Assert.NotNull( type.Constructors.OfExactSignature( new[] { typeof(string) } ) );
+
+            // Non-by-ref reflection types do not match 'ref' parameters.
+            Assert.Null( type.Constructors.OfExactSignature( new[] { typeof(double) } ) );
         }
     }
 }

@@ -355,7 +355,7 @@ class C
         }
 
         [Fact]
-        public void Matches_ByRefReflectionType_AsInParameter()
+        public void ByRefReflectionType_DoesNotMatch()
         {
             using var testContext = this.CreateTestContext();
 
@@ -364,20 +364,46 @@ class C
 {
     public void Foo(int x) {}
     public void Bar(in int x) {}
+    public void Baz(ref int x) {}
+    public void Qux(out int x) { x = 0; }
 }
 ";
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.ElementAt( 0 );
 
-            // By-ref reflection types are treated as 'in' parameters.
-            var matchedMethod1 = type.Methods.OfExactSignature( "Bar", new[] { typeof(int).MakeByRefType() } );
-            Assert.NotNull( matchedMethod1 );
-            Assert.Equal( "Bar", matchedMethod1.Name );
+            // By-ref reflection types do not match any parameter.
+            Assert.Null( type.Methods.OfExactSignature( "Foo", new[] { typeof(int).MakeByRefType() } ) );
+            Assert.Null( type.Methods.OfExactSignature( "Bar", new[] { typeof(int).MakeByRefType() } ) );
+            Assert.Null( type.Methods.OfExactSignature( "Baz", new[] { typeof(int).MakeByRefType() } ) );
+            Assert.Null( type.Methods.OfExactSignature( "Qux", new[] { typeof(int).MakeByRefType() } ) );
+        }
 
-            // By-ref reflection type does not match an unqualified parameter.
-            var matchedMethod2 = type.Methods.OfExactSignature( "Foo", new[] { typeof(int).MakeByRefType() } );
-            Assert.Null( matchedMethod2 );
+        [Fact]
+        public void NonByRefReflectionType_MatchesPlainAndIn()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public void Foo(int x) {}
+    public void Bar(in int x) {}
+    public void Baz(ref int x) {}
+    public void Qux(out int x) { x = 0; }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.ElementAt( 0 );
+
+            // Non-by-ref reflection types match plain and 'in' parameters.
+            Assert.NotNull( type.Methods.OfExactSignature( "Foo", new[] { typeof(int) } ) );
+            Assert.NotNull( type.Methods.OfExactSignature( "Bar", new[] { typeof(int) } ) );
+
+            // Non-by-ref reflection types do not match 'ref' or 'out' parameters.
+            Assert.Null( type.Methods.OfExactSignature( "Baz", new[] { typeof(int) } ) );
+            Assert.Null( type.Methods.OfExactSignature( "Qux", new[] { typeof(int) } ) );
         }
 
         [Fact]
