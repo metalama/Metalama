@@ -48,7 +48,7 @@ class C
         }
 
         [Fact]
-        public void Throws_ForByRefReflectionType()
+        public void Matches_ByRefReflectionType_AsInParameter()
         {
             using var testContext = this.CreateTestContext();
 
@@ -56,13 +56,20 @@ class C
 class C
 {
     public C(int x) {}
+    public C(in int y) {}
 }
 ";
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.ElementAt( 0 );
 
-            Assert.Throws<ArgumentException>( () => type.Constructors.OfExactSignature( new[] { typeof(int).MakeByRefType() } ) );
+            // By-ref reflection types are treated as 'in' parameters.
+            var matchedCtor1 = type.Constructors.OfExactSignature( new[] { typeof(int).MakeByRefType() } );
+            Assert.Same( type.Constructors.ElementAt( 1 ), matchedCtor1 );
+
+            // By-ref reflection type does not match an unqualified parameter.
+            var matchedCtor2 = type.Constructors.OfExactSignature( new[] { typeof(int) } );
+            Assert.Same( type.Constructors.ElementAt( 0 ), matchedCtor2 );
         }
     }
 }

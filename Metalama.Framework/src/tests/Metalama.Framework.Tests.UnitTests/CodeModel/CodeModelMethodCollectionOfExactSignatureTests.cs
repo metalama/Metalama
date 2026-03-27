@@ -355,7 +355,7 @@ class C
         }
 
         [Fact]
-        public void Throws_ForByRefReflectionType()
+        public void Matches_ByRefReflectionType_AsInParameter()
         {
             using var testContext = this.CreateTestContext();
 
@@ -363,13 +363,21 @@ class C
 class C
 {
     public void Foo(int x) {}
+    public void Bar(in int x) {}
 }
 ";
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.ElementAt( 0 );
 
-            Assert.Throws<ArgumentException>( () => type.Methods.OfExactSignature( "Foo", new[] { typeof(int).MakeByRefType() } ) );
+            // By-ref reflection types are treated as 'in' parameters.
+            var matchedMethod1 = type.Methods.OfExactSignature( "Bar", new[] { typeof(int).MakeByRefType() } );
+            Assert.NotNull( matchedMethod1 );
+            Assert.Equal( "Bar", matchedMethod1.Name );
+
+            // By-ref reflection type does not match an unqualified parameter.
+            var matchedMethod2 = type.Methods.OfExactSignature( "Foo", new[] { typeof(int).MakeByRefType() } );
+            Assert.Null( matchedMethod2 );
         }
 
         [Fact]

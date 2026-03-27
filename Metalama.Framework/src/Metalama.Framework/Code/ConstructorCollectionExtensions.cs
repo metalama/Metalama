@@ -93,10 +93,7 @@ public static class ConstructorCollectionExtensions
 
             if ( reflectionType.IsByRef )
             {
-                throw new ArgumentException(
-                    $"By-ref parameter types (Type.IsByRef == true) are not supported by this overload. "
-                    + $"Use the overload that accepts IType and RefKind for constructors with ref or out parameters.",
-                    nameof(parameterTypes) );
+                return (context.Compilation.Factory.GetTypeByReflectionType( reflectionType.GetElementType()! ), RefKind.In);
             }
 
             return (context.Compilation.Factory.GetTypeByReflectionType( reflectionType ), RefKind.None);
