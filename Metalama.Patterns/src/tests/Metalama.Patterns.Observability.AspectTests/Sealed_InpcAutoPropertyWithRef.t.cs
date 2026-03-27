@@ -26,10 +26,6 @@ public sealed class SealedInpcAutoPropertyWithRef : INotifyPropertyChanged
   }
   public int Y => this.X.A;
   private PropertyChangedEventHandler? _handleXPropertyChanged;
-  [ObservedExpressions("X")]
-  private void OnChildPropertyChanged(string parentPropertyPath, string propertyName)
-  {
-  }
   private void OnPropertyChanged(string propertyName)
   {
     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -49,10 +45,6 @@ public sealed class SealedInpcAutoPropertyWithRef : INotifyPropertyChanged
         {
           case "A":
             OnPropertyChanged("Y");
-            OnChildPropertyChanged("X", "A");
-            break;
-          default:
-            OnChildPropertyChanged("X", propertyName);
             break;
         }
       }
