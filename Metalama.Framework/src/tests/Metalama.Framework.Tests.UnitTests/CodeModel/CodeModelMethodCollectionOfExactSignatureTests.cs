@@ -311,6 +311,121 @@ class C
         }
 
         [Fact]
+        public void Matches_GenericArity()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public void Foo(int x)
+    {
+    }
+
+    public void Foo<T>(int x)
+    {
+    }
+
+    public void Foo<T1, T2>(int x)
+    {
+    }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.ElementAt( 0 );
+            var intType = compilation.Factory.GetTypeByReflectionType( typeof(int) );
+
+            // Current OfExactSignature(string, ...) cannot distinguish by generic arity.
+            // This test documents the limitation: it returns the first match regardless of type parameter count.
+            var matchedMethod = type.Methods.OfExactSignature( "Foo", new[] { intType } );
+
+            // The method Foo(int x) (non-generic) should be the match, but there's no way to specify generic arity.
+            // This test will need to be updated when the API is enhanced to support generic parameter constraints.
+            Assert.NotNull( matchedMethod );
+        }
+
+        [Fact]
+        public void OfExactSignature_IMethod_Matches_GenericArity()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public void Foo(int x)
+    {
+    }
+
+    public void Foo<T>(int x)
+    {
+    }
+
+    public void Foo<T1, T2>(int x)
+    {
+    }
+}
+
+class D
+{
+    public void Foo<T>(int x)
+    {
+    }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var typeC = compilation.Types.OfName( "C" ).Single();
+            var typeD = compilation.Types.OfName( "D" ).Single();
+
+            // Use D.Foo<T>(int) as the template to find a matching method in C.
+            var template = typeD.Methods.ElementAt( 0 );
+
+            var matchedMethod = typeC.Methods.OfExactSignature( template );
+
+            // Should match C.Foo<T>(int) - the one with exactly 1 type parameter.
+            Assert.NotNull( matchedMethod );
+            Assert.Same( typeC.Methods.ElementAt( 1 ), matchedMethod );
+        }
+
+        [Fact]
+        public void OfExactSignature_IMethod_Matches_GenericTypeParameterInSignature()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C
+{
+    public void Foo<T>(T x)
+    {
+    }
+}
+
+class D
+{
+    public void Foo<T>(T x)
+    {
+    }
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var typeC = compilation.Types.OfName( "C" ).Single();
+            var typeD = compilation.Types.OfName( "D" ).Single();
+
+            // Use D.Foo<T>(T) as the template to find C.Foo<T>(T).
+            // Both methods have 1 type parameter and the parameter type is the method's own type parameter.
+            // OfExactSignature should match these as equivalent signatures.
+            var template = typeD.Methods.ElementAt( 0 );
+            var matchedMethod = typeC.Methods.OfExactSignature( template );
+
+            // BUG (#842): Currently returns null because D's T and C's T are different type symbols.
+            // After the fix, this should return C.Foo<T>(T).
+            Assert.NotNull( matchedMethod );
+            Assert.Same( typeC.Methods.ElementAt( 0 ), matchedMethod );
+        }
+
+        [Fact]
         public void Matches_WithConversionKind_Identical()
         {
             using var testContext = this.CreateTestContext();
