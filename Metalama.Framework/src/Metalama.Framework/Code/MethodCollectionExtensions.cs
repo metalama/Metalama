@@ -129,6 +129,7 @@ public static class MethodCollectionExtensions
             => (context.ParameterTypes[index], context.RefKinds?[index] ?? RefKind.None);
     }
 
+    /// <summary>
     /// Gets a method that exactly matches the specified signature, including the number of generic type parameters.
     /// </summary>
     /// <param name="methods">A collection of methods.</param>
