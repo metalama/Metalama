@@ -6,8 +6,6 @@
 // @RequiredConstant(DEBUG)
 #endif
 
-#if DEBUG
-
 using Metalama.Framework.Fabrics;
 using Metalama.Patterns.Observability.Configuration;
 
@@ -43,5 +41,3 @@ public sealed partial class SealedWithDeepChild
 
     public int Derived => this.Child.Leaf.DeepValue;
 }
-
-#endif
