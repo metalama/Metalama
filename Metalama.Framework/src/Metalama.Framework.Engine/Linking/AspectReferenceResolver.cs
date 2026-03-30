@@ -156,6 +156,25 @@ internal sealed class AspectReferenceResolver
         // At this point we should always target a method or a specific target.
         Invariant.AssertNot( resolvedReferencedSymbol.Kind is SymbolKind.Property or SymbolKind.Event or SymbolKind.Field && targetKind == AspectReferenceTargetKind.Self );
 
+        // For Final order on static base class members, redirect to an aspect-managed hiding member
+        // in the target type if one exists. Static members have no runtime dispatch, so the type qualifier
+        // determines which member is called. When an aspect introduces or overrides a hiding member,
+        // Final should resolve to that member rather than the hidden base class member.
+        var originalReferencedSymbol = resolvedReferencedSymbol;
+
+        if ( referenceSpecification.Order == AspectReferenceOrder.Final
+             && resolvedReferencedSymbol.IsStatic
+             && !this._comparer.Equals( containingSemantic.Symbol.ContainingType, resolvedReferencedSymbol.ContainingType )
+             && this._comparer.IsConvertibleTo( containingSemantic.Symbol.ContainingType, resolvedReferencedSymbol.ContainingType ) )
+        {
+            var hidingMember = this.FindAspectManagedHidingMember( resolvedReferencedSymbol, containingSemantic.Symbol.ContainingType );
+
+            if ( hidingMember != null )
+            {
+                resolvedReferencedSymbol = hidingMember;
+            }
+        }
+
         var annotationLayerIndex = this.GetAnnotationLayerIndex( containingSemantic.Symbol, referenceSpecification.AspectLayerId );
 
         // If the override target was introduced, determine the index.
@@ -286,7 +305,7 @@ internal sealed class AspectReferenceResolver
             return new ResolvedAspectReference(
                 containingSemantic,
                 containingLocalFunction,
-                resolvedReferencedSymbol,
+                originalReferencedSymbol,
                 resolvedSemantic,
                 explicitResolvedSemanticBody,
                 expression,
@@ -297,6 +316,27 @@ internal sealed class AspectReferenceResolver
                 hasCustomReceiver,
                 false );
         }
+    }
+
+    /// <summary>
+    /// For a static base class member, finds a hiding member in the target type that is managed by aspects
+    /// (either introduced by an aspect or overridden by an aspect).
+    /// </summary>
+    private ISymbol? FindAspectManagedHidingMember( ISymbol hiddenSymbol, INamedTypeSymbol targetType )
+    {
+        foreach ( var candidate in targetType.GetMembers( hiddenSymbol.Name ) )
+        {
+            if ( candidate.IsStatic
+                 && !this._comparer.Equals( candidate, hiddenSymbol )
+                 && this._comparer.Equals( candidate.ContainingType, targetType )
+                 && (this._injectionRegistry.GetInjectedMemberForSymbol( candidate ) != null
+                     || this._injectionRegistry.IsOverrideTarget( candidate )) )
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     private void ResolveLayerIndex(

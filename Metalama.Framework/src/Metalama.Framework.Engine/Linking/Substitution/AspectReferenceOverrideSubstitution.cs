@@ -52,6 +52,20 @@ internal sealed class AspectReferenceOverrideSubstitution : AspectReferenceRenam
             {
                 return currentNode.PartialUpdate( ThisExpression(), name: RewriteName( currentNode.Name, this.GetTargetMemberName() ) );
             }
+            else if ( targetSymbol.IsStatic
+                      && !SymbolEqualityComparer.Default.Equals(
+                          this.AspectReference.OriginalSymbol.ContainingType,
+                          targetSymbol.ContainingType ) )
+            {
+                // Static member redirected from a base class to an aspect-managed hiding member.
+                // The receiver type in the syntax refers to the base class and needs to be rewritten.
+                return
+                    MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( targetSymbol.ContainingType ),
+                            RewriteName( currentNode.Name, this.GetTargetMemberName() ) )
+                        .WithTriviaFromIfNecessary( currentNode, substitutionContext.SyntaxGenerationContext.Options );
+            }
             else
             {
                 return currentNode.WithName( RewriteName( currentNode.Name, this.GetTargetMemberName() ) );
