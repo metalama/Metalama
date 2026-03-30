@@ -292,6 +292,26 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Contains( result.ReferencingSymbols, s => s != "B.M()" );
     }
 
+    [Fact]
+    public void ObjectCreationInExpressionBodiedProperty()
+    {
+        // Expression-bodied property and expression-bodied getter are semantically equivalent.
+        // Both should report the getter accessor as the referencing symbol.
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A { }",
+            ["B.cs"] = "class B { A ExpressionBodied => new A(); }",
+            ["C.cs"] = "class C { A GetterExpressionBodied { get => new A(); } }"
+        };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.ObjectCreation );
+
+        // Both should report the getter accessor (get_*), not the property itself.
+        Assert.Equal( 2, result.ReferencingSymbols.Count );
+        Assert.Equal( result.ReferencingSymbols.ToArray(), result.ReferencingSymbols.OrderBy( x => x ).ToArray() );
+        Assert.All( result.ReferencingSymbols, s => Assert.Contains( ".get", s ) );
+    }
+
     // TODO: other reference kinds.
 
     private (InboundReferenceIndex Index, ReferenceIndexObserver Observer, IReadOnlyCollection<string> ReferencingSymbols ) BuildIndex(
