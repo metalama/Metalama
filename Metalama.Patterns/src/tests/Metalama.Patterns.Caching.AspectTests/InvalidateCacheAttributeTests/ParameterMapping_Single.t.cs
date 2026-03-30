@@ -3,10 +3,6 @@ internal class Target
   [Cache]
   public Task<string?> GetResourceNameAsync(Guid resourceId)
   {
-    if (_cacheRegistration_GetResourceNameAsync == null)
-    {
-      return this.GetResourceNameAsync_Source(resourceId);
-    }
     static async Task<object?> InvokeAsync(object? instance, object? [] args, CancellationToken cancellationToken)
     {
       return await ((Target)instance).GetResourceNameAsync_Source((Guid)args[0]);

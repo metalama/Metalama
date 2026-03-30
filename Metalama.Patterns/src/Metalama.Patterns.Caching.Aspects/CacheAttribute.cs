@@ -268,9 +268,12 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
     {
         // If the registration field is not yet initialized (e.g., when called from a static field
         // initializer before the static constructor has run), fall back to the original method.
-        if ( registrationField.Value == null )
+        if ( meta.Target.Method.IsStatic )
         {
-            return meta.Proceed();
+            if ( registrationField.Value == null )
+            {
+                return meta.Proceed();
+            }
         }
 
         static object? Invoke( object? instance, object?[] args )
@@ -295,9 +298,12 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         IField registrationField,
         IField? cachingServiceField )
     {
-        if ( registrationField.Value == null )
+        if ( meta.Target.Method.IsStatic )
         {
-            return meta.Proceed()!;
+            if ( registrationField.Value == null )
+            {
+                return meta.Proceed()!;
+            }
         }
 
         var cancellationTokenExpression = GetCancellationTokenExpression();
@@ -326,9 +332,12 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         IField registrationField,
         IField? cachingServiceField )
     {
-        if ( registrationField.Value == null )
+        if ( meta.Target.Method.IsStatic )
         {
-            return meta.Proceed();
+            if ( registrationField.Value == null )
+            {
+                return meta.Proceed();
+            }
         }
 
         var cancellationTokenExpression = GetCancellationTokenExpression();
@@ -358,9 +367,12 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         IField registrationField,
         IField? cachingServiceField )
     {
-        if ( registrationField.Value == null )
+        if ( meta.Target.Method.IsStatic )
         {
-            return meta.Proceed();
+            if ( registrationField.Value == null )
+            {
+                return meta.Proceed();
+            }
         }
 
         var cancellationTokenExpression = GetCancellationTokenExpression();
@@ -403,9 +415,12 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         IField registrationField,
         IField? cachingServiceField )
     {
-        if ( registrationField.Value == null )
+        if ( meta.Target.Method.IsStatic )
         {
-            return meta.Proceed();
+            if ( registrationField.Value == null )
+            {
+                return meta.Proceed();
+            }
         }
 
         var cancellationTokenExpression = GetCancellationTokenExpression();
