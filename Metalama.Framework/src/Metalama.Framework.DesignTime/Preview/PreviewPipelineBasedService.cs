@@ -57,7 +57,7 @@ public abstract class PreviewPipelineBasedService
         if ( !projectOptions.IsDesignTimeEnabled )
         {
             return (false,
-                ["The Diff Preview is not available because the MSBuild property 'MetalamaDesignTimeEnabled' is set to 'false' for this project. Remove this property or set it to 'true' to enable the Diff Preview."],
+                ["Metalama design-time features are not available because the MSBuild property 'MetalamaDesignTimeEnabled' is set to 'false' for this project. Remove this property or set it to 'true' to enable Metalama design-time features."],
                 null, null, null);
         }
 
