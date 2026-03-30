@@ -11,6 +11,9 @@ namespace Metalama.Backstage.Commands
 {
     internal sealed class AnsiConsoleOutputWrapper : IAnsiConsoleOutput
     {
+        private const int _fallbackWidth = 16 * 1024;
+        private const int _fallbackHeight = 256;
+
         private readonly TextWriter _underlying;
 
         public AnsiConsoleOutputWrapper( TextWriter underlying )
@@ -24,8 +27,19 @@ namespace Metalama.Backstage.Commands
             }
             catch ( IOException )
             {
-                this.Width = 16 * 1024;
-                this.Height = 256;
+                // Ignored: will be handled by the fallback below.
+            }
+
+            // On Linux without a TTY (e.g., Docker containers, CI pipelines), Console.WindowWidth/Height
+            // returns 0 instead of throwing. Spectre.Console silently swallows all output when width is 0.
+            if ( this.Width <= 0 )
+            {
+                this.Width = _fallbackWidth;
+            }
+
+            if ( this.Height <= 0 )
+            {
+                this.Height = _fallbackHeight;
             }
         }
 
