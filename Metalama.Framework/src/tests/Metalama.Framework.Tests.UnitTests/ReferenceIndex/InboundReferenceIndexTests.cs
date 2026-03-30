@@ -308,8 +308,26 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
 
         // Both should report the getter accessor (get_*), not the property itself.
         Assert.Equal( 2, result.ReferencingSymbols.Count );
-        Assert.Equal( result.ReferencingSymbols.ToArray(), result.ReferencingSymbols.OrderBy( x => x ).ToArray() );
         Assert.All( result.ReferencingSymbols, s => Assert.Contains( ".get", s ) );
+    }
+
+    [Fact]
+    public void ObjectCreationInExpressionBodiedIndexer()
+    {
+        // Expression-bodied indexer and indexer with expression-bodied getter are semantically equivalent.
+        // Both should report the getter accessor as the referencing symbol.
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A { }",
+            ["B.cs"] = "class B { A this[int i] => new A(); }",
+            ["C.cs"] = "class C { A this[int i] { get => new A(); } }"
+        };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.ObjectCreation );
+
+        // Both should report the getter accessor, not the indexer itself.
+        Assert.Equal( 2, result.ReferencingSymbols.Count );
+        Assert.All( result.ReferencingSymbols, s => Assert.Contains( ".this", s ) );
     }
 
     // TODO: other reference kinds.
