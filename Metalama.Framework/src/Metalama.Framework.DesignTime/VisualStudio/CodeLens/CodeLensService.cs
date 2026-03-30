@@ -33,13 +33,6 @@ internal sealed class CodeLensService : ICodeLensService
 
         if ( !projectKey.IsMetalamaEnabled )
         {
-            if ( IsAspectTestProject( compilation ) )
-            {
-                this._logger.Trace?.Log( $"Returning empty content because '{compilation.AssemblyName}' is an aspect test project." );
-
-                return;
-            }
-
             this._logger.Trace?.Log( $"Returning NoAspect because '{compilation.AssemblyName}' is not a Metalama project." );
             result[0] = CodeLensSummary.NoAspect;
 
@@ -63,10 +56,7 @@ internal sealed class CodeLensService : ICodeLensService
 
         if ( !projectKey.IsMetalamaEnabled )
         {
-            if ( !IsAspectTestProject( compilation ) )
-            {
-                result[0] = CodeLensDetailsTable.Empty;
-            }
+            result[0] = CodeLensDetailsTable.Empty;
 
             return;
         }
@@ -77,7 +67,4 @@ internal sealed class CodeLensService : ICodeLensService
 
         result[0] = await analysisProcessApi.GetCodeLensDetailsAsync( projectKey, symbol.GetSerializableId(), cancellationToken );
     }
-
-    internal static bool IsAspectTestProject( Compilation compilation )
-        => compilation.ReferencedAssemblyNames.Any( a => a.Name == "Metalama.Testing.AspectTesting" );
 }
