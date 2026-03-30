@@ -3,12 +3,14 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.CodeLens;
+using Metalama.Framework.DesignTime.VisualStudio.CodeLens;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Project;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
+using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -198,5 +200,29 @@ public sealed class CodeLensTests : DesignTimeTestBase
         var details2 = await codeLensService.GetCodeLensDetailsAsync( projectKey, c2Id, default );
 
         Assert.Empty( details2.Entries );
+    }
+
+    [Fact]
+    public void IsAspectTestProject_WithAspectTestingReference_ReturnsTrue()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var aspectTestingAssembly = typeof(Metalama.Testing.AspectTesting.AspectTestFramework).Assembly;
+
+        MetadataReference[] references = [MetadataReference.CreateFromFile( aspectTestingAssembly.Location )];
+
+        var compilation = testContext.CreateEmptyCSharpCompilation( "TestProject", references );
+
+        Assert.True( CodeLensService.IsAspectTestProject( compilation ) );
+    }
+
+    [Fact]
+    public void IsAspectTestProject_WithoutAspectTestingReference_ReturnsFalse()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateEmptyCSharpCompilation( "TestProject" );
+
+        Assert.False( CodeLensService.IsAspectTestProject( compilation ) );
     }
 }
