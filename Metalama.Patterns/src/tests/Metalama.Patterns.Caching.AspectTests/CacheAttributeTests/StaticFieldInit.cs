@@ -4,6 +4,8 @@
 
 using Metalama.Patterns.Caching.Aspects;
 
+#pragma warning disable IDE0052
+
 namespace Metalama.Patterns.Caching.AspectTests.CacheAttributeTests.StaticFieldInit;
 
 [CachingConfiguration( UseDependencyInjection = false )]
