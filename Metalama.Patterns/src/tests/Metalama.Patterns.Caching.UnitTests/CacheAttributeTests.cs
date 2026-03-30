@@ -1644,6 +1644,46 @@ namespace Metalama.Patterns.Caching.Tests
 
         #endregion
 
+        #region TestStaticFieldCallingCachedMethod
+
+        private const string _testStaticFieldCallingCachedMethodProfileName = _profileNamePrefix + "TestStaticFieldCallingCachedMethod";
+
+        [CachingConfiguration( ProfileName = _testStaticFieldCallingCachedMethodProfileName, UseDependencyInjection = false )]
+        private static class StaticFieldCallingCachedMethodClass
+        {
+            // This static field initializer calls a cached method. The caching aspect introduces
+            // a _cacheRegistration field that is initialized in the static constructor, but static
+            // field initializers run before the static constructor. This means _cacheRegistration
+            // is null when M() is first called, causing a NullReferenceException.
+            public static readonly int CachedValue = GetValue( 42 );
+
+            [Cache]
+            public static int GetValue( int x )
+            {
+                return x;
+            }
+        }
+
+        [Fact]
+        public void TestStaticFieldCallingCachedMethod()
+        {
+            using var context = this.InitializeTest(
+                _testStaticFieldCallingCachedMethodProfileName,
+                b => b.WithProfile( _testStaticFieldCallingCachedMethodProfileName ) );
+
+            // Accessing the static field triggers static initialization of the class.
+            // The static field initializer calls GetValue(42), which is a cached method.
+            // This should not throw, even though it's called during static initialization.
+            var value = StaticFieldCallingCachedMethodClass.CachedValue;
+            Assert.Equal( 42, value );
+
+            // Verify the cached method also works correctly after initialization.
+            var value2 = StaticFieldCallingCachedMethodClass.GetValue( 42 );
+            Assert.Equal( 42, value2 );
+        }
+
+        #endregion
+
         #region TestMethodLevelProfileAsync
 
         private const string _testMethodLevelProfileAsyncNameSetInConfigurationAttribute =
