@@ -298,7 +298,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
     {
         const string code = """
                             using Metalama.Framework.Advising;
-                            using Metalama.Framework.Aspects; 
+                            using Metalama.Framework.Aspects;
                             using Metalama.Framework.Code;
                             using Metalama.Framework.Diagnostics;
 
@@ -308,16 +308,16 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
                                 protected void SuspendInvariants()
                                 {
                                 }
-                                
+
                                 [Template]
                                 private static dynamic CommandProperty { get; }
-                                
+
                                 [Introduce]
                                 private static dynamic Field;
-                                
+
                                 [Introduce]
                                 private readonly object _logger;
-                                
+
                                 [Introduce]
                                 private void M()
                                 {
@@ -330,5 +330,122 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
         var result = await this.ExecuteSuppressorAsync( code, "CS0628" );
 
         Assert.Empty( result.RemainingDiagnostics );
+    }
+
+    [Fact]
+    public async Task SuppressCA1822OnTemplateMethod()
+    {
+        // CA1822 is an analyzer diagnostic ("Member does not access instance data and can be marked as static"),
+        // which is a false positive on template methods because the template is transformed at compile time.
+        const string code = """
+                            using Metalama.Framework.Aspects;
+
+                            internal class SomeAspect : TypeAspect
+                            {
+                                [Template]
+                                public void TemplateMethod()
+                                {
+                                    System.Console.WriteLine("Hello");
+                                }
+                            }
+                            """;
+
+        using var testContext = this.CreateTestContext();
+
+        var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var workspaceProvider = new TestWorkspaceProvider( testContext.ServiceProvider );
+        workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string>() { ["code.cs"] = code } );
+        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
+
+        // Create a synthetic CA1822 diagnostic at the template method location.
+        var syntaxTree = compilation!.SyntaxTrees.Single();
+        var root = await syntaxTree.GetRootAsync();
+        var methodDeclaration = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Single( m => m.Identifier.Text == "TemplateMethod" );
+
+        var ca1822Descriptor = new DiagnosticDescriptor(
+            "CA1822",
+            "Mark members as static",
+            "Member '{0}' does not access instance data and can be marked as static",
+            "Performance",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true );
+
+        var ca1822Diagnostic = Diagnostic.Create(
+            ca1822Descriptor,
+            Location.Create( syntaxTree, methodDeclaration.Identifier.Span ),
+            "TemplateMethod" );
+
+        var allDiagnostics = compilation.GetDiagnostics().Add( ca1822Diagnostic );
+
+        var suppressor = new TheDiagnosticSuppressor( pipelineFactory.ServiceProvider );
+        var analysisContext = new TestSuppressionAnalysisContext( compilation, allDiagnostics, testContext.ProjectOptions );
+
+        suppressor.ReportSuppressions(
+            analysisContext,
+            ImmutableDictionary<string, SuppressionDescriptor>.Empty.Add(
+                "CA1822",
+                new SuppressionDescriptor( "CA1822", "CA1822", "Because" ) ) );
+
+        var suppression = Assert.Single( analysisContext.ReportedSuppressions );
+        Assert.Equal( "CA1822", suppression.SuppressedDiagnostic.Id );
+    }
+
+    [Fact]
+    public async Task DoNotSuppressCA1822OnNonTemplateMethod()
+    {
+        // CA1822 should NOT be suppressed on non-template methods.
+        const string code = """
+                            using Metalama.Framework.Aspects;
+
+                            internal class SomeAspect : TypeAspect
+                            {
+                                public void RegularMethod()
+                                {
+                                    System.Console.WriteLine("Hello");
+                                }
+                            }
+                            """;
+
+        using var testContext = this.CreateTestContext();
+
+        var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var workspaceProvider = new TestWorkspaceProvider( testContext.ServiceProvider );
+        workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string>() { ["code.cs"] = code } );
+        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
+
+        // Create a synthetic CA1822 diagnostic at the non-template method location.
+        var syntaxTree = compilation!.SyntaxTrees.Single();
+        var root = await syntaxTree.GetRootAsync();
+        var methodDeclaration = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Single( m => m.Identifier.Text == "RegularMethod" );
+
+        var ca1822Descriptor = new DiagnosticDescriptor(
+            "CA1822",
+            "Mark members as static",
+            "Member '{0}' does not access instance data and can be marked as static",
+            "Performance",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true );
+
+        var ca1822Diagnostic = Diagnostic.Create(
+            ca1822Descriptor,
+            Location.Create( syntaxTree, methodDeclaration.Identifier.Span ),
+            "RegularMethod" );
+
+        var allDiagnostics = compilation.GetDiagnostics().Add( ca1822Diagnostic );
+
+        var suppressor = new TheDiagnosticSuppressor( pipelineFactory.ServiceProvider );
+        var analysisContext = new TestSuppressionAnalysisContext( compilation, allDiagnostics, testContext.ProjectOptions );
+
+        suppressor.ReportSuppressions(
+            analysisContext,
+            ImmutableDictionary<string, SuppressionDescriptor>.Empty.Add(
+                "CA1822",
+                new SuppressionDescriptor( "CA1822", "CA1822", "Because" ) ) );
+
+        Assert.Empty( analysisContext.ReportedSuppressions );
     }
 }
