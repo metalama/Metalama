@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0699 at line 47: `Version of declaration 'TargetClass.TargetClass() provided by 'source code' cannot be inlined. It is not currently possible to generate non-inlined code for this declaration.`
+// Error LAMA0699 on `TargetClass` in `Metalama.Framework.IntegrationTests.Aspects.Overrides.Constructors.NonInlineable_IntroducedMember.TargetClass.TargetClass()` (input compilation): `Version of declaration 'TargetClass.TargetClass() provided by 'source code' cannot be inlined. It is not currently possible to generate non-inlined code for this declaration.`

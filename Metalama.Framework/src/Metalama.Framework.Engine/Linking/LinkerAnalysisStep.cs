@@ -176,6 +176,7 @@ namespace Metalama.Framework.Engine.Linking
             VerifyUnsupportedInlineability(
                 input.InjectionRegistry,
                 input.IntermediateCompilation,
+                input.SourceCompilationModel.CompilationContext,
                 input.DiagnosticSink,
                 nonInlinedSemantics,
                 out var overrideTargetsWithUnsupportedNonInlinedOverrides );
@@ -777,6 +778,7 @@ namespace Metalama.Framework.Engine.Linking
         private static void VerifyUnsupportedInlineability(
             LinkerInjectionRegistry injectionRegistry,
             PartialCompilation intermediateCompilation,
+            CompilationContext sourceCompilationContext,
             UserDiagnosticSink diagnosticSink,
             IEnumerable<IntermediateSymbolSemantic> nonInlinedSemantics,
             out HashSet<ISymbol> overrideTargetsWithUnsupportedNonInlinedOverrides )
@@ -831,16 +833,75 @@ namespace Metalama.Framework.Engine.Linking
 
                     if ( overrideTargets.Add( overrideTarget ) )
                     {
-                        // TODO: If this message stays, it needs to be improved because non-inlining is not caused by the code, but by references.
+                        // Map the diagnostic location from the intermediate compilation to the source compilation (#818).
+                        // The overrideTarget is from the intermediate compilation whose SyntaxTrees may have been modified
+                        // (e.g. by adding 'partial' or injecting members), causing incorrect line numbers.
+                        var diagnosticLocation = GetSourceLocation( overrideTarget, sourceCompilationContext )
+                                                 ?? overrideTarget.GetDiagnosticLocation();
+
                         diagnosticSink.Report(
                             AspectLinkerDiagnosticDescriptors.DeclarationMustBeInlined.CreateRoslynDiagnostic(
-                                overrideTarget.GetDiagnosticLocation(),
+                                diagnosticLocation,
                                 (sourceName, overrideTarget) ) );
                     }
                 }
             }
 
             overrideTargetsWithUnsupportedNonInlinedOverrides = overrideTargets;
+        }
+
+        /// <summary>
+        /// Maps a symbol's diagnostic location from the intermediate compilation to the source compilation.
+        /// The intermediate compilation's SyntaxTrees may have been modified (e.g., by adding 'partial' keyword
+        /// or injecting members), causing line numbers to differ from the user's source code.
+        /// </summary>
+        private static Location? GetSourceLocation( ISymbol intermediateSymbol, CompilationContext sourceCompilationContext )
+        {
+            // Get the declaring syntax reference from the intermediate compilation.
+            var syntaxReference = intermediateSymbol.DeclaringSyntaxReferences.FirstOrDefault();
+
+            if ( syntaxReference == null )
+            {
+                return null;
+            }
+
+            // Find the corresponding SyntaxTree in the source compilation by file path.
+            var intermediateFilePath = syntaxReference.SyntaxTree.FilePath;
+
+            var sourceTree = sourceCompilationContext.Compilation.SyntaxTrees
+                .FirstOrDefault( t => t.FilePath == intermediateFilePath );
+
+            if ( sourceTree == null )
+            {
+                return null;
+            }
+
+            // If the source and intermediate SyntaxTrees are the same object, no remapping is needed.
+            if ( ReferenceEquals( sourceTree, syntaxReference.SyntaxTree ) )
+            {
+                return null;
+            }
+
+            // Find the same symbol in the source compilation using its semantic model.
+            var sourceSemanticModel = sourceCompilationContext.Compilation.GetSemanticModel( sourceTree );
+            var sourceRoot = sourceTree.GetRoot();
+
+            foreach ( var node in sourceRoot.DescendantNodes() )
+            {
+                var declaredSymbol = sourceSemanticModel.GetDeclaredSymbol( node );
+
+                if ( declaredSymbol != null
+                     && declaredSymbol.Kind == intermediateSymbol.Kind
+                     && declaredSymbol.Name == intermediateSymbol.Name
+                     && SymbolEqualityComparer.Default.Equals(
+                         declaredSymbol.ContainingType,
+                         sourceCompilationContext.SymbolTranslator.Translate( intermediateSymbol.ContainingType ) ) )
+                {
+                    return declaredSymbol.GetDiagnosticLocation();
+                }
+            }
+
+            return null;
         }
 
         private static IReadOnlyList<ISymbol> GetForcefullyInitializedSymbols(
