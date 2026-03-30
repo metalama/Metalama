@@ -73,6 +73,14 @@ public abstract class PreviewPipelineBasedService
 
         if ( pipeline == null )
         {
+            var pipelineProjectOptionsFactory = this.PipelineFactory.ServiceProvider.GetService<IProjectOptionsFactory>();
+            var pipelineProjectOptions = pipelineProjectOptionsFactory?.GetProjectOptions( project );
+
+            if ( pipelineProjectOptions is { IsFrameworkEnabled: false } )
+            {
+                return (false, ["The Metalama Framework is not enabled for this project. Ensure that Metalama is enabled for this project and that it references the Metalama.Framework package if required."], null, null, null);
+            }
+
             return (false, ["The project has not been fully loaded yet."], null, null, null);
         }
 
