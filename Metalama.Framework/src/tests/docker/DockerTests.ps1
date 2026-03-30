@@ -3,6 +3,9 @@ param(
     [string]$Directory,
 
     [Parameter(Mandatory=$false)]
+    [string]$Filter,
+
+    [Parameter(Mandatory=$false)]
     [switch]$Wsl
 )
 
@@ -55,7 +58,11 @@ if (-not $dockerBuildScript) {
     throw "DockerBuild.ps1 not found in any parent directory"
 }
 
-Get-ChildItem -Path $targetDir -Directory | ForEach-Object {
+$testDirs = Get-ChildItem -Path $targetDir -Directory
+if ($Filter) {
+    $testDirs = $testDirs | Where-Object { $_.Name -like $Filter }
+}
+$testDirs | ForEach-Object {
     $dir = $_.FullName
     $dockerfile = Join-Path $dir "Dockerfile"
     $testScript = Join-Path $dir "test.ps1"
