@@ -1,9 +1,10 @@
 using System.Reflection;
 using Metalama.Patterns.Caching.Aspects;
-namespace Metalama.Patterns.Caching.AspectTests.CacheAttributeTests.Static;
+namespace Metalama.Patterns.Caching.AspectTests.CacheAttributeTests.StaticFieldInit;
 [CachingConfiguration(UseDependencyInjection = false)]
 public class C
 {
+  private static readonly int _cachedValue = M();
   [Cache]
   public static int M()
   {

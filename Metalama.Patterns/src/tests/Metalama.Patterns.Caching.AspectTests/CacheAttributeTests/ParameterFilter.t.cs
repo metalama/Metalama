@@ -22,6 +22,10 @@ internal class TheClass
   // y should be marked with [NotCacheKey].
   public int CachedMethod(int x, [NotCacheKey] IDisposable y)
   {
+    if (_cacheRegistration_CachedMethod == null)
+    {
+      return this.CachedMethod_Source(x, y);
+    }
     static object? Invoke(object? instance, object? [] args)
     {
       return ((TheClass)instance).CachedMethod_Source((int)args[0], (IDisposable)args[1]);

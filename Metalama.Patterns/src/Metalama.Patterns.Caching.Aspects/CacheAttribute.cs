@@ -266,6 +266,13 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
     [Template]
     public static TReturnType? OverrideMethod<[CompileTime] TReturnType>( IField registrationField, IField? cachingServiceField )
     {
+        // If the registration field is not yet initialized (e.g., when called from a static field
+        // initializer before the static constructor has run), fall back to the original method.
+        if ( registrationField.Value == null )
+        {
+            return meta.Proceed();
+        }
+
         static object? Invoke( object? instance, object?[] args )
         {
             return meta.Target.Method
@@ -288,6 +295,11 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         IField registrationField,
         IField? cachingServiceField )
     {
+        if ( registrationField.Value == null )
+        {
+            return meta.Proceed()!;
+        }
+
         var cancellationTokenExpression = GetCancellationTokenExpression();
 
         static async Task<object?> InvokeAsync( object? instance, object?[] args, CancellationToken cancellationToken )
@@ -314,6 +326,11 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         IField registrationField,
         IField? cachingServiceField )
     {
+        if ( registrationField.Value == null )
+        {
+            return meta.Proceed();
+        }
+
         var cancellationTokenExpression = GetCancellationTokenExpression();
 
         static async ValueTask<object?> InvokeAsync( object? instance, object?[] args, CancellationToken cancellationToken )
@@ -341,6 +358,11 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         IField registrationField,
         IField? cachingServiceField )
     {
+        if ( registrationField.Value == null )
+        {
+            return meta.Proceed();
+        }
+
         var cancellationTokenExpression = GetCancellationTokenExpression();
 
         static async ValueTask<object?> InvokeAsync( object? instance, object?[] args, CancellationToken cancellationToken )
@@ -381,6 +403,11 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         IField registrationField,
         IField? cachingServiceField )
     {
+        if ( registrationField.Value == null )
+        {
+            return meta.Proceed();
+        }
+
         var cancellationTokenExpression = GetCancellationTokenExpression();
 
         static async ValueTask<object?> InvokeAsync( object? instance, object?[] args, CancellationToken cancellationToken )
