@@ -26,22 +26,8 @@ try {
         exit 1
     }
 
-    # Determine the Metalama config directory on Linux.
-    # On Ubuntu, LocalApplicationData resolves to $HOME/.local/share.
-    # Metalama uses LocalApplicationData + "Metalama", or falls back to $HOME/.metalama.
-    $localAppData = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)
-    if ([string]::IsNullOrEmpty($localAppData)) {
-        $configDir = Join-Path $HOME ".metalama"
-    } else {
-        $configDir = Join-Path $localAppData "Metalama"
-    }
-
-    Write-Host "Metalama config directory: $configDir"
-
-    # Create the config directory
-    New-Item -ItemType Directory -Force -Path $configDir | Out-Null
-
-    # Write diagnostics.json to enable compiler logging
+    # Enable Metalama compiler logging via environment variable.
+    # This avoids having to resolve the platform-specific config directory.
     $diagnosticsJson = @{
         logging = @{
             processes = @{
@@ -55,11 +41,8 @@ try {
         }
     } | ConvertTo-Json -Depth 5
 
-    $diagnosticsFile = Join-Path $configDir "diagnostics.json"
-    Write-Host "Writing diagnostics config to: $diagnosticsFile"
-    Set-Content -Path $diagnosticsFile -Value $diagnosticsJson
-    Write-Host "Diagnostics config content:"
-    Get-Content $diagnosticsFile
+    $env:METALAMA_DIAGNOSTICS = $diagnosticsJson
+    Write-Host "METALAMA_DIAGNOSTICS set to: $env:METALAMA_DIAGNOSTICS"
 
     # Clear any pre-existing logs
     $logsDir = Join-Path ([System.IO.Path]::GetTempPath()) "Metalama"
@@ -67,13 +50,13 @@ try {
         Remove-Item -Recurse -Force $logsDir
     }
 
-    # Restore and build the project
+    # Restore and rebuild the project (force rebuild to ensure compilation happens)
     Write-Host "`nRestoring..."
     dotnet restore --configfile $nugetConfig
     if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed with exit code $LASTEXITCODE" }
 
     Write-Host "`nBuilding..."
-    dotnet build --no-restore
+    dotnet build /t:Rebuild --no-restore
     if ($LASTEXITCODE -ne 0) { throw "dotnet build failed with exit code $LASTEXITCODE" }
 
     # Check for compiler log files
@@ -86,12 +69,6 @@ try {
         exit 1
     }
 
-    # List all files under the Metalama temp directory for diagnostics
-    Write-Host "`nAll files under Metalama temp directory:"
-    Get-ChildItem -Path $logsDir -Recurse -File | ForEach-Object {
-        Write-Host "  $($_.FullName) ($($_.Length) bytes)"
-    }
-
     # Look specifically for compiler log files (Metalama-Compiler-*.log)
     $compilerLogFiles = Get-ChildItem -Path $logsDir -Recurse -Filter "Metalama-Compiler-*.log" -File -ErrorAction SilentlyContinue
     $allLogFiles = Get-ChildItem -Path $logsDir -Recurse -Filter "*.log" -File -ErrorAction SilentlyContinue
@@ -100,9 +77,12 @@ try {
     if ($allLogFiles) {
         $allLogFiles | ForEach-Object { Write-Host "  $($_.FullName) ($($_.Length) bytes)" }
     } else {
-        $allFiles = Get-ChildItem -Path $logsDir -Recurse -File -ErrorAction SilentlyContinue
-        Write-Host "  No .log files. All files in Metalama temp:"
-        $allFiles | ForEach-Object { Write-Host "    $($_.FullName)" }
+        Write-Host "  No .log files found."
+        # Dump full directory listing only on failure to help diagnose
+        Write-Host "`nAll files under Metalama temp directory:"
+        Get-ChildItem -Path $logsDir -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "    $($_.FullName)"
+        }
     }
 
     if (-not $compilerLogFiles -or $compilerLogFiles.Count -eq 0) {
