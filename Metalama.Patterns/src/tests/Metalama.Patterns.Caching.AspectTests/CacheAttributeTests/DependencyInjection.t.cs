@@ -7,6 +7,10 @@ public class C
   [Cache]
   public int M()
   {
+    if (_cacheRegistration_M == null)
+    {
+      return this.M_Source();
+    }
     static object? Invoke(object? instance, object? [] args)
     {
       return ((C)instance).M_Source();

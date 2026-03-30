@@ -1654,7 +1654,8 @@ namespace Metalama.Patterns.Caching.Tests
             // This static field initializer calls a cached method. The caching aspect introduces
             // a _cacheRegistration field that is initialized in the static constructor, but static
             // field initializers run before the static constructor. This means _cacheRegistration
-            // is null when M() is first called, causing a NullReferenceException.
+            // is still null when GetValue(42) is first called, causing the caching
+            // layer to receive a null registration (resulting in an ArgumentNullException).
             public static readonly int CachedValue = GetValue( 42 );
 
             [Cache]
@@ -1679,6 +1680,46 @@ namespace Metalama.Patterns.Caching.Tests
 
             // Verify the cached method also works correctly after initialization.
             var value2 = StaticFieldCallingCachedMethodClass.GetValue( 42 );
+            Assert.Equal( 42, value2 );
+        }
+
+        #endregion
+
+        #region TestStaticFieldCallingCachedInstanceMethod
+
+        private const string _testStaticFieldCallingCachedInstanceMethodProfileName = _profileNamePrefix + "TestStaticFieldCallingCachedInstanceMethod";
+
+        [CachingConfiguration( ProfileName = _testStaticFieldCallingCachedInstanceMethodProfileName, UseDependencyInjection = false )]
+        private class StaticFieldCallingCachedInstanceMethodClass
+        {
+            // This static field initializer calls a cached instance method. The caching aspect
+            // introduces a _cacheRegistration field initialized in the static constructor, but
+            // static field initializers run before the static constructor. The null check guard
+            // must also apply to instance methods to handle this scenario.
+            public static readonly int CachedValue = new StaticFieldCallingCachedInstanceMethodClass().GetValue( 42 );
+
+            [Cache]
+            public int GetValue( int x )
+            {
+                return x;
+            }
+        }
+
+        [Fact]
+        public void TestStaticFieldCallingCachedInstanceMethod()
+        {
+            using var context = this.InitializeTest(
+                _testStaticFieldCallingCachedInstanceMethodProfileName,
+                b => b.WithProfile( _testStaticFieldCallingCachedInstanceMethodProfileName ) );
+
+            // Accessing the static field triggers static initialization.
+            // The static field initializer calls an instance cached method via new C().GetValue(42).
+            // This should not throw, even though it's called during static initialization.
+            var value = StaticFieldCallingCachedInstanceMethodClass.CachedValue;
+            Assert.Equal( 42, value );
+
+            // Verify the cached method also works correctly after initialization.
+            var value2 = new StaticFieldCallingCachedInstanceMethodClass().GetValue( 42 );
             Assert.Equal( 42, value2 );
         }
 

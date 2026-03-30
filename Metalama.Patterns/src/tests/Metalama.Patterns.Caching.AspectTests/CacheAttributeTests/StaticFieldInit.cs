@@ -12,7 +12,11 @@ namespace Metalama.Patterns.Caching.AspectTests.CacheAttributeTests.StaticFieldI
 public class C
 {
     private static readonly int _cachedValue = M();
+    private static readonly int _cachedInstanceValue = new C().N();
 
     [Cache]
     public static int M() => 5;
+
+    [Cache]
+    public int N() => 10;
 }
