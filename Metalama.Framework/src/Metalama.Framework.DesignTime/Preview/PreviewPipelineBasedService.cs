@@ -25,10 +25,13 @@ public abstract class PreviewPipelineBasedService
 
     private protected WorkspaceProvider WorkspaceProvider { get; }
 
+    private readonly IProjectOptionsFactory _projectOptionsFactory;
+
     protected PreviewPipelineBasedService( GlobalServiceProvider serviceProvider )
     {
         this.PipelineFactory = serviceProvider.GetRequiredService<DesignTimeAspectPipelineFactory>();
         this.WorkspaceProvider = serviceProvider.GetRequiredService<WorkspaceProvider>();
+        this._projectOptionsFactory = serviceProvider.GetRequiredService<IProjectOptionsFactory>();
     }
 
     protected async
@@ -46,6 +49,16 @@ public abstract class PreviewPipelineBasedService
         if ( project == null )
         {
             return (false, ["The project has not been fully loaded yet."], null, null, null);
+        }
+
+        // Check if design-time is disabled for this project.
+        var projectOptions = this._projectOptionsFactory.GetProjectOptions( project );
+
+        if ( !projectOptions.IsDesignTimeEnabled )
+        {
+            return (false,
+                ["The Diff Preview is not available because the MSBuild property 'MetalamaDesignTimeEnabled' is set to 'false' for this project. Remove this property or set it to 'true' to enable the Diff Preview."],
+                null, null, null);
         }
 
         var compilation = await project.GetCompilationAsync( cancellationToken );

@@ -2,11 +2,16 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.DesignTime.Preview;
+using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.Services;
+using Metalama.Testing.UnitTesting;
 using Metalama.Framework.Tests.UnitTestHelpers.Helpers;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -612,5 +617,54 @@ class C {}"
         Assert.Contains( "[My]", result, StringComparison.Ordinal );
         Assert.Contains( "class Introduced", result, StringComparison.Ordinal );
         Assert.Contains( "int f;", result, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public async Task DesignTimeDisabled_ReturnsSpecificErrorMessage()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["aspect.cs"] = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+
+class MyAspect : TypeAspect
+{
+   [Introduce]
+   void IntroducedMethod() {}
+}
+",
+            ["target.cs"] = "[MyAspect] class C {}"
+        };
+
+        using var testContext = this.CreateTestContext();
+
+        // Wrap the project options to disable design-time.
+        var designTimeDisabledOptions = new DesignTimeDisabledProjectOptions( testContext.ProjectOptions );
+
+        // Replace the project options factory so it returns options with IsDesignTimeEnabled=false.
+        var serviceProvider = (GlobalServiceProvider) testContext.ServiceProvider.Global.Underlying
+            .WithService( new TestProjectOptionsFactory( designTimeDisabledOptions ), allowOverride: true );
+
+        var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext, serviceProvider );
+        serviceProvider = serviceProvider.WithService( pipelineFactory );
+
+        var workspace = testContext.ServiceProvider.Global.GetRequiredService<TestWorkspaceProvider>();
+        var projectKey = workspace.AddOrUpdateProject( testContext, _mainProjectName, code );
+
+        var service = new TransformationPreviewServiceImpl( serviceProvider );
+        var result = await service.PreviewTransformationAsync( projectKey, "target.cs", default( CancellationToken ) );
+
+        Assert.False( result.IsSuccessful );
+        Assert.NotNull( result.ErrorMessages );
+        Assert.NotEmpty( result.ErrorMessages );
+        Assert.Contains( "MetalamaDesignTimeEnabled", result.ErrorMessages[0], StringComparison.Ordinal );
+    }
+
+    private sealed class DesignTimeDisabledProjectOptions : ProjectOptionsWrapper
+    {
+        public override bool IsDesignTimeEnabled => false;
+
+        public DesignTimeDisabledProjectOptions( IProjectOptions underlying ) : base( underlying ) { }
     }
 }
