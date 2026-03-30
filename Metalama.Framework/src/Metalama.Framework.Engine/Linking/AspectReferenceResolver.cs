@@ -329,6 +329,7 @@ internal sealed class AspectReferenceResolver
             if ( candidate.IsStatic
                  && !this._comparer.Equals( candidate, hiddenSymbol )
                  && this._comparer.Equals( candidate.ContainingType, targetType )
+                 && HidesSymbol( candidate, hiddenSymbol )
                  && (this._injectionRegistry.GetInjectedMemberForSymbol( candidate ) != null
                      || this._injectionRegistry.IsOverrideTarget( candidate )) )
             {
@@ -337,6 +338,34 @@ internal sealed class AspectReferenceResolver
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Determines whether a candidate symbol hides the given base symbol.
+    /// For methods, this requires matching parameter types (since overloads don't hide each other).
+    /// For other member kinds (fields, properties, events), name matching is sufficient.
+    /// </summary>
+    private static bool HidesSymbol( ISymbol candidate, ISymbol hiddenSymbol )
+    {
+        if ( candidate.Kind == SymbolKind.Method && hiddenSymbol.Kind == SymbolKind.Method )
+        {
+            var candidateMethod = (IMethodSymbol) candidate;
+            var hiddenMethod = (IMethodSymbol) hiddenSymbol;
+            if ( candidateMethod.Parameters.Length != hiddenMethod.Parameters.Length )
+            {
+                return false;
+            }
+
+            for ( var i = 0; i < candidateMethod.Parameters.Length; i++ )
+            {
+                if ( !SignatureTypeComparer.Instance.Equals( candidateMethod.Parameters[i].Type, hiddenMethod.Parameters[i].Type ) )
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private void ResolveLayerIndex(
