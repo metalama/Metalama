@@ -49,14 +49,12 @@ internal sealed class LinuxProcessManager : ProcessManagerBase
                 }
             }
 
-            if ( modules.Count > 0 )
+            if ( modules.Count == 0 )
             {
-                return true;
+                this.Logger.Trace?.Log( $"No DLL/EXE arguments found in /proc/{process.Id}/cmdline." );
             }
 
-            this.Logger.Trace?.Log( $"No DLL/EXE arguments found in /proc/{process.Id}/cmdline." );
-
-            return false;
+            return true;
         }
         catch ( Exception e )
         {
