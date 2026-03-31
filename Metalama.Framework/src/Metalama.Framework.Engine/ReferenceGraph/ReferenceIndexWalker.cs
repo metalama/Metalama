@@ -334,7 +334,26 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
 
             if ( this._options.MustDescendIntoImplementation() )
             {
-                this.Visit( node.ExpressionBody );
+                if ( node.ExpressionBody != null )
+                {
+                    // An expression-bodied property is semantically equivalent to a property with an expression-bodied getter.
+                    // We must attribute the references within the expression body to the getter accessor, not the property itself.
+                    var propertySymbol = this.CurrentDeclarationSymbol as IPropertySymbol;
+                    var getterSymbol = propertySymbol?.GetMethod;
+
+                    if ( getterSymbol != null )
+                    {
+                        using ( this.EnterDeclaration( node.ExpressionBody, getterSymbol ) )
+                        {
+                            this.Visit( node.ExpressionBody );
+                        }
+                    }
+                    else
+                    {
+                        this.Visit( node.ExpressionBody );
+                    }
+                }
+
                 this.Visit( node.Initializer );
             }
         }
@@ -585,9 +604,24 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
 
             this.Visit( node.AttributeLists );
 
-            if ( this._options.MustDescendIntoImplementation() )
+            if ( this._options.MustDescendIntoImplementation() && node.ExpressionBody != null )
             {
-                this.Visit( node.ExpressionBody );
+                // An expression-bodied indexer is semantically equivalent to an indexer with an expression-bodied getter.
+                // We must attribute the references within the expression body to the getter accessor, not the indexer itself.
+                var indexerSymbol = this.CurrentDeclarationSymbol as IPropertySymbol;
+                var getterSymbol = indexerSymbol?.GetMethod;
+
+                if ( getterSymbol != null )
+                {
+                    using ( this.EnterDeclaration( node.ExpressionBody, getterSymbol ) )
+                    {
+                        this.Visit( node.ExpressionBody );
+                    }
+                }
+                else
+                {
+                    this.Visit( node.ExpressionBody );
+                }
             }
 
             this.Visit( node.AccessorList );
