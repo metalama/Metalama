@@ -54,7 +54,9 @@ public interface ICachingService : IAsyncDisposable, IDisposable
     /// This method is called by the generated code of the <c>CacheAttribute</c> aspect.
     /// </summary>
     /// <typeparam name="TResult">The type of the cached value.</typeparam>
-    /// <param name="metadata">Metadata about the cached method.</param>
+    /// <param name="metadata">Metadata about the cached method, or <c>null</c> if the cache registration
+    /// has not been initialized yet (e.g., when a cached method is called from a static field initializer).
+    /// When <c>null</c>, caching is bypassed and the original method is called directly.</param>
     /// <param name="instance">The instance on which the method is called, or <c>null</c> for static methods.</param>
     /// <param name="args">The method arguments.</param>
     /// <param name="func">A delegate that invokes the original method if the value is not in cache.</param>
@@ -62,7 +64,7 @@ public interface ICachingService : IAsyncDisposable, IDisposable
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The cached or computed result.</returns>
     TResult? GetFromCacheOrExecute<TResult>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], object?> func,
@@ -74,7 +76,9 @@ public interface ICachingService : IAsyncDisposable, IDisposable
     /// This method is called by the generated code of the <c>CacheAttribute</c> aspect.
     /// </summary>
     /// <typeparam name="TTaskResultType">The type of the task result.</typeparam>
-    /// <param name="metadata">Metadata about the cached method.</param>
+    /// <param name="metadata">Metadata about the cached method, or <c>null</c> if the cache registration
+    /// has not been initialized yet (e.g., when a cached method is called from a static field initializer).
+    /// When <c>null</c>, caching is bypassed and the original method is called directly.</param>
     /// <param name="instance">The instance on which the method is called, or <c>null</c> for static methods.</param>
     /// <param name="args">The method arguments.</param>
     /// <param name="func">A delegate that invokes the original method if the value is not in cache.</param>
@@ -82,7 +86,7 @@ public interface ICachingService : IAsyncDisposable, IDisposable
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task representing the cached or computed result.</returns>
     Task<TTaskResultType?> GetFromCacheOrExecuteTaskAsync<TTaskResultType>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], CancellationToken, Task<object?>> func,
@@ -94,7 +98,9 @@ public interface ICachingService : IAsyncDisposable, IDisposable
     /// This method is called by the generated code of the <c>CacheAttribute</c> aspect.
     /// </summary>
     /// <typeparam name="TTaskResultType">The type of the value task result.</typeparam>
-    /// <param name="metadata">Metadata about the cached method.</param>
+    /// <param name="metadata">Metadata about the cached method, or <c>null</c> if the cache registration
+    /// has not been initialized yet (e.g., when a cached method is called from a static field initializer).
+    /// When <c>null</c>, caching is bypassed and the original method is called directly.</param>
     /// <param name="instance">The instance on which the method is called, or <c>null</c> for static methods.</param>
     /// <param name="args">The method arguments.</param>
     /// <param name="func">A delegate that invokes the original method if the value is not in cache.</param>
@@ -102,7 +108,7 @@ public interface ICachingService : IAsyncDisposable, IDisposable
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A value task representing the cached or computed result.</returns>
     ValueTask<TTaskResultType?> GetFromCacheOrExecuteValueTaskAsync<TTaskResultType>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], CancellationToken, ValueTask<object?>> func,

@@ -26,7 +26,7 @@ public sealed class NullCachingService : ICachingService
     public Task InitializeAsync( CancellationToken cancellationToken = default ) => Task.CompletedTask;
 
     public TResult? GetFromCacheOrExecute<TResult>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], object?> func,
@@ -35,7 +35,7 @@ public sealed class NullCachingService : ICachingService
         => (TResult?) func( instance, args );
 
     public async Task<TTaskResultType?> GetFromCacheOrExecuteTaskAsync<TTaskResultType>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], CancellationToken, Task<object?>> func,
@@ -44,7 +44,7 @@ public sealed class NullCachingService : ICachingService
         => (TTaskResultType?) await func( instance, args, cancellationToken );
 
     public async ValueTask<TTaskResultType?> GetFromCacheOrExecuteValueTaskAsync<TTaskResultType>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], CancellationToken, ValueTask<object?>> func,

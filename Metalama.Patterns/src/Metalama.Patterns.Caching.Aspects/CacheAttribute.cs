@@ -277,7 +277,7 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         var cachingServiceExpression = cachingServiceField ?? ExpressionFactory.Capture( CachingService.Default );
 
         return ((ICachingService) cachingServiceExpression.Value!).GetFromCacheOrExecute<TReturnType>(
-            (CachedMethodMetadata) registrationField.Value!,
+            (CachedMethodMetadata?) registrationField.Value,
             meta.Target.Method.IsStatic ? null : (object) meta.This,
             (object[]) meta.Target.Method.Parameters.ToValueArray(),
             Invoke );
@@ -301,7 +301,7 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         var cachingServiceExpression = cachingServiceField ?? ExpressionFactory.Capture( CachingService.Default );
 
         return ((ICachingService) cachingServiceExpression.Value!).GetFromCacheOrExecuteTaskAsync<TValue>(
-            (CachedMethodMetadata) registrationField.Value!,
+            (CachedMethodMetadata?) registrationField.Value,
             meta.Target.Method.IsStatic ? null : (object) meta.This,
             (object?[]) meta.Target.Method.Parameters.ToValueArray(),
             InvokeAsync,
@@ -327,7 +327,7 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         var cachingServiceExpression = cachingServiceField ?? ExpressionFactory.Capture( CachingService.Default );
 
         return ((ICachingService) cachingServiceExpression.Value!).GetFromCacheOrExecuteValueTaskAsync<TValue>(
-            (CachedMethodMetadata) registrationField.Value!,
+            (CachedMethodMetadata?) registrationField.Value,
             meta.Target.Method.IsStatic ? null : (object) meta.This,
             (object?[]) meta.Target.Method.Parameters.ToValueArray(),
             InvokeAsync,
@@ -364,7 +364,7 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         var cachingServiceExpression = cachingServiceField ?? ExpressionFactory.Capture( CachingService.Default );
 
         var task = ((ICachingService) cachingServiceExpression.Value!).GetFromCacheOrExecuteValueTaskAsync<IAsyncEnumerable<TValue>>(
-            (CachedMethodMetadata) registrationField.Value!,
+            (CachedMethodMetadata?) registrationField.Value,
             meta.Target.Method.IsStatic ? null : (object) meta.This,
             (object?[]) meta.Target.Method.Parameters.ToValueArray(),
             InvokeAsync,
@@ -404,7 +404,7 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         var cachingServiceExpression = cachingServiceField ?? ExpressionFactory.Capture( CachingService.Default );
 
         var task = ((ICachingService) cachingServiceExpression.Value!).GetFromCacheOrExecuteValueTaskAsync<IAsyncEnumerator<TValue>>(
-            (CachedMethodMetadata) registrationField.Value!,
+            (CachedMethodMetadata?) registrationField.Value,
             meta.Target.Method.IsStatic ? null : (object) meta.This,
             (object?[]) meta.Target.Method.Parameters.ToValueArray(),
             InvokeAsync,
