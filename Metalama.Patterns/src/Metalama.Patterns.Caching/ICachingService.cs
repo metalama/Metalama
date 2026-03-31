@@ -62,7 +62,7 @@ public interface ICachingService : IAsyncDisposable, IDisposable
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The cached or computed result.</returns>
     TResult? GetFromCacheOrExecute<TResult>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], object?> func,
@@ -82,7 +82,7 @@ public interface ICachingService : IAsyncDisposable, IDisposable
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task representing the cached or computed result.</returns>
     Task<TTaskResultType?> GetFromCacheOrExecuteTaskAsync<TTaskResultType>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], CancellationToken, Task<object?>> func,
@@ -102,7 +102,7 @@ public interface ICachingService : IAsyncDisposable, IDisposable
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A value task representing the cached or computed result.</returns>
     ValueTask<TTaskResultType?> GetFromCacheOrExecuteValueTaskAsync<TTaskResultType>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], CancellationToken, ValueTask<object?>> func,

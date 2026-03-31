@@ -3,29 +3,21 @@ internal class Target
   [Cache]
   public string GetResourceName1(int x, int y, [NotCacheKey] int z)
   {
-    if (_cacheRegistration_GetResourceName1 == null)
-    {
-      return this.GetResourceName1_Source(x, y, z);
-    }
     static object? Invoke(object? instance, object? [] args)
     {
       return ((Target)instance).GetResourceName1_Source((int)args[0], (int)args[1], (int)args[2]);
     }
-    return _cachingService.GetFromCacheOrExecute<string>(_cacheRegistration_GetResourceName1, this, new object[] { x, y, z }, Invoke);
+    return _cachingService.GetFromCacheOrExecute<string>((CachedMethodMetadata? )_cacheRegistration_GetResourceName1, this, new object[] { x, y, z }, Invoke);
   }
   private string GetResourceName1_Source(int x, int y, int z) => "resource";
   [Cache]
   public string GetResourceName2(int y, [NotCacheKey] string z, int x)
   {
-    if (_cacheRegistration_GetResourceName2 == null)
-    {
-      return this.GetResourceName2_Source(y, z, x);
-    }
     static object? Invoke(object? instance, object? [] args)
     {
       return ((Target)instance).GetResourceName2_Source((int)args[0], (string)args[1], (int)args[2]);
     }
-    return _cachingService.GetFromCacheOrExecute<string>(_cacheRegistration_GetResourceName2, this, new object[] { y, z, x }, Invoke);
+    return _cachingService.GetFromCacheOrExecute<string>((CachedMethodMetadata? )_cacheRegistration_GetResourceName2, this, new object[] { y, z, x }, Invoke);
   }
   private string GetResourceName2_Source(int y, string z, int x) => "resource";
   [InvalidateCache(nameof(GetResourceName1))]

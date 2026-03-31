@@ -7,15 +7,11 @@ public class C
   [Cache]
   public int M()
   {
-    if (_cacheRegistration_M == null)
-    {
-      return this.M_Source();
-    }
     static object? Invoke(object? instance, object? [] args)
     {
       return ((C)instance).M_Source();
     }
-    return _cachingService.GetFromCacheOrExecute<int>(_cacheRegistration_M, this, new object[] { }, Invoke);
+    return _cachingService.GetFromCacheOrExecute<int>((CachedMethodMetadata? )_cacheRegistration_M, this, new object[] { }, Invoke);
   }
   private int M_Source() => 5;
   private static readonly CachedMethodMetadata _cacheRegistration_M;

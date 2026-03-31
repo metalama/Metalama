@@ -18,13 +18,18 @@ public partial class CachingService
 
     [EditorBrowsable( EditorBrowsableState.Never )]
     public TResult? GetFromCacheOrExecute<TResult>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], object?> func,
         CacheItemConfiguration? configuration = null,
         CancellationToken cancellationToken = default )
     {
+        if ( metadata == null )
+        {
+            return (TResult?) func( instance, args );
+        }
+
         var logSource = this.ServiceProvider.GetFlashtraceSource( metadata.Method.DeclaringType!, FlashtraceRole.Caching );
 
         object? result;
@@ -82,13 +87,18 @@ public partial class CachingService
 
     [EditorBrowsable( EditorBrowsableState.Never )]
     public async Task<TTaskResultType?> GetFromCacheOrExecuteTaskAsync<TTaskResultType>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], CancellationToken, Task<object?>> func,
         CacheItemConfiguration? configuration = null,
         CancellationToken cancellationToken = default )
     {
+        if ( metadata == null )
+        {
+            return (TTaskResultType?) await func( instance, args, cancellationToken );
+        }
+
         // TODO: What about ConfigureAwait( false )?
 
         var logSource = this.ServiceProvider.GetFlashtraceSource( metadata.Method.DeclaringType!, FlashtraceRole.Caching );
@@ -191,13 +201,18 @@ public partial class CachingService
 
     [EditorBrowsable( EditorBrowsableState.Never )]
     public async ValueTask<TTaskResultType?> GetFromCacheOrExecuteValueTaskAsync<TTaskResultType>(
-        CachedMethodMetadata metadata,
+        CachedMethodMetadata? metadata,
         object? instance,
         object?[] args,
         Func<object?, object?[], CancellationToken, ValueTask<object?>> func,
         CacheItemConfiguration? configuration = null,
         CancellationToken cancellationToken = default )
     {
+        if ( metadata == null )
+        {
+            return (TTaskResultType?) await func( instance, args, cancellationToken );
+        }
+
         // TODO: What about ConfigureAwait( false )?
 
         var logSource = this.ServiceProvider.GetFlashtraceSource( metadata.Method.DeclaringType!, FlashtraceRole.Caching );
