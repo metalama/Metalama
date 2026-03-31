@@ -139,12 +139,49 @@ public sealed partial class CodeFormatter
 
         public override SyntaxNode? VisitCastExpression( CastExpressionSyntax node )
         {
-            if ( node.Type.IsKind( SyntaxKind.TupleType ) && node.HasAnnotation( Simplifier.Annotation ) )
+            if ( node.HasAnnotation( Simplifier.Annotation ) )
             {
-                var tupleType = (TupleTypeSyntax) node.Type;
-
-                if ( tupleType.Elements.All( e => e.Identifier == default ) )
+                if ( node.Type.IsKind( SyntaxKind.TupleType ) )
                 {
+                    var tupleType = (TupleTypeSyntax) node.Type;
+
+                    if ( tupleType.Elements.All( e => e.Identifier == default ) )
+                    {
+                        if ( this._semanticModel == null )
+                        {
+                            this.RequiresSemanticModel = true;
+
+                            return node;
+                        }
+                        else
+                        {
+                            // Check if this can be simplified. We must compare element by element, ignoring labels, because
+                            // Roslyn will return a different type if labels are different.
+                            var targetType = this._semanticModel.GetTypeInfo( node.Type ).Type as INamedTypeSymbol;
+                            var expressionType = this._semanticModel.GetTypeInfo( node.Expression ).Type as INamedTypeSymbol;
+
+                            if ( targetType != null && expressionType is { Name: nameof(ValueTuple) } && targetType.Arity == expressionType.Arity )
+                            {
+                                for ( var i = 0; i < targetType.TypeArguments.Length; i++ )
+                                {
+                                    if ( !targetType.TypeArguments[i].Equals( expressionType.TypeArguments[i], SymbolEqualityComparer.IncludeNullability ) )
+                                    {
+                                        // No match.
+                                        return node;
+                                    }
+                                }
+
+                                // The types are equal, ignoring labels.
+                                return node.Expression;
+                            }
+                        }
+                    }
+                }
+                else if ( node.Type.IsKind( SyntaxKind.NullableType ) )
+                {
+                    // Simplify casts from T to T? for reference types. Roslyn's Simplifier.ReduceAsync does not
+                    // remove these because the cast changes the nullable annotation, but the cast is redundant
+                    // at runtime since any non-nullable reference is a valid nullable reference.
                     if ( this._semanticModel == null )
                     {
                         this.RequiresSemanticModel = true;
@@ -153,24 +190,14 @@ public sealed partial class CodeFormatter
                     }
                     else
                     {
-                        // Check if this can be simplified. We must compare element by element, ignoring labels, because
-                        // Roslyn will return a different type if labels are different.
-                        var targetType = this._semanticModel.GetTypeInfo( node.Type ).Type as INamedTypeSymbol;
-                        var expressionType = this._semanticModel.GetTypeInfo( node.Expression ).Type as INamedTypeSymbol;
+                        var targetType = this._semanticModel.GetTypeInfo( node.Type ).Type;
+                        var expressionType = this._semanticModel.GetTypeInfo( node.Expression ).Type;
 
-                        if ( targetType != null && expressionType is { Name: nameof(ValueTuple) } && targetType.Arity == expressionType.Arity )
+                        if ( targetType != null && expressionType != null
+                                               && expressionType.IsReferenceType
+                                               && targetType.Equals( expressionType, SymbolEqualityComparer.Default ) )
                         {
-                            for ( var i = 0; i < targetType.TypeArguments.Length; i++ )
-                            {
-                                if ( !targetType.TypeArguments[i].Equals( expressionType.TypeArguments[i], SymbolEqualityComparer.IncludeNullability ) )
-                                {
-                                    // No match.
-                                    return node;
-                                }
-                            }
-
-                            // The types are equal, ignoring labels.
-                            return node.Expression;
+                            return this.Visit( node.Expression );
                         }
                     }
                 }
