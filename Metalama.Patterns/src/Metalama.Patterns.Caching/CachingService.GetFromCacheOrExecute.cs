@@ -25,12 +25,16 @@ public partial class CachingService
         CacheItemConfiguration? configuration = null,
         CancellationToken cancellationToken = default )
     {
+        var logSource = metadata != null
+            ? this.ServiceProvider.GetFlashtraceSource( metadata.Method.DeclaringType!, FlashtraceRole.Caching )
+            : this.Logger;
+
         if ( metadata == null )
         {
+            logSource.Warning.Write( Formatted( "Caching is bypassed because the cache registration has not been initialized yet. This typically happens when a cached method is called from a static field initializer." ) );
+
             return (TResult?) func( instance, args );
         }
-
-        var logSource = this.ServiceProvider.GetFlashtraceSource( metadata.Method.DeclaringType!, FlashtraceRole.Caching );
 
         object? result;
 
@@ -94,14 +98,18 @@ public partial class CachingService
         CacheItemConfiguration? configuration = null,
         CancellationToken cancellationToken = default )
     {
-        if ( metadata == null )
-        {
-            return (TTaskResultType?) await func( instance, args, cancellationToken );
-        }
-
         // TODO: What about ConfigureAwait( false )?
 
-        var logSource = this.ServiceProvider.GetFlashtraceSource( metadata.Method.DeclaringType!, FlashtraceRole.Caching );
+        var logSource = metadata != null
+            ? this.ServiceProvider.GetFlashtraceSource( metadata.Method.DeclaringType!, FlashtraceRole.Caching )
+            : this.Logger;
+
+        if ( metadata == null )
+        {
+            logSource.Warning.Write( Formatted( "Caching is bypassed because the cache registration has not been initialized yet. This typically happens when a cached method is called from a static field initializer." ) );
+
+            return (TTaskResultType?) await func( instance, args, cancellationToken );
+        }
 
         object? result;
 
@@ -208,14 +216,18 @@ public partial class CachingService
         CacheItemConfiguration? configuration = null,
         CancellationToken cancellationToken = default )
     {
-        if ( metadata == null )
-        {
-            return (TTaskResultType?) await func( instance, args, cancellationToken );
-        }
-
         // TODO: What about ConfigureAwait( false )?
 
-        var logSource = this.ServiceProvider.GetFlashtraceSource( metadata.Method.DeclaringType!, FlashtraceRole.Caching );
+        var logSource = metadata != null
+            ? this.ServiceProvider.GetFlashtraceSource( metadata.Method.DeclaringType!, FlashtraceRole.Caching )
+            : this.Logger;
+
+        if ( metadata == null )
+        {
+            logSource.Warning.Write( Formatted( "Caching is bypassed because the cache registration has not been initialized yet. This typically happens when a cached method is called from a static field initializer." ) );
+
+            return (TTaskResultType?) await func( instance, args, cancellationToken );
+        }
 
         object? result;
 
