@@ -176,6 +176,7 @@ namespace Metalama.Framework.Engine.Linking
             VerifyUnsupportedInlineability(
                 input.InjectionRegistry,
                 input.IntermediateCompilation,
+                input.SourceCompilationModel.CompilationContext,
                 input.DiagnosticSink,
                 nonInlinedSemantics,
                 out var overrideTargetsWithUnsupportedNonInlinedOverrides );
@@ -777,6 +778,7 @@ namespace Metalama.Framework.Engine.Linking
         private static void VerifyUnsupportedInlineability(
             LinkerInjectionRegistry injectionRegistry,
             PartialCompilation intermediateCompilation,
+            CompilationContext sourceCompilationContext,
             UserDiagnosticSink diagnosticSink,
             IEnumerable<IntermediateSymbolSemantic> nonInlinedSemantics,
             out HashSet<ISymbol> overrideTargetsWithUnsupportedNonInlinedOverrides )
@@ -831,10 +833,13 @@ namespace Metalama.Framework.Engine.Linking
 
                     if ( overrideTargets.Add( overrideTarget ) )
                     {
-                        // TODO: If this message stays, it needs to be improved because non-inlining is not caused by the code, but by references.
+                        // Map the diagnostic location from the intermediate compilation to the source compilation (#818).
+                        var diagnosticLocation = LinkerDiagnosticMapper.GetSourceLocation( overrideTarget, sourceCompilationContext )
+                                                 ?? overrideTarget.GetDiagnosticLocation();
+
                         diagnosticSink.Report(
                             AspectLinkerDiagnosticDescriptors.DeclarationMustBeInlined.CreateRoslynDiagnostic(
-                                overrideTarget.GetDiagnosticLocation(),
+                                diagnosticLocation,
                                 (sourceName, overrideTarget) ) );
                     }
                 }

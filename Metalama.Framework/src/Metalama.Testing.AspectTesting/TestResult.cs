@@ -333,7 +333,7 @@ internal class TestResult : IDisposable
         }
 
         var compilation =
-            new[] { (this.InputCompilation, "input"), (this.OutputCompilation, "output") }.FirstOrDefault( c => c.Item1!.ContainsSyntaxTree( syntaxTree ) );
+            new[] { (this.InputCompilation, "input"), (this.OutputCompilation, "output") }.FirstOrDefault( c => c.Item1 != null && c.Item1.ContainsSyntaxTree( syntaxTree ) );
 
         if ( compilation.Item1 == null )
         {
