@@ -2,9 +2,14 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Compiler;
+using Metalama.Framework.DesignTime.Preview;
+using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.Helpers;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
+using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -410,6 +415,67 @@ class MyAspect : TypeAspect
         var result = await this.RunPreviewAsync( code, "target.cs" );
 
         Assert.Contains( "scenario: Preview, captures non-observable: True", result, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public async Task WhenFrameworkNotEnabled_ReturnsSpecificError()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["target.cs"] = "class C {}"
+        };
+
+        using var testContext = this.CreateTestContext();
+
+        // Create a project options factory that returns options with IsFrameworkEnabled = false,
+        // simulating a project that only references Metalama.Framework.Sdk without Metalama.Framework.
+        var disabledProjectOptions = new FrameworkDisabledProjectOptions( testContext.ProjectOptions );
+        var disabledProjectOptionsFactory = new FrameworkDisabledProjectOptionsFactory( disabledProjectOptions );
+
+        var serviceProviderWithDisabledFramework = (GlobalServiceProvider) testContext.ServiceProvider.Global.Underlying
+            .WithService( disabledProjectOptionsFactory, allowOverride: true );
+
+        var pipelineFactory = new TestDesignTimeAspectPipelineFactory(
+            testContext,
+            serviceProviderWithDisabledFramework );
+
+        var serviceProvider = testContext.ServiceProvider.Global.WithService( pipelineFactory );
+
+        var workspace = testContext.ServiceProvider.Global.GetRequiredService<TestWorkspaceProvider>();
+        var projectKey = workspace.AddOrUpdateProject( testContext, _mainProjectName, code );
+
+        var service = new TransformationPreviewServiceImpl( serviceProvider );
+        var result = await service.PreviewTransformationAsync( projectKey, "target.cs", testContext.CancellationToken );
+
+        Assert.False( result.IsSuccessful );
+        Assert.NotNull( result.ErrorMessages );
+        Assert.Single( result.ErrorMessages );
+
+        // The error message should NOT be the confusing "not fully loaded yet" message.
+        Assert.DoesNotContain( "not been fully loaded yet", result.ErrorMessages[0], StringComparison.OrdinalIgnoreCase );
+
+        // It should indicate that the Metalama framework is not enabled/referenced.
+        Assert.Contains( "not enabled", result.ErrorMessages[0], StringComparison.OrdinalIgnoreCase );
+    }
+
+    private sealed class FrameworkDisabledProjectOptions : ProjectOptionsWrapper
+    {
+        public FrameworkDisabledProjectOptions( IProjectOptions wrapped ) : base( wrapped ) { }
+
+        public override bool IsFrameworkEnabled => false;
+    }
+
+    private sealed class FrameworkDisabledProjectOptionsFactory : IProjectOptionsFactory
+    {
+        private readonly IProjectOptions _projectOptions;
+
+        public FrameworkDisabledProjectOptionsFactory( IProjectOptions projectOptions )
+        {
+            this._projectOptions = projectOptions;
+        }
+
+        public IProjectOptions GetProjectOptions( AnalyzerConfigOptions options, TransformerOptions? transformerOptions = null )
+            => this._projectOptions;
     }
 
     [Fact]
