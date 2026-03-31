@@ -687,6 +687,18 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol.IsStatic: true } }
+                        when !this._intermediateCompilationContext.SymbolComparer.Equals(
+                            nonInlinedReference.OriginalSymbol.ContainingType,
+                            nonInlinedReference.ResolvedSemantic.Symbol.ContainingType ):
+                        // Static member redirected from a base class to an aspect-managed hiding member.
+                        // The type qualifier in the syntax needs to be rewritten.
+                        AddSubstitution(
+                            context,
+                            new AspectReferenceOverrideSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
+
+                        break;
+
                     case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Default }
                         when !this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol )
                              && !this._injectionRegistry.IsOverride( nonInlinedReference.ResolvedSemantic.Symbol ):

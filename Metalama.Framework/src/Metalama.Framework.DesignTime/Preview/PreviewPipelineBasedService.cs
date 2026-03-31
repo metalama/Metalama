@@ -25,10 +25,13 @@ public abstract class PreviewPipelineBasedService
 
     private protected WorkspaceProvider WorkspaceProvider { get; }
 
+    private readonly IProjectOptionsFactory _projectOptionsFactory;
+
     protected PreviewPipelineBasedService( GlobalServiceProvider serviceProvider )
     {
         this.PipelineFactory = serviceProvider.GetRequiredService<DesignTimeAspectPipelineFactory>();
         this.WorkspaceProvider = serviceProvider.GetRequiredService<WorkspaceProvider>();
+        this._projectOptionsFactory = serviceProvider.GetRequiredService<IProjectOptionsFactory>();
     }
 
     protected async
@@ -48,6 +51,16 @@ public abstract class PreviewPipelineBasedService
             return (false, ["The project has not been fully loaded yet."], null, null, null);
         }
 
+        // Check if design-time is disabled for this project.
+        var projectOptions = this._projectOptionsFactory.GetProjectOptions( project );
+
+        if ( !projectOptions.IsDesignTimeEnabled )
+        {
+            return (false,
+                ["Metalama design-time features are not available because the MSBuild property 'MetalamaDesignTimeEnabled' is set to 'false' for this project. Remove this property or set it to 'true' to enable Metalama design-time features."],
+                null, null, null);
+        }
+
         var compilation = await project.GetCompilationAsync( cancellationToken );
 
         if ( compilation == null )
@@ -60,10 +73,10 @@ public abstract class PreviewPipelineBasedService
 
         if ( pipeline == null )
         {
-            var projectOptionsFactory = this.PipelineFactory.ServiceProvider.GetService<IProjectOptionsFactory>();
-            var projectOptions = projectOptionsFactory?.GetProjectOptions( project );
+            var pipelineProjectOptionsFactory = this.PipelineFactory.ServiceProvider.GetService<IProjectOptionsFactory>();
+            var pipelineProjectOptions = pipelineProjectOptionsFactory?.GetProjectOptions( project );
 
-            if ( projectOptions is { IsFrameworkEnabled: false } )
+            if ( pipelineProjectOptions is { IsFrameworkEnabled: false } )
             {
                 return (false, ["The Metalama Framework is not enabled for this project. Ensure that Metalama is enabled for this project and that it references the Metalama.Framework package if required."], null, null, null);
             }
