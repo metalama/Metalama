@@ -63,7 +63,6 @@ try {
 
     # Create a wrapper function for 'metalama' command
     function Invoke-Metalama {
-        $allArgs = $args -join ' '
         dotnet exec $toolDll.FullName @args
         return $LASTEXITCODE
     }
@@ -164,9 +163,9 @@ try {
         exit 0
     }
     else {
-        Write-Host "`nINCONCLUSIVE: No VBCSCompiler processes were running before 'metalama kill'"
+        Write-Host "`nFAILURE: No VBCSCompiler processes were running before 'metalama kill'"
         Write-Host "The test could not verify kill behavior. This may indicate VBCSCompiler is not persisting on this configuration."
-        exit 0
+        exit 1
     }
 }
 finally {
