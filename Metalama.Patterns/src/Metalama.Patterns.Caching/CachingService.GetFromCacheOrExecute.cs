@@ -13,6 +13,8 @@ namespace Metalama.Patterns.Caching;
 [PublicAPI]
 public partial class CachingService
 {
+    private const string _nullMetadataWarning =
+        "Caching is bypassed because the cache registration has not been initialized yet. This typically happens when a cached method is called from a static field initializer.";
     private ICacheItemConfiguration GetMergedMethodConfiguration( CachedMethodMetadata methodMetadata )
         => this.Profiles[methodMetadata.Configuration.ProfileName].GetMergedConfiguration( methodMetadata );
 
@@ -31,7 +33,7 @@ public partial class CachingService
 
         if ( metadata == null )
         {
-            logSource.Warning.Write( Formatted( "Caching is bypassed because the cache registration has not been initialized yet. This typically happens when a cached method is called from a static field initializer." ) );
+            logSource.Warning.Write( Formatted( _nullMetadataWarning ) );
 
             return (TResult?) func( instance, args );
         }
@@ -106,7 +108,7 @@ public partial class CachingService
 
         if ( metadata == null )
         {
-            logSource.Warning.Write( Formatted( "Caching is bypassed because the cache registration has not been initialized yet. This typically happens when a cached method is called from a static field initializer." ) );
+            logSource.Warning.Write( Formatted( _nullMetadataWarning ) );
 
             return (TTaskResultType?) await func( instance, args, cancellationToken );
         }
@@ -224,7 +226,7 @@ public partial class CachingService
 
         if ( metadata == null )
         {
-            logSource.Warning.Write( Formatted( "Caching is bypassed because the cache registration has not been initialized yet. This typically happens when a cached method is called from a static field initializer." ) );
+            logSource.Warning.Write( Formatted( _nullMetadataWarning ) );
 
             return (TTaskResultType?) await func( instance, args, cancellationToken );
         }
