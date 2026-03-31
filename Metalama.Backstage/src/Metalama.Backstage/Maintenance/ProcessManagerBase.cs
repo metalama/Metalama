@@ -76,12 +76,20 @@ internal abstract partial class ProcessManagerBase : IProcessManager
 
     protected IEnumerable<KillableProcess> GetDotNetProcesses( ImmutableArray<KillableProcessSpec> processSpecs )
     {
-        foreach ( var process in Process.GetProcessesByName( "dotnet" ) )
+        var dotnetProcesses = Process.GetProcessesByName( "dotnet" );
+
+        this.Logger.Trace?.Log( $"Found {dotnetProcesses.Length} 'dotnet' processes." );
+
+        foreach ( var process in dotnetProcesses )
         {
             if ( !this.TryGetModulePaths( process, out var modules ) )
             {
+                this.Logger.Trace?.Log( $"Cannot get module paths for process {process.Id}." );
+
                 continue;
             }
+
+            this.Logger.Trace?.Log( $"Process {process.Id} modules: {string.Join( ", ", modules )}." );
 
             var moduleFileNames = modules.Select( s => Path.GetFileNameWithoutExtension( s ).ToLowerInvariant() ).ToList();
 
