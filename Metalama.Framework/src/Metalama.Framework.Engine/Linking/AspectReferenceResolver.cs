@@ -342,15 +342,27 @@ internal sealed class AspectReferenceResolver
 
     /// <summary>
     /// Determines whether a candidate symbol hides the given base symbol.
-    /// For methods, this requires matching parameter types (since overloads don't hide each other).
-    /// For other member kinds (fields, properties, events), name matching is sufficient.
+    /// Candidates must be of the same kind. For methods, this requires matching parameter types,
+    /// ref kinds, and generic arity (since overloads don't hide each other).
+    /// For other member kinds (fields, properties, events), same-kind and name matching is sufficient.
     /// </summary>
     private static bool HidesSymbol( ISymbol candidate, ISymbol hiddenSymbol )
     {
-        if ( candidate.Kind == SymbolKind.Method && hiddenSymbol.Kind == SymbolKind.Method )
+        if ( candidate.Kind != hiddenSymbol.Kind )
+        {
+            return false;
+        }
+
+        if ( candidate.Kind == SymbolKind.Method )
         {
             var candidateMethod = (IMethodSymbol) candidate;
             var hiddenMethod = (IMethodSymbol) hiddenSymbol;
+
+            if ( candidateMethod.Arity != hiddenMethod.Arity )
+            {
+                return false;
+            }
+
             if ( candidateMethod.Parameters.Length != hiddenMethod.Parameters.Length )
             {
                 return false;
@@ -358,6 +370,11 @@ internal sealed class AspectReferenceResolver
 
             for ( var i = 0; i < candidateMethod.Parameters.Length; i++ )
             {
+                if ( candidateMethod.Parameters[i].RefKind != hiddenMethod.Parameters[i].RefKind )
+                {
+                    return false;
+                }
+
                 if ( !SignatureTypeComparer.Instance.Equals( candidateMethod.Parameters[i].Type, hiddenMethod.Parameters[i].Type ) )
                 {
                     return false;
