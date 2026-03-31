@@ -62,6 +62,9 @@ $testDirs = Get-ChildItem -Path $targetDir -Directory
 if ($Filter) {
     $testDirs = $testDirs | Where-Object { $_.Name -like $Filter }
 }
+if ($Filter -and -not $testDirs) {
+    throw "No test directories found in '$targetDir' matching filter '$Filter'."
+}
 $testDirs | ForEach-Object {
     $dir = $_.FullName
     $dockerfile = Join-Path $dir "Dockerfile"

@@ -2,11 +2,18 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Compiler;
+using Metalama.Framework.DesignTime.Preview;
+using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.Services;
+using Metalama.Testing.UnitTesting;
 using Metalama.Framework.Tests.UnitTestHelpers.Helpers;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
+using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -413,6 +420,67 @@ class MyAspect : TypeAspect
     }
 
     [Fact]
+    public async Task WhenFrameworkNotEnabled_ReturnsSpecificError()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["target.cs"] = "class C {}"
+        };
+
+        using var testContext = this.CreateTestContext();
+
+        // Create a project options factory that returns options with IsFrameworkEnabled = false,
+        // simulating a project that only references Metalama.Framework.Sdk without Metalama.Framework.
+        var disabledProjectOptions = new FrameworkDisabledProjectOptions( testContext.ProjectOptions );
+        var disabledProjectOptionsFactory = new FrameworkDisabledProjectOptionsFactory( disabledProjectOptions );
+
+        var serviceProviderWithDisabledFramework = (GlobalServiceProvider) testContext.ServiceProvider.Global.Underlying
+            .WithService( disabledProjectOptionsFactory, allowOverride: true );
+
+        var pipelineFactory = new TestDesignTimeAspectPipelineFactory(
+            testContext,
+            serviceProviderWithDisabledFramework );
+
+        var serviceProvider = testContext.ServiceProvider.Global.WithService( pipelineFactory );
+
+        var workspace = testContext.ServiceProvider.Global.GetRequiredService<TestWorkspaceProvider>();
+        var projectKey = workspace.AddOrUpdateProject( testContext, _mainProjectName, code );
+
+        var service = new TransformationPreviewServiceImpl( serviceProvider );
+        var result = await service.PreviewTransformationAsync( projectKey, "target.cs", testContext.CancellationToken );
+
+        Assert.False( result.IsSuccessful );
+        Assert.NotNull( result.ErrorMessages );
+        Assert.Single( result.ErrorMessages );
+
+        // The error message should NOT be the confusing "not fully loaded yet" message.
+        Assert.DoesNotContain( "not been fully loaded yet", result.ErrorMessages[0], StringComparison.OrdinalIgnoreCase );
+
+        // It should indicate that the Metalama framework is not enabled/referenced.
+        Assert.Contains( "not enabled", result.ErrorMessages[0], StringComparison.OrdinalIgnoreCase );
+    }
+
+    private sealed class FrameworkDisabledProjectOptions : ProjectOptionsWrapper
+    {
+        public FrameworkDisabledProjectOptions( IProjectOptions wrapped ) : base( wrapped ) { }
+
+        public override bool IsFrameworkEnabled => false;
+    }
+
+    private sealed class FrameworkDisabledProjectOptionsFactory : IProjectOptionsFactory
+    {
+        private readonly IProjectOptions _projectOptions;
+
+        public FrameworkDisabledProjectOptionsFactory( IProjectOptions projectOptions )
+        {
+            this._projectOptions = projectOptions;
+        }
+
+        public IProjectOptions GetProjectOptions( AnalyzerConfigOptions options, TransformerOptions? transformerOptions = null )
+            => this._projectOptions;
+    }
+
+    [Fact]
     public async Task WithProjectFabric()
     {
         var code = new Dictionary<string, string>()
@@ -612,5 +680,54 @@ class C {}"
         Assert.Contains( "[My]", result, StringComparison.Ordinal );
         Assert.Contains( "class Introduced", result, StringComparison.Ordinal );
         Assert.Contains( "int f;", result, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public async Task DesignTimeDisabled_ReturnsSpecificErrorMessage()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["aspect.cs"] = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+
+class MyAspect : TypeAspect
+{
+   [Introduce]
+   void IntroducedMethod() {}
+}
+",
+            ["target.cs"] = "[MyAspect] class C {}"
+        };
+
+        using var testContext = this.CreateTestContext();
+
+        // Wrap the project options to disable design-time.
+        var designTimeDisabledOptions = new DesignTimeDisabledProjectOptions( testContext.ProjectOptions );
+
+        // Replace the project options factory so it returns options with IsDesignTimeEnabled=false.
+        var serviceProvider = (GlobalServiceProvider) testContext.ServiceProvider.Global.Underlying
+            .WithService( new TestProjectOptionsFactory( designTimeDisabledOptions ), allowOverride: true );
+
+        var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext, serviceProvider );
+        serviceProvider = serviceProvider.WithService( pipelineFactory );
+
+        var workspace = testContext.ServiceProvider.Global.GetRequiredService<TestWorkspaceProvider>();
+        var projectKey = workspace.AddOrUpdateProject( testContext, _mainProjectName, code );
+
+        var service = new TransformationPreviewServiceImpl( serviceProvider );
+        var result = await service.PreviewTransformationAsync( projectKey, "target.cs", default( CancellationToken ) );
+
+        Assert.False( result.IsSuccessful );
+        Assert.NotNull( result.ErrorMessages );
+        Assert.NotEmpty( result.ErrorMessages );
+        Assert.Contains( "MetalamaDesignTimeEnabled", result.ErrorMessages[0], StringComparison.Ordinal );
+    }
+
+    private sealed class DesignTimeDisabledProjectOptions : ProjectOptionsWrapper
+    {
+        public override bool IsDesignTimeEnabled => false;
+
+        public DesignTimeDisabledProjectOptions( IProjectOptions underlying ) : base( underlying ) { }
     }
 }

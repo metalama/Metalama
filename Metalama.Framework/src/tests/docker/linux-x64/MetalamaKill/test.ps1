@@ -63,7 +63,6 @@ try {
 
     # Create a wrapper function for 'metalama' command
     function Invoke-Metalama {
-        $allArgs = $args -join ' '
         dotnet exec $toolDll.FullName @args
         return $LASTEXITCODE
     }
@@ -97,10 +96,10 @@ try {
 
     if ($vbcsBeforeCount -eq 0) {
         Write-Host "  No VBCSCompiler processes found before kill."
-        Write-Host "  (VBCSCompiler may not have stayed running - trying to keep it alive with nodeReuse)"
+        Write-Host "  (VBCSCompiler may not have stayed running - trying to keep it alive with UseSharedCompilation=true)"
 
-        # Retry build with explicit node reuse to keep VBCSCompiler alive
-        Write-Host "`nRebuilding with node reuse enabled..."
+        # Retry build with Roslyn shared compilation to keep VBCSCompiler alive
+        Write-Host "`nRebuilding with Roslyn shared compilation (UseSharedCompilation=true)..."
         dotnet build --no-restore /p:UseSharedCompilation=true
         if ($LASTEXITCODE -ne 0) { throw "dotnet build (retry) failed with exit code $LASTEXITCODE" }
 
@@ -164,9 +163,9 @@ try {
         exit 0
     }
     else {
-        Write-Host "`nINCONCLUSIVE: No VBCSCompiler processes were running before 'metalama kill'"
+        Write-Host "`nFAILURE: No VBCSCompiler processes were running before 'metalama kill'"
         Write-Host "The test could not verify kill behavior. This may indicate VBCSCompiler is not persisting on this configuration."
-        exit 0
+        exit 1
     }
 }
 finally {
