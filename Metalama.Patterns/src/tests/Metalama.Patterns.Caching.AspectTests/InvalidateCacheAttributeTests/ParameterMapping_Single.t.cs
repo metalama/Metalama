@@ -7,7 +7,7 @@ internal class Target
     {
       return await ((Target)instance).GetResourceNameAsync_Source((Guid)args[0]);
     }
-    return _cachingService.GetFromCacheOrExecuteTaskAsync<string?>((CachedMethodMetadata? )_cacheRegistration_GetResourceNameAsync, this, (object? [])new object[] { resourceId }, InvokeAsync, null, default);
+    return _cachingService.GetFromCacheOrExecuteTaskAsync<string?>(_cacheRegistration_GetResourceNameAsync, this, (object? [])new object[] { resourceId }, InvokeAsync, null, default);
   }
   private async Task<string?> GetResourceNameAsync_Source(Guid resourceId)
   {
@@ -19,7 +19,7 @@ internal class Target
     ProtectedResource? result;
     result = new ProtectedResource();
     await _cachingService.InvalidateAsync(_methodsInvalidatedBy_UpdateProtectedResourceAsync_AE10A3168F93BA6A187A7E438DE50A40[0], this, new object[] { resourceId }, default(CancellationToken));
-    return (ProtectedResource? )result;
+    return result;
   }
   [InvalidateCache(nameof(GetResourceNameAsync))]
   public async Task<ProtectedResource?> UpdateProtectedResource2Async(UpdateProtectedResource update, Guid resourceId)
@@ -27,7 +27,7 @@ internal class Target
     ProtectedResource? result;
     result = new ProtectedResource();
     await _cachingService.InvalidateAsync(_methodsInvalidatedBy_UpdateProtectedResource2Async_5D88BBAC730DC5F67DE5A9E4107C1BE6[0], this, new object[] { resourceId }, default(CancellationToken));
-    return (ProtectedResource? )result;
+    return result;
   }
   private static readonly CachedMethodMetadata _cacheRegistration_GetResourceNameAsync;
   private ICachingService _cachingService;

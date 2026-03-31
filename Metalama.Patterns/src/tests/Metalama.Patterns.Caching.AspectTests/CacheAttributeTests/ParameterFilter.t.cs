@@ -26,7 +26,7 @@ internal class TheClass
     {
       return ((TheClass)instance).CachedMethod_Source((int)args[0], (IDisposable)args[1]);
     }
-    return _cachingService.GetFromCacheOrExecute<int>((CachedMethodMetadata? )_cacheRegistration_CachedMethod, this, new object[] { x, y }, Invoke);
+    return _cachingService.GetFromCacheOrExecute<int>(_cacheRegistration_CachedMethod, this, new object[] { x, y }, Invoke);
   }
   private int CachedMethod_Source(int x, IDisposable y)
   {

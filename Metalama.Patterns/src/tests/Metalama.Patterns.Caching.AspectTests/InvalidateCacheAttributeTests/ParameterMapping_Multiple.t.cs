@@ -7,7 +7,7 @@ internal class Target
     {
       return ((Target)instance).GetResourceName1_Source((int)args[0], (int)args[1], (int)args[2]);
     }
-    return _cachingService.GetFromCacheOrExecute<string>((CachedMethodMetadata? )_cacheRegistration_GetResourceName1, this, new object[] { x, y, z }, Invoke);
+    return _cachingService.GetFromCacheOrExecute<string>(_cacheRegistration_GetResourceName1, this, new object[] { x, y, z }, Invoke);
   }
   private string GetResourceName1_Source(int x, int y, int z) => "resource";
   [Cache]
@@ -17,7 +17,7 @@ internal class Target
     {
       return ((Target)instance).GetResourceName2_Source((int)args[0], (string)args[1], (int)args[2]);
     }
-    return _cachingService.GetFromCacheOrExecute<string>((CachedMethodMetadata? )_cacheRegistration_GetResourceName2, this, new object[] { y, z, x }, Invoke);
+    return _cachingService.GetFromCacheOrExecute<string>(_cacheRegistration_GetResourceName2, this, new object[] { y, z, x }, Invoke);
   }
   private string GetResourceName2_Source(int y, string z, int x) => "resource";
   [InvalidateCache(nameof(GetResourceName1))]
@@ -28,7 +28,7 @@ internal class Target
     result = new ProtectedResource();
     await _cachingService.InvalidateAsync(_methodsInvalidatedBy_UpdateProtectedResourceAsync_23BEB20FE3CE3EBDD9C65F59C43F5632[0], this, new object[] { x, y, 0 }, default(CancellationToken));
     await _cachingService.InvalidateAsync(_methodsInvalidatedBy_UpdateProtectedResourceAsync_23BEB20FE3CE3EBDD9C65F59C43F5632[1], this, new object[] { y, 0, x }, default(CancellationToken));
-    return (ProtectedResource? )result;
+    return result;
   }
   [InvalidateCache(nameof(GetResourceName1))]
   [InvalidateCache(nameof(GetResourceName2))]
@@ -38,7 +38,7 @@ internal class Target
     result = new ProtectedResource();
     await _cachingService.InvalidateAsync(_methodsInvalidatedBy_UpdateProtectedResource2Async_EF4B99F69BA2C549913F60A9CBDD6F66[0], this, new object[] { x, y, 0 }, default(CancellationToken));
     await _cachingService.InvalidateAsync(_methodsInvalidatedBy_UpdateProtectedResource2Async_EF4B99F69BA2C549913F60A9CBDD6F66[1], this, new object[] { y, 0, x }, default(CancellationToken));
-    return (ProtectedResource? )result;
+    return result;
   }
   private static readonly CachedMethodMetadata _cacheRegistration_GetResourceName1;
   private static readonly CachedMethodMetadata _cacheRegistration_GetResourceName2;

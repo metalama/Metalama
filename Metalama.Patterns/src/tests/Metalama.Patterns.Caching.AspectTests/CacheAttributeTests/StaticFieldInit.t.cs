@@ -14,7 +14,7 @@ public class C
     {
       return M_Source();
     }
-    return ((ICachingService)CachingService.Default).GetFromCacheOrExecute<int>((CachedMethodMetadata? )_cacheRegistration_M, null, new object[] { }, Invoke);
+    return ((ICachingService)CachingService.Default).GetFromCacheOrExecute<int>(_cacheRegistration_M, null, new object[] { }, Invoke);
   }
   private static int M_Source() => 5;
   [Cache]
@@ -24,7 +24,7 @@ public class C
     {
       return ((C)instance).N_Source();
     }
-    return ((ICachingService)CachingService.Default).GetFromCacheOrExecute<int>((CachedMethodMetadata? )_cacheRegistration_N, this, new object[] { }, Invoke);
+    return ((ICachingService)CachingService.Default).GetFromCacheOrExecute<int>(_cacheRegistration_N, this, new object[] { }, Invoke);
   }
   private int N_Source() => 10;
   private static readonly CachedMethodMetadata _cacheRegistration_M;
