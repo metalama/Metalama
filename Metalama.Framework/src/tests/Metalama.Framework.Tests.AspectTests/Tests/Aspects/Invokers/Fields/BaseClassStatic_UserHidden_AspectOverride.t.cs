@@ -47,7 +47,8 @@ public class TargetClass : BaseClass
       return 0;
     }
     set
-    { // Invoke TargetClass.Field
+    {
+      // Invoke TargetClass.Field
       global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Fields.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Field = 42;
       // Invoke TargetClass._field
       global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Fields.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Field = 42;
@@ -74,7 +75,8 @@ public class TargetClass : BaseClass
       return 0;
     }
     set
-    { // Invoke TargetClass.Field
+    {
+      // Invoke TargetClass.Field
       global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Fields.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Field = 42;
       // Invoke TargetClass.Field
       global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Fields.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Field = 42;

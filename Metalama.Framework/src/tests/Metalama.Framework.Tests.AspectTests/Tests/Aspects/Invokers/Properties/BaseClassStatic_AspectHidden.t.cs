@@ -7,24 +7,24 @@ public class TargetClass : BaseClass
     get
     {
       // Invoke TargetClass.Property
-      _ = global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.BaseClass.Property;
+      _ = global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.TargetClass.Property;
       // Invoke BaseClass.Property
       _ = global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.BaseClass.Property;
       // Invoke BaseClass.Property
       _ = global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.BaseClass.Property;
       // Invoke TargetClass.Property
-      _ = global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.BaseClass.Property;
+      _ = global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.TargetClass.Property;
       return 0;
     }
     set
     { // Invoke TargetClass.Property
-      global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.BaseClass.Property = 42;
+      global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.TargetClass.Property = 42;
       // Invoke BaseClass.Property
       global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.BaseClass.Property = 42;
       // Invoke BaseClass.Property
       global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.BaseClass.Property = 42;
       // Invoke TargetClass.Property
-      global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.BaseClass.Property = 42;
+      global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_AspectHidden.TargetClass.Property = 42;
     }
   }
   [InvokerAfterAspect]

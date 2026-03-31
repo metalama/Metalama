@@ -2,7 +2,8 @@ public class TargetClass : BaseClass
 {
   [OverrideAspect]
   public static new void Method()
-  { // Invoke TargetClass.Method_Source
+  {
+    // Invoke TargetClass.Method_Source
     global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.TargetClass.Method_Source();
     // Invoke TargetClass.Method_Source
     global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.TargetClass.Method_Source();
@@ -18,26 +19,28 @@ public class TargetClass : BaseClass
   }
   [InvokerBeforeAspect]
   public void InvokerBefore()
-  { // Invoke TargetClass.Method
-    global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Method();
+  {
+    // Invoke TargetClass.Method
+    global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.TargetClass.Method();
     // Invoke TargetClass.Method_Source
     global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Method();
     // Invoke TargetClass.Method_Source
     global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Method();
     // Invoke TargetClass.Method
-    global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Method();
+    global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.TargetClass.Method();
     return;
   }
   [InvokerAfterAspect]
   public void InvokerAfter()
-  { // Invoke TargetClass.Method
-    global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Method();
+  {
+    // Invoke TargetClass.Method
+    global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.TargetClass.Method();
     // Invoke TargetClass.Method
     global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Method();
     // Invoke TargetClass.Method
     global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Method();
     // Invoke TargetClass.Method
-    global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.BaseClass.Method();
+    global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.TargetClass.Method();
     // Invoke TargetClass.Method
     return;
   }
