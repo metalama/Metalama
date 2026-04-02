@@ -1484,7 +1484,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             var boundTemplate = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            var advice = new TemplateBasedInitializeAdvice(
+            var advice = new TemplateBasedConstructorInitializeAdvice(
                 this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetType ),
                 boundTemplate.ForInitializer( this.GetArgsReader( args ) ),
                 kind );
@@ -1502,7 +1502,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetType, AdviceKind.AddInitializer );
 
-            var advice = new SyntaxBasedInitializeAdvice(
+            var advice = new SyntaxBasedConstructorInitializeAdvice(
                 this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetType ),
                 statement,
                 kind );
@@ -1520,7 +1520,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             var boundTemplate = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            var advice = new TemplateBasedInitializeAdvice(
+            var advice = new TemplateBasedConstructorInitializeAdvice(
                 this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetConstructor ),
                 boundTemplate.ForInitializer( this.GetArgsReader( args ) ),
                 InitializerKind.BeforeInstanceConstructor );
@@ -1535,7 +1535,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.AddInitializer );
 
-            var advice = new SyntaxBasedInitializeAdvice(
+            var advice = new SyntaxBasedConstructorInitializeAdvice(
                 this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetConstructor ),
                 statement,
                 InitializerKind.BeforeInstanceConstructor );

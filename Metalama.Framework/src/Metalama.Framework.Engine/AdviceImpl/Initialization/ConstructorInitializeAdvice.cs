@@ -17,13 +17,13 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
-internal abstract class InitializeAdvice : Advice<AddInitializerAdviceResult>
+internal abstract class ConstructorInitializeAdvice : Advice<AddInitializerAdviceResult>
 {
     private readonly InitializerKind _kind;
 
     private new IMemberOrNamedType TargetDeclaration => (IMemberOrNamedType) base.TargetDeclaration;
 
-    protected InitializeAdvice( in AdviceConstructorParameters<IMemberOrNamedType> parameters, InitializerKind kind ) : base( parameters )
+    protected ConstructorInitializeAdvice( in AdviceConstructorParameters<IMemberOrNamedType> parameters, InitializerKind kind ) : base( parameters )
     {
         this._kind = kind;
     }

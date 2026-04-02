@@ -16,7 +16,7 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
-internal sealed class SyntaxBasedInitializationTransformation : BaseSyntaxTreeTransformation, IInsertStatementTransformation
+internal sealed class SyntaxBasedConstructorInitializationTransformation : BaseSyntaxTreeTransformation, IInsertStatementTransformation
 {
     private readonly IFullRef<IConstructor> _targetConstructor;
     private readonly Func<SyntaxGenerationContext, StatementSyntax> _initializationStatement;
@@ -25,7 +25,7 @@ internal sealed class SyntaxBasedInitializationTransformation : BaseSyntaxTreeTr
 
     public IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetConstructor;
 
-    public SyntaxBasedInitializationTransformation(
+    public SyntaxBasedConstructorInitializationTransformation(
         AspectLayerInstance aspectLayerInstance,
         IRef<IMemberOrNamedType> initializedDeclaration,
         IFullRef<IConstructor> targetConstructor,

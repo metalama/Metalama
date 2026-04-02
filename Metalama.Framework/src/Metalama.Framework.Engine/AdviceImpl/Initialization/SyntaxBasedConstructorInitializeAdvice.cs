@@ -12,11 +12,11 @@ using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
-internal sealed class SyntaxBasedInitializeAdvice : InitializeAdvice
+internal sealed class SyntaxBasedConstructorInitializeAdvice : ConstructorInitializeAdvice
 {
     private readonly IStatement _statement;
 
-    public SyntaxBasedInitializeAdvice( in AdviceConstructorParameters<IMemberOrNamedType> parameters, IStatement statement, InitializerKind kind )
+    public SyntaxBasedConstructorInitializeAdvice( in AdviceConstructorParameters<IMemberOrNamedType> parameters, IStatement statement, InitializerKind kind )
         : base( parameters, kind )
     {
         this._statement = statement;
@@ -26,7 +26,7 @@ internal sealed class SyntaxBasedInitializeAdvice : InitializeAdvice
     {
         // TODO: The statement can now be more complex, including invoking a template. For this we need to pass a TemplateSyntaxFactoryImpl.
         addTransformation(
-            new SyntaxBasedInitializationTransformation(
+            new SyntaxBasedConstructorInitializationTransformation(
                 this.AspectLayerInstance,
                 targetDeclaration.ToRef(),
                 targetCtor.ToFullRef(),

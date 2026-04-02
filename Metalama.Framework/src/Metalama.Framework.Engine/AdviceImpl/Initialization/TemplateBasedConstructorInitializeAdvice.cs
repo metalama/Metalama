@@ -11,11 +11,11 @@ using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
-internal sealed class TemplateBasedInitializeAdvice : InitializeAdvice
+internal sealed class TemplateBasedConstructorInitializeAdvice : ConstructorInitializeAdvice
 {
     private readonly BoundTemplateMethod _boundTemplate;
 
-    public TemplateBasedInitializeAdvice(
+    public TemplateBasedConstructorInitializeAdvice(
         in AdviceConstructorParameters<IMemberOrNamedType> parameters,
         BoundTemplateMethod boundTemplate,
         InitializerKind kind )
@@ -26,7 +26,7 @@ internal sealed class TemplateBasedInitializeAdvice : InitializeAdvice
 
     protected override void AddTransformation( IMemberOrNamedType targetDeclaration, IConstructor targetCtor, Action<ITransformation> addTransformation )
     {
-        var initialization = new TemplateBasedInitializationTransformation(
+        var initialization = new TemplateBasedConstructorInitializationTransformation(
             this.AspectLayerInstance,
             targetDeclaration.ToRef(),
             targetCtor.ToFullRef(),
