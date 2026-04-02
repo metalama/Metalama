@@ -7,7 +7,9 @@ types, but provide no mechanism to validate or compute derived values after all 
 been set. Constructor-based validation is bypassed by `with` expressions on records. This feature
 fills that gap without requiring compiler changes, via a library and the Metalama Linker.
 
-A second motivation is the **telescoping constructor problem**: in an inheritance hierarchy,
+See also the related C# language discussion: https://github.com/dotnet/csharplang/discussions/6591
+
+A second motivation is the **telescoping constructor or initializer problem**: in an inheritance hierarchy,
 each layer may need to perform initialization logic (validation, change tracking, notification
 setup, etc.) but only once the entire object — including all derived layers — is fully
 initialized. Without a post-initialization hook, each base class either runs its logic too early
@@ -19,52 +21,73 @@ and skip it if a derived layer has already guaranteed it will run.
 
 ## 1. `[OnInitialized]` Attribute
 
+`[OnInitialized]` applies to classes, records, structs, and record structs.
+
 ### 1.1 Declaration
 
 ```csharp
-[AttributeUsage(AttributeTargets.Method, Inherited = false)]
-public sealed class OnInitializedAttribute : Attribute { }
+[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+public sealed class OnInitializedAttribute : Attribute
+{
+    /// <summary>
+    /// Controls the execution order when multiple [OnInitialized] methods exist on a type
+    /// (e.g., from partial classes or source generators). Lower values run first.
+    /// </summary>
+    public int Order { get; set; }
+}
 ```
 
 ### 1.2 Method Contract
 
 A method marked `[OnInitialized]` must satisfy the following constraints. Any implementation
 that processes `[OnInitialized]` (the Metalama Linker, a reflection-based framework, etc.)
-should validate these and report diagnostics (see §3.3 for Metalama-specific codes):
+should validate these and report diagnostics (see §3.3 for Metalama diagnostics):
 
 | Constraint | Rule |
 |---|---|
 | Return type | Must be the declaring type or any base type (not `void`); if a base type, the caller must cast |
 | Parameters | Either parameterless, or a single `InitializationContext context = default` |
-| Count | At most one `[OnInitialized]` method per class |
+| Count | Multiple `[OnInitialized]` methods are allowed per type (see ordering rules below) |
 | Inheritance | A derived class override should use a **covariant return type**; if it returns a base type instead, the caller must cast |
 
-### 1.3 Inheritance
+### 1.3 Execution Order
+
+When multiple `[OnInitialized]` methods exist (on the same type or across an inheritance
+hierarchy), they are executed in the following order:
+
+1. **`Order` property** (ascending) — lower values run first
+2. **Inheritance depth** (base class first) — among methods with the same `Order`, methods
+   declared on base types run before methods on derived types
+3. **Method name** (alphabetical) — tie-breaker for methods on the same type with the same
+   `Order`
+
+All `[OnInitialized]` methods in the hierarchy are executed — a derived type's method does
+**not** hide or replace a base type's method. Each method receives the `InitializationContext`
+with slots accumulated via `Descend` from previously executed methods.
+
+### 1.4 Inheritance
 
 - `[OnInitialized]` on a base class method should be declared `virtual`
-- A derived class **should** `override` it with its own concrete return type (covariant return,
-  C# 9+), but may return a base type at the cost of requiring callers to cast
+- A derived class **may** `override` it with its own concrete return type (covariant return,
+  C# 9+), but may also declare a separate `[OnInitialized]` method — both will be executed
 - The code model emits the `override` automatically with the covariant return type, calling
   `base.OnInitialized(context.Descend(...))` before derived logic; if the author declares the
   override manually the code model leaves it untouched
 
-**Shadowing (non-override `[OnInitialized]` in derived class):** If a derived class declares
-its own `[OnInitialized]` method with `new` (or simply without `override`) while the base
-class also has one, the caller invokes the **derived class's method** when the call site's
-static type is the derived class. The base class's `[OnInitialized]` is not called
-automatically in this case — it is the derived class's responsibility to call
-`base.OnInitialized(...)` if base-level initialization is needed. This is consistent with
-normal C# method resolution: the most-derived method visible at the call site's static type
-wins.
+> **Source generator ordering caveat:** When multiple source generators each add
+> `[OnInitialized]` methods to the same type (via partial classes), they must coordinate on
+> `Order` values to ensure correct execution order. Metalama solves this with its aspect
+> ordering specification, but no equivalent coordination mechanism exists for independent
+> source generators. This is an inherent limitation of the source generator model.
 
-### 1.4 Invocation Responsibility
+### 1.5 Invocation Responsibility
 
 The method is **not** called automatically by the runtime. It is the responsibility of either:
 
 - The caller, after an object initializer, using the fluent return value
 - A code generator transforming call sites (such as the Metalama Linker — see §3)
 
-### 1.5 Examples
+### 1.6 Examples
 
 **Simple class:**
 ```csharp
@@ -418,7 +441,7 @@ calling `OnInitialized` if needed. The rules below apply only when no argument i
 | Call site form | Pass to constructor | Append `.OnInitialized()` |
 |---|---|---|
 | `new T(...)` (no object initializer) | `CallInitialize` | No — constructor self-invokes |
-| `new T(...) { ... }` (object initializer) | `WillInitialize` | Yes |
+| `new T(...) { ... }` (object/collection initializer) | `WillInitialize` | Yes |
 | `with { ... }` expression | N/A (copy ctor is unmodified) | Yes, with `Metadata = Modify` |
 
 For `new` expressions **without** object initializers, the Linker passes `CallInitialize` —
@@ -428,6 +451,9 @@ call site. For `new` expressions **with** object initializers, the Linker passes
 constructor returns. For `with` expressions, the copy constructor is compiler-generated and
 cannot be modified — the Linker only appends `.OnInitialized()` with
 `InitializationMetadata.Modify` on the cloned instance.
+
+Collection initializers (`new T { item1, item2 }`) are treated identically to object
+initializers — there is no special handling for them.
 
 The compatibility overload (§4) is the only case where `default` is passed — and that is
 because the caller is non-instrumented, not because of call site form.
@@ -496,12 +522,10 @@ and reporting diagnostics when violations are detected.
 
 | Code | Severity | Condition |
 |---|---|---|
-| `OI001` | Error | More than one `[OnInitialized]` method on a type |
-| `OI002` | Warning | `[OnInitialized]` method return type is not the declaring type (caller will need to cast) |
-| `OI003` | Error | `[OnInitialized]` method has parameters other than `InitializationContext` |
-| `OI004` | Error | `[OnInitialized]` method return type is `void` |
-| `OI005` | Warning | `[OnInitialized]` method is not `virtual` on a non-sealed class (prevents derived types from overriding) |
-| `OI006` | Warning | `[OnInitialized]` method shadows (hides) a base class `[OnInitialized]` method instead of overriding it — base initialization will not be called automatically |
+| `OI001` | Warning | `[OnInitialized]` method return type is not the declaring type (caller will need to cast) |
+| `OI002` | Error | `[OnInitialized]` method has parameters other than `InitializationContext` |
+| `OI003` | Error | `[OnInitialized]` method return type is `void` |
+| `OI004` | Warning | `[OnInitialized]` method is not `virtual` on a non-sealed class (prevents derived types from overriding) |
 
 ---
 
@@ -746,24 +770,9 @@ public override NamedRange OnInitialized(InitializationContext context = default
 
 ### 6.1 Scope
 
-| Type | Support |
-|---|---|
-| `record class` (positional) | Full |
-| `record class` (non-positional) | Full |
-| `record struct` | Excluded — see below |
-
-**Why `record struct` is excluded:** The fluent pattern `new T { ... }.OnInitialized()`
-relies on `return this` returning the same object that the caller holds. For value types
-(structs), `return this` returns a **copy**. This means:
-
-- Validation-only patterns (throwing on invalid state) would work on the copy, which is
-  acceptable since the copy has the same field values
-- Stateful initialization (change tracking, event subscriptions, registering in collections)
-  would operate on a temporary copy that is then discarded — silently incorrect
-- All structs can be default-constructed (`default(T)`), bypassing all constructors entirely
-
-Since the feature cannot guarantee correct behavior for stateful initialization on structs,
-and the copy semantics would be a subtle source of bugs, `record struct` is excluded.
+`class` and `struct` records are fully supported, including positional records.
+Note that structs can be default-constructed (`default(T)`), bypassing all constructors.
+This is an inherent limitation of value types in .NET and is not specific to this feature.
 
 ### 6.2 Positional Records — Copy Constructor
 
@@ -1352,3 +1361,74 @@ This makes the contract explicit: if the caller cannot guarantee that `OnInitial
 run, the type refuses construction rather than silently producing an unfrozen instance.
 Non-instrumented callers that understand the pattern can still construct the object by calling
 `.OnInitialized()` manually after setting all properties.
+
+---
+
+## 10. Case Study: Computed Derived Properties
+
+> **Note:** This pattern is often better addressed with `[Memo]` (lazy memoization). This case
+> study demonstrates how `[OnInitialized]` can solve it when eager computation is preferred.
+
+### 10.1 Problem
+
+A scientific type has `required init` properties and read-only derived values that must be
+computed from them. Without a post-initialization hook, the author must either:
+
+- Compute on every access via `=>` (performance cost on repeated reads)
+- Use `private set` instead of true read-only (sacrifices immutability guarantees)
+- Duplicate computation in every `init` accessor (fragile, error-prone)
+
+### 10.2 User Code
+
+```csharp
+public class Isotope
+{
+    public required double HalfLifeSeconds { get; init; }
+    public required int AtomicNumber { get; init; }
+    public required int MassNumber { get; init; }
+
+    // Derived — computed once after all properties are set
+    public double DecayConstant { get; private set; }
+    public double MeanLifetime { get; private set; }
+
+    [OnInitialized]
+    public Isotope OnInitialized()
+    {
+        DecayConstant = Math.Log(2) / HalfLifeSeconds;
+        MeanLifetime = 1.0 / DecayConstant;
+        return this;
+    }
+}
+```
+
+### 10.3 Call Sites
+
+```csharp
+// Object initializer — Linker appends .OnInitialized()
+var carbon14 = new Isotope
+{
+    HalfLifeSeconds = 1.808e11,
+    AtomicNumber = 6,
+    MassNumber = 14
+};
+// After rewriting:
+// var carbon14 = new Isotope(InitializationContext.WillInitialize)
+//     { HalfLifeSeconds = 1.808e11, AtomicNumber = 6, MassNumber = 14 }
+//     .OnInitialized();
+
+// DecayConstant and MeanLifetime are already computed
+Console.WriteLine(carbon14.DecayConstant);
+```
+
+### 10.4 `with` Expression
+
+```csharp
+// Changing a source property recomputes derived values
+var carbon14_adjusted = carbon14 with { HalfLifeSeconds = 1.9e11 };
+// After rewriting:
+// var carbon14_adjusted = (carbon14 with { HalfLifeSeconds = 1.9e11 })
+//     .OnInitialized(InitializationContext.Create(InitializationMetadata.Modify));
+
+// DecayConstant and MeanLifetime reflect the new HalfLifeSeconds
+Console.WriteLine(carbon14_adjusted.DecayConstant);
+```
