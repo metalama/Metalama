@@ -509,10 +509,18 @@ internal sealed partial class LinkerInjectionStep
             {
                 // Return initializer statements to source members with no overrides or to the last override.
                 // This applies to both constructors (BeforeInstanceConstructor initializers) and methods (OnInitialized template statements).
+
+                // First: prologue statements (e.g. base.OnInitialized calls) — always before templates.
+                var prologueStatements =
+                    insertedStatements
+                        .Where( s => s.Kind == InsertedStatementKind.InitializerPrologue );
+
+                statements.AddRange( prologueStatements.Select( s => s.Statement ) );
+
+                // Then: initializer statements (templates) in runtime order.
                 var initializerStatements =
                     insertedStatements
-                        .Where( s => s.Kind == InsertedStatementKind.Initializer )
-                        .Select( s => s );
+                        .Where( s => s.Kind == InsertedStatementKind.Initializer );
 
                 var orderedInitializerStatements = OrderInitializerStatements( initializerStatements );
 
@@ -624,8 +632,8 @@ internal sealed partial class LinkerInjectionStep
                         _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                     } )
                 .ThenBy( s => (s.ContextDeclaration as IMember)?.ToDisplayString(), StringComparer.Ordinal )
-                .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
-                .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
+                .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
+                .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
                 .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance )
                 .ThenBy( s => s.Statement.ToFullString(), StringComparer.Ordinal );
 

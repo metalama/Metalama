@@ -13,8 +13,8 @@ public class DerivedClass : BaseClass
   [global::Metalama.Framework.RunTime.Initialization.OnInitializedAttribute]
   public override global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnInitialized_Inheritance.DerivedClass OnInitialized(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {
-    global::System.Console.WriteLine("Initialized DerivedClass");
     base.OnInitialized(context.Descend(default));
+    global::System.Console.WriteLine("Initialized DerivedClass");
     return this;
   }
 }

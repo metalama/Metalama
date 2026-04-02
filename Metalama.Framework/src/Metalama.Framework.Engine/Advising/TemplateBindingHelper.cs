@@ -258,6 +258,8 @@ internal static class TemplateBindingHelper
             }
 
             // Map the template parameter to the 'context' identifier of the enclosing OnInitialized method.
+            // This assumes the parameter is named "context", which is guaranteed for introduced methods
+            // (see OnInitializedAdvice) and conventional for hand-authored [OnInitialized] methods.
             parameterMapping = parameterMapping.Add( runTimeParameter.Name, IdentifierName( "context" ) );
         }
 

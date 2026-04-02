@@ -65,8 +65,8 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
                 builder.IsVirtual = true;
             }
 
-            // Check base for an existing OnInitialized method.
-            var baseMethod = FindOnInitializedMethodInBase( targetType );
+            // Check base for an existing overridable OnInitialized method.
+            var baseMethod = FindOverridableOnInitializedMethodInBase( targetType );
 
             if ( baseMethod != null )
             {
@@ -108,7 +108,8 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
         if ( existingMethod == null )
         {
             // If base has [OnInitialized], add "base.OnInitialized(context.Descend(...))" as first statement.
-            var baseMethod = FindOnInitializedMethodInBase( targetType );
+            // Uses InitializerPrologue to guarantee it precedes all template-injected statements.
+            var baseMethod = FindOverridableOnInitializedMethodInBase( targetType );
 
             if ( baseMethod != null )
             {
@@ -135,7 +136,8 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
                                                     IdentifierName( "Descend" ) ),
                                                 ArgumentList(
                                                     SingletonSeparatedList(
-                                                        Argument( slotExpression ) ) ) ) ) ) ) ) ) ) );
+                                                        Argument( slotExpression ) ) ) ) ) ) ) ) ),
+                        InsertedStatementKind.InitializerPrologue ) );
             }
         }
 
@@ -149,7 +151,7 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
             .FirstOrDefault( m => m.Attributes.Any( a => a.Type.FullName == "Metalama.Framework.RunTime.Initialization.OnInitializedAttribute" ) );
     }
 
-    private static IMethod? FindOnInitializedMethodInBase( INamedType type )
+    private static IMethod? FindOverridableOnInitializedMethodInBase( INamedType type )
     {
         var baseType = type.BaseType;
 
@@ -159,7 +161,10 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
 
             if ( method != null )
             {
-                return method;
+                // Only return the method if it is overridable (virtual or already an override).
+                // A non-virtual/sealed base method cannot be overridden — the introduced method
+                // will shadow it implicitly.
+                return method.IsVirtual || method.IsOverride ? method : null;
             }
 
             baseType = baseType.BaseType;
@@ -187,7 +192,7 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
         {
             var fieldAccess = MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
-                SyntaxFactoryEx.SafeIdentifierName( field.DeclaringType.Name ),
+                CreateFullyQualifiedName( field.DeclaringType.FullName ),
                 SyntaxFactoryEx.SafeIdentifierName( field.Name ) );
 
             result = result == null
@@ -196,6 +201,28 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
         }
 
         return result!;
+    }
+
+    /// <summary>
+    /// Creates a <c>global::Namespace.Type</c> syntax from a fully-qualified type name.
+    /// </summary>
+    private static ExpressionSyntax CreateFullyQualifiedName( string fullName )
+    {
+        var parts = fullName.Split( '.' );
+
+        ExpressionSyntax result = AliasQualifiedName(
+            SyntaxFactoryEx.WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+            SyntaxFactoryEx.SafeIdentifierName( parts[0] ) );
+
+        for ( var i = 1; i < parts.Length; i++ )
+        {
+            result = MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                result,
+                SyntaxFactoryEx.SafeIdentifierName( parts[i] ) );
+        }
+
+        return result;
     }
 
     public override AdviceKind AdviceKind => AdviceKind.AddInitializer;

@@ -16,13 +16,20 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Initialization.InstanceCo
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            builder.AddInitializer( nameof(Template), InitializerKind.BeforeInstanceConstructor );
+            builder.AddInitializer( nameof(Template1), InitializerKind.BeforeInstanceConstructor );
+            builder.AddInitializer( nameof(Template2), InitializerKind.BeforeInstanceConstructor );
         }
 
         [Template]
-        public void Template()
+        public void Template1()
         {
-            Console.WriteLine( $"{meta.Target.Type.Name}: {meta.AspectInstance.AspectClass.ShortName}" );
+            Console.WriteLine( $"{meta.Target.Type.Name}: {meta.AspectInstance.AspectClass.ShortName} 1" );
+        }
+
+        [Template]
+        public void Template2()
+        {
+            Console.WriteLine( $"{meta.Target.Type.Name}: {meta.AspectInstance.AspectClass.ShortName} 2" );
         }
     }
 

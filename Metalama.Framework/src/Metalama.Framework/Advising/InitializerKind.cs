@@ -83,13 +83,6 @@ namespace Metalama.Framework.Advising
 
 
         /// <summary>
-        /// Indicated that the advice should be executed when the the target value type is mutated using the "with" expression.
-        /// </summary>
-        [Obsolete( "Not implemented", true )]
-        [EditorBrowsable( EditorBrowsableState.Never )]
-        AfterWith,
-
-        /// <summary>
         /// Indicates that the advice should inject statements into an <c>[OnInitialized]</c> method
         /// on the target type. If the type does not already have an <c>[OnInitialized]</c> method,
         /// one is introduced automatically.

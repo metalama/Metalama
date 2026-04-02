@@ -7,7 +7,13 @@ namespace Metalama.Framework.Engine.Transformations;
 internal enum InsertedStatementKind
 {
     /// <summary>
-    /// Insert statement into the beginning of the final version of the declaration, in transformation order. 
+    /// Insert statement before all initializer statements in the final version of the declaration.
+    /// Used for base calls (e.g. <c>base.OnInitialized(...)</c>) that must precede template-injected statements.
+    /// </summary>
+    InitializerPrologue = -300,
+
+    /// <summary>
+    /// Insert statement into the beginning of the final version of the declaration, in transformation order.
     /// </summary>
     Initializer = -200,
 

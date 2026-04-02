@@ -6,12 +6,13 @@ using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnInitialized_TwoAspects;
+using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnInitialized_TwoAspects_Inheritance;
 
 [assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(FirstAspect), typeof(SecondAspect) )]
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnInitialized_TwoAspects;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnInitialized_TwoAspects_Inheritance;
 
+[Inheritable]
 public class FirstAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
@@ -33,6 +34,7 @@ public class FirstAspect : TypeAspect
     }
 }
 
+[Inheritable]
 public class SecondAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
@@ -57,6 +59,11 @@ public class SecondAspect : TypeAspect
 // <target>
 [FirstAspect]
 [SecondAspect]
-public class TargetCode
+public class BaseClass
+{
+}
+
+// <target>
+public class DerivedClass : BaseClass
 {
 }
