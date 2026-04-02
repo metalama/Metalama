@@ -13,8 +13,8 @@ public class CanExecuteProperty
   private static bool CanExecuteStatic => true;
   public CanExecuteProperty()
   {
-    InstanceCommand = DelegateCommandFactory.CreateDelegateCommand(ExecuteInstance, () => CanExecuteInstance);
     StaticCommand = DelegateCommandFactory.CreateDelegateCommand(ExecuteStatic, () => CanExecuteStatic);
+    InstanceCommand = DelegateCommandFactory.CreateDelegateCommand(ExecuteInstance, () => CanExecuteInstance);
   }
   public DelegateCommand InstanceCommand { get; }
   public DelegateCommand StaticCommand { get; }

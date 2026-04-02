@@ -23,10 +23,10 @@ public class CanExecuteMethodBackground
   private static bool CanExecuteStaticWithParameter(int v) => true;
   public CanExecuteMethodBackground()
   {
-    InstanceNoParametersCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand(ExecuteInstanceNoParameters, CanExecuteInstanceNoParameters, false);
-    StaticNoParametersCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand(ExecuteStaticNoParameters, CanExecuteStaticNoParameters, false);
-    InstanceWithParameterCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand<int>(ExecuteInstanceWithParameter, CanExecuteInstanceWithParameter, false);
     StaticWithParameterCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand<int>(ExecuteStaticWithParameter, CanExecuteStaticWithParameter, false);
+    InstanceWithParameterCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand<int>(ExecuteInstanceWithParameter, CanExecuteInstanceWithParameter, false);
+    StaticNoParametersCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand(ExecuteStaticNoParameters, CanExecuteStaticNoParameters, false);
+    InstanceNoParametersCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand(ExecuteInstanceNoParameters, CanExecuteInstanceNoParameters, false);
   }
   public AsyncDelegateCommand InstanceNoParametersCommand { get; }
   public AsyncDelegateCommand<int> InstanceWithParameterCommand { get; }

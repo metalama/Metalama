@@ -13,8 +13,8 @@ public class CanExecutePropertyBackground
   private static bool CanExecuteStatic => true;
   public CanExecutePropertyBackground()
   {
-    InstanceCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand(ExecuteInstance, () => CanExecuteInstance, false);
     StaticCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand(ExecuteStatic, () => CanExecuteStatic, false);
+    InstanceCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand(ExecuteInstance, () => CanExecuteInstance, false);
   }
   public AsyncDelegateCommand InstanceCommand { get; }
   public AsyncDelegateCommand StaticCommand { get; }

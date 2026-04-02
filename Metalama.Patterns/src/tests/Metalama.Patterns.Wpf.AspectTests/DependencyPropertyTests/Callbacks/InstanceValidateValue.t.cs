@@ -60,25 +60,25 @@ public partial class InstanceValidateValue : DependencyObject
   public static readonly DependencyProperty FooProperty;
   static InstanceValidateValue()
   {
-    FooProperty = DependencyProperty.Register("Foo", typeof(int), typeof(InstanceValidateValue), new PropertyMetadata() { CoerceValueCallback = (d, value_1) =>
+    AcceptObjectProperty = DependencyProperty.Register("AcceptObject", typeof(int), typeof(InstanceValidateValue), new PropertyMetadata() { CoerceValueCallback = (d_3, value_4) =>
     {
-      ((InstanceValidateValue)d).ValidateFoo((int)value_1);
-      return value_1;
-    } });
-    AcceptAssignableProperty = DependencyProperty.Register("AcceptAssignable", typeof(List<int>), typeof(InstanceValidateValue), new PropertyMetadata() { CoerceValueCallback = (d_1, value_2) =>
-    {
-      ((InstanceValidateValue)d_1).ValidateAcceptAssignable((List<int>)value_2);
-      return value_2;
+      ((InstanceValidateValue)d_3).ValidateAcceptObject(value_4);
+      return value_4;
     } });
     AcceptGenericProperty = DependencyProperty.Register("AcceptGeneric", typeof(int), typeof(InstanceValidateValue), new PropertyMetadata() { CoerceValueCallback = (d_2, value_3) =>
     {
       ((InstanceValidateValue)d_2).ValidateAcceptGeneric((int)value_3);
       return value_3;
     } });
-    AcceptObjectProperty = DependencyProperty.Register("AcceptObject", typeof(int), typeof(InstanceValidateValue), new PropertyMetadata() { CoerceValueCallback = (d_3, value_4) =>
+    AcceptAssignableProperty = DependencyProperty.Register("AcceptAssignable", typeof(List<int>), typeof(InstanceValidateValue), new PropertyMetadata() { CoerceValueCallback = (d_1, value_2) =>
     {
-      ((InstanceValidateValue)d_3).ValidateAcceptObject(value_4);
-      return value_4;
+      ((InstanceValidateValue)d_1).ValidateAcceptAssignable((List<int>)value_2);
+      return value_2;
+    } });
+    FooProperty = DependencyProperty.Register("Foo", typeof(int), typeof(InstanceValidateValue), new PropertyMetadata() { CoerceValueCallback = (d, value_1) =>
+    {
+      ((InstanceValidateValue)d).ValidateFoo((int)value_1);
+      return value_1;
     } });
   }
 }

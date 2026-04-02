@@ -19,14 +19,14 @@ public class ExecuteMethodAsync
   private static Task ExecuteStaticWithCancellationTokenAndParameterAsync(int v, CancellationToken cancellationToken) => Task.CompletedTask;
   public ExecuteMethodAsync()
   {
-    InstanceNoParametersCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteInstanceNoParametersAsync, null, false, false);
-    StaticNoParametersCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteStaticNoParametersAsync, null, false, false);
-    InstanceWithParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteInstanceWithParameterAsync, null, false, false);
-    StaticWithParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteStaticWithParameterAsync, null, false, false);
-    InstanceWithCancellationTokenCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteInstanceWithCancellationTokenAsync, null, false, false);
-    StaticWithCancellationTokenCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteStaticWithCancellationTokenAsync, null, false, false);
-    InstanceWithCancellationTokenAndParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteInstanceWithCancellationTokenAndParameterAsync, null, false, false);
     StaticWithCancellationTokenAndParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteStaticWithCancellationTokenAndParameterAsync, null, false, false);
+    InstanceWithCancellationTokenAndParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteInstanceWithCancellationTokenAndParameterAsync, null, false, false);
+    StaticWithCancellationTokenCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteStaticWithCancellationTokenAsync, null, false, false);
+    InstanceWithCancellationTokenCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteInstanceWithCancellationTokenAsync, null, false, false);
+    StaticWithParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteStaticWithParameterAsync, null, false, false);
+    InstanceWithParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteInstanceWithParameterAsync, null, false, false);
+    StaticNoParametersCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteStaticNoParametersAsync, null, false, false);
+    InstanceNoParametersCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteInstanceNoParametersAsync, null, false, false);
   }
   public AsyncDelegateCommand InstanceNoParametersCommand { get; }
   public AsyncDelegateCommand<int> InstanceWithCancellationTokenAndParameterCommand { get; }

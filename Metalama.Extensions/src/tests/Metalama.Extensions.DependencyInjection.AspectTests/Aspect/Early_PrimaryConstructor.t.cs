@@ -6,7 +6,7 @@ public class TargetClass
   private IFormatProvider _formatProvider;
   public TargetClass(IFormatProvider formatProvider, [AspectGenerated] ILogger? logger = default)
   {
-    this._logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
     this._formatProvider = formatProvider ?? throw new System.ArgumentNullException(nameof(formatProvider));
+    this._logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
   }
 }

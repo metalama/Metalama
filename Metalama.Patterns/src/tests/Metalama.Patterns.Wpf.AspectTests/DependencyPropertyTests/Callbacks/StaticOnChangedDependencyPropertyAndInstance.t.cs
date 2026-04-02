@@ -52,8 +52,8 @@ public partial class StaticOnChangedDependencyPropertyAndInstance : DependencyOb
   public static readonly DependencyProperty FooProperty;
   static StaticOnChangedDependencyPropertyAndInstance()
   {
-    FooProperty = DependencyProperty.Register("Foo", typeof(int), typeof(StaticOnChangedDependencyPropertyAndInstance), new PropertyMetadata((d_1, e) => OnFooChanged(FooProperty, (StaticOnChangedDependencyPropertyAndInstance)d_1)));
-    AcceptsDependencyObjectForInstanceProperty = DependencyProperty.Register("AcceptsDependencyObjectForInstance", typeof(int), typeof(StaticOnChangedDependencyPropertyAndInstance), new PropertyMetadata((d_2, e_1) => OnAcceptsDependencyObjectForInstanceChanged(AcceptsDependencyObjectForInstanceProperty, d_2)));
     AcceptsObjectForInstanceProperty = DependencyProperty.Register("AcceptsObjectForInstance", typeof(int), typeof(StaticOnChangedDependencyPropertyAndInstance), new PropertyMetadata((d_3, e_2) => OnAcceptsObjectForInstanceChanged(AcceptsObjectForInstanceProperty, d_3)));
+    AcceptsDependencyObjectForInstanceProperty = DependencyProperty.Register("AcceptsDependencyObjectForInstance", typeof(int), typeof(StaticOnChangedDependencyPropertyAndInstance), new PropertyMetadata((d_2, e_1) => OnAcceptsDependencyObjectForInstanceChanged(AcceptsDependencyObjectForInstanceProperty, d_2)));
+    FooProperty = DependencyProperty.Register("Foo", typeof(int), typeof(StaticOnChangedDependencyPropertyAndInstance), new PropertyMetadata((d_1, e) => OnFooChanged(FooProperty, (StaticOnChangedDependencyPropertyAndInstance)d_1)));
   }
 }

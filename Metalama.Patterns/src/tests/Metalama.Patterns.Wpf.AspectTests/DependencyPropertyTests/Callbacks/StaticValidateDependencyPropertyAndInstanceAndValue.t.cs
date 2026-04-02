@@ -100,35 +100,35 @@ public partial class StaticValidateDependencyPropertyAndInstanceAndValue : Depen
   public static readonly DependencyProperty FooProperty;
   static StaticValidateDependencyPropertyAndInstanceAndValue()
   {
-    FooProperty = DependencyProperty.Register("Foo", typeof(int), typeof(StaticValidateDependencyPropertyAndInstanceAndValue), new PropertyMetadata() { CoerceValueCallback = (d_1, value_1) =>
+    AcceptsObjectForInstanceProperty = DependencyProperty.Register("AcceptsObjectForInstance", typeof(int), typeof(StaticValidateDependencyPropertyAndInstanceAndValue), new PropertyMetadata() { CoerceValueCallback = (d_6, value_6) =>
     {
-      ValidateFoo(FooProperty, (StaticValidateDependencyPropertyAndInstanceAndValue)d_1, (int)value_1);
-      return value_1;
-    } });
-    AcceptsAssignableForValueProperty = DependencyProperty.Register("AcceptsAssignableForValue", typeof(List<int>), typeof(StaticValidateDependencyPropertyAndInstanceAndValue), new PropertyMetadata() { CoerceValueCallback = (d_2, value_2) =>
-    {
-      ValidateAcceptsAssignableForValue(AcceptsAssignableForValueProperty, (StaticValidateDependencyPropertyAndInstanceAndValue)d_2, (List<int>)value_2);
-      return value_2;
-    } });
-    AcceptsGenericForValueProperty = DependencyProperty.Register("AcceptsGenericForValue", typeof(int), typeof(StaticValidateDependencyPropertyAndInstanceAndValue), new PropertyMetadata() { CoerceValueCallback = (d_3, value_3) =>
-    {
-      ValidateAcceptsGenericForValue(AcceptsGenericForValueProperty, (StaticValidateDependencyPropertyAndInstanceAndValue)d_3, (int)value_3);
-      return value_3;
-    } });
-    AcceptsObjectForValueProperty = DependencyProperty.Register("AcceptsObjectForValue", typeof(int), typeof(StaticValidateDependencyPropertyAndInstanceAndValue), new PropertyMetadata() { CoerceValueCallback = (d_4, value_4) =>
-    {
-      ValidateAcceptsObjectForValue(AcceptsObjectForValueProperty, (StaticValidateDependencyPropertyAndInstanceAndValue)d_4, value_4);
-      return value_4;
+      ValidateAcceptsObjectForInstance(AcceptsObjectForInstanceProperty, d_6, (int)value_6);
+      return value_6;
     } });
     AcceptsDependencyObjectForInstanceProperty = DependencyProperty.Register("AcceptsDependencyObjectForInstance", typeof(int), typeof(StaticValidateDependencyPropertyAndInstanceAndValue), new PropertyMetadata() { CoerceValueCallback = (d_5, value_5) =>
     {
       ValidateAcceptsDependencyObjectForInstance(AcceptsDependencyObjectForInstanceProperty, d_5, (int)value_5);
       return value_5;
     } });
-    AcceptsObjectForInstanceProperty = DependencyProperty.Register("AcceptsObjectForInstance", typeof(int), typeof(StaticValidateDependencyPropertyAndInstanceAndValue), new PropertyMetadata() { CoerceValueCallback = (d_6, value_6) =>
+    AcceptsObjectForValueProperty = DependencyProperty.Register("AcceptsObjectForValue", typeof(int), typeof(StaticValidateDependencyPropertyAndInstanceAndValue), new PropertyMetadata() { CoerceValueCallback = (d_4, value_4) =>
     {
-      ValidateAcceptsObjectForInstance(AcceptsObjectForInstanceProperty, d_6, (int)value_6);
-      return value_6;
+      ValidateAcceptsObjectForValue(AcceptsObjectForValueProperty, (StaticValidateDependencyPropertyAndInstanceAndValue)d_4, value_4);
+      return value_4;
+    } });
+    AcceptsGenericForValueProperty = DependencyProperty.Register("AcceptsGenericForValue", typeof(int), typeof(StaticValidateDependencyPropertyAndInstanceAndValue), new PropertyMetadata() { CoerceValueCallback = (d_3, value_3) =>
+    {
+      ValidateAcceptsGenericForValue(AcceptsGenericForValueProperty, (StaticValidateDependencyPropertyAndInstanceAndValue)d_3, (int)value_3);
+      return value_3;
+    } });
+    AcceptsAssignableForValueProperty = DependencyProperty.Register("AcceptsAssignableForValue", typeof(List<int>), typeof(StaticValidateDependencyPropertyAndInstanceAndValue), new PropertyMetadata() { CoerceValueCallback = (d_2, value_2) =>
+    {
+      ValidateAcceptsAssignableForValue(AcceptsAssignableForValueProperty, (StaticValidateDependencyPropertyAndInstanceAndValue)d_2, (List<int>)value_2);
+      return value_2;
+    } });
+    FooProperty = DependencyProperty.Register("Foo", typeof(int), typeof(StaticValidateDependencyPropertyAndInstanceAndValue), new PropertyMetadata() { CoerceValueCallback = (d_1, value_1) =>
+    {
+      ValidateFoo(FooProperty, (StaticValidateDependencyPropertyAndInstanceAndValue)d_1, (int)value_1);
+      return value_1;
     } });
   }
 }
