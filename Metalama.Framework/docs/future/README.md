@@ -1,1 +1,1 @@
-This directory contains designs for future features, which have _not_ been implemented yet, and will maybe never be.
+This directory contains designs for future features, which have _not_ been implemented yet and may never be implemented.

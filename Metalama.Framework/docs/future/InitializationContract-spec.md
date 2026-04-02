@@ -130,7 +130,7 @@ A single type used both as a constructor parameter and as the `OnInitialized` pa
 It carries:
 
 - The caller's intent regarding `OnInitialized` (`CallerIntent`) — allows constructor code to choose between eager and lazy initialization strategies, and to self-invoke `OnInitialized` when the caller requests it via `CallInitialize`
-- Which aspect behaviors are guaranteed to run in a derived type (`AspectSlots`)
+- Which aspect behaviors are guaranteed to run in a derived type (`InitializationSlot` bitmask)
 - Optional metadata (`Metadata`) — an extensible object carrying the reason for initialization and any additional context. Only meaningful when passed to `OnInitialized`.
 
 ### 2.2 Layout
@@ -374,7 +374,9 @@ public class Range
     }
 
     public Range(int min, int max, InitializationContext context = default)
-        : this(InitializationContext.WillInitialize) // signal to chained ctor that OnInitialized will be called
+        : this(context.WillCallOnInitialized
+            ? InitializationContext.WillInitialize
+            : default) // preserve promise without triggering self-invocation in chained ctor
     {
         Min = min;
         Max = max;
@@ -384,7 +386,8 @@ public class Range
 }
 ```
 
-> **Note:** When constructors chain via `: this(...)`, the chained constructor must receive `InitializationContext.WillInitialize` (not `CallInitialize` or the original context) to preserve the promise that `OnInitialized` will be called while preventing the chained constructor from self-invoking `OnInitialized` (which only happens with `CallInitialize`).
+> **Note:** When constructors chain via `: this(...)`, the chained constructor must not receive the original context directly (to prevent double self-invocation of `OnInitialized`).
+> Instead, the chaining expression passes `WillInitialize` when the outermost context promises that `OnInitialized` will be called (`WillCallOnInitialized == true`), and `default` otherwise (non-instrumented callers, where no promise exists).
 > Only the outermost constructor — the one the caller invoked — checks `CallInitialize`.
 > The code model handles this automatically when introducing the `InitializationContext` parameter.
 
@@ -811,11 +814,12 @@ class ParentChildAspect : TypeAspect
     {
         builder.AddInitializer(
             nameof(WireChildren),
-            InitializerKind.OnInitialized);
+            InitializerKind.OnInitialized,
+            args: new { TParent = builder.Target });
     }
 
     [Template]
-    void WireChildren(InitializationContext context)
+    void WireChildren<[CompileTime] TParent>(InitializationContext context) where TParent : class
     {
         // Compile-time loop: the template expands to one block per [Child] member
         foreach (var member in meta.Target.Type.FieldsAndProperties
@@ -829,7 +833,7 @@ class ParentChildAspect : TypeAspect
                 {
                     foreach (var child in (IEnumerable)collection!)
                     {
-                        ((IChildObject</*TParent*/>)child).Parent = meta.This;
+                        ((IChildObject<TParent>)child).Parent = (TParent)(object)meta.This;
                     }
                 }
             }
@@ -839,7 +843,7 @@ class ParentChildAspect : TypeAspect
                 var child = member.Value;
                 if (child != null)
                 {
-                    ((IChildObject</*TParent*/>)child!).Parent = meta.This;
+                    ((IChildObject<TParent>)child!).Parent = (TParent)(object)meta.This;
                 }
             }
         }
@@ -1024,7 +1028,7 @@ class FreezableAspect : TypeAspect
             var list = member.Value;
             if (list != null)
             {
-                member.Value = ((IList)list).AsReadOnly();
+                member.Value = new ReadOnlyCollection(list);
             }
         }
 
@@ -1093,7 +1097,7 @@ public class Shape
 
     protected virtual void Freeze()
     {
-        Vertices = Vertices.AsReadOnly();
+        Vertices = new ReadOnlyCollection<Point>(Vertices);
         IsFrozen = true;
     }
 
@@ -1171,7 +1175,7 @@ public class LabeledShape : Shape
 
     protected override void Freeze()
     {
-        Tags = Tags.AsReadOnly();
+        Tags = new ReadOnlyCollection<string>(Tags);
         base.Freeze();  // chains down — base sets IsFrozen = true
     }
 
@@ -1242,7 +1246,7 @@ public Shape(InitializationContext context = default)
         // Option A: log a warning that the object will remain mutable
         // Option B: throw to prevent non-instrumented construction
         throw new InvalidOperationException(
-            "Shape must be constructed through a instrumented call site " +
+            "Shape must be constructed through an instrumented call site " +
             "to guarantee freeze-after-init semantics. " +
             "Alternatively, call .OnInitialized() manually after setting all properties.");
     }
