@@ -26,7 +26,10 @@ public readonly struct InitializationSlot
 {
     private readonly uint _mask;
 
-    internal InitializationSlot( uint mask ) => this._mask = mask;
+    internal InitializationSlot( uint mask )
+    {
+        this._mask = mask;
+    }
 
     /// <summary>
     /// Combines two slots into one.
