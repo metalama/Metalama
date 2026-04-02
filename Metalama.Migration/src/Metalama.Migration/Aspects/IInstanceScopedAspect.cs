@@ -19,7 +19,7 @@ namespace PostSharp.Aspects
         object CreateInstance( AdviceArgs adviceArgs );
 
         /// <summary>
-        /// Typically, add an initializer using <c>builder</c>.<see cref="IAspectBuilder.Advice"/>.<see cref="IAdviceFactory.AddInitializer(Metalama.Framework.Code.INamedType,string,InitializerKind,object?,object?)"/>.
+        /// Typically, add an initializer using <c>builder</c>.<see cref="IAspectBuilder.Advice"/>.<see cref="O:IAdviceFactory.AddInitializer"/>.
         /// </summary>
         void RuntimeInitializeInstance();
     }

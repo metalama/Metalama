@@ -16,7 +16,7 @@ namespace PostSharp.Aspects
     {
         /// <summary>
         /// In Metalama, you would typically have this code in an initializer added to the type using
-        /// <see cref="IAdviceFactory.AddInitializer(Metalama.Framework.Code.INamedType,string,InitializerKind,object?,object?)"/>. 
+        /// <see cref="O:IAdviceFactory.AddInitializer"/>. 
         /// </summary>
         object CreateImplementationObject( AdviceArgs args );
     }

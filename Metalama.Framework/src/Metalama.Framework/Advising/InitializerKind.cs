@@ -67,7 +67,7 @@ namespace Metalama.Framework.Advising
         /// </para>
         /// <para>
         /// The <c>InitializationContext</c> parameter is pulled into constructors via the constructor parameter
-        /// introduction mechanism (<see cref="IAdviceFactory.IntroduceParameter(IConstructor, string, IType, TypedConstant, Func{IParameter, IConstructor, PullAction}?, ImmutableArray{AttributeConstruction})"/>).
+        /// introduction mechanism (<see cref="O:IAdviceFactory.IntroduceParameter"/>).
         /// </para>
         /// </remarks>
         /// <seealso href="@initializers"/>
