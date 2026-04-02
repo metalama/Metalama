@@ -27,4 +27,5 @@ public class InitializationMetadata
     /// <c>OnInitialized</c> should revalidate invariants and reinitialize derived state.
     /// </summary>
     public static InitializationMetadata Modify { get; } = new();
+
 }

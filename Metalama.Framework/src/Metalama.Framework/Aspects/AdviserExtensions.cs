@@ -1205,13 +1205,15 @@ public static class AdviserExtensions
         string template,
         InitializerKind kind,
         object? args = null,
-        object? tags = null )
+        object? tags = null,
+        IEnumerable<IField>? slotFields = null )
         => ((IAdviserInternal) adviser).AdviceFactory.AddInitializer(
             adviser.Target,
             template,
             kind,
             tags,
-            args );
+            args,
+            slotFields );
 
     /// <summary>
     /// Adds a type or instance initializer by specifying an <see cref="IStatement"/>.
@@ -1223,7 +1225,7 @@ public static class AdviserExtensions
     /// <returns>An <see cref="IAddInitializerAdviceResult"/> exposing the added initializer.</returns>
     /// <remarks>
     /// This overload allows you to inject a programmatically constructed statement instead of using a template.
-    /// See <see cref="AddInitializer(IAdviser{INamedType}, string, InitializerKind, object?, object?)"/> for more details on initialization timing.
+    /// See <see cref="AddInitializer(IAdviser{INamedType}, string, InitializerKind, object?, object?, IEnumerable{IField}?)"/> for more details on initialization timing.
     /// </remarks>
     /// <seealso cref="InitializerKind"/>
     /// <seealso href="@initializers"/>

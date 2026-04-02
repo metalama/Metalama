@@ -53,10 +53,25 @@ namespace Metalama.Framework.Advising
         BeforeTypeConstructor,
 
         /// <summary>
-        /// Indicates that the advice should be executed after all constructors are finished but before the initialization block.
+        /// Indicates that the advice should be executed at the end of the last instance constructor
+        /// in a <c>: this()</c> chain, after all user constructor code has run.
+        /// Like <see cref="BeforeInstanceConstructor"/>, this skips constructors chained via <c>: this()</c>.
         /// </summary>
-        [Obsolete( "Not implemented", true )]
-        [EditorBrowsable( EditorBrowsableState.Never )]
+        /// <remarks>
+        /// <para>
+        /// This kind introduces a virtual <c>OnConstructed(InitializationContext)</c> method on the target type
+        /// and injects the template body into it. A call to <c>OnConstructed</c> is added at the end of each
+        /// constructor, but only in the most-derived layer of an inheritance chain — an internal
+        /// <see cref="RunTime.Initialization.InitializationSlot"/> ensures that base constructors skip the call
+        /// when a derived constructor will handle it.
+        /// </para>
+        /// <para>
+        /// The <c>InitializationContext</c> parameter is pulled into constructors via the constructor parameter
+        /// introduction mechanism (<see cref="IAdviceFactory.IntroduceParameter"/>).
+        /// </para>
+        /// </remarks>
+        /// <seealso href="@initializers"/>
+        /// <seealso cref="RunTime.Initialization.InitializationContext"/>
         AfterLastInstanceConstructor,
 
         /// <summary>
@@ -66,25 +81,32 @@ namespace Metalama.Framework.Advising
         [EditorBrowsable( EditorBrowsableState.Never )]
         AfterObjectInitialization,
 
-        /// <summary>
-        /// Indicates that the advice should be executed when the instance of a target class is deserialized.
-        /// </summary>
-        [Obsolete( "Not implemented", true )]
-        [EditorBrowsable( EditorBrowsableState.Never )]
-        AfterDeserialize,
-
-        /// <summary>
-        /// Indicates that the advice should be executed when the instance of a target class is cloned.
-        /// </summary>
-        [Obsolete( "Not implemented", true )]
-        [EditorBrowsable( EditorBrowsableState.Never )]
-        AfterMemberwiseClone,
 
         /// <summary>
         /// Indicated that the advice should be executed when the the target value type is mutated using the "with" expression.
         /// </summary>
         [Obsolete( "Not implemented", true )]
         [EditorBrowsable( EditorBrowsableState.Never )]
-        AfterWith
+        AfterWith,
+
+        /// <summary>
+        /// Indicates that the advice should inject statements into an <c>[OnInitialized]</c> method
+        /// on the target type. If the type does not already have an <c>[OnInitialized]</c> method,
+        /// one is introduced automatically.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Unlike <see cref="BeforeInstanceConstructor"/>, which injects into constructors, this kind
+        /// introduces a separate post-initialization method that runs after all constructors and object
+        /// initializers have completed.
+        /// </para>
+        /// <para>
+        /// Templates used with this kind may optionally declare an
+        /// <see cref="RunTime.Initialization.InitializationContext"/> parameter.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="RunTime.Initialization.OnInitializedAttribute"/>
+        /// <seealso cref="RunTime.Initialization.InitializationContext"/>
+        OnInitialized
     }
 }

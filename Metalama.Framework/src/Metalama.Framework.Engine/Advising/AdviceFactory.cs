@@ -1474,7 +1474,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string template,
         InitializerKind kind,
         object? tags = null,
-        object? args = null )
+        object? args = null,
+        IEnumerable<IField>? slotFields = null )
     {
         using ( this.WithNonUserCode() )
         {
