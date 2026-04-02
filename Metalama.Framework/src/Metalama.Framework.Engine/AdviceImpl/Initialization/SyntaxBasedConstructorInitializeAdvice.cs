@@ -26,7 +26,7 @@ internal sealed class SyntaxBasedConstructorInitializeAdvice : ConstructorInitia
     {
         // TODO: The statement can now be more complex, including invoking a template. For this we need to pass a TemplateSyntaxFactoryImpl.
         addTransformation(
-            new SyntaxBasedConstructorInitializationTransformation(
+            new InsertSyntaxStatementsTransformation(
                 this.AspectLayerInstance,
                 targetDeclaration.ToRef(),
                 targetCtor.ToFullRef(),

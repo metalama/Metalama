@@ -26,7 +26,7 @@ internal sealed class TemplateBasedConstructorInitializeAdvice : ConstructorInit
 
     protected override void AddTransformation( IMemberOrNamedType targetDeclaration, IConstructor targetCtor, Action<ITransformation> addTransformation )
     {
-        var initialization = new TemplateBasedConstructorInitializationTransformation(
+        var initialization = new InsertTemplateStatementsTransformation(
             this.AspectLayerInstance,
             targetDeclaration.ToRef(),
             targetCtor.ToFullRef(),

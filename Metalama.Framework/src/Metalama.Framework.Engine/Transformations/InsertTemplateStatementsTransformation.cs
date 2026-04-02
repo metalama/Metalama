@@ -11,49 +11,56 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Templating.MetaModel;
-using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Introspection;
 using System;
 using System.Collections.Generic;
 
-namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
+namespace Metalama.Framework.Engine.Transformations;
 
-internal sealed class TemplateBasedConstructorInitializationTransformation : BaseSyntaxTreeTransformation, IInsertStatementTransformation
+/// <summary>
+/// A transformation that expands a template and inserts the resulting statement into a constructor or method body.
+/// </summary>
+internal sealed class InsertTemplateStatementsTransformation : BaseSyntaxTreeTransformation, IInsertStatementTransformation
 {
-    private readonly IFullRef<IConstructor> _targetConstructor;
+    private readonly IFullRef<IMethodBase> _targetMethodBase;
     private readonly BoundTemplateMethod _boundTemplate;
 
     private IRef<IMemberOrNamedType> ContextDeclaration { get; }
 
-    public IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetConstructor;
+    public IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetMethodBase;
 
-    public TemplateBasedConstructorInitializationTransformation(
+    public InsertTemplateStatementsTransformation(
         AspectLayerInstance aspectLayerInstance,
-        IRef<IMemberOrNamedType> initializedDeclaration,
-        IFullRef<IConstructor> targetConstructor,
-        BoundTemplateMethod boundTemplate ) : base( aspectLayerInstance, targetConstructor )
+        IRef<IMemberOrNamedType> contextDeclaration,
+        IFullRef<IMethodBase> targetMethodBase,
+        BoundTemplateMethod boundTemplate ) : base( aspectLayerInstance, targetMethodBase )
     {
-        this.ContextDeclaration = initializedDeclaration;
-        this._targetConstructor = targetConstructor;
+        this.ContextDeclaration = contextDeclaration;
+        this._targetMethodBase = targetMethodBase;
         this._boundTemplate = boundTemplate;
     }
 
     public IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
     {
-        var targetConstructor = this._targetConstructor.GetTarget( this.InitialCompilation );
+        var target = this._targetMethodBase.GetTarget( this.InitialCompilation );
         var contextDeclaration = this.ContextDeclaration.GetTarget( this.InitialCompilation );
 
-        var metaApi = MetaApi.ForConstructor(
-            targetConstructor,
-            new MetaApiProperties(
-                this.InitialCompilation,
-                context.DiagnosticSink,
-                this._boundTemplate.TemplateMember.AsMemberOrNamedType(),
-                this.AspectLayerId,
-                context.SyntaxGenerationContext,
-                this.AspectInstance,
-                context.ServiceProvider,
-                AdviceKind.AddInitializer ) );
+        var metaApiProperties = new MetaApiProperties(
+            this.InitialCompilation,
+            context.DiagnosticSink,
+            this._boundTemplate.TemplateMember.AsMemberOrNamedType(),
+            this.AspectLayerId,
+            context.SyntaxGenerationContext,
+            this.AspectInstance,
+            context.ServiceProvider,
+            AdviceKind.AddInitializer );
+
+        var metaApi = target.DeclarationKind switch
+        {
+            DeclarationKind.Constructor => MetaApi.ForConstructor( (IConstructor) target, metaApiProperties ),
+            DeclarationKind.Method => MetaApi.ForMethod( (IMethod) target, metaApiProperties ),
+            _ => throw new AssertionFailedException( $"Unexpected target declaration kind: {target.DeclarationKind}." )
+        };
 
         var expansionContext = new TemplateExpansionContext(
             context,
@@ -91,5 +98,5 @@ internal sealed class TemplateBasedConstructorInitializationTransformation : Bas
 
     public override IntrospectionTransformationKind TransformationKind => IntrospectionTransformationKind.InsertStatement;
 
-    public override FormattableString ToDisplayString() => $"Add a statement to '{this._targetConstructor}'.";
+    public override FormattableString ToDisplayString() => $"Add a statement to '{this._targetMethodBase}'.";
 }
