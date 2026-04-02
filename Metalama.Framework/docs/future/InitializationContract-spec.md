@@ -2,20 +2,15 @@
 
 ## Motivation
 
-C# `init`-only properties and `required` members enable object initializer syntax for immutable
-types, but provide no mechanism to validate or compute derived values after all properties have
-been set. Constructor-based validation is bypassed by `with` expressions on records. This feature
-fills that gap without requiring compiler changes, via a library and the Metalama Linker.
+C# `init`-only properties and `required` members enable object initializer syntax for immutable types, but provide no mechanism to validate or compute derived values after all properties have been set.
+Constructor-based validation is bypassed by `with` expressions on records.
+This feature fills that gap without requiring compiler changes, via a library and the Metalama Linker.
 
 See also the related C# language discussion: https://github.com/dotnet/csharplang/discussions/6591
 
-A second motivation is the **telescoping constructor or initializer problem**: in an inheritance hierarchy,
-each layer may need to perform initialization logic (validation, change tracking, notification
-setup, etc.) but only once the entire object — including all derived layers — is fully
-initialized. Without a post-initialization hook, each base class either runs its logic too early
-(before derived properties are set) or duplicates it at every layer. `[OnInitialized]` with
-`InitializationSlot`-based coordination solves this by letting each layer declare its behavior
-and skip it if a derived layer has already guaranteed it will run.
+A second motivation is the **telescoping constructor or initializer problem**: in an inheritance hierarchy, each layer may need to perform initialization logic (validation, change tracking, notification setup, etc.) but only once the entire object — including all derived layers — is fully initialized.
+Without a post-initialization hook, each base class either runs its logic too early (before derived properties are set) or duplicates it at every layer.
+`[OnInitialized]` with `InitializationSlot`-based coordination solves this by letting each layer declare its behavior and skip it if a derived layer has already guaranteed it will run.
 
 ---
 
@@ -39,9 +34,8 @@ public sealed class OnInitializedAttribute : Attribute
 
 ### 1.2 Method Contract
 
-A method marked `[OnInitialized]` must satisfy the following constraints. Any implementation
-that processes `[OnInitialized]` (the Metalama Linker, a reflection-based framework, etc.)
-should validate these and report diagnostics (see §3.3 for Metalama diagnostics):
+A method marked `[OnInitialized]` must satisfy the following constraints.
+Any implementation that processes `[OnInitialized]` (the Metalama Linker, a reflection-based framework, etc.) should validate these and report diagnostics (see §3.3 for Metalama diagnostics):
 
 | Constraint | Rule |
 |---|---|
@@ -52,33 +46,24 @@ should validate these and report diagnostics (see §3.3 for Metalama diagnostics
 
 ### 1.3 Execution Order
 
-When multiple `[OnInitialized]` methods exist (on the same type or across an inheritance
-hierarchy), they are executed in the following order:
+When multiple `[OnInitialized]` methods exist (on the same type or across an inheritance hierarchy), they are executed in the following order:
 
 1. **`Order` property** (ascending) — lower values run first
-2. **Inheritance depth** (base class first) — among methods with the same `Order`, methods
-   declared on base types run before methods on derived types
-3. **Method name** (alphabetical) — tie-breaker for methods on the same type with the same
-   `Order`
+2. **Inheritance depth** (base class first) — among methods with the same `Order`, methods declared on base types run before methods on derived types
+3. **Method name** (alphabetical) — tie-breaker for methods on the same type with the same `Order`
 
-All `[OnInitialized]` methods in the hierarchy are executed — a derived type's method does
-**not** hide or replace a base type's method. Each method receives the `InitializationContext`
-with slots accumulated via `Descend` from previously executed methods.
+All `[OnInitialized]` methods in the hierarchy are executed — a derived type's method does **not** hide or replace a base type's method.
+Each method receives the `InitializationContext` with slots accumulated via `Descend` from previously executed methods.
 
 ### 1.4 Inheritance
 
 - `[OnInitialized]` on a base class method should be declared `virtual`
-- A derived class **may** `override` it with its own concrete return type (covariant return,
-  C# 9+), but may also declare a separate `[OnInitialized]` method — both will be executed
-- The code model emits the `override` automatically with the covariant return type, calling
-  `base.OnInitialized(context.Descend(...))` before derived logic; if the author declares the
-  override manually the code model leaves it untouched
+- A derived class **may** `override` it with its own concrete return type (covariant return, C# 9+), but may also declare a separate `[OnInitialized]` method — both will be executed
+- The code model emits the `override` automatically with the covariant return type, calling `base.OnInitialized(context.Descend(...))` before derived logic; if the author declares the override manually the code model leaves it untouched
 
-> **Source generator ordering caveat:** When multiple source generators each add
-> `[OnInitialized]` methods to the same type (via partial classes), they must coordinate on
-> `Order` values to ensure correct execution order. Metalama solves this with its aspect
-> ordering specification, but no equivalent coordination mechanism exists for independent
-> source generators. This is an inherent limitation of the source generator model.
+> **Source generator ordering caveat:** When multiple source generators each add `[OnInitialized]` methods to the same type (via partial classes), they must coordinate on `Order` values to ensure correct execution order.
+> Metalama solves this with its aspect ordering specification, but no equivalent coordination mechanism exists for independent source generators.
+> This is an inherent limitation of the source generator model.
 
 ### 1.5 Invocation Responsibility
 
@@ -144,12 +129,9 @@ var r = new Range(InitializationContext.WillInitialize) { Min = 1, Max = 12 }
 A single type used both as a constructor parameter and as the `OnInitialized` parameter.
 It carries:
 
-- The caller's intent regarding `OnInitialized` (`CallerIntent`) — allows constructor code
-  to choose between eager and lazy initialization strategies, and to self-invoke
-  `OnInitialized` when the caller requests it via `CallInitialize`
+- The caller's intent regarding `OnInitialized` (`CallerIntent`) — allows constructor code to choose between eager and lazy initialization strategies, and to self-invoke `OnInitialized` when the caller requests it via `CallInitialize`
 - Which aspect behaviors are guaranteed to run in a derived type (`AspectSlots`)
-- Optional metadata (`Metadata`) — an extensible object carrying the reason for
-  initialization and any additional context. Only meaningful when passed to `OnInitialized`.
+- Optional metadata (`Metadata`) — an extensible object carrying the reason for initialization and any additional context. Only meaningful when passed to `OnInitialized`.
 
 ### 2.2 Layout
 
@@ -161,22 +143,18 @@ The struct contains three fields that fit in 16 bytes on x64 (no wasted padding)
 | `_slots` | `uint` | 4 bytes | Bitmask of aspect behaviors guaranteed by a derived type (32 slots) |
 | `_metadata` | `InitializationMetadata?` | 8 bytes | Extensible metadata, typically a singleton (see §2.6) |
 
-The 16-byte size is acceptable: `InitializationContext` is passed on object construction
-paths where heap allocation already dominates. The metadata field is typically a singleton
-reference, so it adds no GC pressure.
+The 16-byte size is acceptable: `InitializationContext` is passed on object construction paths where heap allocation already dominates.
+The metadata field is typically a singleton reference, so it adds no GC pressure.
 
 ### 2.3 `InitializationSlot`
 
-Each aspect **type** (not instance) that needs cross-layer coordination allocates a single
-slot at class initialization time. A slot is a strongly-typed bitmask supporting the `|`
-operator.
+Each aspect **type** (not instance) that needs cross-layer coordination allocates a single slot at class initialization time.
+A slot is a strongly-typed bitmask supporting the `|` operator.
 
-> **Expected usage:** Slots are needed only by aspect types that address the telescoping
-> constructor problem — i.e., aspects whose `OnInitialized` behavior must be skipped when a
-> derived type guarantees it will handle the same concern. In practice, very few aspect types
-> need this (likely fewer than half a dozen in a typical application). The 32-slot limit is
-> therefore generous. Aspects that do not use cross-layer coordination (like the
-> `ParentChildAspect` in §8) do not allocate a slot at all.
+> **Expected usage:** Slots are needed only by aspect types that address the telescoping constructor problem — i.e., aspects whose `OnInitialized` behavior must be skipped when a derived type guarantees it will handle the same concern.
+> In practice, very few aspect types need this (likely fewer than half a dozen in a typical application).
+> The 32-slot limit is therefore generous.
+> Aspects that do not use cross-layer coordination (like the `ParentChildAspect` in §8) do not allocate a slot at all.
 
 ```csharp
 public readonly struct InitializationSlot
@@ -317,9 +295,8 @@ public enum CallerIntent : byte  // not [Flags] — values are mutually exclusiv
 | `WillInitialize` | Caller will call `.OnInitialized()` after construction | Call sites with object initializers |
 | `CallInitialize` | Constructor should self-invoke `OnInitialized` at the end of its body | Call sites without object initializers |
 
-The source transformer chooses between `WillInitialize` and `CallInitialize` based on
-whether the call site uses an object initializer. For `CallInitialize`, the constructor
-body ends with:
+The source transformer chooses between `WillInitialize` and `CallInitialize` based on whether the call site uses an object initializer.
+For `CallInitialize`, the constructor body ends with:
 
 ```csharp
 if (context.Intent == CallerIntent.CallInitialize)
@@ -359,8 +336,7 @@ public class InitializationMetadata
 | `Default` (or `null`) | Normal construction | Implicit — no metadata needed |
 | `Modify` | `with` expression or clone | Source transformer at `with` call sites |
 
-Extension packages (e.g., serialization frameworks) can subclass `InitializationMetadata`
-to carry additional context:
+Extension packages (e.g., serialization frameworks) can subclass `InitializationMetadata` to carry additional context:
 
 ```csharp
 // Example: System.Text.Json deserialization extension
@@ -374,24 +350,18 @@ public class SystemTextJsonInitializationMetadata : InitializationMetadata
 
 ### 2.7 Constructor Usage Pattern
 
-Constructors accept an `InitializationContext` parameter so the caller (or a source
-transformer acting on its behalf) can pass the appropriate `CallerIntent`:
+Constructors accept an `InitializationContext` parameter so the caller (or a source transformer acting on its behalf) can pass the appropriate `CallerIntent`:
 
-- **`CallInitialize`** (no object initializer): the constructor self-invokes `OnInitialized`
-  at the end of its body, since all properties are set by the constructor
-- **`WillInitialize`** (object initializer): the constructor does **not** self-invoke — the
-  caller will call `.OnInitialized()` after the object initializer completes
+- **`CallInitialize`** (no object initializer): the constructor self-invokes `OnInitialized` at the end of its body, since all properties are set by the constructor
+- **`WillInitialize`** (object initializer): the constructor does **not** self-invoke — the caller will call `.OnInitialized()` after the object initializer completes
 - **`None`** (non-instrumented caller): `OnInitialized` will not be called automatically
 
-> **Note on `WillCallOnInitialized`:** This property returns `true` when `Intent` is either
-> `WillInitialize` or `CallInitialize`. It is a **promise** that `OnInitialized` will be
-> called — either by the instrumented code at the call site, or by the outermost
-> constructor itself. The constructor can rely on this promise to defer work to
-> `OnInitialized` instead of performing it eagerly.
+> **Note on `WillCallOnInitialized`:** This property returns `true` when `Intent` is either `WillInitialize` or `CallInitialize`.
+> It is a **promise** that `OnInitialized` will be called — either by the instrumented code at the call site, or by the outermost constructor itself.
+> The constructor can rely on this promise to defer work to `OnInitialized` instead of performing it eagerly.
 >
-> When `false` (non-instrumented caller), no such promise exists. The constructor may
-> choose to perform eager initialization, accept that validation will be skipped, or
-> throw to prevent non-instrumented construction of types that require post-initialization.
+> When `false` (non-instrumented caller), no such promise exists.
+> The constructor may choose to perform eager initialization, accept that validation will be skipped, or throw to prevent non-instrumented construction of types that require post-initialization.
 
 ```csharp
 public class Range
@@ -414,29 +384,22 @@ public class Range
 }
 ```
 
-> **Note:** When constructors chain via `: this(...)`, the chained constructor must receive
-> `InitializationContext.WillInitialize` (not `CallInitialize` or the original context) to preserve
-> the promise that `OnInitialized` will be called while preventing the chained constructor from
-> self-invoking `OnInitialized` (which only happens with `CallInitialize`).
+> **Note:** When constructors chain via `: this(...)`, the chained constructor must receive `InitializationContext.WillInitialize` (not `CallInitialize` or the original context) to preserve the promise that `OnInitialized` will be called while preventing the chained constructor from self-invoking `OnInitialized` (which only happens with `CallInitialize`).
 > Only the outermost constructor — the one the caller invoked — checks `CallInitialize`.
-> The code model handles this automatically when introducing the `InitializationContext`
-> parameter.
+> The code model handles this automatically when introducing the `InitializationContext` parameter.
 
 ---
 
 ## 3. Metalama Linker Behavior
 
-The Metalama Linker analyzes all object construction
-call sites and transforms them according to the following rules.
+The Metalama Linker analyzes all object construction call sites and transforms them according to the following rules.
 
 ### 3.1 `InitializationContext` Parameter Supply
 
-At any instrumented construction call site where the constructor has an `InitializationContext`
-parameter, the Linker chooses the appropriate `CallerIntent` based on the call site form.
+At any instrumented construction call site where the constructor has an `InitializationContext` parameter, the Linker chooses the appropriate `CallerIntent` based on the call site form.
 
-**If the user code already supplies an `InitializationContext` argument, the Linker does not
-modify the call** — the user has explicitly chosen the intent and takes responsibility for
-calling `OnInitialized` if needed. The rules below apply only when no argument is provided:
+**If the user code already supplies an `InitializationContext` argument, the Linker does not modify the call** — the user has explicitly chosen the intent and takes responsibility for calling `OnInitialized` if needed.
+The rules below apply only when no argument is provided:
 
 | Call site form | Pass to constructor | Append `.OnInitialized()` |
 |---|---|---|
@@ -444,24 +407,17 @@ calling `OnInitialized` if needed. The rules below apply only when no argument i
 | `new T(...) { ... }` (object/collection initializer) | `WillInitialize` | Yes |
 | `with { ... }` expression | N/A (copy ctor is unmodified) | Yes, with `Metadata = Modify` |
 
-For `new` expressions **without** object initializers, the Linker passes `CallInitialize` —
-the constructor self-invokes `OnInitialized` at the end of its body, producing a compact
-call site. For `new` expressions **with** object initializers, the Linker passes
-`WillInitialize` and appends `.OnInitialized()`, since `init` properties are set after the
-constructor returns. For `with` expressions, the copy constructor is compiler-generated and
-cannot be modified — the Linker only appends `.OnInitialized()` with
-`InitializationMetadata.Modify` on the cloned instance.
+For `new` expressions **without** object initializers, the Linker passes `CallInitialize` — the constructor self-invokes `OnInitialized` at the end of its body, producing a compact call site.
+For `new` expressions **with** object initializers, the Linker passes `WillInitialize` and appends `.OnInitialized()`, since `init` properties are set after the constructor returns.
+For `with` expressions, the copy constructor is compiler-generated and cannot be modified — the Linker only appends `.OnInitialized()` with `InitializationMetadata.Modify` on the cloned instance.
 
-Collection initializers (`new T { item1, item2 }`) are treated identically to object
-initializers — there is no special handling for them.
+Collection initializers (`new T { item1, item2 }`) are treated identically to object initializers — there is no special handling for them.
 
-The compatibility overload (§4) is the only case where `default` is passed — and that is
-because the caller is non-instrumented, not because of call site form.
+The compatibility overload (§4) is the only case where `default` is passed — and that is because the caller is non-instrumented, not because of call site form.
 
 ### 3.2 `OnInitialized` Invocation
 
-At any construction call site where the type has `[OnInitialized]`, the Linker rewrites the
-construction expression according to the call site form:
+At any construction call site where the type has `[OnInitialized]`, the Linker rewrites the construction expression according to the call site form:
 
 **Constructor-only (no object initializer) — `CallInitialize`:**
 ```csharp
@@ -501,10 +457,8 @@ var r = new Range { Min = 1, Max = 12 };
 var r = new Range { Min = 1, Max = 12 }.OnInitialized();
 ```
 
-**Return type cast:** When the `OnInitialized` method is declared on a base type and its
-return type is not the constructed type, the Linker must emit a cast. For example, if
-`OnInitialized` is declared on `Shape` returning `Shape`, but the call site constructs a
-`Circle`:
+**Return type cast:** When the `OnInitialized` method is declared on a base type and its return type is not the constructed type, the Linker must emit a cast.
+For example, if `OnInitialized` is declared on `Shape` returning `Shape`, but the call site constructs a `Circle`:
 
 ```csharp
 // OnInitialized returns Shape, but we need Circle
@@ -514,11 +468,9 @@ var c = (Circle) new Circle(InitializationContext.WillInitialize) { Radius = 5 }
 
 ### 3.3 Diagnostics
 
-The Linker is responsible for validating the `[OnInitialized]` method contract defined in §1.2
-and reporting diagnostics when violations are detected.
+The Linker is responsible for validating the `[OnInitialized]` method contract defined in §1.2 and reporting diagnostics when violations are detected.
 
-> **Remark:** Diagnostic codes below are provisional. Before release they must be replaced by
-> `LAMAXXXX` codes allocated in free slots in the Metalama diagnostic registry.
+> **Remark:** Diagnostic codes below are provisional. Before release they must be replaced by `LAMAXXXX` codes allocated in free slots in the Metalama diagnostic registry.
 
 | Code | Severity | Condition |
 |---|---|---|
@@ -534,59 +486,37 @@ and reporting diagnostics when violations are detected.
 The `InitializationContext` parameter can be present on a constructor in two ways:
 
 1. **User code** declares the parameter manually on the constructor.
-2. **Aspect code** causes the parameter to be introduced automatically. When an
-   `AddInitializer(InitializerKind.BeforeInstanceConstructor)` template declares an
-   `InitializationContext` parameter, the advice detects it and automatically introduces the
-   parameter on the target constructor using the existing `IntroduceParameter` advice API with
-   `IPullStrategy`. This follows the same template parameter convention used for
-   `InitializerKind.OnInitialized` templates (§5).
+2. **Aspect code** causes the parameter to be introduced automatically. When an `AddInitializer(InitializerKind.BeforeInstanceConstructor)` template declares an `InitializationContext` parameter, the advice detects it and automatically introduces the parameter on the target constructor using the existing `IntroduceParameter` advice API with `IPullStrategy`. This follows the same template parameter convention used for `InitializerKind.OnInitialized` templates (§5).
 
-When introduced by an aspect, the parameter is added using the existing `IntroduceParameter`
-API, not Linker-time code generation. This is architecturally consistent with how Metalama
-introduces other constructor parameters.
+When introduced by an aspect, the parameter is added using the existing `IntroduceParameter` API, not Linker-time code generation.
+This is architecturally consistent with how Metalama introduces other constructor parameters.
 
-The parameter is introduced using a new **overload generation mode**: instead of adding an
-optional parameter with a default value, `IntroduceParameter` generates a separate constructor
-overload **without** the `InitializationContext` parameter that forwards `default` internally.
+The parameter is introduced using a new **overload generation mode**: instead of adding an optional parameter with a default value, `IntroduceParameter` generates a separate constructor overload **without** the `InitializationContext` parameter that forwards `default` internally.
 
-This gives a cleaner contract than optional parameters — non-instrumented callers cannot
-pass arbitrary `InitializationContext` values; they always get `default`.
+This gives a cleaner contract than optional parameters — non-instrumented callers cannot pass arbitrary `InitializationContext` values; they always get `default`.
 
 **Overload generation mode behavior:**
 
 - The `InitializationContext` parameter on the original constructor has **no default value**
-- A new constructor overload is generated **without** the `InitializationContext` parameter,
-  preserving all other parameters
+- A new constructor overload is generated **without** the `InitializationContext` parameter, preserving all other parameters
 - The generated overload passes `default` — **not** `InitializationContext.WillInitialize`
 - The generated overload does **not** call `OnInitialized`
 
-For positional records, `IntroduceParameter` already handles primary constructor
-materialization: the parameter is appended to the primary constructor, and a `Deconstruct`
-method matching the original parameter list is auto-generated to preserve backward
-compatibility.
+For positional records, `IntroduceParameter` already handles primary constructor materialization: the parameter is appended to the primary constructor, and a `Deconstruct` method matching the original parameter list is auto-generated to preserve backward compatibility.
 
-**Pull strategy:** Child constructors (via `: base(...)`) propagate the parameter using
-`PullAction.IntroduceParameterAndPull`, which works across project boundaries.
+**Pull strategy:** Child constructors (via `: base(...)`) propagate the parameter using `PullAction.IntroduceParameterAndPull`, which works across project boundaries.
 
-**Rationale:** The generated overload cannot know whether the caller will set additional
-properties via an object initializer after the constructor returns. Object initializers run
-*after* the constructor body — so calling `OnInitialized` inside the constructor would fire
-before those properties are set, which is exactly the problem this feature is designed to
-prevent.
+**Rationale:** The generated overload cannot know whether the caller will set additional properties via an object initializer after the constructor returns.
+Object initializers run *after* the constructor body — so calling `OnInitialized` inside the constructor would fire before those properties are set, which is exactly the problem this feature is designed to prevent.
 
-> **⚠ Non-instrumented caller limitation:** Non-instrumented callers (external assemblies,
-> reflection, `Activator.CreateInstance`) will **not** have `OnInitialized` called
-> automatically — neither via the constructor nor after object initializers. This is an
-> inherent limitation of the design: without Linker call-site rewriting, there is no safe
-> point to invoke `OnInitialized`. The generated overload intentionally does *not*
-> self-invoke `OnInitialized` to avoid premature firing before `init` properties are set.
+> **⚠ Non-instrumented caller limitation:** Non-instrumented callers (external assemblies, reflection, `Activator.CreateInstance`) will **not** have `OnInitialized` called automatically — neither via the constructor nor after object initializers.
+> This is an inherent limitation of the design: without Linker call-site rewriting, there is no safe point to invoke `OnInitialized`.
+> The generated overload intentionally does *not* self-invoke `OnInitialized` to avoid premature firing before `init` properties are set.
 >
 > **Mitigation strategies to consider:**
-> - Emit a Roslyn analyzer diagnostic when a non-instrumented call site constructs a type
->   with `[OnInitialized]` without calling `.OnInitialized()` afterward
+> - Emit a Roslyn analyzer diagnostic when a non-instrumented call site constructs a type with `[OnInitialized]` without calling `.OnInitialized()` afterward
 > - Document the limitation prominently in the API documentation for `[OnInitialized]`
-> - Consider a runtime assertion (e.g., `Debug.Assert`) that detects first property access
->   after construction without `OnInitialized` having been called
+> - Consider a runtime assertion (e.g., `Debug.Assert`) that detects first property access after construction without `OnInitialized` having been called
 
 **Example — original authored code:**
 ```csharp
@@ -612,19 +542,15 @@ public Range(int min, int max)
 
 ### 5.1 Overview
 
-`AddInitializer(InitializerKind.OnInitialized)` injects statement templates into an
-`[OnInitialized]` method. It is a pure code model transformation with no direct link to the
-Linker — the Linker independently detects the resulting `[OnInitialized]` method by attribute.
+`AddInitializer(InitializerKind.OnInitialized)` injects statement templates into an `[OnInitialized]` method.
+It is a pure code model transformation with no direct link to the Linker — the Linker independently detects the resulting `[OnInitialized]` method by attribute.
 
-An aspect may optionally declare one or more `InitializationSlot` fields and pass references
-to them via `AddInitializer`. This enables cross-layer coordination — the code model uses the
-slot fields to emit the correct `Descend(slots)` call, and the template uses `IsHandledBy` to
-skip behavior already guaranteed by a derived type.
+An aspect may optionally declare one or more `InitializationSlot` fields and pass references to them via `AddInitializer`.
+This enables cross-layer coordination — the code model uses the slot fields to emit the correct `Descend(slots)` call, and the template uses `IsHandledBy` to skip behavior already guaranteed by a derived type.
 
 ### 5.2 Signature
 
-This extends the existing `AddInitializer` API with a new `InitializerKind.OnInitialized`
-value and an optional `slotFields` parameter:
+This extends the existing `AddInitializer` API with a new `InitializerKind.OnInitialized` value and an optional `slotFields` parameter:
 
 ```csharp
 IAddInitializerAdviceResult AddInitializer(
@@ -635,25 +561,20 @@ IAddInitializerAdviceResult AddInitializer(
     IEnumerable<IField>? slotFields = null);
 ```
 
-`slotFields` are references to `public static readonly InitializationSlot` fields on the
-aspect type. Passing `null` or omitting the argument means the template always runs regardless
-of derived type behavior. This parameter is only meaningful when `kind` is
-`InitializerKind.OnInitialized`.
+`slotFields` are references to `public static readonly InitializationSlot` fields on the aspect type.
+Passing `null` or omitting the argument means the template always runs regardless of derived type behavior.
+This parameter is only meaningful when `kind` is `InitializerKind.OnInitialized`.
 
-**Template parameter:** Templates used with `InitializerKind.OnInitialized` may optionally
-declare an `InitializationContext` parameter. This is a special case — for all other
-`InitializerKind` values, templates must have no run-time parameters. The
-`InitializationContext` parameter is injected by the code model from the enclosing
-`OnInitialized` method's parameter.
+**Template parameter:** Templates used with `InitializerKind.OnInitialized` may optionally declare an `InitializationContext` parameter.
+This is a special case — for all other `InitializerKind` values, templates must have no run-time parameters.
+The `InitializationContext` parameter is injected by the code model from the enclosing `OnInitialized` method's parameter.
 
 ### 5.3 Method Introduction
 
-When the first `AddInitializer(InitializerKind.OnInitialized)` advice is applied to a type
-with no existing `[OnInitialized]` method, the code model introduces one:
+When the first `AddInitializer(InitializerKind.OnInitialized)` advice is applied to a type with no existing `[OnInitialized]` method, the code model introduces one:
 
 - Decorated with `[OnInitialized]`
-- `public virtual T OnInitialized(InitializationContext context = default)` where `T` is the
-  declaring type
+- `public virtual T OnInitialized(InitializationContext context = default)` where `T` is the declaring type
 - Body contains injected templates in aspect order, followed by `return this`
 
 Subsequent advice appends templates before `return this`.
@@ -663,19 +584,14 @@ Subsequent advice appends templates before `return this`.
 
 ### 5.4 Inheritance
 
-When the code model introduces `OnInitialized` on a derived type whose base already has
-`[OnInitialized]`:
+When the code model introduces `OnInitialized` on a derived type whose base already has `[OnInitialized]`:
 
-- `base.OnInitialized(context.Descend(slot1 | slot2 | ...))` is emitted as the **first
-  statement**, passing the union of all slots declared by aspects applied to the derived type
+- `base.OnInitialized(context.Descend(slot1 | slot2 | ...))` is emitted as the **first statement**, passing the union of all slots declared by aspects applied to the derived type
 - The return type is the derived type (covariant)
-- If the derived type already has a hand-authored `[OnInitialized]`, templates are appended
-  without modifying the existing `base.OnInitialized(...)` call
+- If the derived type already has a hand-authored `[OnInitialized]`, templates are appended without modifying the existing `base.OnInitialized(...)` call
 
-> **Slot contract obligation:** When a derived type passes a slot to `Descend()`, it signals
-> that the base should skip the behavior associated with that slot. The derived type's
-> template is then responsible for handling that behavior for **all** members, including
-> inherited ones.
+> **Slot contract obligation:** When a derived type passes a slot to `Descend()`, it signals that the base should skip the behavior associated with that slot.
+> The derived type's template is then responsible for handling that behavior for **all** members, including inherited ones.
 
 ### 5.5 Example
 
@@ -776,27 +692,21 @@ This is an inherent limitation of value types in .NET and is not specific to thi
 
 ### 6.2 Positional Records — Copy Constructor
 
-The copy constructor for positional records is compiler-generated and is **not modified** by
-the Linker. It remains a pure field copy. Post-copy initialization is handled entirely by
-appending `.OnInitialized()` with `InitializationMetadata.Modify` at `with` expression call
-sites (see §6.4).
+The copy constructor for positional records is compiler-generated and is **not modified** by the Linker.
+It remains a pure field copy.
+Post-copy initialization is handled entirely by appending `.OnInitialized()` with `InitializationMetadata.Modify` at `with` expression call sites (see §6.4).
 
-Implementations of `OnInitialized` must support being called with `Metadata = Modify` on an
-instance that was created via the copy constructor. This means `OnInitialized` may be called
-multiple times over the lifetime of an object graph (once at initial construction, and once
-after each `with` expression).
+Implementations of `OnInitialized` must support being called with `Metadata = Modify` on an instance that was created via the copy constructor.
+This means `OnInitialized` may be called multiple times over the lifetime of an object graph (once at initial construction, and once after each `with` expression).
 
 ### 6.3 Non-Positional Records
 
-No special treatment — the author controls the copy constructor and the standard pattern
-from §3 applies as-is (call-site rewriting by the Linker works identically).
+No special treatment — the author controls the copy constructor and the standard pattern from §3 applies as-is (call-site rewriting by the Linker works identically).
 
 ### 6.4 `with` Expression Call Sites
 
-The Linker rewrites `with` expressions to call `OnInitialized` with
-`InitializationMetadata.Modify` on the cloned instance. The copy constructor itself is not
-modified — it performs its standard field copy, and `OnInitialized` runs afterward to
-revalidate or recompute derived state:
+The Linker rewrites `with` expressions to call `OnInitialized` with `InitializationMetadata.Modify` on the cloned instance.
+The copy constructor itself is not modified — it performs its standard field copy, and `OnInitialized` runs afterward to revalidate or recompute derived state:
 
 ```csharp
 // Original
@@ -807,10 +717,8 @@ var r2 = (r1 with { Max = 15 })
     .OnInitialized(InitializationContext.Create(InitializationMetadata.Modify));
 ```
 
-`OnInitialized` implementations must handle `Metadata = Modify` correctly — for example,
-revalidating invariants against the new property values, or reinitializing derived state
-such as caches or change trackers. Since `with` can be called repeatedly, `OnInitialized`
-must be safe to call multiple times.
+`OnInitialized` implementations must handle `Metadata = Modify` correctly — for example, revalidating invariants against the new property values, or reinitializing derived state such as caches or change trackers.
+Since `with` can be called repeatedly, `OnInitialized` must be safe to call multiple times.
 
 ---
 
@@ -818,9 +726,8 @@ must be safe to call multiple times.
 
 ### 7.1 `ISerializationFramework`
 
-Serialization and cloning are treated as the same concern — in both cases the object is fully
-populated by an external mechanism and `OnInitialized` must be called afterward. The
-`InitializationMetadata` passed to `OnInitialized` carries the distinction if needed.
+Serialization and cloning are treated as the same concern — in both cases the object is fully populated by an external mechanism and `OnInitialized` must be called afterward.
+The `InitializationMetadata` passed to `OnInitialized` carries the distinction if needed.
 
 ```csharp
 public interface ISerializationFramework
@@ -829,9 +736,7 @@ public interface ISerializationFramework
 }
 ```
 
-The implementor introduces or injects into whatever hook the framework provides
-(`[OnDeserialized]`, `[ProtoAfterDeserialization]`, `MemberwiseClone` override, etc.) and calls
-`OnInitialized` with the appropriate context:
+The implementor introduces or injects into whatever hook the framework provides (`[OnDeserialized]`, `[ProtoAfterDeserialization]`, `MemberwiseClone` override, etc.) and calls `OnInitialized` with the appropriate context:
 
 ```csharp
 // Post-deserialization (System.Text.Json)
@@ -841,8 +746,8 @@ instance.OnInitialized(InitializationContext.Create(SystemTextJsonInitialization
 instance.OnInitialized(InitializationContext.Create(InitializationMetadata.Modify));
 ```
 
-> **Remark:** The mechanism by which `ISerializationFramework` implementations are discovered
-> and called is not yet specified. This is intentionally left for a later design iteration.
+> **Remark:** The mechanism by which `ISerializationFramework` implementations are discovered and called is not yet specified.
+> This is intentionally left for a later design iteration.
 
 ### 7.2 Planned Implementations
 
@@ -858,9 +763,8 @@ instance.OnInitialized(InitializationContext.Create(InitializationMetadata.Modif
 
 ### 8.1 Problem
 
-A common pattern in domain models is a parent–child relationship where each child holds a
-back-reference to its parent. With `init`-only properties and object initializers, the parent
-cannot wire children in the constructor because the child properties may not yet be set:
+A common pattern in domain models is a parent–child relationship where each child holds a back-reference to its parent.
+With `init`-only properties and object initializers, the parent cannot wire children in the constructor because the child properties may not yet be set:
 
 ```csharp
 // The parent property CANNOT be set in the constructor — Children is not assigned yet
@@ -943,8 +847,7 @@ class ParentChildAspect : TypeAspect
 }
 ```
 
-No `InitializationSlot` is needed here: each layer in an inheritance hierarchy wires only
-its own declared `[Child]` members, so there is no cross-layer coordination.
+No `InitializationSlot` is needed here: each layer in an inheritance hierarchy wires only its own declared `[Child]` members, so there is no cross-layer coordination.
 
 ### 8.4 User Code
 
@@ -1034,10 +937,9 @@ var renamed = (tree with { Name = "renamed-root" })
 // renamed.Children[0].Parent == renamed  ✓  (re-wired by OnInitialized)
 ```
 
-> **Design note:** After re-wiring, the original `tree.Children[0].Parent` now points to
-> `renamed`, not `tree` — the children are shared references. If the original parent must
-> remain valid, the `OnInitialized(Modify)` implementation should deep-clone the children
-> instead of re-wiring. The aspect can inspect `context.Metadata` to choose the strategy:
+> **Design note:** After re-wiring, the original `tree.Children[0].Parent` now points to `renamed`, not `tree` — the children are shared references.
+> If the original parent must remain valid, the `OnInitialized(Modify)` implementation should deep-clone the children instead of re-wiring.
+> The aspect can inspect `context.Metadata` to choose the strategy:
 >
 > ```csharp
 > if (context.Metadata == InitializationMetadata.Modify)
@@ -1048,8 +950,8 @@ var renamed = (tree with { Name = "renamed-root" })
 > // Then wire parent on the (possibly cloned) children
 > ```
 >
-> Whether to re-wire or deep-clone is a domain-specific decision. The aspect should either
-> pick one strategy or expose a configuration option.
+> Whether to re-wire or deep-clone is a domain-specific decision.
+> The aspect should either pick one strategy or expose a configuration option.
 
 ---
 
@@ -1057,19 +959,15 @@ var renamed = (tree with { Name = "renamed-root" })
 
 ### 9.1 Problem
 
-Some domain models need objects that are mutable during a setup phase — properties with
-regular `set` accessors, mutable `IList<T>` collections — but become immutable once fully
-initialized. The "freeze" pattern achieves this by flipping a flag after construction,
-causing subsequent mutations to throw.
+Some domain models need objects that are mutable during a setup phase — properties with regular `set` accessors, mutable `IList<T>` collections — but become immutable once fully initialized.
+The "freeze" pattern achieves this by flipping a flag after construction, causing subsequent mutations to throw.
 
-This cannot be done in the constructor: the object must remain mutable while properties are
-being assigned (including via object initializers, builder patterns, or deserialization).
+This cannot be done in the constructor: the object must remain mutable while properties are being assigned (including via object initializers, builder patterns, or deserialization).
 `[OnInitialized]` provides the right hook — it runs after all properties are set.
 
-In a class hierarchy, freezing must happen **once** at the most-derived level. If a base
-class freezes in its `OnInitialized`, it blocks the derived class from completing its own
-setup. `InitializationSlot` coordination solves this: each layer defers freezing if a derived
-layer guarantees it will freeze.
+In a class hierarchy, freezing must happen **once** at the most-derived level.
+If a base class freezes in its `OnInitialized`, it blocks the derived class from completing its own setup.
+`InitializationSlot` coordination solves this: each layer defers freezing if a derived layer guarantees it will freeze.
 
 ### 9.2 Aspect
 
@@ -1296,20 +1194,14 @@ public class LabeledShape : Shape
 Without `InitializationSlot` coordination, the execution would be:
 
 1. `LabeledShape.OnInitialized(context)` calls `base.OnInitialized(context.Descend())`
-2. `Shape.OnInitialized` calls `Freeze()` — dispatches to `LabeledShape.Freeze()` (virtual)
-   which wraps `Tags`, then chains to `base.Freeze()` which wraps `Vertices` and sets
-   `IsFrozen = true`
-3. Back in `LabeledShape.OnInitialized` — calls `Freeze()` again, which tries to wrap
-   `Tags` via the setter — throws because `IsFrozen` is already `true`
+2. `Shape.OnInitialized` calls `Freeze()` — dispatches to `LabeledShape.Freeze()` (virtual) which wraps `Tags`, then chains to `base.Freeze()` which wraps `Vertices` and sets `IsFrozen = true`
+3. Back in `LabeledShape.OnInitialized` — calls `Freeze()` again, which tries to wrap `Tags` via the setter — throws because `IsFrozen` is already `true`
 
 With the slot:
 
-1. `LabeledShape.OnInitialized(context)` calls
-   `base.OnInitialized(context.Descend(FreezableAspect.Slot))`
+1. `LabeledShape.OnInitialized(context)` calls `base.OnInitialized(context.Descend(FreezableAspect.Slot))`
 2. `Shape.OnInitialized` sees `IsHandledBy(FreezableAspect.Slot) == true` — skips `Freeze()`
-3. Back in `LabeledShape.OnInitialized` — calls `Freeze()` which wraps `Tags`, chains to
-   `base.Freeze()` which wraps `Vertices` and sets `IsFrozen = true` — all setters succeed
-   because the object is still unfrozen during the cascade
+3. Back in `LabeledShape.OnInitialized` — calls `Freeze()` which wraps `Tags`, chains to `base.Freeze()` which wraps `Vertices` and sets `IsFrozen = true` — all setters succeed because the object is still unfrozen during the cascade
 
 ### 9.6 Call Site
 
@@ -1338,8 +1230,8 @@ shape.Tags.Add("new");  // throws NotSupportedException: collection is read-only
 
 ### 9.7 `WillCallOnInitialized` in Constructors
 
-The `WillCallOnInitialized` flag lets the constructor distinguish instrumented from
-non-instrumented callers. A freezable type can use this for a defensive strategy:
+The `WillCallOnInitialized` flag lets the constructor distinguish instrumented from non-instrumented callers.
+A freezable type can use this for a defensive strategy:
 
 ```csharp
 public Shape(InitializationContext context = default)
@@ -1357,22 +1249,20 @@ public Shape(InitializationContext context = default)
 }
 ```
 
-This makes the contract explicit: if the caller cannot guarantee that `OnInitialized` will
-run, the type refuses construction rather than silently producing an unfrozen instance.
-Non-instrumented callers that understand the pattern can still construct the object by calling
-`.OnInitialized()` manually after setting all properties.
+This makes the contract explicit: if the caller cannot guarantee that `OnInitialized` will run, the type refuses construction rather than silently producing an unfrozen instance.
+Non-instrumented callers that understand the pattern can still construct the object by calling `.OnInitialized()` manually after setting all properties.
 
 ---
 
 ## 10. Case Study: Computed Derived Properties
 
-> **Note:** This pattern is often better addressed with `[Memo]` (lazy memoization). This case
-> study demonstrates how `[OnInitialized]` can solve it when eager computation is preferred.
+> **Note:** This pattern is often better addressed with `[Memo]` (lazy memoization).
+> This case study demonstrates how `[OnInitialized]` can solve it when eager computation is preferred.
 
 ### 10.1 Problem
 
-A scientific type has `required init` properties and read-only derived values that must be
-computed from them. Without a post-initialization hook, the author must either:
+A scientific type has `required init` properties and read-only derived values that must be computed from them.
+Without a post-initialization hook, the author must either:
 
 - Compute on every access via `=>` (performance cost on repeated reads)
 - Use `private set` instead of true read-only (sacrifices immutability guarantees)
