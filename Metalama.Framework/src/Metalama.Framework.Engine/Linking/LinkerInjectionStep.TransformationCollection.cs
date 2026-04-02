@@ -505,20 +505,18 @@ internal sealed partial class LinkerInjectionStep
 
             var statements = new List<StatementSyntax>();
 
-            if ( targetMethod is IRef<IConstructor> )
+            if ( (!hasInjectedMembers && targetInjectedMember == null) || (hasInjectedMembers && targetInjectedMember == injectedMembers![^1]) )
             {
-                if ( (!hasInjectedMembers && targetInjectedMember == null) || (hasInjectedMembers && targetInjectedMember == injectedMembers![^1]) )
-                {
-                    // Return initializer statements source members with no overrides or to the last override.
-                    var initializerStatements =
-                        insertedStatements
-                            .Where( s => s.Kind == InsertedStatementKind.Initializer )
-                            .Select( s => s );
+                // Return initializer statements to source members with no overrides or to the last override.
+                // This applies to both constructors (BeforeInstanceConstructor initializers) and methods (OnInitialized template statements).
+                var initializerStatements =
+                    insertedStatements
+                        .Where( s => s.Kind == InsertedStatementKind.Initializer )
+                        .Select( s => s );
 
-                    var orderedInitializerStatements = OrderInitializerStatements( initializerStatements );
+                var orderedInitializerStatements = OrderInitializerStatements( initializerStatements );
 
-                    statements.AddRange( orderedInitializerStatements.Select( s => s.Statement ) );
-                }
+                statements.AddRange( orderedInitializerStatements.Select( s => s.Statement ) );
             }
 
             // For non-initializer statements we have to select a range of statements that fits this injected member.

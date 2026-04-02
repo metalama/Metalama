@@ -1481,15 +1481,27 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetType, AdviceKind.AddInitializer );
 
-            var boundTemplate = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
+            var templateMember = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            var advice = new TemplateBasedConstructorInitializeAdvice(
-                this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetType ),
-                boundTemplate.ForInitializer( this.GetArgsReader( args ) ),
-                kind );
+            if ( kind == InitializerKind.OnInitialized )
+            {
+                var advice = new OnInitializedAdvice(
+                    this.GetAdviceConstructorParameters<INamedType>( targetType ),
+                    templateMember.ForOnInitialized( this.GetArgsReader( args ) ),
+                    slotFields );
 
-            return advice.Execute( this._state );
+                return advice.Execute( this._state );
+            }
+            else
+            {
+                var advice = new TemplateBasedConstructorInitializeAdvice(
+                    this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetType ),
+                    templateMember.ForInitializer( this.GetArgsReader( args ) ),
+                    kind );
+
+                return advice.Execute( this._state );
+            }
         }
     }
 
