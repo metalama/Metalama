@@ -55,8 +55,19 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
             // Introduce the OnInitialized method.
             var builder = new MethodBuilder( this.AspectLayerInstance, targetType, "OnInitialized" );
 
-            // Return type = declaring type (covariant return).
-            builder.ReturnType = targetType;
+            // Check base for an existing overridable OnInitialized method.
+            var baseMethod = FindOverridableOnInitializedMethodInBase( targetType );
+
+            // Return type = declaring type (covariant return), unless the runtime doesn't support it.
+            if ( baseMethod != null && !targetType.Compilation.Project.Features.SupportsCovariantReturnTypes )
+            {
+                builder.ReturnType = baseMethod.ReturnType;
+            }
+            else
+            {
+                builder.ReturnType = targetType;
+            }
+
             builder.Accessibility = Accessibility.Public;
 
             // Virtual unless the type is sealed or a struct.
@@ -64,9 +75,6 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
             {
                 builder.IsVirtual = true;
             }
-
-            // Check base for an existing overridable OnInitialized method.
-            var baseMethod = FindOverridableOnInitializedMethodInBase( targetType );
 
             if ( baseMethod != null )
             {

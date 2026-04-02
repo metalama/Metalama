@@ -120,6 +120,8 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override string? TemplateLanguageVersion => this.TestContextOptions.TemplateLanguageVersion;
 
+    public override string? AllTargetFrameworks => this.TestContextOptions.AllTargetFrameworks;
+
     public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value )
         => this.TestContextOptions.Properties.TryGetValue( name, out value );
 

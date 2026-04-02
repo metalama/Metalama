@@ -15,7 +15,7 @@ public class BaseClass
 public class DerivedClass : BaseClass
 {
   [global::Metalama.Framework.RunTime.Initialization.OnInitializedAttribute]
-  public override global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnInitialized_TwoAspects_Inheritance.DerivedClass OnInitialized(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  public override global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnInitialized_TwoAspects_Inheritance.BaseClass OnInitialized(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {
     base.OnInitialized(context.Descend(default));
     global::System.Console.WriteLine("First1");

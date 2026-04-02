@@ -90,6 +90,9 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override string? TargetFrameworkMoniker => this.GetStringOption( MSBuildPropertyNames.NuGetTargetMoniker );
 
     [Memo]
+    public override string? AllTargetFrameworks => this.GetStringOption( MSBuildPropertyNames.TargetFrameworks ) ?? this.TargetFramework;
+
+    [Memo]
     public override string? Configuration => this.GetStringOption( MSBuildPropertyNames.Configuration );
 
     [Memo]

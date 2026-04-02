@@ -48,6 +48,8 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual string? TargetFrameworkMoniker => this.Wrapped.TargetFrameworkMoniker;
 
+    public virtual string? AllTargetFrameworks => this.Wrapped.AllTargetFrameworks;
+
     public virtual string? Configuration => this.Wrapped.Configuration;
 
     public virtual bool IsDesignTimeEnabled => this.Wrapped.IsDesignTimeEnabled;

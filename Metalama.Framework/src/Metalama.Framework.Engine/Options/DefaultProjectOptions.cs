@@ -57,6 +57,8 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual string? TargetFrameworkMoniker => null;
 
+    public virtual string? AllTargetFrameworks => null;
+
     public virtual string? Configuration => "Debug";
 
     public virtual IProjectOptions Apply( IProjectOptions options ) => options;

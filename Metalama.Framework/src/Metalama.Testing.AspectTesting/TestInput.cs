@@ -93,6 +93,18 @@ namespace Metalama.Testing.AspectTesting
                         $"The following constant(s) are defined but forbidden: {string.Join( ", ", forbiddenConstants.SelectAsReadOnlyList( c => "'" + c + "'" ) )}.";
                 }
             }
+
+            if ( !this.IsSkipped && this.Options.TargetFrameworks != null )
+            {
+                var requestedFrameworks = this.Options.TargetFrameworks.Split( ';' );
+                var currentFramework = this.ProjectProperties.TargetFramework;
+
+                if ( !requestedFrameworks.Any( tfm => string.Equals( tfm.Trim(), currentFramework, StringComparison.OrdinalIgnoreCase ) ) )
+                {
+                    this.SkipReason =
+                        $"The current target framework '{currentFramework}' is not in the requested target frameworks '{this.Options.TargetFrameworks}'.";
+                }
+            }
         }
 
         private TestInput(

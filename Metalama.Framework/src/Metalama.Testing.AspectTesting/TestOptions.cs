@@ -282,6 +282,13 @@ public class TestOptions
     public bool? RoslynIsCompileTimeOnly { get; set; }
 
     /// <summary>
+    /// Gets or sets the semicolon-separated list of all target frameworks for the project,
+    /// for instance <c>net8.0;net472</c>. Used to test behavior that depends on target runtime capabilities.
+    /// To set this option in a test, add this comment to your test file: <c>// @TargetFrameworks(net8.0;net472)</c>.
+    /// </summary>
+    public string? TargetFrameworks { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether Metalama should produce logs and output them to the Xunit test log.
     /// To enable this option in a test, add this comment to your test file: <c>// @EnableLogging</c>.
     /// </summary>
@@ -489,6 +496,8 @@ public class TestOptions
         this.RandomSeed ??= baseOptions.RandomSeed;
 
         this.SkipDiffTool ??= baseOptions.SkipDiffTool;
+
+        this.TargetFrameworks ??= baseOptions.TargetFrameworks;
     }
 
     public IReadOnlyList<string> InvalidSourceOptions => this._invalidSourceOptions;
@@ -823,6 +832,11 @@ public class TestOptions
 
                     break;
 
+                case "TargetFrameworks":
+                    this.TargetFrameworks = optionArg;
+
+                    break;
+
                 default:
                     this._invalidSourceOptions.Add( "@" + optionName );
 
@@ -853,6 +867,7 @@ public class TestOptions
                 true => CodeFormattingOptions.Formatted,
                 false => CodeFormattingOptions.Default,
                 null => (CodeFormattingOptions?) null
-            } ?? testContextOptions.CodeFormattingOptions
+            } ?? testContextOptions.CodeFormattingOptions,
+            AllTargetFrameworks = this.TargetFrameworks ?? testContextOptions.AllTargetFrameworks
         };
 }
