@@ -154,7 +154,7 @@ A slot is a strongly-typed bitmask supporting the `|` operator.
 > **Expected usage:** Slots are needed only by aspect types that address the telescoping constructor problem — i.e., aspects whose `OnInitialized` behavior must be skipped when a derived type guarantees it will handle the same concern.
 > In practice, very few aspect types need this (likely fewer than half a dozen in a typical application).
 > The 32-slot limit is therefore generous.
-> Aspects that do not use cross-layer coordination (like the `ParentChildAspect` in §8) do not allocate a slot at all.
+> Aspects that do not use cross-layer coordination (like the `ParentChildAspect` in §9) do not allocate a slot at all.
 
 ```csharp
 public readonly struct InitializationSlot
@@ -326,6 +326,7 @@ public class InitializationMetadata
     /// <c>OnInitialized</c> should revalidate invariants and reinitialize derived state.
     /// </summary>
     public static InitializationMetadata Modify { get; } = new();
+
 }
 ```
 
@@ -489,7 +490,7 @@ The Linker is responsible for validating the `[OnInitialized]` method contract d
 The `InitializationContext` parameter can be present on a constructor in two ways:
 
 1. **User code** declares the parameter manually on the constructor.
-2. **Aspect code** causes the parameter to be introduced automatically. When an `AddInitializer(InitializerKind.BeforeInstanceConstructor)` template declares an `InitializationContext` parameter, the advice detects it and automatically introduces the parameter on the target constructor using the existing `IntroduceParameter` advice API with `IPullStrategy`. This follows the same template parameter convention used for `InitializerKind.OnInitialized` templates (§5).
+2. **Aspect code** causes the parameter to be introduced automatically. When an `AddInitializer(InitializerKind.OnInitialized)` or `AddInitializer(InitializerKind.AfterLastInstanceConstructor)` advice is applied, the `InitializationContext` parameter is automatically introduced on the target constructor using the existing `IntroduceParameter` advice API with `IPullStrategy`.
 
 When introduced by an aspect, the parameter is added using the existing `IntroduceParameter` API, not Linker-time code generation.
 This is architecturally consistent with how Metalama introduces other constructor parameters.
@@ -566,11 +567,10 @@ IAddInitializerAdviceResult AddInitializer(
 
 `slotFields` are references to `public static readonly InitializationSlot` fields on the aspect type.
 Passing `null` or omitting the argument means the template always runs regardless of derived type behavior.
-This parameter is only meaningful when `kind` is `InitializerKind.OnInitialized`.
+This parameter is meaningful when `kind` is `InitializerKind.OnInitialized` or `AfterLastInstanceConstructor`.
 
-**Template parameter:** Templates used with `InitializerKind.OnInitialized` may optionally declare an `InitializationContext` parameter.
-This is a special case — for all other `InitializerKind` values, templates must have no run-time parameters.
-The `InitializationContext` parameter is injected by the code model from the enclosing `OnInitialized` method's parameter.
+**Template parameter:** Templates used with `InitializerKind.OnInitialized` or `AfterLastInstanceConstructor` may optionally declare an `InitializationContext` parameter in the template. This controls whether the template body can access slots and metadata — it does not affect the introduced method's signature, which always includes `InitializationContext context = default` (see §5.3).
+When the template declares the parameter, the code model maps it from the enclosing method's parameter.
 
 ### 5.3 Method Introduction
 
@@ -584,6 +584,13 @@ Subsequent advice appends templates before `return this`.
 
 **Templates are always `void`-returning statement blocks** — they never emit `return`.
 `return this` is owned by the introduced method frame and is always the final statement.
+
+**The `InitializationContext` parameter is always present on the introduced method**, even if no template currently declares it. Templates may optionally declare an `InitializationContext` parameter to access slots and metadata, but this is independent of the method signature. This is mandatory because:
+- **User code**: a hand-authored `[OnInitialized]` method may want to inspect the context (e.g., check `Metadata`, `IsHandledBy`) regardless of what aspects are applied
+- **Multi-aspect**: multiple aspects may contribute templates to the same `OnInitialized` method, and a later aspect cannot retroactively add a parameter to an already-introduced method
+- **Cross-project inheritance**: the base class method may already be compiled without the parameter, making it impossible for a derived project to fix the signature
+
+The same rule applies to the `OnConstructed` method introduced by `AfterLastInstanceConstructor`.
 
 ### 5.4 Inheritance
 
@@ -685,28 +692,119 @@ public override NamedRange OnInitialized(InitializationContext context = default
 
 ---
 
-## 6. Record Support
+## 6. `AddInitializer` with `InitializerKind.AfterLastInstanceConstructor`
 
-### 6.1 Scope
+### 6.1 Overview
+
+`AddInitializer(InitializerKind.AfterLastInstanceConstructor)` injects template statements that run at the **end** of constructors, after all user constructor code.
+Unlike `BeforeInstanceConstructor` (which injects directly into constructor bodies), this kind:
+
+1. **Introduces a virtual method** `OnConstructed(InitializationContext context = default)` on the target type
+2. **Injects the template body** into `OnConstructed`
+3. **Pulls an `InitializationContext` parameter** into constructors (via the constructor parameter introduction mechanism / `IPullStrategy`)
+4. **Adds a call to `OnConstructed`** at the end of each constructor, but only in the most-derived layer (coordinated via an internal `InitializationSlot`)
+
+This is complementary to `BeforeInstanceConstructor` (which injects at the **beginning**, after `:base()`) and `OnInitialized` (which introduces a separate method called after object initializers complete).
+
+### 6.2 Semantics
+
+| Aspect | `BeforeInstanceConstructor` | `AfterLastInstanceConstructor` | `OnInitialized` |
+|---|---|---|---|
+| **Where** | Beginning of constructor body (after `:base()`) | Separate `OnConstructed` method, called at end of constructor | Separate `OnInitialized` method, after object initializers |
+| **Which constructors** | All except `:this()` chains | All except `:this()` chains (via `OnConstructed` call) | N/A (called after object initializers) |
+| **When** | Before user constructor code | After user constructor code | After object initializers and `init` properties |
+| **Object initializer awareness** | No | No | Yes |
+| **Introduced method** | None | `OnConstructed` | `OnInitialized` |
+
+### 6.3 `OnConstructed` Method
+
+The introduced method follows the same pattern as `OnInitialized`:
+
+```csharp
+public virtual T OnConstructed(InitializationContext context = default)
+{
+    // base.OnConstructed(context.Descend(...)) — if base has OnConstructed
+    // template statements injected here
+    return this;
+}
+```
+
+- Return type is the declaring type (covariant)
+- `virtual` on non-sealed classes, non-virtual on sealed classes and structs
+- `override` when a base type already has `OnConstructed`
+- **No `[OnConstructed]` attribute** — unlike `[OnInitialized]`, this is a system concept, not a user concept. The method name is hardcoded by the advice. Users do not hand-author `OnConstructed` methods.
+- **No Linker involvement** — the call to `OnConstructed` is wired by extending the existing constructor parameter append/pull mechanism (transitive aspect manifest) with an option to emit the `OnConstructed` call. This reuses the infrastructure already implemented for `InitializationContext` parameter propagation (§4).
+
+### 6.4 `InitializationSlot` Coordination
+
+The feature internally allocates an `InitializationSlot` to ensure that only the **most-derived** constructor in an inheritance chain calls `OnConstructed`.
+
+In a hierarchy where both `Base` and `Derived` use `AfterLastInstanceConstructor`:
+- `Derived`'s constructor passes `context.Descend(slot)` to the base constructor
+- `Base`'s constructor sees `IsHandledBy(slot) == true` and skips the `OnConstructed` call
+- Only `Derived`'s constructor (the most-derived) invokes `OnConstructed`
+
+### 6.5 Constructor Wiring
+
+The `OnConstructed` call is wired by extending the existing constructor parameter append/pull mechanism. When the `InitializationContext` parameter is pulled into a constructor (via the transitive aspect manifest), the pull strategy is configured with an additional option to emit the `OnConstructed(context)` call at the end of the constructor body. This keeps the wiring logic co-located with the existing parameter propagation infrastructure rather than introducing a separate code generation path.
+
+Constructors may contain early `return` statements. The implementation rewrites all `return;` statements into `goto __end;` and appends a labeled block at the end of the constructor body:
+
+```csharp
+__end:
+OnConstructed(context);
+```
+
+This ensures `OnConstructed` is called on all exit paths without the overhead of `try/finally`.
+
+Execution order within a constructor body:
+1. `: base(...)` call
+2. `BeforeInstanceConstructor` statements (in aspect order)
+3. User constructor code
+4. `OnConstructed(context)` call (only in most-derived constructor — coordinated via `InitializationSlot`)
+
+### 6.6 Use Cases
+
+- Initialization logic that must run after the constructor body has finished setting fields (e.g., registering the object in a lookup table, starting a timer)
+- Logic that depends on constructor body code having run, but does not need to wait for object initializers
+
+### 6.7 Interaction with `OnInitialized`
+
+When both `AfterLastInstanceConstructor` and `OnInitialized` are used on the same type:
+
+- `OnConstructed` runs at the end of the constructor body, **before** `OnInitialized`
+- `OnInitialized` runs after object initializers (if any) complete
+
+Execution order for the full lifecycle:
+1. Constructor body (including `BeforeInstanceConstructor` + user code)
+2. `OnConstructed(context)` — at end of constructor
+3. Object initializer (`init` properties) — if present
+4. `OnInitialized(context)` — after object initializers
+
+---
+
+## 7. Record Support
+
+### 7.1 Scope
 
 `class` and `struct` records are fully supported, including positional records.
 Note that structs can be default-constructed (`default(T)`), bypassing all constructors.
 This is an inherent limitation of value types in .NET and is not specific to this feature.
 
-### 6.2 Positional Records — Copy Constructor
+### 7.2 Positional Records — Copy Constructor
 
 The copy constructor for positional records is compiler-generated and is **not modified** by the Linker.
 It remains a pure field copy.
-Post-copy initialization is handled entirely by appending `.OnInitialized()` with `InitializationMetadata.Modify` at `with` expression call sites (see §6.4).
+Post-copy initialization is handled entirely by appending `.OnInitialized()` with `InitializationMetadata.Modify` at `with` expression call sites (see §7.4).
 
 Implementations of `OnInitialized` must support being called with `Metadata = Modify` on an instance that was created via the copy constructor.
 This means `OnInitialized` may be called multiple times over the lifetime of an object graph (once at initial construction, and once after each `with` expression).
 
-### 6.3 Non-Positional Records
+### 7.3 Non-Positional Records
 
 No special treatment — the author controls the copy constructor and the standard pattern from §3 applies as-is (call-site rewriting by the Linker works identically).
 
-### 6.4 `with` Expression Call Sites
+### 7.4 `with` Expression Call Sites
 
 The Linker rewrites `with` expressions to call `OnInitialized` with `InitializationMetadata.Modify` on the cloned instance.
 The copy constructor itself is not modified — it performs its standard field copy, and `OnInitialized` runs afterward to revalidate or recompute derived state:
@@ -725,9 +823,9 @@ Since `with` can be called repeatedly, `OnInitialized` must be safe to call mult
 
 ---
 
-## 7. Serialization and Cloning
+## 8. Serialization and Cloning
 
-### 7.1 `ISerializationFramework`
+### 8.1 `ISerializationFramework`
 
 Serialization and cloning are treated as the same concern — in both cases the object is fully populated by an external mechanism and `OnInitialized` must be called afterward.
 The `InitializationMetadata` passed to `OnInitialized` carries the distinction if needed.
@@ -752,7 +850,7 @@ instance.OnInitialized(InitializationContext.Create(InitializationMetadata.Modif
 > **Remark:** The mechanism by which `ISerializationFramework` implementations are discovered and called is not yet specified.
 > This is intentionally left for a later design iteration.
 
-### 7.2 Planned Implementations
+### 8.2 Planned Implementations
 
 | Package | Framework |
 |---|---|
@@ -762,9 +860,9 @@ instance.OnInitialized(InitializationContext.Create(InitializationMetadata.Modif
 
 ---
 
-## 8. Case Study: Automatic Parent–Child Wiring
+## 9. Case Study: Automatic Parent–Child Wiring
 
-### 8.1 Problem
+### 9.1 Problem
 
 A common pattern in domain models is a parent–child relationship where each child holds a back-reference to its parent.
 With `init`-only properties and object initializers, the parent cannot wire children in the constructor because the child properties may not yet be set:
@@ -785,7 +883,7 @@ var tree = new TreeNode
 
 `[OnInitialized]` solves this by running after all `init` properties are assigned.
 
-### 8.2 Contracts
+### 9.2 Contracts
 
 ```csharp
 /// <summary>
@@ -804,7 +902,7 @@ public interface IChildObject<TParent> where TParent : class
 public class ChildAttribute : Attribute { }
 ```
 
-### 8.3 Aspect
+### 9.3 Aspect
 
 ```csharp
 [Inheritable]
@@ -853,7 +951,7 @@ class ParentChildAspect : TypeAspect
 
 No `InitializationSlot` is needed here: each layer in an inheritance hierarchy wires only its own declared `[Child]` members, so there is no cross-layer coordination.
 
-### 8.4 User Code
+### 9.4 User Code
 
 ```csharp
 [ParentChild]
@@ -869,7 +967,7 @@ public class TreeNode : IChildObject<TreeNode>
 }
 ```
 
-### 8.5 After Transformation
+### 9.5 After Transformation
 
 ```csharp
 public class TreeNode : IChildObject<TreeNode>
@@ -899,7 +997,7 @@ public class TreeNode : IChildObject<TreeNode>
 }
 ```
 
-### 8.6 Call Sites
+### 9.6 Call Sites
 
 **instrumented (after Linker rewriting):**
 ```csharp
@@ -925,7 +1023,7 @@ var tree = new TreeNode(InitializationContext.WillInitialize)
 // tree.Children[1].Parent == tree  ✓
 ```
 
-### 8.7 `with` Expression — Re-wiring on Modify
+### 9.7 `with` Expression — Re-wiring on Modify
 
 When a `with` expression clones a node, the clone's children still reference the old parent.
 The Linker appends `.OnInitialized(Modify)` which re-wires them:
@@ -959,9 +1057,9 @@ var renamed = (tree with { Name = "renamed-root" })
 
 ---
 
-## 9. Case Study: Freezable Objects
+## 10. Case Study: Freezable Objects
 
-### 9.1 Problem
+### 10.1 Problem
 
 Some domain models need objects that are mutable during a setup phase — properties with regular `set` accessors, mutable `IList<T>` collections — but become immutable once fully initialized.
 The "freeze" pattern achieves this by flipping a flag after construction, causing subsequent mutations to throw.
@@ -973,7 +1071,7 @@ In a class hierarchy, freezing must happen **once** at the most-derived level.
 If a base class freezes in its `OnInitialized`, it blocks the derived class from completing its own setup.
 `InitializationSlot` coordination solves this: each layer defers freezing if a derived layer guarantees it will freeze.
 
-### 9.2 Aspect
+### 10.2 Aspect
 
 ```csharp
 [Inheritable]
@@ -1069,7 +1167,7 @@ class FreezableAspect : TypeAspect
 }
 ```
 
-### 9.3 User Code
+### 10.3 User Code
 
 ```csharp
 [Freezable]
@@ -1088,7 +1186,7 @@ public class LabeledShape : Shape
 }
 ```
 
-### 9.4 After Transformation
+### 10.4 After Transformation
 
 ```csharp
 public class Shape
@@ -1193,7 +1291,7 @@ public class LabeledShape : Shape
 }
 ```
 
-### 9.5 Why the Slot Matters
+### 10.5 Why the Slot Matters
 
 Without `InitializationSlot` coordination, the execution would be:
 
@@ -1207,7 +1305,7 @@ With the slot:
 2. `Shape.OnInitialized` sees `IsHandledBy(FreezableAspect.Slot) == true` — skips `Freeze()`
 3. Back in `LabeledShape.OnInitialized` — calls `Freeze()` which wraps `Tags`, chains to `base.Freeze()` which wraps `Vertices` and sets `IsFrozen = true` — all setters succeed because the object is still unfrozen during the cascade
 
-### 9.6 Call Site
+### 10.6 Call Site
 
 ```csharp
 // User writes:
@@ -1232,7 +1330,7 @@ shape.Color = "Blue";  // throws InvalidOperationException: instance is frozen
 shape.Tags.Add("new");  // throws NotSupportedException: collection is read-only
 ```
 
-### 9.7 `WillCallOnInitialized` in Constructors
+### 10.7 `WillCallOnInitialized` in Constructors
 
 The `WillCallOnInitialized` flag lets the constructor distinguish instrumented from non-instrumented callers.
 A freezable type can use this for a defensive strategy:
@@ -1258,12 +1356,12 @@ Non-instrumented callers that understand the pattern can still construct the obj
 
 ---
 
-## 10. Case Study: Computed Derived Properties
+## 11. Case Study: Computed Derived Properties
 
 > **Note:** This pattern is often better addressed with `[Memo]` (lazy memoization).
 > This case study demonstrates how `[OnInitialized]` can solve it when eager computation is preferred.
 
-### 10.1 Problem
+### 11.1 Problem
 
 A scientific type has `required init` properties and read-only derived values that must be computed from them.
 Without a post-initialization hook, the author must either:
@@ -1272,7 +1370,7 @@ Without a post-initialization hook, the author must either:
 - Use `private set` instead of true read-only (sacrifices immutability guarantees)
 - Duplicate computation in every `init` accessor (fragile, error-prone)
 
-### 10.2 User Code
+### 11.2 User Code
 
 ```csharp
 public class Isotope
@@ -1286,43 +1384,214 @@ public class Isotope
     public double MeanLifetime { get; private set; }
 
     [OnInitialized]
-    public Isotope OnInitialized()
+    public virtual Isotope OnInitialized(InitializationContext context = default)
     {
         DecayConstant = Math.Log(2) / HalfLifeSeconds;
         MeanLifetime = 1.0 / DecayConstant;
         return this;
     }
 }
+
+/// <summary>
+/// A sample of a radioactive isotope with a known initial number of atoms.
+/// Activity (decays per second) depends on DecayConstant (computed by base)
+/// and InitialAtoms — so it must be computed after both are available.
+/// </summary>
+public class RadioactiveSample : Isotope
+{
+    public required double InitialAtoms { get; init; }
+
+    // Derived — depends on DecayConstant from base + InitialAtoms from this type
+    public double Activity { get; private set; }
+
+    [OnInitialized]
+    public override RadioactiveSample OnInitialized(InitializationContext context = default)
+    {
+        base.OnInitialized(context.Descend());
+        Activity = DecayConstant * InitialAtoms;
+        return this;
+    }
+}
 ```
 
-### 10.3 Call Sites
+### 11.3 Call Sites
 
 ```csharp
 // Object initializer — Linker appends .OnInitialized()
-var carbon14 = new Isotope
+var sample = new RadioactiveSample
 {
     HalfLifeSeconds = 1.808e11,
     AtomicNumber = 6,
-    MassNumber = 14
+    MassNumber = 14,
+    InitialAtoms = 1e24
 };
 // After rewriting:
-// var carbon14 = new Isotope(InitializationContext.WillInitialize)
-//     { HalfLifeSeconds = 1.808e11, AtomicNumber = 6, MassNumber = 14 }
+// var sample = new RadioactiveSample(InitializationContext.WillInitialize)
+//     { HalfLifeSeconds = 1.808e11, AtomicNumber = 6, MassNumber = 14, InitialAtoms = 1e24 }
 //     .OnInitialized();
 
-// DecayConstant and MeanLifetime are already computed
-Console.WriteLine(carbon14.DecayConstant);
+// All derived values are already computed
+Console.WriteLine(sample.DecayConstant);  // from base
+Console.WriteLine(sample.Activity);       // from derived (= DecayConstant * InitialAtoms)
 ```
 
-### 10.4 `with` Expression
+### 11.4 `with` Expression
 
 ```csharp
-// Changing a source property recomputes derived values
-var carbon14_adjusted = carbon14 with { HalfLifeSeconds = 1.9e11 };
+// Changing a source property recomputes all derived values through the chain
+var adjusted = sample with { InitialAtoms = 5e23 };
 // After rewriting:
-// var carbon14_adjusted = (carbon14 with { HalfLifeSeconds = 1.9e11 })
+// var adjusted = (sample with { InitialAtoms = 5e23 })
 //     .OnInitialized(InitializationContext.Create(InitializationMetadata.Modify));
 
-// DecayConstant and MeanLifetime reflect the new HalfLifeSeconds
-Console.WriteLine(carbon14_adjusted.DecayConstant);
+// Activity reflects the new InitialAtoms; DecayConstant is unchanged
+Console.WriteLine(adjusted.Activity);
 ```
+
+---
+
+## 12. Case Study: Object Lifecycle Tracking
+
+### 12.1 Problem
+
+A diagnostic or framework layer needs to track every instance of certain types through their lifecycle: `Constructing` (constructor is running), `Constructed` (constructor finished, but object initializers may not have run), and `Initialized` (fully ready).
+
+This cannot be solved with default field values — each transition requires active registration in a static registry. And in an inheritance hierarchy, the `Constructed` status must only be set by the most-derived constructor: if `Base`'s constructor marks `Constructed` while `Derived`'s constructor body is still running, the registry reports incorrect state.
+
+### 12.2 Infrastructure
+
+```csharp
+public enum ObjectStatus
+{
+    Constructing,
+    Constructed,
+    Initialized
+}
+
+public static class ObjectTracker
+{
+    private static readonly ConditionalWeakTable<object, StrongBox<ObjectStatus>> _registry = new();
+
+    public static void Register(object instance, ObjectStatus status)
+    {
+        if (_registry.TryGetValue(instance, out var box))
+            box.Value = status;
+        else
+            _registry.AddOrUpdate(instance, new StrongBox<ObjectStatus>(status));
+    }
+
+    public static ObjectStatus GetStatus(object instance)
+        => _registry.TryGetValue(instance, out var box) ? box.Value : throw new InvalidOperationException("Not tracked");
+}
+```
+
+### 12.3 Aspect
+
+```csharp
+[Inheritable]
+public class TrackableAspect : TypeAspect
+{
+    public static readonly InitializationSlot Slot = InitializationSlot.Allocate();
+
+    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    {
+        var slotField = TypeFactory.GetNamedType(typeof(TrackableAspect)).Fields.OfName(nameof(Slot)).Single();
+        var slotFields = new[] { slotField };
+
+        // Register as Constructing at the start of the base-most constructor only.
+        // Since BeforeInstanceConstructor does not support slot coordination,
+        // we detect the base-most constructor by checking whether the aspect
+        // has been applied to the base type.
+        var isBasemost = !builder.Target.BaseType!.Enhancements().HasAspect<TrackableAspect>();
+
+        if (isBasemost)
+        {
+            builder.AddInitializer(
+                nameof(OnConstructing),
+                InitializerKind.BeforeInstanceConstructor);
+        }
+
+        // Register as Constructed at the end of the most-derived constructor
+        builder.AddInitializer(
+            nameof(OnConstructed),
+            InitializerKind.AfterLastInstanceConstructor,
+            slotFields: slotFields);
+
+        // Register as Initialized after object initializers complete
+        builder.AddInitializer(
+            nameof(OnFullyInitialized),
+            InitializerKind.OnInitialized,
+            slotFields: slotFields);
+    }
+
+    [Template]
+    private void OnConstructing()
+    {
+        ObjectTracker.Register(this, ObjectStatus.Constructing);
+    }
+
+    [Template]
+    private void OnConstructed(InitializationContext context)
+    {
+        if (!context.IsHandledBy(Slot))
+        {
+            ObjectTracker.Register(this, ObjectStatus.Constructed);
+        }
+    }
+
+    [Template]
+    private void OnFullyInitialized(InitializationContext context)
+    {
+        if (!context.IsHandledBy(Slot))
+        {
+            ObjectTracker.Register(this, ObjectStatus.Initialized);
+        }
+    }
+}
+```
+
+> **Detecting the base-most constructor:** Since `BeforeInstanceConstructor` does not support slot-based coordination (slots work in the "most-derived wins" direction, not "base-most wins"), the aspect detects whether it is the base-most layer by checking `HasAspect<TrackableAspect>()` on the base type. This strategy works because any class knows its base type with certainty (the base type is fixed and cannot be modified by aspects), whereas a base type does not know its derived types. This is the opposite of the "most-derived wins" problem, where `InitializationSlot` coordination is needed precisely because the base type cannot know at compile time whether a derived type will handle the concern. Other aspects may use different detection mechanisms depending on their needs — for example, checking for the presence of a specific method, interface implementation, or custom attribute on the base type.
+
+### 12.4 User Code
+
+```csharp
+[Trackable]
+public class Shape
+{
+    public string Color { get; init; } = "Red";
+
+    public Shape()
+    {
+        // ObjectTracker.GetStatus(this) == Constructing here
+    }
+}
+
+[Trackable]
+public class LabeledShape : Shape
+{
+    public required string Label { get; init; }
+
+    public LabeledShape() : base()
+    {
+        // ObjectTracker.GetStatus(this) == Constructing here
+        // (Base constructor registered Constructing, but did NOT mark Constructed)
+    }
+}
+```
+
+### 12.5 Lifecycle Trace
+
+```
+new LabeledShape { Label = "A", Color = "Blue" }
+```
+
+| Step | What happens | Status |
+|------|-------------|--------|
+| 1 | `Shape` constructor entered — `BeforeInstanceConstructor` registers `Constructing` (base-most: `Shape` has no base with `[Trackable]`) | `Constructing` |
+| 2 | `Shape` constructor body runs | `Constructing` |
+| 3 | `Shape` constructor ends — `OnConstructed` **skipped** (slot: derived will handle) | `Constructing` |
+| 4 | `LabeledShape` constructor entered — no `BeforeInstanceConstructor` (not base-most: `Shape` has `[Trackable]`) | `Constructing` |
+| 5 | `LabeledShape` constructor body runs | `Constructing` |
+| 6 | `LabeledShape` constructor ends — `OnConstructed` called (most-derived) | `Constructed` |
+| 7 | Object initializer: `Label = "A"`, `Color = "Blue"` | `Constructed` |
+| 8 | `.OnInitialized()` called by Linker | `Initialized` |
