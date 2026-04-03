@@ -485,60 +485,78 @@ The Linker is responsible for validating the `[OnInitialized]` method contract d
 
 ---
 
-## 4. Constructor Parameter Introduction
+## 4. Constructor Parameter Introduction for `InitializationContext`
 
-The `InitializationContext` parameter can be present on a constructor in two ways:
+When an `AddInitializer(InitializerKind.OnInitialized)` or `AddInitializer(InitializerKind.AfterLastInstanceConstructor)` advice is applied, the aspect needs a way to pass `InitializationContext` into the constructor chain. This is achieved using `IntroduceParameter` to add the parameter to the constructor.
 
-1. **User code** declares the parameter manually on the constructor.
-2. **Aspect code** causes the parameter to be introduced automatically. When an `AddInitializer(InitializerKind.OnInitialized)` or `AddInitializer(InitializerKind.AfterLastInstanceConstructor)` advice is applied, the `InitializationContext` parameter is automatically introduced on the target constructor using the existing `IntroduceParameter` advice API with `IPullStrategy`.
+### 4.1 Two Strategies
 
-When introduced by an aspect, the parameter is added using the existing `IntroduceParameter` API, not Linker-time code generation.
-This is architecturally consistent with how Metalama introduces other constructor parameters.
+The aspect author can choose between two strategies:
 
-The parameter is introduced using a new **overload generation mode**: instead of adding an optional parameter with a default value, `IntroduceParameter` generates a separate constructor overload **without** the `InitializationContext` parameter that forwards `default` internally.
+1. **Optional parameter** — use `IntroduceParameter` with a default value (`InitializationContext context = default`). Simple, but **breaks binary compatibility**: previously compiled code that calls the parameterless constructor will fail at runtime because optional parameters are baked into the caller's IL. It also breaks callers that rely on the exact constructor signature — reflection-based instantiation (`Activator.CreateInstance`), the `new()` generic constraint, serialization frameworks, and dependency injection containers.
 
-This gives a cleaner contract than optional parameters — non-instrumented callers cannot pass arbitrary `InitializationContext` values; they always get `default`.
+2. **Required parameter + redirecting constructor** — use `IntroduceParameter` *without* a default value to add a required `InitializationContext` parameter, then use `IntroduceConstructor` to add a compatibility overload without the parameter (forwarding `default`). This gives a cleaner API surface: non-instrumented callers use the redirecting constructor with the original signature, instrumented callers use the constructor with `InitializationContext`.
 
-**Overload generation mode behavior:**
+### 4.2 Required Parameter Support
 
-- The `InitializationContext` parameter on the original constructor has **no default value**
-- A new constructor overload is generated **without** the `InitializationContext` parameter, preserving all other parameters
-- The generated overload passes `default` — **not** `InitializationContext.WillInitialize`
-- The generated overload does **not** call `OnInitialized`
+`IntroduceParameter` currently requires a `defaultValue`, making all introduced parameters optional. To support strategy 2, `defaultValue` must be made optional.
 
-For positional records, `IntroduceParameter` already handles primary constructor materialization: the parameter is appended to the primary constructor, and a `Deconstruct` method matching the original parameter list is auto-generated to preserve backward compatibility.
+**Constraint:** If `defaultValue` is not supplied (required parameter), the target constructor must not already have any optional parameters — C# does not allow required parameters after optional ones. If this constraint is violated, a diagnostic is emitted.
+
+When a required parameter is introduced, it is the **aspect's responsibility** to also introduce a redirecting constructor (via `IntroduceConstructor`) to maintain backward compatibility. The framework does not do this automatically.
+
+### 4.3 Child Constructor Propagation
 
 **Pull strategy:** Child constructors (via `: base(...)`) propagate the parameter using `PullAction.IntroduceParameterAndPull`, which works across project boundaries.
 
-**Rationale:** The generated overload cannot know whether the caller will set additional properties via an object initializer after the constructor returns.
-Object initializers run *after* the constructor body — so calling `OnInitialized` inside the constructor would fire before those properties are set, which is exactly the problem this feature is designed to prevent.
+When using strategy 2 (required parameters), the aspect should also introduce redirecting constructors in derived classes.
+
+### 4.4 Non-instrumented Callers
 
 > **⚠ Non-instrumented caller limitation:** Non-instrumented callers (external assemblies, reflection, `Activator.CreateInstance`) will **not** have `OnInitialized` called automatically — neither via the constructor nor after object initializers.
 > This is an inherent limitation of the design: without Linker call-site rewriting, there is no safe point to invoke `OnInitialized`.
-> The generated overload intentionally does *not* self-invoke `OnInitialized` to avoid premature firing before `init` properties are set.
+> The redirecting constructor intentionally does *not* self-invoke `OnInitialized` to avoid premature firing before `init` properties are set.
 >
 > **Mitigation strategies to consider:**
 > - Emit a Roslyn analyzer diagnostic when a non-instrumented call site constructs a type with `[OnInitialized]` without calling `.OnInitialized()` afterward
 > - Document the limitation prominently in the API documentation for `[OnInitialized]`
 > - Consider a runtime assertion (e.g., `Debug.Assert`) that detects first property access after construction without `OnInitialized` having been called
 
-**Example — original authored code:**
+### 4.5 Example — Strategy 1 (Optional Parameter)
+
+**Original:**
+```csharp
+public Range(int min, int max) { ... }
+```
+
+**After `IntroduceParameter` with default value:**
 ```csharp
 public Range(int min, int max, InitializationContext context = default) { ... }
 ```
 
-**After `IntroduceParameter` with overload generation mode:**
+### 4.6 Example — Strategy 2 (Required Parameter + Redirecting Constructor)
+
+**Original:**
 ```csharp
-// Original — default value removed
+public Range(int min, int max) { ... }
+```
+
+**After `IntroduceParameter` (required) + `IntroduceConstructor` (redirecting):**
+```csharp
+// Modified constructor — required parameter, no default value
 public Range(int min, int max, InitializationContext context) { ... }
 
-// Generated overload for non-instrumented callers
+// Redirecting constructor for non-instrumented callers
 // Passes default — OnInitialized will NOT be called automatically.
 public Range(int min, int max)
     : this(min, max, default)
 {
 }
 ```
+
+### 4.7 Positional Records
+
+For positional records, `IntroduceParameter` already handles primary constructor materialization: the parameter is appended to the primary constructor, and a `Deconstruct` method matching the original parameter list is auto-generated to preserve backward compatibility.
 
 ---
 
