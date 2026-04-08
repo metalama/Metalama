@@ -271,8 +271,14 @@ public class CompileTimeAspectPipeline : AspectPipeline
             var annotations = result.Value.LastCompilationModel.GetExportedAnnotations();
             var transitiveContributors = result.Value.TransitiveContributors;
 
+            // Use CompilationModel.GetDerivedTypes, which resolves to an O(1) DerivedTypeIndex lookup,
+            // instead of walking every type in the compilation and checking AllInterfaces.
+            var containsInitializableTypes = result.Value.LastCompilationModel
+                .GetDerivedTypes( typeof(Framework.RunTime.Initialization.IInitializable) )
+                .Any();
+
             if ( result.Value.ExternallyInheritableAspects.Length > 0 || transitiveContributors.Length > 0 || inheritableOptions.Count > 0
-                 || !annotations.IsEmpty )
+                 || !annotations.IsEmpty || containsInitializableTypes )
             {
                 var pipelineExtensions = configuration.Extensions;
 
@@ -284,7 +290,8 @@ public class CompileTimeAspectPipeline : AspectPipeline
                         .ToImmutableArray(),
                     manifestExtensions,
                     inheritableOptions,
-                    annotations );
+                    annotations,
+                    containsInitializableTypes );
 
                 var resource = inheritedAspectsManifest.ToResource( configuration.ServiceProvider, resultPartialCompilation.CompilationContext );
                 additionalResources = additionalResources.Add( resource );

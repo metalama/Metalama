@@ -386,7 +386,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                 injectionRegistry,
                 lateTransformationRegistry,
                 input.OrderedAspectLayers,
-                projectOptions );
+                projectOptions,
+                input.CallSiteAdviceInfo );
     }
 
     private static void IndexNodesWithModifiedAttributes(

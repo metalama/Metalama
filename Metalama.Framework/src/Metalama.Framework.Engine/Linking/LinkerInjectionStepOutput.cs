@@ -21,7 +21,8 @@ namespace Metalama.Framework.Engine.Linking
             LinkerInjectionRegistry injectionRegistry,
             LinkerLateTransformationRegistry lateTransformationRegistry,
             IReadOnlyList<OrderedAspectLayer> orderedAspectLayers,
-            IProjectOptions? projectOptions )
+            IProjectOptions? projectOptions,
+            CallSiteAdviceInfo callSiteAdviceInfo )
         {
             this.DiagnosticSink = diagnosticSink;
             this.SourceCompilationModel = sourceCompilationModel;
@@ -31,6 +32,7 @@ namespace Metalama.Framework.Engine.Linking
             this.LateTransformationRegistry = lateTransformationRegistry;
             this.OrderedAspectLayers = orderedAspectLayers;
             this.ProjectOptions = projectOptions;
+            this.CallSiteAdviceInfo = callSiteAdviceInfo;
         }
 
         /// <summary>
@@ -70,5 +72,10 @@ namespace Metalama.Framework.Engine.Linking
         /// Gets project options.
         /// </summary>
         public IProjectOptions? ProjectOptions { get; }
+
+        /// <summary>
+        /// Gets flags that inform the linker whether call-site advice walkers need to run.
+        /// </summary>
+        public CallSiteAdviceInfo CallSiteAdviceInfo { get; }
     }
 }

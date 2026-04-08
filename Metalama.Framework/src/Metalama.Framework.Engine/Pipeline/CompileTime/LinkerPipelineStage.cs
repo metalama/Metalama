@@ -62,7 +62,8 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                     input.FirstCompilationModel.AssertNotNull(),
                     pipelineStepsResult.LastCompilation,
                     pipelineStepsResult.Transformations,
-                    input.AspectLayers ) );
+                    input.AspectLayers,
+                    new CallSiteAdviceInfo( input.ContributorSources.ReferencesContainInitializableTypes ) ) );
 
             var linkerResult = await linker.ExecuteAsync( cancellationToken );
 

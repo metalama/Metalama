@@ -30,13 +30,16 @@ namespace Metalama.Framework.Engine.Aspects;
 internal sealed partial class TransitivePipelineContributorSource : IExternalHierarchicalOptionsProvider, IExternalAnnotationProvider
 {
     public ImmutableArray<IPipelineContributor> Contributors { get; }
-    
+
+    public bool ReferencesContainInitializableTypes { get; }
+
     private readonly ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> _manifests;
 
     private TransitivePipelineContributorSource( ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> manifests, ImmutableArray<IPipelineContributor> contributors )
     {
         this._manifests = manifests;
         this.Contributors = contributors;
+        this.ReferencesContainInitializableTypes = manifests.Values.Any( m => m.ContainsInitializableTypes );
     }
 
     public static TransitivePipelineContributorSource Create(
