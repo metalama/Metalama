@@ -194,6 +194,34 @@ public static partial class SyntaxFactoryEx
         => SyntaxFactory.IdentifierName( token );
 #pragma warning restore LAMA0850
 
+    /// <summary>
+    /// Creates a <c>global::Namespace.Type</c> qualified name expression from a fully-qualified
+    /// type name string with parts separated by dots.
+    /// </summary>
+    internal static ExpressionSyntax CreateFullyQualifiedName( string fullName )
+        => CreateFullyQualifiedName( fullName.Split( '.' ) );
+
+    /// <summary>
+    /// Creates a <c>global::Namespace.Type</c> qualified name expression from a sequence of
+    /// namespace/type parts.
+    /// </summary>
+    internal static ExpressionSyntax CreateFullyQualifiedName( params string[] parts )
+    {
+        ExpressionSyntax result = SyntaxFactory.AliasQualifiedName(
+            WellKnownIdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) ),
+            SafeIdentifierName( parts[0] ) );
+
+        for ( var i = 1; i < parts.Length; i++ )
+        {
+            result = SyntaxFactory.MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                result,
+                SafeIdentifierName( parts[i] ) );
+        }
+
+        return result.WithSimplifierAnnotation();
+    }
+
     [PublicAPI]
     public static LiteralExpressionSyntax LiteralNonNullExpression( string s )
         => SyntaxFactory.LiteralExpression( SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal( s ) );

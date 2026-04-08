@@ -241,6 +241,15 @@ namespace Metalama.Framework.Engine.Linking
                     input.InjectionRegistry,
                     typeEventBrokers );
 
+            // Find call sites for types implementing IInitializable.
+            var initializableTypeRegistry = new InitializableTypeRegistry( input.IntermediateCompilation.CompilationContext );
+
+            var onInitializedCallSites = await new OnInitializedCallSiteFinder(
+                this._serviceProvider,
+                input.IntermediateCompilation.CompilationContext,
+                initializableTypeRegistry )
+                .FindCallSitesAsync( cancellationToken );
+
             var substitutionGenerator = new SubstitutionGenerator(
                 this,
                 input.IntermediateCompilation.CompilationContext,
@@ -256,6 +265,7 @@ namespace Metalama.Framework.Engine.Linking
                 eventFieldRaiseReferences,
                 backingFieldReferences,
                 callerAttributeReferences,
+                onInitializedCallSites,
                 eventBrokerSemanticIndex );
 
             var substitutions = await substitutionGenerator.RunAsync( cancellationToken );

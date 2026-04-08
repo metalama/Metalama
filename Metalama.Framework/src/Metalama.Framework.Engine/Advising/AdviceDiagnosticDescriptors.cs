@@ -307,5 +307,14 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target is an extension block. Extension blocks can only be introduced into static classes.",
                 _category,
                 Error );
+        // Sub-range 550-559: Initialization diagnostics.
+
+        internal static readonly DiagnosticDefinition<(string AspectType, INamedType TargetType)>
+            InitializeNotVirtual = new(
+                "LAMA0550",
+                "Initialize method must be public virtual on a non-sealed class implementing IInitializable.",
+                "The aspect '{0}' targets type '{1}' whose 'Initialize' method is not 'public virtual' (or 'override'). On a non-sealed class implementing IInitializable, the method must be virtual so that derived types can extend initialization behavior.",
+                _category,
+                Error );
     }
 }

@@ -4,8 +4,10 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.DeclarationBuilders;
+using Metalama.Framework.Engine.AdviceImpl.InterfaceImplementation;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
+using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -45,80 +47,121 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
     {
         var targetType = this.TargetDeclaration.ToRef().GetTarget( context.MutableCompilation );
 
-        // Check if target type already has an OnInitialized method (from prior advice or hand-authored).
-        var existingMethod = FindOnInitializedMethod( targetType );
+        // Resolve the IInitializable interface and its Initialize method.
+        var initializableType = (INamedType) targetType.Compilation.Factory.GetTypeByReflectionType( typeof(IInitializable) );
+        var interfaceMethod = initializableType.Methods.Single();
+        var initContextType = targetType.Compilation.Factory.GetTypeByReflectionType( typeof(InitializationContext) );
 
-        IMethod onInitializedMethod;
+        // First check if the target type itself already has an Initialize method (from source or from a
+        // previously-introduced method by another advice in the same compilation pass). This handles the case
+        // where TryFindImplementationForInterfaceMember wouldn't yet see builder-introduced overrides.
+        var ownInitializeMethod = targetType.Methods
+            .OfName( "Initialize" )
+            .SingleOrDefault(
+                m => m.Parameters.Count == 1
+                     && targetType.Compilation.Comparers.Default.Equals( m.Parameters[0].Type, initContextType ) );
 
-        if ( existingMethod == null )
+        if ( ownInitializeMethod != null )
         {
-            // Introduce the OnInitialized method.
-            var builder = new MethodBuilder( this.AspectLayerInstance, targetType, "OnInitialized" );
-
-            // Check base for an existing overridable OnInitialized method.
-            var baseMethod = FindOverridableOnInitializedMethodInBase( targetType );
-
-            // Return type = declaring type (covariant return), unless the runtime doesn't support it.
-            if ( baseMethod != null && !targetType.Compilation.Project.Features.SupportsCovariantReturnTypes )
+            // The target type itself declares Initialize — validate and use it.
+            if ( (!ownInitializeMethod.IsVirtual && !ownInitializeMethod.IsOverride
+                  || ownInitializeMethod.Accessibility != Accessibility.Public)
+                 && !targetType.IsSealed && targetType.TypeKind == Code.TypeKind.Class )
             {
-                builder.ReturnType = baseMethod.ReturnType;
+                return this.CreateFailedResult(
+                    AdviceDiagnosticDescriptors.InitializeNotVirtual.CreateRoslynDiagnostic(
+                        targetType.GetDiagnosticLocation(),
+                        (this.AspectInstance.AspectClass.ShortName, targetType),
+                        this ) );
+            }
+
+            return Succeed( ownInitializeMethod, baseMethod: null );
+        }
+
+        // Resolves or introduces the Initialize method and returns it along with the base method (if overriding).
+        // Check if the target type already implements IInitializable (directly or via a base type).
+        if ( targetType.TryFindImplementationForInterfaceMember( interfaceMethod, out var existingImpl ) )
+        {
+            var existingMethod = (IMethod) existingImpl;
+
+            if ( targetType.Compilation.Comparers.Default.Equals( existingMethod.DeclaringType, targetType ) )
+            {
+                // The target type itself declares Initialize — validate and use it.
+                if ( (!existingMethod.IsVirtual && !existingMethod.IsOverride
+                      || existingMethod.Accessibility != Accessibility.Public)
+                     && !targetType.IsSealed && targetType.TypeKind == Code.TypeKind.Class )
+                {
+                    return this.CreateFailedResult(
+                        AdviceDiagnosticDescriptors.InitializeNotVirtual.CreateRoslynDiagnostic(
+                            targetType.GetDiagnosticLocation(),
+                            (this.AspectInstance.AspectClass.ShortName, targetType),
+                            this ) );
+                }
+
+                return Succeed( existingMethod, baseMethod: null );
+            }
+
+            // Inherited from a base type — override it if possible.
+            if ( existingMethod.IsVirtual || existingMethod.IsOverride )
+            {
+                return Succeed( IntroduceMethod( existingMethod ), baseMethod: existingMethod );
+            }
+        }
+
+        return Succeed( IntroduceMethod( null ), baseMethod: null );
+
+        IMethod IntroduceMethod( IMethod? baseMethodToOverride )
+        {
+            var builder = new MethodBuilder( this.AspectLayerInstance, targetType, "Initialize" )
+            {
+                ReturnType = targetType.Compilation.Factory.GetSpecialType( Code.SpecialType.Void ),
+                Accessibility = Accessibility.Public
+            };
+
+            if ( baseMethodToOverride != null )
+            {
+                // Override the base method.
+                builder.IsOverride = true;
+                builder.OverriddenMethod = baseMethodToOverride;
             }
             else
             {
-                builder.ReturnType = targetType;
+                // New method — virtual unless the type is sealed or a struct.
+                builder.IsVirtual = !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct;
             }
 
-            builder.Accessibility = Accessibility.Public;
-
-            // Virtual unless the type is sealed or a struct.
-            if ( !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct )
-            {
-                builder.IsVirtual = true;
-            }
-
-            if ( baseMethod != null )
-            {
-                builder.IsOverride = true;
-                builder.IsVirtual = false;
-                builder.OverriddenMethod = baseMethod;
-            }
-
-            // Add parameter: InitializationContext context = default.
-            var initContextType = targetType.Compilation.Factory.GetTypeByReflectionType( typeof(InitializationContext) );
             builder.AddParameter( "context", initContextType, defaultValue: TypedConstant.Default( initContextType ) );
-
-            // Add [OnInitialized] attribute.
-            builder.AddAttribute( AttributeConstruction.Create( typeof(OnInitializedAttribute) ) );
 
             builder.Freeze();
 
             context.AddTransformation(
-                new IntroduceMethodTransformation( this.AspectLayerInstance, builder.BuilderData )
-                {
-                    DefaultReturnExpression = ThisExpression()
-                } );
+                new IntroduceMethodTransformation( this.AspectLayerInstance, builder.BuilderData ) );
 
-            onInitializedMethod = builder;
+            // Introduce the IInitializable interface if the type doesn't already implement it.
+            if ( baseMethodToOverride == null )
+            {
+                context.AddTransformation(
+                    new IntroduceInterfaceTransformation(
+                        this.AspectLayerInstance,
+                        targetType.ToFullRef(),
+                        initializableType.ToFullRef(),
+                        new Dictionary<IMember, IMember> { { interfaceMethod, builder } } ) );
+            }
+
+            return builder;
         }
-        else
+
+        AddInitializerAdviceResult Succeed( IMethod initializeMethod, IMethod? baseMethod )
         {
-            onInitializedMethod = existingMethod;
-        }
+            // Add the template body as a statement in the Initialize method.
+            context.AddTransformation(
+                new InsertTemplateStatementsTransformation(
+                    this.AspectLayerInstance,
+                    targetType.ToRef(),
+                    initializeMethod.ToFullRef(),
+                    this._boundTemplate ) );
 
-        // Add the template body as a statement in the OnInitialized method.
-        context.AddTransformation(
-            new InsertTemplateStatementsTransformation(
-                this.AspectLayerInstance,
-                targetType.ToRef(),
-                onInitializedMethod.ToFullRef(),
-                this._boundTemplate ) );
-
-        if ( existingMethod == null )
-        {
-            // If base has [OnInitialized], add "base.OnInitialized(context.Descend(...))" as first statement.
-            // Uses InitializerPrologue to guarantee it precedes all template-injected statements.
-            var baseMethod = FindOverridableOnInitializedMethodInBase( targetType );
-
+            // If overriding a base method, add "base.Initialize(context.Descend(...))" as first statement.
             if ( baseMethod != null )
             {
                 var slotExpression = this.CreateSlotExpression();
@@ -127,13 +170,13 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
                     new InsertSyntaxStatementsTransformation(
                         this.AspectLayerInstance,
                         targetType.ToRef(),
-                        onInitializedMethod.ToFullRef(),
+                        initializeMethod.ToFullRef(),
                         _ => ExpressionStatement(
                             InvocationExpression(
                                 MemberAccessExpression(
                                     SyntaxKind.SimpleMemberAccessExpression,
                                     BaseExpression(),
-                                    IdentifierName( "OnInitialized" ) ),
+                                    IdentifierName( "Initialize" ) ),
                                 ArgumentList(
                                     SingletonSeparatedList(
                                         Argument(
@@ -147,38 +190,9 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
                                                         Argument( slotExpression ) ) ) ) ) ) ) ) ),
                         InsertedStatementKind.InitializerPrologue ) );
             }
+
+            return new AddInitializerAdviceResult( AdviceOutcome.Success, this.AdviceFactory );
         }
-
-        return new AddInitializerAdviceResult( AdviceOutcome.Success, this.AdviceFactory );
-    }
-
-    private static IMethod? FindOnInitializedMethod( INamedType type )
-    {
-        return type.Methods
-            .OfName( "OnInitialized" )
-            .FirstOrDefault( m => m.Attributes.Any( a => a.Type.FullName == "Metalama.Framework.RunTime.Initialization.OnInitializedAttribute" ) );
-    }
-
-    private static IMethod? FindOverridableOnInitializedMethodInBase( INamedType type )
-    {
-        var baseType = type.BaseType;
-
-        while ( baseType != null )
-        {
-            var method = FindOnInitializedMethod( baseType );
-
-            if ( method != null )
-            {
-                // Only return the method if it is overridable (virtual or already an override).
-                // A non-virtual/sealed base method cannot be overridden — the introduced method
-                // will shadow it implicitly.
-                return method.IsVirtual || method.IsOverride ? method : null;
-            }
-
-            baseType = baseType.BaseType;
-        }
-
-        return null;
     }
 
     /// <summary>
@@ -200,7 +214,7 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
         {
             var fieldAccess = MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
-                CreateFullyQualifiedName( field.DeclaringType.FullName ),
+                SyntaxFactoryEx.CreateFullyQualifiedName( field.DeclaringType.FullName ),
                 SyntaxFactoryEx.SafeIdentifierName( field.Name ) );
 
             result = result == null
@@ -209,28 +223,6 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
         }
 
         return result!;
-    }
-
-    /// <summary>
-    /// Creates a <c>global::Namespace.Type</c> syntax from a fully-qualified type name.
-    /// </summary>
-    private static ExpressionSyntax CreateFullyQualifiedName( string fullName )
-    {
-        var parts = fullName.Split( '.' );
-
-        ExpressionSyntax result = AliasQualifiedName(
-            SyntaxFactoryEx.WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
-            SyntaxFactoryEx.SafeIdentifierName( parts[0] ) );
-
-        for ( var i = 1; i < parts.Length; i++ )
-        {
-            result = MemberAccessExpression(
-                SyntaxKind.SimpleMemberAccessExpression,
-                result,
-                SyntaxFactoryEx.SafeIdentifierName( parts[i] ) );
-        }
-
-        return result;
     }
 
     public override AdviceKind AdviceKind => AdviceKind.AddInitializer;

@@ -50,6 +50,12 @@ public readonly struct InitializationContext
     public static InitializationContext CallInitialize { get; } = new( CallerIntent.CallInitialize );
 
     /// <summary>
+    /// A context for <c>with</c> expressions or clone operations. <c>OnInitialized</c> should
+    /// revalidate invariants and reinitialize derived state.
+    /// </summary>
+    public static InitializationContext Modify { get; } = new( CallerIntent.None, 0u, InitializationMetadata.Modify );
+
+    /// <summary>
     /// Creates a context with the given metadata. Used when calling <c>OnInitialized</c> directly
     /// (not via a constructor), e.g., after deserialization or a <c>with</c> expression.
     /// </summary>

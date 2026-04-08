@@ -8,7 +8,7 @@ internal enum InsertedStatementKind
 {
     /// <summary>
     /// Insert statement before all initializer statements in the final version of the declaration.
-    /// Used for base calls (e.g. <c>base.OnInitialized(...)</c>) that must precede template-injected statements.
+    /// Used for base calls (e.g. <c>base.Initialize(...)</c>) that must precede template-injected statements.
     /// </summary>
     InitializerPrologue = -300,
 

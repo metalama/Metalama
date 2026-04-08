@@ -1484,7 +1484,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             var templateMember = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            if ( kind == InitializerKind.OnInitialized )
+            if ( kind == InitializerKind.AfterObjectInitializer )
             {
                 var advice = new OnInitializedAdvice(
                     this.GetAdviceConstructorParameters<INamedType>( targetType ),

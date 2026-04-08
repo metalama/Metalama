@@ -14,7 +14,7 @@ public class TheAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.AddInitializer( nameof(InitializerTemplate), InitializerKind.OnInitialized );
+        builder.AddInitializer( nameof(InitializerTemplate), InitializerKind.AfterObjectInitializer );
     }
 
     [Template]
@@ -26,13 +26,10 @@ public class TheAspect : TypeAspect
 
 // <target>
 [TheAspect]
-public class TargetCode
+public class TargetCode : IInitializable
 {
-    [OnInitialized]
-    public virtual TargetCode OnInitialized( InitializationContext context = default )
+    public virtual void Initialize( InitializationContext context )
     {
         Console.WriteLine( "Hand-authored!" );
-
-        return this;
     }
 }

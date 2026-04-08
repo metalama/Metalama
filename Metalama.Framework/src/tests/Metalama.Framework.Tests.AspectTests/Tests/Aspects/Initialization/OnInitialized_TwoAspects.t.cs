@@ -1,14 +1,12 @@
 [FirstAspect]
 [SecondAspect]
-public class TargetCode
+public class TargetCode : global::Metalama.Framework.RunTime.Initialization.IInitializable
 {
-  [global::Metalama.Framework.RunTime.Initialization.OnInitializedAttribute]
-  public virtual global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnInitialized_TwoAspects.TargetCode OnInitialized(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  public virtual void Initialize(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {
     global::System.Console.WriteLine("First1");
     global::System.Console.WriteLine("First2");
     global::System.Console.WriteLine("Second1");
     global::System.Console.WriteLine("Second2");
-    return this;
   }
 }

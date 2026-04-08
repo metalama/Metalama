@@ -14,7 +14,7 @@ public class TheAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.AddInitializer( nameof(InitializerTemplate), InitializerKind.OnInitialized );
+        builder.AddInitializer( nameof(InitializerTemplate), InitializerKind.AfterObjectInitializer );
     }
 
     [Template]

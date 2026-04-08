@@ -249,17 +249,17 @@ internal static class TemplateBindingHelper
 
             // Verify the parameter type is InitializationContext.
             if ( parameterSymbol.Type is not INamedTypeSymbol namedType
-                 || namedType.Name != "InitializationContext"
-                 || namedType.ContainingNamespace.ToDisplayString() != "Metalama.Framework.RunTime.Initialization" )
+                 || namedType.Name != nameof(Metalama.Framework.RunTime.Initialization.InitializationContext)
+                 || namedType.ContainingNamespace.ToDisplayString() != typeof(Metalama.Framework.RunTime.Initialization.InitializationContext).Namespace )
             {
                 throw new InvalidTemplateSignatureException(
                     MetalamaStringFormatter.Format(
                         $"Cannot use the method '{template.Symbol}' as an OnInitialized template: the run-time parameter '{parameterSymbol.Name}' must be of type InitializationContext." ) );
             }
 
-            // Map the template parameter to the 'context' identifier of the enclosing OnInitialized method.
+            // Map the template parameter to the 'context' identifier of the enclosing Initialize method.
             // This assumes the parameter is named "context", which is guaranteed for introduced methods
-            // (see OnInitializedAdvice) and conventional for hand-authored [OnInitialized] methods.
+            // (see OnInitializedAdvice) and conventional for hand-authored IInitializable.Initialize implementations.
             parameterMapping = parameterMapping.Add( runTimeParameter.Name, IdentifierName( "context" ) );
         }
 

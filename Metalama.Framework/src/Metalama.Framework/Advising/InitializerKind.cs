@@ -3,8 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
-using System;
-using System.ComponentModel;
 
 namespace Metalama.Framework.Advising
 {
@@ -75,17 +73,10 @@ namespace Metalama.Framework.Advising
         AfterLastInstanceConstructor,
 
         /// <summary>
-        /// Indicates that the advice should be executed after all constructors are finished and after the initialization block.
-        /// </summary>
-        [Obsolete( "Not implemented", true )]
-        [EditorBrowsable( EditorBrowsableState.Never )]
-        AfterObjectInitialization,
-
-
-        /// <summary>
-        /// Indicates that the advice should inject statements into an <c>[OnInitialized]</c> method
-        /// on the target type. If the type does not already have an <c>[OnInitialized]</c> method,
-        /// one is introduced automatically.
+        /// Indicates that the advice should inject statements into the <c>Initialize</c> method
+        /// of <see cref="RunTime.Initialization.IInitializable"/> on the target type. If the type
+        /// does not already implement <see cref="RunTime.Initialization.IInitializable"/>, the interface
+        /// and method are introduced automatically.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -98,8 +89,8 @@ namespace Metalama.Framework.Advising
         /// <see cref="RunTime.Initialization.InitializationContext"/> parameter.
         /// </para>
         /// </remarks>
-        /// <seealso cref="RunTime.Initialization.OnInitializedAttribute"/>
+        /// <seealso cref="RunTime.Initialization.IInitializable"/>
         /// <seealso cref="RunTime.Initialization.InitializationContext"/>
-        OnInitialized
+        AfterObjectInitializer
     }
 }
