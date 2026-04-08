@@ -19,8 +19,8 @@ namespace Metalama.Framework.Engine.Linking;
 internal sealed class InitializableTypeRegistry
 {
     private readonly CompilationContext _compilationContext;
-    private readonly INamedTypeSymbol? _initializableInterfaceType;
-    private readonly INamedTypeSymbol? _initializationContextType;
+    private readonly INamedTypeSymbol _initializableInterfaceType;
+    private readonly INamedTypeSymbol _initializationContextType;
 
     /// <summary>
     /// Cache for resolved type info (includes inheritance lookups).
@@ -33,10 +33,10 @@ internal sealed class InitializableTypeRegistry
         this._compilationContext = compilationContext;
 
         this._initializableInterfaceType =
-            compilationContext.Compilation.GetTypeByMetadataName( typeof(IInitializable).FullName! );
+            (INamedTypeSymbol) compilationContext.ReflectionMapper.GetTypeSymbol( typeof(IInitializable) );
 
         this._initializationContextType =
-            compilationContext.Compilation.GetTypeByMetadataName( typeof(InitializationContext).FullName! );
+            (INamedTypeSymbol) compilationContext.ReflectionMapper.GetTypeSymbol( typeof(InitializationContext) );
 
         this._cache = new ConcurrentDictionary<INamedTypeSymbol, InitializableTypeInfo?>( compilationContext.SymbolComparer );
     }
@@ -137,6 +137,13 @@ internal sealed class InitializableTypeRegistry
                 continue;
             }
 
+            // The candidate must have at least the same required parameters as the original,
+            // plus the InitializationContext parameter.
+            if ( candidate.Parameters.Length < requiredParamCount + 1 )
+            {
+                continue;
+            }
+
             var contextParam = this.FindInitializationContextParameter( candidate );
 
             if ( contextParam == null )
@@ -144,30 +151,13 @@ internal sealed class InitializableTypeRegistry
                 continue;
             }
 
-            // The candidate must have at least the same required parameters as the original,
-            // plus the InitializationContext parameter.
             // Check that all required parameters of the original constructor match the candidate's
             // leading parameters by type.
-            if ( candidate.Parameters.Length < requiredParamCount + 1 )
-            {
-                continue;
-            }
-
-            var isMatch = true;
-
-            for ( var i = 0; i < requiredParamCount; i++ )
-            {
-                if ( !this._compilationContext.SymbolComparer.Equals(
-                         constructor.Parameters[i].Type,
-                         candidate.Parameters[i].Type ) )
-                {
-                    isMatch = false;
-
-                    break;
-                }
-            }
-
-            if ( isMatch )
+            if ( Enumerable.Range( 0, requiredParamCount )
+                .All(
+                    i => this._compilationContext.SymbolComparer.Equals(
+                        constructor.Parameters[i].Type,
+                        candidate.Parameters[i].Type ) ) )
             {
                 return contextParam.Name;
             }
@@ -180,22 +170,7 @@ internal sealed class InitializableTypeRegistry
     /// Checks whether the given type implements <c>IInitializable</c>.
     /// </summary>
     private bool ImplementsIInitializable( INamedTypeSymbol type )
-    {
-        if ( this._initializableInterfaceType == null )
-        {
-            return false;
-        }
-
-        foreach ( var iface in type.AllInterfaces )
-        {
-            if ( this._compilationContext.SymbolComparer.Equals( iface, this._initializableInterfaceType ) )
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+        => this._compilationContext.Compilation.HasImplicitConversion( type, this._initializableInterfaceType );
 
     private static IMethodSymbol? FindInitializeMethodInHierarchy( INamedTypeSymbol type )
     {
@@ -217,33 +192,11 @@ internal sealed class InitializableTypeRegistry
     }
 
     private static IMethodSymbol? FindInitializeMethod( INamedTypeSymbol type )
-    {
-        foreach ( var member in type.GetMembers( "Initialize" ) )
-        {
-            if ( member is IMethodSymbol { Parameters.Length: 1 } method )
-            {
-                return method;
-            }
-        }
-
-        return null;
-    }
+        => type.GetMembers( nameof(IInitializable.Initialize) )
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault( m => m.Parameters.Length == 1 );
 
     private IParameterSymbol? FindInitializationContextParameter( IMethodSymbol constructor )
-    {
-        if ( this._initializationContextType == null )
-        {
-            return null;
-        }
-
-        foreach ( var param in constructor.Parameters )
-        {
-            if ( this._compilationContext.SymbolComparer.Equals( param.Type, this._initializationContextType ) )
-            {
-                return param;
-            }
-        }
-
-        return null;
-    }
+        => constructor.Parameters.FirstOrDefault(
+            p => this._compilationContext.SymbolComparer.Equals( p.Type, this._initializationContextType ) );
 }

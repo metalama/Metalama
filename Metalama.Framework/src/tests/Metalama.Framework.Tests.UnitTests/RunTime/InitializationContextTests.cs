@@ -150,6 +150,45 @@ public class InitializationContextTests
     }
 
     [Fact]
+    public void CreateWithMetadata_HasWillInitializeIntent()
+    {
+        var context = InitializationContext.Create( InitializationMetadata.Default );
+
+        Assert.Equal( CallerIntent.WillInitialize, context.Intent );
+        Assert.True( context.WillCallOnInitialized );
+    }
+
+    [Fact]
+    public void WithInitialize_PassesWillInitializeIntent()
+    {
+        var obj = new RecordingInitializable();
+
+        var result = obj.WithInitialize();
+
+        Assert.Same( obj, result );
+        Assert.Equal( CallerIntent.WillInitialize, obj.ReceivedContext.Intent );
+        Assert.True( obj.ReceivedContext.WillCallOnInitialized );
+    }
+
+    [Fact]
+    public void WithInitialize_WithMetadata_FlowsMetadata()
+    {
+        var obj = new RecordingInitializable();
+
+        obj.WithInitialize( InitializationMetadata.Modify );
+
+        Assert.Same( InitializationMetadata.Modify, obj.ReceivedContext.Metadata );
+        Assert.Equal( CallerIntent.WillInitialize, obj.ReceivedContext.Intent );
+    }
+
+    private sealed class RecordingInitializable : IInitializable
+    {
+        public InitializationContext ReceivedContext { get; private set; }
+
+        public void Initialize( InitializationContext context ) => this.ReceivedContext = context;
+    }
+
+    [Fact]
     public void DefaultContext_HasNullMetadata()
     {
         var context = default(InitializationContext);

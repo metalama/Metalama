@@ -599,6 +599,9 @@ public sealed partial class ContextualSyntaxGenerator
         }
     }
 
+    internal TypeSyntax TypeSyntax( System.Type type )
+        => this.TypeSyntax( this.SyntaxGenerationContext.ReflectionMapper.GetTypeSymbol( type ) );
+
     private ExpressionSyntax TypeExpression( ITypeSymbol symbol )
     {
         if ( this.SyntaxGenerationContext.HasCompilationContext && symbol.BelongsToCompilation( this.SyntaxGenerationContext.CompilationContext ) == true )

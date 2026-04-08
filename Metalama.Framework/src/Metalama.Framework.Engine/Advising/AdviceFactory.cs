@@ -1488,7 +1488,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             {
                 var advice = new OnInitializedAdvice(
                     this.GetAdviceConstructorParameters<INamedType>( targetType ),
-                    templateMember.ForOnInitialized( this.GetArgsReader( args ) ),
+                    templateMember.ForInitialize( this.GetArgsReader( args ) ),
                     slotFields );
 
                 return advice.Execute( this._state );

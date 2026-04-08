@@ -82,7 +82,7 @@ internal sealed class OnInitializedObjectCreationSubstitution : OnInitializedCal
     {
         return MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
-                GetTypeSyntax( substitutionContext, typeof(InitializationContext) ),
+                substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( typeof(InitializationContext) ),
                 SyntaxFactoryEx.SafeIdentifierName( nameof(InitializationContext.WillInitialize) ) )
             .WithSimplifierAnnotation();
     }

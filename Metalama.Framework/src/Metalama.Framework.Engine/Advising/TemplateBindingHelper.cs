@@ -213,11 +213,11 @@ internal static class TemplateBindingHelper
     }
 
     /// <summary>
-    /// Binds a template to an OnInitialized or OnConstructed method with given arguments.
+    /// Binds a template to an <c>Initialize</c> method with given arguments.
     /// The template may optionally have a single run-time parameter of type <c>InitializationContext</c>,
     /// which is mapped to the enclosing method's <c>context</c> parameter.
     /// </summary>
-    public static BoundTemplateMethod ForOnInitialized(
+    public static BoundTemplateMethod ForInitialize(
         this TemplateMember<IMethod> template,
         IObjectReader? arguments = null )
     {
@@ -228,7 +228,7 @@ internal static class TemplateBindingHelper
         {
             throw new InvalidTemplateSignatureException(
                 MetalamaStringFormatter.Format(
-                    $"Cannot use the method '{template.Symbol}' as an OnInitialized template: the method return type must be void." ) );
+                    $"Cannot use the method '{template.Symbol}' as an Initialize template: the method return type must be void." ) );
         }
 
         var runTimeParameters = template.TemplateClassMember.RunTimeParameters;
@@ -237,7 +237,7 @@ internal static class TemplateBindingHelper
         {
             throw new InvalidTemplateSignatureException(
                 MetalamaStringFormatter.Format(
-                    $"Cannot use the method '{template.Symbol}' as an OnInitialized template: the method can have at most one run-time parameter of type InitializationContext." ) );
+                    $"Cannot use the method '{template.Symbol}' as an Initialize template: the method can have at most one run-time parameter of type InitializationContext." ) );
         }
 
         var parameterMapping = ImmutableDictionary<string, ExpressionSyntax>.Empty;
@@ -249,12 +249,11 @@ internal static class TemplateBindingHelper
 
             // Verify the parameter type is InitializationContext.
             if ( parameterSymbol.Type is not INamedTypeSymbol namedType
-                 || namedType.Name != nameof(Metalama.Framework.RunTime.Initialization.InitializationContext)
-                 || namedType.ContainingNamespace.ToDisplayString() != typeof(Metalama.Framework.RunTime.Initialization.InitializationContext).Namespace )
+                 || namedType.GetReflectionFullName() != typeof(Metalama.Framework.RunTime.Initialization.InitializationContext).FullName )
             {
                 throw new InvalidTemplateSignatureException(
                     MetalamaStringFormatter.Format(
-                        $"Cannot use the method '{template.Symbol}' as an OnInitialized template: the run-time parameter '{parameterSymbol.Name}' must be of type InitializationContext." ) );
+                        $"Cannot use the method '{template.Symbol}' as an Initialize template: the run-time parameter '{parameterSymbol.Name}' must be of type InitializationContext." ) );
             }
 
             // Map the template parameter to the 'context' identifier of the enclosing Initialize method.

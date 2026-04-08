@@ -46,20 +46,21 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
     protected override AddInitializerAdviceResult Implement( AdviceImplementationContext context )
     {
         var targetType = this.TargetDeclaration.ToRef().GetTarget( context.MutableCompilation );
+        var factory = targetType.Compilation.Factory;
 
         // Resolve the IInitializable interface and its Initialize method.
-        var initializableType = (INamedType) targetType.Compilation.Factory.GetTypeByReflectionType( typeof(IInitializable) );
+        var initializableType = (INamedType) factory.GetTypeByReflectionType( typeof(IInitializable) );
         var interfaceMethod = initializableType.Methods.Single();
-        var initContextType = targetType.Compilation.Factory.GetTypeByReflectionType( typeof(InitializationContext) );
+        var initContextType = factory.GetTypeByReflectionType( typeof(InitializationContext) );
 
         // First check if the target type itself already has an Initialize method (from source or from a
         // previously-introduced method by another advice in the same compilation pass). This handles the case
         // where TryFindImplementationForInterfaceMember wouldn't yet see builder-introduced overrides.
         var ownInitializeMethod = targetType.Methods
-            .OfName( "Initialize" )
+            .OfName( nameof(IInitializable.Initialize) )
             .SingleOrDefault(
                 m => m.Parameters.Count == 1
-                     && targetType.Compilation.Comparers.Default.Equals( m.Parameters[0].Type, initContextType ) );
+                     && m.Parameters[0].Type.Equals( initContextType ) );
 
         if ( ownInitializeMethod != null )
         {
@@ -75,6 +76,19 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
                         this ) );
             }
 
+            // Ensure the type implements IInitializable so that the linker will wrap call sites.
+            // If the user hand-authored a correctly-shaped Initialize method but didn't declare the interface,
+            // the linker's InitializableTypeRegistry won't find the type and won't wrap `new T()` call sites.
+            if ( !targetType.TryFindImplementationForInterfaceMember( interfaceMethod, out _ ) )
+            {
+                context.AddTransformation(
+                    new IntroduceInterfaceTransformation(
+                        this.AspectLayerInstance,
+                        targetType.ToFullRef(),
+                        initializableType.ToFullRef(),
+                        new Dictionary<IMember, IMember> { { interfaceMethod, ownInitializeMethod } } ) );
+            }
+
             return Succeed( ownInitializeMethod, baseMethod: null );
         }
 
@@ -84,7 +98,7 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
         {
             var existingMethod = (IMethod) existingImpl;
 
-            if ( targetType.Compilation.Comparers.Default.Equals( existingMethod.DeclaringType, targetType ) )
+            if ( existingMethod.DeclaringType.Equals( targetType ) )
             {
                 // The target type itself declares Initialize — validate and use it.
                 if ( (!existingMethod.IsVirtual && !existingMethod.IsOverride
@@ -112,9 +126,9 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
 
         IMethod IntroduceMethod( IMethod? baseMethodToOverride )
         {
-            var builder = new MethodBuilder( this.AspectLayerInstance, targetType, "Initialize" )
+            var builder = new MethodBuilder( this.AspectLayerInstance, targetType, nameof(IInitializable.Initialize) )
             {
-                ReturnType = targetType.Compilation.Factory.GetSpecialType( Code.SpecialType.Void ),
+                ReturnType = factory.GetSpecialType( Code.SpecialType.Void ),
                 Accessibility = Accessibility.Public
             };
 
@@ -176,7 +190,7 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
                                 MemberAccessExpression(
                                     SyntaxKind.SimpleMemberAccessExpression,
                                     BaseExpression(),
-                                    IdentifierName( "Initialize" ) ),
+                                    IdentifierName( nameof(IInitializable.Initialize) ) ),
                                 ArgumentList(
                                     SingletonSeparatedList(
                                         Argument(

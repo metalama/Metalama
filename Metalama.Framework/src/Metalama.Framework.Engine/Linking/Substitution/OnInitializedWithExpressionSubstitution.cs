@@ -43,7 +43,7 @@ internal sealed class OnInitializedWithExpressionSubstitution : OnInitializedCal
     {
         return MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
-                GetTypeSyntax( substitutionContext, typeof(InitializationMetadata) ),
+                substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( typeof(InitializationMetadata) ),
                 SyntaxFactoryEx.SafeIdentifierName( nameof(InitializationMetadata.Modify) ) )
             .WithSimplifierAnnotation();
     }

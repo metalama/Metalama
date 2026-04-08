@@ -43,7 +43,8 @@ internal abstract class OnInitializedCallSiteSubstitution : SyntaxNodeSubstituti
         ExpressionSyntax expression,
         ExpressionSyntax? metadataArgument = null )
     {
-        var initializableExtensionsType = GetTypeSyntax( substitutionContext, typeof(InitializableExtensions) );
+        var initializableExtensionsType =
+            substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( typeof(InitializableExtensions) );
 
         var initializedAccess = MemberAccessExpression(
             SyntaxKind.SimpleMemberAccessExpression,
@@ -68,15 +69,5 @@ internal abstract class OnInitializedCallSiteSubstitution : SyntaxNodeSubstituti
         }
 
         return InvocationExpression( initializedAccess, argList ).WithSimplifierAnnotation();
-    }
-
-    /// <summary>
-    /// Returns a cached <see cref="TypeSyntax"/> for the given reflection <see cref="System.Type"/>.
-    /// </summary>
-    protected static TypeSyntax GetTypeSyntax( SubstitutionContext substitutionContext, System.Type type )
-    {
-        var symbol = substitutionContext.SyntaxGenerationContext.ReflectionMapper.GetTypeSymbol( type );
-
-        return substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( symbol );
     }
 }
