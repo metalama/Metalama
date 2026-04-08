@@ -7,7 +7,7 @@
 using System.Collections.Generic;
 using Metalama.Framework.Fabrics;
 
-namespace Metalama.Patterns.Contracts.AspectTests.Fabric_Project_Required_Collection
+namespace Metalama.Patterns.Contracts.AspectTests.Diagnostics.Fabric_Project_Required_Collection
 {
     internal class Fabric : ProjectFabric
     {
@@ -17,9 +17,11 @@ namespace Metalama.Patterns.Contracts.AspectTests.Fabric_Project_Required_Collec
         }
     }
 
+    // <target>
     public class TestClass
     {
-        // [Required] on collection parameter should NOT trigger LAMA5003.
+        // [Required] on collection parameter SHOULD trigger LAMA5003 because [Required]
+        // and [NotNull] have identical behavior for non-string types.
         public void ProcessItems( [Required] ICollection<string> items )
         {
         }

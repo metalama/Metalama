@@ -66,7 +66,6 @@ public static class ContractExtensions
 
         var requiredAttribute = (INamedType) TypeFactory.GetType( typeof(RequiredAttribute) );
         var notNullableAttribute = (INamedType) TypeFactory.GetType( typeof(NotNullAttribute) );
-        var iEnumerableType = (INamedType) TypeFactory.GetType( typeof(System.Collections.IEnumerable) );
 
         static bool IsNullableType( IHasType d ) => d is { Type: { IsReferenceType: true, IsNullable: false }, RefKind: RefKind.None };
 
@@ -74,9 +73,9 @@ public static class ContractExtensions
             => d.Attributes.OfAttributeType( requiredAttribute ).FirstOrDefault() ??
                d.Attributes.OfAttributeType( notNullableAttribute ).FirstOrDefault();
 
-        // [Required] provides additional validation beyond [NotNull] for strings (empty/whitespace check)
-        // and collections (empty check). For these types, [Required] is not redundant, so we should
-        // silently skip adding [NotNull] without reporting a warning.
+        // [Required] provides additional validation beyond [NotNull] for strings (empty/whitespace check).
+        // For strings, [Required] is not redundant, so we should silently skip adding [NotNull]
+        // without reporting a warning.
         bool IsRequiredRedundant( IDeclaration d, IAttribute attribute )
         {
             if ( !attribute.Type.IsConvertibleTo( requiredAttribute ) )
@@ -95,8 +94,8 @@ public static class ContractExtensions
                 return true;
             }
 
-            // [Required] is NOT redundant for strings and collections.
-            return type.SpecialType != SpecialType.String && !type.IsConvertibleTo( iEnumerableType );
+            // [Required] is NOT redundant for strings because it also validates empty/whitespace.
+            return type.SpecialType != SpecialType.String;
         }
 
         // Add aspects to fields, properties and indexers.
@@ -122,8 +121,8 @@ public static class ContractExtensions
             .Where( parameter => GetNotNullAspectAttribute( parameter ) == null )
             .AddAspectIfEligible<NotNullAttribute>();
 
-        // Warn if the attribute is duplicate, but not when [Required] is used on a string or collection
-        // because [Required] provides additional validation beyond [NotNull] for those types.
+        // Warn if the attribute is duplicate, but not when [Required] is used on a string
+        // because [Required] provides additional validation beyond [NotNull] for strings.
         fieldsAndProperties.Where( f => GetNotNullAspectAttribute( f ) is { } attr && IsRequiredRedundant( f, attr ) )
             .ReportDiagnostic(
                 f =>

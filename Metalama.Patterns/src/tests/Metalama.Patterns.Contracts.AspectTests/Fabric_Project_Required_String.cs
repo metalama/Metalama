@@ -16,6 +16,7 @@ namespace Metalama.Patterns.Contracts.AspectTests.Fabric_Project_Required_String
         }
     }
 
+    // <target>
     public class TestClass
     {
         // [Required] on string parameter should NOT trigger LAMA5003 because [Required]
