@@ -61,9 +61,16 @@ namespace Metalama.Framework.Engine.Linking
                      && this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
                 {
                     // Backing field for auto property.
+                    // When the property is initialized from a primary constructor parameter (e.g., `Action { get; init; } = action`),
+                    // the initializer references the primary constructor parameter which won't exist after the constructor is rewritten.
+                    // The assignment is handled in the explicit constructor body instead.
+                    var backingFieldInitializer = this.LateTransformationRegistry.IsPrimaryConstructorInitializedMember( symbol )
+                        ? null
+                        : propertyDeclaration.Initializer;
+
                     var backingField = this.GetPropertyBackingField(
                         propertyDeclaration.Type,
-                        propertyDeclaration.Initializer,
+                        backingFieldInitializer,
                         FilterAttributeListsForTarget( propertyDeclaration.AttributeLists, SyntaxKind.FieldKeyword, false, false ),
                         symbol,
                         generationContext );
