@@ -61,9 +61,9 @@ namespace Metalama.Framework.Engine.Linking
                      && this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
                 {
                     // Backing field for auto property.
-                    // When the property is initialized from a primary constructor parameter (e.g., `Action { get; init; } = action`),
-                    // the initializer references the primary constructor parameter which won't exist after the constructor is rewritten.
-                    // The assignment is handled in the explicit constructor body instead.
+                    // When primary-constructor removal moves this member's initialization into the synthesized constructor body,
+                    // the generated backing field must not keep the original initializer, or the initialization would be duplicated
+                    // and could reference constructor-only state.
                     var backingFieldInitializer = this.LateTransformationRegistry.IsPrimaryConstructorInitializedMember( symbol )
                         ? null
                         : propertyDeclaration.Initializer;
