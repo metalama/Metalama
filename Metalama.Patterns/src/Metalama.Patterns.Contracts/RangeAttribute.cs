@@ -181,7 +181,7 @@ public class RangeAttribute : ContractBaseAttribute
                 SpecialType.Double or
                 SpecialType.Decimal or
                 SpecialType.Object => true,
-            _ => false
+            _ => CompileTimeHelpers.IsGenericMathType( type )
         };
 
     private (NumericRange Range, InequalityAmbiguity? Ambiguity) ResolveRange( ContractContext context )
@@ -223,6 +223,16 @@ public class RangeAttribute : ContractBaseAttribute
                      this.GetType().Name,
                      resolvedRange.Ambiguity.NewName1, resolvedRange.Ambiguity.NewName2, resolvedRange.Ambiguity.DefaultStrictness) ),
                 attribute ?? builder.Target );
+        }
+
+        // Generic-math targets (type parameters constrained to INumberBase<>, or
+        // user-defined types implementing INumberBase<>): cannot compile-time
+        // validate bounds. T.CreateChecked throws OverflowException at runtime if
+        // a bound does not fit in T (accepted trade-off per issue #1543).
+        // Check before ToNonNullable to also handle T? where T : struct, INumber<T>.
+        if ( CompileTimeHelpers.IsGenericMathType( targetType ) )
+        {
+            return;
         }
 
         var basicType = (INamedType) targetType.ToNonNullable();

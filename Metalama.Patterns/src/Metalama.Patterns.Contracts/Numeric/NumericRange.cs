@@ -303,22 +303,35 @@ public readonly struct NumericRange : ICompileTimeSerializable
 
         var nonNullableType = valueType.ToNonNullable();
         var isObject = nonNullableType.SpecialType == SpecialType.Object;
+        var isGenericMath = CompileTimeHelpers.IsGenericMathType( valueType );
 
-        // Check if we have checks of min or max value.
-        ConversionResult minConversionResult = default;
-        ConversionResult maxConversionResult = default;
-        var hasMinCheck = this.MinValue != null && this.MinValue.TryConvert( nonNullableType, out _, out minConversionResult );
-        var hasMaxCheck = this.MaxValue != null && this.MaxValue.TryConvert( nonNullableType, out _, out maxConversionResult );
+        bool hasMinCheck;
+        bool hasMaxCheck;
 
-        // Eliminate redundant checks.
-        if ( hasMinCheck && minConversionResult == ConversionResult.ExactlyMinValue && this.MinValue!.IsAllowed )
+        if ( isGenericMath )
         {
-            hasMinCheck = false;
+            // No compile-time redundancy analysis possible for abstract T.
+            hasMinCheck = this.MinValue != null;
+            hasMaxCheck = this.MaxValue != null;
         }
-
-        if ( hasMaxCheck && maxConversionResult == ConversionResult.ExactlyMaxValue && this.MaxValue!.IsAllowed )
+        else
         {
-            hasMaxCheck = false;
+            // Check if we have checks of min or max value.
+            ConversionResult minConversionResult = default;
+            ConversionResult maxConversionResult = default;
+            hasMinCheck = this.MinValue != null && this.MinValue.TryConvert( nonNullableType, out _, out minConversionResult );
+            hasMaxCheck = this.MaxValue != null && this.MaxValue.TryConvert( nonNullableType, out _, out maxConversionResult );
+
+            // Eliminate redundant checks.
+            if ( hasMinCheck && minConversionResult == ConversionResult.ExactlyMinValue && this.MinValue!.IsAllowed )
+            {
+                hasMinCheck = false;
+            }
+
+            if ( hasMaxCheck && maxConversionResult == ConversionResult.ExactlyMaxValue && this.MaxValue!.IsAllowed )
+            {
+                hasMaxCheck = false;
+            }
         }
 
         if ( !hasMaxCheck && !hasMinCheck )
@@ -360,6 +373,47 @@ public readonly struct NumericRange : ICompileTimeSerializable
                 builder.AppendVerbatim( " == true" );
             }
         }
+#if NET8_0_OR_GREATER
+        else if ( isGenericMath )
+        {
+            void AppendGenericMathCheck( NumericBound bound, string strictOp, string nonStrictOp )
+            {
+                builder.AppendExpression( value );
+                builder.AppendVerbatim( " " );
+                builder.AppendVerbatim( bound.IsAllowed ? strictOp : nonStrictOp );
+                builder.AppendVerbatim( " " );
+                builder.AppendTypeName( nonNullableType );
+                builder.AppendVerbatim( "." );
+
+                if ( IsZeroBound( bound ) )
+                {
+                    builder.AppendVerbatim( nameof(System.Numerics.INumberBase<int>.Zero) );
+                }
+                else
+                {
+                    builder.AppendVerbatim( nameof(System.Numerics.INumberBase<int>.CreateChecked) );
+                    builder.AppendVerbatim( "(" );
+                    bound.AppendValueToExpression( builder );
+                    builder.AppendVerbatim( ")" );
+                }
+            }
+
+            if ( hasMinCheck )
+            {
+                AppendGenericMathCheck( this.MinValue!, "<", "<=" );
+            }
+
+            if ( hasMaxCheck )
+            {
+                if ( hasMinCheck )
+                {
+                    builder.AppendVerbatim( " || " );
+                }
+
+                AppendGenericMathCheck( this.MaxValue!, ">", ">=" );
+            }
+        }
+#endif
         else
         {
             void AppendMin()
@@ -418,8 +472,34 @@ public readonly struct NumericRange : ICompileTimeSerializable
         return true;
     }
 
+#if NET8_0_OR_GREATER
+    [CompileTime]
+    private static bool IsZeroBound( NumericBound bound )
+        => bound.ObjectValue switch
+        {
+            long l => l == 0L,
+            ulong u => u == 0UL,
+            int i => i == 0,
+            uint ui => ui == 0U,
+            short s => s == 0,
+            ushort us => us == 0,
+            sbyte sb => sb == 0,
+            byte b => b == 0,
+            double d => d == 0.0,
+            float f => f == 0f,
+            decimal m => m == 0m,
+            _ => false
+        };
+#endif
+
     internal NumericRangeTypeSupport IsTypeSupported( IType type )
     {
+        // Check before ToNonNullable to handle T? where T : struct, INumberBase<T>.
+        if ( CompileTimeHelpers.IsGenericMathType( type ) )
+        {
+            return NumericRangeTypeSupport.Supported;
+        }
+
         switch ( type.ToNonNullable().SpecialType )
         {
             case SpecialType.Object:

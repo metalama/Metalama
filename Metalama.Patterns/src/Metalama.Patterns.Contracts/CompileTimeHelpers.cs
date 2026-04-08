@@ -41,6 +41,79 @@ internal static class CompileTimeHelpers
         }
     }
 
+    private const string _numberBaseFullName = "System.Numerics.INumberBase";
+
+    public static bool IsGenericMathType( IType type )
+    {
+        var nonNullable = type.ToNonNullable();
+
+        // Fast reject: intrinsic (well-known) types — int, string, object, Task, etc.
+        if ( nonNullable.SpecialType != SpecialType.None )
+        {
+            return false;
+        }
+
+        // Check if the type (or its constraints) transitively implements INumberBase<>.
+        if ( nonNullable is ITypeParameter typeParameter )
+        {
+            // Walk type constraints for a type parameter.
+            foreach ( var constraint in typeParameter.TypeConstraints )
+            {
+                if ( constraint is INamedType namedConstraint && ImplementsNumberBase( namedConstraint ) )
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        else if ( nonNullable is INamedType namedType )
+        {
+            // Also handle Nullable<T> where T is a type parameter constrained to INumberBase<>.
+            if ( namedType.IsGeneric && namedType.Definition.SpecialType == SpecialType.Nullable_T )
+            {
+                var underlyingType = namedType.TypeArguments[0];
+
+                return IsGenericMathType( underlyingType );
+            }
+
+            return ImplementsNumberBase( namedType );
+        }
+
+        return false;
+    }
+
+    private static bool ImplementsNumberBase( INamedType type )
+    {
+        // Check the type itself and all implemented interfaces for INumberBase<>.
+        if ( IsNumberBaseDefinition( type ) )
+        {
+            return true;
+        }
+
+        foreach ( var iface in type.AllImplementedInterfaces )
+        {
+            if ( IsNumberBaseDefinition( iface ) )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsNumberBaseDefinition( INamedType type )
+    {
+        if ( type.TypeKind != TypeKind.Interface )
+        {
+            return false;
+        }
+
+        var definition = type.IsGeneric ? type.Definition : type;
+
+        return definition.FullName == _numberBaseFullName;
+    }
+
     public static void WarnIfNullable<T>( this IAspectBuilder<T> aspectBuilder )
         where T : class, IDeclaration, IHasType
     {
