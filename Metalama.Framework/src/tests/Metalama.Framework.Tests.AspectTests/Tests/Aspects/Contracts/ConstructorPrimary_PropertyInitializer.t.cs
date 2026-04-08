@@ -12,7 +12,7 @@ internal sealed class Target : IDisposable
     {
       if (value == null)
       {
-        throw new global::System.ArgumentNullException("value");
+        throw new global::System.ArgumentNullException(nameof(value));
       }
       this._action = value;
     }
