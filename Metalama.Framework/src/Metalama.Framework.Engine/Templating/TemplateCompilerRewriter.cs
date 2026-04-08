@@ -603,7 +603,14 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
             if ( node.NameColon != null )
             {
-                var transformedNameColon = this.TransformNameColon( node.NameColon );
+                // Generate the NameColon directly instead of using TransformNameColon, because
+                // the Name inside a NameColon is just a label (not a variable reference) and must
+                // not go through the visitor pipeline, which would incorrectly try to resolve it
+                // as a compile-time or run-time symbol. See #1537.
+                var transformedNameColon = this.MetaSyntaxFactory.NameColon(
+                    this.MetaSyntaxFactory.IdentifierName(
+                        this.MetaSyntaxFactory.Identifier( SyntaxFactoryEx.LiteralExpression( node.NameColon.Name.Identifier.Text ) ) ),
+                    this.MetaSyntaxFactory.Token( this.MetaSyntaxFactory.Kind( SyntaxKind.ColonToken ) ) );
 
                 transformedArgument =
                     InvocationExpression(
