@@ -473,8 +473,12 @@ public readonly struct NumericRange : ICompileTimeSerializable
     }
 
 #if NET8_0_OR_GREATER
+
+    // IDE0051 false positive: called from a local function in GeneratePattern.
+#pragma warning disable IDE0051
     [CompileTime]
     private static bool IsZeroBound( NumericBound bound )
+#pragma warning restore IDE0051
         => bound.ObjectValue switch
         {
             long l => l == 0L,
