@@ -4,6 +4,12 @@
 
 // Spec §1.6: Range validation with hand-authored IInitializable and required init properties.
 
+#if TEST_OPTIONS
+// @RequiredConstant(NET7_0_OR_GREATER)
+#endif
+
+#if NET7_0_OR_GREATER
+
 using Metalama.Framework.RunTime.Initialization;
 using System;
 
@@ -56,3 +62,5 @@ public class Caller
 
     }
 }
+
+#endif
