@@ -41,6 +41,32 @@ internal static class CompileTimeHelpers
         }
     }
 
+    private const string _numberReflectionName = "System.Numerics.INumber`1";
+
+    public static bool IsGenericMathType( IType type )
+    {
+        var nonNullable = type.ToNonNullable();
+
+        // Fast reject: intrinsic (well-known) types — int, string, object, Task, etc.
+        // can never be generic-math type parameters.
+        if ( nonNullable.SpecialType != SpecialType.None )
+        {
+            return false;
+        }
+
+        // Look up INumber<> in the target compilation. INumber<T> extends
+        // IComparisonOperators<T,T,bool>, guaranteeing that < and > operators
+        // are available for the generated range-check code.
+        // INumberBase<T> alone is not sufficient because it does not provide
+        // comparison operators (e.g. Complex implements INumberBase but not INumber).
+        if ( !nonNullable.Compilation.Factory.TryGetTypeByReflectionName( _numberReflectionName, out var numberType ) )
+        {
+            return false;
+        }
+
+        return nonNullable.IsConvertibleTo( numberType, ConversionKind.TypeDefinition );
+    }
+
     public static void WarnIfNullable<T>( this IAspectBuilder<T> aspectBuilder )
         where T : class, IDeclaration, IHasType
     {
