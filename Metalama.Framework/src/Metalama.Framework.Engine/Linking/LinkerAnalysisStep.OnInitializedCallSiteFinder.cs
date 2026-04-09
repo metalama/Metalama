@@ -63,8 +63,9 @@ internal sealed partial class LinkerAnalysisStep
         }
 
         /// <summary>
-        /// Walks a syntax tree, tracking the containing method symbol, and looking for
-        /// object creation and <c>with</c> expressions targeting types implementing <c>IInitializable</c>.
+        /// Walks a syntax tree, tracking the containing symbol (method body or field/property
+        /// initializer member), and looking for object creation and <c>with</c> expressions
+        /// targeting types implementing <c>IInitializable</c>.
         /// </summary>
         private sealed class CallSiteWalker : CSharpSyntaxWalker
         {
@@ -73,7 +74,7 @@ internal sealed partial class LinkerAnalysisStep
             private readonly INamedTypeSymbol? _initializationContextType;
             private readonly CompilationContext _compilationContext;
             private readonly ConcurrentQueue<ObjectCreationCallSiteReference> _results;
-            private IMethodSymbol? _containingMethod;
+            private ISymbol? _containingSymbol;
 
             public CallSiteWalker(
                 SemanticModel semanticModel,
@@ -91,32 +92,32 @@ internal sealed partial class LinkerAnalysisStep
 
             public override void VisitMethodDeclaration( MethodDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitMethodDeclaration );
+                this.VisitWithContainingSymbol( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitMethodDeclaration );
             }
 
             public override void VisitConstructorDeclaration( ConstructorDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitConstructorDeclaration );
+                this.VisitWithContainingSymbol( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitConstructorDeclaration );
             }
 
             public override void VisitDestructorDeclaration( DestructorDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitDestructorDeclaration );
+                this.VisitWithContainingSymbol( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitDestructorDeclaration );
             }
 
             public override void VisitOperatorDeclaration( OperatorDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitOperatorDeclaration );
+                this.VisitWithContainingSymbol( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitOperatorDeclaration );
             }
 
             public override void VisitConversionOperatorDeclaration( ConversionOperatorDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitConversionOperatorDeclaration );
+                this.VisitWithContainingSymbol( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitConversionOperatorDeclaration );
             }
 
             public override void VisitAccessorDeclaration( AccessorDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitAccessorDeclaration );
+                this.VisitWithContainingSymbol( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitAccessorDeclaration );
             }
 
             public override void VisitLocalFunctionStatement( LocalFunctionStatementSyntax node )
@@ -128,28 +129,66 @@ internal sealed partial class LinkerAnalysisStep
 #else
                 var localFunctionSymbol = (IMethodSymbol?) this._semanticModel.GetDeclaredSymbol( node );
 #endif
-                this.VisitWithContainingMethod( node, localFunctionSymbol, base.VisitLocalFunctionStatement );
+                this.VisitWithContainingSymbol( node, localFunctionSymbol, base.VisitLocalFunctionStatement );
             }
 
-            // The caller must resolve the method symbol itself — it cannot be derived here from the node.
+            public override void VisitEqualsValueClause( EqualsValueClauseSyntax node )
+            {
+                // Attribute object-creation expressions in field/property/event initializers to the
+                // declaring member, so the rewrite pipeline wraps them with WithInitialize(...).
+                // Only applies when we're not already inside a method body (in which case local
+                // variable initializers correctly inherit the enclosing method symbol).
+                if ( this._containingSymbol == null && this.GetInitializerMemberSymbol( node ) is { } memberSymbol )
+                {
+                    this.VisitWithContainingSymbol( node, memberSymbol, base.VisitEqualsValueClause );
+                }
+                else
+                {
+                    base.VisitEqualsValueClause( node );
+                }
+            }
+
+            private ISymbol? GetInitializerMemberSymbol( EqualsValueClauseSyntax node )
+            {
+                switch ( node.Parent?.Kind() )
+                {
+                    case SyntaxKind.VariableDeclarator when node.Parent is VariableDeclaratorSyntax declarator:
+                        var grandparentKind = declarator.Parent?.Parent?.Kind();
+
+                        if ( grandparentKind is SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration )
+                        {
+                            return this._semanticModel.GetDeclaredSymbol( declarator );
+                        }
+
+                        return null;
+
+                    case SyntaxKind.PropertyDeclaration when node.Parent is PropertyDeclarationSyntax propertyDeclaration:
+                        return this._semanticModel.GetDeclaredSymbol( propertyDeclaration );
+
+                    default:
+                        return null;
+                }
+            }
+
+            // The caller must resolve the declared symbol itself — it cannot be derived here from the node.
             // Calling SemanticModel.GetDeclaredSymbol( node ) with a generic T : SyntaxNode binds to the base
             // SyntaxNode overload that always returns null; only the typed CSharpExtensions overloads
-            // (e.g. GetDeclaredSymbol( MethodDeclarationSyntax )) return an IMethodSymbol. Each VisitXxx
+            // (e.g. GetDeclaredSymbol( MethodDeclarationSyntax )) return a useful symbol. Each VisitXxx
             // override therefore resolves the symbol at its own concrete type before delegating here.
-            private void VisitWithContainingMethod<T>( T node, IMethodSymbol? methodSymbol, System.Action<T> baseVisit )
+            private void VisitWithContainingSymbol<T>( T node, ISymbol? symbol, System.Action<T> baseVisit )
                 where T : SyntaxNode
             {
-                if ( methodSymbol == null )
+                if ( symbol == null )
                 {
                     return;
                 }
 
-                var previousContaining = this._containingMethod;
-                this._containingMethod = methodSymbol;
+                var previousContaining = this._containingSymbol;
+                this._containingSymbol = symbol;
 
                 baseVisit( node );
 
-                this._containingMethod = previousContaining;
+                this._containingSymbol = previousContaining;
             }
 
             public override void VisitObjectCreationExpression( ObjectCreationExpressionSyntax node )
@@ -168,7 +207,7 @@ internal sealed partial class LinkerAnalysisStep
             {
                 base.VisitWithExpression( node );
 
-                if ( this._containingMethod == null )
+                if ( this._containingSymbol == null )
                 {
                     return;
                 }
@@ -180,7 +219,7 @@ internal sealed partial class LinkerAnalysisStep
                 {
                     this._results.Enqueue(
                         new ObjectCreationCallSiteReference(
-                            this._containingMethod.ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                            this._containingSymbol,
                             node,
                             isWithExpression: true,
                             onInitInfo,
@@ -191,7 +230,7 @@ internal sealed partial class LinkerAnalysisStep
 
             private void ProcessObjectCreation( ExpressionSyntax node, ArgumentListSyntax? argumentList )
             {
-                if ( this._containingMethod == null )
+                if ( this._containingSymbol == null )
                 {
                     return;
                 }
@@ -220,7 +259,7 @@ internal sealed partial class LinkerAnalysisStep
 
                 this._results.Enqueue(
                     new ObjectCreationCallSiteReference(
-                        this._containingMethod.ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                        this._containingSymbol,
                         node,
                         isWithExpression: false,
                         onInitInfo,

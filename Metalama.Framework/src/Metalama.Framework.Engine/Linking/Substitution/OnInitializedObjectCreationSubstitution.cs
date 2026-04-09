@@ -43,7 +43,7 @@ internal sealed class OnInitializedObjectCreationSubstitution : OnInitializedCal
         }
 
         // Wrap with InitializableExtensions.WithInitialize(expr)
-        return WrapWithInitializeCall( substitutionContext, expression );
+        return this.WrapWithInitializeCall( substitutionContext, expression );
     }
 
     private ExpressionSyntax AppendWillInitializeArgument( ExpressionSyntax expression, SubstitutionContext substitutionContext )

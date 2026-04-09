@@ -15,9 +15,12 @@ internal sealed partial class LinkerAnalysisStep
     public readonly struct ObjectCreationCallSiteReference
     {
         /// <summary>
-        /// Gets the method body that contains this call site.
+        /// Gets the symbol that lexically contains this call site. For call sites inside a method
+        /// body, accessor, constructor, destructor, operator, conversion-operator or local function,
+        /// this is an <see cref="IMethodSymbol"/>. For call sites inside a field, event-field or
+        /// property initializer, this is the corresponding field/event/property symbol.
         /// </summary>
-        public IntermediateSymbolSemantic<IMethodSymbol> ContainingSemantic { get; }
+        public ISymbol ContainingSymbol { get; }
 
         /// <summary>
         /// Gets the syntax node to be replaced (ObjectCreationExpressionSyntax,
@@ -48,14 +51,14 @@ internal sealed partial class LinkerAnalysisStep
         public string? ContextParamName { get; }
 
         public ObjectCreationCallSiteReference(
-            IntermediateSymbolSemantic<IMethodSymbol> containingSemantic,
+            ISymbol containingSymbol,
             SyntaxNode referencingNode,
             bool isWithExpression,
             InitializableTypeInfo typeInfo,
             IMethodSymbol? constructor,
             string? contextParamName )
         {
-            this.ContainingSemantic = containingSemantic;
+            this.ContainingSymbol = containingSymbol;
             this.ReferencingNode = referencingNode;
             this.IsWithExpression = isWithExpression;
             this.TypeInfo = typeInfo;

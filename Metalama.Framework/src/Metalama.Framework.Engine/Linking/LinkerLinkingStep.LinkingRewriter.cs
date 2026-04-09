@@ -158,6 +158,23 @@ internal sealed partial class LinkerLinkingStep
                         newMembers.Add( (MemberDeclarationSyntax) this.Visit( member )! );
                     }
                 }
+                else if ( member is FieldDeclarationSyntax )
+                {
+                    // Multi-variable field declaration. RewriteField processes the entire
+                    // declaration (and all its variables) in a single call, so dispatch once
+                    // for any rewrite-target symbol and skip the per-symbol loop to avoid
+                    // emitting the same FieldDeclaration multiple times.
+                    var rewriteTargetSymbol = symbols.FirstOrDefault( s => this._rewritingDriver.IsRewriteTarget( s.AssertNotNull() ) );
+
+                    if ( rewriteTargetSymbol != null )
+                    {
+                        newMembers.AddRange( this._rewritingDriver.RewriteMember( member, rewriteTargetSymbol, GetSyntaxGenerationContext() ) );
+                    }
+                    else
+                    {
+                        newMembers.Add( (MemberDeclarationSyntax) this.Visit( member )! );
+                    }
+                }
                 else
                 {
                     var remainingSymbols = new HashSet<ISymbol>( this._compilationContext.SymbolComparer );

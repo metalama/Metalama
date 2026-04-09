@@ -314,13 +314,14 @@ namespace Metalama.Framework.Engine.Linking
                 onInitializedCallSites,
                 eventBrokerSemanticIndex );
 
-            var substitutions = await substitutionGenerator.RunAsync( cancellationToken );
+            var substitutionGeneratorOutput = await substitutionGenerator.RunAsync( cancellationToken );
 
             var analysisRegistry = new LinkerAnalysisRegistry(
                 input.IntermediateCompilation.CompilationContext,
                 reachableSemantics,
                 inlinedSemantics,
-                substitutions,
+                substitutionGeneratorOutput.ContextSubstitutions,
+                substitutionGeneratorOutput.InitializerSubstitutions,
                 overrideTargetsWithUnsupportedNonInlinedOverrides,
                 typeEventBrokers,
                 staticDelegates,

@@ -29,6 +29,20 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                 new Lazy<IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>?>( () => this.RewritingDriver.GetSubstitutions( inliningContextId ) );
         }
 
+        /// <summary>
+        /// Creates a substitution context that is not bound to an inlining context. Used by the
+        /// initializer-rewrite path, which applies <see cref="OnInitializedCallSiteSubstitution"/>
+        /// instances explicitly and never calls <see cref="GetSubstitutions"/>.
+        /// </summary>
+        public SubstitutionContext(
+            LinkerRewritingDriver rewritingDriver,
+            SyntaxGenerationContext syntaxGenerationContext )
+        {
+            this.RewritingDriver = rewritingDriver;
+            this.SyntaxGenerationContext = syntaxGenerationContext;
+            this._substitutionDictionary = new Lazy<IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>?>( () => null );
+        }
+
         internal SubstitutionContext WithInliningContext( InliningContextIdentifier inliningContextId )
         {
             return new SubstitutionContext( this.RewritingDriver, this.SyntaxGenerationContext, inliningContextId );

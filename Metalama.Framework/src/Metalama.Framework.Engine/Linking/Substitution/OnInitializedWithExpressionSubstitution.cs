@@ -33,7 +33,7 @@ internal sealed class OnInitializedWithExpressionSubstitution : OnInitializedCal
         var parenthesized = ParenthesizedExpression( (ExpressionSyntax) currentNode );
 
         // Wrap with InitializableExtensions.WithInitialize(expr, InitializationMetadata.Modify)
-        return WrapWithInitializeCall( substitutionContext, parenthesized, CreateModifyMetadataExpression( substitutionContext ) );
+        return this.WrapWithInitializeCall( substitutionContext, parenthesized, CreateModifyMetadataExpression( substitutionContext ) );
     }
 
     /// <summary>
