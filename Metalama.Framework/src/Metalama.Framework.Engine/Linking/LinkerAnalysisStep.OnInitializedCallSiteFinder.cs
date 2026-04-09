@@ -124,6 +124,11 @@ internal sealed partial class LinkerAnalysisStep
                 this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitLocalFunctionStatement );
             }
 
+            // The caller must resolve the method symbol itself — it cannot be derived here from the node.
+            // Calling SemanticModel.GetDeclaredSymbol( node ) with a generic T : SyntaxNode binds to the base
+            // SyntaxNode overload that always returns null; only the typed CSharpExtensions overloads
+            // (e.g. GetDeclaredSymbol( MethodDeclarationSyntax )) return an IMethodSymbol. Each VisitXxx
+            // override therefore resolves the symbol at its own concrete type before delegating here.
             private void VisitWithContainingMethod<T>( T node, IMethodSymbol? methodSymbol, System.Action<T> baseVisit )
                 where T : SyntaxNode
             {
