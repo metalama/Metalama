@@ -41,25 +41,34 @@ internal static class CompileTimeHelpers
         }
     }
 
-    private const string _numberBaseFullName = "System.Numerics.INumberBase";
+    private const string _numberBaseReflectionName = "System.Numerics.INumberBase`1";
 
     public static bool IsGenericMathType( IType type )
     {
         var nonNullable = type.ToNonNullable();
 
         // Fast reject: intrinsic (well-known) types — int, string, object, Task, etc.
+        // can never be generic-math type parameters.
         if ( nonNullable.SpecialType != SpecialType.None )
         {
             return false;
         }
 
-        // Check if the type (or its constraints) transitively implements INumberBase<>.
+        // Look up INumberBase<> in the target compilation. If the type is not available
+        // (e.g. pre-.NET 7 target), generic math is not supported.
+        if ( !nonNullable.Compilation.Factory.TryGetTypeByReflectionName( _numberBaseReflectionName, out var numberBaseType ) )
+        {
+            return false;
+        }
+
         if ( nonNullable is ITypeParameter typeParameter )
         {
-            // Walk type constraints for a type parameter.
+            // For type parameters, walk the type constraints since IsConvertibleTo
+            // with TypeDefinition does not traverse type parameter constraints.
             foreach ( var constraint in typeParameter.TypeConstraints )
             {
-                if ( constraint is INamedType namedConstraint && ImplementsNumberBase( namedConstraint ) )
+                if ( constraint is INamedType namedConstraint
+                     && namedConstraint.IsConvertibleTo( numberBaseType, ConversionKind.TypeDefinition ) )
                 {
                     return true;
                 }
@@ -67,51 +76,10 @@ internal static class CompileTimeHelpers
 
             return false;
         }
-        else if ( nonNullable is INamedType namedType )
-        {
-            // Also handle Nullable<T> where T is a type parameter constrained to INumberBase<>.
-            if ( namedType.IsGeneric && namedType.Definition.SpecialType == SpecialType.Nullable_T )
-            {
-                var underlyingType = namedType.TypeArguments[0];
 
-                return IsGenericMathType( underlyingType );
-            }
-
-            return ImplementsNumberBase( namedType );
-        }
-
-        return false;
-    }
-
-    private static bool ImplementsNumberBase( INamedType type )
-    {
-        // Check the type itself and all implemented interfaces for INumberBase<>.
-        if ( IsNumberBaseDefinition( type ) )
-        {
-            return true;
-        }
-
-        foreach ( var iface in type.AllImplementedInterfaces )
-        {
-            if ( IsNumberBaseDefinition( iface ) )
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool IsNumberBaseDefinition( INamedType type )
-    {
-        if ( type.TypeKind != TypeKind.Interface )
-        {
-            return false;
-        }
-
-        var definition = type.IsGeneric ? type.Definition : type;
-
-        return definition.FullName == _numberBaseFullName;
+        // For named types (concrete types implementing INumberBase<>), use
+        // IsConvertibleTo with TypeDefinition directly.
+        return nonNullable.IsConvertibleTo( numberBaseType, ConversionKind.TypeDefinition );
     }
 
     public static void WarnIfNullable<T>( this IAspectBuilder<T> aspectBuilder )

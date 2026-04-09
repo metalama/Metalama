@@ -8,6 +8,6 @@ namespace Metalama.Patterns.Contracts.AspectTests.GenericMath_TypeParam_INumber_
 
 internal class C
 {
-    public void M<T>( [Negative] T value )
+    public void M<T>( [NonPositive] T value )
         where T : INumber<T> { }
 }

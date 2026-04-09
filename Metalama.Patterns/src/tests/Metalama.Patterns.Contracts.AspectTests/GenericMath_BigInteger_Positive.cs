@@ -8,5 +8,5 @@ namespace Metalama.Patterns.Contracts.AspectTests.GenericMath_BigInteger_Positiv
 
 internal class C
 {
-    public void M( [Positive] BigInteger value ) { }
+    public void M( [NonNegative] BigInteger value ) { }
 }
