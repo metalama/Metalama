@@ -4,6 +4,12 @@
 
 // Spec §11: Computed Derived Properties — hand-authored IInitializable with inheritance and with expression.
 
+#if TEST_OPTIONS
+// @RequiredConstant(NET7_0_OR_GREATER)
+#endif
+
+#if NET7_0_OR_GREATER
+
 using Metalama.Framework.RunTime.Initialization;
 using System;
 
@@ -59,3 +65,5 @@ public class Caller
         var adjusted = sample with { InitialAtoms = 5e23 };
     }
 }
+
+#endif

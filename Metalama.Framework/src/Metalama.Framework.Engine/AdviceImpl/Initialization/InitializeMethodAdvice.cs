@@ -74,7 +74,7 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
         if ( ownInitializeMethod != null )
         {
             // The target type itself declares Initialize — validate and use it.
-            if ( (!ownInitializeMethod.IsVirtual && !ownInitializeMethod.IsOverride
+            if ( ((!ownInitializeMethod.IsVirtual && !ownInitializeMethod.IsOverride)
                   || ownInitializeMethod.Accessibility != Accessibility.Public)
                  && !targetType.IsSealed && targetType.TypeKind == Code.TypeKind.Class )
             {
@@ -110,7 +110,7 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
             if ( existingMethod.DeclaringType.Equals( targetType ) )
             {
                 // The target type itself declares Initialize — validate and use it.
-                if ( (!existingMethod.IsVirtual && !existingMethod.IsOverride
+                if ( ((!existingMethod.IsVirtual && !existingMethod.IsOverride)
                       || existingMethod.Accessibility != Accessibility.Public)
                      && !targetType.IsSealed && targetType.TypeKind == Code.TypeKind.Class )
                 {

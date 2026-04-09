@@ -53,18 +53,20 @@ internal sealed class OnInitializedObjectCreationSubstitution : OnInitializedCal
             refKindKeyword: default,
             expression: CreateWillInitializeExpression( substitutionContext ) );
 
-        switch ( expression )
+        switch ( expression.Kind() )
         {
-            case ObjectCreationExpressionSyntax objectCreation:
+            case SyntaxKind.ObjectCreationExpression:
                 {
+                    var objectCreation = (ObjectCreationExpressionSyntax) expression;
                     var argList = objectCreation.ArgumentList ?? ArgumentList();
                     var newArgList = argList.AddArguments( willInitializeArg );
 
                     return objectCreation.WithArgumentList( newArgList );
                 }
 
-            case ImplicitObjectCreationExpressionSyntax implicitCreation:
+            case SyntaxKind.ImplicitObjectCreationExpression:
                 {
+                    var implicitCreation = (ImplicitObjectCreationExpressionSyntax) expression;
                     var newArgList = implicitCreation.ArgumentList.AddArguments( willInitializeArg );
 
                     return implicitCreation.WithArgumentList( newArgList );

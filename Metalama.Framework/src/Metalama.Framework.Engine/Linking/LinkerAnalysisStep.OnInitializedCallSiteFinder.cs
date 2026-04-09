@@ -91,43 +91,43 @@ internal sealed partial class LinkerAnalysisStep
 
             public override void VisitMethodDeclaration( MethodDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, base.VisitMethodDeclaration );
+                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitMethodDeclaration );
             }
 
             public override void VisitConstructorDeclaration( ConstructorDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, base.VisitConstructorDeclaration );
+                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitConstructorDeclaration );
             }
 
             public override void VisitDestructorDeclaration( DestructorDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, base.VisitDestructorDeclaration );
+                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitDestructorDeclaration );
             }
 
             public override void VisitOperatorDeclaration( OperatorDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, base.VisitOperatorDeclaration );
+                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitOperatorDeclaration );
             }
 
             public override void VisitConversionOperatorDeclaration( ConversionOperatorDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, base.VisitConversionOperatorDeclaration );
+                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitConversionOperatorDeclaration );
             }
 
             public override void VisitAccessorDeclaration( AccessorDeclarationSyntax node )
             {
-                this.VisitWithContainingMethod( node, base.VisitAccessorDeclaration );
+                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitAccessorDeclaration );
             }
 
             public override void VisitLocalFunctionStatement( LocalFunctionStatementSyntax node )
             {
-                this.VisitWithContainingMethod( node, base.VisitLocalFunctionStatement );
+                this.VisitWithContainingMethod( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitLocalFunctionStatement );
             }
 
-            private void VisitWithContainingMethod<T>( T node, System.Action<T> baseVisit )
+            private void VisitWithContainingMethod<T>( T node, IMethodSymbol? methodSymbol, System.Action<T> baseVisit )
                 where T : SyntaxNode
             {
-                if ( this._semanticModel.GetDeclaredSymbol( node ) is not IMethodSymbol methodSymbol )
+                if ( methodSymbol == null )
                 {
                     return;
                 }
@@ -163,7 +163,7 @@ internal sealed partial class LinkerAnalysisStep
 
                 var typeInfo = this._semanticModel.GetTypeInfo( node );
 
-                if ( typeInfo.Type is INamedTypeSymbol namedType
+                if ( typeInfo.Type is { Kind: SymbolKind.NamedType } and INamedTypeSymbol namedType
                      && this._registry.TryGetTypeInfo( namedType, out var onInitInfo ) )
                 {
                     this._results.Enqueue(
