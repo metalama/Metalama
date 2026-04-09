@@ -70,7 +70,7 @@ internal sealed class InitializableTypeRegistry
         }
 
         // Find the Initialize method in the hierarchy.
-        var initializeMethod = FindInitializeMethodInHierarchy( type );
+        var initializeMethod = this.FindInitializeMethodInHierarchy( type );
 
         if ( initializeMethod == null )
         {
@@ -151,16 +151,45 @@ internal sealed class InitializableTypeRegistry
                 continue;
             }
 
+            var contextParamIndex = candidate.Parameters.IndexOf( contextParam );
+
+            // The context parameter must come after the original required parameters,
+            // so they can match the candidate's leading parameters by position.
+            if ( contextParamIndex < requiredParamCount )
+            {
+                continue;
+            }
+
             // Check that all required parameters of the original constructor match the candidate's
             // leading parameters by type.
-            if ( Enumerable.Range( 0, requiredParamCount )
-                .All(
-                    i => this._compilationContext.SymbolComparer.Equals(
-                        constructor.Parameters[i].Type,
-                        candidate.Parameters[i].Type ) ) )
+            if ( !Enumerable.Range( 0, requiredParamCount )
+                    .All(
+                        i => this._compilationContext.SymbolComparer.Equals(
+                            constructor.Parameters[i].Type,
+                            candidate.Parameters[i].Type ) ) )
             {
-                return contextParam.Name;
+                continue;
             }
+
+            // Any parameters between the matched prefix and the context parameter must be optional,
+            // otherwise the call site cannot pass only the prefix + named context argument.
+            if ( candidate.Parameters
+                .Skip( requiredParamCount )
+                .Take( contextParamIndex - requiredParamCount )
+                .Any( p => !p.IsOptional ) )
+            {
+                continue;
+            }
+
+            // Any parameters after the context parameter must also be optional.
+            if ( candidate.Parameters
+                .Skip( contextParamIndex + 1 )
+                .Any( p => !p.IsOptional ) )
+            {
+                continue;
+            }
+
+            return contextParam.Name;
         }
 
         return null;
@@ -172,13 +201,13 @@ internal sealed class InitializableTypeRegistry
     private bool ImplementsIInitializable( INamedTypeSymbol type )
         => this._compilationContext.Compilation.HasImplicitConversion( type, this._initializableInterfaceType );
 
-    private static IMethodSymbol? FindInitializeMethodInHierarchy( INamedTypeSymbol type )
+    private IMethodSymbol? FindInitializeMethodInHierarchy( INamedTypeSymbol type )
     {
         var current = type;
 
         while ( current != null )
         {
-            var method = FindInitializeMethod( current );
+            var method = this.FindInitializeMethod( current );
 
             if ( method != null )
             {
@@ -191,10 +220,12 @@ internal sealed class InitializableTypeRegistry
         return null;
     }
 
-    private static IMethodSymbol? FindInitializeMethod( INamedTypeSymbol type )
+    private IMethodSymbol? FindInitializeMethod( INamedTypeSymbol type )
         => type.GetMembers( nameof(IInitializable.Initialize) )
             .OfType<IMethodSymbol>()
-            .FirstOrDefault( m => m.Parameters.Length == 1 );
+            .FirstOrDefault(
+                m => m.Parameters.Length == 1
+                     && this._compilationContext.SymbolComparer.Equals( m.Parameters[0].Type, this._initializationContextType ) );
 
     private IParameterSymbol? FindInitializationContextParameter( IMethodSymbol constructor )
         => constructor.Parameters.FirstOrDefault(

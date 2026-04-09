@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.AdviceImpl.InterfaceImplementation;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -26,20 +27,28 @@ using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
-internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
+internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult>
 {
-    private readonly BoundTemplateMethod _boundTemplate;
+    // Default name given to the InitializationContext parameter when this advice introduces a new
+    // Initialize method (either a fresh one or an override of an inherited one). Existing hand-authored
+    // Initialize methods on the target type are used as-is, preserving their parameter name.
+    private const string _defaultContextParameterName = "context";
+
+    private readonly TemplateMember<IMethod> _template;
+    private readonly IObjectReader? _templateArguments;
     private readonly IEnumerable<IField>? _slotFields;
 
     private new INamedType TargetDeclaration => (INamedType) base.TargetDeclaration;
 
-    public OnInitializedAdvice(
+    public InitializeMethodAdvice(
         in AdviceConstructorParameters<INamedType> parameters,
-        BoundTemplateMethod boundTemplate,
+        TemplateMember<IMethod> template,
+        IObjectReader? templateArguments,
         IEnumerable<IField>? slotFields )
         : base( parameters )
     {
-        this._boundTemplate = boundTemplate;
+        this._template = template;
+        this._templateArguments = templateArguments;
         this._slotFields = slotFields;
     }
 
@@ -144,7 +153,7 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
                 builder.IsVirtual = !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct;
             }
 
-            builder.AddParameter( "context", initContextType, defaultValue: TypedConstant.Default( initContextType ) );
+            builder.AddParameter( _defaultContextParameterName, initContextType, defaultValue: TypedConstant.Default( initContextType ) );
 
             builder.Freeze();
 
@@ -167,18 +176,24 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
 
         AddInitializerAdviceResult Succeed( IMethod initializeMethod, IMethod? baseMethod )
         {
+            // Bind the template against the resolved Initialize method so that any run-time
+            // InitializationContext parameter on the template is mapped by name to the method's
+            // own context parameter (hand-authored or introduced).
+            var boundTemplate = this._template.ForInitializer( initializeMethod, this._templateArguments );
+
             // Add the template body as a statement in the Initialize method.
             context.AddTransformation(
                 new InsertTemplateStatementsTransformation(
                     this.AspectLayerInstance,
                     targetType.ToRef(),
                     initializeMethod.ToFullRef(),
-                    this._boundTemplate ) );
+                    boundTemplate ) );
 
             // If overriding a base method, add "base.Initialize(context.Descend(...))" as first statement.
             if ( baseMethod != null )
             {
                 var slotExpression = this.CreateSlotExpression();
+                var contextParameterName = initializeMethod.Parameters[0].Name;
 
                 context.AddTransformation(
                     new InsertSyntaxStatementsTransformation(
@@ -197,7 +212,7 @@ internal sealed class OnInitializedAdvice : Advice<AddInitializerAdviceResult>
                                             InvocationExpression(
                                                 MemberAccessExpression(
                                                     SyntaxKind.SimpleMemberAccessExpression,
-                                                    IdentifierName( "context" ),
+                                                    SyntaxFactoryEx.SafeIdentifierName( contextParameterName ),
                                                     IdentifierName( "Descend" ) ),
                                                 ArgumentList(
                                                     SingletonSeparatedList(
