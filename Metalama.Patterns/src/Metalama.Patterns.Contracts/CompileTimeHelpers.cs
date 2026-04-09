@@ -41,7 +41,7 @@ internal static class CompileTimeHelpers
         }
     }
 
-    private const string _numberBaseReflectionName = "System.Numerics.INumberBase`1";
+    private const string _numberReflectionName = "System.Numerics.INumber`1";
 
     public static bool IsGenericMathType( IType type )
     {
@@ -54,14 +54,17 @@ internal static class CompileTimeHelpers
             return false;
         }
 
-        // Look up INumberBase<> in the target compilation. If the type is not available
-        // (e.g. pre-.NET 7 target), generic math is not supported.
-        if ( !nonNullable.Compilation.Factory.TryGetTypeByReflectionName( _numberBaseReflectionName, out var numberBaseType ) )
+        // Look up INumber<> in the target compilation. INumber<T> extends
+        // IComparisonOperators<T,T,bool>, guaranteeing that < and > operators
+        // are available for the generated range-check code.
+        // INumberBase<T> alone is not sufficient because it does not provide
+        // comparison operators (e.g. Complex implements INumberBase but not INumber).
+        if ( !nonNullable.Compilation.Factory.TryGetTypeByReflectionName( _numberReflectionName, out var numberType ) )
         {
             return false;
         }
 
-        return nonNullable.IsConvertibleTo( numberBaseType, ConversionKind.TypeDefinition );
+        return nonNullable.IsConvertibleTo( numberType, ConversionKind.TypeDefinition );
     }
 
     public static void WarnIfNullable<T>( this IAspectBuilder<T> aspectBuilder )

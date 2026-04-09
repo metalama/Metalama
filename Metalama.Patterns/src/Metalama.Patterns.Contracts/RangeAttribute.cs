@@ -225,8 +225,8 @@ public class RangeAttribute : ContractBaseAttribute
                 attribute ?? builder.Target );
         }
 
-        // Generic-math targets (type parameters constrained to INumberBase<>, or
-        // user-defined types implementing INumberBase<>): cannot compile-time
+        // Generic-math targets (type parameters constrained to INumber<>, or
+        // user-defined types implementing INumber<>): cannot compile-time
         // validate bounds. T.CreateChecked throws OverflowException at runtime if
         // a bound does not fit in T (accepted trade-off per issue #1543).
         // Check before ToNonNullable to also handle T? where T : struct, INumber<T>.

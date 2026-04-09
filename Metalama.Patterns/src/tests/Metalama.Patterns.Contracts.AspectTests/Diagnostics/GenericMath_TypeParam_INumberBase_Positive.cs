@@ -4,9 +4,9 @@
 
 using System.Numerics;
 
-namespace Metalama.Patterns.Contracts.AspectTests.GenericMath_TypeParam_INumberBase_Positive;
+namespace Metalama.Patterns.Contracts.AspectTests.Diagnostics;
 
-internal class C
+public class GenericMath_TypeParam_INumberBase_Positive
 {
     public void M<T>( [NonNegative] T value )
         where T : INumberBase<T> { }

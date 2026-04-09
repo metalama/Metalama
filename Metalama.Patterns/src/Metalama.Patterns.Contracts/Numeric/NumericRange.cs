@@ -498,7 +498,7 @@ public readonly struct NumericRange : ICompileTimeSerializable
 
     internal NumericRangeTypeSupport IsTypeSupported( IType type )
     {
-        // Check before ToNonNullable to handle T? where T : struct, INumberBase<T>.
+        // Check before ToNonNullable to handle T? where T : struct, INumber<T>.
         if ( CompileTimeHelpers.IsGenericMathType( type ) )
         {
             return NumericRangeTypeSupport.Supported;
