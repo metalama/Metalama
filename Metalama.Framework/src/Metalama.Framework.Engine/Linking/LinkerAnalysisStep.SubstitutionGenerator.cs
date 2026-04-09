@@ -98,9 +98,9 @@ internal sealed partial class LinkerAnalysisStep
             this._eventBrokerSemanticIndex = eventBrokerSemanticIndex;
 
             // Partition OnInitialized call sites into two buckets based on the kind of their
-            // containing symbol: method-body call sites drive the inlining pipeline (same path as
-            // today), while field/property/event-field initializer call sites are applied directly
-            // by LinkerRewritingDriver when rewriting the declaration.
+            // containing symbol: method-body call sites drive the inlining pipeline, while
+            // field/property/event-field initializer call sites are applied directly by
+            // LinkerRewritingDriver when rewriting the declaration.
             var onInitializedMethodBodyCallSites = new List<ObjectCreationCallSiteReference>();
             var onInitializedInitializerCallSites = new List<ObjectCreationCallSiteReference>();
 

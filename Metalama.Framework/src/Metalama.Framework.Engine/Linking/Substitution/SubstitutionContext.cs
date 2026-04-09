@@ -11,7 +11,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution
 {
     internal sealed class SubstitutionContext
     {
-        private readonly Lazy<IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>?> _substitutionDictionary;
+        private readonly Lazy<IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>?>? _substitutionDictionary;
 
         public LinkerRewritingDriver RewritingDriver { get; }
 
@@ -40,7 +40,6 @@ namespace Metalama.Framework.Engine.Linking.Substitution
         {
             this.RewritingDriver = rewritingDriver;
             this.SyntaxGenerationContext = syntaxGenerationContext;
-            this._substitutionDictionary = new Lazy<IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>?>( () => null );
         }
 
         internal SubstitutionContext WithInliningContext( InliningContextIdentifier inliningContextId )
@@ -50,7 +49,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution
 
         public IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>? GetSubstitutions()
         {
-            return this._substitutionDictionary.Value;
+            return this._substitutionDictionary?.Value;
         }
     }
 }
