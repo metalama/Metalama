@@ -61,24 +61,6 @@ internal static class CompileTimeHelpers
             return false;
         }
 
-        if ( nonNullable is ITypeParameter typeParameter )
-        {
-            // For type parameters, walk the type constraints since IsConvertibleTo
-            // with TypeDefinition does not traverse type parameter constraints.
-            foreach ( var constraint in typeParameter.TypeConstraints )
-            {
-                if ( constraint is INamedType namedConstraint
-                     && namedConstraint.IsConvertibleTo( numberBaseType, ConversionKind.TypeDefinition ) )
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        // For named types (concrete types implementing INumberBase<>), use
-        // IsConvertibleTo with TypeDefinition directly.
         return nonNullable.IsConvertibleTo( numberBaseType, ConversionKind.TypeDefinition );
     }
 

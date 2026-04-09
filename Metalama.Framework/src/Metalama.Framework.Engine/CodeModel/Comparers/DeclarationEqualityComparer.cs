@@ -287,6 +287,12 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
             return true;
         }
 
+        // For type parameters, check whether any constraint is convertible to the type definition.
+        if ( type is ITypeParameter typeParameter )
+        {
+            return typeParameter.TypeConstraints.Any( c => this.IsOfTypeDefinition( c, typeDefinition ) );
+        }
+
         if ( typeDefinition.TypeKind == TypeKind.Interface )
         {
             // When searching for an interface, we should consider interfaces defined by the evaluated type.
