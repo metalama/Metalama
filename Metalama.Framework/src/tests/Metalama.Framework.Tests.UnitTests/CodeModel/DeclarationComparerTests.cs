@@ -268,6 +268,181 @@ class Instances
         [Theory]
         [InlineData( false )]
         [InlineData( true )]
+        public void TypeDefinition_TypeParameter_SimpleInterface( bool bypassSymbols )
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+using System.Collections.Generic;
+
+interface I2<T> {}
+
+class C<T> where T : IList<int> {}
+class D<T> where T : IEnumerable<int> {}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var typeI2 = compilation.Types.OfName( "I2" ).Single();
+            var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
+
+            // T : IList<int> should match IList<> (TypeDefinition).
+            var typeParamC = compilation.Types.OfName( "C" ).Single().TypeParameters[0];
+            var listType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IList<>) );
+
+            Assert.True( comparer.IsConvertibleTo( typeParamC, listType, ConversionKind.TypeDefinition, bypassSymbols ) );
+
+            // T : IList<int> should also match IEnumerable<> (transitive via IList<int> : IEnumerable<int>).
+            var enumerableType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IEnumerable<>) );
+            Assert.True( comparer.IsConvertibleTo( typeParamC, enumerableType, ConversionKind.TypeDefinition, bypassSymbols ) );
+
+            // T : IList<int> should NOT match I2<> (unrelated interface).
+            Assert.False( comparer.IsConvertibleTo( typeParamC, typeI2, ConversionKind.TypeDefinition, bypassSymbols ) );
+
+            // T : IEnumerable<int> should NOT match IList<> (IEnumerable doesn't extend IList).
+            var typeParamD = compilation.Types.OfName( "D" ).Single().TypeParameters[0];
+            Assert.False( comparer.IsConvertibleTo( typeParamD, listType, ConversionKind.TypeDefinition, bypassSymbols ) );
+        }
+
+        [Theory]
+        [InlineData( false )]
+        [InlineData( true )]
+        public void TypeDefinition_TypeParameter_GenericTypeConstraint( bool bypassSymbols )
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+using System.Collections.Generic;
+
+class C<T> where T : IList<int> {}
+class D<T> where T : IList<string> {}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
+
+            var listType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IList<>) );
+
+            // Both T : IList<int> and T : IList<string> should match IList<> (TypeDefinition ignores type args).
+            var typeParamC = compilation.Types.OfName( "C" ).Single().TypeParameters[0];
+            var typeParamD = compilation.Types.OfName( "D" ).Single().TypeParameters[0];
+
+            Assert.True( comparer.IsConvertibleTo( typeParamC, listType, ConversionKind.TypeDefinition, bypassSymbols ) );
+            Assert.True( comparer.IsConvertibleTo( typeParamD, listType, ConversionKind.TypeDefinition, bypassSymbols ) );
+        }
+
+        [Theory]
+        [InlineData( false )]
+        [InlineData( true )]
+        public void TypeDefinition_TypeParameter_RecursiveConstraint( bool bypassSymbols )
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+using System.Collections.Generic;
+
+class C<T> where T : IList<T> {}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
+
+            var listType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IList<>) );
+
+            // T : IList<T> should match IList<> and not cause infinite recursion.
+            var typeParamC = compilation.Types.OfName( "C" ).Single().TypeParameters[0];
+            Assert.True( comparer.IsConvertibleTo( typeParamC, listType, ConversionKind.TypeDefinition, bypassSymbols ) );
+
+            // T : IList<T> should also match IEnumerable<> transitively.
+            var enumerableType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IEnumerable<>) );
+            Assert.True( comparer.IsConvertibleTo( typeParamC, enumerableType, ConversionKind.TypeDefinition, bypassSymbols ) );
+        }
+
+        [Theory]
+        [InlineData( false )]
+        [InlineData( true )]
+        public void TypeDefinition_TypeParameter_TransitiveConstraint( bool bypassSymbols )
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+using System.Collections.Generic;
+
+class C<T, U> where T : U where U : IList<int> {}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
+
+            var listType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IList<>) );
+
+            // T : U where U : IList<int> should transitively match IList<>.
+            var typeParamT = compilation.Types.OfName( "C" ).Single().TypeParameters[0];
+            Assert.True( comparer.IsConvertibleTo( typeParamT, listType, ConversionKind.TypeDefinition, bypassSymbols ) );
+        }
+
+        [Theory]
+        [InlineData( false )]
+        [InlineData( true )]
+        public void Reference_TypeParameter_MatchesExactGenericArgs( bool bypassSymbols )
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+using System.Collections.Generic;
+
+// 'class' constraint ensures T is known to be a reference type,
+// so the conversion to its constraint interface is a reference conversion (not boxing).
+class C<T> where T : class, IList<int> {}
+class D<T> where T : IList<int> {} // No class constraint — conversion is boxing, not reference.
+
+class Instances { public IList<int> ListInt; public IList<string> ListString; }
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
+
+            var typeParamC = compilation.Types.OfName( "C" ).Single().TypeParameters[0];
+            var typeParamD = compilation.Types.OfName( "D" ).Single().TypeParameters[0];
+            var instanceType = compilation.Types.OfName( "Instances" ).Single();
+            var listIntType = instanceType.Fields.OfName( "ListInt" ).Single().Type;
+            var listStringType = instanceType.Fields.OfName( "ListString" ).Single().Type;
+
+            // T : class, IList<int> should be Reference-convertible to IList<int>.
+            Assert.True( comparer.IsConvertibleTo( typeParamC, listIntType, ConversionKind.Reference, bypassSymbols ) );
+
+            // T : class, IList<int> should NOT be Reference-convertible to IList<string> (IList is invariant).
+            Assert.False( comparer.IsConvertibleTo( typeParamC, listStringType, ConversionKind.Reference, bypassSymbols ) );
+
+            // T : IList<int> (no class constraint) — boxing, not reference.
+            Assert.False( comparer.IsConvertibleTo( typeParamD, listIntType, ConversionKind.Reference, bypassSymbols ) );
+        }
+
+        [Theory]
+        [InlineData( false )]
+        [InlineData( true )]
+        public void TypeDefinition_TypeParameter_Unconstrained( bool bypassSymbols )
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+using System.Collections.Generic;
+
+class C<T> {}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
+
+            var listType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IList<>) );
+
+            // Unconstrained T should NOT match IList<>.
+            var typeParamC = compilation.Types.OfName( "C" ).Single().TypeParameters[0];
+            Assert.False( comparer.IsConvertibleTo( typeParamC, listType, ConversionKind.TypeDefinition, bypassSymbols ) );
+        }
+
+        [Theory]
+        [InlineData( false )]
+        [InlineData( true )]
         public void ConversionKindIdentical( bool bypassSymbols )
         {
             using var testContext = this.CreateTestContext();

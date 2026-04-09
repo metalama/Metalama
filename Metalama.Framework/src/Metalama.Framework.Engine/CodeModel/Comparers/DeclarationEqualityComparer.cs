@@ -220,6 +220,13 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
             return true;
         }
 
+        // For type parameters, check whether any constraint transitively matches the type definition.
+        // C# forbids mutual type parameter constraints, so there is no risk of infinite recursion.
+        if ( type.Kind == SymbolKind.TypeParameter && type is ITypeParameterSymbol typeParameterSymbol )
+        {
+            return typeParameterSymbol.ConstraintTypes.Any( c => IsOfTypeDefinition( c, typeDefinition ) );
+        }
+
         if ( typeDefinition.TypeKind == RoslynTypeKind.Interface )
         {
             // When searching for an interface, we should consider interfaces defined by the evaluated type.
@@ -287,10 +294,13 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
             return true;
         }
 
-        // For type parameters, check whether any constraint is convertible to the type definition.
+        // For type parameters, check whether any constraint is reference-convertible to the type definition
+        // or matches it by type definition. C# forbids mutual type parameter constraints, so there is
+        // no risk of infinite recursion.
         if ( type is ITypeParameter typeParameter )
         {
-            return typeParameter.TypeConstraints.Any( c => this.IsOfTypeDefinition( c, typeDefinition ) );
+            return typeParameter.TypeConstraints.Any(
+                c => this.IsConvertibleTo( c, typeDefinition, ConversionKind.Reference ) || this.IsOfTypeDefinition( c, typeDefinition ) );
         }
 
         if ( typeDefinition.TypeKind == TypeKind.Interface )
