@@ -241,6 +241,61 @@ namespace Metalama.Framework.Engine.Linking
                     input.InjectionRegistry,
                     typeEventBrokers );
 
+            // Find call sites for types implementing IInitializable. The walker is expensive — it visits every
+            // syntax node of every tree in the intermediate compilation — so we short-circuit it whenever we
+            // can prove that no IInitializable implementer is reachable in the compilation closure.
+            //
+            // The closure is split into two disjoint scopes, and the OR below covers both:
+            //
+            //   1. Referenced assemblies — covered by CallSiteAdviceInfo.ReferencesContainInitializableTypes.
+            //      This flag is aggregated by TransitivePipelineContributorSource from each referenced
+            //      assembly's TransitiveAspectsManifest.ContainsInitializableTypes (written by
+            //      CompileTimeAspectPipeline when the assembly was built). GetDerivedTypes cannot be used
+            //      for this scope because CompilationModel.GetDerivedTypes delegates to
+            //      DerivedTypeIndex.GetDerivedTypesInCurrentCompilation, which filters out types not
+            //      contained in the current compilation's assembly by design.
+            //
+            //   2. The current compilation — covered by GetDerivedTypes(IInitializable).Any(). This is an O(1)
+            //      DerivedTypeIndex dictionary lookup that includes source types *and* aspect-introduced types
+            //      (the index is rebuilt on the post-aspect compilation model).
+            //
+            // The two scopes must both be checked: a project with no IInitializable implementer of its own
+            // can still `new T()` a type declared in a referenced library that implements IInitializable,
+            // and a project with no Metalama references can still contain its own implementers.
+            //
+            // IsPartial is a correctness escape hatch for design-time scenarios that reach the linker (today:
+            // preview via PreviewAspectPipeline). In those scenarios the compilation model is backed by a
+            // *partial* PartialCompilation (PartialImpl) containing only the previewed tree plus its tracked
+            // dependencies, so its DerivedTypeIndex is built from a subset of the trees. But
+            // OnInitializedCallSiteFinder iterates the full Roslyn Compilation.SyntaxTrees, so implementers
+            // declared in trees outside the partial closure would be missed by GetDerivedTypes even though
+            // the walker still sees (and must wrap) their call sites. Preview is a rare interactive operation
+            // where the walker cost is irrelevant compared to correctness, so we simply force the walker to
+            // run whenever the compilation is partial. This also means the design-time pipeline does not need
+            // to track the flag at all: DesignTimeAspectPipelineResult.ContainsInitializableTypes returns a
+            // conservative `true` for any cross-project design-time consumer.
+            IReadOnlyList<ObjectCreationCallSiteReference> onInitializedCallSites;
+
+            var closureContainsInitializable =
+                input.IntermediateCompilation.IsPartial
+                || input.CallSiteAdviceInfo.ReferencesContainInitializableTypes
+                || input.InputCompilationModel.GetDerivedTypes( typeof(Framework.RunTime.Initialization.IInitializable) ).Any();
+
+            if ( closureContainsInitializable )
+            {
+                var initializableTypeRegistry = new InitializableTypeRegistry( input.IntermediateCompilation.CompilationContext );
+
+                onInitializedCallSites = await new OnInitializedCallSiteFinder(
+                        this._serviceProvider,
+                        input.IntermediateCompilation.CompilationContext,
+                        initializableTypeRegistry )
+                    .FindCallSitesAsync( cancellationToken );
+            }
+            else
+            {
+                onInitializedCallSites = Array.Empty<ObjectCreationCallSiteReference>();
+            }
+
             var substitutionGenerator = new SubstitutionGenerator(
                 this,
                 input.IntermediateCompilation.CompilationContext,
@@ -256,6 +311,7 @@ namespace Metalama.Framework.Engine.Linking
                 eventFieldRaiseReferences,
                 backingFieldReferences,
                 callerAttributeReferences,
+                onInitializedCallSites,
                 eventBrokerSemanticIndex );
 
             var substitutions = await substitutionGenerator.RunAsync( cancellationToken );

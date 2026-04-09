@@ -444,7 +444,8 @@ public abstract class AspectPipeline : IDisposable
         var allSources = new PipelineContributorSources(
             contributors.ToImmutable(),
             transitivePipelineContributorSource,
-            transitivePipelineContributorSource );
+            transitivePipelineContributorSource,
+            transitivePipelineContributorSource.ReferencesContainInitializableTypes );
 
         if ( configuration.FabricsContributors != null )
         {

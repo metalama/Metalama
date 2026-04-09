@@ -55,6 +55,10 @@ internal sealed partial class LinkerAnalysisStep
             IntermediateSymbolSemantic<IMethodSymbol>,
             IReadOnlyList<CallerAttributeReference>> _callerMemberReferencesByContainingSemantic;
 
+        private readonly IReadOnlyDictionary<
+            IntermediateSymbolSemantic<IMethodSymbol>,
+            IReadOnlyList<ObjectCreationCallSiteReference>> _onInitializedCallSitesByContainingSemantic;
+
         private readonly IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> _eventBrokerSemanticIndex;
 
         private readonly IConcurrentTaskRunner _concurrentTaskRunner;
@@ -74,6 +78,7 @@ internal sealed partial class LinkerAnalysisStep
             IReadOnlyList<IntermediateSymbolSemanticReference> eventFieldRaiseReferences,
             IReadOnlyList<IntermediateSymbolSemanticReference> backingFieldReferences,
             IReadOnlyList<CallerAttributeReference> callerMemberReferences,
+            IReadOnlyList<ObjectCreationCallSiteReference> onInitializedCallSites,
             IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> eventBrokerSemanticIndex )
         {
             this._concurrentTaskRunner = parent._serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
@@ -91,6 +96,7 @@ internal sealed partial class LinkerAnalysisStep
             this._additionalTransformedSemantics =
                 redirectedSymbolReferences.SelectAsReadOnlyList( x => (IntermediateSymbolSemantic) x.ContainingSemantic )
                     .Union( eventFieldRaiseReferences.SelectAsReadOnlyList( x => (IntermediateSymbolSemantic) x.ContainingSemantic ) )
+                    .Union( onInitializedCallSites.SelectAsReadOnlyList( x => (IntermediateSymbolSemantic) x.ContainingSemantic ) )
                     .Except( inlinedSemantics )
                     .Distinct()
                     .ToReadOnlyList();
@@ -113,6 +119,11 @@ internal sealed partial class LinkerAnalysisStep
             this._callerMemberReferencesByContainingSemantic = IndexReferenceByContainingBody(
                 intermediateCompilationContext,
                 callerMemberReferences,
+                x => x.ContainingSemantic );
+
+            this._onInitializedCallSitesByContainingSemantic = IndexReferenceByContainingBody(
+                intermediateCompilationContext,
+                onInitializedCallSites,
                 x => x.ContainingSemantic );
 
             static IReadOnlyDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyList<T>> IndexReferenceByContainingBody<T>(
@@ -260,6 +271,26 @@ internal sealed partial class LinkerAnalysisStep
                                 reference.ReferencingOverrideTarget,
                                 reference.TargetMethod,
                                 reference.ParametersToFix ) );
+                    }
+                }
+
+                // Add substitutions for IInitializable call site references.
+                if ( this._onInitializedCallSitesByContainingSemantic.TryGetValue( nonInlinedSemanticBody, out var onInitializedCallSites ) )
+                {
+                    foreach ( var reference in onInitializedCallSites )
+                    {
+                        OnInitializedCallSiteSubstitution substitution = reference.IsWithExpression
+                            ? new OnInitializedWithExpressionSubstitution(
+                                this._intermediateCompilationContext,
+                                reference.ReferencingNode,
+                                reference.TypeInfo )
+                            : new OnInitializedObjectCreationSubstitution(
+                                this._intermediateCompilationContext,
+                                reference.ReferencingNode,
+                                reference.TypeInfo,
+                                reference.ContextParamName );
+
+                        AddSubstitution( context, substitution );
                     }
                 }
             }

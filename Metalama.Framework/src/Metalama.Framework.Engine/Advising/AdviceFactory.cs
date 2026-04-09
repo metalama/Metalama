@@ -1484,11 +1484,12 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             var templateMember = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            if ( kind == InitializerKind.OnInitialized )
+            if ( kind == InitializerKind.AfterObjectInitializer )
             {
-                var advice = new OnInitializedAdvice(
+                var advice = new InitializeMethodAdvice(
                     this.GetAdviceConstructorParameters<INamedType>( targetType ),
-                    templateMember.ForOnInitialized( this.GetArgsReader( args ) ),
+                    templateMember,
+                    this.GetArgsReader( args ),
                     slotFields );
 
                 return advice.Execute( this._state );
@@ -1497,7 +1498,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             {
                 var advice = new TemplateBasedConstructorInitializeAdvice(
                     this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetType ),
-                    templateMember.ForInitializer( this.GetArgsReader( args ) ),
+                    templateMember,
+                    this.GetArgsReader( args ),
                     kind );
 
                 return advice.Execute( this._state );
@@ -1529,12 +1531,13 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.AddInitializer );
 
-            var boundTemplate = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
+            var templateMember = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
             var advice = new TemplateBasedConstructorInitializeAdvice(
                 this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetConstructor ),
-                boundTemplate.ForInitializer( this.GetArgsReader( args ) ),
+                templateMember,
+                this.GetArgsReader( args ),
                 InitializerKind.BeforeInstanceConstructor );
 
             return advice.Execute( this._state );

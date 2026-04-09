@@ -5,7 +5,7 @@
 namespace Metalama.Framework.RunTime.Initialization;
 
 /// <summary>
-/// A context passed to constructors and <c>OnInitialized</c> methods to coordinate
+/// A context passed to constructors and <see cref="IInitializable.Initialize"/> methods to coordinate
 /// post-initialization behavior. Carries the caller's intent, aspect behavior slots,
 /// and optional metadata.
 /// </summary>
@@ -38,31 +38,41 @@ public readonly struct InitializationContext
     public static InitializationContext Default { get; } = new( CallerIntent.None );
 
     /// <summary>
-    /// A context signaling that the caller will call <c>OnInitialized</c> after construction
+    /// A context signaling that the caller will call <see cref="IInitializable.Initialize"/> after construction
     /// (e.g., after an object initializer). The constructor should not self-invoke.
     /// </summary>
     public static InitializationContext WillInitialize { get; } = new( CallerIntent.WillInitialize );
 
     /// <summary>
-    /// A context signaling that the constructor should self-invoke <c>OnInitialized</c>
+    /// A context signaling that the constructor should self-invoke <see cref="IInitializable.Initialize"/>
     /// at the end of its body. Used at call sites without object initializers.
     /// </summary>
     public static InitializationContext CallInitialize { get; } = new( CallerIntent.CallInitialize );
 
     /// <summary>
-    /// Creates a context with the given metadata. Used when calling <c>OnInitialized</c> directly
-    /// (not via a constructor), e.g., after deserialization or a <c>with</c> expression.
+    /// A context for <c>with</c> expressions or clone operations. The
+    /// <see cref="IInitializable.Initialize"/> method (typically invoked via
+    /// <see cref="InitializableExtensions.WithInitialize{T}"/>) should revalidate invariants
+    /// and reinitialize derived state.
     /// </summary>
-    public static InitializationContext Create( InitializationMetadata metadata )
-        => new( CallerIntent.None, 0u, metadata );
+    public static InitializationContext Modify { get; } = new( CallerIntent.None, 0u, InitializationMetadata.Modify );
 
     /// <summary>
-    /// The caller's intent regarding <c>OnInitialized</c> invocation.
+    /// Creates a context with the given metadata. Used when calling <see cref="IInitializable.Initialize"/>
+    /// directly (not via a constructor), e.g., after deserialization or a <c>with</c> expression.
+    /// The resulting context has <see cref="CallerIntent.WillInitialize"/>, signaling to descendants
+    /// that <see cref="IInitializable.Initialize"/> is being invoked.
+    /// </summary>
+    public static InitializationContext Create( InitializationMetadata metadata )
+        => new( CallerIntent.WillInitialize, 0u, metadata );
+
+    /// <summary>
+    /// The caller's intent regarding <see cref="IInitializable.Initialize"/> invocation.
     /// </summary>
     public CallerIntent Intent => this._intent;
 
     /// <summary>
-    /// Whether <c>OnInitialized</c> will be called (either by the caller or self-invoked
+    /// Whether <see cref="IInitializable.Initialize"/> will be called (either by the caller or self-invoked
     /// by the constructor). <c>true</c> when <see cref="Intent"/> is
     /// <see cref="CallerIntent.WillInitialize"/> or <see cref="CallerIntent.CallInitialize"/>.
     /// </summary>
@@ -83,9 +93,9 @@ public readonly struct InitializationContext
     /// <summary>
     /// Returns a copy with the given slots added to the handled set.
     /// Normalizes <see cref="Intent"/> to <see cref="CallerIntent.WillInitialize"/>
-    /// (preserving the promise that <c>OnInitialized</c> will be called) and preserves
+    /// (preserving the promise that <see cref="IInitializable.Initialize"/> will be called) and preserves
     /// <see cref="Metadata"/> from the original context.
-    /// Used when a derived <c>OnInitialized</c> calls <c>base.OnInitialized</c> to propagate
+    /// Used when a derived <see cref="IInitializable.Initialize"/> calls <c>base.Initialize</c> to propagate
     /// which aspect behaviors the derived type guarantees.
     /// </summary>
     public InitializationContext Descend( InitializationSlot slots = default )

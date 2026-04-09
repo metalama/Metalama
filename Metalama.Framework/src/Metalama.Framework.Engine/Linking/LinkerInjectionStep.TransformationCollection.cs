@@ -508,9 +508,9 @@ internal sealed partial class LinkerInjectionStep
             if ( (!hasInjectedMembers && targetInjectedMember == null) || (hasInjectedMembers && targetInjectedMember == injectedMembers![^1]) )
             {
                 // Return initializer statements to source members with no overrides or to the last override.
-                // This applies to both constructors (BeforeInstanceConstructor initializers) and methods (OnInitialized template statements).
+                // This applies to both constructors (BeforeInstanceConstructor initializers) and methods (Initialize template statements).
 
-                // First: prologue statements (e.g. base.OnInitialized calls) — always before templates.
+                // First: prologue statements (e.g. base.Initialize calls) — always before templates.
                 var prologueStatements =
                     insertedStatements
                         .Where( s => s.Kind == InsertedStatementKind.InitializerPrologue );

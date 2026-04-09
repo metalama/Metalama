@@ -1,20 +1,16 @@
 [TheAspect]
-public class BaseClass
+public class BaseClass : global::Metalama.Framework.RunTime.Initialization.IInitializable
 {
-  [global::Metalama.Framework.RunTime.Initialization.OnInitializedAttribute]
-  public virtual global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnInitialized_Inheritance.BaseClass OnInitialized(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  public virtual void Initialize(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {
     global::System.Console.WriteLine("Initialized BaseClass");
-    return this;
   }
 }
 public class DerivedClass : BaseClass
 {
-  [global::Metalama.Framework.RunTime.Initialization.OnInitializedAttribute]
-  public override global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnInitialized_Inheritance.BaseClass OnInitialized(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  public override void Initialize(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {
-    base.OnInitialized(context.Descend(default));
+    base.Initialize(context.Descend(default));
     global::System.Console.WriteLine("Initialized DerivedClass");
-    return this;
   }
 }

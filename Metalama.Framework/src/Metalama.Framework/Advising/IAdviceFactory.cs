@@ -731,7 +731,7 @@ namespace Metalama.Framework.Advising
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
         /// <param name="slotFields">An optional collection of <see cref="IField"/> references to <c>public static readonly InitializationSlot</c> fields
         ///     on the aspect type, used for cross-layer coordination when <paramref name="kind"/> is
-        ///     <see cref="InitializerKind.OnInitialized"/> or <see cref="InitializerKind.AfterLastInstanceConstructor"/>.</param>
+        ///     <see cref="InitializerKind.AfterObjectInitializer"/> or <see cref="InitializerKind.AfterLastInstanceConstructor"/>.</param>
         IAddInitializerAdviceResult AddInitializer(
             INamedType targetType,
             string template,

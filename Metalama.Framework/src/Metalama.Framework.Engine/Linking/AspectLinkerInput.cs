@@ -31,15 +31,22 @@ internal readonly struct AspectLinkerInput
     /// </summary>
     public IReadOnlyList<OrderedAspectLayer> OrderedAspectLayers { get; }
 
+    /// <summary>
+    /// Gets flags that inform the linker whether call-site advice walkers need to run.
+    /// </summary>
+    public CallSiteAdviceInfo CallSiteAdviceInfo { get; }
+
     public AspectLinkerInput(
         CompilationModel initialCompilationModel,
         CompilationModel finalCompilationModel,
         IReadOnlyCollection<ITransformation> transformations,
-        IReadOnlyList<OrderedAspectLayer> orderedAspectLayers )
+        IReadOnlyList<OrderedAspectLayer> orderedAspectLayers,
+        CallSiteAdviceInfo callSiteAdviceInfo )
     {
         this.InitialCompilationModel = initialCompilationModel;
         this.FinalCompilationModel = finalCompilationModel;
         this.Transformations = transformations;
         this.OrderedAspectLayers = orderedAspectLayers;
+        this.CallSiteAdviceInfo = callSiteAdviceInfo;
     }
 }

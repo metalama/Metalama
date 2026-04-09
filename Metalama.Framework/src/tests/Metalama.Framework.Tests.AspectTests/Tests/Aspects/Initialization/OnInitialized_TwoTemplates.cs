@@ -13,8 +13,8 @@ public class TheAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.AddInitializer( nameof(FirstTemplate), InitializerKind.OnInitialized );
-        builder.AddInitializer( nameof(SecondTemplate), InitializerKind.OnInitialized );
+        builder.AddInitializer( nameof(FirstTemplate), InitializerKind.AfterObjectInitializer );
+        builder.AddInitializer( nameof(SecondTemplate), InitializerKind.AfterObjectInitializer );
     }
 
     [Template]

@@ -3,9 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Compiler;
+using Metalama.Framework.Code;
 using Metalama.Framework.Engine.AdditionalOutputs;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Formatting;
@@ -271,8 +273,20 @@ public class CompileTimeAspectPipeline : AspectPipeline
             var annotations = result.Value.LastCompilationModel.GetExportedAnnotations();
             var transitiveContributors = result.Value.TransitiveContributors;
 
+            // Use CompilationModel.GetDerivedTypes, which resolves to an O(1) DerivedTypeIndex lookup,
+            // instead of walking every type in the compilation and checking AllInterfaces.
+            // We use the IFullRef-based overload to avoid materializing each derived type's symbol —
+            // some derived types live in referenced assemblies and resolving them through GetTarget(LastCompilationModel)
+            // throws because the cross-compilation symbol-mapping check fails. We only need .Any() here.
+            var initializableType = (INamedType) result.Value.LastCompilationModel.Factory
+                .GetTypeByReflectionType( typeof(Framework.RunTime.Initialization.IInitializable) );
+
+            var containsInitializableTypes = result.Value.LastCompilationModel
+                .GetDerivedTypes( initializableType.ToFullRef() )
+                .Any();
+
             if ( result.Value.ExternallyInheritableAspects.Length > 0 || transitiveContributors.Length > 0 || inheritableOptions.Count > 0
-                 || !annotations.IsEmpty )
+                 || !annotations.IsEmpty || containsInitializableTypes )
             {
                 var pipelineExtensions = configuration.Extensions;
 
@@ -284,7 +298,8 @@ public class CompileTimeAspectPipeline : AspectPipeline
                         .ToImmutableArray(),
                     manifestExtensions,
                     inheritableOptions,
-                    annotations );
+                    annotations,
+                    containsInitializableTypes );
 
                 var resource = inheritedAspectsManifest.ToResource( configuration.ServiceProvider, resultPartialCompilation.CompilationContext );
                 additionalResources = additionalResources.Add( resource );

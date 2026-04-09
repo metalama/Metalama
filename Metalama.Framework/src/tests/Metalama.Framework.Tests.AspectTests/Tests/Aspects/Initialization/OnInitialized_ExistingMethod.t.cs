@@ -1,11 +1,9 @@
 [TheAspect]
-public class TargetCode
+public class TargetCode : IInitializable
 {
-  [OnInitialized]
-  public virtual TargetCode OnInitialized(InitializationContext context = default)
+  public virtual void Initialize(InitializationContext context)
   {
     global::System.Console.WriteLine("From aspect!");
     Console.WriteLine("Hand-authored!");
-    return this;
   }
 }

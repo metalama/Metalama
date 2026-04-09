@@ -17,13 +17,15 @@ namespace Metalama.Framework.Engine.Pipeline
         internal PipelineContributorSources(
             ImmutableArray<IPipelineContributor> contributors,
             IExternalHierarchicalOptionsProvider? externalOptionsProvider = null,
-            IExternalAnnotationProvider? externalAnnotationProvider = null )
+            IExternalAnnotationProvider? externalAnnotationProvider = null,
+            bool referencesContainInitializableTypes = false )
         {
             // We cannot have duplicates. This means a bug upstream.
 
             this.Contributors = contributors;
             this.ExternalOptionsProvider = externalOptionsProvider;
             this.ExternalAnnotationProvider = externalAnnotationProvider;
+            this.ReferencesContainInitializableTypes = referencesContainInitializableTypes;
         }
 
         internal static PipelineContributorSources Empty { get; } = new( ImmutableArray<IPipelineContributor>.Empty );
@@ -43,12 +45,15 @@ namespace Metalama.Framework.Engine.Pipeline
 
         internal IExternalAnnotationProvider? ExternalAnnotationProvider { get; }
 
+        internal bool ReferencesContainInitializableTypes { get; }
+
         internal PipelineContributorSources Add( PipelineContributorSources other )
         {
             return new PipelineContributorSources(
                 this.Contributors.AddRange( other.Contributors ),
                 this.ExternalOptionsProvider ?? other.ExternalOptionsProvider,
-                this.ExternalAnnotationProvider ?? other.ExternalAnnotationProvider );
+                this.ExternalAnnotationProvider ?? other.ExternalAnnotationProvider,
+                this.ReferencesContainInitializableTypes || other.ReferencesContainInitializableTypes );
         }
     }
 }

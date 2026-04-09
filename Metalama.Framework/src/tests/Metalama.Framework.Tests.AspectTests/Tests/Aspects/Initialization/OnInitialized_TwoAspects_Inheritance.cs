@@ -17,8 +17,8 @@ public class FirstAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.AddInitializer( nameof(Template1), InitializerKind.OnInitialized );
-        builder.AddInitializer( nameof(Template2), InitializerKind.OnInitialized );
+        builder.AddInitializer( nameof(Template1), InitializerKind.AfterObjectInitializer );
+        builder.AddInitializer( nameof(Template2), InitializerKind.AfterObjectInitializer );
     }
 
     [Template]
@@ -39,8 +39,8 @@ public class SecondAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.AddInitializer( nameof(Template1), InitializerKind.OnInitialized );
-        builder.AddInitializer( nameof(Template2), InitializerKind.OnInitialized );
+        builder.AddInitializer( nameof(Template1), InitializerKind.AfterObjectInitializer );
+        builder.AddInitializer( nameof(Template2), InitializerKind.AfterObjectInitializer );
     }
 
     [Template]

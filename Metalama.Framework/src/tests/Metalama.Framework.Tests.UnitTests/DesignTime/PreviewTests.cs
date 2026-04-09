@@ -730,4 +730,83 @@ class MyAspect : TypeAspect
 
         public DesignTimeDisabledProjectOptions( IProjectOptions underlying ) : base( underlying ) { }
     }
+
+    // Exercises the Diff/Preview scenario where an IInitializable implementer exists in the current project.
+    // This verifies that the linker's OnInitializedCallSiteFinder runs in preview and wraps `new TargetCode()`
+    // call sites in InitializableExtensions.WithInitialize(...). The target type explicitly implements
+    // IInitializable at source level because, in design-time preview, the partial compilation's observability
+    // filter prevents aspect-introduced interfaces on non-observed trees from appearing in the intermediate
+    // compilation — so we rely on a source-level declaration here.
+    [Fact]
+    public async Task WithInitializerAspect_SingleProject()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["target_type.cs"] = @"
+using Metalama.Framework.RunTime.Initialization;
+
+public class TargetCode : IInitializable
+{
+    public int Value { get; set; }
+    public virtual void Initialize( InitializationContext context = default ) { }
+}
+",
+            ["target.cs"] = @"
+public class Caller
+{
+    public void Method()
+    {
+        var t = new TargetCode();
+    }
+}
+"
+        };
+
+        var result = await this.RunPreviewAsync( code, "target.cs" );
+
+        // When the initializable-type flag is correctly propagated, the linker wraps the `new TargetCode()`
+        // call site in WithInitialize(...). If the flag were incorrectly `false`, the walker would be
+        // skipped and the `new TargetCode()` expression would remain unwrapped.
+        Assert.Contains( "WithInitialize", result, StringComparison.Ordinal );
+    }
+
+    // Exercises the Diff/Preview scenario where the IInitializable implementer lives in a referenced project.
+    // This verifies that the cross-project ContainsInitializableTypes flag is correctly aggregated from
+    // the referenced DesignTimeAspectPipelineResult (read via ITransitiveAspectManifestProvider), so that
+    // the linker's walker still runs on the dependent project's syntax trees even though no initializable
+    // type is declared in the current project.
+    [Fact]
+    public async Task WithInitializerAspect_CrossProject()
+    {
+        var masterCode = new Dictionary<string, string>()
+        {
+            ["base.cs"] = @"
+using Metalama.Framework.RunTime.Initialization;
+
+public class BaseClass : IInitializable
+{
+    public virtual void Initialize( InitializationContext context = default ) { }
+}
+"
+        };
+
+        var dependentCode = new Dictionary<string, string>()
+        {
+            ["caller.cs"] = @"
+public class Caller
+{
+    public void Method()
+    {
+        var b = new BaseClass();
+    }
+}
+"
+        };
+
+        var result = await this.RunPreviewAsync( dependentCode, "caller.cs", masterCode );
+
+        // With the cross-project flag aggregated from the referenced DesignTimeAspectPipelineResult,
+        // the walker runs and wraps `new BaseClass()` in WithInitialize(...).
+        Assert.Contains( "WithInitialize", result, StringComparison.Ordinal );
+    }
 }

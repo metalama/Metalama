@@ -22,4 +22,6 @@ public interface ITransitiveAspectsManifest
     ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> InheritableOptions { get; }
 
     ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> Annotations { get; }
+
+    bool ContainsInitializableTypes { get; }
 }

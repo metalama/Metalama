@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -13,24 +14,31 @@ namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
 internal sealed class TemplateBasedConstructorInitializeAdvice : ConstructorInitializeAdvice
 {
-    private readonly BoundTemplateMethod _boundTemplate;
+    private readonly TemplateMember<IMethod> _template;
+    private readonly IObjectReader? _templateArguments;
 
     public TemplateBasedConstructorInitializeAdvice(
         in AdviceConstructorParameters<IMemberOrNamedType> parameters,
-        BoundTemplateMethod boundTemplate,
+        TemplateMember<IMethod> template,
+        IObjectReader? templateArguments,
         InitializerKind kind )
         : base( parameters, kind )
     {
-        this._boundTemplate = boundTemplate;
+        this._template = template;
+        this._templateArguments = templateArguments;
     }
 
     protected override void AddTransformation( IMemberOrNamedType targetDeclaration, IConstructor targetCtor, Action<ITransformation> addTransformation )
     {
+        // Bind the template per-constructor so that any run-time InitializationContext parameter
+        // can be mapped to the target constructor's actual context parameter name.
+        var boundTemplate = this._template.ForInitializer( targetCtor, this._templateArguments );
+
         var initialization = new InsertTemplateStatementsTransformation(
             this.AspectLayerInstance,
             targetDeclaration.ToRef(),
             targetCtor.ToFullRef(),
-            this._boundTemplate );
+            boundTemplate );
 
         addTransformation( initialization );
     }
