@@ -35,7 +35,7 @@ public class TrackableAspect : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
         builder.AddInitializer( nameof(OnConstructing), InitializerKind.BeforeInstanceConstructor );
-        builder.AddInitializer( nameof(OnConstructedTemplate), InitializerKind.AfterLastInstanceConstructor );
+        builder.AddInitializer( nameof(OnConstructed), InitializerKind.AfterLastInstanceConstructor );
         builder.AddInitializer( nameof(OnFullyInitialized), InitializerKind.AfterObjectInitializer );
     }
 
@@ -46,7 +46,7 @@ public class TrackableAspect : TypeAspect
     }
 
     [Template]
-    private void OnConstructedTemplate()
+    private void OnConstructed()
     {
         ObjectTracker.Register( meta.This, ObjectStatus.Constructed );
     }
