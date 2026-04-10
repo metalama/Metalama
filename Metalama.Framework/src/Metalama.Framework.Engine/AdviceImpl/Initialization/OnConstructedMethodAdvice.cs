@@ -117,17 +117,9 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
                 this.AspectLayerInstance,
                 _defaultContextParameterName );
 
-            // Phase 1 warning: early `return;` inside the constructor body will bypass the epilogue call.
-            // Phase 2 will rewrite these to `goto __metalama_epilogue;`.
-            if ( HasTopLevelEarlyReturn( targetConstructor ) )
-            {
-                context.Diagnostics.Report(
-                    AdviceDiagnosticDescriptors.OnConstructedBypassedByEarlyReturn.CreateRoslynDiagnostic(
-                        targetConstructor.GetDiagnosticLocation(),
-                        (this.AspectInstance.AspectClass.ShortName, targetConstructor),
-                        this ) );
-            }
-
+            // Early `return;` statements in the constructor body are rewritten to
+            // `goto __metalama_epilogue;` by ConstructorEpilogueRewriter (invoked from
+            // LinkerInjectionStep.Rewriter.ReplaceBlock) so the epilogue still fires.
             context.AddTransformation(
                 new InsertSyntaxStatementsTransformation(
                     this.AspectLayerInstance,
@@ -194,56 +186,6 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
         }
 
         return false;
-    }
-
-    private static bool HasTopLevelEarlyReturn( IConstructor constructor )
-    {
-        // Check the source body of the constructor (if any) for a top-level `return;` statement that
-        // is not nested inside a lambda, local function, or anonymous method. We only need to inspect
-        // the outer block; nested blocks (if/while/try) are not descended into here — Phase 2 will
-        // handle this properly by rewriting returns.
-        var body = constructor.GetPrimaryDeclarationSyntax();
-
-        if ( body is not ConstructorDeclarationSyntax { Body: { } block } )
-        {
-            return false;
-        }
-
-        return HasEarlyReturn( block );
-
-        static bool HasEarlyReturn( SyntaxNode node )
-        {
-            foreach ( var child in node.ChildNodes() )
-            {
-                switch ( child.Kind() )
-                {
-                    case SyntaxKind.SimpleLambdaExpression:
-                    case SyntaxKind.ParenthesizedLambdaExpression:
-                    case SyntaxKind.AnonymousMethodExpression:
-                    case SyntaxKind.LocalFunctionStatement:
-                        // Do not recurse into nested lambdas or local functions.
-                        continue;
-
-                    case SyntaxKind.ReturnStatement:
-                        if ( ((ReturnStatementSyntax) child).Expression == null )
-                        {
-                            return true;
-                        }
-
-                        continue;
-
-                    default:
-                        if ( HasEarlyReturn( child ) )
-                        {
-                            return true;
-                        }
-
-                        break;
-                }
-            }
-
-            return false;
-        }
     }
 
     private static StatementSyntax BuildOnConstructedCallStatement( string contextParameterName )

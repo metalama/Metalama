@@ -330,16 +330,5 @@ namespace Metalama.Framework.Engine.Advising
                 _category,
                 Error );
 
-        // TODO (Phase 2): Remove this diagnostic when return-rewriting is implemented. Phase 2 will
-        // introduce a ConstructorEpilogueRewriter that rewrites `return;` to `goto __metalama_epilogue;`
-        // (skipping nested lambdas and local functions) so early returns no longer bypass the
-        // OnConstructed call. See the plan's Phase 2 section.
-        internal static readonly DiagnosticDefinition<(string AspectType, IConstructor Constructor)>
-            OnConstructedBypassedByEarlyReturn = new(
-                "LAMA0552",
-                "Constructor contains an early return statement; OnConstructed will not be called on that path.",
-                "The aspect '{0}' applies 'AfterLastInstanceConstructor' to a type whose constructor '{1}' contains an early 'return' statement; 'OnConstructed' will not be called on that path. Refactor the constructor to avoid early returns.",
-                _category,
-                Warning );
     }
 }

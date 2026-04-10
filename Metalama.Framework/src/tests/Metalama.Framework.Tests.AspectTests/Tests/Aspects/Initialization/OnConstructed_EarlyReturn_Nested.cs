@@ -7,7 +7,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_EarlyReturn_Warning;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_EarlyReturn_Nested;
 
 public class TheAspect : TypeAspect
 {
@@ -29,7 +29,24 @@ public class TargetCode
 {
     public TargetCode( int value )
     {
+        // Returns nested inside control-flow blocks are still "top-level" with respect
+        // to the constructor body and must be redirected to the epilogue.
         if ( value < 0 )
+        {
+            try
+            {
+                if ( value == -1 )
+                {
+                    return;
+                }
+            }
+            finally
+            {
+                Console.WriteLine( "finally" );
+            }
+        }
+
+        while ( value > 100 )
         {
             return;
         }
