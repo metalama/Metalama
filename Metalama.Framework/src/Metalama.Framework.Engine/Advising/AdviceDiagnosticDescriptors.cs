@@ -316,5 +316,30 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' targets type '{1}' whose 'Initialize' method is not 'public virtual' (or 'override'). On a non-sealed class implementing IInitializable, the method must be virtual so that derived types can extend initialization behavior.",
                 _category,
                 Error );
+
+        // TODO (Phase 3): Remove this diagnostic when multi-level inheritance coordination for
+        // OnConstructed is implemented. Phase 3 will emit the derived layer as an override that
+        // chains `base.OnConstructed(context.Descend(OnConstructedSystemSlot))`, and guard the
+        // epilogue call in base constructors with `if (!context.IsHandledBy(OnConstructedSystemSlot))`
+        // so that only the most-derived layer actually fires. See the plan's Phase 3 section.
+        internal static readonly DiagnosticDefinition<(string AspectType, INamedType TargetType)>
+            CannotAddOnConstructedToDerivedType = new(
+                "LAMA0551",
+                "Cannot apply AfterLastInstanceConstructor to a type whose base already declares OnConstructed.",
+                "The aspect '{0}' cannot apply 'AfterLastInstanceConstructor' to type '{1}' because its base type already has an 'OnConstructed' method. Multi-level inheritance coordination for 'OnConstructed' is not yet supported.",
+                _category,
+                Error );
+
+        // TODO (Phase 2): Remove this diagnostic when return-rewriting is implemented. Phase 2 will
+        // introduce a ConstructorEpilogueRewriter that rewrites `return;` to `goto __metalama_epilogue;`
+        // (skipping nested lambdas and local functions) so early returns no longer bypass the
+        // OnConstructed call. See the plan's Phase 2 section.
+        internal static readonly DiagnosticDefinition<(string AspectType, IConstructor Constructor)>
+            OnConstructedBypassedByEarlyReturn = new(
+                "LAMA0552",
+                "Constructor contains an early return statement; OnConstructed will not be called on that path.",
+                "The aspect '{0}' applies 'AfterLastInstanceConstructor' to a type whose constructor '{1}' contains an early 'return' statement; 'OnConstructed' will not be called on that path. Refactor the constructor to avoid early returns.",
+                _category,
+                Warning );
     }
 }

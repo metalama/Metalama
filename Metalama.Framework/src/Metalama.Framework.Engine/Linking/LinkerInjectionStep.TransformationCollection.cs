@@ -620,6 +620,37 @@ internal sealed partial class LinkerInjectionStep
             return statements;
         }
 
+        /// <summary>
+        /// Returns the ordered list of epilogue statements (kind <see cref="InsertedStatementKind.InitializerEpilogue"/>)
+        /// to be injected at the end of a source constructor body. Used by <c>AfterLastInstanceConstructor</c> to emit
+        /// the trailing <c>this.OnConstructed(context);</c> call.
+        /// </summary>
+        internal IReadOnlyList<StatementSyntax> GetInjectedEpilogueStatements( IRef<IConstructor> targetConstructor )
+        {
+            if ( !this._insertedStatementsByTargetMethodBase.TryGetValue( targetConstructor, out var insertedStatements ) )
+            {
+                return ImmutableArray<StatementSyntax>.Empty;
+            }
+
+            var epilogueStatements =
+                insertedStatements
+                    .Where( s => s.Kind == InsertedStatementKind.InitializerEpilogue )
+                    .OrderByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
+                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
+                    .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance )
+                    .ThenBy( s => s.Statement.ToFullString(), StringComparer.Ordinal );
+
+            return epilogueStatements
+                .Select(
+                    s =>
+                        s.Statement.Kind() switch
+                        {
+                            SyntaxKind.Block when s.Statement is BlockSyntax block => block.WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            _ => s.Statement
+                        } )
+                .ToReadOnlyList();
+        }
+
         private static IEnumerable<InsertedStatement> OrderInitializerStatements( IEnumerable<InsertedStatement> statements )
 
             // Initializers of separate declarations should precede initializers of the type.
