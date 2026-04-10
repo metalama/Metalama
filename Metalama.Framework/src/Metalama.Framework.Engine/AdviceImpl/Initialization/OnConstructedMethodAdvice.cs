@@ -33,11 +33,13 @@ using TypedConstant = Metalama.Framework.Code.TypedConstant;
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
 /// <summary>
-/// Implements <see cref="InitializerKind.AfterLastInstanceConstructor"/>: introduces (or reuses) a
-/// <c>public virtual void OnConstructed(InitializationContext context = default)</c> method on the
-/// target type, injects the template body into it, and emits a trailing <c>this.OnConstructed(context)</c>
-/// call at the end of every non-<c>:this(...)</c> instance constructor (after pulling an
-/// <c>InitializationContext</c> parameter through the constructor chain).
+/// Implements <see cref="InitializerKind.AfterLastInstanceConstructor"/>: introduces (or reuses) an
+/// <c>OnConstructed(InitializationContext context = default)</c> method on the target type, injects
+/// the template body into it, and emits a trailing <c>this.OnConstructed(context)</c> call at the end
+/// of every non-<c>:this(...)</c> instance constructor (after pulling an <c>InitializationContext</c>
+/// parameter through the constructor chain). The introduced method is <c>private</c> on sealed types
+/// and structs, <c>protected virtual</c> on unsealed classes, and an <c>override</c> matching the base
+/// accessibility when a base type already exposes <c>OnConstructed</c>.
 /// </summary>
 /// <remarks>
 /// On non-sealed, non-struct targets the epilogue call is guarded by

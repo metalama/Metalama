@@ -38,18 +38,21 @@ internal sealed partial class LinkerInjectionStep
         private readonly LinkerInjectionStep _parent;
         private readonly TransformationCollection _transformationCollection;
         private readonly SyntaxTree _syntaxTreeForGlobalAttributes;
+        private readonly LexicalScopeFactory _lexicalScopeFactory;
 
         public Rewriter(
             LinkerInjectionStep parent,
             TransformationCollection syntaxTransformationCollection,
             CompilationModel compilation,
-            SyntaxTree syntaxTreeForGlobalAttributes )
+            SyntaxTree syntaxTreeForGlobalAttributes,
+            LexicalScopeFactory lexicalScopeFactory )
         {
             this._parent = parent;
             this._compilation = compilation;
             this._transformationCollection = syntaxTransformationCollection;
             this._semanticModelProvider = compilation.RoslynCompilation.GetSemanticModelProvider();
             this._syntaxTreeForGlobalAttributes = syntaxTreeForGlobalAttributes;
+            this._lexicalScopeFactory = lexicalScopeFactory;
         }
 
         private RefFactory RefFactory => this._compilation.RefFactory;
@@ -696,7 +699,7 @@ internal sealed partial class LinkerInjectionStep
             }
         }
 
-        private static MemberDeclarationSyntax InjectStatementsIntoMemberDeclaration(
+        private MemberDeclarationSyntax InjectStatementsIntoMemberDeclaration(
             IFullRef<IMember> contextDeclaration,
             IReadOnlyList<StatementSyntax> entryStatements,
             IReadOnlyList<StatementSyntax> exitStatements,
@@ -842,8 +845,8 @@ internal sealed partial class LinkerInjectionStep
                     throw new AssertionFailedException( $"Not supported: {currentNode}" );
             }
 
-            static BlockSyntax ReplaceBlock(
-                IRef<IDeclaration> declaration,
+            BlockSyntax ReplaceBlock(
+                IFullRef<IMember> declaration,
                 IReadOnlyList<StatementSyntax> entryStatements,
                 IReadOnlyList<StatementSyntax> exitStatements,
                 BlockSyntax targetBlock )
@@ -853,10 +856,11 @@ internal sealed partial class LinkerInjectionStep
                     // Constructor bodies can have arbitrary user code. The `AfterLastInstanceConstructor`
                     // advice emits a trailing call to `OnConstructed(context)` as an epilogue statement;
                     // we wrap the original body with entry/exit blocks and redirect any early `return;`
-                    // statements to the epilogue via a generated label.
-                    if ( declaration is IRef<IConstructor> )
+                    // statements to the epilogue via a generated label. The label name is obtained from
+                    // the constructor's lexical scope so it cannot collide with a user-declared label.
+                    if ( declaration is IFullRef<IConstructor> constructorRef )
                     {
-                        const string epilogueLabelName = "__epilogue";
+                        var epilogueLabelName = this._lexicalScopeFactory.GetLexicalScope( constructorRef ).GetUniqueIdentifier( "epilogue" );
 
                         var rewriter = new ConstructorEpilogueRewriter( epilogueLabelName );
                         var rewrittenBody = (BlockSyntax) rewriter.Visit( targetBlock )!;
@@ -871,7 +875,7 @@ internal sealed partial class LinkerInjectionStep
                             // `exitStatements.Count > 0` guard above guarantees at least one exit
                             // statement exists.
                             var labeledExitStatements = new StatementSyntax[exitStatements.Count];
-                            labeledExitStatements[0] = LabeledStatement( Identifier( epilogueLabelName ), exitStatements[0] );
+                            labeledExitStatements[0] = LabeledStatement( SafeIdentifier( epilogueLabelName ), exitStatements[0] );
 
                             for ( var i = 1; i < exitStatements.Count; i++ )
                             {

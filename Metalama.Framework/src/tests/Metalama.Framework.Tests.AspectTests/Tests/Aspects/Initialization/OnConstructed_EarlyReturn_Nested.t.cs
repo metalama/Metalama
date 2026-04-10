@@ -11,7 +11,7 @@ public class TargetCode
       {
         if (value == -1)
         {
-          goto __epilogue;
+          goto epilogue;
         }
       }
       finally
@@ -21,10 +21,10 @@ public class TargetCode
     }
     while (value > 100)
     {
-      goto __epilogue;
+      goto epilogue;
     }
     Console.WriteLine(value);
-    __epilogue:
+    epilogue:
       if (!context.IsHandled(InitializationSlot.OnConstructed))
       {
         this.OnConstructed(context);

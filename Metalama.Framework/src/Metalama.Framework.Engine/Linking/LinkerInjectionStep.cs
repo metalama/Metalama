@@ -343,7 +343,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                 this,
                 transformationCollection,
                 input.FinalCompilationModel,
-                syntaxTreeForGlobalAttributes );
+                syntaxTreeForGlobalAttributes,
+                lexicalScopeFactory );
 
             var oldRoot = await initialSyntaxTree.GetRootAsync( cancellationToken );
             var newRoot = rewriter.Visit( oldRoot ).AssertNotNull();

@@ -51,7 +51,7 @@ internal sealed class ConstructorEpilogueRewriter : SafeSyntaxRewriter
         // Trivia is intentionally dropped: the goto is a system-generated replacement and the
         // linker's formatting pipeline will reformat the block after injection. The explicit
         // `goto` keyword token with trailing space is required so the output reads
-        // `goto __metalama_epilogue;` and not `goto__metalama_epilogue;`.
+        // `goto epilogue;` and not `gotoepilogue;`.
         return GotoStatement(
             SyntaxKind.GotoStatement,
             SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.GotoKeyword ),

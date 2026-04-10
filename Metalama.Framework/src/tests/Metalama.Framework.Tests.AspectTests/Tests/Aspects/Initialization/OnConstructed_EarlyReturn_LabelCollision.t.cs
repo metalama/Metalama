@@ -8,7 +8,10 @@ public class TargetCode
       goto epilogue;
     }
     Console.WriteLine(value);
+    goto epilogue_1;
     epilogue:
+      Console.WriteLine("user epilogue");
+    epilogue_1:
       if (!context.IsHandled(InitializationSlot.OnConstructed))
       {
         this.OnConstructed(context);
