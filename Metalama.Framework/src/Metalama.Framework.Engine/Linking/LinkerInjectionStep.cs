@@ -109,6 +109,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     replacedIntroduceDeclarationTransformations );
             }
 
+            var insertStatementAggregateBuffer = new InsertStatementAggregateBuffer();
+
             foreach ( var transformation in sortedTransformations )
             {
                 IndexOverrideTransformation(
@@ -139,10 +141,21 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     transformation,
                     transformationCollection,
                     auxiliaryMemberTransformations,
-                    pendingInsertStatementContexts );
+                    pendingInsertStatementContexts,
+                    insertStatementAggregateBuffer );
 
                 IndexNodesWithModifiedAttributes( transformation, transformationCollection );
             }
+
+            // Flush any remaining aggregatable run at the end of the loop.
+            this.FlushInsertStatementAggregateBuffer(
+                input,
+                diagnostics,
+                lexicalScopeFactory,
+                transformationCollection,
+                auxiliaryMemberTransformations,
+                pendingInsertStatementContexts,
+                insertStatementAggregateBuffer );
         }
 
         IEnumerable<ISyntaxTreeTransformation> syntaxTreeTransformations;
@@ -639,6 +652,37 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         }
     }
 
+    /// <summary>
+    /// Per-syntax-tree state buffering aggregatable insert-statement transformations for later flushing as
+    /// coalesced groups. Transformations implementing <see cref="IAggregatableInsertStatementTransformation"/>
+    /// are collected here — keyed by <c>(target, AggregateKey)</c> — while the main transformation loop runs;
+    /// at the end of the loop the buffer is drained and each group is dispatched to its first transformation's
+    /// <see cref="IInsertStatementTransformation.GetInsertedStatements"/> with the full ordered group passed
+    /// as <c>aggregatedGroup</c>. Buffering is deferred to end-of-loop (rather than flushing on non-matching
+    /// intermediate transformations) because aggregatable transformations from different aspects are naturally
+    /// interleaved with each aspect's other transformations; requiring strict contiguity would prevent any
+    /// aggregation across aspects. Ordering within each group is preserved from the loop's sorted order.
+    /// </summary>
+    private sealed class InsertStatementAggregateBuffer
+    {
+        // Key is (target, AggregateKey). Using Dictionary preserves insertion order for keys in .NET,
+        // and within each List the original sorted order of the transformations is preserved.
+        public readonly Dictionary<(IFullRef<IMemberOrNamedType> Target, string Key), List<IInsertStatementTransformation>> Groups =
+            new( AggregateBufferKeyComparer.Instance );
+    }
+
+    private sealed class AggregateBufferKeyComparer : IEqualityComparer<(IFullRef<IMemberOrNamedType> Target, string Key)>
+    {
+        public static readonly AggregateBufferKeyComparer Instance = new();
+
+        public bool Equals( (IFullRef<IMemberOrNamedType> Target, string Key) x, (IFullRef<IMemberOrNamedType> Target, string Key) y )
+            => x.Key == y.Key && RefEqualityComparer<IMemberOrNamedType>.Default.Equals( x.Target, y.Target );
+
+        public int GetHashCode( (IFullRef<IMemberOrNamedType> Target, string Key) obj )
+            => unchecked( (RefEqualityComparer<IMemberOrNamedType>.Default.GetHashCode( obj.Target ) * 397)
+                          ^ StringComparer.Ordinal.GetHashCode( obj.Key ) );
+    }
+
     private void IndexInsertStatementTransformation(
         AspectLinkerInput input,
         UserDiagnosticSink diagnostics,
@@ -646,13 +690,88 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         ITransformation transformation,
         TransformationCollection transformationCollection,
         ConcurrentDictionary<IFullRef<IMember>, AuxiliaryMemberTransformations> auxiliaryMemberTransformations,
-        ConcurrentDictionary<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts )
+        ConcurrentDictionary<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts,
+        InsertStatementAggregateBuffer aggregateBuffer )
     {
         if ( transformation is not IInsertStatementTransformation insertStatementTransformation )
         {
             return;
         }
 
+        // Aggregatable: buffer for end-of-loop flushing so peers (possibly separated by unrelated transformations
+        // from other aspects) can be merged into a single group.
+        if ( transformation is IAggregatableInsertStatementTransformation aggregatable )
+        {
+            var bufferKey = (insertStatementTransformation.TargetMemberOrNamedType, aggregatable.AggregateKey);
+
+            if ( !aggregateBuffer.Groups.TryGetValue( bufferKey, out var list ) )
+            {
+                list = new List<IInsertStatementTransformation>();
+                aggregateBuffer.Groups[bufferKey] = list;
+            }
+
+            list.Add( insertStatementTransformation );
+
+            return;
+        }
+
+        // Non-aggregatable: process immediately.
+        this.IndexInsertStatementTransformationCore(
+            input,
+            diagnostics,
+            lexicalScopeFactory,
+            insertStatementTransformation,
+            aggregatedGroup: null,
+            transformationCollection,
+            auxiliaryMemberTransformations,
+            pendingInsertStatementContexts );
+    }
+
+    private void FlushInsertStatementAggregateBuffer(
+        AspectLinkerInput input,
+        UserDiagnosticSink diagnostics,
+        LexicalScopeFactory lexicalScopeFactory,
+        TransformationCollection transformationCollection,
+        ConcurrentDictionary<IFullRef<IMember>, AuxiliaryMemberTransformations> auxiliaryMemberTransformations,
+        ConcurrentDictionary<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts,
+        InsertStatementAggregateBuffer aggregateBuffer )
+    {
+        foreach ( var kvp in aggregateBuffer.Groups )
+        {
+            var list = kvp.Value;
+
+            if ( list.Count == 0 )
+            {
+                continue;
+            }
+
+            var first = list[0];
+            var group = list.ToArray();
+
+            this.IndexInsertStatementTransformationCore(
+                input,
+                diagnostics,
+                lexicalScopeFactory,
+                first,
+                aggregatedGroup: group,
+                transformationCollection,
+                auxiliaryMemberTransformations,
+                pendingInsertStatementContexts );
+        }
+
+        aggregateBuffer.Groups.Clear();
+    }
+
+    private void IndexInsertStatementTransformationCore(
+        AspectLinkerInput input,
+        UserDiagnosticSink diagnostics,
+        LexicalScopeFactory lexicalScopeFactory,
+        IInsertStatementTransformation insertStatementTransformation,
+        IReadOnlyList<IInsertStatementTransformation>? aggregatedGroup,
+        TransformationCollection transformationCollection,
+        ConcurrentDictionary<IFullRef<IMember>, AuxiliaryMemberTransformations> auxiliaryMemberTransformations,
+        ConcurrentDictionary<IFullRef<IMemberOrNamedType>, InsertStatementTransformationContextImpl> pendingInsertStatementContexts )
+    {
         var targetMemberOrNamedType = insertStatementTransformation.TargetMemberOrNamedType.Definition;
 
         var syntaxGenerationContext
@@ -774,7 +893,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                         insertStatementTransformation,
                         m ) );
 
-            var statements = insertStatementTransformation.GetInsertedStatements( context );
+            var statements = insertStatementTransformation.GetInsertedStatements( context, aggregatedGroup );
 
             var markedForInputContracts = false;
             var markedForOutputContracts = false;

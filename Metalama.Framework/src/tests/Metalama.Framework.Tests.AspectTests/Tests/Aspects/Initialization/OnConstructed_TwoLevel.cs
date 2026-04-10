@@ -5,11 +5,11 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.RunTime.Initialization;
 using System;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_InheritedBase_Diagnostic;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_TwoLevel;
 
+[Inheritable]
 public class TheAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
@@ -20,22 +20,24 @@ public class TheAspect : TypeAspect
     [Template]
     private void InitializerTemplate()
     {
-        Console.WriteLine( "OnConstructed!" );
-    }
-}
-
-public class BaseClass
-{
-    public virtual void OnConstructed( InitializationContext context = default )
-    {
+        Console.WriteLine( $"OnConstructed on {meta.Target.Type.Name}!" );
     }
 }
 
 // <target>
 [TheAspect]
-public class TargetCode : BaseClass
+public class BaseClass
 {
-    public TargetCode()
+    public BaseClass( int x )
+    {
+        _ = x;
+    }
+}
+
+// <target>
+public class DerivedClass : BaseClass
+{
+    public DerivedClass() : base( 0 )
     {
     }
 }

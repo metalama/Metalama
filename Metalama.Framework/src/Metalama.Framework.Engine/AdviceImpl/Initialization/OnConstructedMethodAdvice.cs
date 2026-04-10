@@ -7,6 +7,8 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
+using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
+using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -33,6 +35,15 @@ namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 /// call at the end of every non-<c>:this(...)</c> instance constructor (after pulling an
 /// <c>InitializationContext</c> parameter through the constructor chain).
 /// </summary>
+/// <remarks>
+/// On non-sealed, non-struct targets the epilogue call is guarded by
+/// <c>if (!context.IsHandled(InitializationSlot.OnConstructed))</c> so that base
+/// constructors skip the call when a derived layer will handle it. In a hierarchy where the aspect
+/// is applied to both base and derived, the derived layer is emitted as an <c>override</c> that
+/// chains to <c>base.OnConstructed</c>, and its <c>:base(...)</c> call passes
+/// <c>context.Descend(OnConstructed)</c> (replacing the <c>context</c> argument that the
+/// base layer's pull would otherwise have appended).
+/// </remarks>
 internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceResult>
 {
     private const string _methodName = "OnConstructed";
@@ -44,6 +55,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
 
     private readonly TemplateMember<IMethod> _template;
     private readonly IObjectReader? _templateArguments;
+    private readonly IEnumerable<IField>? _slotFields;
 
     private new INamedType TargetDeclaration => (INamedType) base.TargetDeclaration;
 
@@ -56,10 +68,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
     {
         this._template = template;
         this._templateArguments = templateArguments;
-
-        // slotFields is accepted by the API but the slot-coordination code path is not yet implemented.
-        // Phase 3 will emit `if (!context.IsHandledBy(Slot))` guards around the epilogue call.
-        _ = slotFields;
+        this._slotFields = slotFields;
     }
 
     protected override AddInitializerAdviceResult Implement( AdviceImplementationContext context )
@@ -79,19 +88,32 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
                     this ) );
         }
 
-        // Phase 1 gate: base type already has OnConstructed. Phase 3 will remove this restriction and
-        // implement proper slot coordination across inheritance.
-        if ( BaseTypeHasOnConstructed( targetType, initContextType ) )
+        // Look up an inherited OnConstructed — if present, the introduced method becomes an override.
+        var baseOnConstructed = FindBaseOnConstructed( targetType, initContextType );
+
+        // If a base type exposes OnConstructed(InitializationContext), it MUST also expose a
+        // constructor accepting InitializationContext so that derived `:base(...)` calls can
+        // pass `context.Descend(InitializationSlot.OnConstructed)` and the base constructor can
+        // skip its own OnConstructed call. Otherwise the base will always call OnConstructed
+        // unconditionally and the derived override will run it a second time.
+        if ( baseOnConstructed != null )
         {
-            return this.CreateFailedResult(
-                AdviceDiagnosticDescriptors.CannotAddOnConstructedToDerivedType.CreateRoslynDiagnostic(
-                    targetType.GetDiagnosticLocation(),
-                    (this.AspectInstance.AspectClass.ShortName, targetType),
-                    this ) );
+            var declaringType = baseOnConstructed.DeclaringType;
+            var hasContextConstructor = declaringType.Constructors.Any(
+                c => c.Parameters.Any( p => p.Type.Equals( initContextType ) ) );
+
+            if ( !hasContextConstructor )
+            {
+                return this.CreateFailedResult(
+                    AdviceDiagnosticDescriptors.OnConstructedBaseWithoutContextConstructor.CreateRoslynDiagnostic(
+                        targetType.GetDiagnosticLocation(),
+                        (this.AspectInstance.AspectClass.ShortName, targetType, declaringType),
+                        this ) );
+            }
         }
 
         // Step 1: introduce (or, if the user wrote one, resolve) OnConstructed on this type.
-        var onConstructedMethod = this.IntroduceOrResolveOnConstructed( targetType, initContextType, context );
+        var onConstructedMethod = this.IntroduceOrResolveOnConstructed( targetType, initContextType, baseOnConstructed, context );
 
         // Step 2: bind and inject the template body into OnConstructed.
         var boundTemplate = this._template.ForInitializer( onConstructedMethod, this._templateArguments );
@@ -103,8 +125,29 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
                 onConstructedMethod.ToFullRef(),
                 boundTemplate ) );
 
+        // Step 2b: if we are introducing an override, prepend `base.OnConstructed(context.Descend(userSlots))`
+        // — or plain `base.OnConstructed(context)` when there are no user slots, since Descend(default) is a no-op
+        // for OnConstructed (it only normalizes Intent, which OnConstructed does not consult).
+        // Uses an aggregatable transformation so that multiple peer aspects applied to the same type produce a
+        // single combined base call `base.OnConstructed(context.Descend(slotA | slotB))`.
+        if ( baseOnConstructed != null && onConstructedMethod.IsOverride )
+        {
+            var prologueContextName = onConstructedMethod.Parameters[0].Name;
+            var slotFieldsList = this._slotFields?.ToList();
+
+            context.AddTransformation(
+                new OnConstructedBaseCallTransformation(
+                    this.AspectLayerInstance,
+                    targetType.ToRef(),
+                    onConstructedMethod.ToFullRef(),
+                    prologueContextName,
+                    slotFieldsList ) );
+        }
+
         // Step 3: for each non-`:this(...)` instance constructor, ensure the `context` parameter
-        // and emit the epilogue call `this.OnConstructed(context);`.
+        // and emit the epilogue call `this.OnConstructed(context);` (guarded on non-sealed/non-struct).
+        var guardEpilogue = !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct;
+
         foreach ( var sourceCtor in targetType.Constructors
                      .Where( c => c.InitializerKind != ConstructorInitializerKind.This
                                   && !c.IsRecordCopyConstructor() )
@@ -120,13 +163,29 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
             // Early `return;` statements in the constructor body are rewritten to
             // `goto __metalama_epilogue;` by ConstructorEpilogueRewriter (invoked from
             // LinkerInjectionStep.Rewriter.ReplaceBlock) so the epilogue still fires.
+            // Uses an aggregatable transformation so that multiple peer aspects produce a single
+            // deduplicated epilogue call per constructor.
             context.AddTransformation(
-                new InsertSyntaxStatementsTransformation(
+                new OnConstructedEpilogueTransformation(
                     this.AspectLayerInstance,
                     targetType.ToRef(),
                     targetConstructor.ToFullRef(),
-                    _ => BuildOnConstructedCallStatement( contextParameterName ),
-                    InsertedStatementKind.InitializerEpilogue ) );
+                    contextParameterName,
+                    guardEpilogue ) );
+
+            // If base has OnConstructed, the derived `:base(...)` call must pass
+            // `context.Descend(OnConstructed)` so the base constructor's epilogue skips.
+            // Base's pull already appended a plain `context` argument; replace it with an
+            // IsOverride=true transformation at the same parameter index.
+            if ( baseOnConstructed != null
+                 && targetConstructor.InitializerKind != ConstructorInitializerKind.This )
+            {
+                this.EmitDescendOverrideForBaseInitializer(
+                    targetConstructor,
+                    initContextType,
+                    contextParameterName,
+                    context );
+            }
         }
 
         return new AddInitializerAdviceResult( AdviceOutcome.Success, this.AdviceFactory );
@@ -135,6 +194,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
     private IMethod IntroduceOrResolveOnConstructed(
         INamedType targetType,
         IType initContextType,
+        IMethod? baseOnConstructed,
         AdviceImplementationContext context )
     {
         // If the user already declared a matching `OnConstructed(InitializationContext)` method on the target,
@@ -155,9 +215,20 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
         var builder = new MethodBuilder( this.AspectLayerInstance, targetType, _methodName )
         {
             ReturnType = factory.GetSpecialType( Code.SpecialType.Void ),
-            Accessibility = Accessibility.Public,
-            IsVirtual = !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct
+            Accessibility = Accessibility.Public
         };
+
+        if ( baseOnConstructed != null )
+        {
+            // Override the inherited OnConstructed method so the derived layer chains to base.
+            builder.IsOverride = true;
+            builder.OverriddenMethod = baseOnConstructed;
+        }
+        else
+        {
+            // New method — virtual unless the type is sealed or a struct.
+            builder.IsVirtual = !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct;
+        }
 
         builder.AddParameter( _defaultContextParameterName, initContextType, defaultValue: TypedConstant.Default( initContextType ) );
 
@@ -169,7 +240,11 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
         return builder;
     }
 
-    private static bool BaseTypeHasOnConstructed( INamedType targetType, IType initContextType )
+    /// <summary>
+    /// Walks base types looking for a virtual/override <c>OnConstructed(InitializationContext)</c>
+    /// method that a derived layer can override. Returns the base method if found; otherwise null.
+    /// </summary>
+    private static IMethod? FindBaseOnConstructed( INamedType targetType, IType initContextType )
     {
         for ( var baseType = targetType.BaseType; baseType != null; baseType = baseType.BaseType )
         {
@@ -181,23 +256,76 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
 
             if ( baseMethod != null )
             {
-                return true;
+                // Only overridable methods can be chained from a derived layer.
+                return baseMethod.IsVirtual || baseMethod.IsOverride ? baseMethod : null;
             }
         }
 
-        return false;
+        return null;
     }
 
-    private static StatementSyntax BuildOnConstructedCallStatement( string contextParameterName )
-        => ExpressionStatement(
-            InvocationExpression(
-                MemberAccessExpression(
-                    SyntaxKind.SimpleMemberAccessExpression,
-                    ThisExpression(),
-                    IdentifierName( _methodName ) ),
-                ArgumentList(
-                    SingletonSeparatedList(
-                        Argument( SyntaxFactoryEx.SafeIdentifierName( contextParameterName ) ) ) ) ) );
+    /// <summary>
+    /// Locates the <see cref="InitializationContext"/> parameter on the base constructor reached by
+    /// <paramref name="derivedConstructor"/>'s <c>:base(...)</c> initializer and, if found, emits an
+    /// <c>IsOverride=true</c> <see cref="IntroduceConstructorInitializerArgumentTransformation"/>
+    /// that replaces the pulled argument with <c>context.Descend(OnConstructed)</c>.
+    /// </summary>
+    private void EmitDescendOverrideForBaseInitializer(
+        IConstructor derivedConstructor,
+        IType initContextType,
+        string contextParameterName,
+        AdviceImplementationContext context )
+    {
+        var baseConstructor = ((IConstructorImpl) derivedConstructor).GetBaseConstructor()?.Definition;
+
+        if ( baseConstructor == null )
+        {
+            return;
+        }
+
+        var baseContextParameter = baseConstructor.Parameters.FirstOrDefault( p => p.Type.Equals( initContextType ) );
+
+        if ( baseContextParameter == null )
+        {
+            // The base constructor has no InitializationContext parameter — no pulled arg to override.
+            // This happens when the base type does not have the aspect applied but inherits an
+            // OnConstructed from an even deeper ancestor (or hand-authored one on a type whose
+            // constructors don't take a context). Nothing to do here.
+            return;
+        }
+
+        var requiresParameterName = baseConstructor.Parameters.Any(
+            p => p.DefaultValue != null && p.Index < baseContextParameter.Index );
+
+        context.AddTransformation(
+            new IntroduceConstructorInitializerArgumentTransformation(
+                this.AspectLayerInstance,
+                derivedConstructor.ToFullRef(),
+                baseContextParameter.Index,
+                baseContextParameter.Name,
+                BuildDescendExpression( contextParameterName ),
+                requiresParameterName,
+                isOverride: true ) );
+    }
+
+    /// <summary>
+    /// Builds <c>context.Descend(global::...InitializationSlot.OnConstructed)</c>, used as the argument
+    /// override for the <c>:base(...)</c> initializer of a derived constructor so the base layer's epilogue
+    /// skips running.
+    /// </summary>
+    private static ExpressionSyntax BuildDescendExpression( string contextParameterName )
+        => InvocationExpression(
+            MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                SyntaxFactoryEx.SafeIdentifierName( contextParameterName ),
+                IdentifierName( "Descend" ) ),
+            ArgumentList(
+                SingletonSeparatedList(
+                    Argument(
+                        MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            SyntaxFactoryEx.CreateFullyQualifiedName( typeof(InitializationSlot).FullName! ),
+                            IdentifierName( nameof(InitializationSlot.OnConstructed) ) ) ) ) ) );
 
     public override AdviceKind AdviceKind => AdviceKind.AddInitializer;
 

@@ -4,7 +4,10 @@ public class TargetCode : global::Metalama.Framework.RunTime.Initialization.IIni
   public TargetCode(int value, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
   {
     _ = value;
-    this.OnConstructed(context);
+    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    {
+      this.OnConstructed(context);
+    }
   }
   public virtual void Initialize(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {

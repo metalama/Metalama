@@ -1,2 +1,0 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0551 on `TargetCode`: `The aspect 'TheAspect' cannot apply 'AfterLastInstanceConstructor' to type 'TargetCode' because its base type already has an 'OnConstructed' method. Multi-level inheritance coordination for 'OnConstructed' is not yet supported.`

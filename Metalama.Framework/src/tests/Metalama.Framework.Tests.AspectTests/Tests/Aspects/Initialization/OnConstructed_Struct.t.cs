@@ -9,6 +9,7 @@ public struct TargetCode
   }
   public TargetCode(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {
+    this.OnConstructed(context);
   }
   public void OnConstructed(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {

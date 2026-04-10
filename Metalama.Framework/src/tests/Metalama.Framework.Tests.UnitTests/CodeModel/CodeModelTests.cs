@@ -769,6 +769,13 @@ class C : IDisposable
         var constructor = type.Constructors.Single();
         Assert.True( constructor.IsImplicitlyDeclared );
         Assert.Null( type.StaticConstructor );
+
+        // The implicit default constructor must report its origin as `Source` (same as its containing
+        // type). This is relied upon by logic that iterates over source constructors — e.g.
+        // BaseConstructorResolver.GetImplicitBaseConstructor — to discover the implicit parameterless
+        // base constructor of a default-shape derived constructor.
+        Assert.Equal( DeclarationOriginKind.Source, constructor.Origin.Kind );
+        Assert.False( constructor.Origin.IsCompilerGenerated );
     }
 
     [Fact]

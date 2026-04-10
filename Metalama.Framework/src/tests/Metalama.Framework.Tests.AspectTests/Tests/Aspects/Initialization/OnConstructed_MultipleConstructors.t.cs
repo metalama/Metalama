@@ -8,12 +8,18 @@ public class TargetCode
   public TargetCode(int value, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
   {
     this.Value = value;
-    this.OnConstructed(context);
+    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    {
+      this.OnConstructed(context);
+    }
   }
   public TargetCode(string s, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
   {
     this.Value = s.Length;
-    this.OnConstructed(context);
+    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    {
+      this.OnConstructed(context);
+    }
   }
   public virtual void OnConstructed(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {

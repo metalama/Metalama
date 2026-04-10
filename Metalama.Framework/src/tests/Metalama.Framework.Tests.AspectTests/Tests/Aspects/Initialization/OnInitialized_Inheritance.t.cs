@@ -10,7 +10,7 @@ public class DerivedClass : BaseClass
 {
   public override void Initialize(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {
-    base.Initialize(context.Descend(default));
+    base.Initialize(context);
     global::System.Console.WriteLine("Initialized DerivedClass");
   }
 }

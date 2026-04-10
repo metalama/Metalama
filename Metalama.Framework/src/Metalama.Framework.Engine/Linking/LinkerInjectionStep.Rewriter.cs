@@ -482,6 +482,23 @@ internal sealed partial class LinkerInjectionStep
                         var entryStatements = this._transformationCollection.GetInjectedEntryStatements( injectedMember );
                         var exitStatements = this._transformationCollection.GetInjectedExitStatements( injectedMember );
 
+                        // Introduced constructors (including those that materialize an implicit default
+                        // ctor for InitializationContext parameter pulling) also need the epilogue
+                        // statements from `AfterLastInstanceConstructor` appended, just like source
+                        // constructors. `GetInjectedExitStatements` only returns OutputContract
+                        // statements, so the epilogue is merged in here.
+                        if ( methodBase is IFullRef<IConstructor> constructorRef )
+                        {
+                            var epilogueStatements = this._transformationCollection.GetInjectedEpilogueStatements( constructorRef );
+
+                            if ( epilogueStatements.Count > 0 )
+                            {
+                                exitStatements = exitStatements.Count == 0
+                                    ? epilogueStatements
+                                    : [..exitStatements, ..epilogueStatements];
+                            }
+                        }
+
                         injectedNode = InjectStatementsIntoMemberDeclaration(
                             methodBase,
                             entryStatements,
@@ -1167,18 +1184,134 @@ internal sealed partial class LinkerInjectionStep
                 return initializerSyntax;
             }
 
-            var newArgumentsSyntax = newArguments.Select( a => a.ToSyntax().WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ) );
-
             if ( initializerSyntax == null )
             {
+                // No existing `:base(...)` — emit a fresh one with all new args. Override semantics
+                // don't apply because there are no pre-existing source args to replace.
+                var newArgumentsSyntax = newArguments
+                    .Select( a => a.ToSyntax().WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ) );
+
                 return ConstructorInitializer(
                     SyntaxKind.BaseConstructorInitializer,
                     ArgumentList( SeparatedList( newArgumentsSyntax ) ) );
             }
+
+            // Partition new arguments into overrides that match a pre-existing source argument, and
+            // plain appends. An IsOverride=true transformation matches a source argument when that
+            // source argument names the same parameter (either by explicit `name:` label, or by
+            // position — assuming no name-colon appears on or before the same index, which would
+            // imply the user reordered args by name).
+            var sourceArguments = initializerSyntax.ArgumentList.Arguments;
+            var replacements = new Dictionary<int, IntroduceConstructorInitializerArgumentTransformation>();
+            var appendList = new List<IntroduceConstructorInitializerArgumentTransformation>( newArguments.Length );
+
+            foreach ( var newArg in newArguments )
+            {
+                var matchedSourceIndex = -1;
+
+                if ( newArg.IsOverride )
+                {
+                    // Try named match first (robust to parameter reordering in source).
+                    for ( var i = 0; i < sourceArguments.Count; i++ )
+                    {
+                        if ( sourceArguments[i].NameColon?.Name.Identifier.ValueText == newArg.ParameterName )
+                        {
+                            matchedSourceIndex = i;
+
+                            break;
+                        }
+                    }
+
+                    // Fall back to positional match, but only if no preceding source argument used a
+                    // name colon — once a name colon appears, later positional args bind by name.
+                    if ( matchedSourceIndex < 0
+                         && newArg.ParameterIndex < sourceArguments.Count
+                         && sourceArguments[newArg.ParameterIndex].NameColon == null )
+                    {
+                        var anyEarlierNameColon = false;
+
+                        for ( var i = 0; i <= newArg.ParameterIndex; i++ )
+                        {
+                            if ( sourceArguments[i].NameColon != null )
+                            {
+                                anyEarlierNameColon = true;
+
+                                break;
+                            }
+                        }
+
+                        if ( !anyEarlierNameColon )
+                        {
+                            matchedSourceIndex = newArg.ParameterIndex;
+                        }
+                    }
+                }
+
+                if ( matchedSourceIndex >= 0 )
+                {
+                    replacements[matchedSourceIndex] = newArg;
+                }
+                else
+                {
+                    appendList.Add( newArg );
+                }
+            }
+
+            ArgumentListSyntax newArgumentList;
+
+            if ( replacements.Count > 0 )
+            {
+                // Rebuild the argument list, swapping in replacements where applicable.
+                var builder = new ArgumentSyntax[sourceArguments.Count];
+
+                for ( var i = 0; i < sourceArguments.Count; i++ )
+                {
+                    if ( replacements.TryGetValue( i, out var replacementTransformation ) )
+                    {
+                        var replacementSyntax = replacementTransformation.ToSyntax();
+
+                        // Preserve the shape of the source argument: if the source used a name colon,
+                        // keep it; otherwise drop any generated name colon so the result stays positional.
+                        if ( sourceArguments[i].NameColon != null )
+                        {
+                            if ( replacementSyntax.NameColon == null )
+                            {
+                                replacementSyntax = replacementSyntax.WithNameColon( sourceArguments[i].NameColon );
+                            }
+                        }
+                        else if ( replacementSyntax.NameColon != null )
+                        {
+                            replacementSyntax = replacementSyntax.WithNameColon( null );
+                        }
+
+                        builder[i] = replacementSyntax;
+                    }
+                    else
+                    {
+                        builder[i] = sourceArguments[i];
+                    }
+                }
+
+                newArgumentList = initializerSyntax.ArgumentList.WithArguments( SeparatedList( builder ) );
+            }
             else
             {
-                return initializerSyntax.WithArgumentList( initializerSyntax.ArgumentList.AddArguments( newArgumentsSyntax.ToArray() ) );
+                newArgumentList = initializerSyntax.ArgumentList;
             }
+
+            if ( appendList.Count > 0 )
+            {
+                var appendSyntax = new ArgumentSyntax[appendList.Count];
+
+                for ( var i = 0; i < appendList.Count; i++ )
+                {
+                    appendSyntax[i] = appendList[i].ToSyntax().WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions );
+                }
+
+                newArgumentList = newArgumentList.AddArguments( appendSyntax );
+            }
+
+            return initializerSyntax.WithArgumentList( newArgumentList );
         }
 
         private IReadOnlyList<FieldDeclarationSyntax> VisitFieldDeclarationCore( FieldDeclarationSyntax node )

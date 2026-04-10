@@ -5,7 +5,10 @@ public class TargetCode : global::Metalama.Framework.RunTime.Initialization.IIni
   public TargetCode([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
   {
     global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_Trackable_SingleLevel.ObjectTracker.Register(this, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_Trackable_SingleLevel.ObjectStatus.Constructing);
-    this.OnConstructed(context);
+    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    {
+      this.OnConstructed(context);
+    }
   }
   public virtual void Initialize(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {

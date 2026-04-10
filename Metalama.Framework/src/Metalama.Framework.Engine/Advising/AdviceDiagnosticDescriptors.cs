@@ -317,16 +317,11 @@ namespace Metalama.Framework.Engine.Advising
                 _category,
                 Error );
 
-        // TODO (Phase 3): Remove this diagnostic when multi-level inheritance coordination for
-        // OnConstructed is implemented. Phase 3 will emit the derived layer as an override that
-        // chains `base.OnConstructed(context.Descend(OnConstructedSystemSlot))`, and guard the
-        // epilogue call in base constructors with `if (!context.IsHandledBy(OnConstructedSystemSlot))`
-        // so that only the most-derived layer actually fires. See the plan's Phase 3 section.
-        internal static readonly DiagnosticDefinition<(string AspectType, INamedType TargetType)>
-            CannotAddOnConstructedToDerivedType = new(
+        internal static readonly DiagnosticDefinition<(string AspectType, INamedType TargetType, INamedType BaseType)>
+            OnConstructedBaseWithoutContextConstructor = new(
                 "LAMA0551",
-                "Cannot apply AfterLastInstanceConstructor to a type whose base already declares OnConstructed.",
-                "The aspect '{0}' cannot apply 'AfterLastInstanceConstructor' to type '{1}' because its base type already has an 'OnConstructed' method. Multi-level inheritance coordination for 'OnConstructed' is not yet supported.",
+                "Base type has OnConstructed method but no constructor accepting InitializationContext.",
+                "The aspect '{0}' targets type '{1}' whose base type '{2}' defines an 'OnConstructed(InitializationContext)' method but has no instance constructor accepting an 'InitializationContext' parameter. The base type must provide such a constructor (and call 'OnConstructed' from it, guarded by 'IsHandled(InitializationSlot.OnConstructed)') so that derived types can pass 'context.Descend(InitializationSlot.OnConstructed)' and skip the base's OnConstructed call.",
                 _category,
                 Error );
 

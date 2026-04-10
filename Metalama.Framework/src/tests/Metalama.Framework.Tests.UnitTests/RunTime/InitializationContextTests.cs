@@ -46,24 +46,24 @@ public class InitializationContextTests
     }
 
     [Fact]
-    public void IsHandledBy_ReturnsTrueForMatchingSlot()
+    public void IsHandled_ReturnsTrueForMatchingSlot()
     {
         var factory = new InitializationSlotFactory();
         var slot = factory.Allocate();
         var context = InitializationContext.WillInitialize.Descend( slot );
 
-        Assert.True( context.IsHandledBy( slot ) );
+        Assert.True( context.IsHandled( slot ) );
     }
 
     [Fact]
-    public void IsHandledBy_ReturnsFalseForUnrelatedSlot()
+    public void IsHandled_ReturnsFalseForUnrelatedSlot()
     {
         var factory = new InitializationSlotFactory();
         var slotA = factory.Allocate();
         var slotB = factory.Allocate();
         var context = InitializationContext.WillInitialize.Descend( slotA );
 
-        Assert.False( context.IsHandledBy( slotB ) );
+        Assert.False( context.IsHandled( slotB ) );
     }
 
     [Fact]
@@ -77,8 +77,8 @@ public class InitializationContextTests
             .Descend( slotA )
             .Descend( slotB );
 
-        Assert.True( context.IsHandledBy( slotA ) );
-        Assert.True( context.IsHandledBy( slotB ) );
+        Assert.True( context.IsHandled( slotA ) );
+        Assert.True( context.IsHandled( slotB ) );
     }
 
     [Fact]
@@ -109,7 +109,6 @@ public class InitializationContextTests
             masks[i] = factory.Allocate().Mask;
         }
 
-        // Each mask should be a unique power of 2.
         for ( var i = 0; i < 32; i++ )
         {
             Assert.Equal( 1u << i, masks[i] );
@@ -127,6 +126,12 @@ public class InitializationContextTests
         }
 
         Assert.Throws<InvalidOperationException>( () => factory.Allocate() );
+    }
+
+    [Fact]
+    public void OnConstructed_SlotIsNonZero()
+    {
+        Assert.NotEqual( 0u, InitializationSlot.OnConstructed.Mask );
     }
 
     [Fact]

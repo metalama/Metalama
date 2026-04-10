@@ -15,7 +15,10 @@ public class TargetCode
       Console.WriteLine(value);
     };
     action();
-    this.OnConstructed(context);
+    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    {
+      this.OnConstructed(context);
+    }
   }
   public virtual void OnConstructed(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
   {

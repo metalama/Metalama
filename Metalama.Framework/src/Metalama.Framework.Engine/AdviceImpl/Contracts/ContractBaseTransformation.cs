@@ -58,7 +58,9 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
 
     public override IFullRef<IDeclaration> TargetDeclaration => this.TargetMemberOrNamedType;
 
-    public abstract IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context );
+    public abstract IReadOnlyList<InsertedStatement> GetInsertedStatements(
+        InsertStatementTransformationContext context,
+        IReadOnlyList<IInsertStatementTransformation>? aggregatedGroup = null );
 
     protected bool TryExecuteTemplate(
         TransformationContext context,

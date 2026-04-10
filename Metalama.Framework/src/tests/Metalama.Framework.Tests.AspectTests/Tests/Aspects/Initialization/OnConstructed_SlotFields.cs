@@ -31,7 +31,7 @@ public class TheAspect : TypeAspect
     private void InitializerTemplate()
     {
         // Note: in Phase 1, slotFields is accepted by the API but the slot-coordination
-        // code path is not yet implemented — Phase 3 will emit `if (!context.IsHandledBy(Slot))`
+        // code path is not yet implemented — Phase 3 will emit `if (!context.IsHandled(Slot))`
         // guards around the body. For now we just verify that passing slotFields does not
         // crash and that the transformation still emits the expected code.
         Console.WriteLine( "OnConstructed!" );

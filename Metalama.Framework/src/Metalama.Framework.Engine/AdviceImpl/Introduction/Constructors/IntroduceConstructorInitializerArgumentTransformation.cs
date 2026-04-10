@@ -16,16 +16,28 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
 /// <summary>
 /// A transformation that appends an argument to the initializer call of a constructor.
+/// When <see cref="IsOverride"/> is set, the transformation replaces any earlier-appended
+/// argument targeting the same parameter index — used by the <c>OnConstructed</c> advice
+/// to rewrite the <c>context</c> argument pulled into a derived <c>:base(...)</c> call so it
+/// descends with the <c>OnConstructed</c> slot.
 /// </summary>
 internal sealed class IntroduceConstructorInitializerArgumentTransformation : BaseSyntaxTreeTransformation, IMemberLevelTransformation
 {
     private readonly IFullRef<IConstructor> _constructor;
-    private readonly string _parameterName;
     private readonly bool _requiresParameterName;
 
     IFullRef<IMember> IMemberLevelTransformation.TargetMember => this._constructor;
 
     public int ParameterIndex { get; }
+
+    public string ParameterName { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether this transformation should replace any earlier-appended
+    /// argument targeting the same <see cref="ParameterIndex"/>. When <c>false</c> (the default),
+    /// the transformation is a plain append.
+    /// </summary>
+    public bool IsOverride { get; }
 
     private ExpressionSyntax Value { get; }
 
@@ -35,13 +47,15 @@ internal sealed class IntroduceConstructorInitializerArgumentTransformation : Ba
         int parameterIndex,
         string parameterName,
         ExpressionSyntax value,
-        bool requiresParameterName ) : base( aspectLayerInstance, constructor )
+        bool requiresParameterName,
+        bool isOverride = false ) : base( aspectLayerInstance, constructor )
     {
         this._constructor = constructor;
-        this._parameterName = parameterName;
+        this.ParameterName = parameterName;
         this._requiresParameterName = requiresParameterName;
         this.ParameterIndex = parameterIndex;
         this.Value = value;
+        this.IsOverride = isOverride;
     }
 
     public ArgumentSyntax ToSyntax()
@@ -50,7 +64,7 @@ internal sealed class IntroduceConstructorInitializerArgumentTransformation : Ba
 
         if ( this._requiresParameterName )
         {
-            argumentSyntax = argumentSyntax.WithNameColon( SyntaxFactory.NameColon( this._parameterName ) );
+            argumentSyntax = argumentSyntax.WithNameColon( SyntaxFactory.NameColon( this.ParameterName ) );
         }
 
         return argumentSyntax.WithAdditionalAnnotations( this.AspectInstance.AspectClass.GeneratedCodeAnnotation );
