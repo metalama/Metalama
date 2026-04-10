@@ -16,7 +16,7 @@ namespace Metalama.Framework.Advising;
 /// </summary>
 /// <remarks>
 /// <para>
-/// When a parameter is introduced to a constructor using <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction})"/>,
+/// When a parameter is introduced to a constructor using <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction}, Metalama.Framework.Advising.IConstructorOverloadingStrategy?)"/>,
 /// child constructors (those that call the modified constructor via <c>: base(...)</c> or <c>: this(...)</c>)
 /// need to provide a value for this new parameter. A <see cref="PullAction"/> specifies how to obtain that value.
 /// </para>
@@ -33,7 +33,7 @@ namespace Metalama.Framework.Advising;
 /// <seealso cref="IPullStrategy"/>
 /// <seealso cref="PullStrategy"/>
 /// <seealso cref="PullActionKind"/>
-/// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction})"/>
+/// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction}, Metalama.Framework.Advising.IConstructorOverloadingStrategy?)"/>
 /// <seealso href="@introducing-constructor-parameters"/>
 [CompileTime]
 [PublicAPI]
@@ -75,7 +75,7 @@ public readonly struct PullAction
     /// </summary>
     /// <remarks>
     /// When this action is used, the child constructor will pass the default value (as specified in
-    /// <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction})"/>) to the introduced parameter.
+    /// <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction}, Metalama.Framework.Advising.IConstructorOverloadingStrategy?)"/>) to the introduced parameter.
     /// </remarks>
     public static PullAction None => new( PullActionKind.DoNotPull );
 

@@ -21,7 +21,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <seealso cref="IConstructor"/>
     /// <seealso cref="IMethodBaseBuilder"/>
     /// <seealso cref="AdviserExtensions.IntroduceConstructor"/>
-    /// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Advising.IPullStrategy?, System.Collections.Immutable.ImmutableArray{AttributeConstruction})"/>
+    /// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Advising.IPullStrategy?, System.Collections.Immutable.ImmutableArray{AttributeConstruction}, Advising.IConstructorOverloadingStrategy?)"/>
     /// <seealso cref="AdviserExtensions.AddInitializer(IAdviser{IConstructor}, string, object?, object?)"/>
     /// <seealso href="@introducing-constructor-parameters"/>
     /// <seealso href="@initializers"/>

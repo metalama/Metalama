@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Advising;
+using Metalama.Framework.Advising.PullStrategies;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Advising;
@@ -26,6 +27,7 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
     private readonly Action<ParameterBuilder>? _buildAction;
     private readonly IPullStrategy? _pullStrategy;
     private readonly TypedConstant _defaultValue;
+    private readonly IConstructorOverloadingStrategy? _overloadingStrategy;
 
     public IntroduceConstructorParameterAdvice(
         in AdviceConstructorParameters<IConstructor> parameters,
@@ -33,7 +35,8 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
         IType parameterType,
         Action<ParameterBuilder>? buildAction,
         IPullStrategy? pullStrategy,
-        TypedConstant defaultValue )
+        TypedConstant defaultValue,
+        IConstructorOverloadingStrategy? overloadingStrategy = null )
         : base( parameters )
     {
         this._parameterName = parameterName;
@@ -41,6 +44,7 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
         this._buildAction = buildAction;
         this._pullStrategy = pullStrategy;
         this._defaultValue = defaultValue;
+        this._overloadingStrategy = overloadingStrategy;
     }
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceParameter;
@@ -85,13 +89,14 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
         }
 
         // Create the parameter.
+        // An uninitialized TypedConstant (i.e. default(TypedConstant)) means "required parameter, no C# default value".
         var parameterBuilder = new ParameterBuilder(
             initializedConstructor,
             initializedConstructor.Parameters.Count,
             this._parameterName,
             this._parameterType,
             RefKind.None,
-            this.AspectLayerInstance ) { DefaultValue = this._defaultValue };
+            this.AspectLayerInstance ) { DefaultValue = this._defaultValue.IsInitialized ? this._defaultValue : null };
 
         var parameter = parameterBuilder;
 
@@ -107,8 +112,36 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
 
         context.AddTransformation( new IntroduceParameterTransformation( this.AspectLayerInstance, parameterBuilderData ) );
 
+        // Determine the effective pull strategy.
+        // - If the user supplied one, use it.
+        // - Otherwise, if the parameter is required (no C# default value), synthesize a default strategy
+        //   that propagates the parameter through chained constructors. Required parameters need a value
+        //   at every chain-call site, so the "do nothing" fallback does not work.
+        // - Otherwise (optional parameter, no strategy), keep the legacy null-strategy behavior.
+        var effectivePullStrategy = this._pullStrategy
+                                    ?? (this._defaultValue.IsInitialized
+                                        ? null
+                                        : new IntroduceParameterPullStrategy( null, null, null ));
+
+        // Build the forwarding-constructor helper (no-op if the overloading strategy is null).
+        var forwardingHelper = new ForwardingConstructorHelper(
+            context,
+            this.AspectLayerInstance,
+            this._overloadingStrategy,
+            this._pullStrategy,
+            this );
+
+        // Generate a forwarding constructor for the target if the overloading strategy asks for one.
+        forwardingHelper.ApplyForwarderIfNeeded( initializedConstructor, parameter );
+
         // Pull from constructors that call the current constructor, and recursively.
-        var impl = new PullConstructorParameterAdviceImpl( context, this._pullStrategy, this.AspectLayerInstance, false );
+        var impl = new PullConstructorParameterAdviceImpl(
+            context,
+            effectivePullStrategy,
+            this.AspectLayerInstance,
+            false,
+            forwardingHelper );
+
         impl.PullConstructorParameterRecursive( parameter );
 
         return new IntroductionAdviceResult<IParameter>(

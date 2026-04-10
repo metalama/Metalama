@@ -14,14 +14,17 @@ internal sealed class PullConstructorParameterAdvice : Advice<EmptyAdviceResult>
 {
     private readonly IPullStrategy? _pullStrategy;
     private readonly IParameter _parameter;
+    private readonly IConstructorOverloadingStrategy? _overloadingStrategy;
 
     public PullConstructorParameterAdvice(
         in AdviceConstructorParameters parameters,
         IPullStrategy? pullStrategy,
-        IParameter parameter ) : base( in parameters )
+        IParameter parameter,
+        IConstructorOverloadingStrategy? overloadingStrategy = null ) : base( in parameters )
     {
         this._pullStrategy = pullStrategy;
         this._parameter = parameter;
+        this._overloadingStrategy = overloadingStrategy;
     }
 
     protected override bool AcceptsExternalTargets => true;
@@ -30,7 +33,11 @@ internal sealed class PullConstructorParameterAdvice : Advice<EmptyAdviceResult>
 
     protected override EmptyAdviceResult Implement( AdviceImplementationContext context )
     {
-        var impl = new PullConstructorParameterAdviceImpl( context, this._pullStrategy, this.AspectLayerInstance, true );
+        var forwardingHelper = this._overloadingStrategy is not null
+            ? new ForwardingConstructorHelper( context, this.AspectLayerInstance, this._overloadingStrategy, this._pullStrategy, this )
+            : null;
+
+        var impl = new PullConstructorParameterAdviceImpl( context, this._pullStrategy, this.AspectLayerInstance, true, forwardingHelper );
         impl.PullConstructorParameterRecursive( this._parameter );
 
         return new EmptyAdviceResult( AdviceKind.PullConstructorParameter, AdviceOutcome.Success, this.AdviceFactory );

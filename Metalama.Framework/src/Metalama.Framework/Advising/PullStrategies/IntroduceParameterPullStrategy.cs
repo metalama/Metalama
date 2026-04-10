@@ -26,10 +26,22 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
     }
 
     public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
-        => PullAction.IntroduceParameterAndPull(
+    {
+        // An aspect-generated forwarding constructor has a fixed signature (it keeps the pre-mutation
+        // source signature). We cannot append a new parameter to it, so forward the configured default
+        // value (or default(T) if none was supplied) to the mutated constructor.
+        if ( targetMember.IsAspectGeneratedForwarder() )
+        {
+            return this._parameterDefaultValue != null
+                ? PullAction.UseExpression( ExpressionFactory.Parse( this._parameterDefaultValue ) )
+                : PullAction.UseConstant( TypedConstant.Default( pulledParameter.Type ) );
+        }
+
+        return PullAction.IntroduceParameterAndPull(
             this._parameterName ?? pulledParameter.Name,
             this._parameterType?.GetTarget( targetMember.Compilation ) ?? pulledParameter.Type,
             ExpressionFactory.Parse( this._parameterDefaultValue ) );
+    }
 
     [UsedImplicitly]
     private class Serializer : ReferenceTypeSerializer<IntroduceParameterPullStrategy>

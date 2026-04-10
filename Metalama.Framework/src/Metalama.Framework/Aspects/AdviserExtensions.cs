@@ -1445,9 +1445,6 @@ public static class AdviserExtensions
             adviser.Target,
             attributeType );
 
-    // We require an explicit TypedConstant value instead of providing 'default' as the default value because a next Metalama version may allow to
-    // append parameters without a default value; in this case, we would have a different signature.
-
     /// <summary>
     /// Appends a parameter to a constructor by specifying its name and <see cref="IType"/>.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to introduce the parameter to a different constructor than the current one.
@@ -1484,11 +1481,14 @@ public static class AdviserExtensions
     /// <param name="adviser">An adviser for a constructor.</param>
     /// <param name="parameterName">The name of the parameter.</param>
     /// <param name="parameterType">The type of the parameter.</param>
-    /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
-    ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
-    /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
-    ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.</param>
+    /// <param name="defaultValue">The default value of the parameter. If <see cref="TypedConstant.IsInitialized"/> is <c>false</c> (i.e. <c>default(TypedConstant)</c>),
+    ///     the introduced parameter has no C# default value and is therefore required.</param>
+    /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
     /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
+    /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides, per mutated constructor, whether the framework
+    ///     should generate a forwarding constructor preserving the pre-mutation signature. Use <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/>
+    ///     for the stock behavior, and <see cref="PullStrategyExtensions.IsAspectGeneratedForwarder"/> from a custom <see cref="IPullStrategy"/> to detect
+    ///     forwarding constructors during the pull walk.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IParameter"/>.</returns>
     /// <remarks>
     /// <para>
@@ -1506,10 +1506,6 @@ public static class AdviserExtensions
     /// introduction propagates across project boundaries. All derived classes in projects that reference the current project
     /// will automatically have the parameter added to their constructors.
     /// </para>
-    /// <para>
-    /// A default value must always be provided. This default value is used when no pull action is specified or when
-    /// the pull strategy returns <see cref="PullAction.None"/>.
-    /// </para>
     /// </remarks>
     /// <seealso cref="PullAction"/>
     /// <seealso cref="IPullStrategy"/>
@@ -1518,16 +1514,18 @@ public static class AdviserExtensions
         this IAdviser<IConstructor> adviser,
         string parameterName,
         IType parameterType,
-        TypedConstant defaultValue,
+        TypedConstant defaultValue = default,
         IPullStrategy? pullStrategy = null,
-        ImmutableArray<AttributeConstruction> attributes = default )
+        ImmutableArray<AttributeConstruction> attributes = default,
+        IConstructorOverloadingStrategy? overloadingStrategy = null )
         => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
             adviser.Target,
             parameterName,
             parameterType,
             defaultValue,
             pullStrategy,
-            attributes );
+            attributes,
+            overloadingStrategy );
 
     /// <summary>
     /// Appends a parameter to a constructor by specifying its name and <see cref="Type"/>.
@@ -1565,16 +1563,15 @@ public static class AdviserExtensions
     /// <param name="adviser">An adviser for a constructor.</param>
     /// <param name="parameterName">The name of the parameter.</param>
     /// <param name="parameterType">The type of the parameter.</param>
-    /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
-    ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
-    /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
-    ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.</param>
+    /// <param name="defaultValue">The default value of the parameter. If <see cref="TypedConstant.IsInitialized"/> is <c>false</c> (i.e. <c>default(TypedConstant)</c>),
+    ///     the introduced parameter has no C# default value and is therefore required.</param>
+    /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
     /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
+    /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides, per mutated constructor, whether the framework
+    ///     should generate a forwarding constructor preserving the pre-mutation signature.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IParameter"/>.</returns>
     /// <remarks>
     /// This is a convenience overload that accepts a <see cref="Type"/> instead of <see cref="IType"/>.
-    /// See <see cref="IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, IPullStrategy?, ImmutableArray{AttributeConstruction})"/>
-    /// for detailed documentation on parameter introduction and pull strategies.
     /// </remarks>
     /// <seealso cref="PullAction"/>
     /// <seealso cref="IPullStrategy"/>
@@ -1583,16 +1580,18 @@ public static class AdviserExtensions
         this IAdviser<IConstructor> adviser,
         string parameterName,
         Type parameterType,
-        TypedConstant defaultValue,
+        TypedConstant defaultValue = default,
         IPullStrategy? pullStrategy = null,
-        ImmutableArray<AttributeConstruction> attributes = default )
+        ImmutableArray<AttributeConstruction> attributes = default,
+        IConstructorOverloadingStrategy? overloadingStrategy = null )
         => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
             adviser.Target,
             parameterName,
             parameterType,
             defaultValue,
             pullStrategy,
-            attributes );
+            attributes,
+            overloadingStrategy );
 
     /// <summary>
     /// Introduces a new class into the current namespace (as a top-level type) or type (as a nested type).
