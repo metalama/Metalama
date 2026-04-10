@@ -19,6 +19,7 @@ internal sealed class LinkerAnalysisRegistry
     private readonly HashSet<IntermediateSymbolSemantic> _reachableSemantics;
     private readonly HashSet<IntermediateSymbolSemantic> _inlinedSemantics;
     private readonly IReadOnlyDictionary<InliningContextIdentifier, IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>> _substitutions;
+    private readonly IReadOnlyDictionary<ISymbol, IReadOnlyList<SyntaxNodeSubstitution>> _initializerSubstitutions;
     private readonly HashSet<ISymbol> _overrideTargetsWithUnsupportedNonInlinedOverrides;
     private readonly IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> _eventBrokers;
     private readonly IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticFieldInfo>> _staticDelegates;
@@ -29,6 +30,7 @@ internal sealed class LinkerAnalysisRegistry
         HashSet<IntermediateSymbolSemantic> reachableSemantics,
         HashSet<IntermediateSymbolSemantic> inlinedSemantics,
         IReadOnlyDictionary<InliningContextIdentifier, IReadOnlyList<SyntaxNodeSubstitution>> substitutions,
+        IReadOnlyDictionary<ISymbol, IReadOnlyList<SyntaxNodeSubstitution>> initializerSubstitutions,
         HashSet<ISymbol> overrideTargetsWithUnsupportedNonInlinedOverrides,
         IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers,
         IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticFieldInfo>> staticDelegates,
@@ -36,6 +38,7 @@ internal sealed class LinkerAnalysisRegistry
     {
         this._reachableSemantics = reachableSemantics;
         this._inlinedSemantics = inlinedSemantics;
+        this._initializerSubstitutions = initializerSubstitutions;
         this._overrideTargetsWithUnsupportedNonInlinedOverrides = overrideTargetsWithUnsupportedNonInlinedOverrides;
         this._eventBrokers = eventBrokers;
         this._staticDelegates = staticDelegates;
@@ -61,6 +64,36 @@ internal sealed class LinkerAnalysisRegistry
 
         return substitutions;
     }
+
+    /// <summary>
+    /// Gets the substitutions to apply inside the initializer of a field / event-field / property
+    /// whose initializer contains <c>new T()</c> or <c>with</c> expressions targeting types
+    /// implementing <c>IInitializable</c>. Returns <c>false</c> if the member has no such
+    /// substitutions.
+    /// </summary>
+    public bool TryGetInitializerSubstitutions( ISymbol memberSymbol, out IReadOnlyList<SyntaxNodeSubstitution> substitutions )
+    {
+        if ( this._initializerSubstitutions.TryGetValue( memberSymbol, out var list ) )
+        {
+            substitutions = list;
+
+            return true;
+        }
+
+        substitutions = ImmutableArray<SyntaxNodeSubstitution>.Empty;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> if the given field / event-field / property symbol has at least one
+    /// initializer call-site substitution registered. Used by <c>IsRewriteTarget</c> to make sure
+    /// the linker visits declarations whose only change is an <c>IInitializable</c> call-site
+    /// rewrite inside an initializer. For fields that declare multiple variables, this checks any
+    /// variable in the declaration by examining each contained field symbol separately is the
+    /// caller's responsibility.
+    /// </summary>
+    public bool HasInitializerSubstitutions( ISymbol memberSymbol ) => this._initializerSubstitutions.ContainsKey( memberSymbol );
 
     public bool HasAnySubstitutions( ISymbol symbol )
     {

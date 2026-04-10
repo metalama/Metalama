@@ -60,10 +60,18 @@ namespace Metalama.Framework.Engine.Linking
                 if ( (propertyDeclaration.IsAutoPropertyDeclaration() || symbol.GetBackingField() != null)
                      && this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
                 {
+                    // Apply IInitializable call-site substitutions to the initializer that will
+                    // be moved to the backing field. The walker attributes call sites to the
+                    // property symbol (the lexical container in source), so we look them up by
+                    // the property symbol even though the initializer is about to be re-hosted.
+                    var backingFieldInitializer = propertyDeclaration.Initializer != null
+                        ? this.RewriteInitializer( symbol, propertyDeclaration.Initializer, generationContext )
+                        : null;
+
                     // Backing field for auto property.
                     var backingField = this.GetPropertyBackingField(
                         propertyDeclaration.Type,
-                        propertyDeclaration.Initializer,
+                        backingFieldInitializer,
                         FilterAttributeListsForTarget( propertyDeclaration.AttributeLists, SyntaxKind.FieldKeyword, false, false ),
                         symbol,
                         generationContext );
@@ -174,6 +182,20 @@ namespace Metalama.Framework.Engine.Linking
                     propertyDeclaration = propertyDeclaration.PartialUpdate(
                         initializer: default(EqualsValueClauseSyntax),
                         semicolonToken: default(SyntaxToken) );
+                }
+                else if ( propertyDeclaration.Initializer != null )
+                {
+                    // Apply IInitializable call-site substitutions (WithInitialize(...)) to a
+                    // property initializer containing object-creation / with expressions that
+                    // target an IInitializable type. This is the non-override path where the
+                    // property declaration is returned unchanged.
+                    var rewrittenInitializer =
+                        this.RewriteInitializer( symbol, propertyDeclaration.Initializer, generationContext );
+
+                    if ( !ReferenceEquals( rewrittenInitializer, propertyDeclaration.Initializer ) )
+                    {
+                        propertyDeclaration = propertyDeclaration.WithInitializer( rewrittenInitializer );
+                    }
                 }
 
                 return [propertyDeclaration];

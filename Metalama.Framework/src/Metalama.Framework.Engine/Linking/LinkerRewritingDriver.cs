@@ -422,6 +422,13 @@ internal sealed partial class LinkerRewritingDriver
             return true;
         }
 
+        if ( this.AnalysisRegistry.HasInitializerSubstitutions( symbol ) )
+        {
+            // Fields / event-fields / properties whose initializer contains IInitializable
+            // call sites that must be wrapped with WithInitialize(...).
+            return true;
+        }
+
         if ( this.InjectionRegistry.IsIntroduced( symbol ) )
         {
             // Introduced declarations need to be rewritten.

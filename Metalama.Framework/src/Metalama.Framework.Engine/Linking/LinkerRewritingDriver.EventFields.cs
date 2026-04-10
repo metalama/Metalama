@@ -46,7 +46,20 @@ namespace Metalama.Framework.Engine.Linking
 
                 if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
                 {
-                    members.Add( this.GetEventBackingField( eventFieldDeclaration, symbol, context ) );
+                    var declarator = (VariableDeclaratorSyntax) symbol.GetPrimaryDeclarationSyntax().AssertNotNull();
+
+                    // Apply IInitializable call-site substitutions to the initializer that will be
+                    // copied onto the generated backing field.
+                    var rewrittenInitializer = declarator.Initializer != null
+                        ? this.RewriteInitializer( symbol, declarator.Initializer, context )
+                        : null;
+
+                    members.Add(
+                        this.GetEventBackingField(
+                            eventFieldDeclaration.Declaration.Type,
+                            rewrittenInitializer,
+                            symbol,
+                            context ) );
                 }
 
                 if ( this.InjectionRegistry.HasEventRaiseOverride( symbol ) )
@@ -103,6 +116,23 @@ namespace Metalama.Framework.Engine.Linking
                         eventFieldDeclaration.WithDeclaration(
                             eventFieldDeclaration.Declaration.WithVariables(
                                 SeparatedList( eventFieldDeclaration.Declaration.Variables.SelectAsArray( v => v.WithInitializer( default ) ) ) ) );
+                }
+                else if ( this.AnalysisRegistry.HasInitializerSubstitutions( symbol ) )
+                {
+                    // Non-override event-field with an IInitializable call-site substitution in its
+                    // initializer. Produce a declaration containing only the variable for the given
+                    // symbol (with its initializer rewritten), so the enclosing linking rewriter
+                    // naturally aggregates per-variable output for multi-variable declarations.
+                    var declarator = (VariableDeclaratorSyntax) symbol.GetPrimaryDeclarationSyntax().AssertNotNull();
+
+                    var rewrittenInitializer = declarator.Initializer != null
+                        ? this.RewriteInitializer( symbol, declarator.Initializer, context )
+                        : null;
+
+                    eventFieldDeclaration =
+                        eventFieldDeclaration.WithDeclaration(
+                            eventFieldDeclaration.Declaration.WithVariables(
+                                SingletonSeparatedList( declarator.WithInitializer( rewrittenInitializer ) ) ) );
                 }
 
                 members.Add( eventFieldDeclaration );
@@ -180,21 +210,6 @@ namespace Metalama.Framework.Engine.Linking
                         null,
                         default );
             }
-        }
-
-        private EventFieldDeclarationSyntax GetEventBackingField(
-            EventFieldDeclarationSyntax eventFieldDeclaration,
-            IEventSymbol symbol,
-            SyntaxGenerationContext context )
-        {
-            var declarator = (VariableDeclaratorSyntax) symbol.GetPrimaryDeclarationSyntax().AssertNotNull();
-
-            return
-                this.GetEventBackingField(
-                    eventFieldDeclaration.Declaration.Type,
-                    declarator.Initializer,
-                    symbol,
-                    context );
         }
 
         private MemberDeclarationSyntax GetEmptyImplEventField( TypeSyntax eventType, IEventSymbol symbol, SyntaxGenerationContext context )

@@ -36,9 +36,12 @@ internal abstract class OnInitializedCallSiteSubstitution : SyntaxNodeSubstituti
 
     /// <summary>
     /// Wraps an expression with <c>InitializableExtensions.WithInitialize(expr)</c> or
-    /// <c>InitializableExtensions.WithInitialize(expr, metadata)</c>.
+    /// <c>InitializableExtensions.WithInitialize(expr, metadata)</c>. When the wrapped
+    /// expression is a target-typed <c>new()</c> (an <see cref="ImplicitObjectCreationExpressionSyntax"/>),
+    /// an explicit generic type argument is emitted because the compiler cannot otherwise
+    /// infer <c>T</c> for <c>WithInitialize&lt;T&gt;(T)</c>.
     /// </summary>
-    protected static ExpressionSyntax WrapWithInitializeCall(
+    protected ExpressionSyntax WrapWithInitializeCall(
         SubstitutionContext substitutionContext,
         ExpressionSyntax expression,
         ExpressionSyntax? metadataArgument = null )
@@ -46,10 +49,25 @@ internal abstract class OnInitializedCallSiteSubstitution : SyntaxNodeSubstituti
         var initializableExtensionsType =
             substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( typeof(InitializableExtensions) );
 
+        SimpleNameSyntax methodName;
+
+        if ( expression.Kind() == SyntaxKind.ImplicitObjectCreationExpression )
+        {
+            var typeArgument = substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.TypeInfo.Type );
+
+            methodName = GenericName(
+                SyntaxFactoryEx.SafeIdentifier( nameof(InitializableExtensions.WithInitialize) ),
+                TypeArgumentList( SingletonSeparatedList( typeArgument ) ) );
+        }
+        else
+        {
+            methodName = SyntaxFactoryEx.SafeIdentifierName( nameof(InitializableExtensions.WithInitialize) );
+        }
+
         var initializedAccess = MemberAccessExpression(
             SyntaxKind.SimpleMemberAccessExpression,
             initializableExtensionsType,
-            SyntaxFactoryEx.SafeIdentifierName( nameof(InitializableExtensions.WithInitialize) ) );
+            methodName );
 
         ArgumentListSyntax argList;
 
