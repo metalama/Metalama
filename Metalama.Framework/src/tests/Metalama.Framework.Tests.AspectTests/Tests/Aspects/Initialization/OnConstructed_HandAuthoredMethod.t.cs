@@ -1,10 +1,10 @@
 [TheAspect]
 public class TargetCode
 {
-  public TargetCode(int value, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
+  public TargetCode(int value, [AspectGenerated] InitializationContext context = default)
   {
     _ = value;
-    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(context);
     }
@@ -13,7 +13,7 @@ public class TargetCode
   // rather than introducing a new one.
   public virtual void OnConstructed(InitializationContext ctx)
   {
-    global::System.Console.WriteLine("Injected!");
+    Console.WriteLine("Injected!");
     Console.WriteLine("User-authored.");
   }
 }

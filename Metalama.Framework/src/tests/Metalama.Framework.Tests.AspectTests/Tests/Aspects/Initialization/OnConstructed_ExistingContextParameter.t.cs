@@ -6,13 +6,13 @@ public class TargetCode
   {
     _ = value;
     _ = ctx;
-    if (!ctx.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    if (!ctx.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(ctx);
     }
   }
-  public virtual void OnConstructed(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  protected virtual void OnConstructed(InitializationContext context = default)
   {
-    global::System.Console.WriteLine("OnConstructed!");
+    Console.WriteLine("OnConstructed!");
   }
 }

@@ -1,7 +1,7 @@
 [TheAspect]
 public class TargetCode
 {
-  public TargetCode(int value, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
+  public TargetCode(int value, [AspectGenerated] InitializationContext context = default)
   {
     // `return;` inside a nested lambda belongs to the lambda's own control flow and
     // must NOT be rewritten. The constructor has no top-level return statement, so
@@ -15,13 +15,13 @@ public class TargetCode
       Console.WriteLine(value);
     };
     action();
-    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(context);
     }
   }
-  public virtual void OnConstructed(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  protected virtual void OnConstructed(InitializationContext context = default)
   {
-    global::System.Console.WriteLine("OnConstructed!");
+    Console.WriteLine("OnConstructed!");
   }
 }

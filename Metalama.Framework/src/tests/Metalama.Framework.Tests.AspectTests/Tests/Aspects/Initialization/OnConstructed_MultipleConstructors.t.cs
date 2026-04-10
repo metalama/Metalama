@@ -2,27 +2,27 @@
 public class TargetCode
 {
   public int Value { get; }
-  public TargetCode([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext)) : this(0, context)
+  public TargetCode([AspectGenerated] InitializationContext context = default) : this(0, context)
   {
   }
-  public TargetCode(int value, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
+  public TargetCode(int value, [AspectGenerated] InitializationContext context = default)
   {
     this.Value = value;
-    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(context);
     }
   }
-  public TargetCode(string s, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
+  public TargetCode(string s, [AspectGenerated] InitializationContext context = default)
   {
     this.Value = s.Length;
-    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(context);
     }
   }
-  public virtual void OnConstructed(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  protected virtual void OnConstructed(InitializationContext context = default)
   {
-    global::System.Console.WriteLine("OnConstructed!");
+    Console.WriteLine("OnConstructed!");
   }
 }

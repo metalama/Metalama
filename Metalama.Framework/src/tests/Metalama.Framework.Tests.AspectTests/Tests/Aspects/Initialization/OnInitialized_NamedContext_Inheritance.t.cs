@@ -1,9 +1,9 @@
 [TheAspect]
 public class TargetCode : BaseClass
 {
-  public override void Initialize(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  public override void Initialize(InitializationContext context = default)
   {
     base.Initialize(context);
-    global::System.Console.WriteLine($"From aspect, intent={context.Intent}");
+    Console.WriteLine($"From aspect, intent={context.Intent}");
   }
 }

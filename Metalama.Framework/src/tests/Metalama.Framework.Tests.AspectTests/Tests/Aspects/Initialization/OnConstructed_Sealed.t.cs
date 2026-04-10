@@ -1,13 +1,13 @@
 [TheAspect]
 public sealed class TargetCode
 {
-  public TargetCode(int value, global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
+  public TargetCode(int value, InitializationContext context = default)
   {
     _ = value;
     this.OnConstructed(context);
   }
-  public void OnConstructed(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  private void OnConstructed(InitializationContext context = default)
   {
-    global::System.Console.WriteLine("OnConstructed!");
+    Console.WriteLine("OnConstructed!");
   }
 }

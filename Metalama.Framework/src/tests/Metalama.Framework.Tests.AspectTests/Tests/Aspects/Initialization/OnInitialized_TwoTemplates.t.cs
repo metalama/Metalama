@@ -1,9 +1,9 @@
 [TheAspect]
-public class TargetCode : global::Metalama.Framework.RunTime.Initialization.IInitializable
+public class TargetCode : IInitializable
 {
-  public virtual void Initialize(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  public virtual void Initialize(InitializationContext context = default)
   {
-    global::System.Console.WriteLine("First!");
-    global::System.Console.WriteLine("Second!");
+    Console.WriteLine("First!");
+    Console.WriteLine("Second!");
   }
 }

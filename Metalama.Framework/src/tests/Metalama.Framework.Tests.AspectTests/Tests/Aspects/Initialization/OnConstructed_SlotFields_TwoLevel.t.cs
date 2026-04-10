@@ -9,7 +9,7 @@ public class BaseClass
       this.OnConstructed(context);
     }
   }
-  public virtual void OnConstructed(InitializationContext context = default)
+  protected virtual void OnConstructed(InitializationContext context = default)
   {
     if (!context.IsHandled(TheAspectSlots.Slot))
     {
@@ -26,7 +26,7 @@ public class DerivedClass : BaseClass
       this.OnConstructed(context);
     }
   }
-  public override void OnConstructed(InitializationContext context = default)
+  protected override void OnConstructed(InitializationContext context = default)
   {
     base.OnConstructed(context.Descend(TheAspectSlots.Slot));
     if (!context.IsHandled(TheAspectSlots.Slot))

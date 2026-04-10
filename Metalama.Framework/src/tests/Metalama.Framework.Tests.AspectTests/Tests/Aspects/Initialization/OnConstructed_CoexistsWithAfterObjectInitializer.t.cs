@@ -1,20 +1,20 @@
 [TheAspect]
-public class TargetCode : global::Metalama.Framework.RunTime.Initialization.IInitializable
+public class TargetCode : IInitializable
 {
-  public TargetCode(int value, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
+  public TargetCode(int value, [AspectGenerated] InitializationContext context = default)
   {
     _ = value;
-    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(context);
     }
   }
-  public virtual void Initialize(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  public virtual void Initialize(InitializationContext context = default)
   {
-    global::System.Console.WriteLine("Initialized!");
+    Console.WriteLine("Initialized!");
   }
-  public virtual void OnConstructed(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  protected virtual void OnConstructed(InitializationContext context = default)
   {
-    global::System.Console.WriteLine("OnConstructed!");
+    Console.WriteLine("OnConstructed!");
   }
 }

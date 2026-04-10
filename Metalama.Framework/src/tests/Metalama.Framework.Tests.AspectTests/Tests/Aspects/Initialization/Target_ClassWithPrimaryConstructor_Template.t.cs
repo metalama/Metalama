@@ -7,10 +7,10 @@ internal class TargetCode
   public string? Property2 { get; set; }
   public TargetCode()
   {
-    this.f = "f";
-    this.f1 = "f1";
-    this.f2 = "f2";
-    this.Property1 = "Property1";
-    this.Property2 = "Property2";
+    f = "f";
+    f1 = "f1";
+    f2 = "f2";
+    Property1 = "Property1";
+    Property2 = "Property2";
   }
 }

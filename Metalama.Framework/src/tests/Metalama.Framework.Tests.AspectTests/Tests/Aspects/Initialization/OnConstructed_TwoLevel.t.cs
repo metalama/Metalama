@@ -1,31 +1,31 @@
 [TheAspect]
 public class BaseClass
 {
-  public BaseClass(int x, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
+  public BaseClass(int x, [AspectGenerated] InitializationContext context = default)
   {
     _ = x;
-    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(context);
     }
   }
-  public virtual void OnConstructed(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  protected virtual void OnConstructed(InitializationContext context = default)
   {
-    global::System.Console.WriteLine("OnConstructed on BaseClass!");
+    Console.WriteLine("OnConstructed on BaseClass!");
   }
 }
 public class DerivedClass : BaseClass
 {
-  public DerivedClass([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext)) : base(0, context.Descend(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+  public DerivedClass([AspectGenerated] InitializationContext context = default) : base(0, context.Descend(InitializationSlot.OnConstructed))
   {
-    if (!context.IsHandled(global::Metalama.Framework.RunTime.Initialization.InitializationSlot.OnConstructed))
+    if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(context);
     }
   }
-  public override void OnConstructed(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  protected override void OnConstructed(InitializationContext context = default)
   {
     base.OnConstructed(context);
-    global::System.Console.WriteLine("OnConstructed on DerivedClass!");
+    Console.WriteLine("OnConstructed on DerivedClass!");
   }
 }

@@ -213,8 +213,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
 
         var builder = new MethodBuilder( this.AspectLayerInstance, targetType, _methodName )
         {
-            ReturnType = factory.GetSpecialType( Code.SpecialType.Void ),
-            Accessibility = Accessibility.Public
+            ReturnType = factory.GetSpecialType( Code.SpecialType.Void )
         };
 
         if ( baseOnConstructed != null )
@@ -222,11 +221,18 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
             // Override the inherited OnConstructed method so the derived layer chains to base.
             builder.IsOverride = true;
             builder.OverriddenMethod = baseOnConstructed;
+
+            // An override must match the accessibility of the method it overrides.
+            builder.Accessibility = baseOnConstructed.Accessibility;
         }
         else
         {
-            // New method — virtual unless the type is sealed or a struct.
-            builder.IsVirtual = !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct;
+            // New method — virtual unless the type is sealed or a struct. Choose the minimum accessibility
+            // required: private on sealed types and structs (no derived class can ever see it), protected
+            // otherwise (so derived classes can override or call it).
+            var isSealedLike = targetType.IsSealed || targetType.TypeKind == Code.TypeKind.Struct;
+            builder.IsVirtual = !isSealedLike;
+            builder.Accessibility = isSealedLike ? Accessibility.Private : Accessibility.Protected;
         }
 
         builder.AddParameter( _defaultContextParameterName, initContextType, defaultValue: TypedConstant.Default( initContextType ) );

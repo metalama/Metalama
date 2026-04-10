@@ -2,17 +2,17 @@
 public struct TargetCode
 {
   public int Value;
-  public TargetCode(int value, global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default(global::Metalama.Framework.RunTime.Initialization.InitializationContext))
+  public TargetCode(int value, InitializationContext context = default)
   {
     this.Value = value;
     this.OnConstructed(context);
   }
-  public TargetCode(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  public TargetCode(InitializationContext context = default)
   {
     this.OnConstructed(context);
   }
-  public void OnConstructed(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  private void OnConstructed(InitializationContext context = default)
   {
-    global::System.Console.WriteLine("OnConstructed!");
+    Console.WriteLine("OnConstructed!");
   }
 }
