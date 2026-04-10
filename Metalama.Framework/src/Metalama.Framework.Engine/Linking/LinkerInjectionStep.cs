@@ -667,20 +667,20 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
     {
         // Key is (target, AggregateKey). Using Dictionary preserves insertion order for keys in .NET,
         // and within each List the original sorted order of the transformations is preserved.
-        public readonly Dictionary<(IFullRef<IMemberOrNamedType> Target, string Key), List<IInsertStatementTransformation>> Groups =
+        public readonly Dictionary<(IFullRef<IMemberOrNamedType> Target, object Key), List<IInsertStatementTransformation>> Groups =
             new( AggregateBufferKeyComparer.Instance );
     }
 
-    private sealed class AggregateBufferKeyComparer : IEqualityComparer<(IFullRef<IMemberOrNamedType> Target, string Key)>
+    private sealed class AggregateBufferKeyComparer : IEqualityComparer<(IFullRef<IMemberOrNamedType> Target, object Key)>
     {
         public static readonly AggregateBufferKeyComparer Instance = new();
 
-        public bool Equals( (IFullRef<IMemberOrNamedType> Target, string Key) x, (IFullRef<IMemberOrNamedType> Target, string Key) y )
-            => x.Key == y.Key && RefEqualityComparer<IMemberOrNamedType>.Default.Equals( x.Target, y.Target );
+        public bool Equals( (IFullRef<IMemberOrNamedType> Target, object Key) x, (IFullRef<IMemberOrNamedType> Target, object Key) y )
+            => x.Key.Equals( y.Key ) && RefEqualityComparer<IMemberOrNamedType>.Default.Equals( x.Target, y.Target );
 
-        public int GetHashCode( (IFullRef<IMemberOrNamedType> Target, string Key) obj )
+        public int GetHashCode( (IFullRef<IMemberOrNamedType> Target, object Key) obj )
             => unchecked( (RefEqualityComparer<IMemberOrNamedType>.Default.GetHashCode( obj.Target ) * 397)
-                          ^ StringComparer.Ordinal.GetHashCode( obj.Key ) );
+                          ^ obj.Key.GetHashCode() );
     }
 
     private void IndexInsertStatementTransformation(

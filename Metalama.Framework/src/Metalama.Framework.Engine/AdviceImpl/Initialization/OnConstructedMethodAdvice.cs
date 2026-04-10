@@ -3,8 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Advising;
+using Metalama.Framework.Advising.PullStrategies;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
@@ -15,6 +17,7 @@ using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
+using Metalama.Framework.RunTime;
 using Metalama.Framework.RunTime.Initialization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -24,6 +27,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using Accessibility = Metalama.Framework.Code.Accessibility;
+using RefKind = Metalama.Framework.Code.RefKind;
 using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
@@ -153,12 +157,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
                                   && !c.IsRecordCopyConstructor() )
                      .ToList() )
         {
-            var (targetConstructor, contextParameterName) = InitializationContextParameterHelper.EnsureContextParameter(
-                sourceCtor,
-                initContextType,
-                context,
-                this.AspectLayerInstance,
-                _defaultContextParameterName );
+            var (targetConstructor, contextParameterName) = this.EnsureContextParameter( sourceCtor, initContextType, context );
 
             // Early `return;` statements in the constructor body are rewritten to
             // `goto __metalama_epilogue;` by ConstructorEpilogueRewriter (invoked from
@@ -238,6 +237,81 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
             new IntroduceMethodTransformation( this.AspectLayerInstance, builder.BuilderData ) );
 
         return builder;
+    }
+
+    /// <summary>
+    /// Ensures that <paramref name="sourceConstructor"/> has an <c>InitializationContext</c> parameter.
+    /// If an existing parameter of the given type is found, its name is returned. Otherwise an implicit
+    /// constructor is materialized as needed, a new parameter is introduced with
+    /// <c>default(InitializationContext)</c> as its default value, and the parameter is pulled recursively
+    /// through <c>:this(...)</c> / <c>:base(...)</c> chains (and across project boundaries via the
+    /// transitive aspect mechanism registered inside <see cref="PullConstructorParameterAdviceImpl"/>).
+    /// </summary>
+    /// <returns>
+    /// The (possibly materialized) constructor and the name of the <c>InitializationContext</c> parameter.
+    /// </returns>
+    private (IConstructor Constructor, string ContextParameterName) EnsureContextParameter(
+        IConstructor sourceConstructor,
+        IType initializationContextType,
+        AdviceImplementationContext context )
+    {
+        // 1. Look for an existing parameter of type InitializationContext on this constructor.
+        var existing = sourceConstructor.Parameters.FirstOrDefault(
+            p => p.Type.Equals( initializationContextType ) );
+
+        if ( existing != null )
+        {
+            return (sourceConstructor, existing.Name);
+        }
+
+        // 2. Materialize implicit constructor to an explicit one if needed.
+        var constructor = sourceConstructor;
+
+        if ( constructor.IsImplicitInstanceConstructor() )
+        {
+            var constructorBuilder = new ConstructorBuilder( this.AspectLayerInstance, constructor );
+            constructorBuilder.Freeze();
+            context.AddTransformation( constructorBuilder.CreateTransformation() );
+            constructor = constructorBuilder;
+        }
+
+        // 3. Introduce the parameter.
+        var parameterBuilder = new ParameterBuilder(
+            constructor,
+            constructor.Parameters.Count,
+            _defaultContextParameterName,
+            initializationContextType,
+            RefKind.None,
+            this.AspectLayerInstance ) { DefaultValue = TypedConstant.Default( initializationContextType ) };
+
+        if ( constructor.CanBeChainedFromOutsideAssembly() )
+        {
+            parameterBuilder.AddAttribute( AttributeConstruction.Create( typeof(AspectGeneratedAttribute) ) );
+        }
+
+        parameterBuilder.Freeze();
+
+        context.AddTransformation(
+            new IntroduceParameterTransformation( this.AspectLayerInstance, parameterBuilder.BuilderData ) );
+
+        // 4. Recursively pull into constructors that chain to this one. Passing an
+        //    IntroduceParameterPullStrategy enables cross-project propagation via
+        //    PullConstructorParameterTransitiveAspect registered inside PullConstructorParameterAdviceImpl.
+        //    The default value is serialized as text; a typed `default(T)` is used so that
+        //    TypedConstant.TryConvertFromExpression recognizes it as a DefaultExpressionSyntax
+        //    (rather than as a DefaultLiteralExpression whose token value is the string "default").
+        var defaultValueText = $"default(global::{typeof(InitializationContext).FullName})";
+        var pullStrategy = new IntroduceParameterPullStrategy( _defaultContextParameterName, initializationContextType.ToRef(), defaultValueText );
+
+        var pullImpl = new PullConstructorParameterAdviceImpl(
+            context,
+            pullStrategy,
+            this.AspectLayerInstance,
+            onlyProcessDerivedTypes: false );
+
+        pullImpl.PullConstructorParameterRecursive( parameterBuilder );
+
+        return (constructor, _defaultContextParameterName);
     }
 
     /// <summary>

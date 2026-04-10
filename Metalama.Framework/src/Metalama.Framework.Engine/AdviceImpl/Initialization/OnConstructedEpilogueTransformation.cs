@@ -37,7 +37,9 @@ internal sealed class OnConstructedEpilogueTransformation : BaseSyntaxTreeTransf
 
     public IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetConstructor;
 
-    public string AggregateKey => "OnConstructed_Epilogue";
+    private static readonly object _aggregateKey = new();
+
+    public object AggregateKey => _aggregateKey;
 
     public OnConstructedEpilogueTransformation(
         AspectLayerInstance aspectLayerInstance,

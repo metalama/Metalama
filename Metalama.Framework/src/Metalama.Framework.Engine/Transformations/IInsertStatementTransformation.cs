@@ -53,6 +53,8 @@ internal interface IAggregatableInsertStatementTransformation : IInsertStatement
 {
     /// <summary>
     /// Gets the key used by the linker to aggregate transformations sharing the same target. Must be non-null.
+    /// Keys are compared with <see cref="object.Equals(object?)"/>, so implementers may use a string literal,
+    /// a static singleton <c>object</c>, or any other instance with suitable equality semantics.
     /// </summary>
-    string AggregateKey { get; }
+    object AggregateKey { get; }
 }
