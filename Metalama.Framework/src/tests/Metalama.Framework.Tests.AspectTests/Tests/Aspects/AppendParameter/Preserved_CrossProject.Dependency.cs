@@ -19,8 +19,7 @@ public class MyAspect : TypeAspect
                 .IntroduceParameter(
                     "creationTime",
                     typeof(DateTime),
-                    TypedConstant.Default( typeof(DateTime) ),
-                    PullStrategy.IntroduceParameterAndPull( defaultValue: TypedConstant.Default( typeof(DateTime) ) ),
+                    pullStrategy: PullStrategy.IntroduceParameterAndPull( defaultValue: TypedConstant.Default( typeof(DateTime) ) ),
                     overloadingStrategy: ConstructorOverloadingStrategy.ForwardSourceConstructors );
         }
     }

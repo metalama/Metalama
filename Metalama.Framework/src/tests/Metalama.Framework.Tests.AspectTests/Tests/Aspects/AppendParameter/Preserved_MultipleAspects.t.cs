@@ -2,13 +2,13 @@
 [Tracked]
 public class Order
 {
-  public Order(int id, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Guid traceId, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.DateTime creationTime)
+  public Order(int id, [AspectGenerated] Guid traceId, [AspectGenerated] DateTime creationTime)
   {
     this.Id = id;
   }
   public int Id { get; }
-  [global::Metalama.Framework.RunTime.AspectGeneratedForwardingConstructorAttribute]
-  public Order(global::System.Int32 id) : this(id: id, traceId: global::System.Guid.NewGuid(), creationTime: global::System.DateTime.Now)
+  [SourceCompatibilityConstructor]
+  public Order(int id) : this(id: id, traceId: Guid.NewGuid(), creationTime: DateTime.Now)
   {
   }
 }

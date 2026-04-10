@@ -6,17 +6,9 @@ using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.SyntaxBuilders;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Preserved_IntroduceParameterAndPullOnClone;
-
-// A buggy pull strategy: always returns IntroduceParameterAndPull — invalid for a source-compatibility constructor.
-public sealed class BadPullStrategy : IPullStrategy
-{
-    public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
-    {
-        return PullAction.IntroduceParameterAndPull( pulledParameter.Name, pulledParameter.Type, parameterDefaultValue: null );
-    }
-}
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Preserved_CopyAttributes;
 
 public class MyAspect : TypeAspect
 {
@@ -28,7 +20,7 @@ public class MyAspect : TypeAspect
                 .IntroduceParameter(
                     "creationTime",
                     typeof(DateTime),
-                    pullStrategy: new BadPullStrategy(),
+                    pullStrategy: PullStrategy.UseExpression( ExpressionFactory.Parse( "global::System.DateTime.Now" ) ),
                     overloadingStrategy: ConstructorOverloadingStrategy.ForwardSourceConstructors );
         }
     }
@@ -38,6 +30,7 @@ public class MyAspect : TypeAspect
 [MyAspect]
 public class A
 {
+    [Obsolete( "old" )]
     public A( int id )
     {
         this.Id = id;

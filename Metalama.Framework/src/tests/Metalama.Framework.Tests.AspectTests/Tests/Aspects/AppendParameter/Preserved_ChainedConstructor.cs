@@ -11,12 +11,12 @@ using Metalama.Framework.Code.SyntaxBuilders;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Preserved_ChainedConstructor;
 
-// A custom pull strategy: on an aspect-generated forwarding constructor, supply DateTime.Now; otherwise, cascade the parameter.
+// A custom pull strategy: on a source-compatibility constructor, supply DateTime.Now; otherwise, cascade the parameter.
 public sealed class TimestampPullStrategy : IPullStrategy
 {
     public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
     {
-        if ( targetMember.IsAspectGeneratedForwarder() )
+        if ( targetMember is IConstructor ctor && ctor.IsSourceCompatibilityConstructor() )
         {
             return PullAction.UseExpression( ExpressionFactory.Parse( "global::System.DateTime.Now" ) );
         }

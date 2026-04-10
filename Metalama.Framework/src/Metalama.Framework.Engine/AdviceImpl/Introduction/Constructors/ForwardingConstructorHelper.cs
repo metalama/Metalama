@@ -7,6 +7,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel.Comparers;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -81,7 +82,7 @@ internal sealed class ForwardingConstructorHelper
 
         if ( existingForwarder is not null )
         {
-            this.ExtendForwarder( existingForwarder, introducedParameter );
+            this.AppendForwarderArgument( existingForwarder, introducedParameter );
         }
         else
         {
@@ -94,7 +95,7 @@ internal sealed class ForwardingConstructorHelper
         using ( UserCodeExecutionContext.WithContext(
                    this._context.ServiceProvider,
                    this._context.MutableCompilation,
-                   UserCodeDescription.Create( "evaluating the constructor overloading strategy" ) ) )
+                   UserCodeDescription.Create( "executing ShouldGenerateForwarder" ) ) )
         {
             return this._overloadingStrategy!.ShouldGenerateForwarder( mutatedConstructor, introducedParameter );
         }
@@ -102,11 +103,9 @@ internal sealed class ForwardingConstructorHelper
 
     private IConstructor? FindExistingForwarder( IConstructor mutatedConstructor, IReadOnlyList<IParameter> preMutationParams )
     {
-        var comparer = this._context.MutableCompilation.Comparers.Default;
-
         foreach ( var ctor in mutatedConstructor.DeclaringType.Constructors )
         {
-            if ( !ctor.IsAspectGeneratedForwarder() )
+            if ( !ctor.IsSourceCompatibilityConstructor() )
             {
                 continue;
             }
@@ -120,7 +119,7 @@ internal sealed class ForwardingConstructorHelper
 
             for ( var i = 0; i < preMutationParams.Count; i++ )
             {
-                if ( !comparer.Equals( ctor.Parameters[i].Type, preMutationParams[i].Type )
+                if ( !SignatureTypeComparer.Instance.Equals( ctor.Parameters[i].Type, preMutationParams[i].Type )
                      || ctor.Parameters[i].RefKind != preMutationParams[i].RefKind )
                 {
                     match = false;
@@ -156,8 +155,16 @@ internal sealed class ForwardingConstructorHelper
         };
 
         // Add the marker attribute up-front so the user's pull strategy can detect the forwarder via
-        // IsAspectGeneratedForwarder() when GetForwardingExpression calls it below.
-        forwarderBuilder.AddAttribute( AttributeConstruction.Create( typeof(AspectGeneratedForwardingConstructorAttribute) ) );
+        // IsSourceCompatibilityConstructor() when GetForwardingExpression calls it below.
+        forwarderBuilder.AddAttribute( AttributeConstruction.Create( typeof(SourceCompatibilityConstructorAttribute) ) );
+
+        // Copy source-origin custom attributes from the mutated constructor (e.g. [Obsolete],
+        // [EditorBrowsable], [Conditional]) so callers of the forwarder see the same metadata
+        // that would have been visible on the pre-mutation source constructor.
+        foreach ( var sourceAttribute in mutatedConstructor.Attributes.Where( a => a.Origin.Kind == DeclarationOriginKind.Source ) )
+        {
+            forwarderBuilder.AddAttribute( sourceAttribute.ToAttributeConstruction() );
+        }
 
         // Copy the pre-mutation parameter list (source-origin parameters only).
         foreach ( var sourceParameter in preMutationParams )
@@ -179,11 +186,11 @@ internal sealed class ForwardingConstructorHelper
                 sourceParameter.Name );
         }
 
-        // Forward any aspect-introduced parameters that predate the current advice (possibly from a
-        // prior advice that did not forward). These are visible in the mutable compilation. We
-        // exclude the newly introduced parameter here because it is not guaranteed to be reflected
-        // in the mutable compilation yet — advice transformations are not flushed until the advice
-        // returns. We forward it explicitly afterwards.
+        // Forward any aspect-introduced parameters that predate the current advice.
+        // These are already present on the mutated constructor's parameter list.
+        // The newly introduced parameter is excluded from this loop because the
+        // advice transformation that adds it has not been flushed yet — we forward
+        // it explicitly afterwards.
         foreach ( var aspectParameter in mutatedConstructor.Parameters
                      .Where( p => p.Origin.Kind == DeclarationOriginKind.Aspect && p.Name != introducedParameter.Name ) )
         {
@@ -211,7 +218,7 @@ internal sealed class ForwardingConstructorHelper
         this._context.AddTransformation( forwarderBuilder.CreateTransformation() );
     }
 
-    private void ExtendForwarder( IConstructor existingForwarder, IParameter introducedParameter )
+    private void AppendForwarderArgument( IConstructor existingForwarder, IParameter introducedParameter )
     {
         // Ask the strategy for the forwarding expression for the newly introduced parameter.
         var forwardingExpression = this.GetForwardingExpression( introducedParameter, existingForwarder );
@@ -252,7 +259,7 @@ internal sealed class ForwardingConstructorHelper
         using ( UserCodeExecutionContext.WithContext(
                    this._context.ServiceProvider,
                    this._context.MutableCompilation,
-                   UserCodeDescription.Create( "evaluating the pull strategy for an aspect-generated forwarding constructor" ) ) )
+                   UserCodeDescription.Create( "evaluating the pull strategy for a source-compatibility constructor" ) ) )
         {
             pullAction = this._pullStrategy!.GetPullAction( introducedParameter, forwarderTarget );
         }
@@ -266,7 +273,7 @@ internal sealed class ForwardingConstructorHelper
                 // Only UseExpression / UseConstant / UseExistingParameter are valid for forwarders —
                 // they all map to UseExpression. DoNotPull and AppendParameterAndPull are invalid.
                 this._context.Diagnostics.Report(
-                    AdviceDiagnosticDescriptors.InvalidPullActionForAspectGeneratedForwarder.CreateRoslynDiagnostic(
+                    AdviceDiagnosticDescriptors.InvalidPullActionForSourceCompatibilityConstructor.CreateRoslynDiagnostic(
                         forwarderTarget.GetDiagnosticLocation(),
                         (this._owningAdvice.AspectInstance.AspectClass.ShortName, introducedParameter, forwarderTarget,
                          pullAction.Kind.ToString()),

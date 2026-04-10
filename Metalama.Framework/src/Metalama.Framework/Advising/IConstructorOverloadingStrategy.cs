@@ -9,10 +9,10 @@ using Metalama.Framework.Serialization;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// A strategy that decides whether the framework should generate an additional <em>forwarding constructor</em>
-/// when <see cref="IAdviceFactory.IntroduceParameter(IConstructor, string, IType, TypedConstant, IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction}, IConstructorOverloadingStrategy?)"/>
-/// mutates a constructor. A forwarding constructor is a compile-time stub that preserves the pre-mutation binary
-/// signature of a source constructor and chains, via <c>: this(...)</c>, to the now-mutated constructor.
+/// A strategy that decides whether the framework should generate an additional <em>source-compatibility constructor</em>
+/// when <see cref="IAdviceFactory.IntroduceParameter(IConstructor, string, IType, IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction}, IConstructorOverloadingStrategy?)"/>
+/// mutates a constructor with a required parameter. A source-compatibility constructor is a compile-time stub that preserves the
+/// pre-mutation binary signature of a source constructor and chains, via <c>: this(...)</c>, to the now-mutated constructor.
 /// For the standard implementation see <see cref="ConstructorOverloadingStrategy"/>.
 /// </summary>
 /// <remarks>
@@ -26,7 +26,7 @@ namespace Metalama.Framework.Advising;
 /// </para>
 /// </remarks>
 /// <seealso cref="ConstructorOverloadingStrategy"/>
-/// <seealso cref="PullStrategyExtensions.IsAspectGeneratedForwarder"/>
+/// <seealso cref="Metalama.Framework.Code.ConstructorExtensions.IsSourceCompatibilityConstructor"/>
 public interface IConstructorOverloadingStrategy : ICompileTimeSerializable
 {
     /// <summary>

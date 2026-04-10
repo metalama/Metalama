@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.CodeModel.Comparers;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -55,12 +56,12 @@ internal sealed class PullConstructorParameterAdviceImpl
 
     /// <summary>
     /// Determines whether <paramref name="child"/>'s <c>: base(...)</c>/<c>: this(...)</c> call targets <paramref name="target"/>,
-    /// either directly or through an aspect-generated forwarding constructor. When the base constructor lives in a
+    /// either directly or through a source-compatibility constructor. When the base constructor lives in a
     /// referenced project, Roslyn may resolve the chain call to a forwarder emitted into the dependency's IL (arity match)
     /// rather than the mutated constructor; we "see through" such forwarders by matching their parameter prefix against
     /// <paramref name="target"/>'s parameters, since the framework only ever appends new parameters to mutated constructors.
     /// </summary>
-    private static bool IsChainedCall( IConstructor child, IConstructor target, CompilationModel compilation )
+    private static bool IsChainedCall( IConstructor child, IConstructor target )
     {
         var resolved = ((IConstructorImpl) child).GetBaseConstructor()?.Definition;
 
@@ -74,15 +75,18 @@ internal sealed class PullConstructorParameterAdviceImpl
             return true;
         }
 
-        // See through an aspect-generated forwarding constructor.
-        if ( !resolved.IsAspectGeneratedForwarder() )
+        // Roslyn's SemanticModel resolves `: base(id)` (or `: this(id)`) to whichever
+        // ctor matches the source arity in IL. In cross-project scenarios that means
+        // it resolves to the source-compatibility ctor emitted by the aspect in
+        // project A, not to the mutated ctor. Treat that as a match for `target` when
+        // the resolved ctor is a source-compatibility constructor in the same
+        // declaring type whose parameters are a type+refkind prefix of `target`.
+        if ( !resolved.IsSourceCompatibilityConstructor() )
         {
             return false;
         }
 
-        var comparer = compilation.Comparers.Default;
-
-        if ( !comparer.Equals( resolved.DeclaringType, target.DeclaringType ) )
+        if ( !SignatureTypeComparer.Instance.Equals( resolved.DeclaringType, target.DeclaringType ) )
         {
             return false;
         }
@@ -94,7 +98,7 @@ internal sealed class PullConstructorParameterAdviceImpl
 
         for ( var i = 0; i < resolved.Parameters.Count; i++ )
         {
-            if ( !comparer.Equals( resolved.Parameters[i].Type, target.Parameters[i].Type )
+            if ( !SignatureTypeComparer.Instance.Equals( resolved.Parameters[i].Type, target.Parameters[i].Type )
                  || resolved.Parameters[i].RefKind != target.Parameters[i].RefKind )
             {
                 return false;
@@ -148,7 +152,7 @@ internal sealed class PullConstructorParameterAdviceImpl
         void ProcessType( IEnumerable<IConstructor> potentialConstructors )
         {
             var chainedConstructors =
-                potentialConstructors.Where( c => IsChainedCall( c, baseConstructor, this.Compilation ) );
+                potentialConstructors.Where( c => IsChainedCall( c, baseConstructor ) );
 
             // Process all of these constructors.
             foreach ( var chainedConstructor in chainedConstructors )

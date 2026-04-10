@@ -2,7 +2,7 @@
 public class C(int x) : A(42)
 {
   public int X { get; } = x;
-  public C(int x, int y, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p = 15) : this(x)
+  public C(int x, int y, [AspectGenerated] int p = 15) : this(x)
   {
   }
 }

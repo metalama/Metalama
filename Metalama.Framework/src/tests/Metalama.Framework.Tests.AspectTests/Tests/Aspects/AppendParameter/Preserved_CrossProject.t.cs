@@ -1,12 +1,12 @@
 public class Derived : Base
 {
-  public Derived(int id, string name, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.DateTime creationTime = default(global::System.DateTime)) : base(id, creationTime)
+  public Derived(int id, string name, [AspectGenerated] DateTime creationTime = default) : base(id, creationTime)
   {
     this.Name = name;
   }
   public string Name { get; }
-  [global::Metalama.Framework.RunTime.AspectGeneratedForwardingConstructorAttribute]
-  public Derived(global::System.Int32 id, global::System.String name) : this(id: id, name: name, creationTime: default(global::System.DateTime))
+  [SourceCompatibilityConstructor]
+  public Derived(int id, string name) : this(id: id, name: name, creationTime: default)
   {
   }
 }

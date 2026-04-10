@@ -1,7 +1,7 @@
 [MyAspect]
 public class A
 {
-  public A(int x, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p)
+  public A(int x, [AspectGenerated] int p)
   {
     this.X = x;
   }
@@ -9,7 +9,7 @@ public class A
 }
 public class C : A
 {
-  public C(int x, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p) : base(42, p)
+  public C(int x, [AspectGenerated] int p) : base(42, p)
   {
     this.Y = x;
   }

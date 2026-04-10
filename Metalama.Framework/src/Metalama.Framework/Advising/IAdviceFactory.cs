@@ -855,24 +855,45 @@ namespace Metalama.Framework.Advising
             ImmutableArray<AttributeConstruction> attributes = default );
 
         /// <summary>
-        /// Appends a parameter to a constructor by specifying its name and <see cref="IType"/>.
+        /// Appends an optional parameter (i.e. one that has a default value) to a constructor by specifying its name and <see cref="IType"/>.
+        /// Source compatibility is preserved automatically because existing callers can omit the new argument — no forwarding
+        /// constructor is needed.
         /// </summary>
         /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
-        /// <param name="defaultValue">The default value of the parameter. If <see cref="TypedConstant.IsInitialized"/> is <c>false</c> (i.e. <c>default(TypedConstant)</c>),
-        ///     the introduced parameter has no C# default value and is therefore required.</param>
+        /// <param name="defaultValue">The default value of the parameter. It must be type-compatible with <paramref name="parameterType"/>.
+        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
+        /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
+        /// <param name="attributes"></param>
+        IIntroductionAdviceResult<IParameter> IntroduceParameter(
+            IConstructor constructor,
+            string parameterName,
+            IType parameterType,
+            TypedConstant defaultValue,
+            IPullStrategy? pullStrategy = null,
+            ImmutableArray<AttributeConstruction> attributes = default );
+
+        /// <summary>
+        /// Appends a required parameter (i.e. one that has no default value) to a constructor by specifying its name and <see cref="IType"/>.
+        /// Because existing callers cannot omit the new argument, the framework preserves source compatibility by emitting a
+        /// forwarding constructor that keeps the pre-mutation signature callable. Pass a custom <see cref="IConstructorOverloadingStrategy"/>
+        /// to scope which constructors receive a forwarder, or to opt out entirely.
+        /// </summary>
+        /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
+        /// <param name="parameterName">The name of the parameter.</param>
+        /// <param name="parameterType">The type of the parameter.</param>
         /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
         /// <param name="attributes"></param>
         /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides, per mutated constructor, whether the framework
-        ///     should generate a forwarding constructor preserving the pre-mutation signature. Use <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/>
-        ///     for the stock behavior, and <see cref="PullStrategyExtensions.IsAspectGeneratedForwarder"/> from a custom <see cref="IPullStrategy"/> to detect
+        ///     should generate a forwarding constructor preserving the pre-mutation signature. A <c>null</c> value (the default) is interpreted as
+        ///     <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> — the safe default. Use
+        ///     <see cref="ConstructorExtensions.IsSourceCompatibilityConstructor"/> from a custom <see cref="IPullStrategy"/> to detect
         ///     forwarding constructors during the pull walk.</param>
         IIntroductionAdviceResult<IParameter> IntroduceParameter(
             IConstructor constructor,
             string parameterName,
             IType parameterType,
-            TypedConstant defaultValue = default,
             IPullStrategy? pullStrategy = null,
             ImmutableArray<AttributeConstruction> attributes = default,
             IConstructorOverloadingStrategy? overloadingStrategy = null );
@@ -899,22 +920,43 @@ namespace Metalama.Framework.Advising
             ImmutableArray<AttributeConstruction> attributes = default );
 
         /// <summary>
-        /// Appends a parameter to a constructor by specifying its name and <see cref="Type"/>.
+        /// Appends an optional parameter (i.e. one that has a default value) to a constructor by specifying its name and <see cref="Type"/>.
+        /// Source compatibility is preserved automatically because existing callers can omit the new argument — no forwarding
+        /// constructor is needed.
         /// </summary>
         /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
-        /// <param name="defaultValue">The default value of the parameter. If <see cref="TypedConstant.IsInitialized"/> is <c>false</c> (i.e. <c>default(TypedConstant)</c>),
-        ///     the introduced parameter has no C# default value and is therefore required.</param>
+        /// <param name="defaultValue">The default value of the parameter. It must be type-compatible with <paramref name="parameterType"/>.
+        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
         /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
         /// <param name="attributes"></param>
-        /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides, per mutated constructor, whether the framework
-        ///     should generate a forwarding constructor preserving the pre-mutation signature.</param>
         IIntroductionAdviceResult<IParameter> IntroduceParameter(
             IConstructor constructor,
             string parameterName,
             Type parameterType,
-            TypedConstant defaultValue = default,
+            TypedConstant defaultValue,
+            IPullStrategy? pullStrategy = null,
+            ImmutableArray<AttributeConstruction> attributes = default );
+
+        /// <summary>
+        /// Appends a required parameter (i.e. one that has no default value) to a constructor by specifying its name and <see cref="Type"/>.
+        /// Because existing callers cannot omit the new argument, the framework preserves source compatibility by emitting a
+        /// forwarding constructor that keeps the pre-mutation signature callable. Pass a custom <see cref="IConstructorOverloadingStrategy"/>
+        /// to scope which constructors receive a forwarder, or to opt out entirely.
+        /// </summary>
+        /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
+        /// <param name="parameterName">The name of the parameter.</param>
+        /// <param name="parameterType">The type of the parameter.</param>
+        /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
+        /// <param name="attributes"></param>
+        /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides, per mutated constructor, whether the framework
+        ///     should generate a forwarding constructor preserving the pre-mutation signature. A <c>null</c> value (the default) is interpreted as
+        ///     <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> — the safe default.</param>
+        IIntroductionAdviceResult<IParameter> IntroduceParameter(
+            IConstructor constructor,
+            string parameterName,
+            Type parameterType,
             IPullStrategy? pullStrategy = null,
             ImmutableArray<AttributeConstruction> attributes = default,
             IConstructorOverloadingStrategy? overloadingStrategy = null );

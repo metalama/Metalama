@@ -14,7 +14,7 @@ public sealed class TimestampPullStrategy : IPullStrategy
 {
     public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
     {
-        if ( targetMember.IsAspectGeneratedForwarder() )
+        if ( targetMember is IConstructor ctor && ctor.IsSourceCompatibilityConstructor() )
         {
             return PullAction.UseExpression( ExpressionFactory.Parse( "global::System.DateTime.Now" ) );
         }

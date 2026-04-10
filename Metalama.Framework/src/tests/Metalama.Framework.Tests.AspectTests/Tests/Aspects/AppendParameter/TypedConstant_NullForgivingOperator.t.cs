@@ -1,7 +1,7 @@
 internal class TargetCode
 {
   [AddParameterWithNullForgiving]
-  private TargetCode(int i, global::System.String arg1 = default(global::System.String)!, global::System.String arg2 = default(global::System.String))
+  private TargetCode(int i, string arg1 = default !, string arg2 = default)
   {
   }
 }

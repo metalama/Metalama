@@ -1,16 +1,16 @@
 public class C
 {
   [MyAspect]
-  public C([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p = 15)
+  public C([AspectGenerated] int p = 15)
   {
   }
-  public C(string s, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p = 20) : this(p)
+  public C(string s, [AspectGenerated] int p = 20) : this(p)
   {
   }
 }
 public class D : C
 {
-  public D([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p = 20) : base(p)
+  public D([AspectGenerated] int p = 20) : base(p)
   {
   }
 }

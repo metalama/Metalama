@@ -26,7 +26,7 @@ namespace Metalama.Framework.Advising;
 /// </remarks>
 /// <seealso cref="IPullStrategy"/>
 /// <seealso cref="PullAction"/>
-/// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction}, Metalama.Framework.Advising.IConstructorOverloadingStrategy?)"/>
+/// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, Metalama.Framework.Advising.IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction}, Metalama.Framework.Advising.IConstructorOverloadingStrategy?)"/>
 /// <seealso href="@introducing-constructor-parameters"/>
 public static class PullStrategy
 {
