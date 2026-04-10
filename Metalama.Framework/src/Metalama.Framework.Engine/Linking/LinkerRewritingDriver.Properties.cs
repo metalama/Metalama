@@ -69,6 +69,13 @@ namespace Metalama.Framework.Engine.Linking
                         : null;
 
                     // Backing field for auto property.
+                    // When primary-constructor removal moves this member's initialization into the synthesized constructor body,
+                    // the generated backing field must not keep the original initializer, or the initialization would be duplicated
+                    // and could reference constructor-only state.
+                    var backingFieldInitializer = this.LateTransformationRegistry.IsPrimaryConstructorInitializedMember( symbol )
+                        ? null
+                        : propertyDeclaration.Initializer;
+
                     var backingField = this.GetPropertyBackingField(
                         propertyDeclaration.Type,
                         backingFieldInitializer,

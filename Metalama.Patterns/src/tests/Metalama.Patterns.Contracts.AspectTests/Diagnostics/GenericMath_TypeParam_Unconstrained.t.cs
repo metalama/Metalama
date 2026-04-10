@@ -1,0 +1,1 @@
+// Error LAMA0037 on `Positive`: `The aspect 'Positive' cannot be applied to the parameter 'GenericMath_TypeParam_Unconstrained.M<T>(T)/value' because the type of 'GenericMath_TypeParam_Unconstrained.M<T>(T)/value' must be a numeric type, a nullable numeric type, or object.`

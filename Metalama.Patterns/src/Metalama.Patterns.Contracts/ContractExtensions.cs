@@ -73,6 +73,21 @@ public static class ContractExtensions
             => d.Attributes.OfAttributeType( requiredAttribute ).FirstOrDefault() ??
                d.Attributes.OfAttributeType( notNullableAttribute ).FirstOrDefault();
 
+        // [Required] provides additional validation beyond [NotNull] for strings (empty/whitespace check).
+        // For strings, [Required] is not redundant, so we should silently skip adding [NotNull]
+        // without reporting a warning.
+        bool IsRequiredRedundant( IDeclaration d )
+        {
+            var type = d switch
+            {
+                IHasType hasType => hasType.Type,
+                _ => null
+            };
+
+            // [Required] is NOT redundant for strings because it also validates empty/whitespace.
+            return type is not { SpecialType: SpecialType.String };
+        }
+
         // Add aspects to fields, properties and indexers.
         var fieldsAndProperties = types
             .SelectMany(
@@ -96,24 +111,22 @@ public static class ContractExtensions
             .Where( parameter => GetNotNullAspectAttribute( parameter ) == null )
             .AddAspectIfEligible<NotNullAttribute>();
 
-        // Warn if the attribute is duplicate.
-        fieldsAndProperties.Where( f => GetNotNullAspectAttribute( f ) != null )
-            .ReportDiagnostic(
-                f =>
-                {
-                    var nullableAttribute = GetNotNullAspectAttribute( f );
+        // Warn about redundant contracts:
+        // - [NotNull] is always redundant (the fabric already adds it).
+        // - [Required] is redundant only for non-string types (for strings, [Required] also validates empty/whitespace).
+        // We check each attribute independently so that an explicit [NotNull] is still warned about
+        // even when [Required] is also present on a string.
+        fieldsAndProperties.Where( f => f.Attributes.OfAttributeType( notNullableAttribute ).Any() )
+            .ReportDiagnostic( f => ContractDiagnostics.ContractRedundant.WithArguments( (f, nameof(NotNullAttribute)) ) );
 
-                    return ContractDiagnostics.ContractRedundant.WithArguments( (f, nullableAttribute!.Type.Name) );
-                } );
+        fieldsAndProperties.Where( f => f.Attributes.OfAttributeType( requiredAttribute ).Any() && IsRequiredRedundant( f ) )
+            .ReportDiagnostic( f => ContractDiagnostics.ContractRedundant.WithArguments( (f, nameof(RequiredAttribute)) ) );
 
-        parameters.Where( f => GetNotNullAspectAttribute( f ) != null )
-            .ReportDiagnostic(
-                f =>
-                {
-                    var nullableAttribute = GetNotNullAspectAttribute( f );
+        parameters.Where( f => f.Attributes.OfAttributeType( notNullableAttribute ).Any() )
+            .ReportDiagnostic( f => ContractDiagnostics.ContractRedundant.WithArguments( (f, nameof(NotNullAttribute)) ) );
 
-                    return ContractDiagnostics.ContractRedundant.WithArguments( (f, nullableAttribute!.Type.Name) );
-                } );
+        parameters.Where( f => f.Attributes.OfAttributeType( requiredAttribute ).Any() && IsRequiredRedundant( f ) )
+            .ReportDiagnostic( f => ContractDiagnostics.ContractRedundant.WithArguments( (f, nameof(RequiredAttribute)) ) );
     }
 
     /// <summary>

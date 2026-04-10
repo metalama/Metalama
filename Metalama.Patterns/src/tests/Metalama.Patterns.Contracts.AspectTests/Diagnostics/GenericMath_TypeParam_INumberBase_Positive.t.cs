@@ -1,0 +1,1 @@
+// Error LAMA0037 on `NonNegative`: `The aspect 'NonNegative' cannot be applied to the parameter 'GenericMath_TypeParam_INumberBase_Positive.M<T>(T)/value' because the type of 'GenericMath_TypeParam_INumberBase_Positive.M<T>(T)/value' must be a numeric type, a nullable numeric type, or object.`
