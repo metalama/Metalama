@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Serialization;
 
@@ -30,11 +29,14 @@ namespace Metalama.Framework.Advising;
 public interface IConstructorOverloadingStrategy : ICompileTimeSerializable
 {
     /// <summary>
-    /// Gets a value indicating whether a forwarding constructor should be generated for a given mutated constructor.
+    /// Gets the action the framework should apply when a constructor has just been mutated — whether to generate
+    /// a source-compatibility forwarder, optionally decorated with <see cref="System.ObsoleteAttribute"/>, or to
+    /// do nothing.
     /// </summary>
     /// <param name="mutatedConstructor">The constructor immediately after the new parameter has been appended.</param>
     /// <param name="introducedParameter">The parameter that was just introduced.</param>
-    /// <returns><c>true</c> if the framework should generate (or extend) a forwarding stub preserving the
-    /// pre-mutation signature of <paramref name="mutatedConstructor"/>; otherwise, <c>false</c>.</returns>
-    bool ShouldGenerateForwarder( IConstructor mutatedConstructor, IParameter introducedParameter );
+    /// <returns>A <see cref="ConstructorOverloadingAction"/> describing the decision and — when
+    /// <see cref="ConstructorOverloadingAction.ForwardAndMarkObsolete"/> is used — the <c>[Obsolete]</c>
+    /// metadata to emit on the generated forwarder.</returns>
+    ConstructorOverloadingAction GetConstructorOverloadingAction( IConstructor mutatedConstructor, IParameter introducedParameter );
 }

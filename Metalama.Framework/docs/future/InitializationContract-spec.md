@@ -498,7 +498,7 @@ IIntroductionAdviceResult<IParameter> IntroduceParameter(
 ```
 
 - **`defaultValue = default`** (i.e., `TypedConstant.IsInitialized == false`) means "no C# default value; the parameter is required".
-- **`overloadingStrategy`** is a user-supplied (or stock) strategy that the framework calls for every mutated constructor to decide whether to emit a forwarding stub. The stock `ConstructorOverloadingStrategy.ForwardSourceConstructors` matches all source-origin constructors; custom strategies can refine this.
+- **`overloadingStrategy`** is a user-supplied (or standard) strategy that the framework calls for every mutated constructor to decide whether to emit a forwarding stub. The standard `ConstructorOverloadingStrategy.ForwardSourceConstructors` matches all source-origin constructors; `ConstructorOverloadingStrategy.ForwardDefaultConstructor` matches only the parameterless one. Each returns a `ForwardConstructorStrategy` whose fluent `WithObsoleteAttribute(description, isError)` method additionally decorates the generated forwarder with `[Obsolete]`. Custom strategies can refine this by implementing `IConstructorOverloadingStrategy` directly.
 - **`pullStrategy`** still controls what happens at chain-call sites. Aspect authors either use one of the `PullStrategy.*` factory methods or write their own `IPullStrategy` implementation. A custom strategy can call `IsAspectGeneratedForwarder()` on the `targetMember` argument and branch: when `true`, return `UseExpression(forwardingExpression)`; otherwise return `IntroduceParameterAndPull(...)` (or whatever suits the regular cascade). The stock `PullStrategy.IntroduceParameterAndPull(...)` already handles the forwarder case by substituting a `UseExpression` action carrying the configured default value. Both strategies must implement `ICompileTimeSerializable` to work across project boundaries.
 
 The strategy interface is a single method:
@@ -506,7 +506,7 @@ The strategy interface is a single method:
 ```csharp
 public interface IConstructorOverloadingStrategy : ICompileTimeSerializable
 {
-    bool ShouldGenerateForwarder( IConstructor mutatedConstructor, IParameter introducedParameter );
+    ConstructorOverloadingAction GetConstructorOverloadingAction( IConstructor mutatedConstructor, IParameter introducedParameter );
 }
 ```
 
@@ -518,7 +518,7 @@ For each constructor `C` the advice mutates (the target and every transitively p
 
 1. A new parameter is appended to `C`. If `defaultValue.IsInitialized == false`, the parameter has **no** C# default value (required).
 2. If `C` chains to another constructor via `:this(...)` / `:base(...)` that also gets pulled, the chain call is updated so the newly introduced parameter is forwarded by name.
-3. **Forwarder emission** (runs after mutation if `overloadingStrategy.ShouldGenerateForwarder(C, introducedParam) == true`): the framework ensures **exactly one** forwarding constructor exists for `C`.
+3. **Forwarder emission** (runs after mutation if `overloadingStrategy.GetConstructorOverloadingAction(C, introducedParam).Kind != None`): the framework ensures **exactly one** forwarding constructor exists for `C`. When the returned action is `ForwardAndMarkObsolete`, the framework additionally decorates the generated forwarder with `[Obsolete(description, isError)]`, dropping any source-origin `[Obsolete]` (strategy wins).
    - If no forwarder exists yet, one is created with `C`'s pre-mutation signature (derived by filtering `C.Parameters` to `Origin.Kind == Source` — aspect-introduced parameters are excluded). Its body is `: this(<existing params by name>, <forwardingExpression for new param>) { }`. It is marked with `AspectGeneratedForwardingConstructorAttribute`.
    - If a forwarder already exists (because an earlier aspect already preserved `C`), the framework **extends the existing forwarder in place** by appending the new forwarded argument to its `:this(...)` call. It does **not** create a second forwarder. Invariant: at most one forwarder per preserved constructor, growing monotonically with each successive advice.
 

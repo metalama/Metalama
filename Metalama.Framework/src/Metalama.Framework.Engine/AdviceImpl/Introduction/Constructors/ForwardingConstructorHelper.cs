@@ -17,6 +17,7 @@ using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.RunTime;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -66,7 +67,9 @@ internal sealed class ForwardingConstructorHelper
             return;
         }
 
-        if ( !this.ShouldGenerateForwarder( mutatedConstructor, introducedParameter ) )
+        var action = this.GetConstructorOverloadingAction( mutatedConstructor, introducedParameter );
+
+        if ( action.Kind == ConstructorOverloadingActionKind.None )
         {
             return;
         }
@@ -86,18 +89,18 @@ internal sealed class ForwardingConstructorHelper
         }
         else
         {
-            this.CreateForwarder( mutatedConstructor, preMutationParams, introducedParameter );
+            this.CreateForwarder( mutatedConstructor, preMutationParams, introducedParameter, action );
         }
     }
 
-    private bool ShouldGenerateForwarder( IConstructor mutatedConstructor, IParameter introducedParameter )
+    private ConstructorOverloadingAction GetConstructorOverloadingAction( IConstructor mutatedConstructor, IParameter introducedParameter )
     {
         using ( UserCodeExecutionContext.WithContext(
                    this._context.ServiceProvider,
                    this._context.MutableCompilation,
-                   UserCodeDescription.Create( "executing ShouldGenerateForwarder" ) ) )
+                   UserCodeDescription.Create( "executing GetConstructorOverloadingAction" ) ) )
         {
-            return this._overloadingStrategy!.ShouldGenerateForwarder( mutatedConstructor, introducedParameter );
+            return this._overloadingStrategy!.GetConstructorOverloadingAction( mutatedConstructor, introducedParameter );
         }
     }
 
@@ -140,7 +143,8 @@ internal sealed class ForwardingConstructorHelper
     private void CreateForwarder(
         IConstructor mutatedConstructor,
         IReadOnlyList<IParameter> preMutationParams,
-        IParameter introducedParameter )
+        IParameter introducedParameter,
+        ConstructorOverloadingAction action )
     {
         var forwarderBuilder = new ConstructorBuilder( this._aspectLayerInstance, mutatedConstructor.DeclaringType )
         {
@@ -158,10 +162,27 @@ internal sealed class ForwardingConstructorHelper
         // IsSourceCompatibilityConstructor() when GetForwardingExpression calls it below.
         forwarderBuilder.AddAttribute( AttributeConstruction.Create( typeof(SourceCompatibilityConstructorAttribute) ) );
 
+        // When the strategy asks for [Obsolete], emit it before copying source attributes so we can skip a
+        // source-origin [Obsolete] below (strategy wins).
+        if ( action.Kind == ConstructorOverloadingActionKind.ForwardAndMarkObsolete )
+        {
+            var obsoleteArguments = action.ObsoleteMessage is null && !action.ObsoleteIsError
+                ? Array.Empty<object?>()
+                : new object?[] { action.ObsoleteMessage, action.ObsoleteIsError };
+
+            forwarderBuilder.AddAttribute( AttributeConstruction.Create( typeof(ObsoleteAttribute), obsoleteArguments ) );
+        }
+
         // Copy source-origin custom attributes from the mutated constructor (e.g. [Obsolete],
         // [EditorBrowsable], [Conditional]) so callers of the forwarder see the same metadata
-        // that would have been visible on the pre-mutation source constructor.
-        foreach ( var sourceAttribute in mutatedConstructor.Attributes.Where( a => a.Origin.Kind == DeclarationOriginKind.Source ) )
+        // that would have been visible on the pre-mutation source constructor. When the strategy
+        // is ForwardAndMarkObsolete, skip any source-origin [Obsolete] — the strategy's directive
+        // wins and emitting both would produce a duplicate-attribute compile error.
+        foreach ( var sourceAttribute in mutatedConstructor.Attributes
+                     .Where(
+                         a => a.Origin.Kind == DeclarationOriginKind.Source
+                              && !(action.Kind == ConstructorOverloadingActionKind.ForwardAndMarkObsolete
+                                   && a.Type.FullName == "System.ObsoleteAttribute") ) )
         {
             forwarderBuilder.AddAttribute( sourceAttribute.ToAttributeConstruction() );
         }
