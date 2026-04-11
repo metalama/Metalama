@@ -8,7 +8,6 @@ using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Services;
-using System.Linq;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
@@ -29,27 +28,15 @@ namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 /// </remarks>
 internal sealed partial class AddConstructorEpilogueTransitiveAspect : IAspect<INamedType>
 {
-    private readonly int _aspectOrder;
-
-    public AddConstructorEpilogueTransitiveAspect( int aspectOrder )
-    {
-        this._aspectOrder = aspectOrder;
-    }
-
     void IEligible<INamedType>.BuildEligibility( IEligibilityBuilder<INamedType> builder ) { }
 
     public void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var allInstances = builder.AspectInstance.SecondaryInstances.Select( x => (AddConstructorEpilogueTransitiveAspect) x.Aspect )
-            .Concat( this )
-            .OrderBy( a => a._aspectOrder );
-
+        // Every secondary instance of this aspect on a given target type would emit the identical
+        // per-derived-type transformation on `builder.Target`, so a single call suffices regardless of
+        // how many user aspects on the base type registered this transitive aspect.
         var internalBuilder = (AspectBuilder<INamedType>) builder;
-
-        foreach ( var _ in allInstances )
-        {
-            internalBuilder.AdviceFactory.EmitOnConstructedEpilogueOnDerivedTypes( builder.Target );
-        }
+        internalBuilder.AdviceFactory.EmitOnConstructedEpilogueOnDerivedTypes( builder.Target );
     }
 
     public static IBoundAspectClass CreateAspectClass( in ProjectServiceProvider serviceProvider, CompilationModel compilation )

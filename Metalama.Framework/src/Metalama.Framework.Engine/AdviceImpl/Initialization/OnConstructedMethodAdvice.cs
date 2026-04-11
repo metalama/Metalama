@@ -74,17 +74,6 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
         var factory = targetType.Compilation.Factory;
         var initContextType = factory.GetTypeByReflectionType( typeof(InitializationContext) );
 
-        // Records are rejected — same rule as BeforeInstanceConstructor, because the compiler-generated
-        // copy constructor cannot be modified.
-        if ( targetType.IsRecord )
-        {
-            return this.CreateFailedResult(
-                AdviceDiagnosticDescriptors.CannotAddInitializerToRecord.CreateRoslynDiagnostic(
-                    targetType.GetDiagnosticLocation(),
-                    (this.AspectInstance.AspectClass.ShortName, targetType),
-                    this ) );
-        }
-
         // Look up an inherited OnConstructed — if present, the introduced method becomes an override.
         var baseOnConstructed = FindBaseOnConstructed( targetType, initContextType );
 
@@ -144,6 +133,10 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
         // Step 3: for each non-`:this(...)` instance constructor, ensure the `context` parameter
         // and emit the epilogue call `this.OnConstructed(context);` (guarded on non-sealed/non-struct).
         // Shared with the cross-project epilogue advice (registerPullFallback: false there).
+        // On records, the emitter skips the compiler-generated copy constructor — `with` expressions and
+        // `new R(existing)` therefore do not run the template. Users who need that coverage can write an
+        // explicit copy ctor chaining to `: base(original)`, which is no longer compiler-generated and
+        // therefore participates in the epilogue.
         OnConstructedEpilogueEmitter.EmitForType(
             targetType,
             initContextType,
@@ -162,7 +155,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
              && targetType.TypeKind != Code.TypeKind.Struct
              && targetType.IsAccessibleFromOutsideAssembly() )
         {
-            var transitiveAspect = new AddConstructorEpilogueTransitiveAspect( context.AspectOrder );
+            var transitiveAspect = new AddConstructorEpilogueTransitiveAspect();
 
             context.AddTransitiveAspect(
                 new TransitiveAspectInstance(

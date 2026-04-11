@@ -37,15 +37,6 @@ internal abstract class ConstructorInitializeAdvice : Advice<AddInitializerAdvic
 
         var containingType = targetDeclaration.GetClosestNamedType().AssertNotNull();
 
-        if ( (targetDeclaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock) && containingType.IsRecord )
-        {
-            return this.CreateFailedResult(
-                AdviceDiagnosticDescriptors.CannotAddInitializerToRecord.CreateRoslynDiagnostic(
-                    containingType.GetDiagnosticLocation(),
-                    (this.AspectInstance.AspectClass.ShortName, containingType),
-                    this ) );
-        }
-
         IConstructor? staticConstructor;
 
         if ( this._kind == InitializerKind.BeforeTypeConstructor )
@@ -77,7 +68,9 @@ internal abstract class ConstructorInitializeAdvice : Advice<AddInitializerAdvic
                         [staticConstructor.AssertNotNull()],
                     InitializerKind.BeforeInstanceConstructor =>
                         containingType.Constructors
-                            .Where( c => c.InitializerKind != ConstructorInitializerKind.This ),
+                            .Where(
+                                c => c.InitializerKind != ConstructorInitializerKind.This
+                                     && !c.IsRecordCopyConstructor() ),
                     _ => throw new AssertionFailedException( $"Unexpected initializer kind: {this._kind}." )
                 },
                 _ => throw new AssertionFailedException( $"Unexpected declaration: '{targetDeclaration}'." )

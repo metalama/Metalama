@@ -35,13 +35,8 @@ internal sealed class OnConstructedEpilogueAdvice : Advice<EmptyAdviceResult>
 
         foreach ( var derivedType in baseType.Compilation.GetDerivedTypes( baseType, DerivedTypesOptions.All ) )
         {
-            // Records are skipped — same rule as the in-project OnConstructedMethodAdvice, because the
-            // compiler-generated copy constructor cannot be modified.
-            if ( derivedType.IsRecord )
-            {
-                continue;
-            }
-
+            // The emitter filters out the compiler-generated copy constructor per-ctor, so record
+            // primary / explicit / user-authored constructors receive the epilogue just like classes.
             OnConstructedEpilogueEmitter.EmitForType(
                 derivedType,
                 initContextType,

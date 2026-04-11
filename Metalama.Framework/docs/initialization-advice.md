@@ -812,6 +812,31 @@ The two transitive aspects are intentionally decoupled. If a derived constructor
 
 This propagation is **independent from `[Inheritable]`**. Marking the user aspect `[Inheritable]` controls whether the user *template body* runs again on each derived type (producing a `protected override OnConstructed` per level). The cross-project epilogue + descend rewrite happens regardless: when the aspect is not inheritable, the derived constructor's epilogue calls `this.OnConstructed(context)`, which dynamically dispatches to the inherited base method, so the user template fires once at the base declaration site — the correct semantics for a non-inheritable aspect.
 
+### 6.9 Records
+
+`AfterLastInstanceConstructor` (and equally `BeforeInstanceConstructor`) is supported on records. The epilogue and the `InitializationContext` parameter append are emitted per constructor, with one deliberate exception: the compiler-generated record copy constructor is never modified.
+
+**What gets instrumented:**
+
+- The **primary constructor** of a positional record. When the record is declared as `record R(int X);` (no body block), the linker materializes a full constructor body — assigning the primary-ctor parameters to their corresponding properties — and lands the epilogue on top of it. The appended `InitializationContext` parameter becomes a positional parameter on the primary ctor, which means it is also exposed as a compiler-generated init-only property; a companion `Deconstruct` overload with the **original** parameter list is generated for back-compat.
+- **Explicit constructors** authored by the user — same `InitializerKind != ConstructorInitializerKind.This` filter as classes: ctors chained via `:this(...)` are skipped, ctors chained via `:base(...)` receive the epilogue.
+- **User-authored copy constructors**: because a hand-written `R(R original)` is not `IsImplicitlyDeclared`, it is *not* matched by `IsRecordCopyConstructor()`. The emitter treats it like any other ctor and injects the template.
+
+**What is skipped:**
+
+- The **compiler-generated copy constructor** (`protected R(R original)`). Metalama cannot modify compiler-synthesized code, so `with` expressions and `new R(existing)` flow through an unmodified copy ctor and therefore do **not** fire the template. This is the only behavioural difference from classes for these initializer kinds.
+
+**Opting into `with` coverage.** A user who needs the template to run on copy-construction can declare an explicit copy constructor that chains to `:base(original)` (not `:this(...)`). Because it is user-authored, it is no longer compiler-generated, and it becomes the canonical copy ctor — `with` expressions now flow through it and the template fires.
+
+```csharp
+[MyAspect] // AddInitializer(..., AfterLastInstanceConstructor)
+public sealed record R(int X)
+{
+    // Opt in: user-authored copy ctor — runs the template on `with` expressions.
+    public R(R original) : base(original) { X = original.X; }
+}
+```
+
 ---
 
 ## 7. Record Support

@@ -12,22 +12,12 @@ internal sealed partial class AddConstructorEpilogueTransitiveAspect
     [UsedImplicitly]
     private sealed class Serializer : ReferenceTypeSerializer<AddConstructorEpilogueTransitiveAspect>
     {
-#pragma warning disable SA1101
-
         public override AddConstructorEpilogueTransitiveAspect CreateInstance( IArgumentsReader constructorArguments )
-        {
-            var aspectOrder = constructorArguments.GetValue<int>( nameof(_aspectOrder) );
-
-            return new AddConstructorEpilogueTransitiveAspect( aspectOrder );
-        }
+            => new();
 
         public override void SerializeObject(
             AddConstructorEpilogueTransitiveAspect obj,
             IArgumentsWriter constructorArguments,
-            IArgumentsWriter initializationArguments )
-        {
-            constructorArguments.SetValue( nameof(_aspectOrder), obj._aspectOrder );
-        }
-#pragma warning restore SA1101
+            IArgumentsWriter initializationArguments ) { }
     }
 }
