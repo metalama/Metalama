@@ -1494,6 +1494,16 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
                 return advice.Execute( this._state );
             }
+            else if ( kind == InitializerKind.AfterLastInstanceConstructor )
+            {
+                var advice = new OnConstructedMethodAdvice(
+                    this.GetAdviceConstructorParameters<INamedType>( targetType ),
+                    templateMember,
+                    this.GetArgsReader( args ),
+                    slotFields );
+
+                return advice.Execute( this._state );
+            }
             else
             {
                 var advice = new TemplateBasedConstructorInitializeAdvice(

@@ -68,6 +68,33 @@ class C
         }
 
         [Fact]
+        public void Matches_ImplicitDefaultConstructor()
+        {
+            using var testContext = this.CreateTestContext();
+
+            // A class with no explicit constructors has an implicit public parameterless constructor.
+            // OfExactSignature([]) must match that implicit constructor — this is the lookup used by
+            // BaseConstructorResolver.GetImplicitBaseConstructor when resolving the implicit :base(...)
+            // call of a default-shape derived constructor.
+            const string code = @"
+class C
+{
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.ElementAt( 0 );
+
+            Assert.Single( type.Constructors );
+            var implicitCtor = type.Constructors.Single();
+            Assert.True( implicitCtor.IsImplicitlyDeclared );
+            Assert.Empty( implicitCtor.Parameters );
+
+            var matchedCtor = type.Constructors.OfExactSignature( Array.Empty<Type>() );
+            Assert.Same( implicitCtor, matchedCtor );
+        }
+
+        [Fact]
         public void NonByRefReflectionType_MatchesPlainAndIn()
         {
             using var testContext = this.CreateTestContext();

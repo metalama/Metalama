@@ -35,7 +35,9 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
         this._targetMethod = targetMethod;
     }
 
-    public override IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
+    public override IReadOnlyList<InsertedStatement> GetInsertedStatements(
+        InsertStatementTransformationContext context,
+        IReadOnlyList<IInsertStatementTransformation>? aggregatedGroup = null )
     {
         var targetDeclaration = this.ContractTarget.GetTarget( this.InitialCompilation );
         var targetMethod = this._targetMethod.GetTarget( context.FinalCompilation );

@@ -35,7 +35,9 @@ internal sealed class ContractConstructorTransformation : ContractBaseTransforma
         this._targetConstructor = targetConstructor;
     }
 
-    public override IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
+    public override IReadOnlyList<InsertedStatement> GetInsertedStatements(
+        InsertStatementTransformationContext context,
+        IReadOnlyList<IInsertStatementTransformation>? aggregatedGroup = null )
     {
         var targetConstructor = this._targetConstructor.GetTarget( context.FinalCompilation );
         var targetDeclaration = this.ContractTarget.GetTarget( context.FinalCompilation );

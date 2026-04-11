@@ -40,7 +40,9 @@ internal sealed class InsertTemplateStatementsTransformation : BaseSyntaxTreeTra
         this._boundTemplate = boundTemplate;
     }
 
-    public IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
+    public IReadOnlyList<InsertedStatement> GetInsertedStatements(
+        InsertStatementTransformationContext context,
+        IReadOnlyList<IInsertStatementTransformation>? aggregatedGroup = null )
     {
         var target = this._targetMethodBase.GetTarget( this.InitialCompilation );
         var contextDeclaration = this.ContextDeclaration.GetTarget( this.InitialCompilation );

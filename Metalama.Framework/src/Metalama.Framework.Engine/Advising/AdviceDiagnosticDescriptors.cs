@@ -325,5 +325,14 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' targets type '{1}' whose 'Initialize' method is not 'public virtual' (or 'override'). On a non-sealed class implementing IInitializable, the method must be virtual so that derived types can extend initialization behavior.",
                 _category,
                 Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, INamedType TargetType, INamedType BaseType)>
+            OnConstructedBaseWithoutContextConstructor = new(
+                "LAMA0551",
+                "Base type has OnConstructed method but no constructor accepting InitializationContext.",
+                "The aspect '{0}' targets type '{1}' whose base type '{2}' defines an 'OnConstructed(InitializationContext)' method but has no instance constructor accepting an 'InitializationContext' parameter. The base type must provide such a constructor (and call 'OnConstructed' from it, guarded by 'IsHandled(InitializationSlot.OnConstructed)') so that derived types can pass 'context.Descend(InitializationSlot.OnConstructed)' and skip the base's OnConstructed call.",
+                _category,
+                Error );
+
     }
 }

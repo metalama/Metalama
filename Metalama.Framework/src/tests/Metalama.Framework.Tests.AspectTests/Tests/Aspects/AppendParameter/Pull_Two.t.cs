@@ -1,16 +1,16 @@
 public class C
 {
   [Aspect1, Aspect2]
-  public C([AspectGenerated] DateTime p2 = default, [AspectGenerated] int p1 = 15)
+  public C([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.DateTime p2 = default(global::System.DateTime), [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p1 = 15)
   {
   }
-  public C(string s, [AspectGenerated] DateTime p2 = default, [AspectGenerated] int p1 = 20) : this(p2, p1: p1)
+  public C(string s, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.DateTime p2 = default(global::System.DateTime), [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p1 = 20) : this(p2, p1: p1)
   {
   }
 }
 public class D : C
 {
-  public D([AspectGenerated] DateTime p2 = default) : base(p2)
+  public D([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.DateTime p2 = default, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p1 = 20) : base(p2, p1: p1)
   {
   }
 }

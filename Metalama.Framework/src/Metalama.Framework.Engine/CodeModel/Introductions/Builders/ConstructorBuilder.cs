@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
@@ -123,8 +124,10 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
 
     public override bool IsExplicitInterfaceImplementation => false;
 
-    // This is implemented by BuiltConstructor and there is no point in supporting it here.
-    public IConstructor GetBaseConstructor() => throw new NotSupportedException();
+    // ConstructorBuilder currently represents a default-shape constructor (either brand-new or
+    // replacing an implicit one). Its base call is to the parameterless base ctor — or, failing
+    // that, the unique accessible base ctor whose parameters are all optional.
+    public IConstructor? GetBaseConstructor() => BaseConstructorResolver.GetImplicitBaseConstructor( this.DeclaringType );
 
     public override string Name
     {

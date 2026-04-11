@@ -119,7 +119,9 @@ internal sealed class IntroduceConstructorTransformation
             ? TransformationObservability.Always
             : TransformationObservability.CompileTimeOnly;
 
-    public IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
+    public IReadOnlyList<InsertedStatement> GetInsertedStatements(
+        InsertStatementTransformationContext context,
+        IReadOnlyList<IInsertStatementTransformation>? aggregatedGroup = null )
     {
         var constructorBuilder = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
 

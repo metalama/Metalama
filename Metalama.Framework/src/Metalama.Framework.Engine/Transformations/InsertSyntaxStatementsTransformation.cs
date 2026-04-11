@@ -41,7 +41,9 @@ internal sealed class InsertSyntaxStatementsTransformation : BaseSyntaxTreeTrans
         this._statementKind = statementKind;
     }
 
-    public IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
+    public IReadOnlyList<InsertedStatement> GetInsertedStatements(
+        InsertStatementTransformationContext context,
+        IReadOnlyList<IInsertStatementTransformation>? aggregatedGroup = null )
     {
         return
         [

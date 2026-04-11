@@ -3,12 +3,12 @@ public class TargetCode
 {
   static TargetCode()
   {
-    Invoke(new global::System.Func<global::System.Object, global::System.String>(_ =>
+    Invoke(_ =>
     {
-      return (global::System.String)"Hello, world.";
-    }));
+      return "Hello, world.";
+    });
   }
-  public static void Invoke(global::System.Func<global::System.Object, global::System.String> action)
+  public static void Invoke(Func<object, string> action)
   {
   }
 }

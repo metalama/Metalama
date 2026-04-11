@@ -73,6 +73,8 @@ RUN & .\dotnet-install.ps1 -Version 10.0.102 -InstallDir 'C:\Program Files\dotne
 # .NET Dump Tool
 RUN dotnet tool install --global dotnet-dump;
 
+ENV PATH="C:\Users\ContainerAdministrator\.dotnet\tools;${PATH}"
+
 
 # Install VS Build Tools
 COPY VisualStudio.17.14.15.Release.chman /VisualStudio.17.14.15.Release.chman
