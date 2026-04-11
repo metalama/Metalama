@@ -1,7 +1,7 @@
 public record R
 {
   [MyAspect]
-  public R([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p = 15)
+  public R([AspectGenerated] int p = 15)
   {
   }
   public R(string s) : this(51)

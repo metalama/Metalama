@@ -60,6 +60,16 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
 
     public override bool IsImplicitlyDeclared => this._isImplicitlyDeclared;
 
+    /// <summary>
+    /// Gets or sets a value that, when non-null, overrides <see cref="IsDesignTimeObservable"/>.
+    /// Used by <c>ForwardingConstructorHelper</c> to mark forwarding constructors as
+    /// compile-time only: the original source constructor is still physically present in
+    /// source at design time, so the source generator must not emit the clone.
+    /// </summary>
+    public bool? IsDesignTimeObservableOverride { get; init; }
+
+    public override bool IsDesignTimeObservable => this.IsDesignTimeObservableOverride ?? base.IsDesignTimeObservable;
+
     public ConstructorInitializerKind InitializerKind
     {
         get => this._initializerKind;

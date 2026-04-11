@@ -1,5 +1,5 @@
 [MyAspect]
-public record R(int X, int Y, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 introduced = 42)
+public record R(int X, int Y, [AspectGenerated] int introduced = 42)
 {
   public void Deconstruct(out int x, out int y)
   {

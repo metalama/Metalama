@@ -15,7 +15,9 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+#if ROSLYN_4_12_0_OR_GREATER
 using Microsoft.CodeAnalysis.CSharp;
+#endif
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;

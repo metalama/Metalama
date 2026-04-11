@@ -18,15 +18,18 @@ internal sealed partial class PullConstructorParameterTransitiveAspect : IAspect
     private readonly IPullStrategy? _pullStrategy;
     private readonly IRef<IParameter> _parameter;
     private readonly int _order;
+    private readonly IConstructorOverloadingStrategy? _overloadingStrategy;
 
     public PullConstructorParameterTransitiveAspect(
         IPullStrategy? pullStrategy,
         IRef<IParameter> parameter,
-        int order )
+        int order,
+        IConstructorOverloadingStrategy? overloadingStrategy )
     {
         this._pullStrategy = pullStrategy;
         this._parameter = parameter;
         this._order = order;
+        this._overloadingStrategy = overloadingStrategy;
     }
 
     void IEligible<INamedType>.BuildEligibility( IEligibilityBuilder<INamedType> builder ) { }
@@ -42,7 +45,7 @@ internal sealed partial class PullConstructorParameterTransitiveAspect : IAspect
         foreach ( var instance in allInstances )
         {
             var parameter = instance._parameter.GetTarget( internalBuilder.AdviceFactory.MutableCompilation );
-            internalBuilder.AdviceFactory.PullParameter( parameter, instance._pullStrategy );
+            internalBuilder.AdviceFactory.PullParameter( parameter, instance._pullStrategy, instance._overloadingStrategy );
         }
     }
 

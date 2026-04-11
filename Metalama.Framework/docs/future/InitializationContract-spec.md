@@ -474,76 +474,133 @@ The Linker silently rewrites call sites for any type implementing `IInitializabl
 
 ## 4. Constructor Parameter Introduction for `InitializationContext`
 
-When an `AddInitializer(InitializerKind.AfterObjectInitializer)` or `AddInitializer(InitializerKind.AfterLastInstanceConstructor)` advice is applied, the aspect needs a way to pass `InitializationContext` into the constructor chain. This is achieved using `IntroduceParameter` to add the parameter to the constructor.
+When an `AddInitializer(InitializerKind.AfterObjectInitializer)` or `AddInitializer(InitializerKind.AfterLastInstanceConstructor)` advice is applied, the aspect needs a way to pass `InitializationContext` into the constructor chain. This is achieved using `IntroduceParameter` to add the parameter to every target constructor.
 
 ### 4.1 Two Strategies
 
-The aspect author can choose between two strategies:
+1. **Optional parameter** — call `IntroduceParameter(…, TypedConstant defaultValue, …)` with an initialized `defaultValue`. Simple, but **breaks binary compatibility** because optional parameters are baked into caller IL.
 
-1. **Optional parameter** — use `IntroduceParameter` with a default value (`InitializationContext context = default`). Simple, but **breaks binary compatibility**: previously compiled code that calls the parameterless constructor will fail at runtime because optional parameters are baked into the caller's IL. It also breaks callers that rely on the exact constructor signature — reflection-based instantiation (`Activator.CreateInstance`), the `new()` generic constraint, serialization frameworks, and dependency injection containers.
+2. **Required parameter + auto-generated forwarding constructor** — call `IntroduceParameter` without a `defaultValue`, combined with an `IConstructorOverloadingStrategy` and a user-supplied `IPullStrategy` that uses `IsAspectGeneratedForwarder()` to branch. The framework appends a **required** parameter to the target, pulls it into every chained constructor, and — for every mutated constructor that the overloading strategy selects — generates a *forwarding constructor*: a compile-time stub that keeps the pre-mutation signature and, via `: this(...)`, chains to the mutated ctor with a strategy-supplied expression for the new parameter. Binary compat is preserved because original signatures still exist on the type.
 
-2. **Required parameter + redirecting constructor** — use `IntroduceParameter` *without* a default value to add a required `InitializationContext` parameter, then use `IntroduceConstructor` to add a compatibility overload without the parameter (forwarding `default`). This gives a cleaner API surface: non-instrumented callers use the redirecting constructor with the original signature, instrumented callers use the constructor with `InitializationContext`.
+### 4.2 API Shape
 
-### 4.2 Required Parameter Support
+The existing `IntroduceParameter` methods are amended in place:
 
-`IntroduceParameter` currently requires a `defaultValue`, making all introduced parameters optional. To support strategy 2, `defaultValue` must be made optional.
+```csharp
+IIntroductionAdviceResult<IParameter> IntroduceParameter(
+    IConstructor constructor,
+    string parameterName,
+    IType parameterType,
+    TypedConstant defaultValue = default,                                      // now optional
+    IPullStrategy? pullStrategy = null,
+    ImmutableArray<AttributeConstruction> attributes = default,
+    IConstructorOverloadingStrategy? overloadingStrategy = null );             // new
+```
 
-**Constraint:** If `defaultValue` is not supplied (required parameter), the target constructor must not already have any optional parameters — C# does not allow required parameters after optional ones. If this constraint is violated, a diagnostic is emitted.
+- **`defaultValue = default`** (i.e., `TypedConstant.IsInitialized == false`) means "no C# default value; the parameter is required".
+- **`overloadingStrategy`** is a user-supplied (or standard) strategy that the framework calls for every mutated constructor to decide whether to emit a forwarding stub. The standard `ConstructorOverloadingStrategy.ForwardSourceConstructors` matches all source-origin constructors; `ConstructorOverloadingStrategy.ForwardDefaultConstructor` matches only the parameterless one. Each returns a `ForwardConstructorStrategy` whose fluent `WithObsoleteAttribute(description, isError)` method additionally decorates the generated forwarder with `[Obsolete]`. Custom strategies can refine this by implementing `IConstructorOverloadingStrategy` directly.
+- **`pullStrategy`** still controls what happens at chain-call sites. Aspect authors either use one of the `PullStrategy.*` factory methods or write their own `IPullStrategy` implementation. A custom strategy can call `IsAspectGeneratedForwarder()` on the `targetMember` argument and branch: when `true`, return `UseExpression(forwardingExpression)`; otherwise return `IntroduceParameterAndPull(...)` (or whatever suits the regular cascade). The stock `PullStrategy.IntroduceParameterAndPull(...)` already handles the forwarder case by substituting a `UseExpression` action carrying the configured default value. Both strategies must implement `ICompileTimeSerializable` to work across project boundaries.
 
-When a required parameter is introduced, it is the **aspect's responsibility** to also introduce a redirecting constructor (via `IntroduceConstructor`) to maintain backward compatibility. The framework does not do this automatically.
+The strategy interface is a single method:
 
-### 4.3 Child Constructor Propagation
+```csharp
+public interface IConstructorOverloadingStrategy : ICompileTimeSerializable
+{
+    ConstructorOverloadingAction GetConstructorOverloadingAction( IConstructor mutatedConstructor, IParameter introducedParameter );
+}
+```
 
-**Pull strategy:** Child constructors (via `: base(...)`) propagate the parameter using `PullAction.IntroduceParameterAndPull`, which works across project boundaries.
+Aspects **must not enumerate derived types up-front** to decide which constructors to preserve: that would be a hard violation of the "aspects never look at derived types" rule. The strategy is called per mutated constructor, including derived-class constructors reached by the cross-project pull walk, so the decision is always local.
 
-When using strategy 2 (required parameters), the aspect should also introduce redirecting constructors in derived classes.
+### 4.3 Framework Behavior
 
-### 4.4 Non-instrumented Callers
+For each constructor `C` the advice mutates (the target and every transitively pulled constructor, per the configured `IPullStrategy`):
 
-> **Warning: Non-instrumented caller limitation:** Non-instrumented callers (external assemblies, reflection, `Activator.CreateInstance`) will **not** have `Initialize` called automatically — neither via the constructor nor after object initializers.
-> This is an inherent limitation of the design: without Linker call-site rewriting, there is no safe point to invoke `Initialize`.
-> The redirecting constructor intentionally does *not* self-invoke `Initialize` to avoid premature firing before `init` properties are set.
+1. A new parameter is appended to `C`. If `defaultValue.IsInitialized == false`, the parameter has **no** C# default value (required).
+2. If `C` chains to another constructor via `:this(...)` / `:base(...)` that also gets pulled, the chain call is updated so the newly introduced parameter is forwarded by name.
+3. **Forwarder emission** (runs after mutation if `overloadingStrategy.GetConstructorOverloadingAction(C, introducedParam).Kind != None`): the framework ensures **exactly one** forwarding constructor exists for `C`. When the returned action is `ForwardAndMarkObsolete`, the framework additionally decorates the generated forwarder with `[Obsolete(description, isError)]`, dropping any source-origin `[Obsolete]` (strategy wins).
+   - If no forwarder exists yet, one is created with `C`'s pre-mutation signature (derived by filtering `C.Parameters` to `Origin.Kind == Source` — aspect-introduced parameters are excluded). Its body is `: this(<existing params by name>, <forwardingExpression for new param>) { }`. It is marked with `AspectGeneratedForwardingConstructorAttribute`.
+   - If a forwarder already exists (because an earlier aspect already preserved `C`), the framework **extends the existing forwarder in place** by appending the new forwarded argument to its `:this(...)` call. It does **not** create a second forwarder. Invariant: at most one forwarder per preserved constructor, growing monotonically with each successive advice.
+
+The forwarding expression is obtained by invoking the user-supplied `IPullStrategy.GetPullAction(introducedParameter, forwarder)`. For forwarders, only `UseExpression`, `UseConstant`, and `UseExistingParameter` are valid; `DoNotPull` and `IntroduceParameterAndPull` emit `LAMA0536`.
+
+**Diagnostics:**
+- `LAMA0520` (existing) — static constructor target.
+- `LAMA0530` (existing) — parameter name already exists on the target or a pulled constructor.
+- `LAMA0536` (new) — pull strategy returned `DoNotPull` or `IntroduceParameterAndPull` for an aspect-generated forwarding constructor.
+
+### 4.4 Cross-project behavior
+
+Both the pull strategy and the overloading strategy are `ICompileTimeSerializable`, so they are persisted into the transitive aspect metadata and re-hydrated in referencing projects. When project B derives from a base type in project A and A's aspect introduced a parameter via `ForwardSourceConstructors`:
+
+1. B's aspect pipeline runs `PullConstructorParameterTransitiveAspect`, which rebuilds a `PullConstructorParameterAdvice` carrying both strategies.
+2. The pull walk visits each derived constructor in B. Roslyn's symbol model resolves `: base(...)` to the **forwarder** emitted in A's IL (because it matches the source arity). The pull-walk predicate therefore "sees through" the forwarder: if the resolved ctor is marked `AspectGeneratedForwardingConstructorAttribute` and its parameters are a type+refkind prefix of the mutated ctor's parameters, it is treated as chaining to the mutated ctor. Safe because Metalama only ever appends parameters (never inserts).
+3. The parameter is pulled into B's derived ctors and the `base(...)` call is updated to pass the new argument — naturally resolving to the mutated (non-forwarder) ctor.
+4. The overloading strategy then runs on B's own mutated derived ctors and may emit forwarders there too, cascading the binary-compat guarantee across the hierarchy.
+
+### 4.5 Example
+
+**Original:**
+```csharp
+public class Range
+{
+    public Range(int min, int max) { Min = min; Max = max; }
+    public int Min { get; } public int Max { get; }
+}
+```
+
+**Aspect:**
+```csharp
+public sealed class InitContextPullStrategy : IPullStrategy
+{
+    public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
+    {
+        if ( targetMember.IsAspectGeneratedForwarder() )
+            return PullAction.UseExpression( ExpressionFactory.Parse( "default" ) );
+
+        return PullAction.IntroduceParameterAndPull(
+            pulledParameter.Name, pulledParameter.Type, parameterDefaultValue: null );
+    }
+}
+
+// In BuildAspect:
+foreach ( var ctor in builder.Target.Constructors )
+{
+    builder.With( ctor ).IntroduceParameter(
+        "context",
+        typeof( InitializationContext ),
+        pullStrategy: new InitContextPullStrategy(),
+        overloadingStrategy: ConstructorOverloadingStrategy.ForwardSourceConstructors );
+}
+```
+
+**Result:**
+```csharp
+public class Range
+{
+    public Range(int min, int max, InitializationContext context) { Min = min; Max = max; }
+
+    [AspectGeneratedForwardingConstructor]
+    public Range(int min, int max) : this(min, max, default) { }
+
+    public int Min { get; } public int Max { get; }
+}
+```
+
+### 4.6 Non-Instrumented Callers
+
+Non-instrumented callers (external assemblies, reflection, `Activator.CreateInstance`, `new()` generic constraint, DI containers) continue to see and call the original signatures, which resolve to the forwarding constructors. For `InitializationContract`, this means `Initialize` is still not invoked automatically for non-instrumented callers.
+
+> **Warning: Non-instrumented caller limitation:** Non-instrumented callers will **not** have `Initialize` called automatically — neither via the constructor nor after object initializers. This is an inherent limitation of the design: without Linker call-site rewriting, there is no safe point to invoke `Initialize`. The forwarding constructor intentionally does *not* self-invoke `Initialize` to avoid premature firing before `init` properties are set.
 >
 > **Mitigation strategies to consider:**
 > - Emit a Roslyn analyzer diagnostic when a non-instrumented call site constructs a type implementing `IInitializable` without calling `WithInitialize(expr)` afterward
 > - Document the limitation prominently in the API documentation for `IInitializable`
 > - Consider a runtime assertion (e.g., `Debug.Assert`) that detects first property access after construction without `Initialize` having been called
 
-### 4.5 Example — Strategy 1 (Optional Parameter)
-
-**Original:**
-```csharp
-public Range(int min, int max) { ... }
-```
-
-**After `IntroduceParameter` with default value:**
-```csharp
-public Range(int min, int max, InitializationContext context = default) { ... }
-```
-
-### 4.6 Example — Strategy 2 (Required Parameter + Redirecting Constructor)
-
-**Original:**
-```csharp
-public Range(int min, int max) { ... }
-```
-
-**After `IntroduceParameter` (required) + `IntroduceConstructor` (redirecting):**
-```csharp
-// Modified constructor — required parameter, no default value
-public Range(int min, int max, InitializationContext context) { ... }
-
-// Redirecting constructor for non-instrumented callers
-// Passes default — Initialize will NOT be called automatically.
-public Range(int min, int max)
-    : this(min, max, default)
-{
-}
-```
-
 ### 4.7 Positional Records
 
-For positional records, `IntroduceParameter` already handles primary constructor materialization: the parameter is appended to the primary constructor, and a `Deconstruct` method matching the original parameter list is auto-generated to preserve backward compatibility.
+For positional records, `IntroduceParameter` already handles primary constructor materialization: the parameter is appended to the primary constructor, and a `Deconstruct` method matching the original parameter list is auto-generated to preserve backward compatibility. When combined with an overloading strategy that asks for a forwarder, a secondary forwarding constructor is generated alongside the modified primary.
 
 ---
 

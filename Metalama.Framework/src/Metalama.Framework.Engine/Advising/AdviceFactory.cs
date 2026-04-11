@@ -1708,21 +1708,55 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         TypedConstant defaultValue,
         Func<IParameter, IConstructor, PullAction>? pullAction,
         ImmutableArray<AttributeConstruction> attributes = default )
-        => this.IntroduceParameter(
+        => this.IntroduceParameterCore(
             constructor,
             parameterName,
             parameterType,
             defaultValue,
             LegacyPullStrategy.Create( pullAction ),
-            attributes );
+            attributes,
+            null );
 
     public IIntroductionAdviceResult<IParameter> IntroduceParameter(
         IConstructor constructor,
         string parameterName,
         IType parameterType,
         TypedConstant defaultValue,
-        IPullStrategy? pullStrategy,
+        IPullStrategy? pullStrategy = null,
         ImmutableArray<AttributeConstruction> attributes = default )
+        => this.IntroduceParameterCore(
+            constructor,
+            parameterName,
+            parameterType,
+            defaultValue,
+            pullStrategy,
+            attributes,
+            overloadingStrategy: null );
+
+    public IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        IConstructor constructor,
+        string parameterName,
+        IType parameterType,
+        IPullStrategy? pullStrategy = null,
+        ImmutableArray<AttributeConstruction> attributes = default,
+        IConstructorOverloadingStrategy? overloadingStrategy = null )
+        => this.IntroduceParameterCore(
+            constructor,
+            parameterName,
+            parameterType,
+            defaultValue: default,
+            pullStrategy,
+            attributes,
+            overloadingStrategy ?? ConstructorOverloadingStrategy.ForwardSourceConstructors );
+
+    private IIntroductionAdviceResult<IParameter> IntroduceParameterCore(
+        IConstructor constructor,
+        string parameterName,
+        IType parameterType,
+        TypedConstant defaultValue,
+        IPullStrategy? pullStrategy,
+        ImmutableArray<AttributeConstruction> attributes,
+        IConstructorOverloadingStrategy? overloadingStrategy )
     {
         using ( this.WithNonUserCode() )
         {
@@ -1734,7 +1768,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 parameterType,
                 attributes.IsDefaultOrEmpty ? null : builder => builder.AddAttributes( attributes ),
                 pullStrategy,
-                defaultValue );
+                defaultValue,
+                overloadingStrategy );
 
             return advice.Execute( this._state );
         }
@@ -1761,7 +1796,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string parameterName,
         Type parameterType,
         TypedConstant defaultValue,
-        IPullStrategy? pullStrategy,
+        IPullStrategy? pullStrategy = null,
         ImmutableArray<AttributeConstruction> attributes = default )
         => this.IntroduceParameter(
             constructor,
@@ -1771,14 +1806,30 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             pullStrategy,
             attributes );
 
-    public void PullParameter( IParameter parameter, IPullStrategy? pullStrategy )
+    public IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        IConstructor constructor,
+        string parameterName,
+        Type parameterType,
+        IPullStrategy? pullStrategy = null,
+        ImmutableArray<AttributeConstruction> attributes = default,
+        IConstructorOverloadingStrategy? overloadingStrategy = null )
+        => this.IntroduceParameter(
+            constructor,
+            parameterName,
+            this._compilation.Factory.GetTypeByReflectionType( parameterType ),
+            pullStrategy,
+            attributes,
+            overloadingStrategy );
+
+    public void PullParameter( IParameter parameter, IPullStrategy? pullStrategy, IConstructorOverloadingStrategy? overloadingStrategy = null )
     {
         using ( this.WithNonUserCode() )
         {
             var advice = new PullConstructorParameterAdvice(
                 this.GetAdviceConstructorParameters( (IConstructor) parameter.DeclaringMember.AssertNotNull(), false ),
                 pullStrategy,
-                parameter );
+                parameter,
+                overloadingStrategy );
 
             advice.Execute( this._state );
         }

@@ -833,16 +833,13 @@ namespace Metalama.Framework.Advising
             IDeclaration targetDeclaration,
             Type attributeType );
 
-        // We require an explicit TypedConstant value instead of providing 'default' as the default value because a next Metalama version may allow to
-        // append parameters without a default value; in this case, we would have a different signature.
-
         /// <summary>
         /// Appends a parameter to a constructor by specifying its name and <see cref="IType"/>.
         /// </summary>
         /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
-        /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
+        /// <param name="defaultValue">The default value of the parameter. It must be type-compatible with <paramref name="parameterType"/>.
         ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
         /// <param name="pullAction">An optional delegate that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
         ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
@@ -858,16 +855,16 @@ namespace Metalama.Framework.Advising
             ImmutableArray<AttributeConstruction> attributes = default );
 
         /// <summary>
-        /// Appends a parameter to a constructor by specifying its name and <see cref="IType"/>.
+        /// Appends an optional parameter (i.e. one that has a default value) to a constructor by specifying its name and <see cref="IType"/>.
+        /// Source compatibility is preserved automatically because existing callers can omit the new argument — no forwarding
+        /// constructor is needed.
         /// </summary>
         /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
-        /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
+        /// <param name="defaultValue">The default value of the parameter. It must be type-compatible with <paramref name="parameterType"/>.
         ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
-        /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
-        ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
-        /// </param>
+        /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
         /// <param name="attributes"></param>
         IIntroductionAdviceResult<IParameter> IntroduceParameter(
             IConstructor constructor,
@@ -878,12 +875,36 @@ namespace Metalama.Framework.Advising
             ImmutableArray<AttributeConstruction> attributes = default );
 
         /// <summary>
+        /// Appends a required parameter (i.e. one that has no default value) to a constructor by specifying its name and <see cref="IType"/>.
+        /// Because existing callers cannot omit the new argument, the framework preserves source compatibility by emitting a
+        /// forwarding constructor that keeps the pre-mutation signature callable. Pass a custom <see cref="IConstructorOverloadingStrategy"/>
+        /// to scope which constructors receive a forwarder, or to opt out entirely.
+        /// </summary>
+        /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
+        /// <param name="parameterName">The name of the parameter.</param>
+        /// <param name="parameterType">The type of the parameter.</param>
+        /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
+        /// <param name="attributes"></param>
+        /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides, per mutated constructor, whether the framework
+        ///     should generate a forwarding constructor preserving the pre-mutation signature. A <c>null</c> value (the default) is interpreted as
+        ///     <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> — the safe default. Use
+        ///     <see cref="ConstructorExtensions.IsSourceCompatibilityConstructor"/> from a custom <see cref="IPullStrategy"/> to detect
+        ///     forwarding constructors during the pull walk.</param>
+        IIntroductionAdviceResult<IParameter> IntroduceParameter(
+            IConstructor constructor,
+            string parameterName,
+            IType parameterType,
+            IPullStrategy? pullStrategy = null,
+            ImmutableArray<AttributeConstruction> attributes = default,
+            IConstructorOverloadingStrategy? overloadingStrategy = null );
+
+        /// <summary>
         /// Appends a parameter to a constructor by specifying its name and <see cref="Type"/>.
         /// </summary>
         /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
-        /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
+        /// <param name="defaultValue">The default value of the parameter. It must be type-compatible with <paramref name="parameterType"/>.
         ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
         /// <param name="pullAction">An optional delegate that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
         ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
@@ -899,16 +920,16 @@ namespace Metalama.Framework.Advising
             ImmutableArray<AttributeConstruction> attributes = default );
 
         /// <summary>
-        /// Appends a parameter to a constructor by specifying its name and <see cref="Type"/>.
+        /// Appends an optional parameter (i.e. one that has a default value) to a constructor by specifying its name and <see cref="Type"/>.
+        /// Source compatibility is preserved automatically because existing callers can omit the new argument — no forwarding
+        /// constructor is needed.
         /// </summary>
         /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
-        /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
+        /// <param name="defaultValue">The default value of the parameter. It must be type-compatible with <paramref name="parameterType"/>.
         ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
-        /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
-        ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
-        /// </param>
+        /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
         /// <param name="attributes"></param>
         IIntroductionAdviceResult<IParameter> IntroduceParameter(
             IConstructor constructor,
@@ -917,6 +938,28 @@ namespace Metalama.Framework.Advising
             TypedConstant defaultValue,
             IPullStrategy? pullStrategy = null,
             ImmutableArray<AttributeConstruction> attributes = default );
+
+        /// <summary>
+        /// Appends a required parameter (i.e. one that has no default value) to a constructor by specifying its name and <see cref="Type"/>.
+        /// Because existing callers cannot omit the new argument, the framework preserves source compatibility by emitting a
+        /// forwarding constructor that keeps the pre-mutation signature callable. Pass a custom <see cref="IConstructorOverloadingStrategy"/>
+        /// to scope which constructors receive a forwarder, or to opt out entirely.
+        /// </summary>
+        /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
+        /// <param name="parameterName">The name of the parameter.</param>
+        /// <param name="parameterType">The type of the parameter.</param>
+        /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
+        /// <param name="attributes"></param>
+        /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides, per mutated constructor, whether the framework
+        ///     should generate a forwarding constructor preserving the pre-mutation signature. A <c>null</c> value (the default) is interpreted as
+        ///     <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> — the safe default.</param>
+        IIntroductionAdviceResult<IParameter> IntroduceParameter(
+            IConstructor constructor,
+            string parameterName,
+            Type parameterType,
+            IPullStrategy? pullStrategy = null,
+            ImmutableArray<AttributeConstruction> attributes = default,
+            IConstructorOverloadingStrategy? overloadingStrategy = null );
 
         /// <summary>
         /// Introduces a new class to the target namespace or type.

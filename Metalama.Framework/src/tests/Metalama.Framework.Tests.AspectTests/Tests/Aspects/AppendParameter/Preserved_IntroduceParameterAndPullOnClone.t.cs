@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0536 on `A`: `The aspect 'MyAspect' cannot pull parameter 'A.A(int)@creationTime' into the source-compatibility constructor 'A.A(int)' because the pull strategy returned 'AppendParameterAndPull'. For source-compatibility constructors, only UseExpression, UseConstant, or UseExistingParameter are valid.`
