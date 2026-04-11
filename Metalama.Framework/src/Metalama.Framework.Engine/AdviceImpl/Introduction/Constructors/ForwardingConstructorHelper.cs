@@ -81,7 +81,7 @@ internal sealed class ForwardingConstructorHelper
             .ToList();
 
         // Find an existing forwarder for this constructor (from an earlier advice invocation).
-        var existingForwarder = this.FindExistingForwarder( mutatedConstructor, preMutationParams );
+        var existingForwarder = FindExistingForwarder( mutatedConstructor, preMutationParams );
 
         if ( existingForwarder is not null )
         {
@@ -104,7 +104,7 @@ internal sealed class ForwardingConstructorHelper
         }
     }
 
-    private IConstructor? FindExistingForwarder( IConstructor mutatedConstructor, IReadOnlyList<IParameter> preMutationParams )
+    private static IConstructor? FindExistingForwarder( IConstructor mutatedConstructor, IReadOnlyList<IParameter> preMutationParams )
     {
         foreach ( var ctor in mutatedConstructor.DeclaringType.Constructors )
         {
