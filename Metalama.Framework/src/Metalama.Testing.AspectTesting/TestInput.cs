@@ -96,10 +96,19 @@ namespace Metalama.Testing.AspectTesting
 
             if ( !this.IsSkipped && this.Options.TargetFrameworks != null )
             {
-                var requestedFrameworks = this.Options.TargetFrameworks.Split( ';' );
+                var requestedFrameworks = this.Options.TargetFrameworks
+                    .Split( new[] { ';' }, StringSplitOptions.RemoveEmptyEntries )
+                    .Select( tfm => tfm.Trim() )
+                    .Where( tfm => tfm.Length > 0 )
+                    .ToList();
                 var currentFramework = this.ProjectProperties.TargetFramework;
 
-                if ( !requestedFrameworks.Any( tfm => string.Equals( tfm.Trim(), currentFramework, StringComparison.OrdinalIgnoreCase ) ) )
+                if ( requestedFrameworks.Count == 0 )
+                {
+                    this.SkipReason =
+                        $"The 'TargetFrameworks' test option '{this.Options.TargetFrameworks}' contains no valid target framework names.";
+                }
+                else if ( !requestedFrameworks.Any( tfm => string.Equals( tfm, currentFramework, StringComparison.OrdinalIgnoreCase ) ) )
                 {
                     this.SkipReason =
                         $"The current target framework '{currentFramework}' is not in the requested target frameworks '{this.Options.TargetFrameworks}'.";
