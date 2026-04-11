@@ -33,16 +33,9 @@ public class InitializationContextTests
     }
 
     [Fact]
-    public void CallInitialize_HasCorrectIntent()
-    {
-        Assert.Equal( CallerIntent.CallInitialize, InitializationContext.CallInitialize.Intent );
-    }
-
-    [Fact]
-    public void WillCallOnInitialized_TrueForBothIntents()
+    public void WillCallOnInitialized_TrueForWillInitialize()
     {
         Assert.True( InitializationContext.WillInitialize.WillCallOnInitialized );
-        Assert.True( InitializationContext.CallInitialize.WillCallOnInitialized );
     }
 
     [Fact]
@@ -84,7 +77,7 @@ public class InitializationContextTests
     [Fact]
     public void Descend_NormalizesIntentToWillInitialize()
     {
-        var context = InitializationContext.CallInitialize.Descend();
+        var context = default(InitializationContext).Descend();
 
         Assert.Equal( CallerIntent.WillInitialize, context.Intent );
     }

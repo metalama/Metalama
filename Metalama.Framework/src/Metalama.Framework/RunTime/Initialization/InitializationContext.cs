@@ -39,15 +39,9 @@ public readonly struct InitializationContext
 
     /// <summary>
     /// A context signaling that the caller will call <see cref="IInitializable.Initialize"/> after construction
-    /// (e.g., after an object initializer). The constructor should not self-invoke.
+    /// (e.g., after an object initializer).
     /// </summary>
     public static InitializationContext WillInitialize { get; } = new( CallerIntent.WillInitialize );
-
-    /// <summary>
-    /// A context signaling that the constructor should self-invoke <see cref="IInitializable.Initialize"/>
-    /// at the end of its body. Used at call sites without object initializers.
-    /// </summary>
-    public static InitializationContext CallInitialize { get; } = new( CallerIntent.CallInitialize );
 
     /// <summary>
     /// A context for <c>with</c> expressions or clone operations. The
@@ -72,9 +66,8 @@ public readonly struct InitializationContext
     public CallerIntent Intent => this._intent;
 
     /// <summary>
-    /// Whether <see cref="IInitializable.Initialize"/> will be called (either by the caller or self-invoked
-    /// by the constructor). <c>true</c> when <see cref="Intent"/> is
-    /// <see cref="CallerIntent.WillInitialize"/> or <see cref="CallerIntent.CallInitialize"/>.
+    /// Whether <see cref="IInitializable.Initialize"/> will be called by the caller.
+    /// <c>true</c> when <see cref="Intent"/> is <see cref="CallerIntent.WillInitialize"/>.
     /// </summary>
     public bool WillCallOnInitialized => this._intent != CallerIntent.None;
 

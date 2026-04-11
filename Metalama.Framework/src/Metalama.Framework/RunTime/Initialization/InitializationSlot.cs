@@ -13,7 +13,7 @@ namespace Metalama.Framework.RunTime.Initialization;
 /// <remarks>
 /// <para>
 /// Slots are needed only by aspect types that address the telescoping constructor problem —
-/// i.e., aspects whose <c>OnInitialized</c> behavior must be skipped when a derived type
+/// i.e., aspects whose <see cref="IInitializable.Initialize"/> behavior must be skipped when a derived type
 /// guarantees it will handle the same concern.
 /// </para>
 /// <para>

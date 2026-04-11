@@ -24,7 +24,7 @@ public class InitializationMetadata
 
     /// <summary>
     /// The object was created via a <c>with</c> expression or clone operation.
-    /// <c>OnInitialized</c> should revalidate invariants and reinitialize derived state.
+    /// <see cref="IInitializable.Initialize"/> should revalidate invariants and reinitialize derived state.
     /// </summary>
     public static InitializationMetadata Modify { get; } = new();
 
