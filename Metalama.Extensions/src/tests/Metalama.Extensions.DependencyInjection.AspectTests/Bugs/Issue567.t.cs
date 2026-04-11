@@ -23,10 +23,10 @@ public abstract class UpdateModelBase<T> : ModelBase<T> where T : class
 {
   // ReSharper disable once NotAccessedField.Local
   private readonly IMutable<T> _last;
-  protected UpdateModelBase() : this(new Copied<T>())
+  protected UpdateModelBase([AspectGenerated] ILastChanceExceptionHandler? exceptionHandler = default) : this(new Copied<T>(), exceptionHandler)
   {
   }
-  protected UpdateModelBase(IMutable<T> last)
+  protected UpdateModelBase(IMutable<T> last, [AspectGenerated] ILastChanceExceptionHandler? exceptionHandler = default) : base(exceptionHandler)
   {
     this._last = last;
   }
