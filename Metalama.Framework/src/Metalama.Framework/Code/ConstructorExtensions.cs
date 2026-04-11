@@ -16,14 +16,14 @@ namespace Metalama.Framework.Code;
 public static class ConstructorExtensions
 {
     /// <summary>
-    /// Returns <c>true</c> if the given constructor is a source-compatibility constructor emitted by the framework,
+    /// Returns <c>true</c> if the given constructor is a forwarding constructor emitted by the framework,
     /// i.e. a compile-time stub that preserves the pre-mutation signature of a source constructor and chains, via
     /// <c>: this(...)</c>, to the mutated constructor. Such constructors are marked with
     /// <see cref="SourceCompatibilityConstructorAttribute"/>.
     /// </summary>
     /// <remarks>
     /// Aspect authors implementing a custom <see cref="IPullStrategy"/> use this method from
-    /// <see cref="IPullStrategy.GetPullAction"/> to detect whether the target is a source-compatibility constructor
+    /// <see cref="IPullStrategy.GetPullAction"/> to detect whether the target is a forwarding constructor
     /// (as opposed to a regular chained constructor), so they can return a <see cref="PullAction.UseExpression"/>,
     /// <see cref="PullAction.UseConstant"/>, or <see cref="PullAction.UseExistingParameter"/> instead of the normal
     /// <see cref="PullAction.IntroduceParameterAndPull"/> cascade.

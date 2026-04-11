@@ -163,7 +163,7 @@ internal sealed class ForwardingConstructorHelper
         forwarderBuilder.AddAttribute( AttributeConstruction.Create( typeof(SourceCompatibilityConstructorAttribute) ) );
 
         // When the strategy asks for [Obsolete], emit it before copying source attributes so we can skip a
-        // source-origin [Obsolete] below (strategy wins).
+        // source [Obsolete] below (strategy wins).
         if ( action.Kind == ConstructorOverloadingActionKind.ForwardAndMarkObsolete )
         {
             var obsoleteArguments = action.ObsoleteMessage is null && !action.ObsoleteIsError
@@ -173,10 +173,10 @@ internal sealed class ForwardingConstructorHelper
             forwarderBuilder.AddAttribute( AttributeConstruction.Create( typeof(ObsoleteAttribute), obsoleteArguments ) );
         }
 
-        // Copy source-origin custom attributes from the mutated constructor (e.g. [Obsolete],
-        // [EditorBrowsable], [Conditional]) so callers of the forwarder see the same metadata
+        // Copy source custom attributes from the mutated constructor (e.g. [Obsolete],
+        // [EditorBrowsable], [Conditional]) so callers of the forwarding constructor see the same metadata
         // that would have been visible on the pre-mutation source constructor. When the strategy
-        // is ForwardAndMarkObsolete, skip any source-origin [Obsolete] — the strategy's directive
+        // is ForwardAndMarkObsolete, skip any source [Obsolete] — the strategy's directive
         // wins and emitting both would produce a duplicate-attribute compile error.
         foreach ( var sourceAttribute in mutatedConstructor.Attributes
                      .Where(
@@ -187,7 +187,7 @@ internal sealed class ForwardingConstructorHelper
             forwarderBuilder.AddAttribute( sourceAttribute.ToAttributeConstruction() );
         }
 
-        // Copy the pre-mutation parameter list (source-origin parameters only).
+        // Copy the pre-mutation parameter list (source parameters only).
         foreach ( var sourceParameter in preMutationParams )
         {
             forwarderBuilder.AddParameter(
@@ -280,7 +280,7 @@ internal sealed class ForwardingConstructorHelper
         using ( UserCodeExecutionContext.WithContext(
                    this._context.ServiceProvider,
                    this._context.MutableCompilation,
-                   UserCodeDescription.Create( "evaluating the pull strategy for a source-compatibility constructor" ) ) )
+                   UserCodeDescription.Create( "evaluating the pull strategy for a forwarding constructor" ) ) )
         {
             pullAction = this._pullStrategy!.GetPullAction( introducedParameter, forwarderTarget );
         }

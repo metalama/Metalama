@@ -27,9 +27,9 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
 
     public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
     {
-        // A source-compatibility constructor has a fixed signature (it keeps the pre-mutation source
-        // signature). We cannot append a new parameter to it, so forward the configured default value
-        // (or default(T) if none was supplied) to the mutated constructor.
+        // A forwarding constructor has a fixed signature (it keeps the pre-mutation
+        // source signature). We cannot append a new parameter to it, so forward the configured default
+        // value (or default(T) if none was supplied) to the mutated constructor.
         if ( targetMember is IConstructor constructor && constructor.IsSourceCompatibilityConstructor() )
         {
             return this._parameterDefaultValue != null

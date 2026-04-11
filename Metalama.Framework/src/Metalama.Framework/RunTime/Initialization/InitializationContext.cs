@@ -79,18 +79,24 @@ public readonly struct InitializationContext
     public InitializationMetadata? Metadata => this._metadata;
 
     /// <summary>
-    /// Returns whether the given aspect behavior is guaranteed by a derived type.
+    /// Returns <c>true</c> when the given <see cref="InitializationSlot"/> is set in this context, meaning a
+    /// derived type has guaranteed it will handle the corresponding concern itself. Aspects whose templates
+    /// share a slot use this to skip work that a more-derived layer has already taken responsibility for.
     /// </summary>
     public bool IsHandled( InitializationSlot slot ) => (this._slots & slot.Mask) != 0;
 
     /// <summary>
-    /// Returns a copy with the given slots added to the handled set.
-    /// Normalizes <see cref="Intent"/> to <see cref="CallerIntent.WillInitialize"/>
-    /// (preserving the promise that <see cref="IInitializable.Initialize"/> will be called) and preserves
-    /// <see cref="Metadata"/> from the original context.
-    /// Used when a derived <see cref="IInitializable.Initialize"/> calls <c>base.Initialize</c> to propagate
-    /// which aspect behaviors the derived type guarantees.
+    /// Returns a copy of the current context with the given slots added to the handled set, suitable for
+    /// passing to <c>base.Initialize(...)</c> from a derived <see cref="IInitializable.Initialize"/> override.
+    /// Each slot tells the base layer that the derived type will handle the corresponding concern itself.
     /// </summary>
+    /// <param name="slots">The aspect-coordination slots to mark as handled. Combine multiple slots with the
+    /// <c>|</c> operator on <see cref="InitializationSlot"/>.</param>
+    /// <remarks>
+    /// <see cref="Intent"/> is normalized to <see cref="CallerIntent.WillInitialize"/> to preserve the promise
+    /// that <see cref="IInitializable.Initialize"/> is being invoked, and <see cref="Metadata"/> is propagated
+    /// unchanged from the current context.
+    /// </remarks>
     public InitializationContext Descend( InitializationSlot slots = default )
         => new( CallerIntent.WillInitialize, this._slots | slots.Mask, this._metadata );
 }

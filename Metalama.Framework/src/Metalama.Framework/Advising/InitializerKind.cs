@@ -51,17 +51,25 @@ namespace Metalama.Framework.Advising
         BeforeTypeConstructor,
 
         /// <summary>
-        /// Indicates that the advice should be executed at the end of the last instance constructor
-        /// in a <c>: this()</c> chain, after all user constructor code has run.
-        /// Like <see cref="BeforeInstanceConstructor"/>, this skips constructors chained via <c>: this()</c>.
+        /// Indicates that the advice should run at the end of every instance constructor body, after all
+        /// user constructor code. In an inheritance chain it runs only once, in the most-derived layer:
+        /// base constructors skip the call so that derived state is fully assigned by the time the template
+        /// executes. Constructors chained via <c>: this(...)</c> are skipped just like with
+        /// <see cref="BeforeInstanceConstructor"/>.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// This kind introduces a virtual <c>OnConstructed(InitializationContext)</c> method on the target type
-        /// and injects the template body into it. A call to <c>OnConstructed</c> is added at the end of each
-        /// constructor, but only in the most-derived layer of an inheritance chain — an internal
-        /// <see cref="RunTime.Initialization.InitializationSlot"/> ensures that base constructors skip the call
-        /// when a derived constructor will handle it.
+        /// This kind introduces a virtual <c>OnConstructed(InitializationContext)</c> method on the target
+        /// type and injects the template body into it. A call to <c>OnConstructed</c> is appended to the end
+        /// of every instance constructor, guarded so that only the most-derived constructor actually invokes
+        /// the body — a framework-reserved <see cref="RunTime.Initialization.InitializationSlot.OnConstructed"/>
+        /// slot carries the "already handled" signal up the chain.
+        /// </para>
+        /// <para>
+        /// Choose this kind when your initialization logic depends on the constructor body having finished
+        /// (e.g. registering the instance in a tracker, starting a background task) but does <em>not</em>
+        /// need properties or fields to have been set via an object initializer yet.
+        /// If you need those properties to be set first, use <see cref="AfterObjectInitializer"/> instead.
         /// </para>
         /// <para>
         /// The <c>InitializationContext</c> parameter is pulled into constructors via the constructor parameter
@@ -69,26 +77,37 @@ namespace Metalama.Framework.Advising
         /// </para>
         /// </remarks>
         /// <seealso href="@initializers"/>
+        /// <seealso cref="AfterObjectInitializer"/>
         /// <seealso cref="RunTime.Initialization.InitializationContext"/>
         AfterLastInstanceConstructor,
 
         /// <summary>
-        /// Indicates that the advice should inject statements into the <c>Initialize</c> method
-        /// of <see cref="RunTime.Initialization.IInitializable"/> on the target type. If the type
-        /// does not already implement <see cref="RunTime.Initialization.IInitializable"/>, the interface
-        /// and method are introduced automatically.
+        /// Indicates that the advice should inject statements into the <see cref="RunTime.Initialization.IInitializable.Initialize"/> method of
+        /// <see cref="RunTime.Initialization.IInitializable"/> on the target type. If the type does not
+        /// already implement <see cref="RunTime.Initialization.IInitializable"/>, the interface and a
+        /// virtual <c>Initialize(InitializationContext)</c> method are introduced automatically. 
+        /// Metalama rewrites every instrumented <c>new T(...)</c>, <c>new T { ... }</c>, and
+        /// <c>with { ... }</c> call site to invoke <see cref="RunTime.Initialization.IInitializable.Initialize"/> after construction, so the template
+        /// runs only once properties and fields have been assigned by the object initializer.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// Unlike <see cref="BeforeInstanceConstructor"/>, which injects into constructors, this kind
-        /// introduces a separate post-initialization method that runs after all constructors and object
-        /// initializers have completed.
+        /// Choose this kind for cross-cutting concerns that must observe the object in its fully initialized
+        /// state — for example, validating property values, computing derived read-only
+        /// properties, or wiring back-references between parent and child objects. Unlike
+        /// <see cref="AfterLastInstanceConstructor"/>, which runs at the end of the constructor body,
+        /// <see cref="AfterObjectInitializer"/> runs <em>after</em> object/collection initializers, so
+        /// properties set inline at the call site are visible inside the template.
         /// </para>
         /// <para>
         /// Templates used with this kind may optionally declare an
-        /// <see cref="RunTime.Initialization.InitializationContext"/> parameter.
+        /// <see cref="RunTime.Initialization.InitializationContext"/> parameter to inspect caller intent,
+        /// metadata (e.g. <see cref="RunTime.Initialization.InitializationMetadata.Modify"/> for
+        /// <c>with</c> expressions), or coordination slots passed to the <c>slotFields</c> parameter of
+        /// <see cref="O:IAdviceFactory.AddInitializer"/>.
         /// </para>
         /// </remarks>
+        /// <seealso cref="AfterLastInstanceConstructor"/>
         /// <seealso cref="RunTime.Initialization.IInitializable"/>
         /// <seealso cref="RunTime.Initialization.InitializationContext"/>
         AfterObjectInitializer

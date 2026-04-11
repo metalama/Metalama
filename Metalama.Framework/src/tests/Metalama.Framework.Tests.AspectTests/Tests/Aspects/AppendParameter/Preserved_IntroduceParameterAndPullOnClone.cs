@@ -9,7 +9,7 @@ using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Preserved_IntroduceParameterAndPullOnClone;
 
-// A buggy pull strategy: always returns IntroduceParameterAndPull — invalid for a source-compatibility constructor.
+// A buggy pull strategy: always returns IntroduceParameterAndPull — invalid for a forwarding constructor.
 public sealed class BadPullStrategy : IPullStrategy
 {
     public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )

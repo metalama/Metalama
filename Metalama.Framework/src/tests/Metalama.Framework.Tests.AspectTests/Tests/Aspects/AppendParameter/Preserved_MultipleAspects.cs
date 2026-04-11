@@ -41,7 +41,7 @@ public class TimestampedAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        // Target source-origin constructors (regardless of whether they have been mutated by a prior aspect).
+        // Target source constructors (regardless of whether they have been mutated by a prior aspect).
         foreach ( var constructor in builder.Target.Constructors.Where( c => c.Origin.Kind == DeclarationOriginKind.Source ) )
         {
             builder.With( constructor )
@@ -58,7 +58,7 @@ public class TrackedAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        // Target source-origin constructors (regardless of whether they have been mutated by a prior aspect).
+        // Target source constructors (regardless of whether they have been mutated by a prior aspect).
         foreach ( var constructor in builder.Target.Constructors.Where( c => c.Origin.Kind == DeclarationOriginKind.Source ) )
         {
             builder.With( constructor )

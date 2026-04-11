@@ -11,7 +11,7 @@ using Metalama.Framework.Code.SyntaxBuilders;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Preserved_ChainedConstructor;
 
-// A custom pull strategy: on a source-compatibility constructor, supply DateTime.Now; otherwise, cascade the parameter.
+// A custom pull strategy: on a forwarding constructor, supply DateTime.Now; otherwise, cascade the parameter.
 public sealed class TimestampPullStrategy : IPullStrategy
 {
     public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )

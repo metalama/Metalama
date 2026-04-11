@@ -56,8 +56,8 @@ internal sealed class PullConstructorParameterAdviceImpl
 
     /// <summary>
     /// Determines whether <paramref name="child"/>'s <c>: base(...)</c>/<c>: this(...)</c> call targets <paramref name="target"/>,
-    /// either directly or through a source-compatibility constructor. When the base constructor lives in a
-    /// referenced project, Roslyn may resolve the chain call to a forwarder emitted into the dependency's IL (arity match)
+    /// either directly or through a forwarding constructor. When the base constructor lives in a
+    /// referenced project, Roslyn may resolve the chain call to a forwarding constructor emitted into the dependency's IL (arity match)
     /// rather than the mutated constructor; we "see through" such forwarders by matching their parameter prefix against
     /// <paramref name="target"/>'s parameters, since the framework only ever appends new parameters to mutated constructors.
     /// </summary>
@@ -77,9 +77,9 @@ internal sealed class PullConstructorParameterAdviceImpl
 
         // Roslyn's SemanticModel resolves `: base(id)` (or `: this(id)`) to whichever
         // ctor matches the source arity in IL. In cross-project scenarios that means
-        // it resolves to the source-compatibility ctor emitted by the aspect in
+        // it resolves to the forwarding ctor emitted by the aspect in
         // project A, not to the mutated ctor. Treat that as a match for `target` when
-        // the resolved ctor is a source-compatibility constructor in the same
+        // the resolved ctor is a forwarding constructor in the same
         // declaring type whose parameters are a type+refkind prefix of `target`.
         if ( !resolved.IsSourceCompatibilityConstructor() )
         {

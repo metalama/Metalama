@@ -26,7 +26,7 @@ namespace Metalama.Framework.Engine.Templating.Mapping
         private readonly SkipListDictionary<LinePosition, TextPointMapping> _mapsByTargetLinePosition = new();
 
         /// <summary>
-        /// Gets the path of the source file (typically the hand-written source code).
+        /// Gets the path of the source file (typically the source code).
         /// </summary>
         public string SourcePath { get; }
 

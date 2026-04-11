@@ -284,7 +284,7 @@ public enum CallerIntent : byte  // not [Flags] — values are mutually exclusiv
 | `None` | No guarantee that `Initialize` will be called | Non-instrumented callers (generated overload) |
 | `WillInitialize` | Caller will call `WithInitialize(expr)` after construction | All instrumented `new` and `with` call sites |
 
-`CallerIntent` only distinguishes "no guarantee" from "the caller has committed to invoking `Initialize`". The Linker emits `WillInitialize` at every instrumented construction site (with or without an object initializer); `None` is reserved for non-instrumented callers that reach the type via the source-compatibility constructor.
+`CallerIntent` only distinguishes "no guarantee" from "the caller has committed to invoking `Initialize`". The Linker emits `WillInitialize` at every instrumented construction site (with or without an object initializer); `None` is reserved for non-instrumented callers that reach the type via the forwarding constructor.
 
 ### 2.6 `InitializationMetadata`
 
@@ -371,7 +371,7 @@ For `with` expressions, the copy constructor is compiler-generated and cannot be
 
 Collection initializers (`new T { item1, item2 }`) are treated identically to object initializers — there is no special handling for them.
 
-The source-compatibility constructor (§4) is the only case where `default` is passed — and that is because the caller is non-instrumented, not because of call site form.
+The forwarding constructor (§4) is the only case where `default` is passed — and that is because the caller is non-instrumented, not because of call site form.
 
 ### 3.2 `Initialize` Invocation
 
@@ -435,7 +435,7 @@ When an `AddInitializer(InitializerKind.AfterObjectInitializer)` or `AddInitiali
 
 1. **Optional parameter** — call `IntroduceParameter(…, TypedConstant defaultValue, …)` with an initialized `defaultValue`. Simple, but **breaks binary compatibility** because optional parameters are baked into caller IL.
 
-2. **Required parameter + auto-generated source-compatibility constructor** — call `IntroduceParameter` without a `defaultValue`, combined with an `IConstructorOverloadingStrategy` and a user-supplied `IPullStrategy` that uses `IsSourceCompatibilityConstructor()` to branch. The framework appends a **required** parameter to the target, pulls it into every chained constructor, and — for every mutated constructor that the overloading strategy selects — generates a *source-compatibility constructor*: a compile-time stub that keeps the pre-mutation signature and, via `: this(...)`, chains to the mutated ctor with a strategy-supplied expression for the new parameter. Binary compat is preserved because original signatures still exist on the type.
+2. **Required parameter + auto-generated forwarding constructor** — call `IntroduceParameter` without a `defaultValue`, combined with an `IConstructorOverloadingStrategy` and a user-supplied `IPullStrategy` that uses `IsSourceCompatibilityConstructor()` to branch. The framework appends a **required** parameter to the target, pulls it into every chained constructor, and — for every mutated constructor that the overloading strategy selects — generates a *forwarding constructor*: a compile-time stub, marked with `[SourceCompatibilityConstructor]`, that keeps the pre-mutation signature and chains via `: this(...)` to the mutated ctor with a strategy-supplied expression for the new parameter. The forwarding constructor preserves both source and binary compatibility with the source constructor: existing `new T(...)` call sites still compile, and existing referencing assemblies still bind to the same metadata token.
 
 ### 4.2 API Shape
 
@@ -455,8 +455,8 @@ IIntroductionAdviceResult<IParameter> IntroduceParameter(
 A `Type`-based mirror exists for both families, so aspects can pass either an `IType` or a `System.Type`.
 
 - **The required-parameter overload** introduces a parameter with **no** C# default value — the appended C# parameter is required.
-- **`overloadingStrategy`** is a user-supplied (or standard) strategy that the framework calls for every mutated constructor to decide whether to emit a source-compatibility stub. The standard `ConstructorOverloadingStrategy.ForwardSourceConstructors` matches all source-origin constructors; `ConstructorOverloadingStrategy.ForwardDefaultConstructor` matches only the parameterless one. Each returns a `ForwardConstructorStrategy` whose fluent `WithObsoleteAttribute(description, isError)` method additionally decorates the generated stub with `[Obsolete]`. Custom strategies can refine this by implementing `IConstructorOverloadingStrategy` directly.
-- **`pullStrategy`** still controls what happens at chain-call sites. Aspect authors either use one of the `PullStrategy.*` factory methods or write their own `IPullStrategy` implementation. A custom strategy can call `IsSourceCompatibilityConstructor()` on the `targetMember` argument and branch: when `true`, return `UseExpression(forwardingExpression)`; otherwise return `IntroduceParameterAndPull(...)` (or whatever suits the regular cascade). The stock `PullStrategy.IntroduceParameterAndPull(...)` already handles the source-compatibility-constructor case by substituting a `UseExpression` action carrying the configured default value. Both strategies must implement `ICompileTimeSerializable` to work across project boundaries.
+- **`overloadingStrategy`** is a user-supplied (or standard) strategy that the framework calls for every mutated constructor to decide whether to emit a forwarding constructor. The standard `ConstructorOverloadingStrategy.ForwardSourceConstructors` matches all source constructors; `ConstructorOverloadingStrategy.ForwardDefaultConstructor` matches only the parameterless one. Each returns a `ForwardConstructorStrategy` whose fluent `WithObsoleteAttribute(description, isError)` method additionally decorates the generated forwarding constructor with `[Obsolete]`. Custom strategies can refine this by implementing `IConstructorOverloadingStrategy` directly.
+- **`pullStrategy`** still controls what happens at chain-call sites. Aspect authors either use one of the `PullStrategy.*` factory methods or write their own `IPullStrategy` implementation. A custom strategy can call `IsSourceCompatibilityConstructor()` on the `targetMember` argument and branch: when `true`, return `UseExpression(forwardingExpression)`; otherwise return `IntroduceParameterAndPull(...)` (or whatever suits the regular cascade). The stock `PullStrategy.IntroduceParameterAndPull(...)` already handles the forwarding constructor case by substituting a `UseExpression` action carrying the configured default value. Both strategies must implement `ICompileTimeSerializable` to work across project boundaries.
 
 The strategy interface is a single method:
 
@@ -475,25 +475,25 @@ For each constructor `C` the advice mutates (the target and every transitively p
 
 1. A parameter is appended to `C`. When the required-parameter overload is used, the parameter has **no** C# default value.
 2. If `C` chains to another constructor via `:this(...)` / `:base(...)` that also gets pulled, the chain call is updated so the newly introduced parameter is forwarded by name.
-3. **Source-compatibility-constructor emission** (runs after mutation if `overloadingStrategy.GetConstructorOverloadingAction(C, introducedParam).Kind != None`): the framework ensures **exactly one** source-compatibility constructor exists for `C`. When the returned action is `ForwardAndMarkObsolete`, the framework additionally decorates the generated stub with `[Obsolete(description, isError)]`, dropping any source-origin `[Obsolete]` (strategy wins).
-   - If no source-compatibility constructor exists yet, one is created with `C`'s pre-mutation signature (derived by filtering `C.Parameters` to `Origin.Kind == Source` — aspect-introduced parameters are excluded). Its body is `: this(<existing params by name>, <forwardingExpression for new param>) { }`. It is marked with `SourceCompatibilityConstructorAttribute`.
-   - If a source-compatibility constructor already exists (because an earlier aspect already preserved `C`), the framework **extends the existing stub** by appending the new forwarded argument to its `:this(...)` call. It does **not** create a second one. Invariant: at most one source-compatibility constructor per preserved constructor, growing monotonically with each successive advice.
+3. **Forwarding constructor emission** (runs after mutation if `overloadingStrategy.GetConstructorOverloadingAction(C, introducedParam).Kind != None`): the framework ensures **exactly one** forwarding constructor exists for `C`. When the returned action is `ForwardAndMarkObsolete`, the framework additionally decorates the generated forwarding constructor with `[Obsolete(description, isError)]`, dropping any source `[Obsolete]` (strategy wins).
+   - If no forwarding constructor exists yet, one is created with `C`'s pre-mutation signature (derived by filtering `C.Parameters` to `Origin.Kind == Source` — aspect-introduced parameters are excluded). Its body is `: this(<existing params by name>, <forwardingExpression for new param>) { }`. It is marked with `SourceCompatibilityConstructorAttribute`.
+   - If a forwarding constructor already exists (because an earlier aspect already preserved `C`), the framework **extends the existing forwarding constructor in place** by appending the new forwarded argument to its `:this(...)` call. It does **not** create a second one. Invariant: at most one forwarding constructor per preserved constructor, growing monotonically with each successive advice.
 
-The forwarding expression is obtained by invoking the user-supplied `IPullStrategy.GetPullAction(introducedParameter, sourceCompatibilityConstructor)`. For source-compatibility constructors, only `UseExpression`, `UseConstant`, and `UseExistingParameter` are valid; `DoNotPull` and `IntroduceParameterAndPull` emit `LAMA0536`.
+The forwarding expression is obtained by invoking the user-supplied `IPullStrategy.GetPullAction` with the forwarding constructor as the `targetMember` argument. For forwarding constructors, only `UseExpression`, `UseConstant`, and `UseExistingParameter` are valid pull actions; `DoNotPull` and `IntroduceParameterAndPull` emit `LAMA0536`.
 
 **Diagnostics:**
 - `LAMA0520` — static constructor target.
 - `LAMA0530` — parameter name already exists on the target or a pulled constructor.
-- `LAMA0536` — pull strategy returned `DoNotPull` or `IntroduceParameterAndPull` for a source-compatibility constructor.
+- `LAMA0536` — pull strategy returned `DoNotPull` or `IntroduceParameterAndPull` for a forwarding constructor.
 
 ### 4.4 Cross-project behavior
 
 Both the pull strategy and the overloading strategy are `ICompileTimeSerializable`, so they are persisted into the transitive aspect metadata and re-hydrated in referencing projects. When project B derives from a base type in project A and A's aspect introduced a parameter via `ForwardSourceConstructors`:
 
 1. B's aspect pipeline runs `PullConstructorParameterTransitiveAspect`, which rebuilds a `PullConstructorParameterAdvice` carrying both strategies.
-2. The pull walk visits each derived constructor in B. Roslyn's symbol model resolves `: base(...)` to the **source-compatibility constructor** emitted in A's IL (because it matches the source arity). The pull-walk predicate therefore "sees through" it: if the resolved ctor is marked `SourceCompatibilityConstructorAttribute` and its parameters are a type+refkind prefix of the mutated ctor's parameters, it is treated as chaining to the mutated ctor. Safe because Metalama only ever appends parameters (never inserts).
+2. The pull walk visits each derived constructor in B. Roslyn's symbol model resolves `: base(...)` to the **forwarding constructor** emitted in A's IL (because it matches the source arity). The pull-walk predicate therefore "sees through" it: if the resolved ctor is marked `SourceCompatibilityConstructorAttribute` and its parameters are a type+refkind prefix of the mutated ctor's parameters, it is treated as chaining to the mutated ctor. Safe because Metalama only ever appends parameters (never inserts).
 3. The parameter is pulled into B's derived ctors and the `base(...)` call is updated to pass the new argument — naturally resolving to the mutated (non-stub) ctor.
-4. The overloading strategy then runs on B's own mutated derived ctors and may emit source-compatibility stubs there too, cascading the binary-compat guarantee across the hierarchy.
+4. The overloading strategy then runs on B's own mutated derived ctors and may emit forwarding constructors there too, cascading the binary-compat guarantee across the hierarchy.
 
 ### 4.5 Example
 
@@ -546,9 +546,9 @@ public class Range
 
 ### 4.6 Non-Instrumented Callers
 
-Non-instrumented callers (external assemblies, reflection, `Activator.CreateInstance`, `new()` generic constraint, DI containers) continue to see and call the original signatures, which resolve to the source-compatibility constructors. For `InitializationContract`, this means `Initialize` is still not invoked automatically for non-instrumented callers.
+Non-instrumented callers (external assemblies, reflection, `Activator.CreateInstance`, `new()` generic constraint, DI containers) continue to see and call the original signatures, which resolve to the forwarding constructors. For `InitializationContract`, this means `Initialize` is still not invoked automatically for non-instrumented callers.
 
-> **Warning: Non-instrumented caller limitation:** Non-instrumented callers will **not** have `Initialize` called automatically — neither via the constructor nor after object initializers. This is an inherent limitation of the design: without Linker call-site rewriting, there is no safe point to invoke `Initialize`. The source-compatibility constructor intentionally does *not* self-invoke `Initialize` to avoid premature firing before `init` properties are set.
+> **Warning: Non-instrumented caller limitation:** Non-instrumented callers will **not** have `Initialize` called automatically — neither via the constructor nor after object initializers. This is an inherent limitation of the design: without Linker call-site rewriting, there is no safe point to invoke `Initialize`. The forwarding constructor intentionally does *not* self-invoke `Initialize` to avoid premature firing before `init` properties are set.
 >
 > **Mitigation strategies to consider:**
 > - Emit a Roslyn analyzer diagnostic when a non-instrumented call site constructs a type implementing `IInitializable` without calling `WithInitialize(expr)` afterward
@@ -557,7 +557,7 @@ Non-instrumented callers (external assemblies, reflection, `Activator.CreateInst
 
 ### 4.7 Positional Records
 
-For positional records, `IntroduceParameter` already handles primary constructor materialization: the parameter is appended to the primary constructor, and a `Deconstruct` method matching the original parameter list is auto-generated to preserve backward compatibility. When combined with an overloading strategy that asks for a stub, a secondary source-compatibility constructor is generated alongside the modified primary.
+For positional records, `IntroduceParameter` already handles primary constructor materialization: the parameter is appended to the primary constructor, and a `Deconstruct` method matching the original parameter list is auto-generated to preserve backward compatibility. When combined with an overloading strategy that asks for a stub, a secondary forwarding constructor is generated alongside the modified primary.
 
 ---
 

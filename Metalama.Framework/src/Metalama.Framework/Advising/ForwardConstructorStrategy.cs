@@ -11,8 +11,8 @@ using System.Linq;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// A standard <see cref="IConstructorOverloadingStrategy"/> implementation that generates a source-compatibility
-/// forwarding constructor for matching source-origin constructors, optionally decorated with
+/// A standard <see cref="IConstructorOverloadingStrategy"/> implementation that generates a forwarding
+/// constructor for matching source constructors, optionally decorated with
 /// <see cref="System.ObsoleteAttribute"/>. Obtain instances via
 /// <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> or
 /// <see cref="ConstructorOverloadingStrategy.ForwardDefaultConstructor"/>, and add the obsolete decoration
@@ -42,13 +42,14 @@ public sealed class ForwardConstructorStrategy : IConstructorOverloadingStrategy
     }
 
     /// <summary>
-    /// Returns a new <see cref="ForwardConstructorStrategy"/> that additionally decorates the generated forwarding
-    /// constructor with <see cref="System.ObsoleteAttribute"/>. The scope (all source constructors vs the
-    /// parameterless default constructor) is preserved.
+    /// Returns a new <see cref="ForwardConstructorStrategy"/> that additionally decorates the generated
+    /// forwarding constructor with <see cref="System.ObsoleteAttribute"/>. The scope (all source
+    /// constructors vs the parameterless default constructor) is preserved.
     /// </summary>
     /// <param name="description">Optional deprecation message displayed at the call site. When <c>null</c>, a bare
     /// <c>[Obsolete]</c> attribute is emitted.</param>
-    /// <param name="isError">When <c>true</c>, calling the forwarder is a compile-time error instead of a warning.</param>
+    /// <param name="isError">When <c>true</c>, calling the forwarding constructor is a compile-time
+    /// error instead of a warning.</param>
     public ForwardConstructorStrategy WithObsoleteAttribute( string? description = null, bool isError = false )
         => new( this._defaultConstructorOnly, markObsolete: true, description, isError );
 

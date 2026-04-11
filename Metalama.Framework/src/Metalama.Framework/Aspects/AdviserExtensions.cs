@@ -1507,9 +1507,11 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Appends a required parameter (i.e. one that has no default value) to a constructor by specifying its name and <see cref="IType"/>.
-    /// Because existing callers cannot omit the new argument, the framework preserves source compatibility by emitting a
-    /// forwarding constructor that keeps the pre-mutation signature callable. Pass a custom <see cref="IConstructorOverloadingStrategy"/>
-    /// to scope which constructors receive a forwarder, or to opt out entirely.
+    /// Because existing callers cannot omit the new argument, the framework preserves both source and binary compatibility with the
+    /// source constructor by emitting a <em>forwarding constructor</em>: a compile-time stub with the pre-mutation
+    /// signature, marked with <see cref="RunTime.SourceCompatibilityConstructorAttribute"/>, that chains via <c>: this(...)</c> to the
+    /// now-mutated constructor. Pass a custom <see cref="IConstructorOverloadingStrategy"/> to scope which constructors receive a
+    /// forwarding constructor, or to opt out entirely.
     /// </summary>
     /// <param name="adviser">An adviser for a constructor.</param>
     /// <param name="parameterName">The name of the parameter.</param>
@@ -1603,9 +1605,11 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Appends a required parameter (i.e. one that has no default value) to a constructor by specifying its name and <see cref="Type"/>.
-    /// Because existing callers cannot omit the new argument, the framework preserves source compatibility by emitting a
-    /// forwarding constructor that keeps the pre-mutation signature callable. Pass a custom <see cref="IConstructorOverloadingStrategy"/>
-    /// to scope which constructors receive a forwarder, or to opt out entirely.
+    /// Because existing callers cannot omit the new argument, the framework preserves both source and binary compatibility with the
+    /// source constructor by emitting a <em>forwarding constructor</em>: a compile-time stub with the pre-mutation
+    /// signature, marked with <see cref="RunTime.SourceCompatibilityConstructorAttribute"/>, that chains via <c>: this(...)</c> to the
+    /// now-mutated constructor. Pass a custom <see cref="IConstructorOverloadingStrategy"/> to scope which constructors receive a
+    /// forwarding constructor, or to opt out entirely.
     /// </summary>
     /// <param name="adviser">An adviser for a constructor.</param>
     /// <param name="parameterName">The name of the parameter.</param>

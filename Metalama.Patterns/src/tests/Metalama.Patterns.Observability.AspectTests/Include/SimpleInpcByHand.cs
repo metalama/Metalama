@@ -7,7 +7,7 @@ using System.ComponentModel;
 namespace Metalama.Patterns.Observability.AspectTests.Include;
 
 /// <summary>
-/// A simple hand-written class implementing <see cref="INotifyPropertyChanged"/>.
+/// A simple source class implementing <see cref="INotifyPropertyChanged"/>.
 /// </summary>
 public class SimpleInpcByHand : INotifyPropertyChanged
 {

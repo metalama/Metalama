@@ -856,8 +856,8 @@ namespace Metalama.Framework.Advising
 
         /// <summary>
         /// Appends an optional parameter (i.e. one that has a default value) to a constructor by specifying its name and <see cref="IType"/>.
-        /// Source compatibility is preserved automatically because existing callers can omit the new argument — no forwarding
-        /// constructor is needed.
+        /// Source compatibility is preserved automatically because existing callers can omit the new argument. However, binary compatibility is broken.
+        /// Use the other overload to keep binary compatibility.
         /// </summary>
         /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
         /// <param name="parameterName">The name of the parameter.</param>
@@ -865,7 +865,7 @@ namespace Metalama.Framework.Advising
         /// <param name="defaultValue">The default value of the parameter. It must be type-compatible with <paramref name="parameterType"/>.
         ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
         /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
-        /// <param name="attributes"></param>
+        /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
         IIntroductionAdviceResult<IParameter> IntroduceParameter(
             IConstructor constructor,
             string parameterName,
@@ -876,18 +876,20 @@ namespace Metalama.Framework.Advising
 
         /// <summary>
         /// Appends a required parameter (i.e. one that has no default value) to a constructor by specifying its name and <see cref="IType"/>.
-        /// Because existing callers cannot omit the new argument, the framework preserves source compatibility by emitting a
-        /// forwarding constructor that keeps the pre-mutation signature callable. Pass a custom <see cref="IConstructorOverloadingStrategy"/>
-        /// to scope which constructors receive a forwarder, or to opt out entirely.
+        /// Because existing callers cannot omit the new argument, the framework preserves both source and binary compatibility with the
+        /// source constructor by emitting a <em>forwarding constructor</em>: a compile-time stub with the pre-mutation
+        /// signature, marked with <see cref="RunTime.SourceCompatibilityConstructorAttribute"/>, that chains via <c>: this(...)</c> to the
+        /// now-mutated constructor. Pass a custom <see cref="IConstructorOverloadingStrategy"/> to scope which constructors receive a
+        /// forwarding constructor, or to opt out entirely.
         /// </summary>
         /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
         /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
-        /// <param name="attributes"></param>
+        /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
         /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides, per mutated constructor, whether the framework
-        ///     should generate a forwarding constructor preserving the pre-mutation signature. A <c>null</c> value (the default) is interpreted as
-        ///     <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> — the safe default. Use
+        ///     should generate a forwarding constructor preserving the pre-mutation signature. A <c>null</c> value (the default)
+        ///     is interpreted as <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> — the safe default. Use
         ///     <see cref="ConstructorExtensions.IsSourceCompatibilityConstructor"/> from a custom <see cref="IPullStrategy"/> to detect
         ///     forwarding constructors during the pull walk.</param>
         IIntroductionAdviceResult<IParameter> IntroduceParameter(
@@ -921,8 +923,8 @@ namespace Metalama.Framework.Advising
 
         /// <summary>
         /// Appends an optional parameter (i.e. one that has a default value) to a constructor by specifying its name and <see cref="Type"/>.
-        /// Source compatibility is preserved automatically because existing callers can omit the new argument — no forwarding
-        /// constructor is needed.
+        /// Source compatibility is preserved automatically because existing callers can omit the new argument — no
+        /// forwarding constructor is needed. However, binary compatibility is broken.
         /// </summary>
         /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
         /// <param name="parameterName">The name of the parameter.</param>
@@ -930,7 +932,7 @@ namespace Metalama.Framework.Advising
         /// <param name="defaultValue">The default value of the parameter. It must be type-compatible with <paramref name="parameterType"/>.
         ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
         /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
-        /// <param name="attributes"></param>
+        /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
         IIntroductionAdviceResult<IParameter> IntroduceParameter(
             IConstructor constructor,
             string parameterName,
@@ -941,18 +943,20 @@ namespace Metalama.Framework.Advising
 
         /// <summary>
         /// Appends a required parameter (i.e. one that has no default value) to a constructor by specifying its name and <see cref="Type"/>.
-        /// Because existing callers cannot omit the new argument, the framework preserves source compatibility by emitting a
-        /// forwarding constructor that keeps the pre-mutation signature callable. Pass a custom <see cref="IConstructorOverloadingStrategy"/>
-        /// to scope which constructors receive a forwarder, or to opt out entirely.
+        /// Because existing callers cannot omit the new argument, the framework preserves both source and binary compatibility with the
+        /// source constructor by emitting a <em>forwarding constructor</em>: a compile-time stub with the pre-mutation
+        /// signature, marked with <see cref="RunTime.SourceCompatibilityConstructorAttribute"/>, that chains via <c>: this(...)</c> to the
+        /// now-mutated constructor. Pass a custom <see cref="IConstructorOverloadingStrategy"/> to scope which constructors receive a
+        /// forwarding constructor, or to opt out entirely.
         /// </summary>
         /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
         /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that specifies how to pull the new parameter from other child constructors.</param>
-        /// <param name="attributes"></param>
+        /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
         /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides, per mutated constructor, whether the framework
-        ///     should generate a forwarding constructor preserving the pre-mutation signature. A <c>null</c> value (the default) is interpreted as
-        ///     <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> — the safe default.</param>
+        ///     should generate a forwarding constructor preserving the pre-mutation signature. A <c>null</c> value (the default)
+        ///     is interpreted as <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> — the safe default.</param>
         IIntroductionAdviceResult<IParameter> IntroduceParameter(
             IConstructor constructor,
             string parameterName,
