@@ -7,7 +7,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_Linker_CrossProject;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_Linker_CrossProject_ExistingContextParameter;
 
 public class TheAspect : TypeAspect
 {

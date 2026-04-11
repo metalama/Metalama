@@ -7,8 +7,9 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_Linker_CrossProject;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_Linker_CrossProject_Inheritable_MultiLevel;
 
+[Inheritable]
 public class TheAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
@@ -19,11 +20,17 @@ public class TheAspect : TypeAspect
     [Template]
     private void InitializerTemplate()
     {
-        Console.WriteLine( $"OnConstructed {meta.Target.Type.Name}" );
+        Console.WriteLine( $"OnConstructed {meta.Target.Type.Name}:" );
+
+        foreach ( var property in meta.Target.Type.Properties )
+        {
+            Console.WriteLine( $"  {property.Name} = {property.Value}" );
+        }
     }
 }
 
 [TheAspect]
 public class BaseClass
 {
+    public string BaseProperty { get; set; } = "base";
 }

@@ -7,4 +7,9 @@ public class DerivedClass : BaseClass
       this.OnConstructed(context);
     }
   }
+  protected override void OnConstructed(InitializationContext context = default)
+  {
+    base.OnConstructed(context);
+    Console.WriteLine("OnConstructed DerivedClass");
+  }
 }

@@ -75,6 +75,18 @@ internal sealed class PullConstructorParameterAdviceImpl
             return true;
         }
 
+        // When the recursive pull is processing a derived type whose base constructor was
+        // just materialized in the current compilation (typical of multi-level cross-project pull:
+        // Grandchild -> Child -> external BaseClass), `target` is the in-memory ConstructorBuilder
+        // that replaced an implicit constructor on the same type, while `resolved` is still the
+        // original implicit constructor that Roslyn resolved Grandchild's `:base()` against.
+        // Treat the builder and its replaced constructor as the same logical constructor.
+        if ( target is ConstructorBuilder { ReplacedImplicitConstructor: { } replacedImplicit }
+             && resolved.Equals( replacedImplicit ) )
+        {
+            return true;
+        }
+
         // Roslyn's SemanticModel resolves `: base(id)` (or `: this(id)`) to whichever
         // ctor matches the source arity in IL. In cross-project scenarios that means
         // it resolves to the forwarding ctor emitted by the aspect in

@@ -73,6 +73,9 @@ public static class PullStrategy
     /// <param name="name">The name for the new parameter in the child constructor. If <c>null</c>, the introduced parameter's name is used.</param>
     /// <param name="type">The type for the new parameter in the child constructor. If <c>null</c>, the introduced parameter's type is used.</param>
     /// <param name="defaultValue">The default value for the new parameter in the child constructor. If <c>null</c>, no default value is specified.</param>
+    /// <param name="reuseExistingParameterOfSameType">When <c>true</c>, if a child constructor already has a parameter of the same type as
+    ///     the one being introduced, that existing parameter is forwarded to the base constructor instead of introducing a duplicate.
+    ///     The default is <c>false</c>: a new parameter is always introduced.</param>
     /// <returns>A pull strategy that introduces a new parameter in child constructors.</returns>
     /// <remarks>
     /// <para>
@@ -97,6 +100,7 @@ public static class PullStrategy
     public static IPullStrategy IntroduceParameterAndPull(
         string? name = null,
         IType? type = null,
-        IExpression? defaultValue = null )
-        => new IntroduceParameterPullStrategy( name, type?.ToRef(), defaultValue?.ToText() );
+        IExpression? defaultValue = null,
+        bool reuseExistingParameterOfSameType = false )
+        => new IntroduceParameterPullStrategy( name, type?.ToRef(), defaultValue?.ToText(), reuseExistingParameterOfSameType );
 }

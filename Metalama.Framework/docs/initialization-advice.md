@@ -799,6 +799,19 @@ Execution order for the full lifecycle:
 3. Object initializer (`init` properties) — if present
 4. `WithInitialize(expr)` — after object initializers
 
+### 6.8 Cross-project propagation
+
+The "fire once after the most-derived constructor" guarantee must hold for derived classes that live in a *different* project from the one declaring the aspect. The framework achieves this by registering **two** system-internal transitive aspects on the base type:
+
+1. `PullConstructorParameterTransitiveAspect` — pulls the `InitializationContext` parameter into derived constructors in dependent projects.
+2. `AddConstructorEpilogueTransitiveAspect` — emits the `if (!context.IsHandled(...)) this.OnConstructed(context);` epilogue and the `:base(context.Descend(...))` rewrite on each derived constructor in dependent projects.
+
+System-layer ordering guarantees the pull aspect runs first, so the epilogue aspect always observes whichever `InitializationContext` parameter is now present on the constructor.
+
+The two transitive aspects are intentionally decoupled. If a derived constructor *already* has an `InitializationContext` parameter (added by some other source — for example, hand-authored), the pull aspect is a no-op (when invoked via `PullStrategy.IntroduceParameterAndPull(reuseExistingParameterOfSameType: true)`, which is what `AfterLastInstanceConstructor` configures). The epilogue aspect still runs, finds the existing parameter, and emits the epilogue + descend rewrite using its name. This satisfies the rule *"if the constructor already has `InitializationContext` for any reason, the `OnConstructed` epilogue must still fire."*
+
+This propagation is **independent from `[Inheritable]`**. Marking the user aspect `[Inheritable]` controls whether the user *template body* runs again on each derived type (producing a `protected override OnConstructed` per level). The cross-project epilogue + descend rewrite happens regardless: when the aspect is not inheritable, the derived constructor's epilogue calls `this.OnConstructed(context)`, which dynamically dispatches to the inherited base method, so the user template fires once at the base declaration site — the correct semantics for a non-inheritable aspect.
+
 ---
 
 ## 7. Record Support
