@@ -88,7 +88,7 @@ public readonly struct InitializationContext
     /// <summary>
     /// Returns whether the given aspect behavior is guaranteed by a derived type.
     /// </summary>
-    public bool IsHandledBy( InitializationSlot slot ) => (this._slots & slot.Mask) != 0;
+    public bool IsHandled( InitializationSlot slot ) => (this._slots & slot.Mask) != 0;
 
     /// <summary>
     /// Returns a copy with the given slots added to the handled set.

@@ -12,16 +12,12 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
-using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.RunTime.Initialization;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using Accessibility = Metalama.Framework.Code.Accessibility;
 using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
@@ -189,69 +185,28 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
                     initializeMethod.ToFullRef(),
                     boundTemplate ) );
 
-            // If overriding a base method, add "base.Initialize(context.Descend(...))" as first statement.
+            // If overriding a base method, add `base.Initialize(context.Descend(userSlots))` as first
+            // statement — or `base.Initialize(context)` when there are no user slots, since
+            // Descend(default) only normalizes Intent (already WillInitialize inside Initialize)
+            // and so is a no-op.
+            // Uses an aggregatable transformation so that multiple peer aspects applied to the same type
+            // produce a single combined base call `base.Initialize(context.Descend(slotA | slotB))`.
             if ( baseMethod != null )
             {
-                var slotExpression = this.CreateSlotExpression();
                 var contextParameterName = initializeMethod.Parameters[0].Name;
+                var slotFieldsList = this._slotFields?.ToList();
 
                 context.AddTransformation(
-                    new InsertSyntaxStatementsTransformation(
+                    new InitializeBaseCallTransformation(
                         this.AspectLayerInstance,
                         targetType.ToRef(),
                         initializeMethod.ToFullRef(),
-                        _ => ExpressionStatement(
-                            InvocationExpression(
-                                MemberAccessExpression(
-                                    SyntaxKind.SimpleMemberAccessExpression,
-                                    BaseExpression(),
-                                    IdentifierName( nameof(IInitializable.Initialize) ) ),
-                                ArgumentList(
-                                    SingletonSeparatedList(
-                                        Argument(
-                                            InvocationExpression(
-                                                MemberAccessExpression(
-                                                    SyntaxKind.SimpleMemberAccessExpression,
-                                                    SyntaxFactoryEx.SafeIdentifierName( contextParameterName ),
-                                                    IdentifierName( "Descend" ) ),
-                                                ArgumentList(
-                                                    SingletonSeparatedList(
-                                                        Argument( slotExpression ) ) ) ) ) ) ) ) ),
-                        InsertedStatementKind.InitializerPrologue ) );
+                        contextParameterName,
+                        slotFieldsList ) );
             }
 
             return new AddInitializerAdviceResult( AdviceOutcome.Success, this.AdviceFactory );
         }
-    }
-
-    /// <summary>
-    /// Creates a Roslyn expression representing the combination of all slot fields using the <c>|</c> operator.
-    /// If no slot fields are provided, returns <c>default(InitializationSlot)</c>.
-    /// </summary>
-    private ExpressionSyntax CreateSlotExpression()
-    {
-        var slotFields = this._slotFields?.ToList();
-
-        if ( slotFields == null || slotFields.Count == 0 )
-        {
-            return LiteralExpression( SyntaxKind.DefaultLiteralExpression );
-        }
-
-        ExpressionSyntax? result = null;
-
-        foreach ( var field in slotFields )
-        {
-            var fieldAccess = MemberAccessExpression(
-                SyntaxKind.SimpleMemberAccessExpression,
-                SyntaxFactoryEx.CreateFullyQualifiedName( field.DeclaringType.FullName ),
-                SyntaxFactoryEx.SafeIdentifierName( field.Name ) );
-
-            result = result == null
-                ? fieldAccess
-                : BinaryExpression( SyntaxKind.BitwiseOrExpression, result, fieldAccess );
-        }
-
-        return result!;
     }
 
     public override AdviceKind AdviceKind => AdviceKind.AddInitializer;

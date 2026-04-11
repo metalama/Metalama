@@ -19,7 +19,7 @@ namespace Metalama.Framework.RunTime.Initialization;
 /// <para>
 /// A maximum of 32 slots can be allocated per <see cref="InitializationSlotFactory"/> (or per
 /// AppDomain when using the default factory via <see cref="Allocate"/>). In practice, very few
-/// aspect types need this (likely fewer than half a dozen in a typical application).
+/// aspect types need slots (likely fewer than half a dozen in a typical application).
 /// </para>
 /// </remarks>
 public readonly struct InitializationSlot
@@ -43,6 +43,15 @@ public readonly struct InitializationSlot
     internal uint Mask => this._mask;
 
     private static readonly InitializationSlotFactory _defaultFactory = new();
+
+    /// <summary>
+    /// Slot used by the engine's <c>OnConstructed</c> mechanism to coordinate multi-level
+    /// inheritance. Derived constructors descend their context with this slot before calling the
+    /// base constructor; base constructors guard the <c>OnConstructed</c> call with
+    /// <see cref="InitializationContext.IsHandled"/> against this slot. Not intended for direct
+    /// use by aspects.
+    /// </summary>
+    public static InitializationSlot OnConstructed { get; } = _defaultFactory.Allocate();
 
     /// <summary>
     /// Allocates a new slot from the default global factory. Maximum 32 slots per AppDomain.

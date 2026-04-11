@@ -3,10 +3,10 @@ public class TargetCode
 {
   static TargetCode()
   {
-    global::System.Console.WriteLine("TargetCode: Aspect first");
+    Console.WriteLine("TargetCode: Aspect first");
   }
   public TargetCode()
   {
-    global::System.Console.WriteLine("TargetCode: Aspect second");
+    Console.WriteLine("TargetCode: Aspect second");
   }
 }

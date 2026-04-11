@@ -35,7 +35,9 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
         this._targetIndexer = targetIndexer;
     }
 
-    public override IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
+    public override IReadOnlyList<InsertedStatement> GetInsertedStatements(
+        InsertStatementTransformationContext context,
+        IReadOnlyList<IInsertStatementTransformation>? aggregatedGroup = null )
     {
         var targetIndexer = this._targetIndexer.GetTarget( context.FinalCompilation );
         var targetDeclaration = this.ContractTarget.GetTarget( this.InitialCompilation );

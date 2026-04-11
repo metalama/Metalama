@@ -259,7 +259,7 @@ public readonly struct InitializationContext
     /// <summary>
     /// Returns whether the given aspect behavior is guaranteed by a derived type.
     /// </summary>
-    public bool IsHandledBy(InitializationSlot slot) => (_slots & slot.Mask) != 0;
+    public bool IsHandled(InitializationSlot slot) => (_slots & slot.Mask) != 0;
 
     /// <summary>
     /// Returns a copy with the given slots added to the handled set.
@@ -555,7 +555,7 @@ For positional records, `IntroduceParameter` already handles primary constructor
 It is a pure code model transformation with no direct link to the Linker — the Linker independently detects the type's `IInitializable` implementation.
 
 An aspect may optionally declare one or more `InitializationSlot` fields and pass references to them via `AddInitializer`.
-This enables cross-layer coordination — the code model uses the slot fields to emit the correct `Descend(slots)` call, and the template uses `IsHandledBy` to skip behavior already guaranteed by a derived type.
+This enables cross-layer coordination — the code model uses the slot fields to emit the correct `Descend(slots)` call, and the template uses `IsHandled` to skip behavior already guaranteed by a derived type.
 
 ### 5.2 Signature
 
@@ -592,7 +592,7 @@ Subsequent advice appends templates to the same method body.
 **Templates are always `void`-returning statement blocks** — they never emit `return`.
 
 **The `InitializationContext` parameter is always present on the introduced method**, even if no template currently declares it. Templates may optionally declare an `InitializationContext` parameter to access slots and metadata, but this is independent of the method signature. This is mandatory because:
-- **User code**: a hand-authored `Initialize` method may want to inspect the context (e.g., check `Metadata`, `IsHandledBy`) regardless of what aspects are applied
+- **User code**: a hand-authored `Initialize` method may want to inspect the context (e.g., check `Metadata`, `IsHandled`) regardless of what aspects are applied
 - **Multi-aspect**: multiple aspects may contribute templates to the same `Initialize` method, and a later aspect cannot retroactively add a parameter to an already-introduced method
 - **Cross-project inheritance**: the base class method may already be compiled without the parameter, making it impossible for a derived project to fix the signature
 
@@ -629,7 +629,7 @@ class ChangeTrackingAspect : TypeAspect
     [Template]
     void Template(InitializationContext context)
     {
-        if (!context.IsHandledBy(ChangeTrackingAspect.Slot))
+        if (!context.IsHandled(ChangeTrackingAspect.Slot))
             _changeTracker = new ChangeTracker(this);
     }
 }
@@ -651,7 +651,7 @@ class ValidationAspect : TypeAspect
     [Template]
     void Template(InitializationContext context)
     {
-        if (!context.IsHandledBy(ValidationAspect.Slot))
+        if (!context.IsHandled(ValidationAspect.Slot))
             Validator.Validate(this);
     }
 }
@@ -671,10 +671,10 @@ After transformation:
 // Base — introduced by code model, implements IInitializable
 public virtual void Initialize(InitializationContext context)
 {
-    if (!context.IsHandledBy(ChangeTrackingAspect.Slot))  // ChangeTrackingAspect
+    if (!context.IsHandled(ChangeTrackingAspect.Slot))  // ChangeTrackingAspect
         _changeTracker = new ChangeTracker(this);
 
-    if (!context.IsHandledBy(ValidationAspect.Slot))      // ValidationAspect
+    if (!context.IsHandled(ValidationAspect.Slot))      // ValidationAspect
         Validator.Validate(this);
 }
 
@@ -685,7 +685,7 @@ public override void Initialize(InitializationContext context)
 {
     base.Initialize(context.Descend(ValidationAspect.Slot));
 
-    if (!context.IsHandledBy(ValidationAspect.Slot))      // ValidationAspect
+    if (!context.IsHandled(ValidationAspect.Slot))      // ValidationAspect
         Validator.Validate(this);
 }
 ```
@@ -740,7 +740,7 @@ The feature internally allocates an `InitializationSlot` to ensure that only the
 
 In a hierarchy where both `Base` and `Derived` use `AfterLastInstanceConstructor`:
 - `Derived`'s constructor passes `context.Descend(slot)` to the base constructor
-- `Base`'s constructor sees `IsHandledBy(slot) == true` and skips the `OnConstructed` call
+- `Base`'s constructor sees `IsHandled(slot) == true` and skips the `OnConstructed` call
 - Only `Derived`'s constructor (the most-derived) invokes `OnConstructed`
 
 ### 6.5 Constructor Wiring
@@ -1158,7 +1158,7 @@ class FreezableAspect : TypeAspect
     [Template]
     void FreezeTemplate(InitializationContext context)
     {
-        if (!context.IsHandledBy(FreezableAspect.Slot))
+        if (!context.IsHandled(FreezableAspect.Slot))
         {
             Freeze();
         }
@@ -1224,7 +1224,7 @@ public class Shape : IInitializable
 
     public virtual void Initialize(InitializationContext context)
     {
-        if (!context.IsHandledBy(FreezableAspect.Slot))
+        if (!context.IsHandled(FreezableAspect.Slot))
             Freeze();
     }
 }
@@ -1278,7 +1278,7 @@ public class LabeledShape : Shape
         // Derived passes FreezableAspect.Slot → base skips freezing
         base.Initialize(context.Descend(FreezableAspect.Slot));
 
-        if (!context.IsHandledBy(FreezableAspect.Slot))
+        if (!context.IsHandled(FreezableAspect.Slot))
             Freeze();
     }
 }
@@ -1295,7 +1295,7 @@ Without `InitializationSlot` coordination, the execution would be:
 With the slot:
 
 1. `LabeledShape.Initialize(context)` calls `base.Initialize(context.Descend(FreezableAspect.Slot))`
-2. `Shape.Initialize` sees `IsHandledBy(FreezableAspect.Slot) == true` — skips `Freeze()`
+2. `Shape.Initialize` sees `IsHandled(FreezableAspect.Slot) == true` — skips `Freeze()`
 3. Back in `LabeledShape.Initialize` — calls `Freeze()` which wraps `Tags`, chains to `base.Freeze()` which wraps `Vertices` and sets `IsFrozen = true` — all setters succeed because the object is still unfrozen during the cascade
 
 ### 10.6 Call Site
@@ -1523,7 +1523,7 @@ public class TrackableAspect : TypeAspect
     [Template]
     private void OnConstructed(InitializationContext context)
     {
-        if (!context.IsHandledBy(Slot))
+        if (!context.IsHandled(Slot))
         {
             ObjectTracker.Register(this, ObjectStatus.Constructed);
         }
@@ -1532,7 +1532,7 @@ public class TrackableAspect : TypeAspect
     [Template]
     private void OnFullyInitialized(InitializationContext context)
     {
-        if (!context.IsHandledBy(Slot))
+        if (!context.IsHandled(Slot))
         {
             ObjectTracker.Register(this, ObjectStatus.Initialized);
         }

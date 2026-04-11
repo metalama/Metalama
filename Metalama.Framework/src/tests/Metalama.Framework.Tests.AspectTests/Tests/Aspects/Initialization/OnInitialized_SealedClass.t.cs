@@ -1,8 +1,8 @@
 [TheAspect]
-public sealed class TargetCode : global::Metalama.Framework.RunTime.Initialization.IInitializable
+public sealed class TargetCode : IInitializable
 {
-  public void Initialize(global::Metalama.Framework.RunTime.Initialization.InitializationContext context = default)
+  public void Initialize(InitializationContext context = default)
   {
-    global::System.Console.WriteLine("Initialized!");
+    Console.WriteLine("Initialized!");
   }
 }

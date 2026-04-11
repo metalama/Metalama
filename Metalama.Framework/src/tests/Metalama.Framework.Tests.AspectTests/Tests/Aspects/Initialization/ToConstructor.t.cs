@@ -9,5 +9,5 @@ public class C
   public C(int c)
   {
   }
-  private global::System.Int32 _f;
+  private int _f;
 }

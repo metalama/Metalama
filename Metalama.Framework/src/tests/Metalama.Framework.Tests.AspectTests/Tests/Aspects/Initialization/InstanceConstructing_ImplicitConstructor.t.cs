@@ -7,6 +7,6 @@ public class TargetCode
   }
   public TargetCode()
   {
-    global::System.Console.WriteLine("TargetCode: Aspect");
+    Console.WriteLine("TargetCode: Aspect");
   }
 }

@@ -5,6 +5,6 @@ public class TargetCode
   public int Field2;
   public TargetCode()
   {
-    this.Field2 = (global::System.Int32)42;
+    Field2 = 42;
   }
 }

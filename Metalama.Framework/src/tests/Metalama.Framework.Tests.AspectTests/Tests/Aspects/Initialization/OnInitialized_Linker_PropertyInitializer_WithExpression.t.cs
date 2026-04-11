@@ -1,5 +1,9 @@
 public class Caller
 {
-  private static readonly TargetRecord _template = global::Metalama.Framework.RunTime.Initialization.InitializableExtensions.WithInitialize(new TargetRecord(0));
-  public TargetRecord Bar { get; } = global::Metalama.Framework.RunTime.Initialization.InitializableExtensions.WithInitialize((_template with { Value = 42 }), global::Metalama.Framework.RunTime.Initialization.InitializationMetadata.Modify);
+  private static readonly TargetRecord _template = new TargetRecord(0).WithInitialize();
+  public TargetRecord Bar { get; } = (_template with
+  {
+    Value = 42
+  }
+  ).WithInitialize(InitializationMetadata.Modify);
 }

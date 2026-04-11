@@ -36,7 +36,9 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
 
     public override IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetProperty;
 
-    public override IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
+    public override IReadOnlyList<InsertedStatement> GetInsertedStatements(
+        InsertStatementTransformationContext context,
+        IReadOnlyList<IInsertStatementTransformation>? aggregatedGroup = null )
     {
         Invariant.Assert( this.ContractTarget.Equals( this.TargetMemberOrNamedType ) );
 

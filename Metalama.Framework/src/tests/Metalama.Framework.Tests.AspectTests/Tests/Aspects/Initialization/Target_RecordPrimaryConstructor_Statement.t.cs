@@ -6,8 +6,8 @@ public record TargetRecord
   public int Foo() => x;
   public TargetRecord()
   {
-    this.x = 0;
-    this.Y = 0;
+    x = 0;
+    Y = 0;
     x = 13;
     Y = 27;
   }

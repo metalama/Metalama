@@ -7,12 +7,12 @@ using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Collections;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Utilities;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using ConstructorInvoker = Metalama.Framework.Engine.CodeModel.Invokers.ConstructorInvoker;
 
@@ -73,11 +73,11 @@ internal sealed class IntroducedConstructor : IntroducedMember, IConstructorImpl
     protected override IMemberOrNamedType GetDefinition() => this.Definition;
 
     public IConstructor? GetBaseConstructor()
-        =>
 
-            // Currently ConstructorBuilder is used to represent a default constructor, the base constructor is always
-            // the default constructor of the base class.
-            this.DeclaringType.BaseType?.Constructors.SingleOrDefault( c => c.Parameters.Count == 0 );
+        // IntroducedConstructor represents a default-shape constructor introduced by an aspect.
+        // Its base call is always to the parameterless base ctor (or, failing that, the unique
+        // accessible base ctor whose parameters are all optional).
+        => BaseConstructorResolver.GetImplicitBaseConstructor( this.DeclaringType );
 
     [Memo]
     private IConstructorInvoker Invoker => new ConstructorInvoker( this );

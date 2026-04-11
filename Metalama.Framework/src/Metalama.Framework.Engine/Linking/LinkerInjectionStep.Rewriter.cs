@@ -38,18 +38,21 @@ internal sealed partial class LinkerInjectionStep
         private readonly LinkerInjectionStep _parent;
         private readonly TransformationCollection _transformationCollection;
         private readonly SyntaxTree _syntaxTreeForGlobalAttributes;
+        private readonly LexicalScopeFactory _lexicalScopeFactory;
 
         public Rewriter(
             LinkerInjectionStep parent,
             TransformationCollection syntaxTransformationCollection,
             CompilationModel compilation,
-            SyntaxTree syntaxTreeForGlobalAttributes )
+            SyntaxTree syntaxTreeForGlobalAttributes,
+            LexicalScopeFactory lexicalScopeFactory )
         {
             this._parent = parent;
             this._compilation = compilation;
             this._transformationCollection = syntaxTransformationCollection;
             this._semanticModelProvider = compilation.RoslynCompilation.GetSemanticModelProvider();
             this._syntaxTreeForGlobalAttributes = syntaxTreeForGlobalAttributes;
+            this._lexicalScopeFactory = lexicalScopeFactory;
         }
 
         private RefFactory RefFactory => this._compilation.RefFactory;
@@ -482,7 +485,24 @@ internal sealed partial class LinkerInjectionStep
                         var entryStatements = this._transformationCollection.GetInjectedEntryStatements( injectedMember );
                         var exitStatements = this._transformationCollection.GetInjectedExitStatements( injectedMember );
 
-                        injectedNode = InjectStatementsIntoMemberDeclaration(
+                        // Introduced constructors (including those that materialize an implicit default
+                        // ctor for InitializationContext parameter pulling) also need the epilogue
+                        // statements from `AfterLastInstanceConstructor` appended, just like source
+                        // constructors. `GetInjectedExitStatements` only returns OutputContract
+                        // statements, so the epilogue is merged in here.
+                        if ( methodBase is IFullRef<IConstructor> constructorRef )
+                        {
+                            var epilogueStatements = this._transformationCollection.GetInjectedEpilogueStatements( constructorRef );
+
+                            if ( epilogueStatements.Count > 0 )
+                            {
+                                exitStatements = exitStatements.Count == 0
+                                    ? epilogueStatements
+                                    : [..exitStatements, ..epilogueStatements];
+                            }
+                        }
+
+                        injectedNode = this.InjectStatementsIntoMemberDeclaration(
                             methodBase,
                             entryStatements,
                             exitStatements,
@@ -505,7 +525,7 @@ internal sealed partial class LinkerInjectionStep
                                 propertyOrIndexerRef,
                                 injectedMember );
 
-                            injectedNode = InjectStatementsIntoMemberDeclaration(
+                            injectedNode = this.InjectStatementsIntoMemberDeclaration(
                                 propertyOrIndexer.GetMethod.ToFullRef(),
                                 getEntryStatements,
                                 getExitStatements,
@@ -524,7 +544,7 @@ internal sealed partial class LinkerInjectionStep
                                 propertyOrIndexerRef,
                                 injectedMember );
 
-                            injectedNode = InjectStatementsIntoMemberDeclaration(
+                            injectedNode = this.InjectStatementsIntoMemberDeclaration(
                                 propertyOrIndexer.SetMethod.ToFullRef(),
                                 setEntryStatements,
                                 setExitStatements,
@@ -679,7 +699,7 @@ internal sealed partial class LinkerInjectionStep
             }
         }
 
-        private static MemberDeclarationSyntax InjectStatementsIntoMemberDeclaration(
+        private MemberDeclarationSyntax InjectStatementsIntoMemberDeclaration(
             IFullRef<IMember> contextDeclaration,
             IReadOnlyList<StatementSyntax> entryStatements,
             IReadOnlyList<StatementSyntax> exitStatements,
@@ -825,14 +845,61 @@ internal sealed partial class LinkerInjectionStep
                     throw new AssertionFailedException( $"Not supported: {currentNode}" );
             }
 
-            static BlockSyntax ReplaceBlock(
-                IRef<IDeclaration> declaration,
+            BlockSyntax ReplaceBlock(
+                IFullRef<IMember> declaration,
                 IReadOnlyList<StatementSyntax> entryStatements,
                 IReadOnlyList<StatementSyntax> exitStatements,
                 BlockSyntax targetBlock )
             {
                 if ( exitStatements.Count > 0 )
                 {
+                    // Constructor bodies can have arbitrary user code. The `AfterLastInstanceConstructor`
+                    // advice emits a trailing call to `OnConstructed(context)` as an epilogue statement;
+                    // we wrap the original body with entry/exit blocks and redirect any early `return;`
+                    // statements to the epilogue via a generated label. The label name is obtained from
+                    // the constructor's lexical scope so it cannot collide with a user-declared label.
+                    if ( declaration is IFullRef<IConstructor> constructorRef )
+                    {
+                        var epilogueLabelName = this._lexicalScopeFactory.GetLexicalScope( constructorRef ).GetUniqueIdentifier( "epilogue" );
+
+                        var rewriter = new ConstructorEpilogueRewriter( epilogueLabelName );
+                        var rewrittenBody = (BlockSyntax) rewriter.Visit( targetBlock )!;
+
+                        var entryBlock = Block( List( entryStatements ) )
+                            .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+
+                        if ( rewriter.HasRewrites )
+                        {
+                            // Attach the epilogue label to the first exit statement (the OnConstructed
+                            // call) rather than emitting a redundant empty-statement label — the
+                            // `exitStatements.Count > 0` guard above guarantees at least one exit
+                            // statement exists.
+                            var labeledExitStatements = new StatementSyntax[exitStatements.Count];
+                            labeledExitStatements[0] = LabeledStatement( SafeIdentifier( epilogueLabelName ), exitStatements[0] );
+
+                            for ( var i = 1; i < exitStatements.Count; i++ )
+                            {
+                                labeledExitStatements[i] = exitStatements[i];
+                            }
+
+                            return Block(
+                                entryBlock,
+                                rewrittenBody
+                                    .WithSourceCodeAnnotationIfNotGenerated()
+                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                                Block( List( labeledExitStatements ) )
+                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ) );
+                        }
+
+                        return Block(
+                            entryBlock,
+                            targetBlock
+                                .WithSourceCodeAnnotationIfNotGenerated()
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            Block( List( exitStatements ) )
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ) );
+                    }
+
                     // Patterns recognizing bodies generated by AuxiliaryMemberFactory.
                     switch ( targetBlock )
                     {
@@ -929,8 +996,9 @@ internal sealed partial class LinkerInjectionStep
                 ExpressionSyntax targetExpression,
                 bool returnsVoid )
             {
-                // Auxiliary bodies that may receive exit statements are never expression bodies.
-                Invariant.Assert( exitStatements.Count == 0 );
+                // Auxiliary method bodies that may receive exit statements are never expression bodies.
+                // Constructor expression bodies may receive exit statements from AfterLastInstanceConstructor.
+                Invariant.Assert( exitStatements.Count == 0 || returnsVoid );
 
                 StatementSyntax statement =
                     targetExpression.Kind() switch
@@ -950,11 +1018,22 @@ internal sealed partial class LinkerInjectionStep
                                     Token( SyntaxKind.SemicolonToken ) )
                     };
 
+                if ( exitStatements.Count == 0 )
+                {
+                    return
+                        Block(
+                            Block( List( entryStatements ) )
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            statement );
+                }
+
                 return
                     Block(
                         Block( List( entryStatements ) )
                             .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
-                        statement );
+                        statement,
+                        Block( List( exitStatements ) )
+                            .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ) );
             }
         }
 
@@ -1109,18 +1188,134 @@ internal sealed partial class LinkerInjectionStep
                 return initializerSyntax;
             }
 
-            var newArgumentsSyntax = newArguments.Select( a => a.ToSyntax().WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ) );
-
             if ( initializerSyntax == null )
             {
+                // No existing `:base(...)` — emit a fresh one with all new args. Override semantics
+                // don't apply because there are no pre-existing source args to replace.
+                var newArgumentsSyntax = newArguments
+                    .Select( a => a.ToSyntax().WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ) );
+
                 return ConstructorInitializer(
                     SyntaxKind.BaseConstructorInitializer,
                     ArgumentList( SeparatedList( newArgumentsSyntax ) ) );
             }
+
+            // Partition new arguments into overrides that match a pre-existing source argument, and
+            // plain appends. An IsOverride=true transformation matches a source argument when that
+            // source argument names the same parameter (either by explicit `name:` label, or by
+            // position — assuming no name-colon appears on or before the same index, which would
+            // imply the user reordered args by name).
+            var sourceArguments = initializerSyntax.ArgumentList.Arguments;
+            var replacements = new Dictionary<int, IntroduceConstructorInitializerArgumentTransformation>();
+            var appendList = new List<IntroduceConstructorInitializerArgumentTransformation>( newArguments.Length );
+
+            foreach ( var newArg in newArguments )
+            {
+                var matchedSourceIndex = -1;
+
+                if ( newArg.IsOverride )
+                {
+                    // Try named match first (robust to parameter reordering in source).
+                    for ( var i = 0; i < sourceArguments.Count; i++ )
+                    {
+                        if ( sourceArguments[i].NameColon?.Name.Identifier.ValueText == newArg.ParameterName )
+                        {
+                            matchedSourceIndex = i;
+
+                            break;
+                        }
+                    }
+
+                    // Fall back to positional match, but only if no preceding source argument used a
+                    // name colon — once a name colon appears, later positional args bind by name.
+                    if ( matchedSourceIndex < 0
+                         && newArg.ParameterIndex < sourceArguments.Count
+                         && sourceArguments[newArg.ParameterIndex].NameColon == null )
+                    {
+                        var anyEarlierNameColon = false;
+
+                        for ( var i = 0; i <= newArg.ParameterIndex; i++ )
+                        {
+                            if ( sourceArguments[i].NameColon != null )
+                            {
+                                anyEarlierNameColon = true;
+
+                                break;
+                            }
+                        }
+
+                        if ( !anyEarlierNameColon )
+                        {
+                            matchedSourceIndex = newArg.ParameterIndex;
+                        }
+                    }
+                }
+
+                if ( matchedSourceIndex >= 0 )
+                {
+                    replacements[matchedSourceIndex] = newArg;
+                }
+                else
+                {
+                    appendList.Add( newArg );
+                }
+            }
+
+            ArgumentListSyntax newArgumentList;
+
+            if ( replacements.Count > 0 )
+            {
+                // Rebuild the argument list, swapping in replacements where applicable.
+                var builder = new ArgumentSyntax[sourceArguments.Count];
+
+                for ( var i = 0; i < sourceArguments.Count; i++ )
+                {
+                    if ( replacements.TryGetValue( i, out var replacementTransformation ) )
+                    {
+                        var replacementSyntax = replacementTransformation.ToSyntax();
+
+                        // Preserve the shape of the source argument: if the source used a name colon,
+                        // keep it; otherwise drop any generated name colon so the result stays positional.
+                        if ( sourceArguments[i].NameColon != null )
+                        {
+                            if ( replacementSyntax.NameColon == null )
+                            {
+                                replacementSyntax = replacementSyntax.WithNameColon( sourceArguments[i].NameColon );
+                            }
+                        }
+                        else if ( replacementSyntax.NameColon != null )
+                        {
+                            replacementSyntax = replacementSyntax.WithNameColon( null );
+                        }
+
+                        builder[i] = replacementSyntax;
+                    }
+                    else
+                    {
+                        builder[i] = sourceArguments[i];
+                    }
+                }
+
+                newArgumentList = initializerSyntax.ArgumentList.WithArguments( SeparatedList( builder ) );
+            }
             else
             {
-                return initializerSyntax.WithArgumentList( initializerSyntax.ArgumentList.AddArguments( newArgumentsSyntax.ToArray() ) );
+                newArgumentList = initializerSyntax.ArgumentList;
             }
+
+            if ( appendList.Count > 0 )
+            {
+                var appendSyntax = new ArgumentSyntax[appendList.Count];
+
+                for ( var i = 0; i < appendList.Count; i++ )
+                {
+                    appendSyntax[i] = appendList[i].ToSyntax().WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions );
+                }
+
+                newArgumentList = newArgumentList.AddArguments( appendSyntax );
+            }
+
+            return initializerSyntax.WithArgumentList( newArgumentList );
         }
 
         private IReadOnlyList<FieldDeclarationSyntax> VisitFieldDeclarationCore( FieldDeclarationSyntax node )
@@ -1259,11 +1454,12 @@ internal sealed partial class LinkerInjectionStep
             {
                 var constructor = this._compilation.RefFactory.FromSymbol<IConstructor>( symbol );
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( constructor );
+                var epilogueStatements = this._transformationCollection.GetInjectedEpilogueStatements( constructor );
 
-                node = (ConstructorDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                node = (ConstructorDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration(
                     constructor,
                     entryStatements,
-                    Array.Empty<StatementSyntax>(),
+                    epilogueStatements,
                     node );
             }
 
@@ -1288,7 +1484,7 @@ internal sealed partial class LinkerInjectionStep
                 var method = this._compilation.RefFactory.FromSymbol<IMethod>( symbol );
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( method );
 
-                node = (MethodDeclarationSyntax) InjectStatementsIntoMemberDeclaration( method, entryStatements, [], node );
+                node = (MethodDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration( method, entryStatements, [], node );
             }
 
             // Rewrite attributes.
@@ -1312,7 +1508,7 @@ internal sealed partial class LinkerInjectionStep
                 var method = this._compilation.RefFactory.FromSymbol<IMethod>( symbol );
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( method );
 
-                node = (OperatorDeclarationSyntax) InjectStatementsIntoMemberDeclaration( method, entryStatements, Array.Empty<StatementSyntax>(), node );
+                node = (OperatorDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration( method, entryStatements, Array.Empty<StatementSyntax>(), node );
             }
 
             // Rewrite attributes.
@@ -1391,7 +1587,7 @@ internal sealed partial class LinkerInjectionStep
                     var getter = this._compilation.RefFactory.FromSymbol<IMethod>( getMethodSymbol );
                     var entryStatements = this._transformationCollection.GetInjectedEntryStatements( getter, property );
 
-                    node = (PropertyDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                    node = (PropertyDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration(
                         getter,
                         entryStatements,
                         [],
@@ -1404,7 +1600,7 @@ internal sealed partial class LinkerInjectionStep
                     var setter = this._compilation.RefFactory.FromSymbol<IMethod>( setMethodSymbol );
                     var entryStatements = this._transformationCollection.GetInjectedEntryStatements( setter, property );
 
-                    node = (PropertyDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                    node = (PropertyDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration(
                         setter,
                         entryStatements,
                         [],
@@ -1453,7 +1649,7 @@ internal sealed partial class LinkerInjectionStep
                     var getter = this.RefFactory.FromSymbol<IMethod>( symbol.GetMethod );
                     var entryStatements = this._transformationCollection.GetInjectedEntryStatements( getter, indexer );
 
-                    node = (IndexerDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                    node = (IndexerDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration(
                         getter,
                         entryStatements,
                         [],
@@ -1465,7 +1661,7 @@ internal sealed partial class LinkerInjectionStep
                     var setter = this._compilation.RefFactory.FromSymbol<IMethod>( symbol.SetMethod );
                     var entryStatements = this._transformationCollection.GetInjectedEntryStatements( setter, indexer );
 
-                    node = (IndexerDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                    node = (IndexerDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration(
                         setter,
                         entryStatements,
                         [],

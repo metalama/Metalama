@@ -5,7 +5,7 @@ public class TargetCode
   {
     static IntroducedType()
     {
-      global::System.Console.WriteLine("IntroducedType: Aspect");
+      Console.WriteLine("IntroducedType: Aspect");
     }
   }
 }
