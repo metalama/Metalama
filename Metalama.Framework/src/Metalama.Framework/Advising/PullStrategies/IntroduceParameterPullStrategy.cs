@@ -16,17 +16,22 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
     private readonly IRef<IType>? _parameterType;
     private readonly string? _parameterDefaultValue;
     private readonly bool _reuseExistingParameterOfSameType;
+    private readonly bool _materializeOnRecord;
+
+    internal bool MaterializeOnRecord => this._materializeOnRecord;
 
     public IntroduceParameterPullStrategy(
         string? parameterName,
         IRef<IType>? parameterType,
         string? parameterDefaultValue,
-        bool reuseExistingParameterOfSameType = false )
+        bool reuseExistingParameterOfSameType = false,
+        bool materializeOnRecord = false )
     {
         this._parameterName = parameterName;
         this._parameterType = parameterType;
         this._parameterDefaultValue = parameterDefaultValue;
         this._reuseExistingParameterOfSameType = reuseExistingParameterOfSameType;
+        this._materializeOnRecord = materializeOnRecord;
     }
 
     public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
@@ -61,7 +66,8 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
         return PullAction.IntroduceParameterAndPull(
             this._parameterName ?? pulledParameter.Name,
             resolvedParameterType,
-            ExpressionFactory.Parse( this._parameterDefaultValue ) );
+            ExpressionFactory.Parse( this._parameterDefaultValue ),
+            materializeOnRecord: this._materializeOnRecord );
     }
 
     [UsedImplicitly]
@@ -75,8 +81,14 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
             var parameterType = constructorArguments.GetValue<IRef<IType>>( nameof(_parameterType) )!;
             var parameterDefaultValue = constructorArguments.GetValue<string>( nameof(_parameterDefaultValue) );
             var reuseExistingParameterOfSameType = constructorArguments.GetValue<bool>( nameof(_reuseExistingParameterOfSameType) );
+            var materializeOnRecord = constructorArguments.GetValue<bool>( nameof(_materializeOnRecord) );
 
-            return new IntroduceParameterPullStrategy( parameterName, parameterType, parameterDefaultValue, reuseExistingParameterOfSameType );
+            return new IntroduceParameterPullStrategy(
+                parameterName,
+                parameterType,
+                parameterDefaultValue,
+                reuseExistingParameterOfSameType,
+                materializeOnRecord );
         }
 
         public override void SerializeObject(
@@ -88,6 +100,7 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
             constructorArguments.SetValue( nameof(_parameterType), obj._parameterType );
             constructorArguments.SetValue( nameof(_parameterDefaultValue), obj._parameterDefaultValue );
             constructorArguments.SetValue( nameof(_reuseExistingParameterOfSameType), obj._reuseExistingParameterOfSameType );
+            constructorArguments.SetValue( nameof(_materializeOnRecord), obj._materializeOnRecord );
         }
 #pragma warning restore SA1101
     }

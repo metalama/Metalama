@@ -158,7 +158,11 @@ internal static class OnConstructedEpilogueEmitter
             constructor = constructorBuilder;
         }
 
-        // 3. Introduce the parameter.
+        // 3. Introduce the parameter. For record primaries, the linker's primary-constructor
+        // materialization path (driven by LateTypeLevelTransformations.RemovePrimaryConstructor)
+        // strips the primary from the record header and emits an explicit body-declared ctor.
+        // Because the pull strategy below sets materializeOnRecord: false, the linker also filters
+        // the parameter out of the property/Deconstruct/assignment emission sites.
         var parameterBuilder = new ParameterBuilder(
             constructor,
             constructor.Parameters.Count,
@@ -175,7 +179,10 @@ internal static class OnConstructedEpilogueEmitter
         parameterBuilder.Freeze();
 
         context.AddTransformation(
-            new IntroduceParameterTransformation( aspectLayerInstance, parameterBuilder.BuilderData ) );
+            new IntroduceParameterTransformation(
+                aspectLayerInstance,
+                parameterBuilder.BuilderData,
+                materializeOnRecord: false ) );
 
         // 4. Recursively pull into constructors that chain to this one. Passing an
         //    IntroduceParameterPullStrategy enables cross-project propagation via

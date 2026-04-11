@@ -6,29 +6,32 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.PrimaryConstructor_Record_Deconstruct_UserDefined;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Records_Materialized_OptIn;
 
 /*
- * Tests that when the user has already defined a Deconstruct method with the original signature,
- * we do not generate a duplicate (#698).
+ * Verifies the opt-in (materializeOnRecord: true) behaviour when appending a parameter
+ * to a record's primary constructor: the appended parameter keeps its position in the
+ * primary header, becomes a positional property, and appears in the compiler-generated
+ * Deconstruct. This is the pre-2026.1 default, preserved for aspects that deliberately
+ * want the parameter to participate in the record's value identity.
  */
 
 public class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        foreach (var constructor in builder.Target.Constructors)
+        foreach ( var constructor in builder.Target.Constructors )
         {
-            if (constructor.IsRecordCopyConstructor())
+            if ( constructor.IsRecordCopyConstructor() )
             {
                 continue;
             }
 
             builder.With( constructor )
                 .IntroduceParameter(
-                    "introduced",
+                    "p",
                     typeof(int),
-                    TypedConstant.Create( 42 ),
+                    TypedConstant.Create( 15 ),
                     PullStrategy.IntroduceParameterAndPull( materializeOnRecord: true ) );
         }
     }
@@ -36,16 +39,4 @@ public class MyAspect : TypeAspect
 
 // <target>
 [MyAspect]
-public record R( int X, int Y )
-{
-    public void Deconstruct( out int x, out int y )
-    {
-        x = this.X;
-        y = this.Y;
-    }
-
-    public void M()
-    {
-        var (a, b) = this;
-    }
-}
+public record R( int X );

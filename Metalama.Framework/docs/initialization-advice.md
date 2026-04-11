@@ -557,7 +557,14 @@ Non-instrumented callers (external assemblies, reflection, `Activator.CreateInst
 
 ### 4.7 Positional Records
 
-For positional records, `IntroduceParameter` already handles primary constructor materialization: the parameter is appended to the primary constructor, and a `Deconstruct` method matching the original parameter list is auto-generated to preserve backward compatibility. When combined with an overloading strategy that asks for a stub, a secondary forwarding constructor is generated alongside the modified primary.
+For positional records, an appended parameter can participate in the record's value shape (positional property, `Deconstruct`, `Equals`, `GetHashCode`, `ToString`, compiler-generated copy ctor) or exist as a constructor-only parameter that the aspect threads for its own purposes. The `materializeOnRecord` flag on `PullStrategy.IntroduceParameterAndPull` selects between the two:
+
+- **`materializeOnRecord: false` (default).** A threading-only parameter. The linker strips the primary header and emits a body-declared constructor that carries the appended parameter. The appended parameter does **not** become a positional property, does **not** appear in `Deconstruct`, and does **not** participate in `Equals`/`GetHashCode`/`ToString`. A compensating `Deconstruct` with the pre-mutation signature is emitted so existing deconstruction call sites keep binding. This is the right default for `OnConstructed`-style parameters (`InitializationContext`, tracing contexts, and other cross-cutting marker types) that should not pollute the record's identity.
+- **`materializeOnRecord: true` (opt-in).** The appended parameter keeps its position in the primary header and therefore becomes part of the record's value shape via the usual compiler-generated positional-property + `Deconstruct` + `Equals`/`GetHashCode`/`ToString` expansion. An extended `Deconstruct(out …, out T appended)` overload is emitted alongside the original-arity compensator. Use this when the parameter is semantically a field of the record (e.g. an injected `Owner`, `Tenant`, `Timestamp`) that callers should be able to read, compare, format, and destructure.
+
+In both modes, combining with `ConstructorOverloadingStrategy.ForwardSourceConstructors` produces a `[SourceCompatibilityConstructor]` forwarder preserving the pre-mutation arity so uninstrumented callers continue to bind by arity. On hierarchies the forwarder is emitted per record, and the derived record's body constructor threads the appended parameter through the `:base(...)` initializer — fire-once semantics work the normal way.
+
+A deliberate gap remains: because the compiler-generated copy constructor is never modified (see §6.9 and §7.2), an appended parameter introduced with `materializeOnRecord: false` cannot flow through `r with { … }` expressions and has no effect on `with`-produced instances.
 
 ---
 
@@ -818,9 +825,11 @@ This propagation is **independent from `[Inheritable]`**. Marking the user aspec
 
 **What gets instrumented:**
 
-- The **primary constructor** of a positional record. When the record is declared as `record R(int X);` (no body block), the linker materializes a full constructor body — assigning the primary-ctor parameters to their corresponding properties — and lands the epilogue on top of it. The appended `InitializationContext` parameter becomes a positional parameter on the primary ctor, which means it is also exposed as a compiler-generated init-only property; a companion `Deconstruct` overload with the **original** parameter list is generated for back-compat.
+- The **primary constructor** of a positional record. When the record is declared as `record R(int X);` (no body block), the linker strips the primary header and materializes a full body-declared constructor — assigning the primary-ctor parameters to their corresponding positional properties — and lands the epilogue on top of it. The appended `InitializationContext` parameter is introduced with `materializeOnRecord: false` (see §4.7), so it lives as a constructor parameter only: it does **not** become a positional init-only property, does **not** appear in `Deconstruct`, and does **not** participate in `Equals`/`GetHashCode`/`ToString`. A compensating `Deconstruct` with the pre-mutation signature is emitted so existing deconstruction code keeps binding.
 - **Explicit constructors** authored by the user — same `InitializerKind != ConstructorInitializerKind.This` filter as classes: ctors chained via `:this(...)` are skipped, ctors chained via `:base(...)` receive the epilogue.
 - **User-authored copy constructors**: because a hand-written `R(R original)` is not `IsImplicitlyDeclared`, it is *not* matched by `IsRecordCopyConstructor()`. The emitter treats it like any other ctor and injects the template.
+
+On hierarchies, the derived record's body constructor threads the `InitializationContext` through its `:base(...)` initializer as `: base(X, context.Descend(InitializationSlot.OnConstructed))`; fire-once semantics work exactly as on classes — `Descend` on the way down, `IsHandled` in each layer's epilogue, virtual dispatch into the derived override on the way up.
 
 **What is skipped:**
 

@@ -25,11 +25,23 @@ internal sealed class IntroduceParameterTransformation : BaseSyntaxTreeTransform
 
     public ParameterBuilderData Parameter { get; }
 
-    public IntroduceParameterTransformation( AspectLayerInstance aspectLayerInstance, ParameterBuilderData parameter ) : base(
+    /// <summary>
+    /// Gets a value indicating whether, on a record primary constructor target, this introduced parameter should
+    /// participate in the record's value shape (property, <c>Deconstruct</c>, <c>Equals</c>/<c>GetHashCode</c>/<c>ToString</c>).
+    /// When <c>false</c> (default), the parameter lives as a constructor parameter only; the linker strips the primary
+    /// header and emits a body-declared constructor without a matching positional property. Ignored for non-record targets.
+    /// </summary>
+    public bool MaterializeOnRecord { get; }
+
+    public IntroduceParameterTransformation(
+        AspectLayerInstance aspectLayerInstance,
+        ParameterBuilderData parameter,
+        bool materializeOnRecord = false ) : base(
         aspectLayerInstance,
         parameter.ContainingDeclaration )
     {
         this.Parameter = parameter;
+        this.MaterializeOnRecord = materializeOnRecord;
     }
 
     public ParameterSyntax ToSyntax( SyntaxGenerationContext syntaxGenerationContext, CompilationModel compilation )

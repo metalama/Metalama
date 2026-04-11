@@ -51,6 +51,15 @@ internal sealed partial class LinkerRewritingDriver
 
             foreach ( var primaryConstructorProperty in this.LateTransformationRegistry.GetPrimaryConstructorProperties( symbol.ContainingType ) )
             {
+                // Skip parameters appended via IntroduceParameterTransformation with MaterializeOnRecord = false.
+                // Such parameters exist as constructor parameters only and are NOT materialized as properties.
+                if ( this.LateTransformationRegistry.IsNonMaterializedIntroducedParameter(
+                        symbol.ContainingType,
+                        primaryConstructorProperty.Name ) )
+                {
+                    continue;
+                }
+
                 members.Add(
                     PropertyDeclaration(
                         List<AttributeListSyntax>(),
@@ -86,7 +95,33 @@ internal sealed partial class LinkerRewritingDriver
             if ( constructorDeclaration.Parent?.SyntaxKind.IsRecordDeclaration == true
                  && constructorDeclaration.Parent is RecordDeclarationSyntax { ParameterList.Parameters.Count: > 0 } recordDeclaration )
             {
-                members.Add( RecordDeconstructSyntaxHelper.GenerateDeconstructMethod( recordDeclaration.ParameterList, context ) );
+                // Skip emission when every introduced parameter is non-materialized: in that case the
+                // pre-mutation-shape compensator emitted by LinkerInjectionStep.Rewriter already gives
+                // us the correct final Deconstruct signature, and emitting here would produce a
+                // duplicate. Otherwise (no introductions, or at least one materialized introduction),
+                // emit the Deconstruct with non-materialized parameters filtered out.
+                var hasMaterialized =
+                    this.LateTransformationRegistry.HasMaterializedIntroducedParameterOnPrimary( symbol.ContainingType );
+
+                var hasNonMaterialized =
+                    this.LateTransformationRegistry.HasAnyNonMaterializedIntroducedParameter( symbol.ContainingType );
+
+                if ( hasMaterialized || !hasNonMaterialized )
+                {
+                    var filteredParameters = SeparatedList(
+                        recordDeclaration.ParameterList.Parameters.Where(
+                            p => !this.LateTransformationRegistry.IsNonMaterializedIntroducedParameter(
+                                symbol.ContainingType,
+                                p.Identifier.ValueText ) ) );
+
+                    if ( filteredParameters.Count > 0 )
+                    {
+                        members.Add(
+                            RecordDeconstructSyntaxHelper.GenerateDeconstructMethod(
+                                recordDeclaration.ParameterList.WithParameters( filteredParameters ),
+                                context ) );
+                    }
+                }
             }
         }
 
@@ -202,6 +237,15 @@ internal sealed partial class LinkerRewritingDriver
                 foreach ( var member in symbol.ContainingType.GetMembers() )
                 {
                     if ( !this.LateTransformationRegistry.IsPrimaryConstructorInitializedMember( member ) )
+                    {
+                        continue;
+                    }
+
+                    // Skip members backed by non-materialized introduced parameters; they do not become
+                    // properties on the record, so there is nothing to assign.
+                    if ( this.LateTransformationRegistry.IsNonMaterializedIntroducedParameter(
+                            symbol.ContainingType,
+                            member.Name ) )
                     {
                         continue;
                     }

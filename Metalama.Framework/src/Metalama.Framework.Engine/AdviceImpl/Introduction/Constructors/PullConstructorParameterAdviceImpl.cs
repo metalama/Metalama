@@ -254,7 +254,11 @@ internal sealed class PullConstructorParameterAdviceImpl
 
                         recursiveParameterBuilder.Freeze();
 
-                        this.AddTransformation( new IntroduceParameterTransformation( this._aspectLayerInstance, recursiveParameterBuilder.BuilderData ) );
+                        this.AddTransformation(
+                            new IntroduceParameterTransformation(
+                                this._aspectLayerInstance,
+                                recursiveParameterBuilder.BuilderData,
+                                pullParameterAction.MaterializeOnRecord ) );
 
                         var recursiveParameter = recursiveParameterBuilder;
 
