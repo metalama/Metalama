@@ -502,7 +502,7 @@ internal sealed partial class LinkerInjectionStep
                             }
                         }
 
-                        injectedNode = InjectStatementsIntoMemberDeclaration(
+                        injectedNode = this.InjectStatementsIntoMemberDeclaration(
                             methodBase,
                             entryStatements,
                             exitStatements,
@@ -525,7 +525,7 @@ internal sealed partial class LinkerInjectionStep
                                 propertyOrIndexerRef,
                                 injectedMember );
 
-                            injectedNode = InjectStatementsIntoMemberDeclaration(
+                            injectedNode = this.InjectStatementsIntoMemberDeclaration(
                                 propertyOrIndexer.GetMethod.ToFullRef(),
                                 getEntryStatements,
                                 getExitStatements,
@@ -544,7 +544,7 @@ internal sealed partial class LinkerInjectionStep
                                 propertyOrIndexerRef,
                                 injectedMember );
 
-                            injectedNode = InjectStatementsIntoMemberDeclaration(
+                            injectedNode = this.InjectStatementsIntoMemberDeclaration(
                                 propertyOrIndexer.SetMethod.ToFullRef(),
                                 setEntryStatements,
                                 setExitStatements,
@@ -1456,7 +1456,7 @@ internal sealed partial class LinkerInjectionStep
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( constructor );
                 var epilogueStatements = this._transformationCollection.GetInjectedEpilogueStatements( constructor );
 
-                node = (ConstructorDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                node = (ConstructorDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration(
                     constructor,
                     entryStatements,
                     epilogueStatements,
@@ -1484,7 +1484,7 @@ internal sealed partial class LinkerInjectionStep
                 var method = this._compilation.RefFactory.FromSymbol<IMethod>( symbol );
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( method );
 
-                node = (MethodDeclarationSyntax) InjectStatementsIntoMemberDeclaration( method, entryStatements, [], node );
+                node = (MethodDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration( method, entryStatements, [], node );
             }
 
             // Rewrite attributes.
@@ -1508,7 +1508,7 @@ internal sealed partial class LinkerInjectionStep
                 var method = this._compilation.RefFactory.FromSymbol<IMethod>( symbol );
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( method );
 
-                node = (OperatorDeclarationSyntax) InjectStatementsIntoMemberDeclaration( method, entryStatements, Array.Empty<StatementSyntax>(), node );
+                node = (OperatorDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration( method, entryStatements, Array.Empty<StatementSyntax>(), node );
             }
 
             // Rewrite attributes.
@@ -1587,7 +1587,7 @@ internal sealed partial class LinkerInjectionStep
                     var getter = this._compilation.RefFactory.FromSymbol<IMethod>( getMethodSymbol );
                     var entryStatements = this._transformationCollection.GetInjectedEntryStatements( getter, property );
 
-                    node = (PropertyDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                    node = (PropertyDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration(
                         getter,
                         entryStatements,
                         [],
@@ -1600,7 +1600,7 @@ internal sealed partial class LinkerInjectionStep
                     var setter = this._compilation.RefFactory.FromSymbol<IMethod>( setMethodSymbol );
                     var entryStatements = this._transformationCollection.GetInjectedEntryStatements( setter, property );
 
-                    node = (PropertyDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                    node = (PropertyDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration(
                         setter,
                         entryStatements,
                         [],
@@ -1649,7 +1649,7 @@ internal sealed partial class LinkerInjectionStep
                     var getter = this.RefFactory.FromSymbol<IMethod>( symbol.GetMethod );
                     var entryStatements = this._transformationCollection.GetInjectedEntryStatements( getter, indexer );
 
-                    node = (IndexerDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                    node = (IndexerDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration(
                         getter,
                         entryStatements,
                         [],
@@ -1661,7 +1661,7 @@ internal sealed partial class LinkerInjectionStep
                     var setter = this._compilation.RefFactory.FromSymbol<IMethod>( symbol.SetMethod );
                     var entryStatements = this._transformationCollection.GetInjectedEntryStatements( setter, indexer );
 
-                    node = (IndexerDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
+                    node = (IndexerDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration(
                         setter,
                         entryStatements,
                         [],
