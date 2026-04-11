@@ -186,7 +186,7 @@ class MyClass {}" );
             CheckWorkspace( workspace );
 
             Assert.True( workspace.IsMetalamaEnabled );
-            Assert.Equal( 3, workspace.AspectClasses.Length );
+            Assert.Equal( 4, workspace.AspectClasses.Length );
             Assert.Single( workspace.AspectInstances );
             var targetFramework = Assert.Single( workspace.SourceCode.TargetFrameworks );
             Assert.Equal( "net8.0", targetFramework );
