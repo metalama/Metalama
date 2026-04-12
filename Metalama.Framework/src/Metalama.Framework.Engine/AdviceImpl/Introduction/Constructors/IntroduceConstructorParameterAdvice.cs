@@ -110,7 +110,14 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
         parameterBuilder.Freeze();
         var parameterBuilderData = parameterBuilder.BuilderData;
 
-        context.AddTransformation( new IntroduceParameterTransformation( this.AspectLayerInstance, parameterBuilderData ) );
+        // The MaterializeOnRecord flag is a property of the parameter introduction itself, not of any individual
+        // pull call. For the top-level target we read it from the user's pull strategy (if it is the standard
+        // IntroduceParameterPullStrategy); custom IPullStrategy implementations do not carry this concept, so
+        // non-materialized (false) is used as the default on a record primary.
+        var materializeOnRecord = (this._pullStrategy as IntroduceParameterPullStrategy)?.MaterializeOnRecord ?? false;
+
+        context.AddTransformation(
+            new IntroduceParameterTransformation( this.AspectLayerInstance, parameterBuilderData, materializeOnRecord ) );
 
         // Determine the effective pull strategy.
         // - If the user supplied one, use it.

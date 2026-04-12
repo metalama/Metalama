@@ -1835,6 +1835,17 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
+    public void EmitOnConstructedEpilogueOnDerivedTypes( INamedType baseType )
+    {
+        using ( this.WithNonUserCode() )
+        {
+            var advice = new OnConstructedEpilogueAdvice(
+                this.GetAdviceConstructorParameters( baseType, requireTemplate: false ) );
+
+            advice.Execute( this._state );
+        }
+    }
+
     public IIntroductionAdviceResult<INamedType> IntroduceClass(
         INamespaceOrNamedType targetNamespaceOrType,
         string name,

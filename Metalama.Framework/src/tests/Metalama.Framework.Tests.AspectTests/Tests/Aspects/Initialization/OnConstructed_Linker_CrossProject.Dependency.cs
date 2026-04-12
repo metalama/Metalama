@@ -9,7 +9,6 @@ using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_Linker_CrossProject;
 
-[Inheritable]
 public class TheAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )

@@ -3,31 +3,22 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Advising;
-using Metalama.Framework.Advising.PullStrategies;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
-using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
-using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
-using Metalama.Framework.RunTime;
 using Metalama.Framework.RunTime.Initialization;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using Accessibility = Metalama.Framework.Code.Accessibility;
-using RefKind = Metalama.Framework.Code.RefKind;
 using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
@@ -55,8 +46,8 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
     private const string _methodName = "OnConstructed";
 
     // Default name given to the InitializationContext parameter when this advice introduces a new
-    // OnConstructed method or a new constructor parameter. When the target constructor or method
-    // already has an InitializationContext parameter, that parameter's existing name is preserved.
+    // OnConstructed method. When the target type already has a matching method, that method's existing
+    // parameter name is preserved.
     private const string _defaultContextParameterName = "context";
 
     private readonly TemplateMember<IMethod> _template;
@@ -82,17 +73,6 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
         var targetType = this.TargetDeclaration.ToRef().GetTarget( context.MutableCompilation );
         var factory = targetType.Compilation.Factory;
         var initContextType = factory.GetTypeByReflectionType( typeof(InitializationContext) );
-
-        // Records are rejected — same rule as BeforeInstanceConstructor, because the compiler-generated
-        // copy constructor cannot be modified.
-        if ( targetType.IsRecord )
-        {
-            return this.CreateFailedResult(
-                AdviceDiagnosticDescriptors.CannotAddInitializerToRecord.CreateRoslynDiagnostic(
-                    targetType.GetDiagnosticLocation(),
-                    (this.AspectInstance.AspectClass.ShortName, targetType),
-                    this ) );
-        }
 
         // Look up an inherited OnConstructed — if present, the introduced method becomes an override.
         var baseOnConstructed = FindBaseOnConstructed( targetType, initContextType );
@@ -152,41 +132,40 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
 
         // Step 3: for each non-`:this(...)` instance constructor, ensure the `context` parameter
         // and emit the epilogue call `this.OnConstructed(context);` (guarded on non-sealed/non-struct).
-        var guardEpilogue = !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct;
+        // Shared with the cross-project epilogue advice (registerPullFallback: false there).
+        // On records, the emitter skips the compiler-generated copy constructor — `with` expressions and
+        // `new R(existing)` therefore do not run the template. Users who need that coverage can write an
+        // explicit copy ctor chaining to `: base(original)`, which is no longer compiler-generated and
+        // therefore participates in the epilogue.
+        OnConstructedEpilogueEmitter.EmitForType(
+            targetType,
+            initContextType,
+            this.AspectLayerInstance,
+            context,
+            registerPullFallback: true );
 
-        foreach ( var sourceCtor in targetType.Constructors
-                     .Where( c => c.InitializerKind != ConstructorInitializerKind.This
-                                  && !c.IsRecordCopyConstructor() )
-                     .ToList() )
+        // Step 4: cross-project propagation of the epilogue obligation. The transitive aspect runs
+        // in dependent projects regardless of whether the user aspect is [Inheritable], so derived
+        // classes in dependent projects also get the epilogue and the :base(context.Descend(...))
+        // rewrite. It runs after PullConstructorParameterTransitiveAspect (system-layer ordering),
+        // and is independent from it: even if the pull is a no-op (because the constructor already
+        // has an InitializationContext parameter from another source), this aspect still emits
+        // the epilogue.
+        if ( !targetType.IsSealed
+             && targetType.TypeKind != Code.TypeKind.Struct
+             && targetType.IsAccessibleFromOutsideAssembly() )
         {
-            var (targetConstructor, contextParameterName) = this.EnsureContextParameter( sourceCtor, initContextType, context );
+            var transitiveAspect = new AddConstructorEpilogueTransitiveAspect();
 
-            // Early `return;` statements in the constructor body are rewritten to
-            // `goto __metalama_epilogue;` by ConstructorEpilogueRewriter (invoked from
-            // LinkerInjectionStep.Rewriter.ReplaceBlock) so the epilogue still fires.
-            // Uses an aggregatable transformation so that multiple peer aspects produce a single
-            // deduplicated epilogue call per constructor.
-            context.AddTransformation(
-                new OnConstructedEpilogueTransformation(
-                    this.AspectLayerInstance,
+            context.AddTransitiveAspect(
+                new TransitiveAspectInstance(
+                    transitiveAspect,
                     targetType.ToRef(),
-                    targetConstructor.ToFullRef(),
-                    contextParameterName,
-                    guardEpilogue ) );
-
-            // If base has OnConstructed, the derived `:base(...)` call must pass
-            // `context.Descend(OnConstructed)` so the base constructor's epilogue skips.
-            // Base's pull already appended a plain `context` argument; replace it with an
-            // IsOverride=true transformation at the same parameter index.
-            if ( baseOnConstructed != null
-                 && targetConstructor.InitializerKind != ConstructorInitializerKind.This )
-            {
-                this.EmitDescendOverrideForBaseInitializer(
-                    targetConstructor,
-                    initContextType,
-                    contextParameterName,
-                    context );
-            }
+                    targetType.Depth,
+                    (IAspectClassImpl) context.AspectClassResolver.GetAspectClass( typeof(AddConstructorEpilogueTransitiveAspect) ),
+                    this.AspectLayerInstance.AspectInstance.AspectState,
+                    this.AspectLayerInstance.AspectInstance.PredecessorDegree + 1,
+                    targetType.GetPrimarySyntaxTree() ) );
         }
 
         return new AddInitializerAdviceResult( AdviceOutcome.Success, this.AdviceFactory );
@@ -248,81 +227,6 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
     }
 
     /// <summary>
-    /// Ensures that <paramref name="sourceConstructor"/> has an <c>InitializationContext</c> parameter.
-    /// If an existing parameter of the given type is found, its name is returned. Otherwise an implicit
-    /// constructor is materialized as needed, a new parameter is introduced with
-    /// <c>default(InitializationContext)</c> as its default value, and the parameter is pulled recursively
-    /// through <c>:this(...)</c> / <c>:base(...)</c> chains (and across project boundaries via the
-    /// transitive aspect mechanism registered inside <see cref="PullConstructorParameterAdviceImpl"/>).
-    /// </summary>
-    /// <returns>
-    /// The (possibly materialized) constructor and the name of the <c>InitializationContext</c> parameter.
-    /// </returns>
-    private (IConstructor Constructor, string ContextParameterName) EnsureContextParameter(
-        IConstructor sourceConstructor,
-        IType initializationContextType,
-        AdviceImplementationContext context )
-    {
-        // 1. Look for an existing parameter of type InitializationContext on this constructor.
-        var existing = sourceConstructor.Parameters.FirstOrDefault(
-            p => p.Type.Equals( initializationContextType ) );
-
-        if ( existing != null )
-        {
-            return (sourceConstructor, existing.Name);
-        }
-
-        // 2. Materialize implicit constructor to an explicit one if needed.
-        var constructor = sourceConstructor;
-
-        if ( constructor.IsImplicitInstanceConstructor() )
-        {
-            var constructorBuilder = new ConstructorBuilder( this.AspectLayerInstance, constructor );
-            constructorBuilder.Freeze();
-            context.AddTransformation( constructorBuilder.CreateTransformation() );
-            constructor = constructorBuilder;
-        }
-
-        // 3. Introduce the parameter.
-        var parameterBuilder = new ParameterBuilder(
-            constructor,
-            constructor.Parameters.Count,
-            _defaultContextParameterName,
-            initializationContextType,
-            RefKind.None,
-            this.AspectLayerInstance ) { DefaultValue = TypedConstant.Default( initializationContextType ) };
-
-        if ( constructor.CanBeChainedFromOutsideAssembly() )
-        {
-            parameterBuilder.AddAttribute( AttributeConstruction.Create( typeof(AspectGeneratedAttribute) ) );
-        }
-
-        parameterBuilder.Freeze();
-
-        context.AddTransformation(
-            new IntroduceParameterTransformation( this.AspectLayerInstance, parameterBuilder.BuilderData ) );
-
-        // 4. Recursively pull into constructors that chain to this one. Passing an
-        //    IntroduceParameterPullStrategy enables cross-project propagation via
-        //    PullConstructorParameterTransitiveAspect registered inside PullConstructorParameterAdviceImpl.
-        //    The default value is serialized as text; a typed `default(T)` is used so that
-        //    TypedConstant.TryConvertFromExpression recognizes it as a DefaultExpressionSyntax
-        //    (rather than as a DefaultLiteralExpression whose token value is the string "default").
-        var defaultValueText = $"default(global::{typeof(InitializationContext).FullName})";
-        var pullStrategy = new IntroduceParameterPullStrategy( _defaultContextParameterName, initializationContextType.ToRef(), defaultValueText );
-
-        var pullImpl = new PullConstructorParameterAdviceImpl(
-            context,
-            pullStrategy,
-            this.AspectLayerInstance,
-            onlyProcessDerivedTypes: false );
-
-        pullImpl.PullConstructorParameterRecursive( parameterBuilder );
-
-        return (constructor, _defaultContextParameterName);
-    }
-
-    /// <summary>
     /// Walks base types looking for a virtual/override <c>OnConstructed(InitializationContext)</c>
     /// method that a derived layer can override. Returns the base method if found; otherwise null.
     /// </summary>
@@ -345,69 +249,6 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
 
         return null;
     }
-
-    /// <summary>
-    /// Locates the <see cref="InitializationContext"/> parameter on the base constructor reached by
-    /// <paramref name="derivedConstructor"/>'s <c>:base(...)</c> initializer and, if found, emits an
-    /// <c>IsOverride=true</c> <see cref="IntroduceConstructorInitializerArgumentTransformation"/>
-    /// that replaces the pulled argument with <c>context.Descend(OnConstructed)</c>.
-    /// </summary>
-    private void EmitDescendOverrideForBaseInitializer(
-        IConstructor derivedConstructor,
-        IType initContextType,
-        string contextParameterName,
-        AdviceImplementationContext context )
-    {
-        var baseConstructor = ((IConstructorImpl) derivedConstructor).GetBaseConstructor()?.Definition;
-
-        if ( baseConstructor == null )
-        {
-            return;
-        }
-
-        var baseContextParameter = baseConstructor.Parameters.FirstOrDefault( p => p.Type.Equals( initContextType ) );
-
-        if ( baseContextParameter == null )
-        {
-            // The base constructor has no InitializationContext parameter — no pulled arg to override.
-            // This happens when the base type does not have the aspect applied but inherits an
-            // OnConstructed from an even deeper ancestor (or hand-authored one on a type whose
-            // constructors don't take a context). Nothing to do here.
-            return;
-        }
-
-        var requiresParameterName = baseConstructor.Parameters.Any(
-            p => p.DefaultValue != null && p.Index < baseContextParameter.Index );
-
-        context.AddTransformation(
-            new IntroduceConstructorInitializerArgumentTransformation(
-                this.AspectLayerInstance,
-                derivedConstructor.ToFullRef(),
-                baseContextParameter.Index,
-                baseContextParameter.Name,
-                BuildDescendExpression( contextParameterName ),
-                requiresParameterName,
-                isOverride: true ) );
-    }
-
-    /// <summary>
-    /// Builds <c>context.Descend(global::...InitializationSlot.OnConstructed)</c>, used as the argument
-    /// override for the <c>:base(...)</c> initializer of a derived constructor so the base layer's epilogue
-    /// skips running.
-    /// </summary>
-    private static ExpressionSyntax BuildDescendExpression( string contextParameterName )
-        => InvocationExpression(
-            MemberAccessExpression(
-                SyntaxKind.SimpleMemberAccessExpression,
-                SyntaxFactoryEx.SafeIdentifierName( contextParameterName ),
-                IdentifierName( "Descend" ) ),
-            ArgumentList(
-                SingletonSeparatedList(
-                    Argument(
-                        MemberAccessExpression(
-                            SyntaxKind.SimpleMemberAccessExpression,
-                            SyntaxFactoryEx.CreateFullyQualifiedName( typeof(InitializationSlot).FullName! ),
-                            IdentifierName( nameof(InitializationSlot.OnConstructed) ) ) ) ) ) );
 
     public override AdviceKind AdviceKind => AdviceKind.AddInitializer;
 

@@ -132,6 +132,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                 IndexMemberLevelTransformation(
                     transformation,
                     transformationCollection,
+                    auxiliaryMemberTransformations,
                     input.FinalCompilationModel );
 
                 this.IndexInsertStatementTransformation(
@@ -955,6 +956,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
     private static void IndexMemberLevelTransformation(
         ITransformation transformation,
         TransformationCollection transformationCollection,
+        ConcurrentDictionary<IFullRef<IMember>, AuxiliaryMemberTransformations> auxiliaryMemberTransformations,
         CompilationModel compilationModel )
     {
         if ( transformation is not IMemberLevelTransformation memberLevelTransformation )
@@ -982,6 +984,40 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                 {
                     memberLevelTransformations.Add( introduceParameterTransformation );
                     transformationCollection.AddIntroducedParameter( introduceParameterTransformation );
+
+                    if ( introduceParameterTransformation.Parameter.ContainingDeclaration is IFullRef<IConstructor>
+                         {
+                             Definition: { IsPrimary: true, DeclaringType.IsRecord: true } primaryCtor
+                         } primaryCtorRef )
+                    {
+                        if ( !introduceParameterTransformation.MaterializeOnRecord )
+                        {
+                            // When introducing a parameter onto a record's primary constructor without
+                            // materializing it into the record's value shape, trigger the primary-constructor
+                            // materialization path so the linker emits an explicit body-declared ctor, and
+                            // register the parameter name so the linker filter skips the corresponding positional
+                            // property / Deconstruct entry / field assignment.
+                            auxiliaryMemberTransformations
+                                .GetOrAdd( primaryCtorRef, _ => new AuxiliaryMemberTransformations() )
+                                .InjectAuxiliarySourceMember();
+
+                            var lateTransformations = transformationCollection
+                                .GetOrAddLateTypeLevelTransformations( (ISymbolRef<INamedType>) primaryCtor.DeclaringType.ToRef() );
+
+                            lateTransformations.RemovePrimaryConstructor();
+                            lateTransformations.AddNonMaterializedIntroducedParameter( introduceParameterTransformation.Parameter.Name );
+                        }
+                        else
+                        {
+                            // Track the presence of a materialized introduction so the linker's Deconstruct
+                            // emission can differentiate the all-non-materialized case (where the compensator
+                            // alone is sufficient) from the mixed / all-materialized case.
+                            var lateTransformations = transformationCollection
+                                .GetOrAddLateTypeLevelTransformations( (ISymbolRef<INamedType>) primaryCtor.DeclaringType.ToRef() );
+
+                            lateTransformations.MarkMaterializedIntroducedParameterOnPrimary();
+                        }
+                    }
                 }
 
                 break;

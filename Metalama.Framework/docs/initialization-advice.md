@@ -557,7 +557,14 @@ Non-instrumented callers (external assemblies, reflection, `Activator.CreateInst
 
 ### 4.7 Positional Records
 
-For positional records, `IntroduceParameter` already handles primary constructor materialization: the parameter is appended to the primary constructor, and a `Deconstruct` method matching the original parameter list is auto-generated to preserve backward compatibility. When combined with an overloading strategy that asks for a stub, a secondary forwarding constructor is generated alongside the modified primary.
+For positional records, an appended parameter can participate in the record's value shape (positional property, `Deconstruct`, `Equals`, `GetHashCode`, `ToString`, compiler-generated copy ctor) or exist as a constructor-only parameter that the aspect threads for its own purposes. The `materializeOnRecord` flag on `PullStrategy.IntroduceParameterAndPull` selects between the two:
+
+- **`materializeOnRecord: false` (default).** A threading-only parameter. The linker strips the primary header and emits a body-declared constructor that carries the appended parameter. The appended parameter does **not** become a positional property, does **not** appear in `Deconstruct`, and does **not** participate in `Equals`/`GetHashCode`/`ToString`. A compensating `Deconstruct` with the pre-mutation signature is emitted so existing deconstruction call sites keep binding. This is the right default for `OnConstructed`-style parameters (`InitializationContext`, tracing contexts, and other cross-cutting marker types) that should not pollute the record's identity.
+- **`materializeOnRecord: true` (opt-in).** The appended parameter keeps its position in the primary header and therefore becomes part of the record's value shape via the usual compiler-generated positional-property + `Deconstruct` + `Equals`/`GetHashCode`/`ToString` expansion. An extended `Deconstruct(out …, out T appended)` overload is emitted alongside the original-arity compensator. Use this when the parameter is semantically a field of the record (e.g. an injected `Owner`, `Tenant`, `Timestamp`) that callers should be able to read, compare, format, and destructure.
+
+In both modes, combining with `ConstructorOverloadingStrategy.ForwardSourceConstructors` produces a `[SourceCompatibilityConstructor]` forwarder preserving the pre-mutation arity so uninstrumented callers continue to bind by arity. On hierarchies the forwarder is emitted per record, and the derived record's body constructor threads the appended parameter through the `:base(...)` initializer — fire-once semantics work the normal way.
+
+A deliberate gap remains: because the compiler-generated copy constructor is never modified (see §6.9 and §7.2), an appended parameter introduced with `materializeOnRecord: false` cannot flow through `r with { … }` expressions and has no effect on `with`-produced instances.
 
 ---
 
@@ -798,6 +805,46 @@ Execution order for the full lifecycle:
 2. `OnConstructed(context)` — at end of constructor
 3. Object initializer (`init` properties) — if present
 4. `WithInitialize(expr)` — after object initializers
+
+### 6.8 Cross-project propagation
+
+The "fire once after the most-derived constructor" guarantee must hold for derived classes that live in a *different* project from the one declaring the aspect. The framework achieves this by registering **two** system-internal transitive aspects on the base type:
+
+1. `PullConstructorParameterTransitiveAspect` — pulls the `InitializationContext` parameter into derived constructors in dependent projects.
+2. `AddConstructorEpilogueTransitiveAspect` — emits the `if (!context.IsHandled(...)) this.OnConstructed(context);` epilogue and the `:base(context.Descend(...))` rewrite on each derived constructor in dependent projects.
+
+System-layer ordering guarantees the pull aspect runs first, so the epilogue aspect always observes whichever `InitializationContext` parameter is now present on the constructor.
+
+The two transitive aspects are intentionally decoupled. If a derived constructor *already* has an `InitializationContext` parameter (added by some other source — for example, hand-authored), the pull aspect is a no-op (when invoked via `PullStrategy.IntroduceParameterAndPull(reuseExistingParameterOfSameType: true)`, which is what `AfterLastInstanceConstructor` configures). The epilogue aspect still runs, finds the existing parameter, and emits the epilogue + descend rewrite using its name. This satisfies the rule *"if the constructor already has `InitializationContext` for any reason, the `OnConstructed` epilogue must still fire."*
+
+This propagation is **independent from `[Inheritable]`**. Marking the user aspect `[Inheritable]` controls whether the user *template body* runs again on each derived type (producing a `protected override OnConstructed` per level). The cross-project epilogue + descend rewrite happens regardless: when the aspect is not inheritable, the derived constructor's epilogue calls `this.OnConstructed(context)`, which dynamically dispatches to the inherited base method, so the user template fires once at the base declaration site — the correct semantics for a non-inheritable aspect.
+
+### 6.9 Records
+
+`AfterLastInstanceConstructor` (and equally `BeforeInstanceConstructor`) is supported on records. The epilogue and the `InitializationContext` parameter append are emitted per constructor, with one deliberate exception: the compiler-generated record copy constructor is never modified.
+
+**What gets instrumented:**
+
+- The **primary constructor** of a positional record. When the record is declared as `record R(int X);` (no body block), the linker strips the primary header and materializes a full body-declared constructor — assigning the primary-ctor parameters to their corresponding positional properties — and lands the epilogue on top of it. The appended `InitializationContext` parameter is introduced with `materializeOnRecord: false` (see §4.7), so it lives as a constructor parameter only: it does **not** become a positional init-only property, does **not** appear in `Deconstruct`, and does **not** participate in `Equals`/`GetHashCode`/`ToString`. A compensating `Deconstruct` with the pre-mutation signature is emitted so existing deconstruction code keeps binding.
+- **Explicit constructors** authored by the user — same `InitializerKind != ConstructorInitializerKind.This` filter as classes: ctors chained via `:this(...)` are skipped, ctors chained via `:base(...)` receive the epilogue.
+- **User-authored copy constructors**: because a hand-written `R(R original)` is not `IsImplicitlyDeclared`, it is *not* matched by `IsRecordCopyConstructor()`. The emitter treats it like any other ctor and injects the template.
+
+On hierarchies, the derived record's body constructor threads the `InitializationContext` through its `:base(...)` initializer as `: base(X, context.Descend(InitializationSlot.OnConstructed))`; fire-once semantics work exactly as on classes — `Descend` on the way down, `IsHandled` in each layer's epilogue, virtual dispatch into the derived override on the way up.
+
+**What is skipped:**
+
+- The **compiler-generated copy constructor** (`protected R(R original)`). Metalama cannot modify compiler-synthesized code, so `with` expressions and `new R(existing)` flow through an unmodified copy ctor and therefore do **not** fire the template. This is the only behavioural difference from classes for these initializer kinds.
+
+**Opting into `with` coverage.** A user who needs the template to run on copy-construction can declare an explicit copy constructor that chains to `:base(original)` (not `:this(...)`). Because it is user-authored, it is no longer compiler-generated, and it becomes the canonical copy ctor — `with` expressions now flow through it and the template fires.
+
+```csharp
+[MyAspect] // AddInitializer(..., AfterLastInstanceConstructor)
+public sealed record R(int X)
+{
+    // Opt in: user-authored copy ctor — runs the template on `with` expressions.
+    public R(R original) : base(original) { X = original.X; }
+}
+```
 
 ---
 

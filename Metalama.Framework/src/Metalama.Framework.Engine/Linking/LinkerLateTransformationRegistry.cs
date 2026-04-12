@@ -22,6 +22,8 @@ internal sealed class LinkerLateTransformationRegistry
 {
     private readonly ISet<INamedTypeSymbol> _typesWithRemovedPrimaryConstructor;
     private readonly ISet<ISymbol> _primaryConstructorInitializedMembers;
+    private readonly Dictionary<INamedTypeSymbol, HashSet<string>> _nonMaterializedIntroducedParameterNamesByType;
+    private readonly ISet<INamedTypeSymbol> _typesWithMaterializedIntroducedParameterOnPrimary;
 
     public LinkerLateTransformationRegistry(
         PartialCompilation intermediateCompilation,
@@ -37,12 +39,29 @@ internal sealed class LinkerLateTransformationRegistry
         this._primaryConstructorInitializedMembers =
             primaryConstructorInitializedMembers = new HashSet<ISymbol>( intermediateCompilation.CompilationContext.SymbolComparer );
 
+        this._nonMaterializedIntroducedParameterNamesByType =
+            new Dictionary<INamedTypeSymbol, HashSet<string>>( intermediateCompilation.CompilationContext.SymbolComparer );
+
+        this._typesWithMaterializedIntroducedParameterOnPrimary =
+            new HashSet<INamedTypeSymbol>( intermediateCompilation.CompilationContext.SymbolComparer );
+
         foreach ( var lateTypeLevelTransformationPair in lateTypeLevelTransformations )
         {
             var type = lateTypeLevelTransformationPair.Key;
             var transformations = lateTypeLevelTransformationPair.Value;
 
             var typeSymbol = (INamedTypeSymbol) intermediateCompilation.CompilationContext.SymbolTranslator.Translate( type.Symbol ).AssertNotNull();
+
+            if ( transformations.NonMaterializedIntroducedParameterNames.Count > 0 )
+            {
+                this._nonMaterializedIntroducedParameterNamesByType[typeSymbol] =
+                    new HashSet<string>( transformations.NonMaterializedIntroducedParameterNames, StringComparer.Ordinal );
+            }
+
+            if ( transformations.HasMaterializedIntroducedParameterOnPrimary )
+            {
+                this._typesWithMaterializedIntroducedParameterOnPrimary.Add( typeSymbol );
+            }
 
             if ( transformations.ShouldRemovePrimaryConstructor )
             {
@@ -152,6 +171,15 @@ internal sealed class LinkerLateTransformationRegistry
     }
 
     public bool IsPrimaryConstructorInitializedMember( ISymbol symbol ) => this._primaryConstructorInitializedMembers.Contains( symbol );
+
+    public bool IsNonMaterializedIntroducedParameter( INamedTypeSymbol type, string name )
+        => this._nonMaterializedIntroducedParameterNamesByType.TryGetValue( type, out var names ) && names.Contains( name );
+
+    public bool HasAnyNonMaterializedIntroducedParameter( INamedTypeSymbol type )
+        => this._nonMaterializedIntroducedParameterNamesByType.ContainsKey( type );
+
+    public bool HasMaterializedIntroducedParameterOnPrimary( INamedTypeSymbol type )
+        => this._typesWithMaterializedIntroducedParameterOnPrimary.Contains( type );
 
     public ArgumentListSyntax? GetPrimaryConstructorBaseArgumentList( IMethodSymbol constructor )
     {

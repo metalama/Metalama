@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
-using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis;
 using System;
@@ -36,15 +35,6 @@ internal abstract class ConstructorInitializeAdvice : Advice<AddInitializerAdvic
         var targetDeclaration = this.TargetDeclaration.ToRef().GetTarget( context.MutableCompilation );
 
         var containingType = targetDeclaration.GetClosestNamedType().AssertNotNull();
-
-        if ( (targetDeclaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock) && containingType.IsRecord )
-        {
-            return this.CreateFailedResult(
-                AdviceDiagnosticDescriptors.CannotAddInitializerToRecord.CreateRoslynDiagnostic(
-                    containingType.GetDiagnosticLocation(),
-                    (this.AspectInstance.AspectClass.ShortName, containingType),
-                    this ) );
-        }
 
         IConstructor? staticConstructor;
 
@@ -77,7 +67,9 @@ internal abstract class ConstructorInitializeAdvice : Advice<AddInitializerAdvic
                         [staticConstructor.AssertNotNull()],
                     InitializerKind.BeforeInstanceConstructor =>
                         containingType.Constructors
-                            .Where( c => c.InitializerKind != ConstructorInitializerKind.This ),
+                            .Where(
+                                c => c.InitializerKind != ConstructorInitializerKind.This
+                                     && !c.IsRecordCopyConstructor() ),
                     _ => throw new AssertionFailedException( $"Unexpected initializer kind: {this._kind}." )
                 },
                 _ => throw new AssertionFailedException( $"Unexpected declaration: '{targetDeclaration}'." )

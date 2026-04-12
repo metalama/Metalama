@@ -67,12 +67,17 @@ internal sealed partial class LinkerInjectionStep
                 return kindComparison;
             }
 
-            // Order by name.
-            var nameComparison = string.CompareOrdinal( x.Declaration.Name, y.Declaration.Name );
-
-            if ( nameComparison != 0 )
+            // Order by name. Extension blocks have auto-generated hash-based names that are
+            // not meaningful for ordering — fall through to AdviceOrderingIndices for them
+            // so source order is preserved.
+            if ( x.Kind != DeclarationKind.ExtensionBlock )
             {
-                return nameComparison;
+                var nameComparison = string.CompareOrdinal( x.Declaration.Name, y.Declaration.Name );
+
+                if ( nameComparison != 0 )
+                {
+                    return nameComparison;
+                }
             }
 
             var declaration = GetDeclaration( x );

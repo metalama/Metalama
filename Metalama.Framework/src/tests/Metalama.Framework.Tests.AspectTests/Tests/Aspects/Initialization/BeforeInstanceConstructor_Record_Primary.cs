@@ -2,27 +2,27 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using System;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_Record_Diagnostic;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.BeforeInstanceConstructor_Record_Primary;
 
-public class TheAspect : TypeAspect
+public class Aspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.AddInitializer( nameof(InitializerTemplate), InitializerKind.AfterLastInstanceConstructor );
+        builder.AddInitializer( nameof(Template), InitializerKind.BeforeInstanceConstructor );
     }
 
     [Template]
-    private void InitializerTemplate()
+    public void Template()
     {
-        Console.WriteLine( "OnConstructed!" );
+        Console.WriteLine( $"{meta.Target.Type.Name}: {meta.AspectInstance.AspectClass.ShortName}" );
     }
 }
 
 // <target>
-[TheAspect]
-public record TargetCode( int Value );
+[Aspect]
+public sealed record TargetRecord( int X );
