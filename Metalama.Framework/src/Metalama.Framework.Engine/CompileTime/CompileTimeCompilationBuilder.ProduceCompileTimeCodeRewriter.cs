@@ -537,6 +537,22 @@ namespace Metalama.Framework.Engine.CompileTime
 
                                 break;
 
+                            case TypeDeclarationSyntax nestedType:
+                                members.AddRange( this.VisitTypeDeclaration( nestedType ) );
+
+                                break;
+
+                            case EnumDeclarationSyntax:
+                            case DelegateDeclarationSyntax:
+                                var visited = (MemberDeclarationSyntax?) this.Visit( member );
+
+                                if ( visited != null )
+                                {
+                                    members.Add( visited );
+                                }
+
+                                break;
+
                             default:
                                 members.Add( (MemberDeclarationSyntax) this.Visit( member ).AssertNotNull() );
 
