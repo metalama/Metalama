@@ -107,7 +107,8 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 initialCompilationModel,
                 mutableCompilationModel.CreateImmutableClone(),
                 transformations.ToOrderedList( x => layerOrderLookup[x.AspectLayerId] ),
-                orderedLayers );
+                orderedLayers,
+                default );
 
             return linkerInput;
         }

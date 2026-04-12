@@ -1,5 +1,5 @@
 [MyAspect]
-public class A(int x, string? s = null, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p = 15)
+public class A(int x, string? s = null, [AspectGenerated] int p = 15)
 {
   public A(short x) : this((int)x, p: 51)
   {

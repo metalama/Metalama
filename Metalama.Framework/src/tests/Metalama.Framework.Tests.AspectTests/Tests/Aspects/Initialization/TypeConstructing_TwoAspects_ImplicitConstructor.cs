@@ -8,7 +8,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Tests.AspectTests.Aspects.Initialization.TypeConstructing_TwoAspects_ImplicitConstructor;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(SecondAspect), typeof(FirstAspect) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(FirstAspect), typeof(SecondAspect) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Aspects.Initialization.TypeConstructing_TwoAspects_ImplicitConstructor
 {
@@ -22,7 +22,7 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Initialization.TypeConstr
         [Template]
         public void Template()
         {
-            Console.WriteLine( $"{meta.Target.Type.Name}: {meta.AspectInstance.AspectClass.ShortName} First" );
+            Console.WriteLine( $"{meta.Target.Type.Name}: FirstAspect First" );
         }
     }
 
@@ -36,7 +36,7 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Initialization.TypeConstr
         [Template]
         public void Template()
         {
-            Console.WriteLine( $"{meta.Target.Type.Name}: {meta.AspectInstance.AspectClass.ShortName} Second" );
+            Console.WriteLine( $"{meta.Target.Type.Name}: SecondAspect Second" );
         }
     }
 

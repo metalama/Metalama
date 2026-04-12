@@ -11,7 +11,7 @@ public class C
   private IFormatProvider _formatProvider;
   public C([AspectGenerated] ILoggerFactory? loggerFactory = null, [AspectGenerated] IFormatProvider? formatProvider = null)
   {
-    this._loggerFactory = loggerFactory;
     this._formatProvider = formatProvider ?? throw new System.ArgumentNullException(nameof(formatProvider));
+    this._loggerFactory = loggerFactory;
   }
 }

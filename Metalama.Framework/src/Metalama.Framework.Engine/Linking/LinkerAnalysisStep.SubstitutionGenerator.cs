@@ -55,6 +55,14 @@ internal sealed partial class LinkerAnalysisStep
             IntermediateSymbolSemantic<IMethodSymbol>,
             IReadOnlyList<CallerAttributeReference>> _callerMemberReferencesByContainingSemantic;
 
+        private readonly IReadOnlyDictionary<
+            IntermediateSymbolSemantic<IMethodSymbol>,
+            IReadOnlyList<ObjectCreationCallSiteReference>> _onInitializedCallSitesByContainingSemantic;
+
+        private readonly IReadOnlyDictionary<
+            ISymbol,
+            IReadOnlyList<ObjectCreationCallSiteReference>> _onInitializedCallSitesByInitializerMember;
+
         private readonly IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> _eventBrokerSemanticIndex;
 
         private readonly IConcurrentTaskRunner _concurrentTaskRunner;
@@ -74,6 +82,7 @@ internal sealed partial class LinkerAnalysisStep
             IReadOnlyList<IntermediateSymbolSemanticReference> eventFieldRaiseReferences,
             IReadOnlyList<IntermediateSymbolSemanticReference> backingFieldReferences,
             IReadOnlyList<CallerAttributeReference> callerMemberReferences,
+            IReadOnlyList<ObjectCreationCallSiteReference> onInitializedCallSites,
             IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> eventBrokerSemanticIndex )
         {
             this._concurrentTaskRunner = parent._serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
@@ -88,9 +97,32 @@ internal sealed partial class LinkerAnalysisStep
             this._forcefullyInitializedTypes = forcefullyInitializedTypes;
             this._eventBrokerSemanticIndex = eventBrokerSemanticIndex;
 
+            // Partition OnInitialized call sites into two buckets based on the kind of their
+            // containing symbol: method-body call sites drive the inlining pipeline, while
+            // field/property/event-field initializer call sites are applied directly by
+            // LinkerRewritingDriver when rewriting the declaration.
+            var onInitializedMethodBodyCallSites = new List<ObjectCreationCallSiteReference>();
+            var onInitializedInitializerCallSites = new List<ObjectCreationCallSiteReference>();
+
+            foreach ( var reference in onInitializedCallSites )
+            {
+                if ( reference.ContainingSymbol is IMethodSymbol )
+                {
+                    onInitializedMethodBodyCallSites.Add( reference );
+                }
+                else
+                {
+                    onInitializedInitializerCallSites.Add( reference );
+                }
+            }
+
             this._additionalTransformedSemantics =
                 redirectedSymbolReferences.SelectAsReadOnlyList( x => (IntermediateSymbolSemantic) x.ContainingSemantic )
                     .Union( eventFieldRaiseReferences.SelectAsReadOnlyList( x => (IntermediateSymbolSemantic) x.ContainingSemantic ) )
+                    .Union(
+                        onInitializedMethodBodyCallSites.SelectAsReadOnlyList(
+                            x => (IntermediateSymbolSemantic) ((IMethodSymbol) x.ContainingSymbol).ToSemantic(
+                                IntermediateSymbolSemanticKind.Default ) ) )
                     .Except( inlinedSemantics )
                     .Distinct()
                     .ToReadOnlyList();
@@ -115,6 +147,15 @@ internal sealed partial class LinkerAnalysisStep
                 callerMemberReferences,
                 x => x.ContainingSemantic );
 
+            this._onInitializedCallSitesByContainingSemantic = IndexReferenceByContainingBody(
+                intermediateCompilationContext,
+                onInitializedMethodBodyCallSites,
+                x => ((IMethodSymbol) x.ContainingSymbol).ToSemantic( IntermediateSymbolSemanticKind.Default ) );
+
+            this._onInitializedCallSitesByInitializerMember = IndexInitializerReferencesByMember(
+                intermediateCompilationContext,
+                onInitializedInitializerCallSites );
+
             static IReadOnlyDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyList<T>> IndexReferenceByContainingBody<T>(
                 CompilationContext compilationContext,
                 IReadOnlyList<T> references,
@@ -138,9 +179,31 @@ internal sealed partial class LinkerAnalysisStep
 
                 return dict.ToDictionary( x => x.Key, x => (IReadOnlyList<T>) x.Value );
             }
+
+            static IReadOnlyDictionary<ISymbol, IReadOnlyList<ObjectCreationCallSiteReference>> IndexInitializerReferencesByMember(
+                CompilationContext compilationContext,
+                IReadOnlyList<ObjectCreationCallSiteReference> references )
+            {
+                var dict = new Dictionary<ISymbol, List<ObjectCreationCallSiteReference>>( compilationContext.SymbolComparer );
+
+                foreach ( var reference in references )
+                {
+                    if ( !dict.TryGetValue( reference.ContainingSymbol, out var list ) )
+                    {
+                        dict[reference.ContainingSymbol] = list = new List<ObjectCreationCallSiteReference>();
+                    }
+
+                    list.Add( reference );
+                }
+
+                return dict.ToDictionary(
+                    x => x.Key,
+                    x => (IReadOnlyList<ObjectCreationCallSiteReference>) x.Value,
+                    compilationContext.SymbolComparer );
+            }
         }
 
-        public async Task<IReadOnlyDictionary<InliningContextIdentifier, IReadOnlyList<SyntaxNodeSubstitution>>> RunAsync( CancellationToken cancellationToken )
+        public async Task<SubstitutionGeneratorOutput> RunAsync( CancellationToken cancellationToken )
         {
             var substitutions = new ConcurrentDictionary<InliningContextIdentifier, ConcurrentDictionary<SyntaxNode, SyntaxNodeSubstitution>>();
 
@@ -260,6 +323,15 @@ internal sealed partial class LinkerAnalysisStep
                                 reference.ReferencingOverrideTarget,
                                 reference.TargetMethod,
                                 reference.ParametersToFix ) );
+                    }
+                }
+
+                // Add substitutions for IInitializable call site references.
+                if ( this._onInitializedCallSitesByContainingSemantic.TryGetValue( nonInlinedSemanticBody, out var onInitializedCallSites ) )
+                {
+                    foreach ( var reference in onInitializedCallSites )
+                    {
+                        AddSubstitution( context, this.CreateInitializerSubstitution( reference ) );
                     }
                 }
             }
@@ -488,8 +560,20 @@ internal sealed partial class LinkerAnalysisStep
 
             await this._concurrentTaskRunner.RunConcurrentlyAsync( this._forcefullyInitializedTypes, ProcessForcefullyInitializedType, cancellationToken );
 
+            // Materialize initializer substitutions: one OnInitializedCallSiteSubstitution per
+            // ObjectCreationCallSiteReference bucketed under a field / event-field / property symbol.
+            // These bypass the inlining pipeline and are applied directly by LinkerRewritingDriver
+            // when it rewrites the declaration.
+            var initializerSubstitutions = this._onInitializedCallSitesByInitializerMember.ToDictionary(
+                entry => entry.Key,
+                entry => (IReadOnlyList<SyntaxNodeSubstitution>) entry.Value
+                    .SelectAsArray<ObjectCreationCallSiteReference, SyntaxNodeSubstitution>( this.CreateInitializerSubstitution ),
+                this._intermediateCompilationContext.SymbolComparer );
+
             // TODO: We convert this later back to the dictionary, but for debugging it's better to have dictionary also here.
-            return substitutions.ToDictionary( x => x.Key, x => x.Value.Values.ToReadOnlyList() );
+            var contextSubstitutions = substitutions.ToDictionary( x => x.Key, x => x.Value.Values.ToReadOnlyList() );
+
+            return new SubstitutionGeneratorOutput( contextSubstitutions, initializerSubstitutions );
 
             void AddSubstitutionsForNonInlinedReference( ResolvedAspectReference nonInlinedReference, InliningContextIdentifier context )
             {
@@ -817,5 +901,32 @@ internal sealed partial class LinkerAnalysisStep
 
                 _ => throw new AssertionFailedException( $"Unexpected syntax: '{root}'." )
             };
+
+        /// <summary>
+        /// Materializes the <see cref="OnInitializedCallSiteSubstitution"/> instance for a single
+        /// <see cref="ObjectCreationCallSiteReference"/>, selecting the right derived class depending
+        /// on whether the reference is an object creation or a <c>with</c> expression.
+        /// </summary>
+        private OnInitializedCallSiteSubstitution CreateInitializerSubstitution( ObjectCreationCallSiteReference reference )
+            => reference.IsWithExpression
+                ? new OnInitializedWithExpressionSubstitution(
+                    this._intermediateCompilationContext,
+                    reference.ReferencingNode,
+                    reference.TypeInfo )
+                : new OnInitializedObjectCreationSubstitution(
+                    this._intermediateCompilationContext,
+                    reference.ReferencingNode,
+                    reference.TypeInfo,
+                    reference.ContextParamName );
     }
+
+    /// <summary>
+    /// Output of <see cref="SubstitutionGenerator.RunAsync"/>: method-body substitutions keyed by
+    /// inlining context (applied via <c>SubstitutingRewriter</c>), plus initializer substitutions
+    /// keyed by the containing field / event-field / property symbol (applied directly by the
+    /// linker rewriting driver when it rewrites the declaration's initializer).
+    /// </summary>
+    private sealed record SubstitutionGeneratorOutput(
+        IReadOnlyDictionary<InliningContextIdentifier, IReadOnlyList<SyntaxNodeSubstitution>> ContextSubstitutions,
+        IReadOnlyDictionary<ISymbol, IReadOnlyList<SyntaxNodeSubstitution>> InitializerSubstitutions );
 }

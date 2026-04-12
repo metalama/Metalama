@@ -21,8 +21,9 @@ internal sealed partial class PullConstructorParameterTransitiveAspect
             var pullStrategy = constructorArguments.GetValue<IPullStrategy>( nameof(_pullStrategy) );
             var parameter = constructorArguments.GetValue<IRef<IParameter>>( nameof(_parameter) ).AssertNotNull();
             var order = constructorArguments.GetValue<int>( nameof(_order) );
+            var overloadingStrategy = constructorArguments.GetValue<IConstructorOverloadingStrategy>( nameof(_overloadingStrategy) );
 
-            return new PullConstructorParameterTransitiveAspect( pullStrategy, parameter, order );
+            return new PullConstructorParameterTransitiveAspect( pullStrategy, parameter, order, overloadingStrategy );
         }
 
         public override void SerializeObject(
@@ -33,6 +34,7 @@ internal sealed partial class PullConstructorParameterTransitiveAspect
             constructorArguments.SetValue( nameof(_pullStrategy), obj._pullStrategy );
             constructorArguments.SetValue( nameof(_parameter), obj._parameter );
             constructorArguments.SetValue( nameof(_order), obj._order );
+            constructorArguments.SetValue( nameof(_overloadingStrategy), obj._overloadingStrategy );
         }
 #pragma warning restore SA1101
     }

@@ -19,10 +19,10 @@ public class ExecuteMethodBackground
   }
   public ExecuteMethodBackground()
   {
-    InstanceNoParametersCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand(ExecuteInstanceNoParameters, null, false);
-    StaticNoParametersCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand(ExecuteStaticNoParameters, null, false);
-    InstanceWithParameterCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand<int>(ExecuteInstanceWithParameter, null, false);
     StaticWithParameterCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand<int>(ExecuteStaticWithParameter, null, false);
+    InstanceWithParameterCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand<int>(ExecuteInstanceWithParameter, null, false);
+    StaticNoParametersCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand(ExecuteStaticNoParameters, null, false);
+    InstanceNoParametersCommand = DelegateCommandFactory.CreateBackgroundDelegateCommand(ExecuteInstanceNoParameters, null, false);
   }
   public AsyncDelegateCommand InstanceNoParametersCommand { get; }
   public AsyncDelegateCommand<int> InstanceWithParameterCommand { get; }

@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.Collections;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -27,8 +28,40 @@ internal sealed partial class LinkerInjectionStep
 
         public void Sort()
         {
-            this.Arguments = this._unorderedArguments?.OrderBy( a => a.ParameterIndex ).ToImmutableArray()
-                             ?? ImmutableArray<IntroduceConstructorInitializerArgumentTransformation>.Empty;
+            if ( this._unorderedArguments == null )
+            {
+                this.Arguments = ImmutableArray<IntroduceConstructorInitializerArgumentTransformation>.Empty;
+            }
+            else
+            {
+                // ConcurrentLinkedList.ToList() returns items in reverse insertion order (LIFO), so the
+                // first element here is the latest-added transformation.
+                var all = this._unorderedArguments.ToList();
+
+                // When an initializer-argument transformation has IsOverride == true it supersedes any
+                // earlier-appended transformation targeting the same parameter index. This is used by the
+                // OnConstructed advice to rewrite the `context` argument pulled into a derived `:base(...)`
+                // call so it descends with InitializationSlot.OnConstructed.
+                var overridesByIndex = all
+                    .Where( a => a.IsOverride )
+                    .GroupBy( a => a.ParameterIndex )
+                    .ToDictionary( g => g.Key, g => g.First() );
+
+                IEnumerable<IntroduceConstructorInitializerArgumentTransformation> filtered;
+
+                if ( overridesByIndex.Count == 0 )
+                {
+                    filtered = all;
+                }
+                else
+                {
+                    filtered = all
+                        .Where( a => !overridesByIndex.ContainsKey( a.ParameterIndex ) )
+                        .Concat( overridesByIndex.Values );
+                }
+
+                this.Arguments = filtered.OrderBy( a => a.ParameterIndex ).ToImmutableArray();
+            }
 
             this.Parameters = this._unorderedParameters?.OrderBy( p => p.Parameter.Index ).ToImmutableArray()
                               ?? ImmutableArray<IntroduceParameterTransformation>.Empty;

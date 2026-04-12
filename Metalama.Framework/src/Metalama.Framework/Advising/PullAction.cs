@@ -16,7 +16,7 @@ namespace Metalama.Framework.Advising;
 /// </summary>
 /// <remarks>
 /// <para>
-/// When a parameter is introduced to a constructor using <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction})"/>,
+/// When a parameter is introduced to a constructor using <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction}, Metalama.Framework.Advising.IConstructorOverloadingStrategy?)"/>,
 /// child constructors (those that call the modified constructor via <c>: base(...)</c> or <c>: this(...)</c>)
 /// need to provide a value for this new parameter. A <see cref="PullAction"/> specifies how to obtain that value.
 /// </para>
@@ -33,7 +33,7 @@ namespace Metalama.Framework.Advising;
 /// <seealso cref="IPullStrategy"/>
 /// <seealso cref="PullStrategy"/>
 /// <seealso cref="PullActionKind"/>
-/// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction})"/>
+/// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction}, Metalama.Framework.Advising.IConstructorOverloadingStrategy?)"/>
 /// <seealso href="@introducing-constructor-parameters"/>
 [CompileTime]
 [PublicAPI]
@@ -50,6 +50,15 @@ public readonly struct PullAction
     internal string? ParameterName { get; }
 
     /// <summary>
+    /// Gets a value indicating whether, on record targets, the pulled parameter should be appended to the
+    /// positional (primary) constructor — making it part of the record's value shape (property, <c>Deconstruct</c>,
+    /// <c>Equals</c>, <c>ToString</c>). When <c>false</c> (the default), the parameter is carried on a synthesized
+    /// non-primary sibling constructor and the record's positional list is left untouched. Ignored for non-record
+    /// targets.
+    /// </summary>
+    internal bool MaterializeOnRecord { get; }
+
+    /// <summary>
     /// Gets the expression to use for pulling the dependency when <see cref="UseExpression"/> or <see cref="UseConstant"/> is used.
     /// </summary>
     public IExpression? Expression { get; }
@@ -60,7 +69,8 @@ public readonly struct PullAction
         string? parameterName = null,
         IType? parameterType = null,
         IExpression? parameterDefaultValue = null,
-        ImmutableArray<AttributeConstruction> parameterAttributes = default )
+        ImmutableArray<AttributeConstruction> parameterAttributes = default,
+        bool materializeOnRecord = false )
     {
         this.Kind = kind;
         this.Expression = expression;
@@ -68,6 +78,7 @@ public readonly struct PullAction
         this.ParameterAttributes = parameterAttributes.IsDefault ? ImmutableArray<AttributeConstruction>.Empty : parameterAttributes;
         this.ParameterName = parameterName;
         this.ParameterDefaultValue = parameterDefaultValue;
+        this.MaterializeOnRecord = materializeOnRecord;
     }
 
     /// <summary>
@@ -75,7 +86,7 @@ public readonly struct PullAction
     /// </summary>
     /// <remarks>
     /// When this action is used, the child constructor will pass the default value (as specified in
-    /// <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction})"/>) to the introduced parameter.
+    /// <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction}, Metalama.Framework.Advising.IConstructorOverloadingStrategy?)"/>) to the introduced parameter.
     /// </remarks>
     public static PullAction None => new( PullActionKind.DoNotPull );
 
@@ -99,6 +110,12 @@ public readonly struct PullAction
     /// <param name="parameterType">Type of the new parameter.</param>
     /// <param name="parameterDefaultValue">Optional default value for the new parameter.</param>
     /// <param name="parameterAttributes">Optional attributes to apply to the new parameter.</param>
+    /// <param name="materializeOnRecord">When <c>true</c> and the target is a record, the parameter is appended to the positional (primary)
+    ///     constructor and therefore becomes part of the record's value shape — an auto-generated property, a new entry in
+    ///     <c>Equals</c>/<c>GetHashCode</c>/<c>ToString</c>, and a new <c>Deconstruct</c> overload. When <c>false</c> (the default),
+    ///     the parameter is carried on a non-primary sibling constructor synthesized by Metalama, and the record's positional list
+    ///     is left untouched. Ignored for non-record targets. Set this to <c>true</c> only if you deliberately want the pulled
+    ///     parameter to participate in the record's value identity.</param>
     /// <returns>A <see cref="PullAction"/> that introduces a new parameter and pulls from it.</returns>
     /// <remarks>
     /// <para>
@@ -120,8 +137,16 @@ public readonly struct PullAction
         string parameterName,
         IType parameterType,
         IExpression? parameterDefaultValue,
-        ImmutableArray<AttributeConstruction> parameterAttributes = default )
-        => new( PullActionKind.AppendParameterAndPull, null, parameterName, parameterType, parameterDefaultValue, parameterAttributes );
+        ImmutableArray<AttributeConstruction> parameterAttributes = default,
+        bool materializeOnRecord = false )
+        => new(
+            PullActionKind.AppendParameterAndPull,
+            null,
+            parameterName,
+            parameterType,
+            parameterDefaultValue,
+            parameterAttributes,
+            materializeOnRecord );
 
     /// <summary>
     /// Creates a <see cref="PullAction"/> that means that the dependency should be assigned to a given <see cref="IExpression"/>.

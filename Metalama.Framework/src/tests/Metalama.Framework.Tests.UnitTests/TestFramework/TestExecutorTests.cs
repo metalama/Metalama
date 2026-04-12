@@ -54,6 +54,7 @@ public sealed class TestExecutorTests : UnitTestClass
             directory,
             ImmutableArray<string>.Empty,
             "net8.0",
+            "net8.0",
             ImmutableArray<string>.Empty );
 
         var assemblyInfo = new TestAssemblyInfo( $"test.dll" );

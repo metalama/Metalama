@@ -7,7 +7,13 @@ namespace Metalama.Framework.Engine.Transformations;
 internal enum InsertedStatementKind
 {
     /// <summary>
-    /// Insert statement into the beginning of the final version of the declaration, in transformation order. 
+    /// Insert statement before all initializer statements in the final version of the declaration.
+    /// Used for base calls (e.g. <c>base.Initialize(...)</c>) that must precede template-injected statements.
+    /// </summary>
+    InitializerPrologue = -300,
+
+    /// <summary>
+    /// Insert statement into the beginning of the final version of the declaration, in transformation order.
     /// </summary>
     Initializer = -200,
 
@@ -18,7 +24,13 @@ internal enum InsertedStatementKind
     InputContract = -100,
 
     /// <summary>
-    /// Insert statement into the end of an auxiliary declaration for the current version of the target declaration (source, introduction or latest override). 
+    /// Insert statement at the end of the user body of a source instance constructor, after all user code has run.
+    /// Used by <c>AfterLastInstanceConstructor</c> to emit a trailing <c>this.OnConstructed(context);</c> call.
+    /// </summary>
+    InitializerEpilogue = 50,
+
+    /// <summary>
+    /// Insert statement into the end of an auxiliary declaration for the current version of the target declaration (source, introduction or latest override).
     /// Statements added by one layer have their order preserved.
     /// </summary>
     OutputContract = 100

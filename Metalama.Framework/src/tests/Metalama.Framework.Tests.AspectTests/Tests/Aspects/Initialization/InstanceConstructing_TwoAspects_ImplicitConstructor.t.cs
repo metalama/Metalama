@@ -8,7 +8,9 @@ public class TargetCode
   }
   public TargetCode()
   {
-    global::System.Console.WriteLine("TargetCode: FirstAspect First");
-    global::System.Console.WriteLine("TargetCode: SecondAspect Second");
+    Console.WriteLine("TargetCode: FirstAspect First1");
+    Console.WriteLine("TargetCode: FirstAspect First2");
+    Console.WriteLine("TargetCode: SecondAspect Second1");
+    Console.WriteLine("TargetCode: SecondAspect Second2");
   }
 }

@@ -68,25 +68,25 @@ public partial class StaticValidateValue : DependencyObject
   public static readonly DependencyProperty FooProperty;
   static StaticValidateValue()
   {
-    FooProperty = DependencyProperty.Register("Foo", typeof(int), typeof(StaticValidateValue), new PropertyMetadata() { CoerceValueCallback = (d, value_1) =>
+    AcceptsObjectProperty = DependencyProperty.Register("AcceptsObject", typeof(int), typeof(StaticValidateValue), new PropertyMetadata() { CoerceValueCallback = (d_3, value_4) =>
     {
-      ValidateFoo((int)value_1);
-      return value_1;
-    } });
-    AcceptsAssignableProperty = DependencyProperty.Register("AcceptsAssignable", typeof(List<int>), typeof(StaticValidateValue), new PropertyMetadata() { CoerceValueCallback = (d_1, value_2) =>
-    {
-      ValidateAcceptsAssignable((List<int>)value_2);
-      return value_2;
+      ValidateAcceptsObject(value_4);
+      return value_4;
     } });
     AcceptsGenericProperty = DependencyProperty.Register("AcceptsGeneric", typeof(int), typeof(StaticValidateValue), new PropertyMetadata() { CoerceValueCallback = (d_2, value_3) =>
     {
       ValidateAcceptsGeneric((int)value_3);
       return value_3;
     } });
-    AcceptsObjectProperty = DependencyProperty.Register("AcceptsObject", typeof(int), typeof(StaticValidateValue), new PropertyMetadata() { CoerceValueCallback = (d_3, value_4) =>
+    AcceptsAssignableProperty = DependencyProperty.Register("AcceptsAssignable", typeof(List<int>), typeof(StaticValidateValue), new PropertyMetadata() { CoerceValueCallback = (d_1, value_2) =>
     {
-      ValidateAcceptsObject(value_4);
-      return value_4;
+      ValidateAcceptsAssignable((List<int>)value_2);
+      return value_2;
+    } });
+    FooProperty = DependencyProperty.Register("Foo", typeof(int), typeof(StaticValidateValue), new PropertyMetadata() { CoerceValueCallback = (d, value_1) =>
+    {
+      ValidateFoo((int)value_1);
+      return value_1;
     } });
   }
 }

@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
@@ -58,6 +59,16 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
     public IConstructor? ReplacedImplicitConstructor { get; set; }
 
     public override bool IsImplicitlyDeclared => this._isImplicitlyDeclared;
+
+    /// <summary>
+    /// Gets or sets a value that, when non-null, overrides <see cref="IsDesignTimeObservable"/>.
+    /// Used by <c>ForwardingConstructorHelper</c> to mark forwarding constructors as
+    /// compile-time only: the original source constructor is still physically present in
+    /// source at design time, so the source generator must not emit the clone.
+    /// </summary>
+    public bool? IsDesignTimeObservableOverride { get; init; }
+
+    public override bool IsDesignTimeObservable => this.IsDesignTimeObservableOverride ?? base.IsDesignTimeObservable;
 
     public ConstructorInitializerKind InitializerKind
     {
@@ -113,8 +124,10 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
 
     public override bool IsExplicitInterfaceImplementation => false;
 
-    // This is implemented by BuiltConstructor and there is no point in supporting it here.
-    public IConstructor GetBaseConstructor() => throw new NotSupportedException();
+    // ConstructorBuilder currently represents a default-shape constructor (either brand-new or
+    // replacing an implicit one). Its base call is to the parameterless base ctor — or, failing
+    // that, the unique accessible base ctor whose parameters are all optional.
+    public IConstructor? GetBaseConstructor() => BaseConstructorResolver.GetImplicitBaseConstructor( this.DeclaringType );
 
     public override string Name
     {

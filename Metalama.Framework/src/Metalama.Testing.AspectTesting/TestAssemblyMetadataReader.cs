@@ -34,6 +34,7 @@ namespace Metalama.Testing.AspectTesting
                 GetSourceDirectory(),
                 GetParserSymbols(),
                 GetTargetFramework(),
+                GetTargetFrameworks(),
                 GetMustLaunchDebugger(),
                 GetAssemblyReferences( "ReferenceAssemblyList" ),
                 GetAssemblyReferences( "CompileTimeAssemblyList" ),
@@ -77,6 +78,8 @@ namespace Metalama.Testing.AspectTesting
                     .ToImmutableArray();
 
             string GetTargetFramework() => GetRequiredAssemblyMetadataValue( "TargetFramework" );
+
+            string? GetTargetFrameworks() => GetOptionalAssemblyMetadataValue( "TargetFrameworks" );
 
             ImmutableArray<TargetedAssemblyReference> GetAssemblyReferences( string propertyName )
             {

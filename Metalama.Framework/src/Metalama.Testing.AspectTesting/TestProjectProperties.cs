@@ -30,6 +30,8 @@ internal sealed class TestProjectProperties
 
     public string TargetFramework { get; }
 
+    public string? AllTargetFrameworks { get; }
+
     public ImmutableArray<string> IgnoredWarnings { get; }
 
     internal TestProjectProperties(
@@ -38,6 +40,7 @@ internal sealed class TestProjectProperties
         string? sourceDirectory,
         ImmutableArray<string> preprocessorSymbols,
         string targetFramework,
+        string? allTargetFrameworks,
         ImmutableArray<string> ignoredWarnings )
     {
         // Remove trailing separator from directory paths.
@@ -56,6 +59,7 @@ internal sealed class TestProjectProperties
         this.AssemblyName = assemblyName;
         this.PreprocessorSymbols = preprocessorSymbols;
         this.TargetFramework = targetFramework;
+        this.AllTargetFrameworks = allTargetFrameworks;
         this.IgnoredWarnings = ignoredWarnings;
     }
 }

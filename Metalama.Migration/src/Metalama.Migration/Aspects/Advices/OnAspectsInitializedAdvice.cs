@@ -9,7 +9,7 @@ using System;
 namespace PostSharp.Aspects.Advices
 {
     /// <summary>
-    /// In Metalama, implement the <see cref="IAspect{T}.BuildAspect"/> method and use <c>builder</c>.<see cref="Advice"/>.<see cref="IAdviceFactory.AddInitializer(Metalama.Framework.Code.INamedType,string,Metalama.Framework.Advising.InitializerKind,object?,object?)"/>.
+    /// In Metalama, implement the <see cref="IAspect{T}.BuildAspect"/> method and use <c>builder</c>.<see cref="Advice"/>.<see cref="O:IAdviceFactory.AddInitializer"/>.
     /// </summary>
     /// <seealso href="@initializers"/>
     [AttributeUsage( AttributeTargets.Method, Inherited = false )]

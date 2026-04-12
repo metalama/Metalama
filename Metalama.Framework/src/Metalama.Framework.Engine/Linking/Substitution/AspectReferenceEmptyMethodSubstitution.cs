@@ -139,7 +139,7 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
         // Check for async types (Task, Task<T>) without await.
         if ( AsyncHelper.TryGetAsyncInfo( returnType, out var asyncResultType, out var hasMethodBuilder ) && hasMethodBuilder )
         {
-            var taskTypeSyntax = CreateFullyQualifiedName( "System", "Threading", "Tasks", "Task" );
+            var taskTypeSyntax = SyntaxFactoryEx.CreateFullyQualifiedName( "System", "Threading", "Tasks", "Task" );
 
             if ( asyncResultType.SpecialType == RoslynSpecialType.System_Void )
             {
@@ -212,7 +212,7 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
         return InvocationExpression(
             MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
-                CreateFullyQualifiedName( "System", "Linq", "Enumerable" ),
+                SyntaxFactoryEx.CreateFullyQualifiedName( "System", "Linq", "Enumerable" ),
                 GenericName( SyntaxFactoryEx.WellKnownIdentifier( "Empty" ) )
                     .WithTypeArgumentList(
                         TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( typeArg ) ) ) ) ) );
@@ -231,7 +231,7 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
         var typeArg = GetTypeArgument( asyncEnumerableType );
 
         // Build: global::Metalama.Framework.RunTime.AsyncEnumerableArray<T>.Empty
-        var qualifiedName = CreateFullyQualifiedName( "Metalama", "Framework", "RunTime" );
+        var qualifiedName = SyntaxFactoryEx.CreateFullyQualifiedName( "Metalama", "Framework", "RunTime" );
 
         var genericTypeName = GenericName( SyntaxFactoryEx.WellKnownIdentifier( "AsyncEnumerableArray" ) )
             .WithTypeArgumentList(
@@ -284,23 +284,4 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
         return asyncEnumerableType.Construct( typeArg );
     }
 
-    /// <summary>
-    /// Creates a fully qualified name expression like <c>global::System.Linq.Enumerable</c>.
-    /// </summary>
-    private static ExpressionSyntax CreateFullyQualifiedName( params string[] parts )
-    {
-        ExpressionSyntax result = AliasQualifiedName(
-            SyntaxFactoryEx.WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
-            SyntaxFactoryEx.WellKnownIdentifierName( parts[0] ) );
-
-        for ( var i = 1; i < parts.Length; i++ )
-        {
-            result = MemberAccessExpression(
-                SyntaxKind.SimpleMemberAccessExpression,
-                result,
-                SyntaxFactoryEx.WellKnownIdentifierName( parts[i] ) );
-        }
-
-        return result;
-    }
 }

@@ -349,6 +349,78 @@ record struct D(int x) {}
     }
 
     [Fact]
+    public void IsRecordCopyConstructor_PositionalRecordClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code =
+#if NETFRAMEWORK
+            @"namespace System.Runtime.CompilerServices { internal static class IsExternalInit {}}" +
+#endif
+            @"
+record class C(int x) {}
+";
+
+        var compilation = testContext.CreateCompilationModel( code );
+
+        var typeRecordClass = compilation.Types.OfName( "C" ).Single();
+
+        // Positional record has 2 constructors: primary (matches primary params) + synthesized copy constructor.
+        Assert.Equal( 2, typeRecordClass.Constructors.Count );
+
+        var primaryCtor = typeRecordClass.PrimaryConstructor.AssertNotNull();
+        var copyCtor = typeRecordClass.Constructors.Single( c => !c.IsPrimary );
+
+        Assert.False( primaryCtor.IsRecordCopyConstructor() );
+        Assert.True( copyCtor.IsRecordCopyConstructor() );
+    }
+
+    [Fact]
+    public void IsRecordCopyConstructor_NonPositionalRecordClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code =
+#if NETFRAMEWORK
+            @"namespace System.Runtime.CompilerServices { internal static class IsExternalInit {}}" +
+#endif
+            @"
+record class C { public int X { get; init; } }
+";
+
+        var compilation = testContext.CreateCompilationModel( code );
+
+        var typeRecordClass = compilation.Types.OfName( "C" ).Single();
+
+        // Non-positional record has 2 constructors: implicit parameterless + synthesized copy constructor.
+        var copyCtor = typeRecordClass.Constructors.SingleOrDefault( c => c.Parameters.Count == 1 );
+        var parameterlessCtor = typeRecordClass.Constructors.SingleOrDefault( c => c.Parameters.Count == 0 );
+
+        Assert.NotNull( copyCtor );
+        Assert.NotNull( parameterlessCtor );
+        Assert.True( copyCtor.IsRecordCopyConstructor() );
+        Assert.False( parameterlessCtor.IsRecordCopyConstructor() );
+    }
+
+    [Fact]
+    public void IsRecordCopyConstructor_NonRecordClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code = @"
+class A { public A(int x) {} }
+";
+
+        var compilation = testContext.CreateCompilationModel( code );
+
+        var typeClass = compilation.Types.OfName( "A" ).Single();
+
+        // User-authored unary-parameter ctor on a non-record class must not be flagged as a copy ctor.
+        var ctor = typeClass.Constructors.Single();
+        Assert.False( ctor.IsRecordCopyConstructor() );
+    }
+
+    [Fact]
     public void InitializerKind()
     {
         using var testContext = this.CreateTestContext();

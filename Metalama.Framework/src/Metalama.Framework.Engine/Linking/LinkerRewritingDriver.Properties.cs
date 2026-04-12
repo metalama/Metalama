@@ -64,9 +64,15 @@ namespace Metalama.Framework.Engine.Linking
                     // When primary-constructor removal moves this member's initialization into the synthesized constructor body,
                     // the generated backing field must not keep the original initializer, or the initialization would be duplicated
                     // and could reference constructor-only state.
+                    // Otherwise, apply IInitializable call-site substitutions to the initializer that will
+                    // be moved to the backing field. The walker attributes call sites to the
+                    // property symbol (the lexical container in source), so we look them up by
+                    // the property symbol even though the initializer is about to be re-hosted.
                     var backingFieldInitializer = this.LateTransformationRegistry.IsPrimaryConstructorInitializedMember( symbol )
                         ? null
-                        : propertyDeclaration.Initializer;
+                        : propertyDeclaration.Initializer != null
+                            ? this.RewriteInitializer( symbol, propertyDeclaration.Initializer, generationContext )
+                            : null;
 
                     var backingField = this.GetPropertyBackingField(
                         propertyDeclaration.Type,
@@ -181,6 +187,20 @@ namespace Metalama.Framework.Engine.Linking
                     propertyDeclaration = propertyDeclaration.PartialUpdate(
                         initializer: default(EqualsValueClauseSyntax),
                         semicolonToken: default(SyntaxToken) );
+                }
+                else if ( propertyDeclaration.Initializer != null )
+                {
+                    // Apply IInitializable call-site substitutions (WithInitialize(...)) to a
+                    // property initializer containing object-creation / with expressions that
+                    // target an IInitializable type. This is the non-override path where the
+                    // property declaration is returned unchanged.
+                    var rewrittenInitializer =
+                        this.RewriteInitializer( symbol, propertyDeclaration.Initializer, generationContext );
+
+                    if ( !ReferenceEquals( rewrittenInitializer, propertyDeclaration.Initializer ) )
+                    {
+                        propertyDeclaration = propertyDeclaration.WithInitializer( rewrittenInitializer );
+                    }
                 }
 
                 return [propertyDeclaration];

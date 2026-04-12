@@ -42,7 +42,9 @@ internal sealed class ContractExtensionBlockTransformation : ContractBaseTransfo
 
     public override IFullRef<IMemberOrNamedType> TargetMemberOrNamedType => this._targetExtensionBlock;
 
-    public override IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
+    public override IReadOnlyList<InsertedStatement> GetInsertedStatements(
+        InsertStatementTransformationContext context,
+        IReadOnlyList<IInsertStatementTransformation>? aggregatedGroup = null )
     {
         // Use GetTarget to get the extension block from the final compilation.
         var extensionBlock = this._targetExtensionBlock.GetTarget( context.FinalCompilation );

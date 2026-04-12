@@ -1,6 +1,6 @@
 public class D : C
 {
-  public D([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.DateTime p2 = default) : base(p2)
+  public D([AspectGenerated] DateTime p2 = default, [AspectGenerated] int p1 = 20) : base(p2, p1: p1)
   {
   }
 }

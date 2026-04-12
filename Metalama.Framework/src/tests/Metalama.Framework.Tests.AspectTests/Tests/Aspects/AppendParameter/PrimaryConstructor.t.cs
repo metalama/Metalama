@@ -1,5 +1,5 @@
 [MyAspect]
-public class C(int x, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p = 15) : A(42)
+public class C(int x, [AspectGenerated] int p = 15) : A(42)
 {
   public int Y { get; } = x;
 }

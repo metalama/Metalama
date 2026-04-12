@@ -7,6 +7,6 @@ public record TargetRecord
   }
   public TargetRecord()
   {
-    global::System.Console.WriteLine("TargetRecord: Aspect");
+    Console.WriteLine("TargetRecord: Aspect");
   }
 }

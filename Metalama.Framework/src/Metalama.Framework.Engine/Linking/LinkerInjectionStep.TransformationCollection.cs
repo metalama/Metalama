@@ -505,20 +505,26 @@ internal sealed partial class LinkerInjectionStep
 
             var statements = new List<StatementSyntax>();
 
-            if ( targetMethod is IRef<IConstructor> )
+            if ( (!hasInjectedMembers && targetInjectedMember == null) || (hasInjectedMembers && targetInjectedMember == injectedMembers![^1]) )
             {
-                if ( (!hasInjectedMembers && targetInjectedMember == null) || (hasInjectedMembers && targetInjectedMember == injectedMembers![^1]) )
-                {
-                    // Return initializer statements source members with no overrides or to the last override.
-                    var initializerStatements =
-                        insertedStatements
-                            .Where( s => s.Kind == InsertedStatementKind.Initializer )
-                            .Select( s => s );
+                // Return initializer statements to source members with no overrides or to the last override.
+                // This applies to both constructors (BeforeInstanceConstructor initializers) and methods (Initialize template statements).
 
-                    var orderedInitializerStatements = OrderInitializerStatements( initializerStatements );
+                // First: prologue statements (e.g. base.Initialize calls) — always before templates.
+                var prologueStatements =
+                    insertedStatements
+                        .Where( s => s.Kind == InsertedStatementKind.InitializerPrologue );
 
-                    statements.AddRange( orderedInitializerStatements.Select( s => s.Statement ) );
-                }
+                statements.AddRange( prologueStatements.Select( s => s.Statement ) );
+
+                // Then: initializer statements (templates) in runtime order.
+                var initializerStatements =
+                    insertedStatements
+                        .Where( s => s.Kind == InsertedStatementKind.Initializer );
+
+                var orderedInitializerStatements = OrderInitializerStatements( initializerStatements );
+
+                statements.AddRange( orderedInitializerStatements.Select( s => s.Statement ) );
             }
 
             // For non-initializer statements we have to select a range of statements that fits this injected member.
@@ -614,6 +620,37 @@ internal sealed partial class LinkerInjectionStep
             return statements;
         }
 
+        /// <summary>
+        /// Returns the ordered list of epilogue statements (kind <see cref="InsertedStatementKind.InitializerEpilogue"/>)
+        /// to be injected at the end of a source constructor body. Used by <c>AfterLastInstanceConstructor</c> to emit
+        /// the trailing <c>this.OnConstructed(context);</c> call.
+        /// </summary>
+        internal IReadOnlyList<StatementSyntax> GetInjectedEpilogueStatements( IRef<IConstructor> targetConstructor )
+        {
+            if ( !this._insertedStatementsByTargetMethodBase.TryGetValue( targetConstructor, out var insertedStatements ) )
+            {
+                return ImmutableArray<StatementSyntax>.Empty;
+            }
+
+            var epilogueStatements =
+                insertedStatements
+                    .Where( s => s.Kind == InsertedStatementKind.InitializerEpilogue )
+                    .OrderByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
+                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
+                    .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance )
+                    .ThenBy( s => s.Statement.ToFullString(), StringComparer.Ordinal );
+
+            return epilogueStatements
+                .Select(
+                    s =>
+                        s.Statement.Kind() switch
+                        {
+                            SyntaxKind.Block when s.Statement is BlockSyntax block => block.WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            _ => s.Statement
+                        } )
+                .ToReadOnlyList();
+        }
+
         private static IEnumerable<InsertedStatement> OrderInitializerStatements( IEnumerable<InsertedStatement> statements )
 
             // Initializers of separate declarations should precede initializers of the type.
@@ -626,8 +663,8 @@ internal sealed partial class LinkerInjectionStep
                         _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                     } )
                 .ThenBy( s => (s.ContextDeclaration as IMember)?.ToDisplayString(), StringComparer.Ordinal )
-                .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
-                .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
+                .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
+                .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
                 .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance )
                 .ThenBy( s => s.Statement.ToFullString(), StringComparer.Ordinal );
 

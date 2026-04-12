@@ -70,6 +70,12 @@ RUN & .\dotnet-install.ps1 -Version 9.0.310 -InstallDir 'C:\Program Files\dotnet
 RUN & .\dotnet-install.ps1 -Version 10.0.102 -InstallDir 'C:\Program Files\dotnet'
 
 
+# .NET Dump Tool
+RUN dotnet tool install --global dotnet-dump;
+
+ENV PATH="C:\Users\ContainerAdministrator\.dotnet\tools;${PATH}"
+
+
 # Install VS Build Tools
 COPY VisualStudio.17.14.15.Release.chman /VisualStudio.17.14.15.Release.chman
 RUN Invoke-WebRequest -Uri https://aka.ms/vs/17/release/vs_buildtools.exe -OutFile vs_buildtools.exe; `

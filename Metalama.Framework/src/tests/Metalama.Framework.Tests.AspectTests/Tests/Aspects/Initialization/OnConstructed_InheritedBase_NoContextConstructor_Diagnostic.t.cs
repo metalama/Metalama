@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0551 on `TargetCode`: `The aspect 'TheAspect' targets type 'TargetCode' whose base type 'BaseClass' defines an 'OnConstructed(InitializationContext)' method but has no instance constructor accepting an 'InitializationContext' parameter. The base type must provide such a constructor (and call 'OnConstructed' from it, guarded by 'IsHandled(InitializationSlot.OnConstructed)') so that derived types can pass 'context.Descend(InitializationSlot.OnConstructed)' and skip the base's OnConstructed call.`

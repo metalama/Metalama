@@ -44,6 +44,7 @@ namespace Metalama.AspectWorkbench.ViewModels
                 "ROSLYN_4_8_0_OR_GREATER", "ROSLYN_4_12_0_OR_GREATER", "ROSLYN_5_0_0_OR_GREATER"
             ],
             "net9.0",
+            "net9.0",
             [] );
 
         private TemplateTest? _currentTest;

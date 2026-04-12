@@ -70,6 +70,12 @@ RUN & .\dotnet-install.ps1 -Version 9.0.310 -InstallDir 'C:\Program Files\dotnet
 RUN & .\dotnet-install.ps1 -Version 10.0.102 -InstallDir 'C:\Program Files\dotnet'
 
 
+# .NET Dump Tool
+RUN dotnet tool install --global dotnet-dump;
+
+ENV PATH="C:\Users\ContainerAdministrator\.dotnet\tools;${PATH}"
+
+
 # Install VS Build Tools
 COPY VisualStudio.17.14.15.Release.chman /VisualStudio.17.14.15.Release.chman
 RUN Invoke-WebRequest -Uri https://aka.ms/vs/17/release/vs_buildtools.exe -OutFile vs_buildtools.exe; `
@@ -108,6 +114,12 @@ RUN Invoke-WebRequest -Uri https://aka.ms/installazurecliwindowsx64 -OutFile Azu
 ENV PATH="C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin;${PATH}"
 
 
+# Timestamp
+# Cache invalidation layer - changes when -Update is used
+COPY .g/update.timestamp C:\docker-context\update.timestamp
+RUN Write-Host "PostSharp.Engineering build timestamp: $(Get-Content C:\docker-context\update.timestamp)"
+
+
 # Install Claude CLI
 # Set HOME/USERPROFILE so Claude CLI finds credentials during build
 ENV HOME=C:\\Users\\ContainerAdministrator
@@ -115,7 +127,7 @@ ENV USERPROFILE=C:\\Users\\ContainerAdministrator
 
 # Install Claude CLI and configure using cmd shell to avoid HCS issues with PowerShell
 SHELL ["cmd", "/S", "/C"]
-RUN C:\nodejs\npm.cmd install --global @anthropic-ai/claude-code@2.1.81
+RUN C:\nodejs\npm.cmd install --global @anthropic-ai/claude-code@latest
 RUN mkdir C:\Users\ContainerAdministrator\.claude && echo {"hasCompletedOnboarding": true} > C:\Users\ContainerAdministrator\.claude.json && echo {"alwaysThinkingEnabled": true, "spinnerTipsEnabled": false} > C:\Users\ContainerAdministrator\.claude\settings.json
 
 # Restore PowerShell shell using full path

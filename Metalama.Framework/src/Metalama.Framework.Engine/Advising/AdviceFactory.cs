@@ -1474,21 +1474,46 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string template,
         InitializerKind kind,
         object? tags = null,
-        object? args = null )
+        object? args = null,
+        IEnumerable<IField>? slotFields = null )
     {
         using ( this.WithNonUserCode() )
         {
             this.Validate( targetType, AdviceKind.AddInitializer );
 
-            var boundTemplate = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
+            var templateMember = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            var advice = new TemplateBasedInitializeAdvice(
-                this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetType ),
-                boundTemplate.ForInitializer( this.GetArgsReader( args ) ),
-                kind );
+            if ( kind == InitializerKind.AfterObjectInitializer )
+            {
+                var advice = new InitializeMethodAdvice(
+                    this.GetAdviceConstructorParameters<INamedType>( targetType ),
+                    templateMember,
+                    this.GetArgsReader( args ),
+                    slotFields );
 
-            return advice.Execute( this._state );
+                return advice.Execute( this._state );
+            }
+            else if ( kind == InitializerKind.AfterLastInstanceConstructor )
+            {
+                var advice = new OnConstructedMethodAdvice(
+                    this.GetAdviceConstructorParameters<INamedType>( targetType ),
+                    templateMember,
+                    this.GetArgsReader( args ),
+                    slotFields );
+
+                return advice.Execute( this._state );
+            }
+            else
+            {
+                var advice = new TemplateBasedConstructorInitializeAdvice(
+                    this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetType ),
+                    templateMember,
+                    this.GetArgsReader( args ),
+                    kind );
+
+                return advice.Execute( this._state );
+            }
         }
     }
 
@@ -1501,7 +1526,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetType, AdviceKind.AddInitializer );
 
-            var advice = new SyntaxBasedInitializeAdvice(
+            var advice = new SyntaxBasedConstructorInitializeAdvice(
                 this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetType ),
                 statement,
                 kind );
@@ -1516,12 +1541,13 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.AddInitializer );
 
-            var boundTemplate = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
+            var templateMember = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            var advice = new TemplateBasedInitializeAdvice(
+            var advice = new TemplateBasedConstructorInitializeAdvice(
                 this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetConstructor ),
-                boundTemplate.ForInitializer( this.GetArgsReader( args ) ),
+                templateMember,
+                this.GetArgsReader( args ),
                 InitializerKind.BeforeInstanceConstructor );
 
             return advice.Execute( this._state );
@@ -1534,7 +1560,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.AddInitializer );
 
-            var advice = new SyntaxBasedInitializeAdvice(
+            var advice = new SyntaxBasedConstructorInitializeAdvice(
                 this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetConstructor ),
                 statement,
                 InitializerKind.BeforeInstanceConstructor );
@@ -1682,21 +1708,55 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         TypedConstant defaultValue,
         Func<IParameter, IConstructor, PullAction>? pullAction,
         ImmutableArray<AttributeConstruction> attributes = default )
-        => this.IntroduceParameter(
+        => this.IntroduceParameterCore(
             constructor,
             parameterName,
             parameterType,
             defaultValue,
             LegacyPullStrategy.Create( pullAction ),
-            attributes );
+            attributes,
+            null );
 
     public IIntroductionAdviceResult<IParameter> IntroduceParameter(
         IConstructor constructor,
         string parameterName,
         IType parameterType,
         TypedConstant defaultValue,
-        IPullStrategy? pullStrategy,
+        IPullStrategy? pullStrategy = null,
         ImmutableArray<AttributeConstruction> attributes = default )
+        => this.IntroduceParameterCore(
+            constructor,
+            parameterName,
+            parameterType,
+            defaultValue,
+            pullStrategy,
+            attributes,
+            overloadingStrategy: null );
+
+    public IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        IConstructor constructor,
+        string parameterName,
+        IType parameterType,
+        IPullStrategy? pullStrategy = null,
+        ImmutableArray<AttributeConstruction> attributes = default,
+        IConstructorOverloadingStrategy? overloadingStrategy = null )
+        => this.IntroduceParameterCore(
+            constructor,
+            parameterName,
+            parameterType,
+            defaultValue: default,
+            pullStrategy,
+            attributes,
+            overloadingStrategy ?? ConstructorOverloadingStrategy.ForwardSourceConstructors );
+
+    private IIntroductionAdviceResult<IParameter> IntroduceParameterCore(
+        IConstructor constructor,
+        string parameterName,
+        IType parameterType,
+        TypedConstant defaultValue,
+        IPullStrategy? pullStrategy,
+        ImmutableArray<AttributeConstruction> attributes,
+        IConstructorOverloadingStrategy? overloadingStrategy )
     {
         using ( this.WithNonUserCode() )
         {
@@ -1708,7 +1768,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 parameterType,
                 attributes.IsDefaultOrEmpty ? null : builder => builder.AddAttributes( attributes ),
                 pullStrategy,
-                defaultValue );
+                defaultValue,
+                overloadingStrategy );
 
             return advice.Execute( this._state );
         }
@@ -1735,7 +1796,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string parameterName,
         Type parameterType,
         TypedConstant defaultValue,
-        IPullStrategy? pullStrategy,
+        IPullStrategy? pullStrategy = null,
         ImmutableArray<AttributeConstruction> attributes = default )
         => this.IntroduceParameter(
             constructor,
@@ -1745,14 +1806,41 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             pullStrategy,
             attributes );
 
-    public void PullParameter( IParameter parameter, IPullStrategy? pullStrategy )
+    public IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        IConstructor constructor,
+        string parameterName,
+        Type parameterType,
+        IPullStrategy? pullStrategy = null,
+        ImmutableArray<AttributeConstruction> attributes = default,
+        IConstructorOverloadingStrategy? overloadingStrategy = null )
+        => this.IntroduceParameter(
+            constructor,
+            parameterName,
+            this._compilation.Factory.GetTypeByReflectionType( parameterType ),
+            pullStrategy,
+            attributes,
+            overloadingStrategy );
+
+    public void PullParameter( IParameter parameter, IPullStrategy? pullStrategy, IConstructorOverloadingStrategy? overloadingStrategy = null )
     {
         using ( this.WithNonUserCode() )
         {
             var advice = new PullConstructorParameterAdvice(
                 this.GetAdviceConstructorParameters( (IConstructor) parameter.DeclaringMember.AssertNotNull(), false ),
                 pullStrategy,
-                parameter );
+                parameter,
+                overloadingStrategy );
+
+            advice.Execute( this._state );
+        }
+    }
+
+    public void EmitOnConstructedEpilogueOnDerivedTypes( INamedType baseType )
+    {
+        using ( this.WithNonUserCode() )
+        {
+            var advice = new OnConstructedEpilogueAdvice(
+                this.GetAdviceConstructorParameters( baseType, requireTemplate: false ) );
 
             advice.Execute( this._state );
         }

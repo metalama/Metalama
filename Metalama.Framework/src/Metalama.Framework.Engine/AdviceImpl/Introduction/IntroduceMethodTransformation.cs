@@ -21,6 +21,13 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
 internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformation<MethodBuilderData>
 {
+    /// <summary>
+    /// Gets the expression to use in the <c>return</c> statement of the introduced method body.
+    /// When <c>null</c> (the default), the body returns <c>default(ReturnType)</c>.
+    /// Ignored for void-returning methods.
+    /// </summary>
+    public ExpressionSyntax? DefaultReturnExpression { get; init; }
+
     public IntroduceMethodTransformation( AspectLayerInstance aspectLayerInstance, MethodBuilderData introducedDeclaration )
         : base( aspectLayerInstance, introducedDeclaration ) { }
 
@@ -129,6 +136,18 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                         if ( finalMethod.ReturnParameter.Type.IsConvertibleTo( typeof(void) ) )
                         {
                             return [];
+                        }
+
+                        // If a custom return expression was provided, use it.
+                        if ( this.DefaultReturnExpression != null )
+                        {
+                            return
+                            [
+                                ReturnStatement(
+                                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                                    this.DefaultReturnExpression,
+                                    Token( SyntaxKind.SemicolonToken ) )
+                            ];
                         }
 
                         // Iterator methods use yield break.

@@ -63,6 +63,11 @@ namespace Metalama.Framework.Project
         string? TargetFramework { get; }
 
         /// <summary>
+        /// Gets the features supported by the target runtime and language version of the project.
+        /// </summary>
+        ProjectFeatures Features { get; }
+
+        /// <summary>
         /// Gets the set of properties passed from MSBuild. To expose an MSBuild property to this collection,
         /// define the <c>CompilerVisibleProperty</c> item. 
         /// </summary>

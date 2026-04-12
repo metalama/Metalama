@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -18,27 +19,40 @@ internal sealed class AttributeBuilderCollection : List<AttributeBuilder>, IAttr
 {
     IEnumerator<IAttribute> IEnumerable<IAttribute>.GetEnumerator() => this.GetEnumerator();
 
-    public IEnumerable<IAttribute> OfAttributeType( IType type ) => throw new NotImplementedException();
+    public IEnumerable<IAttribute> OfAttributeType( IType type ) => this.OfAttributeType( type, ConversionKind.Default );
 
-    public IEnumerable<IAttribute> OfAttributeType( IType type, ConversionKind conversionKind ) => throw new NotImplementedException();
+    public IEnumerable<IAttribute> OfAttributeType( IType type, ConversionKind conversionKind )
+        => ((IEnumerable<AttributeBuilder>) this).Where( a => a.Type.IsConvertibleTo( type, conversionKind ) );
 
-    public IEnumerable<IAttribute> OfAttributeType( Type type ) => throw new NotImplementedException();
+    public IEnumerable<IAttribute> OfAttributeType( Type type ) => this.OfAttributeType( type, ConversionKind.Default );
 
-    public IEnumerable<IAttribute> OfAttributeType( Type type, ConversionKind conversionKind ) => throw new NotImplementedException();
+    public IEnumerable<IAttribute> OfAttributeType( Type type, ConversionKind conversionKind )
+    {
+        if ( this.Count == 0 )
+        {
+            return [];
+        }
 
-    public IEnumerable<IAttribute> OfAttributeType( Func<IType, bool> predicate ) => throw new NotImplementedException();
+        var compilation = this[0].ContainingDeclaration.GetCompilationModel();
+        var namedType = (INamedType) compilation.Factory.GetTypeByReflectionType( type );
+
+        return this.OfAttributeType( namedType, conversionKind );
+    }
+
+    public IEnumerable<IAttribute> OfAttributeType( Func<IType, bool> predicate )
+        => ((IEnumerable<AttributeBuilder>) this).Where( a => predicate( a.Type ) );
 
     public IEnumerable<T> GetConstructedAttributesOfType<T>()
         where T : Attribute
-        => throw new NotImplementedException();
+        => this.OfAttributeType( typeof(T) ).Select( a => a.Construct<T>() );
 
-    public bool Any( IType type ) => throw new NotImplementedException();
+    public bool Any( IType type ) => this.Any( type, ConversionKind.Default );
 
-    public bool Any( IType type, ConversionKind conversionKind ) => throw new NotImplementedException();
+    public bool Any( IType type, ConversionKind conversionKind ) => this.OfAttributeType( type, conversionKind ).Any();
 
-    public bool Any( Type type ) => throw new NotImplementedException();
+    public bool Any( Type type ) => this.Any( type, ConversionKind.Default );
 
-    public bool Any( Type type, ConversionKind conversionKind ) => throw new NotImplementedException();
+    public bool Any( Type type, ConversionKind conversionKind ) => this.OfAttributeType( type, conversionKind ).Any();
 
     public ImmutableArray<AttributeBuilderData> ToImmutable( IFullRef<IDeclaration> containingDeclaration )
     {

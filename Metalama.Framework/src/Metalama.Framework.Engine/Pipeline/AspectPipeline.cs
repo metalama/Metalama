@@ -5,6 +5,7 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.AdditionalOutputs;
+using Metalama.Framework.Engine.AdviceImpl.Initialization;
 using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.Aspects;
@@ -257,11 +258,14 @@ public abstract class AspectPipeline : IDisposable
         projectServiceProviderWithProject = projectServiceProviderWithProject.WithService(
             new TemplateClassProvider( otherTemplateClasses.Concat<TemplateClass>( aspectClasses ).ToImmutableDictionary( x => x.FullName, x => x ) ) );
 
-        // Add system aspects.
+        // Add system aspects. Order matters: AddConstructorEpilogueTransitiveAspect must run after
+        // PullConstructorParameterTransitiveAspect within a compilation, because the epilogue logic
+        // observes the InitializationContext parameter that the pull may have just introduced.
         IBoundAspectClass[] systemAspectClasses =
         [
             FabricAggregateAspectClass.CreateTopLevelAspectClass( projectServiceProviderWithProject, compilationModel ),
-            PullConstructorParameterTransitiveAspect.CreateAspectClass( projectServiceProviderWithProject, compilationModel )
+            PullConstructorParameterTransitiveAspect.CreateAspectClass( projectServiceProviderWithProject, compilationModel ),
+            AddConstructorEpilogueTransitiveAspect.CreateAspectClass( projectServiceProviderWithProject, compilationModel )
         ];
 
         var systemAspectLayers = systemAspectClasses.Select( ( c, i ) => new OrderedAspectLayer( -100 + i, -100 + i, c.Layers[0] ) );
@@ -444,7 +448,8 @@ public abstract class AspectPipeline : IDisposable
         var allSources = new PipelineContributorSources(
             contributors.ToImmutable(),
             transitivePipelineContributorSource,
-            transitivePipelineContributorSource );
+            transitivePipelineContributorSource,
+            transitivePipelineContributorSource.ReferencesContainInitializableTypes );
 
         if ( configuration.FabricsContributors != null )
         {

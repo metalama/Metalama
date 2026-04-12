@@ -16,6 +16,7 @@ internal sealed record TestAssemblyMetadata(
     string SourceDirectory,
     ImmutableArray<string> ParserSymbols,
     string TargetFramework,
+    string? TargetFrameworks,
     bool MustLaunchDebugger,
     ImmutableArray<TargetedAssemblyReference> AssemblyReferences,
     ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblyReferences,

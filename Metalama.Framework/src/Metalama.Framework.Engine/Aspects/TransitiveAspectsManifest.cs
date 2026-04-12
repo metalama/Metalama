@@ -32,6 +32,8 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
 
     public ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> Annotations { get; private set; }
 
+    public bool ContainsInitializableTypes { get; private set; }
+
     // Deserializer constructor.
     private TransitiveAspectsManifest()
     {
@@ -44,19 +46,22 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         ImmutableDictionary<string, IReadOnlyList<InheritableAspectInstance>> inheritableAspects,
         ImmutableArray<ITransitiveAspectsManifestExtension> extensions,
         ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> options,
-        ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> annotations )
+        ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> annotations,
+        bool containsInitializableTypes )
     {
         this.InheritableAspects = inheritableAspects;
         this.Extensions = extensions;
         this.InheritableOptions = options;
         this.Annotations = annotations;
+        this.ContainsInitializableTypes = containsInitializableTypes;
     }
 
     public static TransitiveAspectsManifest Create(
         ImmutableArray<InheritableAspectInstance> inheritedAspects,
         ImmutableArray<ITransitiveAspectsManifestExtension> extensions,
         ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> options,
-        ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> annotations )
+        ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> annotations,
+        bool containsInitializableTypes )
         => new(
             inheritedAspects.GroupBy( a => a.AspectClass )
                 .ToImmutableDictionary(
@@ -66,7 +71,8 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
                     StringComparer.Ordinal ),
             extensions,
             options,
-            annotations );
+            annotations,
+            containsInitializableTypes );
 
     private void Serialize( Stream stream, in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
     {
@@ -136,6 +142,7 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
             initializationArguments.SetValue( nameof(instance.Extensions), instance.Extensions );
             initializationArguments.SetValue( nameof(instance.InheritableOptions), instance.InheritableOptions );
             initializationArguments.SetValue( nameof(instance.Annotations), instance.Annotations.ToImmutableDictionary() );
+            initializationArguments.SetValue( nameof(instance.ContainsInitializableTypes), instance.ContainsInitializableTypes );
         }
 
         public override void DeserializeFields( object obj, IArgumentsReader initializationArguments )
@@ -168,6 +175,10 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
             {
                 instance.Annotations = ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>.Empty;
             }
+
+            instance.ContainsInitializableTypes =
+                initializationArguments.TryGetValue<bool>( nameof(instance.ContainsInitializableTypes), out var containsInitializableTypes )
+                && containsInitializableTypes;
         }
     }
 }

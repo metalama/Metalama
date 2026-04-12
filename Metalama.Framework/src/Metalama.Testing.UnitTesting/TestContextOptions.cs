@@ -140,4 +140,10 @@ public record TestContextOptions
     /// Gets the C# version used in the compile-time project.
     /// </summary>
     public string? TemplateLanguageVersion { get; init; }
+
+    /// <summary>
+    /// Gets a semicolon-separated list of all target frameworks of the project, for instance <c>net8.0;net472</c>.
+    /// Used to test behavior that depends on target runtime capabilities.
+    /// </summary>
+    public string? AllTargetFrameworks { get; init; }
 }

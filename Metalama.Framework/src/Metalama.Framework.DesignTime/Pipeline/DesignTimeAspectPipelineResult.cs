@@ -660,15 +660,29 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
     // the providers of referenced projects. However, cross-project references are still used for PE references.
     ImmutableArray<ITransitiveAspectsManifestExtension> ITransitiveAspectsManifest.Extensions => this.Extensions.ToTransitiveValidatorInstances( false );
 
+    // DesignTimeAspectPipelineResult does not track whether the compilation contains IInitializable
+    // implementers (the tracking would be useless at design time, where LinkerAnalysisStep force-runs
+    // the OnInitialized walker because the partial compilation may exclude trees declaring implementers).
+    // We therefore report the safe default `true` here: the flag is consumed by LinkerAnalysisStep to
+    // skip the walker, and returning `true` just forces the walker to run — which is a performance
+    // pessimization at worst, never a correctness bug. Returning `false` would be unsafe: if any
+    // consumer reads this at compile time, it could miss required WithInitialize wrapping.
+    bool ITransitiveAspectsManifest.ContainsInitializableTypes => true;
+
     internal byte[] GetSerializedTransitiveAspectManifest( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
     {
         if ( this._serializedTransitiveAspectManifest == null )
         {
+            // ContainsInitializableTypes is set to the safe default `true` here for the same reason as in
+            // ITransitiveAspectsManifest.ContainsInitializableTypes above: DesignTimeAspectPipelineResult does
+            // not track the flag, and `true` only causes consumers to run the walker unnecessarily, while
+            // `false` would risk missing required WithInitialize wrapping.
             var manifest = TransitiveAspectsManifest.Create(
                 this._inheritableAspects.SelectMany( g => g ).ToImmutableArray(),
                 this.Extensions.ToTransitiveValidatorInstances( true ),
                 this.InheritableOptions,
-                this.Annotations );
+                this.Annotations,
+                containsInitializableTypes: true );
 
             this._serializedTransitiveAspectManifest = manifest.ToBytes( serviceProvider, compilationContext );
         }

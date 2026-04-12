@@ -8,7 +8,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Tests.AspectTests.Aspects.Initialization.InstanceConstructing_TwoAspects_ImplicitConstructor;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(SecondAspect), typeof(FirstAspect) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(FirstAspect), typeof(SecondAspect) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Aspects.Initialization.InstanceConstructing_TwoAspects_ImplicitConstructor
 {
@@ -16,13 +16,20 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Initialization.InstanceCo
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            builder.AddInitializer( nameof(Template), InitializerKind.BeforeInstanceConstructor );
+            builder.AddInitializer( nameof(Template1), InitializerKind.BeforeInstanceConstructor );
+            builder.AddInitializer( nameof(Template2), InitializerKind.BeforeInstanceConstructor );
         }
 
         [Template]
-        public void Template()
+        public void Template1()
         {
-            Console.WriteLine( $"{meta.Target.Type.Name}: {meta.AspectInstance.AspectClass.ShortName} First" );
+            Console.WriteLine( $"{meta.Target.Type.Name}: FirstAspect First1" );
+        }
+
+        [Template]
+        public void Template2()
+        {
+            Console.WriteLine( $"{meta.Target.Type.Name}: FirstAspect First2" );
         }
     }
 
@@ -30,13 +37,20 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Initialization.InstanceCo
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            builder.AddInitializer( nameof(Template), InitializerKind.BeforeInstanceConstructor );
+            builder.AddInitializer( nameof(Template1), InitializerKind.BeforeInstanceConstructor );
+            builder.AddInitializer( nameof(Template2), InitializerKind.BeforeInstanceConstructor );
         }
 
         [Template]
-        public void Template()
+        public void Template1()
         {
-            Console.WriteLine( $"{meta.Target.Type.Name}: {meta.AspectInstance.AspectClass.ShortName} Second" );
+            Console.WriteLine( $"{meta.Target.Type.Name}: SecondAspect Second1" );
+        }
+
+        [Template]
+        public void Template2()
+        {
+            Console.WriteLine( $"{meta.Target.Type.Name}: SecondAspect Second2" );
         }
     }
 

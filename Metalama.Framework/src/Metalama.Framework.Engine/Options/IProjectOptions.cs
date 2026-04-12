@@ -82,6 +82,12 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     string? TargetFrameworkMoniker { get; }
 
     /// <summary>
+    /// Gets a semicolon-separated list of all target frameworks of the project, for instance <c>net8.0;net472</c>.
+    /// When the project targets a single framework, this is the same as <see cref="TargetFramework"/>.
+    /// </summary>
+    string? AllTargetFrameworks { get; }
+
+    /// <summary>
     /// Gets the build configuration, e.g. <c>Debug</c> or <c>Release</c>.
     /// </summary>
     string? Configuration { get; }

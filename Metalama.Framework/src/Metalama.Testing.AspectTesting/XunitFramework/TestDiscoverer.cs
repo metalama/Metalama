@@ -77,6 +77,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                 metadata.SourceDirectory,
                 metadata.ParserSymbols,
                 metadata.TargetFramework,
+                metadata.TargetFrameworks ?? metadata.TargetFramework,
                 metadata.IgnoredWarnings );
         }
 

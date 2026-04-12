@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.CodeModel.Comparers;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -31,17 +32,20 @@ internal sealed class PullConstructorParameterAdviceImpl
     private readonly AspectLayerInstance _aspectLayerInstance;
     private readonly bool _onlyProcessDerivedTypes;
     private readonly AdviceImplementationContext _context;
+    private readonly ForwardingConstructorHelper? _forwardingHelper;
 
     public PullConstructorParameterAdviceImpl(
         AdviceImplementationContext context,
         IPullStrategy? pullStrategy,
         AspectLayerInstance aspectLayerInstance,
-        bool onlyProcessDerivedTypes )
+        bool onlyProcessDerivedTypes,
+        ForwardingConstructorHelper? forwardingHelper = null )
     {
         this._context = context;
         this._pullStrategy = pullStrategy;
         this._aspectLayerInstance = aspectLayerInstance;
         this._onlyProcessDerivedTypes = onlyProcessDerivedTypes;
+        this._forwardingHelper = forwardingHelper;
     }
 
     private ProjectServiceProvider ServiceProvider => this._context.ServiceProvider;
@@ -49,6 +53,72 @@ internal sealed class PullConstructorParameterAdviceImpl
     private CompilationModel Compilation => this._context.MutableCompilation;
 
     private void AddTransformation( ITransformation transformation ) => this._context.AddTransformation( transformation );
+
+    /// <summary>
+    /// Determines whether <paramref name="child"/>'s <c>: base(...)</c>/<c>: this(...)</c> call targets <paramref name="target"/>,
+    /// either directly or through a forwarding constructor. When the base constructor lives in a
+    /// referenced project, Roslyn may resolve the chain call to a forwarding constructor emitted into the dependency's IL (arity match)
+    /// rather than the mutated constructor; we "see through" such forwarders by matching their parameter prefix against
+    /// <paramref name="target"/>'s parameters, since the framework only ever appends new parameters to mutated constructors.
+    /// </summary>
+    private static bool IsChainedCall( IConstructor child, IConstructor target )
+    {
+        var resolved = ((IConstructorImpl) child).GetBaseConstructor()?.Definition;
+
+        if ( resolved is null )
+        {
+            return false;
+        }
+
+        if ( resolved.Equals( target ) )
+        {
+            return true;
+        }
+
+        // When the recursive pull is processing a derived type whose base constructor was
+        // just materialized in the current compilation (typical of multi-level cross-project pull:
+        // Grandchild -> Child -> external BaseClass), `target` is the in-memory ConstructorBuilder
+        // that replaced an implicit constructor on the same type, while `resolved` is still the
+        // original implicit constructor that Roslyn resolved Grandchild's `:base()` against.
+        // Treat the builder and its replaced constructor as the same logical constructor.
+        if ( target is ConstructorBuilder { ReplacedImplicitConstructor: { } replacedImplicit }
+             && resolved.Equals( replacedImplicit ) )
+        {
+            return true;
+        }
+
+        // Roslyn's SemanticModel resolves `: base(id)` (or `: this(id)`) to whichever
+        // ctor matches the source arity in IL. In cross-project scenarios that means
+        // it resolves to the forwarding ctor emitted by the aspect in
+        // project A, not to the mutated ctor. Treat that as a match for `target` when
+        // the resolved ctor is a forwarding constructor in the same
+        // declaring type whose parameters are a type+refkind prefix of `target`.
+        if ( !resolved.IsSourceCompatibilityConstructor() )
+        {
+            return false;
+        }
+
+        if ( !SignatureTypeComparer.Instance.Equals( resolved.DeclaringType, target.DeclaringType ) )
+        {
+            return false;
+        }
+
+        if ( resolved.Parameters.Count >= target.Parameters.Count )
+        {
+            return false;
+        }
+
+        for ( var i = 0; i < resolved.Parameters.Count; i++ )
+        {
+            if ( !SignatureTypeComparer.Instance.Equals( resolved.Parameters[i].Type, target.Parameters[i].Type )
+                 || resolved.Parameters[i].RefKind != target.Parameters[i].RefKind )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public void PullConstructorParameterRecursive( IParameter baseParameter )
     {
@@ -68,7 +138,8 @@ internal sealed class PullConstructorParameterAdviceImpl
                 var transitiveAspect = new PullConstructorParameterTransitiveAspect(
                     this._pullStrategy,
                     baseParameter.ToRef(),
-                    this._context.AspectOrder );
+                    this._context.AspectOrder,
+                    this._forwardingHelper?.OverloadingStrategy );
 
                 this._context.AddTransitiveAspect(
                     new TransitiveAspectInstance(
@@ -93,7 +164,7 @@ internal sealed class PullConstructorParameterAdviceImpl
         void ProcessType( IEnumerable<IConstructor> potentialConstructors )
         {
             var chainedConstructors =
-                potentialConstructors.Where( c => ((IConstructorImpl) c).GetBaseConstructor()?.Definition.Equals( baseConstructor ) == true );
+                potentialConstructors.Where( c => IsChainedCall( c, baseConstructor ) );
 
             // Process all of these constructors.
             foreach ( var chainedConstructor in chainedConstructors )
@@ -183,9 +254,16 @@ internal sealed class PullConstructorParameterAdviceImpl
 
                         recursiveParameterBuilder.Freeze();
 
-                        this.AddTransformation( new IntroduceParameterTransformation( this._aspectLayerInstance, recursiveParameterBuilder.BuilderData ) );
+                        this.AddTransformation(
+                            new IntroduceParameterTransformation(
+                                this._aspectLayerInstance,
+                                recursiveParameterBuilder.BuilderData,
+                                pullParameterAction.MaterializeOnRecord ) );
 
                         var recursiveParameter = recursiveParameterBuilder;
+
+                        // Generate a forwarding constructor preserving the chained constructor's original signature if requested.
+                        this._forwardingHelper?.ApplyForwarderIfNeeded( initializedChainedConstructor, recursiveParameter );
 
                         // Process all constructors calling this constructor.
                         this.PullConstructorParameterRecursive( recursiveParameter );

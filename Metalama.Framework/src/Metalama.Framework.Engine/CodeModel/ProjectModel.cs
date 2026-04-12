@@ -20,7 +20,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel;
 
-public sealed class ProjectModel : IProject
+public sealed partial class ProjectModel : IProject
 {
 #pragma warning disable CS0618 // Type or member is obsolete
     private readonly ConcurrentDictionary<Type, ProjectExtension> _extensions = new();
@@ -72,6 +72,9 @@ public sealed class ProjectModel : IProject
     public string? Configuration => this._projectOptions.Configuration;
 
     public string? TargetFramework => this._projectOptions.TargetFramework;
+
+    [Memo]
+    public ProjectFeatures Features => new ProjectFeaturesImpl( this._projectOptions );
 
     public bool TryGetProperty( string name, [NotNullWhen( true )] out string? value ) => this._projectOptions.TryGetProperty( name, out value );
 
