@@ -28,10 +28,10 @@ public class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var covariantType = ((INamedType) builder.Target.Compilation.Types.OfName( "ICovariant" ).Single())
+        var covariantType = builder.Target.Compilation.Types.OfName( "ICovariant" ).Single()
             .WithTypeArguments( builder.Target );
 
-        var serviceType = (INamedType) builder.Target.Compilation.Types.OfName( "IService" ).Single();
+        var serviceType = builder.Target.Compilation.Types.OfName( "IService" ).Single();
 
         foreach ( var constructor in builder.Target.Constructors )
         {
