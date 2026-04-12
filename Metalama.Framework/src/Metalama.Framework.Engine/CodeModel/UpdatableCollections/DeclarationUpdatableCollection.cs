@@ -79,6 +79,13 @@ internal abstract class DeclarationUpdatableCollection<TDeclaration, TRef> : Bas
         }
     }
 
+    protected void SetItem( int index, in TRef item )
+    {
+        this.EnsureComplete();
+
+        this._allItems![index] = item;
+    }
+
     protected void RemoveItem( in TRef item )
     {
         if ( this.IsComplete )

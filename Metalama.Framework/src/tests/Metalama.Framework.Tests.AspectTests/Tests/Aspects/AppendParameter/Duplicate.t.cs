@@ -1,2 +1,7 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0530 on `C`: `The aspect 'MyAspect' cannot introduce parameter 'p' to 'C.C(int)' because the target declaration already has a parameter 'p'.`
+[MyAspect]
+public class C
+{
+  public C(int p, [AspectGenerated] int p1 = 42)
+  {
+  }
+}

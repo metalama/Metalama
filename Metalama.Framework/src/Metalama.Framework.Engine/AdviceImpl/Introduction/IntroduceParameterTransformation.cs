@@ -19,11 +19,19 @@ using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
-internal sealed class IntroduceParameterTransformation : BaseSyntaxTreeTransformation, IMemberLevelTransformation
+internal class IntroduceParameterTransformation : BaseSyntaxTreeTransformation, IMemberLevelTransformation
 {
     public IFullRef<IMember> TargetMember => this.Parameter.ContainingDeclaration.As<IMember>();
 
     public ParameterBuilderData Parameter { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether this transformation replaces an existing introduced parameter
+    /// (changing its type) rather than appending a new parameter. When <c>true</c>, the linker will
+    /// use this transformation in place of the original <see cref="IntroduceParameterTransformation"/>
+    /// that targeted the same parameter index.
+    /// </summary>
+    public virtual bool IsReplacement => false;
 
     /// <summary>
     /// Gets a value indicating whether, on a record primary constructor target, this introduced parameter should

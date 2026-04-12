@@ -10,6 +10,7 @@ namespace Metalama.Framework.Advising;
 internal enum PullActionKind
 {
     AppendParameterAndPull,
+    ReplaceParameterTypeAndPull,
     UseExpression,
     DoNotPull
 }

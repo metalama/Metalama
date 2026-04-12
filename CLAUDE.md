@@ -92,6 +92,16 @@ When a class has nested types that are large enough to warrant their own file, u
 
 Example: `TemplateExpansionContext.ProceedUserExpression.cs` contains `private sealed class ProceedUserExpression` inside `internal sealed partial class TemplateExpansionContext`.
 
+## Aspect Test Discovery
+
+Aspect tests in `Metalama.Framework.Tests.AspectTests` are discovered by a custom xUnit test runner based on `.cs` file paths under `Tests/`. Test names are the **file name without extension** (e.g., `ReplaceParameter_Covariant`), not the full path. To run a specific test:
+
+```bash
+dotnet test <project> -f net8.0 --filter "ReplaceParameter_Covariant"
+```
+
+Note: `--filter "Name~ReplaceParameter"` (partial match with `~`) may not work reliably. Use `--filter "ReplaceParameter_Covariant"` (bare name) or `--list-tests` to verify discovery. After adding a new `.cs` test file, rebuild before running — the test runner discovers files compiled into the assembly.
+
 ## Debugging Tests
 
 When you need to debug anything, you can use ITestOutputService to write the test output.

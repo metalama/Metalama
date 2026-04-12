@@ -63,6 +63,11 @@ public readonly struct PullAction
     /// </summary>
     public IExpression? Expression { get; }
 
+    /// <summary>
+    /// Gets the existing parameter to replace when <see cref="Kind"/> is <see cref="PullActionKind.ReplaceParameterTypeAndPull"/>.
+    /// </summary>
+    internal IParameter? ExistingParameter { get; }
+
     private PullAction(
         PullActionKind kind,
         IExpression? expression = null,
@@ -70,7 +75,8 @@ public readonly struct PullAction
         IType? parameterType = null,
         IExpression? parameterDefaultValue = null,
         ImmutableArray<AttributeConstruction> parameterAttributes = default,
-        bool materializeOnRecord = false )
+        bool materializeOnRecord = false,
+        IParameter? existingParameter = null )
     {
         this.Kind = kind;
         this.Expression = expression;
@@ -79,6 +85,7 @@ public readonly struct PullAction
         this.ParameterName = parameterName;
         this.ParameterDefaultValue = parameterDefaultValue;
         this.MaterializeOnRecord = materializeOnRecord;
+        this.ExistingParameter = existingParameter;
     }
 
     /// <summary>
@@ -147,6 +154,25 @@ public readonly struct PullAction
             parameterDefaultValue,
             parameterAttributes,
             materializeOnRecord );
+
+    /// <summary>
+    /// Creates a <see cref="PullAction"/> that replaces the type of an existing introduced parameter with a more specific type
+    /// and continues pulling recursively to further derived constructors.
+    /// </summary>
+    /// <param name="existingParameter">The existing introduced parameter whose type should be replaced. Must have been introduced by an aspect.</param>
+    /// <param name="newParameterType">The new, more specific type for the parameter. Must be convertible to the existing parameter's type.</param>
+    /// <param name="parameterDefaultValue">Optional new default value for the parameter.</param>
+    /// <returns>A <see cref="PullAction"/> that replaces the parameter type and continues pulling.</returns>
+    internal static PullAction ReplaceExistingParameterTypeAndPull(
+        IParameter existingParameter,
+        IType newParameterType,
+        IExpression? parameterDefaultValue = null )
+        => new(
+            PullActionKind.ReplaceParameterTypeAndPull,
+            parameterName: existingParameter.Name,
+            parameterType: newParameterType,
+            parameterDefaultValue: parameterDefaultValue,
+            existingParameter: existingParameter );
 
     /// <summary>
     /// Creates a <see cref="PullAction"/> that means that the dependency should be assigned to a given <see cref="IExpression"/>.

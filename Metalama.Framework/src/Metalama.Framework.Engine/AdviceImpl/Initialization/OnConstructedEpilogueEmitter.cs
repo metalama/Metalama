@@ -190,7 +190,7 @@ internal static class OnConstructedEpilogueEmitter
         //    The default value is serialized as text; a typed `default(T)` is used so that
         //    TypedConstant.TryConvertFromExpression recognizes it as a DefaultExpressionSyntax
         //    (rather than as a DefaultLiteralExpression whose token value is the string "default").
-        //    `reuseExistingParameterOfSameType: true` opts into reusing any existing
+        //    `reuseExistingParameterOfCompatibleType: true` opts into reusing any existing
         //    InitializationContext parameter on a chained constructor (added by hand or by another
         //    aspect) instead of introducing a duplicate. InitializationContext is a unique marker
         //    type, so a "match by type" rule is unambiguous here.
@@ -200,7 +200,7 @@ internal static class OnConstructedEpilogueEmitter
             _defaultContextParameterName,
             initializationContextType.ToRef(),
             defaultValueText,
-            reuseExistingParameterOfSameType: true );
+            reuseExistingParameterOfCompatibleType: true );
 
         var pullImpl = new PullConstructorParameterAdviceImpl(
             context,

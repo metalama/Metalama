@@ -15,7 +15,7 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
     private readonly string? _parameterName;
     private readonly IRef<IType>? _parameterType;
     private readonly string? _parameterDefaultValue;
-    private readonly bool _reuseExistingParameterOfSameType;
+    private readonly bool _reuseExistingParameterOfCompatibleType;
     private readonly bool _materializeOnRecord;
 
     internal bool MaterializeOnRecord => this._materializeOnRecord;
@@ -24,13 +24,13 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
         string? parameterName,
         IRef<IType>? parameterType,
         string? parameterDefaultValue,
-        bool reuseExistingParameterOfSameType = false,
+        bool reuseExistingParameterOfCompatibleType = false,
         bool materializeOnRecord = false )
     {
         this._parameterName = parameterName;
         this._parameterType = parameterType;
         this._parameterDefaultValue = parameterDefaultValue;
-        this._reuseExistingParameterOfSameType = reuseExistingParameterOfSameType;
+        this._reuseExistingParameterOfCompatibleType = reuseExistingParameterOfCompatibleType;
         this._materializeOnRecord = materializeOnRecord;
     }
 
@@ -48,18 +48,32 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
 
         var resolvedParameterType = this._parameterType?.GetTarget( targetMember.Compilation ) ?? pulledParameter.Type;
 
-        // Opt-in: if the target member already has a parameter of the same type, forward it rather than
-        // introducing a duplicate. This is used by framework-internal flows that pull marker types
-        // (e.g. InitializationContext) where two parameters of the same type would never be intentional.
+        // Opt-in: if the target member already has a parameter whose type is convertible to the pulled
+        // parameter type, forward it rather than introducing a duplicate. This is used by framework-
+        // internal flows that pull marker types (e.g. InitializationContext) and by dependency-injection
+        // scenarios where two parameters of the same service type would never be intentional.
         // It is off by default because for general types (int, string, ...) it would silently hijack
-        // unrelated parameters.
-        if ( this._reuseExistingParameterOfSameType )
+        // unrelated parameters. IsConvertibleTo (rather than Equals) is used so that covariant interfaces
+        // such as ILogger<out T> are handled correctly.
+        if ( this._reuseExistingParameterOfCompatibleType )
         {
-            var existing = targetMember.Parameters.FirstOrDefault( p => p.Type.Equals( resolvedParameterType ) );
+            // 1. More-specific or equal existing parameter → forward it directly.
+            var existing = targetMember.Parameters.FirstOrDefault( p => p.Type.IsConvertibleTo( resolvedParameterType ) );
 
             if ( existing != null )
             {
                 return PullAction.UseExistingParameter( existing );
+            }
+
+            // 2. Less-specific INTRODUCED parameter → replace its type with the more specific one
+            //    and continue pulling recursively so that further-derived constructors also get updated.
+            //    Only introduced parameters can be replaced; source-defined parameters must not be mutated.
+            var lessSpecific = targetMember.Parameters.FirstOrDefault(
+                p => resolvedParameterType.IsConvertibleTo( p.Type ) && p.Origin.Kind == DeclarationOriginKind.Aspect );
+
+            if ( lessSpecific != null )
+            {
+                return PullAction.ReplaceExistingParameterTypeAndPull( lessSpecific, resolvedParameterType );
             }
         }
 
@@ -80,14 +94,14 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
             var parameterName = constructorArguments.GetValue<string>( nameof(_parameterName) )!;
             var parameterType = constructorArguments.GetValue<IRef<IType>>( nameof(_parameterType) )!;
             var parameterDefaultValue = constructorArguments.GetValue<string>( nameof(_parameterDefaultValue) );
-            var reuseExistingParameterOfSameType = constructorArguments.GetValue<bool>( nameof(_reuseExistingParameterOfSameType) );
+            var reuseExistingParameterOfCompatibleType = constructorArguments.GetValue<bool>( nameof(_reuseExistingParameterOfCompatibleType) );
             var materializeOnRecord = constructorArguments.GetValue<bool>( nameof(_materializeOnRecord) );
 
             return new IntroduceParameterPullStrategy(
                 parameterName,
                 parameterType,
                 parameterDefaultValue,
-                reuseExistingParameterOfSameType,
+                reuseExistingParameterOfCompatibleType,
                 materializeOnRecord );
         }
 
@@ -99,7 +113,7 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
             constructorArguments.SetValue( nameof(_parameterName), obj._parameterName );
             constructorArguments.SetValue( nameof(_parameterType), obj._parameterType );
             constructorArguments.SetValue( nameof(_parameterDefaultValue), obj._parameterDefaultValue );
-            constructorArguments.SetValue( nameof(_reuseExistingParameterOfSameType), obj._reuseExistingParameterOfSameType );
+            constructorArguments.SetValue( nameof(_reuseExistingParameterOfCompatibleType), obj._reuseExistingParameterOfCompatibleType );
             constructorArguments.SetValue( nameof(_materializeOnRecord), obj._materializeOnRecord );
         }
 #pragma warning restore SA1101

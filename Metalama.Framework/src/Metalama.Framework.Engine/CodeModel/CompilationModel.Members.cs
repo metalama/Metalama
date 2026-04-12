@@ -251,7 +251,15 @@ public sealed partial class CompilationModel
             this.AddDeclaration( builder );
         }
 
-        if ( transformation is IntroduceParameterTransformation appendParameterTransformation )
+        if ( transformation is ReplaceParameterTransformation replaceParameterTransformation )
+        {
+            var parameterCollection = this.GetParameterCollection(
+                replaceParameterTransformation.Parameter.ContainingDeclaration.As<IHasParameters>(),
+                true );
+
+            parameterCollection.Replace( replaceParameterTransformation.ReplacedParameterIndex, replaceParameterTransformation.Parameter );
+        }
+        else if ( transformation is IntroduceParameterTransformation appendParameterTransformation )
         {
             this.AddDeclaration( appendParameterTransformation.Parameter );
         }
