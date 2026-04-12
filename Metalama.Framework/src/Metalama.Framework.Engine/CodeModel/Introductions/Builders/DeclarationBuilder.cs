@@ -109,6 +109,13 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
         this.Attributes.AddRange( attributes.Select( a => new AttributeBuilder( this.AspectLayerInstance, this, a ) ) );
     }
 
+    public void AddAttributes( IEnumerable<IAttribute> attributes )
+    {
+        this.CheckNotFrozen();
+
+        this.Attributes.AddRange( attributes.Select( a => new AttributeBuilder( this.AspectLayerInstance, this, a.ToAttributeConstruction() ) ) );
+    }
+
     public void RemoveAttributes( INamedType type )
     {
         this.CheckNotFrozen();

@@ -63,8 +63,37 @@ internal sealed partial class LinkerInjectionStep
                 this.Arguments = filtered.OrderBy( a => a.ParameterIndex ).ToImmutableArray();
             }
 
-            this.Parameters = this._unorderedParameters?.OrderBy( p => p.Parameter.Index ).ToImmutableArray()
-                              ?? ImmutableArray<IntroduceParameterTransformation>.Empty;
+            if ( this._unorderedParameters == null )
+            {
+                this.Parameters = ImmutableArray<IntroduceParameterTransformation>.Empty;
+            }
+            else
+            {
+                var allParams = this._unorderedParameters.ToList();
+
+                // When a parameter transformation has IsReplacement == true it supersedes the original
+                // IntroduceParameterTransformation at the same parameter index. This is used when
+                // a derived aspect replaces an introduced parameter's type with a more specific one.
+                var replacementsByIndex = allParams
+                    .Where( p => p.IsReplacement )
+                    .GroupBy( p => p.Parameter.Index )
+                    .ToDictionary( g => g.Key, g => g.First() );
+
+                IEnumerable<IntroduceParameterTransformation> filteredParams;
+
+                if ( replacementsByIndex.Count == 0 )
+                {
+                    filteredParams = allParams;
+                }
+                else
+                {
+                    filteredParams = allParams
+                        .Where( p => !p.IsReplacement && !replacementsByIndex.ContainsKey( p.Parameter.Index ) )
+                        .Concat( replacementsByIndex.Values );
+                }
+
+                this.Parameters = filteredParams.OrderBy( p => p.Parameter.Index ).ToImmutableArray();
+            }
         }
 
         public void Add( IntroduceParameterTransformation transformation )

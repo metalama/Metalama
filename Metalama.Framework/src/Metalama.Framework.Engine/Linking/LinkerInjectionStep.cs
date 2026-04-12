@@ -972,6 +972,23 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 
         switch ( transformation )
         {
+            case ReplaceParameterTransformation replaceParameterTransformation:
+                // For introduced constructors, the compilation model's Replace() already updated
+                // the builder data parameter list. The linker generates the constructor syntax from
+                // builder data, so adding the replacement here would produce a duplicate parameter.
+                // Skip, mirroring the logic for IntroduceParameterTransformation below.
+                if ( replaceParameterTransformation.TargetDeclaration is IIntroducedRef ||
+                     compilationModel.IsRedirected( replaceParameterTransformation.TargetDeclaration ) )
+                {
+                    break;
+                }
+
+                // For source constructors, the Sort() method in MemberLevelTransformations will replace
+                // the original IntroduceParameterTransformation at the same index.
+                memberLevelTransformations.Add( replaceParameterTransformation );
+
+                break;
+
             case IntroduceParameterTransformation introduceParameterTransformation:
 
                 if ( introduceParameterTransformation.TargetDeclaration is IIntroducedRef ||

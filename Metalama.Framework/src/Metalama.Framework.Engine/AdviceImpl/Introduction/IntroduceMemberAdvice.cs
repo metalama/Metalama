@@ -247,13 +247,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
     {
         var classificationService = serviceProvider.Global.GetRequiredService<AttributeClassificationService>();
 
-        foreach ( var codeElementAttribute in declaration.Attributes )
-        {
-            if ( classificationService.MustCopyTemplateAttribute( codeElementAttribute ) )
-            {
-                builder.AddAttribute( codeElementAttribute.ToAttributeConstruction() );
-            }
-        }
+        builder.AddAttributes( declaration.Attributes.Where( a => classificationService.MustCopyTemplateAttribute( a ) ) );
     }
 
     private static void SetBuilderExplicitInterfaceImplementation( TBuilder builder, INamedType? explicitlyImplementedInterfaceType )

@@ -193,11 +193,21 @@ public class DefaultDependencyInjectionStrategy
         {
             var newParameter = pullStrategy.GetNewParameter( constructor );
 
+            // Use the framework's IntroduceParameterPullStrategy with reuseExistingParameterOfCompatibleType
+            // so that derived constructors that already have a parameter of the same (or covariant) service type
+            // reuse it instead of introducing a duplicate. Two DI service parameters of the same type on a
+            // single constructor are never intentional.
+            var frameworkPullStrategy = PullStrategy.IntroduceParameterAndPull(
+                name: newParameter.Name,
+                type: newParameter.Type,
+                defaultValue: TypedConstant.Default( newParameter.Type ),
+                reuseExistingParameterOfCompatibleType: true );
+
             existingParameter = adviser.IntroduceParameter(
                     newParameter.Name,
                     newParameter.Type,
                     TypedConstant.Default( newParameter.Type, newParameter.Type.IsNullable == false ),
-                    pullStrategy,
+                    frameworkPullStrategy,
                     newParameter.Attributes )
                 .Declaration;
         }

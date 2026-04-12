@@ -21,6 +21,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -53,6 +54,68 @@ internal sealed class PullConstructorParameterAdviceImpl
     private CompilationModel Compilation => this._context.MutableCompilation;
 
     private void AddTransformation( ITransformation transformation ) => this._context.AddTransformation( transformation );
+
+    /// <summary>
+    /// Returns a parameter name that does not collide with any existing parameter in <paramref name="member"/>.
+    /// If <paramref name="desiredName"/> is free, it is returned unchanged; otherwise a numeric suffix is appended.
+    /// </summary>
+    internal static string GetUniqueParameterName( IHasParameters member, string desiredName )
+    {
+        var existingNames = new HashSet<string>( member.Parameters.SelectAsArray( p => p.Name ) );
+
+        if ( !existingNames.Contains( desiredName ) )
+        {
+            return desiredName;
+        }
+
+        for ( var i = 1; ; i++ )
+        {
+            var candidate = desiredName + i;
+
+            if ( !existingNames.Contains( candidate ) )
+            {
+                return candidate;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates a <see cref="ParameterBuilder"/> that replaces an existing introduced parameter's type,
+    /// copies all custom attributes from the existing parameter, emits a <see cref="ReplaceParameterTransformation"/>,
+    /// and returns the frozen builder.
+    /// </summary>
+    internal static ParameterBuilder CreateReplacementParameter(
+        AdviceImplementationContext context,
+        AspectLayerInstance aspectLayerInstance,
+        IConstructor constructor,
+        IParameter existingParameter,
+        IType newType,
+        TypedConstant? defaultValue,
+        Action<ParameterBuilder>? buildAction = null )
+    {
+        var builder = new ParameterBuilder(
+            constructor,
+            existingParameter.Index,
+            existingParameter.Name,
+            newType,
+            existingParameter.RefKind,
+            aspectLayerInstance ) { DefaultValue = defaultValue };
+
+        // Copy all custom attributes from the existing parameter.
+        builder.AddAttributes( existingParameter.Attributes );
+
+        buildAction?.Invoke( builder );
+
+        builder.Freeze();
+
+        context.AddTransformation(
+            new ReplaceParameterTransformation(
+                aspectLayerInstance,
+                builder.BuilderData,
+                existingParameter.Index ) );
+
+        return builder;
+    }
 
     /// <summary>
     /// Determines whether <paramref name="child"/>'s <c>: base(...)</c>/<c>: this(...)</c> call targets <paramref name="target"/>,
@@ -225,9 +288,37 @@ internal sealed class PullConstructorParameterAdviceImpl
 
                         break;
 
+                    case PullActionKind.ReplaceParameterTypeAndPull:
+                    {
+                        // Replace the type of an existing introduced parameter with a more specific type.
+                        var existingParam = pullParameterAction.ExistingParameter.AssertNotNull();
+                        var newType = pullParameterAction.ParameterType.AssertNotNull();
+
+                        var replaceParameterBuilder = CreateReplacementParameter(
+                            this._context,
+                            this._aspectLayerInstance,
+                            initializedChainedConstructor,
+                            existingParam,
+                            newType,
+                            TypedConstant.Default( newType ) );
+
+                        // Use the existing parameter's name as the base call argument.
+                        parameterValue = SyntaxFactoryEx.SafeIdentifierName( existingParam.Name );
+
+                        // Recursively pull using a virtual parameter with the NEW type so that
+                        // downstream GetPullAction calls see the updated type for matching.
+                        this.PullConstructorParameterRecursive( replaceParameterBuilder );
+
+                        break;
+                    }
+
                     case PullActionKind.AppendParameterAndPull:
-                        // Create a new parameter.
-                        parameterValue = SyntaxFactoryEx.SafeIdentifierName( pullParameterAction.ParameterName.AssertNotNull() );
+                        // Create a new parameter, deduplicating the name if it collides with a source-defined parameter.
+                        var pullParamName = GetUniqueParameterName(
+                            initializedChainedConstructor,
+                            pullParameterAction.ParameterName.AssertNotNull() );
+
+                        parameterValue = SyntaxFactoryEx.SafeIdentifierName( pullParamName );
 
                         TypedConstant? constant = null;
 
@@ -240,7 +331,7 @@ internal sealed class PullConstructorParameterAdviceImpl
                         var recursiveParameterBuilder = new ParameterBuilder(
                             initializedChainedConstructor,
                             initializedChainedConstructor.Parameters.Count,
-                            pullParameterAction.ParameterName.AssertNotNull(),
+                            pullParamName,
                             pullParameterAction.ParameterType.AssertNotNull(),
                             RefKind.None,
                             this._aspectLayerInstance ) { DefaultValue = constant };
@@ -278,7 +369,12 @@ internal sealed class PullConstructorParameterAdviceImpl
                 // We do this every time there is an optional parameter before the current parameter.
                 var requiresParameterName = baseConstructor.Parameters.Any( p => p.DefaultValue != null && p.Index < baseParameter.Index );
 
-                // Append an argument to the call to the current constructor. 
+                // Append (or override) the argument to the call to the current constructor.
+                // For ReplaceParameterTypeAndPull, the original pull already added an argument at this
+                // index; we override it because the expression type may no longer be compatible after
+                // the target parameter's type was replaced with a more specific one.
+                var isOverride = pullParameterAction.Kind == PullActionKind.ReplaceParameterTypeAndPull;
+
                 this.AddTransformation(
                     new IntroduceConstructorInitializerArgumentTransformation(
                         this._aspectLayerInstance,
@@ -286,7 +382,8 @@ internal sealed class PullConstructorParameterAdviceImpl
                         baseParameter.Index,
                         baseParameter.Name,
                         parameterValue,
-                        requiresParameterName ) );
+                        requiresParameterName,
+                        isOverride ) );
             }
         }
     }

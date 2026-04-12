@@ -953,13 +953,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                     {
                         var classificationService = serviceProvider.Global.GetRequiredService<AttributeClassificationService>();
 
-                        foreach ( var codeElementAttribute in source.Attributes )
-                        {
-                            if ( classificationService.MustCopyTemplateAttribute( codeElementAttribute ) )
-                            {
-                                destination.AddAttribute( codeElementAttribute.ToAttributeConstruction() );
-                            }
-                        }
+                        destination.AddAttributes( source.Attributes.Where( a => classificationService.MustCopyTemplateAttribute( a ) ) );
                     }
                 }
             }

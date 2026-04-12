@@ -60,6 +60,67 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
 
         if ( existingParameter != null )
         {
+            if ( existingParameter.Origin.Kind == DeclarationOriginKind.Source )
+            {
+                // Source-defined parameter with the same name. We cannot modify or replace it.
+                // Check if there's an aspect-introduced parameter with a compatible type that we
+                // should reuse or replace instead (e.g. from a base-class pull with a less-specific type).
+                var introducedCompatible = constructor.Parameters.FirstOrDefault(
+                    p => p.Origin is IAspectDeclarationOrigin ao
+                         && ao.AspectInstance != this.AspectInstance
+                         && this._parameterType.IsConvertibleTo( p.Type ) );
+
+                if ( introducedCompatible != null )
+                {
+                    if ( !introducedCompatible.Type.IsConvertibleTo( this._parameterType ) )
+                    {
+                        // Strictly more specific → replace.
+                        return this.ReplaceExistingParameter( context, constructor, introducedCompatible );
+                    }
+                    else
+                    {
+                        // Compatible (identical or mutually convertible) → reuse.
+                        return new IntroductionAdviceResult<IParameter>(
+                            AdviceKind.IntroduceParameter,
+                            AdviceOutcome.Default,
+                            this.AdviceFactory,
+                            introducedCompatible.ToRef() );
+                    }
+                }
+
+                // No compatible introduced parameter found — introduce a new one with a deduplicated name.
+                return this.IntroduceNewParameter( context, constructor );
+            }
+
+            // When the existing parameter was introduced by a DIFFERENT aspect instance and the new type
+            // is compatible, we can reuse or replace it. This occurs when an inheritable aspect's pull
+            // strategy propagated a parameter from a base class, and now the derived class's own aspect
+            // encounters it.
+            // When the same aspect instance introduces the same name twice, it's always a duplicate error.
+            var isFromDifferentAspect = existingParameter.Origin is IAspectDeclarationOrigin aspectOrigin
+                                        && aspectOrigin.AspectInstance != this.AspectInstance;
+
+            if ( isFromDifferentAspect
+                 && this._parameterType.IsConvertibleTo( existingParameter.Type ) )
+            {
+                if ( !existingParameter.Type.IsConvertibleTo( this._parameterType ) )
+                {
+                    // The new type is strictly more specific (e.g. ILogger<Derived> → ILogger<Base> via covariance).
+                    // Replace the existing parameter's type.
+                    return this.ReplaceExistingParameter( context, constructor, existingParameter );
+                }
+                else
+                {
+                    // The existing parameter has a compatible type (identical or mutually convertible).
+                    // No replacement needed — just return it.
+                    return new IntroductionAdviceResult<IParameter>(
+                        AdviceKind.IntroduceParameter,
+                        AdviceOutcome.Default,
+                        this.AdviceFactory,
+                        existingParameter.ToRef() );
+                }
+            }
+
             return this.CreateFailedResult(
                 AdviceDiagnosticDescriptors.CannotIntroduceParameterAlreadyExists.CreateRoslynDiagnostic(
                     constructor.GetDiagnosticLocation(),
@@ -77,6 +138,66 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
                     this ) );
         }
 
+        return this.IntroduceNewParameter( context, constructor );
+    }
+
+    /// <summary>
+    /// Replaces the type of an existing introduced parameter with <see cref="_parameterType"/> and
+    /// re-runs the pull strategy so that further-derived constructors see the updated type.
+    /// </summary>
+    private IntroductionAdviceResult<IParameter> ReplaceExistingParameter(
+        AdviceImplementationContext context,
+        IConstructor constructor,
+        IParameter existingParameter )
+    {
+        var replaceParameterBuilder = PullConstructorParameterAdviceImpl.CreateReplacementParameter(
+            context,
+            this.AspectLayerInstance,
+            constructor,
+            existingParameter,
+            this._parameterType,
+            this._defaultValue.IsInitialized ? this._defaultValue : null,
+            this._buildAction );
+
+        // Re-run the pull strategy so that derived constructors that already received
+        // the old less-specific type get updated to the new more-specific type.
+        var effectivePullStrategy = this._pullStrategy
+                                    ?? (this._defaultValue.IsInitialized
+                                        ? null
+                                        : new IntroduceParameterPullStrategy( null, null, null ));
+
+        var forwardingHelper = new ForwardingConstructorHelper(
+            context,
+            this.AspectLayerInstance,
+            this._overloadingStrategy,
+            this._pullStrategy,
+            this );
+
+        var impl = new PullConstructorParameterAdviceImpl(
+            context,
+            effectivePullStrategy,
+            this.AspectLayerInstance,
+            false,
+            forwardingHelper );
+
+        impl.PullConstructorParameterRecursive( replaceParameterBuilder );
+
+        return new IntroductionAdviceResult<IParameter>(
+            AdviceKind.IntroduceParameter,
+            AdviceOutcome.Default,
+            this.AdviceFactory,
+            replaceParameterBuilder.BuilderData.ToRef() );
+    }
+
+    /// <summary>
+    /// Introduces a brand-new parameter (the normal path when no existing same-name parameter exists).
+    /// </summary>
+    private IntroductionAdviceResult<IParameter> IntroduceNewParameter(
+        AdviceImplementationContext context,
+        IConstructor constructor )
+    {
+        var initializedConstructor = constructor;
+
         // If we have an implicit constructor, make it explicit.
         if ( constructor.IsImplicitInstanceConstructor() )
         {
@@ -88,12 +209,14 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
             context.AddTransformation( constructorBuilder.CreateTransformation() );
         }
 
-        // Create the parameter.
+        // Create the parameter, deduplicating the name if it collides with a source-defined parameter.
         // An uninitialized TypedConstant (i.e. default(TypedConstant)) means "required parameter, no C# default value".
+        var parameterName = PullConstructorParameterAdviceImpl.GetUniqueParameterName( initializedConstructor, this._parameterName );
+
         var parameterBuilder = new ParameterBuilder(
             initializedConstructor,
             initializedConstructor.Parameters.Count,
-            this._parameterName,
+            parameterName,
             this._parameterType,
             RefKind.None,
             this.AspectLayerInstance ) { DefaultValue = this._defaultValue.IsInitialized ? this._defaultValue : null };

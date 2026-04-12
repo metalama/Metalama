@@ -178,14 +178,12 @@ internal sealed class ForwardingConstructorHelper
         // that would have been visible on the pre-mutation source constructor. When the strategy
         // is ForwardAndMarkObsolete, skip any source [Obsolete] — the strategy's directive
         // wins and emitting both would produce a duplicate-attribute compile error.
-        foreach ( var sourceAttribute in mutatedConstructor.Attributes
-                     .Where(
-                         a => a.Origin.Kind == DeclarationOriginKind.Source
-                              && !(action.Kind == ConstructorOverloadingActionKind.ForwardAndMarkObsolete
-                                   && a.Type.FullName == "System.ObsoleteAttribute") ) )
-        {
-            forwarderBuilder.AddAttribute( sourceAttribute.ToAttributeConstruction() );
-        }
+        forwarderBuilder.AddAttributes(
+            mutatedConstructor.Attributes
+                .Where(
+                    a => a.Origin.Kind == DeclarationOriginKind.Source
+                         && !(action.Kind == ConstructorOverloadingActionKind.ForwardAndMarkObsolete
+                              && a.Type.FullName == "System.ObsoleteAttribute") ) );
 
         // Copy the pre-mutation parameter list (source parameters only).
         foreach ( var sourceParameter in preMutationParams )

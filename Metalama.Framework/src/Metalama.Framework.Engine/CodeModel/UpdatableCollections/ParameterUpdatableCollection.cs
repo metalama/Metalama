@@ -88,4 +88,16 @@ internal sealed class ParameterUpdatableCollection : DeclarationUpdatableCollect
             this.AddItem( parameterBuilder.ToRef() );
         }
     }
+
+    /// <summary>
+    /// Replaces the parameter at the given index with a new <see cref="ParameterBuilderData"/>.
+    /// Used by <see cref="Metalama.Framework.Engine.AdviceImpl.Introduction.ReplaceParameterTransformation"/>
+    /// to update an introduced parameter's type in the code model.
+    /// </summary>
+    public void Replace( int index, ParameterBuilderData parameterBuilder )
+    {
+        this.EnsureComplete();
+
+        this.SetItem( index, parameterBuilder.ToRef() );
+    }
 }
