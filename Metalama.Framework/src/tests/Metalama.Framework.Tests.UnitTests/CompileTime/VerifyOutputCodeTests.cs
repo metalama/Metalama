@@ -52,37 +52,66 @@ public sealed class VerifyOutputCodeTests : UnitTestClass
     [Fact]
     public async Task VerifyOutputCode_Disabled_DoesNotValidate()
     {
+        // Use the same invalid-output weaver as VerifyOutputCode_WithInvalidGeneratedCode_Fails;
+        // when VerifyOutputCode = false, the pipeline must still succeed even though the generated
+        // syntax tree contains errors, proving that validation is genuinely skipped.
         const string code = """
             using Metalama.Framework.Aspects;
-            using Metalama.Framework.Code;
+            using Metalama.Framework.Engine;
+            using Metalama.Framework.Engine.AspectWeavers;
+            using Metalama.Framework.Engine.Utilities.Roslyn;
+            using Microsoft.CodeAnalysis;
+            using Microsoft.CodeAnalysis.CSharp;
+            using Microsoft.CodeAnalysis.CSharp.Syntax;
+            using System.Linq;
+            using System.Threading.Tasks;
 
-            class TestAspect : TypeAspect
+            [RequireAspectWeaver("InvalidCodeWeaver")]
+            class TestAspect : MethodAspect { }
+
+            [MetalamaPlugIn]
+            class InvalidCodeWeaver : IAspectWeaver
             {
-                public override void BuildAspect(IAspectBuilder<INamedType> builder)
+                public Task TransformAsync(AspectWeaverContext context)
                 {
-                    builder.Advice.IntroduceMethod(builder.Target, nameof(IntroducedMethod));
+                    return context.RewriteAspectTargetsAsync(new Rewriter());
                 }
 
-                [Template]
-                public void IntroducedMethod()
+                private class Rewriter : SafeSyntaxRewriter
                 {
-                    System.Console.WriteLine("Hello");
+                    public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
+                    {
+                        var invalidCodeText = ")(";
+                        var parsedStatement = SyntaxFactory.ParseStatement(invalidCodeText);
+
+                        var newBody = SyntaxFactory.Block(parsedStatement);
+                        return node.WithBody(newBody);
+                    }
                 }
             }
 
-            [TestAspect]
-            class TargetClass { }
+            class TargetClass
+            {
+                [TestAspect]
+                public void TestMethod() { }
+            }
             """;
 
         var testOptions = new TestContextOptions { VerifyOutputCode = false };
         using var testContext = this.CreateTestContext( testOptions );
-        var compilation = testContext.CreateCSharpCompilation( code );
+        var compilation = testContext.CreateCSharpCompilation(
+            code,
+            additionalReferences: new[]
+            {
+                MetadataReference.CreateFromFile( typeof(Microsoft.CodeAnalysis.Compilation).Assembly.Location ),
+                MetadataReference.CreateFromFile( typeof(Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree).Assembly.Location )
+            } );
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
         var result = await pipeline.ExecuteAsync( null, null, compilation, default, default );
 
-        // With VerifyOutputCode disabled, even if there were syntax issues in output,
-        // the pipeline would not fail due to syntax validation
-        Assert.True( result.IsSuccessful, "Pipeline should succeed when validation is disabled" );
+        // With VerifyOutputCode disabled, the pipeline does not run the round-trip parse check,
+        // so generated syntax errors do not cause failure here.
+        Assert.True( result.IsSuccessful, "Pipeline should succeed when validation is disabled, even with invalid generated code" );
     }
 
     [Fact]

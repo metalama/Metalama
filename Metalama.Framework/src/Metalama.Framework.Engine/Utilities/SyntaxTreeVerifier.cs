@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
+using System.Globalization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -79,23 +80,10 @@ internal sealed class SyntaxTreeVerifier
         }
         catch ( Exception ex )
         {
-            // If parsing throws an exception, create a diagnostic with detailed information
-            var message =
-                $"Failed to parse generated code for file '{syntaxTree.FilePath}'. " +
-                $"This indicates a code generation issue where the generated syntax tree produces invalid text. " +
-                $"Exception: {ex.GetType().Name}: {ex.Message}";
-
-            var diagnostic = Diagnostic.Create(
-                new DiagnosticDescriptor(
-                    "LAMA9999",
-                    "Generated code parse error",
-                    message,
-                    "Metalama.Framework",
-                    DiagnosticSeverity.Error,
-                    isEnabledByDefault: true ),
-                Location.None );
-
-            diagnostics.Report( diagnostic );
+            diagnostics.Report(
+                GeneralDiagnosticDescriptors.GeneratedCodeParseFailed.CreateRoslynDiagnostic(
+                    null,
+                    (syntaxTree.FilePath, ex.GetType().Name, ex.Message) ) );
 
             return;
         }
@@ -115,24 +103,16 @@ internal sealed class SyntaxTreeVerifier
                     nodeText = nodeText.Substring( 0, 97 ) + "...";
                 }
 
-                // Create an enhanced diagnostic with context
-                var enhancedMessage =
-                    $"Syntax error in generated code for file '{syntaxTree.FilePath}': {diagnostic.GetMessage( System.Globalization.CultureInfo.InvariantCulture )}. " +
-                    $"Location: Line {diagnostic.Location.GetLineSpan().StartLinePosition.Line + 1}, " +
-                    $"Column {diagnostic.Location.GetLineSpan().StartLinePosition.Character + 1}. " +
-                    $"Problematic code: '{nodeText}'.";
+                var lineSpan = diagnostic.Location.GetLineSpan();
 
-                var enhancedDiagnostic = Diagnostic.Create(
-                    new DiagnosticDescriptor(
-                        diagnostic.Id,
-                        "Syntax error in generated code",
-                        enhancedMessage,
-                        diagnostic.Descriptor.Category,
-                        DiagnosticSeverity.Error,
-                        isEnabledByDefault: true ),
-                    diagnostic.Location );
-
-                diagnostics.Report( enhancedDiagnostic );
+                diagnostics.Report(
+                    GeneralDiagnosticDescriptors.GeneratedCodeSyntaxError.CreateRoslynDiagnostic(
+                        diagnostic.Location,
+                        (syntaxTree.FilePath,
+                         diagnostic.GetMessage( CultureInfo.InvariantCulture ),
+                         lineSpan.StartLinePosition.Line + 1,
+                         lineSpan.StartLinePosition.Character + 1,
+                         nodeText) ) );
             }
         }
     }

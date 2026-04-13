@@ -129,7 +129,7 @@ public sealed class LinkerTriviaPreservationTests : UnitTestClass
     }
 
     /// <summary>
-    /// Enumerates byte offsets in <paramref name="source"/> where injecting a <c>#warning</c>
+    /// Enumerates character offsets in <paramref name="source"/> where injecting a <c>#warning</c>
     /// directive must round-trip through the linker. Only positions on members carrying an
     /// attribute list (i.e., aspect targets) are considered, since untargeted members go
     /// through the linker's pass-through path which trivially preserves trivia.

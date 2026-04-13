@@ -626,6 +626,8 @@ internal sealed partial class LinkerRewritingDriver
         SyntaxTriviaList originalTrivia,
         SyntaxGenerationContext generationContext )
     {
+        var indentation = GetIndentationTrivia( originalTrivia );
+
         List<SyntaxTrivia>? result = null;
 
         foreach ( var t in originalTrivia )
@@ -634,11 +636,10 @@ internal sealed partial class LinkerRewritingDriver
             {
                 result ??= new List<SyntaxTrivia>();
                 result.Add( SyntaxFactory.EndOfLine( generationContext.EndOfLine ) );
+                result.AddRange( indentation );
                 result.Add( t );
             }
         }
-
-        var indentation = GetIndentationTrivia( originalTrivia );
 
         if ( result == null )
         {
@@ -646,8 +647,9 @@ internal sealed partial class LinkerRewritingDriver
         }
 
         result.Add( SyntaxFactory.EndOfLine( generationContext.EndOfLine ) );
+        result.AddRange( indentation );
 
-        return new SyntaxTriviaList( result ).AddRange( indentation );
+        return new SyntaxTriviaList( result );
 
         static bool ShouldKeep( SyntaxTrivia t )
             => !t.IsKind( SyntaxKind.WhitespaceTrivia )
