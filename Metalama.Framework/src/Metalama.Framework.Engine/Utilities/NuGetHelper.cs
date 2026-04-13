@@ -214,7 +214,26 @@ internal static class NuGetHelper
             }
             else if ( childIncrement.HasAttributes )
             {
-                target.Add( childIncrement );
+                var keyAttr = childIncrement.Attribute( "key" );
+
+                if ( keyAttr != null )
+                {
+                    var existing = target.Elements( childIncrement.Name )
+                        .FirstOrDefault( e => string.Equals( e.Attribute( "key" )?.Value, keyAttr.Value, StringComparison.OrdinalIgnoreCase ) );
+
+                    if ( existing != null )
+                    {
+                        existing.ReplaceWith( childIncrement );
+                    }
+                    else
+                    {
+                        target.Add( childIncrement );
+                    }
+                }
+                else
+                {
+                    target.Add( childIncrement );
+                }
             }
             else
             {
