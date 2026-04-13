@@ -242,4 +242,20 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// When <c>true</c>, the validator checks that run-time code does not reference compile-time-only declarations.
     /// </summary>
     bool ValidateRunTimeCode { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether telemetry is enabled for this project. When set to <c>false</c>,
+    /// all telemetry (usage reports, exception reports) is suppressed during the build.
+    /// When <c>null</c>, the default telemetry configuration applies.
+    /// This property can be set via the <c>MetalamaTelemetryEnabled</c> MSBuild property.
+    /// </summary>
+    bool? TelemetryEnabled { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether project metrics collection is enabled for this project.
+    /// When set to <c>false</c>, project metrics (usage sessions) are not collected during the build.
+    /// When <c>null</c>, the default configuration applies.
+    /// This property can be set via the <c>MetalamaMetricsEnabled</c> MSBuild property.
+    /// </summary>
+    bool? MetricsEnabled { get; }
 }

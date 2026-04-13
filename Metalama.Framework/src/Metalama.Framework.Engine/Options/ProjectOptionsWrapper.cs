@@ -116,6 +116,10 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual bool ValidateRunTimeCode => this.Wrapped.ValidateRunTimeCode;
 
+    public virtual bool? TelemetryEnabled => this.Wrapped.TelemetryEnabled;
+
+    public virtual bool? MetricsEnabled => this.Wrapped.MetricsEnabled;
+
     public sealed override int GetHashCode() => throw new NotImplementedException();
 
     public sealed override bool Equals( object? obj ) => this.Equals( obj as IProjectOptions );

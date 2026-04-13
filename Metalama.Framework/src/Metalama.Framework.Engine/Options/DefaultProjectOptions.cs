@@ -130,6 +130,10 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual bool ValidateRunTimeCode => false;
 
+    public virtual bool? TelemetryEnabled => null;
+
+    public virtual bool? MetricsEnabled => null;
+
     // IProjectOptions is currently not used as a dictionary key, so we can throw here.
     public sealed override int GetHashCode() => throw new NotImplementedException();
 

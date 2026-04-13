@@ -192,6 +192,12 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override bool AvoidLockingExtensionAssemblies => this.GetBooleanOption( MSBuildPropertyNames.MetalamaAvoidLockingExtensionAssemblies );
 
     [Memo]
+    public override bool? TelemetryEnabled => this.GetNullableBooleanOption( MSBuildPropertyNames.MetalamaTelemetryEnabled );
+
+    [Memo]
+    public override bool? MetricsEnabled => this.GetNullableBooleanOption( MSBuildPropertyNames.MetalamaMetricsEnabled );
+
+    [Memo]
     public override ImmutableArray<TargetedAssemblyReference> DesignTimeExtensionAssemblies
         => this.GetListOption( MSBuildPropertyNames.MetalamaDesignTimeExtensionAssemblies )
             .Select( TargetedAssemblyReference.ParsePipeSeparatedString )

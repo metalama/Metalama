@@ -41,6 +41,8 @@
         <CompilerVisibleProperty Include="MetalamaAssemblyLocatorSalt"/>
         <CompilerVisibleProperty Include="MetalamaValidateRunTimeCode"/>
         <CompilerVisibleProperty Include="TargetFrameworks"/>
+        <CompilerVisibleProperty Include="MetalamaTelemetryEnabled"/>
+        <CompilerVisibleProperty Include="MetalamaMetricsEnabled"/>
     </ItemGroup>
 
     <!-- More properties are already exported by Metalama.Compiler and don't need to be exported a second time. -->

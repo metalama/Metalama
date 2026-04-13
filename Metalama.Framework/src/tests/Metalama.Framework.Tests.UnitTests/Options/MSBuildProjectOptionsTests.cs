@@ -70,6 +70,60 @@ public sealed class MSBuildProjectOptionsTests
         Assert.Equal( touchFilePath, options.SourceGeneratorTouchFile );
     }
 
+    [Fact]
+    public void TelemetryEnabled_NotSet_ReturnsNull()
+    {
+        var source = new DictionaryOptionsSource( new Dictionary<string, string>() );
+        var options = new TestableMSBuildProjectOptions( source );
+
+        Assert.Null( options.TelemetryEnabled );
+    }
+
+    [Theory]
+    [InlineData( "True", true )]
+    [InlineData( "true", true )]
+    [InlineData( "False", false )]
+    [InlineData( "false", false )]
+    public void TelemetryEnabled_SetToValue_ReturnsExpected( string value, bool expected )
+    {
+        var source = new DictionaryOptionsSource(
+            new Dictionary<string, string>
+            {
+                [MSBuildPropertyNames.MetalamaTelemetryEnabled] = value
+            } );
+
+        var options = new TestableMSBuildProjectOptions( source );
+
+        Assert.Equal( expected, options.TelemetryEnabled );
+    }
+
+    [Fact]
+    public void MetricsEnabled_NotSet_ReturnsNull()
+    {
+        var source = new DictionaryOptionsSource( new Dictionary<string, string>() );
+        var options = new TestableMSBuildProjectOptions( source );
+
+        Assert.Null( options.MetricsEnabled );
+    }
+
+    [Theory]
+    [InlineData( "True", true )]
+    [InlineData( "true", true )]
+    [InlineData( "False", false )]
+    [InlineData( "false", false )]
+    public void MetricsEnabled_SetToValue_ReturnsExpected( string value, bool expected )
+    {
+        var source = new DictionaryOptionsSource(
+            new Dictionary<string, string>
+            {
+                [MSBuildPropertyNames.MetalamaMetricsEnabled] = value
+            } );
+
+        var options = new TestableMSBuildProjectOptions( source );
+
+        Assert.Equal( expected, options.MetricsEnabled );
+    }
+
     private sealed class TestableMSBuildProjectOptions : MSBuildProjectOptions
     {
         public TestableMSBuildProjectOptions( IProjectOptionsSource source ) : base( source ) { }
