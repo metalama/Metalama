@@ -124,82 +124,9 @@ internal sealed partial class LinkerInjectionStep
                 case IFullRef<IIndexer> indexer:
                     return this.GetAuxiliaryContractIndexer( indexer, aspectLayerInstance, returnVariableName );
 
-                case IFullRef<IConstructor> constructor:
-                    return this.GetAuxiliaryContractConstructor( constructor );
-
                 default:
                     throw new AssertionFailedException( $"Unsupported kind: {member}" );
             }
-        }
-
-        private ConstructorDeclarationSyntax GetAuxiliaryContractConstructor( IFullRef<IConstructor> constructorRef )
-        {
-            var constructor = constructorRef.Definition;
-
-            ParameterListSyntax parameters;
-            SeparatedSyntaxList<ParameterSyntax> originalParameters;
-
-            if ( constructor.IsPrimary )
-            {
-#if ROSLYN_4_8_0_OR_GREATER
-                var syntax = (TypeDeclarationSyntax) constructor.GetPrimaryDeclarationSyntax().AssertNotNull();
-#else
-                var syntax = (RecordDeclarationSyntax) constructor.GetPrimaryDeclarationSyntax().AssertNotNull();
-#endif
-
-                parameters = syntax.ParameterList.AssertNotNull();
-                originalParameters = parameters.Parameters;
-
-                if ( this._transformationCollection.TryGetMemberLevelTransformations( syntax, out var memberTransformations )
-                     && memberTransformations.Parameters.Length > 0 )
-                {
-                    var syntaxGenerationContext = this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, syntax );
-
-                    parameters =
-                        parameters.AddParameters(
-                            memberTransformations.Parameters.SelectAsArray( p => p.ToSyntax( syntaxGenerationContext, this._finalCompilationModel ) ) );
-
-                    originalParameters = parameters.Parameters;
-                }
-            }
-            else
-            {
-                var syntax = (ConstructorDeclarationSyntax) constructor.GetPrimaryDeclarationSyntax().AssertNotNull();
-                parameters = syntax.ParameterList;
-                originalParameters = parameters.Parameters;
-            }
-
-            parameters =
-                parameters.WithAdditionalParameters(
-                    Parameter(
-                        List<AttributeListSyntax>(),
-                        TokenList(),
-                        this._injectionNameProvider.GetSourceType(),
-                        WellKnownIdentifier( AspectReferenceSyntaxProvider.LinkerOverrideParamName ),
-                        EqualsValueClause(
-                            LiteralExpression(
-                                SyntaxKind.DefaultLiteralExpression,
-                                Token( SyntaxKind.DefaultKeyword ) ) ) ) );
-
-            return ConstructorDeclaration(
-                List<AttributeListSyntax>(),
-                constructor.GetSyntaxModifierList( ModifierCategories.Unsafe )
-                    .Insert( 0, TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
-                SyntaxFactoryEx.SafeIdentifier( constructor.DeclaringType.AssertNotNull().Name.AssertNotNull() ),
-                parameters,
-                ConstructorInitializer(
-                    SyntaxKind.ThisConstructorInitializer,
-                    ArgumentList(
-                        SeparatedList(
-                            originalParameters.SelectAsArray(
-                                p =>
-                                    Argument(
-                                        null,
-                                        p.Modifiers.FirstOrDefault( m => !m.IsKind( SyntaxKind.ParamsKeyword ) ),
-                                        SyntaxFactoryEx.WellKnownIdentifierName( p.Identifier ) ) ) ) ) ),
-                Block(),
-                null,
-                default );
         }
 
         private MemberDeclarationSyntax GetAuxiliaryContractMethod(
