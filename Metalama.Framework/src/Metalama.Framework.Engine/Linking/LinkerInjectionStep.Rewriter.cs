@@ -1455,11 +1455,27 @@ internal sealed partial class LinkerInjectionStep
                 var constructor = this._compilation.RefFactory.FromSymbol<IConstructor>( symbol );
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( constructor );
                 var epilogueStatements = this._transformationCollection.GetInjectedEpilogueStatements( constructor );
+                var outputContractStatements = this._transformationCollection.GetInjectedOutputContractStatements( constructor );
+
+                IReadOnlyList<StatementSyntax> exitStatements;
+
+                if ( outputContractStatements.Count > 0 && epilogueStatements.Count > 0 )
+                {
+                    exitStatements = [..outputContractStatements, ..epilogueStatements];
+                }
+                else if ( outputContractStatements.Count > 0 )
+                {
+                    exitStatements = outputContractStatements;
+                }
+                else
+                {
+                    exitStatements = epilogueStatements;
+                }
 
                 node = (ConstructorDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration(
                     constructor,
                     entryStatements,
-                    epilogueStatements,
+                    exitStatements,
                     node );
             }
 

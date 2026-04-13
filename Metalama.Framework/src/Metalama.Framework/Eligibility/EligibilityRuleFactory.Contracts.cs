@@ -147,7 +147,6 @@ public static partial class EligibilityRuleFactory
                     parameter =>
                     {
                         parameter.MustSatisfyAny( p => p.MustBeWritable(), p => p.MustBeReturnParameter() );
-                        parameter.MustSatisfy( p => p.DeclaringMember is not IConstructor, _ => $"output contracts on constructors are not supported" );
                         AddCommonParameterRules( parameter );
                         AddCommonReturnParameterRules( parameter );
                         parameter.DeclaringMember().DeclaringType().AddRule( declaringTypeRule );
@@ -159,7 +158,6 @@ public static partial class EligibilityRuleFactory
                     {
                         parameter.MustNotBeReturnParameter();
                         parameter.MustBeRef();
-                        parameter.MustSatisfy( p => p.DeclaringMember is not IConstructor, _ => $"output contracts on constructors are not supported" );
                         AddCommonParameterRules( parameter );
                         AddCommonReturnParameterRules( parameter );
                         parameter.DeclaringMember().DeclaringType().AddRule( declaringTypeRule );
@@ -169,10 +167,6 @@ public static partial class EligibilityRuleFactory
                 CreateRule<IParameter>(
                     parameter =>
                     {
-                        parameter.MustSatisfy(
-                            p => !(p is { RefKind: RefKind.Out, DeclaringMember: IConstructor }),
-                            _ => $"output contracts on constructors are not supported" );
-
                         AddCommonParameterRules( parameter );
                         AddCommonReturnParameterRules( parameter );
                         parameter.DeclaringMember().DeclaringType().AddRule( declaringTypeRule );
