@@ -38,21 +38,29 @@ public sealed partial class SourceTransformer
 
             this._services.Add( typeof(ILoggerFactory), loggerFactory );
             this._services.Add( typeof(ILogger), new LoggerAdapter( loggerFactory.GetLogger( "Compiler" ) ) );
-            this._services.Add( typeof(IExceptionReporter), new ExceptionReporterAdapter( serviceProvider.GetBackstageService<IExceptionReporter>() ) );
 
-            // Initialize usage reporting.
-            try
+            // Register the exception reporter unless telemetry is explicitly disabled via MSBuild property.
+            if ( options.TelemetryEnabled != false )
             {
-                if ( serviceProvider.GetBackstageService<IUsageReporter>() is { } usageReporter && options.AssemblyName != null )
-                {
-                    this._session = usageReporter.StartSession( "TransformerUsage", options.AssemblyName );
-                }
+                this._services.Add( typeof(IExceptionReporter), new ExceptionReporterAdapter( serviceProvider.GetBackstageService<IExceptionReporter>() ) );
             }
-            catch ( Exception e )
-            {
-                ReportException( e, serviceProvider, false );
 
-                // We don't re-throw here as we don't want compiler to crash because of usage reporting exceptions.
+            // Initialize usage reporting unless telemetry or metrics are explicitly disabled via MSBuild properties.
+            if ( options.TelemetryEnabled != false && options.MetricsEnabled != false )
+            {
+                try
+                {
+                    if ( serviceProvider.GetBackstageService<IUsageReporter>() is { } usageReporter && options.AssemblyName != null )
+                    {
+                        this._session = usageReporter.StartSession( "TransformerUsage", options.AssemblyName );
+                    }
+                }
+                catch ( Exception e )
+                {
+                    ReportException( e, serviceProvider, false );
+
+                    // We don't re-throw here as we don't want compiler to crash because of usage reporting exceptions.
+                }
             }
         }
 
