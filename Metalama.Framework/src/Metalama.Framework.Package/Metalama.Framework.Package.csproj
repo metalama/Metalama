@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
 
         <!-- Packaging -->
         <PackageId>Metalama.Framework</PackageId>
@@ -47,6 +47,10 @@
             <Pack>true</Pack>
             <PackagePath>lib/netstandard2.0/</PackagePath>
         </None>
+        <None Include="lib/net8.0/_._">
+            <Pack>true</Pack>
+            <PackagePath>lib/net8.0/</PackagePath>
+        </None>
     </ItemGroup>
             
 
@@ -62,7 +66,7 @@
     </ItemGroup>
 
 
-    <Target Name="_AddAnalyzersToOutput">
+    <Target Name="_AddAnalyzersToOutput" Condition="'$(TargetFramework)' == 'netstandard2.0'">
         <ItemGroup>
             <TfmSpecificPackageFile Include="$(OutputPath)/Metalama.Framework.CompilerExtensions.dll" PackagePath="analyzers/dotnet/cs" />
             <TfmSpecificPackageFile Include="$(OutputPath)/Metalama.Framework.EditorExtensions.dll" PackagePath="analyzers/dotnet/cs" />
