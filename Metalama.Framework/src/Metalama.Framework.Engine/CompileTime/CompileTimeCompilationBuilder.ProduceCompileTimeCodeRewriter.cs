@@ -537,13 +537,14 @@ namespace Metalama.Framework.Engine.CompileTime
 
                                 break;
 
-                            case TypeDeclarationSyntax nestedType:
+                            case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                                or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when member is TypeDeclarationSyntax nestedType:
                                 members.AddRange( this.VisitTypeDeclaration( nestedType ) );
 
                                 break;
 
-                            case EnumDeclarationSyntax:
-                            case DelegateDeclarationSyntax:
+                            case SyntaxKind.EnumDeclaration:
+                            case SyntaxKind.DelegateDeclaration:
                                 var visited = (MemberDeclarationSyntax?) this.Visit( member );
 
                                 if ( visited != null )
