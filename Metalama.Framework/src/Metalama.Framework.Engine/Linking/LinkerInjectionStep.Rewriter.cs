@@ -439,30 +439,7 @@ internal sealed partial class LinkerInjectionStep
                 }
                 else
                 {
-                    // Give each new base type a leading space so the comma separator that AddRange
-                    // inserts renders as ", IIntroducedInterface" instead of ",IIntroducedInterface".
-                    // Also move the previously last base type's trailing trivia (typically an EndOfLine
-                    // before the open brace) to the new last base type, so the appended commas are not
-                    // split across a line break (e.g. ": Exception\n,IIntroducedInterface").
-                    var newBaseTypes = additionalBaseList.SelectAsArray(
-                        i => (BaseTypeSyntax) i.Syntax
-                            .WithLeadingTrivia( Space )
-                            .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) );
-
-                    var existingTypes = baseList.Types;
-                    var previousLast = existingTypes[^1];
-                    var trailingToMove = previousLast.GetTrailingTrivia();
-
-                    var combined = existingTypes.Replace( previousLast, previousLast.WithTrailingTrivia() );
-
-                    for ( var i = 0; i < newBaseTypes.Length - 1; i++ )
-                    {
-                        combined = combined.Add( newBaseTypes[i] );
-                    }
-
-                    combined = combined.Add( newBaseTypes[^1].WithTrailingTrivia( trailingToMove ) );
-
-                    node = (T) node.WithBaseList( baseList.WithTypes( combined ) );
+                    node = (T) node.WithBaseList( AppendInjectedInterfaces( baseList, additionalBaseList, withGeneratedCodeAnnotation: true ) );
                 }
             }
             else if ( baseList != null )
@@ -711,40 +688,53 @@ internal sealed partial class LinkerInjectionStep
                         return typeDeclaration;
                     }
 
-                    // Give each new base type a leading space so the comma separator that AddRange
-                    // inserts renders as ", IIntroducedInterface" instead of ",IIntroducedInterface".
-                    var newBaseTypes = injectedInterfaces.SelectAsArray( i => (BaseTypeSyntax) i.Syntax.WithLeadingTrivia( Space ) );
-
                     var existingBaseList = typeDeclaration.BaseList;
 
                     if ( existingBaseList == null || existingBaseList.Types.Count == 0 )
                     {
-                        return (TypeDeclarationSyntax) typeDeclaration.AddBaseListTypes( newBaseTypes );
+                        return (TypeDeclarationSyntax) typeDeclaration.AddBaseListTypes( injectedInterfaces.SelectAsArray( i => i.Syntax ) );
                     }
 
-                    // The previously last base type carries the trailing trivia that sits between
-                    // the base list and the open brace (typically an EndOfLine). Move that trivia
-                    // to the new last base type so the appended commas/types are not split across
-                    // a line break (e.g. ": Exception\n,IIntroducedInterface" → ": Exception, IIntroducedInterface\n").
-                    var existingTypes = existingBaseList.Types;
-                    var previousLast = existingTypes[^1];
-                    var trailingToMove = previousLast.GetTrailingTrivia();
-
-                    var rebasedExisting = existingTypes.Replace( previousLast, previousLast.WithTrailingTrivia() );
-                    var newLast = newBaseTypes[^1].WithTrailingTrivia( trailingToMove );
-
-                    var combined = rebasedExisting;
-
-                    for ( var i = 0; i < newBaseTypes.Length - 1; i++ )
-                    {
-                        combined = combined.Add( newBaseTypes[i] );
-                    }
-
-                    combined = combined.Add( newLast );
-
-                    return (TypeDeclarationSyntax) typeDeclaration.WithBaseList( existingBaseList.WithTypes( combined ) );
+                    return typeDeclaration.WithBaseList( AppendInjectedInterfaces( existingBaseList, injectedInterfaces, withGeneratedCodeAnnotation: false ) );
                 }
             }
+        }
+
+        // Appends introduced interfaces to an existing base list. Without trivia adjustments, AddRange would
+        // insert the comma separator after the previously last base type's trailing trivia (typically the
+        // EndOfLine before the open brace), producing output like ": Exception\n,IIntroducedInterface".
+        // We give each new base type a leading space so the comma separator renders as ", IFoo", and we
+        // move the previously last type's trailing trivia onto the new last type to keep the EOL at the end
+        // of the base list. Reusing existingBaseList.WithTypes preserves the original colon token's trivia.
+        private static BaseListSyntax AppendInjectedInterfaces(
+            BaseListSyntax existingBaseList,
+            IReadOnlyList<LinkerInjectedInterface> injectedInterfaces,
+            bool withGeneratedCodeAnnotation )
+        {
+            var newBaseTypes = injectedInterfaces.SelectAsArray(
+                i =>
+                {
+                    var syntax = i.Syntax.WithRequiredLeadingTrivia( ElasticSpaceTriviaList );
+
+                    return withGeneratedCodeAnnotation
+                        ? syntax.WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation )
+                        : syntax;
+                } );
+
+            var existingTypes = existingBaseList.Types;
+            var previousLast = existingTypes[^1];
+            var trailingToMove = previousLast.GetTrailingTrivia();
+
+            var combined = existingTypes.Replace( previousLast, previousLast.WithRequiredTrailingTrivia( default ) );
+
+            for ( var i = 0; i < newBaseTypes.Length - 1; i++ )
+            {
+                combined = combined.Add( newBaseTypes[i] );
+            }
+
+            combined = combined.Add( newBaseTypes[^1].WithRequiredTrailingTrivia( trailingToMove ) );
+
+            return existingBaseList.WithTypes( combined );
         }
 
         private MemberDeclarationSyntax InjectStatementsIntoMemberDeclaration(
