@@ -621,6 +621,31 @@ internal sealed partial class LinkerInjectionStep
         }
 
         /// <summary>
+        /// Returns the ordered list of output contract statements for a source constructor.
+        /// Used when output contracts are applied to out/ref constructor parameters without an explicit override.
+        /// </summary>
+        internal IReadOnlyList<StatementSyntax> GetInjectedOutputContractStatements( IRef<IConstructor> targetConstructor )
+        {
+            if ( !this._insertedStatementsByTargetMethodBase.TryGetValue( targetConstructor, out var insertedStatements ) )
+            {
+                return ImmutableArray<StatementSyntax>.Empty;
+            }
+
+            var outputContractStatements = OrderContractStatements(
+                insertedStatements.Where( s => s.Kind == InsertedStatementKind.OutputContract ) );
+
+            return outputContractStatements
+                .Select(
+                    s =>
+                        s.Statement.Kind() switch
+                        {
+                            SyntaxKind.Block when s.Statement is BlockSyntax block => block.WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            _ => s.Statement
+                        } )
+                .ToReadOnlyList();
+        }
+
+        /// <summary>
         /// Returns the ordered list of epilogue statements (kind <see cref="InsertedStatementKind.InitializerEpilogue"/>)
         /// to be injected at the end of a source constructor body. Used by <c>AfterLastInstanceConstructor</c> to emit
         /// the trailing <c>this.OnConstructed(context);</c> call.

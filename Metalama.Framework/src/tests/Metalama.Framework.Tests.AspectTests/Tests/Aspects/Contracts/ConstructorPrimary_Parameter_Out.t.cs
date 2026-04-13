@@ -1,2 +1,13 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0037 on `NotNull`: `The aspect 'NotNull' cannot be applied to the parameter 'Target.Target(out int)/x' because output contracts on constructors are not supported.`
+internal class Target
+{
+  // This is just to keep out parameter possible.
+  private int _z;
+  public Target([NotNull] out int x)
+  {
+    this._z = x = 42;
+    if (x == null)
+    {
+      throw new global::System.ArgumentNullException("x");
+    }
+  }
+}
