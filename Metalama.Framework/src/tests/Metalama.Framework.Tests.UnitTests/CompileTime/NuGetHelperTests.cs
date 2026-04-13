@@ -300,6 +300,89 @@ public class NuGetHelperTests : UnitTestClass
     }
 
     [Fact]
+    public void PackageSourceMappingDuplicateKeysAreMerged()
+    {
+        // Regression test for issue #1560: when parent and child nuget.config files both define
+        // <packageSourceMapping> entries with the same key (without <clear/>), the merge should
+        // replace the parent's entry with the child's, not create duplicates.
+        using var testContext = this.CreateTestContext();
+
+        const string parentConfig = """
+                                    <configuration>
+                                        <packageSources>
+                                            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                                            <add key="MyFeed" value="https://myfeed.example.com/index.json" />
+                                        </packageSources>
+                                        <packageSourceMapping>
+                                            <packageSource key="nuget.org">
+                                                <package pattern="*" />
+                                            </packageSource>
+                                            <packageSource key="MyFeed">
+                                                <package pattern="MyCompany.*" />
+                                            </packageSource>
+                                        </packageSourceMapping>
+                                    </configuration>
+                                    """;
+
+        const string childConfig = """
+                                   <configuration>
+                                       <packageSources>
+                                           <add key="LocalFeed" value="https://localfeed.example.com/index.json" />
+                                       </packageSources>
+                                       <packageSourceMapping>
+                                           <packageSource key="nuget.org">
+                                               <package pattern="Newtonsoft.*" />
+                                               <package pattern="System.*" />
+                                           </packageSource>
+                                           <packageSource key="LocalFeed">
+                                               <package pattern="Local.*" />
+                                           </packageSource>
+                                       </packageSourceMapping>
+                                   </configuration>
+                                   """;
+
+        var parentPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
+        File.WriteAllText( parentPath, parentConfig );
+        var subdir = Path.Combine( testContext.BaseDirectory, "sub" );
+        Directory.CreateDirectory( subdir );
+        var childPath = Path.Combine( subdir, "nuget.config" );
+        File.WriteAllText( childPath, childConfig );
+
+        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( childPath ) ).AssertNotNull();
+
+        // There should be exactly 3 packageSource entries: nuget.org (from child, replacing parent),
+        // MyFeed (from parent), and LocalFeed (from child).
+        var packageSourceMappingElement = mergedConfig.Root.AssertNotNull()
+            .Element( "packageSourceMapping" ).AssertNotNull();
+
+        var packageSourceElements = packageSourceMappingElement.Elements( "packageSource" ).ToList();
+
+        Assert.Equal( 3, packageSourceElements.Count );
+
+        // nuget.org should have the child's patterns (Newtonsoft.*, System.*), not the parent's (*).
+        var nugetOrgElement = packageSourceElements.First( e => e.Attribute( "key" )?.Value == "nuget.org" );
+        var nugetOrgPatterns = nugetOrgElement.Elements( "package" ).Select( e => e.Attribute( "pattern" )?.Value ).ToList();
+
+        Assert.Equal( 2, nugetOrgPatterns.Count );
+        Assert.Contains( "Newtonsoft.*", nugetOrgPatterns );
+        Assert.Contains( "System.*", nugetOrgPatterns );
+
+        // MyFeed should still have the parent's pattern.
+        var myFeedElement = packageSourceElements.First( e => e.Attribute( "key" )?.Value == "MyFeed" );
+        var myFeedPatterns = myFeedElement.Elements( "package" ).Select( e => e.Attribute( "pattern" )?.Value ).ToList();
+
+        Assert.Single( myFeedPatterns );
+        Assert.Equal( "MyCompany.*", myFeedPatterns[0] );
+
+        // LocalFeed should have the child's pattern.
+        var localFeedElement = packageSourceElements.First( e => e.Attribute( "key" )?.Value == "LocalFeed" );
+        var localFeedPatterns = localFeedElement.Elements( "package" ).Select( e => e.Attribute( "pattern" )?.Value ).ToList();
+
+        Assert.Single( localFeedPatterns );
+        Assert.Equal( "Local.*", localFeedPatterns[0] );
+    }
+
+    [Fact]
     public void MergeTest()
     {
         using var testContext = this.CreateTestContext();
