@@ -156,7 +156,7 @@ public static class SyntaxExtensions
     internal static TNode NormalizeWhitespaceIfNecessary<TNode>( this TNode node, SyntaxGenerationContext context )
         where TNode : SyntaxNode
     {
-        if ( !context.Options.NormalizeWhitespace )
+        if ( !context.Options.WillBeTextualized )
         {
             return node;
         }
@@ -173,7 +173,7 @@ public static class SyntaxExtensions
     internal static TNode WithSimplifierAnnotationIfNecessary<TNode>( this TNode node, SyntaxGenerationOptions options )
         where TNode : SyntaxNode
     {
-        if ( !options.AddFormattingAnnotations )
+        if ( !options.WillBeFormatted )
         {
             return node;
         }
@@ -183,7 +183,9 @@ public static class SyntaxExtensions
 
     private static bool ContainsDirectives( this SyntaxTriviaList trivias )
     {
-        // PERF: Using trivias.Any( t => t.IsDirective ) would allocate, since SyntaxTriviaList is a struct.
+        // PERF: `trivias.Any(t => t.IsDirective)` would allocate — the predicate materializes
+        // a delegate, and calling `Any` via IEnumerable<T> boxes the struct enumerator.
+        // A hand-rolled foreach over `SyntaxTriviaList` uses its struct enumerator directly.
 
         foreach ( var trivia in trivias )
         {
@@ -201,7 +203,7 @@ public static class SyntaxExtensions
     internal static TNode WithOptionalLeadingTrivia<TNode>( this TNode node, SyntaxTriviaList leadingTrivia, SyntaxGenerationOptions options )
         where TNode : SyntaxNode
     {
-        if ( !options.TriviaMatters && !leadingTrivia.ContainsDirectives() )
+        if ( !options.WillBeTextualized && !leadingTrivia.ContainsDirectives() )
         {
             return node;
         }
@@ -231,7 +233,7 @@ public static class SyntaxExtensions
         SyntaxGenerationContext context )
         where TNode : SyntaxNode
     {
-        if ( !context.Options.TriviaMatters )
+        if ( !context.Options.WillBeTextualized )
         {
             return node;
         }
@@ -250,7 +252,7 @@ public static class SyntaxExtensions
         SyntaxGenerationContext context )
         where TNode : SyntaxNode
     {
-        if ( !context.Options.TriviaMatters )
+        if ( !context.Options.WillBeTextualized )
         {
             return node;
         }
@@ -264,7 +266,7 @@ public static class SyntaxExtensions
         SyntaxGenerationContext context )
         where TNode : SyntaxNode
     {
-        if ( !context.Options.TriviaMatters )
+        if ( !context.Options.WillBeTextualized )
         {
             return node;
         }
@@ -276,7 +278,7 @@ public static class SyntaxExtensions
         this SyntaxToken node,
         SyntaxGenerationContext context )
     {
-        if ( !context.Options.TriviaMatters )
+        if ( !context.Options.WillBeTextualized )
         {
             return node;
         }
@@ -310,7 +312,7 @@ public static class SyntaxExtensions
         this SyntaxTriviaList list,
         SyntaxGenerationContext context )
     {
-        if ( !context.Options.NormalizeWhitespace )
+        if ( !context.Options.WillBeTextualized )
         {
             return list;
         }
@@ -325,7 +327,7 @@ public static class SyntaxExtensions
     internal static TNode WithOptionalTrailingTrivia<TNode>( this TNode node, SyntaxTriviaList trailingTrivia, SyntaxGenerationOptions options )
         where TNode : SyntaxNode
     {
-        if ( !options.TriviaMatters && !trailingTrivia.ContainsDirectives() )
+        if ( !options.WillBeTextualized && !trailingTrivia.ContainsDirectives() )
         {
             return node;
         }
@@ -340,7 +342,7 @@ public static class SyntaxExtensions
     // Resharper disable once UnusedMember.Global
     internal static SyntaxToken WithOptionalTrailingTrivia( this SyntaxToken token, SyntaxTriviaList trailingTrivia, SyntaxGenerationOptions options )
     {
-        if ( !options.TriviaMatters && !trailingTrivia.ContainsDirectives() )
+        if ( !options.WillBeTextualized && !trailingTrivia.ContainsDirectives() )
         {
             return token;
         }
@@ -380,7 +382,7 @@ public static class SyntaxExtensions
         SyntaxGenerationOptions options )
         where TNode : SyntaxNode
     {
-        if ( !options.TriviaMatters && !leadingTrivia.ContainsDirectives() && !trailingTrivia.ContainsDirectives() )
+        if ( !options.WillBeTextualized && !leadingTrivia.ContainsDirectives() && !trailingTrivia.ContainsDirectives() )
         {
             return node;
         }
@@ -397,13 +399,13 @@ public static class SyntaxExtensions
         => node.WithTriviaFromIfNecessary( fromNode, context.Options );
 
     internal static bool ShouldBePreserved( this SyntaxTriviaList trivia, SyntaxGenerationOptions options )
-        => options.TriviaMatters || trivia.ContainsDirectives();
+        => options.WillBeTextualized || trivia.ContainsDirectives();
 
     internal static bool ShouldBePreserved( this IEnumerable<SyntaxTrivia> trivia, SyntaxGenerationOptions options )
-        => options.TriviaMatters || trivia.Any( t => t.IsDirective );
+        => options.WillBeTextualized || trivia.Any( t => t.IsDirective );
 
     internal static bool ShouldTriviaBePreserved( this SyntaxNodeOrToken nodeOrToken, SyntaxGenerationOptions options )
-        => options.TriviaMatters || nodeOrToken.ContainsDirectives;
+        => options.WillBeTextualized || nodeOrToken.ContainsDirectives;
 
     internal static TNode AddTriviaFromIfNecessary<TNode>( this TNode node, SyntaxNode fromNode, SyntaxGenerationOptions options )
         where TNode : SyntaxNode
@@ -411,7 +413,7 @@ public static class SyntaxExtensions
         var fromLeading = fromNode.GetLeadingTrivia();
         var fromTrailing = fromNode.GetTrailingTrivia();
 
-        if ( !options.TriviaMatters && !fromLeading.ContainsDirectives() && !fromTrailing.ContainsDirectives() )
+        if ( !options.WillBeTextualized && !fromLeading.ContainsDirectives() && !fromTrailing.ContainsDirectives() )
         {
             return node;
         }

@@ -431,7 +431,7 @@ internal sealed partial class LinkerInjectionStep
                         .WithIdentifier(
                             node.Identifier.WithOptionalTrailingTrivia(
                                 default,
-                                syntaxGenerationContext.Options.TriviaMatters || node.Identifier.ContainsDirectives ) )
+                                syntaxGenerationContext.Options.WillBeTextualized || node.Identifier.ContainsDirectives ) )
                         .WithBaseList(
                             BaseList( SeparatedList( additionalBaseList.SelectAsReadOnlyList( i => i.Syntax ) ) )
                                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) )
@@ -1732,7 +1732,7 @@ internal sealed partial class LinkerInjectionStep
                     var eventDeclaration = EventFieldDeclaration(
                         default,
                         node.Modifiers,
-                        Token( TriviaList(), SyntaxKind.EventKeyword, TriviaList( Space ) ),
+                        Token( TriviaList(), SyntaxKind.EventKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ),
                         declaration,
                         Token( default, SyntaxKind.SemicolonToken, context.TwoElasticEndOfLinesTriviaList ) );
 

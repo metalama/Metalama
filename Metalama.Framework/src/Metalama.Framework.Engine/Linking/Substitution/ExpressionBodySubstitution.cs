@@ -78,7 +78,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                             return
                                 syntaxGenerator.FormattedBlock(
                                         ReturnStatement(
-                                            Token( arrowExpressionClause.Expression.GetLeadingTrivia(), SyntaxKind.ReturnKeyword, TriviaList( Space ) ),
+                                            Token( arrowExpressionClause.Expression.GetLeadingTrivia(), SyntaxKind.ReturnKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ),
                                             arrowExpressionClause.Expression,
                                             Token(
                                                 TriviaList(),
