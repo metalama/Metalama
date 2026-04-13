@@ -60,11 +60,18 @@ internal sealed class SyntaxTreeVerifier
     {
         SyntaxNode parsedFromText;
 
+        // Use ToFullString(), not ToString(): ToString() drops the leading trivia of the first token
+        // and the trailing trivia of the last token. For a source file that starts with a directive
+        // like '#if BENCHMARK' (held as leading trivia of the first 'using' token), ToString() would
+        // strip the opening directive while leaving the closing '#endif' (which lives as leading trivia
+        // of the EOF token), producing a spurious CS1028 'Unexpected preprocessor directive' on reparse.
+        var sourceText = syntaxTree.GetRoot().ToFullString();
+
         try
         {
             // Parse the syntax tree's text representation back into a syntax tree
             parsedFromText = CSharpSyntaxTree.ParseText(
-                    syntaxTree.GetRoot().ToString(),
+                    sourceText,
                     path: syntaxTree.FilePath,
                     encoding: Encoding.UTF8,
                     options: (CSharpParseOptions) syntaxTree.Options )
@@ -113,7 +120,7 @@ internal sealed class SyntaxTreeVerifier
                     $"Syntax error in generated code for file '{syntaxTree.FilePath}': {diagnostic.GetMessage( System.Globalization.CultureInfo.InvariantCulture )}. " +
                     $"Location: Line {diagnostic.Location.GetLineSpan().StartLinePosition.Line + 1}, " +
                     $"Column {diagnostic.Location.GetLineSpan().StartLinePosition.Character + 1}. " +
-                    $"Problematic code: '{nodeText}'";
+                    $"Problematic code: '{nodeText}'.";
 
                 var enhancedDiagnostic = Diagnostic.Create(
                     new DiagnosticDescriptor(

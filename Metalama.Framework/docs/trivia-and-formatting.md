@@ -60,6 +60,24 @@ Two subtleties:
 - A single predicate (`WillBeTextualized`) gates both per-node elastic-trivia emission *and* the `NormalizeWhitespace(elasticTrivia: true)` call during generation. Both are required whenever the tree will be textualized — `Default` and `Formatted` therefore behave identically at the per-node level: both produce trivia, both normalize. The difference between them lives entirely in `WillBeFormatted` and the later `CodeFormatter` pass (see §6). The XML doc on `WillBeTextualized` explains why normalization is still needed in `Formatted` mode: *Roslyn's `Formatter` reflows only elastic trivia and preserves non-elastic trivia verbatim — it does not synthesize new trivia between tokens that have none*. `NormalizeWhitespace(elasticTrivia: true)` is what sprays those elastic markers through the tree so the formatter has something to reflow.
 - **Directives are always preserved, even in `None`.** Preprocessor directives (`#if`, `#pragma`, `#line`, etc.) affect compilation semantics, so the `WithOptional*` helpers check `ContainsDirectives()` and fall through to the real `With*` call when found.
 
+### The directive-preservation invariant (load-bearing)
+
+> **`#` directives must NEVER be dropped from the output, even when the syntax node that carries them as trivia is itself dropped or rewritten. The only trivia class that may be dropped is XML documentation comments.**
+
+The reason this rule is absolute: `#if` / `#endif`, `#region` / `#endregion`, `#pragma warning disable` / `restore`, `#nullable enable` / `restore`, and `#line` come in **balanced pairs that span across nodes**. The opening directive is leading trivia of one node; the closing directive is trailing trivia of another. The two ends typically have *no syntactic relationship* — `#if FOO` may be leading trivia of the first `using` directive while `#endif` is trailing trivia of the EOF token, with hundreds of unrelated declarations in between. Dropping just one end produces invalid C# (e.g. CS1028 *Unexpected preprocessor directive*) even when every node in between is well-formed.
+
+Because the rewriters in this codebase work declaration-by-declaration, no single rewriter has the global view needed to "drop both ends together". The only safe rule is therefore: **never drop directive trivia, even from a node you intend to remove**. Reattach the trivia to a sibling, the parent, or a synthesized stub. If a node is replaced (for example, the `RunTimeAssemblyRewriter` replacing a compile-time-only method body with `throw new NotSupportedException(...)`), the replacement node must carry over the original node's leading and trailing trivia in full — not just the whitespace, but every directive too.
+
+XML documentation comments (`/// <summary>...`) are the *only* trivia that may be discarded. They have no spanning semantics, they are not load-bearing for compilation, and discarding them is a deliberate design choice (the run-time stripped assembly intentionally drops compile-time-only XML doc).
+
+How the rule shows up in code:
+
+- `WithOptionalLeadingTrivia` / `WithOptionalTrailingTrivia` already enforce the rule on the *attachment* side: they fall through to a real `With*` call whenever `ContainsDirectives()` is true, regardless of mode.
+- The rule is *not* enforced on the *removal* side. Any rewriter that calls `node.WithLeadingTrivia(SyntaxTriviaList.Empty)` or replaces a node without forwarding its trivia is on the hook to verify (by inspection or by `ContainsDirectives`) that no directives are being dropped.
+- When you visit a node and decide to drop it entirely (`return null` from a `CSharpSyntaxRewriter`), check the leading/trailing trivia for directives first. If there are any, attach them to a sibling node or to a no-op placeholder so the final tree still has them.
+
+If you find yourself wanting to "fix" an unbalanced-directive bug by suppressing the surviving end, stop — the bug is upstream, in the rewriter that dropped the other end. Find that rewriter and forward the trivia instead.
+
 Static instances: `SyntaxGenerationOptions.Formatted` (public) and `SyntaxGenerationOptions.Unformatted` (internal, `None`).
 
 ## Who picks which mode

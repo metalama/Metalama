@@ -193,14 +193,16 @@ internal sealed partial class LinkerRewritingDriver
                             new InliningContextIdentifier( symbol.ToSemantic( semanticKind ) ) ) )
                     : null;
 
-            // For block bodies, we preserve only whitespace trivia (for indentation) from the opening/closing brace.
-            // Non-whitespace trivia (comments, pragmas) is already preserved in the linkedBody through GetSubstitutedBody (issue #838).
+            // For block bodies, we keep the indentation plus any user-authored trivia (comments, directives)
+            // from the four brace slots. Trivia inside the body is preserved via linkedBody (issue #838).
             var (openBraceLeadingTrivia, openBraceTrailingTrivia, closeBraceLeadingTrivia, closeBraceTrailingTrivia) =
                 constructorDeclaration switch
                 {
                     { Body: { OpenBraceToken: var openBraceToken, CloseBraceToken: var closeBraceToken } } =>
-                        (GetIndentationTrivia( openBraceToken.LeadingTrivia ), GetIndentationTrivia( openBraceToken.TrailingTrivia ),
-                         GetIndentationTrivia( closeBraceToken.LeadingTrivia ), GetIndentationTrivia( closeBraceToken.TrailingTrivia )),
+                        (StripVerticalWhitespaceAndDocComments( openBraceToken.LeadingTrivia, context ),
+                         StripVerticalWhitespaceAndDocComments( openBraceToken.TrailingTrivia, context ),
+                         StripVerticalWhitespaceAndDocComments( closeBraceToken.LeadingTrivia, context ),
+                         StripVerticalWhitespaceAndDocComments( closeBraceToken.TrailingTrivia, context )),
                     { ExpressionBody.ArrowToken: var arrowToken, SemicolonToken: var semicolonToken } =>
                         (arrowToken.LeadingTrivia.AddOptionalLineFeed( context ),
                          arrowToken.TrailingTrivia.AddOptionalLineFeed( context ),

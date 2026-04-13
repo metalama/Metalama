@@ -322,7 +322,13 @@ public class CompileTimeAspectPipeline : AspectPipeline
                         diagnosticAdder.Report( diagnostic );
                     }
 
-                    return default;
+                    // When dumping of transformed files is requested, keep flowing the transformations to
+                    // Metalama.Compiler so that it writes the failing trees to disk for inspection.
+                    // The reported diagnostics still cause the build to fail.
+                    if ( this.ProjectOptions.WriteTransformedFiles != true && this.ProjectOptions.DebugTransformedCode != true )
+                    {
+                        return default;
+                    }
                 }
             }
 

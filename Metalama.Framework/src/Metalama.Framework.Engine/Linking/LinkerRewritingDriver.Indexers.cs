@@ -221,8 +221,8 @@ namespace Metalama.Framework.Engine.Linking
                         new InliningContextIdentifier( methodSymbol.ToSemantic( semanticKind ) ) ) );
 
                 // Trivia processing:
-                //   * For block bodies, we preserve only whitespace trivia (for indentation) from the opening/closing brace.
-                //     Non-whitespace trivia (comments, pragmas) is already preserved in the linkedBody through GetSubstitutedBody (issue #838).
+                //   * For block bodies, we keep the indentation plus any user-authored trivia (comments, directives)
+                //     from the four brace slots. Trivia inside the body is preserved via linkedBody (issue #838).
                 //   * For expression bodied methods:
                 //       int Foo() <trivia_leading_equals_value> => <trivia_trailing_equals_value> <expression> <trivia_leading_semicolon> ; <trivia_trailing_semicolon>
                 //       int Foo() <trivia_leading_equals_value> { <trivia_trailing_equals_value> <linked_body> <trivia_leading_semicolon> } <trivia_trailing_semicolon>
@@ -231,8 +231,10 @@ namespace Metalama.Framework.Engine.Linking
                     accessorDeclaration switch
                     {
                         { Body: { OpenBraceToken: var openBraceToken, CloseBraceToken: var closeBraceToken } } =>
-                            (GetIndentationTrivia( openBraceToken.LeadingTrivia ), GetIndentationTrivia( openBraceToken.TrailingTrivia ),
-                             GetIndentationTrivia( closeBraceToken.LeadingTrivia ), GetIndentationTrivia( closeBraceToken.TrailingTrivia )),
+                            (StripVerticalWhitespaceAndDocComments( openBraceToken.LeadingTrivia, context ),
+                             StripVerticalWhitespaceAndDocComments( openBraceToken.TrailingTrivia, context ),
+                             StripVerticalWhitespaceAndDocComments( closeBraceToken.LeadingTrivia, context ),
+                             StripVerticalWhitespaceAndDocComments( closeBraceToken.TrailingTrivia, context )),
                         { ExpressionBody.ArrowToken: var arrowToken, SemicolonToken: var semicolonToken } =>
                             (arrowToken.LeadingTrivia.AddOptionalLineFeed( context ),
                              arrowToken.TrailingTrivia.AddOptionalLineFeed( context ),
