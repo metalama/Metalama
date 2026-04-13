@@ -43,13 +43,13 @@
             <Pack>true</Pack>
             <PackagePath></PackagePath>
         </None>
-        <None Include="lib/netstandard2.0/_._">
+        <None Update="lib/netstandard2.0/_._">
             <Pack>true</Pack>
-            <PackagePath>lib/netstandard2.0/</PackagePath>
+            <PackagePath></PackagePath>
         </None>
-        <None Include="lib/net8.0/_._">
+        <None Update="lib/net8.0/_._">
             <Pack>true</Pack>
-            <PackagePath>lib/net8.0/</PackagePath>
+            <PackagePath></PackagePath>
         </None>
     </ItemGroup>
             
