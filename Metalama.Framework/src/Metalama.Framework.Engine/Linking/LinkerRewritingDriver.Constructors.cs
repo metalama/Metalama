@@ -193,16 +193,19 @@ internal sealed partial class LinkerRewritingDriver
                             new InliningContextIdentifier( symbol.ToSemantic( semanticKind ) ) ) )
                     : null;
 
-            // For block bodies, we keep the indentation plus any user-authored trivia (comments, directives)
-            // from the four brace slots. Trivia inside the body is preserved via linkedBody (issue #838).
+            // For block bodies, the four brace slots are handled asymmetrically because the inlining mechanism
+            // (Inliner.Inline → AddTriviaFromIfNecessary) preserves source `{`-LEADING and `}`-TRAILING trivia
+            // INSIDE the body via flattening (issue #838). We therefore use GetIndentationTrivia for those two
+            // slots to avoid duplication, and StripVerticalWhitespaceAndDocComments for `{`-TRAILING and
+            // `}`-LEADING which the inlining path does NOT preserve.
             var (openBraceLeadingTrivia, openBraceTrailingTrivia, closeBraceLeadingTrivia, closeBraceTrailingTrivia) =
                 constructorDeclaration switch
                 {
                     { Body: { OpenBraceToken: var openBraceToken, CloseBraceToken: var closeBraceToken } } =>
-                        (StripVerticalWhitespaceAndDocComments( openBraceToken.LeadingTrivia, context ),
+                        (GetIndentationTrivia( openBraceToken.LeadingTrivia ),
                          StripVerticalWhitespaceAndDocComments( openBraceToken.TrailingTrivia, context ),
                          StripVerticalWhitespaceAndDocComments( closeBraceToken.LeadingTrivia, context ),
-                         StripVerticalWhitespaceAndDocComments( closeBraceToken.TrailingTrivia, context )),
+                         GetIndentationTrivia( closeBraceToken.TrailingTrivia )),
                     { ExpressionBody.ArrowToken: var arrowToken, SemicolonToken: var semicolonToken } =>
                         (arrowToken.LeadingTrivia.AddOptionalLineFeed( context ),
                          arrowToken.TrailingTrivia.AddOptionalLineFeed( context ),

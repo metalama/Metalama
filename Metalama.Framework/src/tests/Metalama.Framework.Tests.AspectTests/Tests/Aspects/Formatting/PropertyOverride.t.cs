@@ -8,6 +8,7 @@ public class Target
     // Before Foo.get.
     get // After Foo.get keyword.
     {
+      // After Foo.get opening brace.
       // Before Foo.get opening brace.
       // Comment before Aspect1.
       Console.WriteLine("Aspect1");
@@ -20,9 +21,11 @@ public class Target
     // Comment after Aspect2.
     // Comment after Aspect1.
     // After Foo.get closing brace.
+    // Before Foo.get closing brace.
     } // After Foo.get and before Foo.set.
     set // After Foo.set keyword.
     {
+      // After Foo.set opening brace.
       // Before Foo.set opening brace.
       // Comment before Aspect1.
       Console.WriteLine("Aspect1");
@@ -34,6 +37,7 @@ public class Target
     // Comment after Aspect2.
     // Comment after Aspect1.
     // After Foo.set closing brace.
+    // Before Foo.set closing brace.
     } // Before Foo closing brace.
   } // After Foo closing brace.
   private int _bar;
@@ -94,7 +98,7 @@ public class Target
       // Comment mid Aspect2.
       // Before Baz.get expression.
       return // Before Baz.get expression.
- 42 // After Baz.get expression.
+      42 // After Baz.get expression.
       ; // After Baz.get expression.
     // Comment after Aspect2.
     // Comment after Aspect1.
@@ -139,7 +143,7 @@ public class Target
       // Comment mid Aspect2.
       // Before Qux.get expression.
       return // Before Qux.get expression.
- 42 // After Qux.get expression.
+      42 // After Qux.get expression.
       ; // After Qux.get expression.
     // Comment after Aspect2.
     // Comment after Aspect1.

@@ -5,6 +5,7 @@ public class Target
   [Aspect2]
   public void Foo()
   {
+    // Comment after Foo opening brace.
     // Comment before Foo opening brace.
     // Comment before Aspect1.
     Console.WriteLine("Aspect1");
@@ -17,12 +18,14 @@ public class Target
   // Comment after Aspect1.
   // Comment after Foo closing brace.
   // Comment after Aspect2.
+  // Comment before Foo closing brace.
   } // Comment after Foo.
   // Comment before Bar.
   [Aspect1]
   [Aspect2]
   public int Bar()
   {
+    // Comment after Bar opening brace.
     // Comment before Bar opening brace.
     // Comment before Aspect1.
     Console.WriteLine("Aspect1");
@@ -37,5 +40,6 @@ public class Target
   // Comment after Aspect2.
   // Comment after Aspect1.
   // Comment after Bar closing brace.
+  // Comment before Bar closing brace.
   } // Comment after Bar.
 }
