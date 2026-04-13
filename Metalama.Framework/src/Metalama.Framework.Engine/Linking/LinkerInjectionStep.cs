@@ -1159,7 +1159,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
     private static bool RequiresAuxiliaryContractMember(
         IFullRef<IMember> member,
         InsertStatementTransformationContextImpl insertStatementContext )
-        => insertStatementContext.WasUsedForOutputContracts
+        => (insertStatementContext.WasUsedForOutputContracts && member is not IFullRef<IConstructor>)
            || member is IFullRef<IFieldOrProperty> { Definition.IsAutoPropertyOrField: true } || (member is IFullRef<IMethod>
            {
                Definition: { ContainingDeclaration: IFieldOrProperty { IsAutoPropertyOrField: true } } or
