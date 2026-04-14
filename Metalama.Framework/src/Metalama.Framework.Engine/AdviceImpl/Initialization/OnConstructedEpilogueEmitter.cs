@@ -26,11 +26,14 @@ namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
 /// <summary>
 /// Emits the per-constructor portion of <c>InitializerKind.AfterLastInstanceConstructor</c>:
-/// for each instance constructor of the target type, ensures the
+/// for each non-<c>:this(...)</c> instance constructor of the target type, ensures the
 /// <see cref="InitializationContext"/> parameter, emits the epilogue
 /// <c>if (!context.IsHandled(InitializationSlot.OnConstructed)) this.OnConstructed(context);</c>,
-/// and rewrites the <c>:base(...)</c> or <c>:this(...)</c> argument to <c>context.Descend(InitializationSlot.OnConstructed)</c>
-/// when the chained constructor has the same parameter.
+/// and rewrites the <c>:base(...)</c> argument to <c>context.Descend(InitializationSlot.OnConstructed)</c>
+/// when the chained constructor has the same parameter. <c>:this(...)</c> constructors are processed in a
+/// second pass (epilogue + descend rewrite of the <c>:this(...)</c> argument) only when the epilogue is
+/// guarded — i.e. on non-sealed, non-struct types; for sealed types and structs, the inner constructor's
+/// unconditional <c>OnConstructed</c> call is sufficient and Pass 2 is skipped.
 /// </summary>
 /// <remarks>
 /// Shared between the in-project path (<see cref="OnConstructedMethodAdvice"/>) and the cross-project
@@ -97,8 +100,10 @@ internal static class OnConstructedEpilogueEmitter
                     contextParameterName,
                     guardEpilogue ) );
 
-            // If the :base(...) target has an InitializationContext parameter, replace the pulled
-            // argument with `context.Descend(OnConstructed)` so the base constructor's epilogue skips.
+            // If the chained initializer's target has an InitializationContext parameter, replace the
+            // pulled argument with `context.Descend(OnConstructed)` so the chained constructor's epilogue
+            // skips. This applies to both :base(...) here and :this(...) in Pass 2 below — the helper
+            // dispatches on derivedConstructor.InitializerKind.
             EmitDescendOverrideForChainedInitializer(
                 targetConstructor,
                 initContextType,
