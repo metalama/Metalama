@@ -473,7 +473,7 @@ namespace Metalama.Framework.Code
 
             var comparer = materialized.First().Compilation.Comparers.DeterministicDeclarationOrder;
 
-            return materialized.OrderBy( static d => (IDeclaration) d, comparer );
+            return materialized.OrderBy( static d => d, comparer );
         }
     }
 }
