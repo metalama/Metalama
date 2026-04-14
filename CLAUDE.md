@@ -54,7 +54,9 @@ Custom immutable DI (not MEDI). Core types in `Metalama.Framework.Sdk/Services/`
 
 ## Container Environment
 
-When running in a container, `gh` is not available. Use the Approval MCP server for GitHub operations.
+When running in a container, `gh` is not available, and `git push` / `git fetch` over the network do not work either. **All GitHub network operations (push, fetch from remote, gh API calls, etc.) MUST go through the host-approval MCP server (`mcp__host-approval__execute_command`).**
+
+**If the MCP server is unavailable** (e.g., disconnected, the deferred-tool reminder says it's gone): STOP. Tell the user MCP is unavailable and ask them to run the command from the host. **Do NOT fall back to direct `git push` / `gh` via Bash** — it will fail, and bypassing MCP violates the human-in-the-loop policy. Treat MCP-unavailability as a policy boundary, not a tool-selection problem.
 
 ## Working on GitHub Issues
 
