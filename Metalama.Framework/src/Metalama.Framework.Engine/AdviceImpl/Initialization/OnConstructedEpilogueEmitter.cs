@@ -30,7 +30,10 @@ namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 /// <see cref="InitializationContext"/> parameter, emits the epilogue
 /// <c>if (!context.IsHandled(InitializationSlot.OnConstructed)) this.OnConstructed(context);</c>,
 /// and rewrites the <c>:base(...)</c> argument to <c>context.Descend(InitializationSlot.OnConstructed)</c>
-/// when the base constructor has the same parameter.
+/// when the chained constructor has the same parameter. <c>:this(...)</c> constructors are processed in a
+/// second pass (epilogue + descend rewrite of the <c>:this(...)</c> argument) only when the epilogue is
+/// guarded — i.e. on non-sealed, non-struct types; for sealed types and structs, the inner constructor's
+/// unconditional <c>OnConstructed</c> call is sufficient and Pass 2 is skipped.
 /// </summary>
 /// <remarks>
 /// Shared between the in-project path (<see cref="OnConstructedMethodAdvice"/>) and the cross-project
@@ -65,10 +68,14 @@ internal static class OnConstructedEpilogueEmitter
     {
         var guardEpilogue = !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct;
 
-        foreach ( var sourceCtor in targetType.Constructors
-                     .Where( c => c.InitializerKind != ConstructorInitializerKind.This
-                                  && !c.IsRecordCopyConstructor() )
-                     .ToList() )
+        var allConstructors = targetType.Constructors
+            .Where( c => !c.IsRecordCopyConstructor() )
+            .ToList();
+
+        // Pass 1: Process non-:this(...) constructors. This introduces the InitializationContext
+        // parameter, triggers the recursive pull (which propagates the parameter to :this(...)
+        // constructors), emits the epilogue, and emits the descend override for :base(...).
+        foreach ( var sourceCtor in allConstructors.Where( c => c.InitializerKind != ConstructorInitializerKind.This ) )
         {
             var ensured = EnsureOrFindContextParameter( sourceCtor, initContextType, aspectLayerInstance, context, registerPullFallback );
 
@@ -93,17 +100,52 @@ internal static class OnConstructedEpilogueEmitter
                     contextParameterName,
                     guardEpilogue ) );
 
-            // If the :base(...) target has an InitializationContext parameter, replace the pulled
-            // argument with `context.Descend(OnConstructed)` so the base constructor's epilogue skips.
-            if ( targetConstructor.InitializerKind != ConstructorInitializerKind.This )
-            {
-                EmitDescendOverrideForBaseInitializer(
-                    targetConstructor,
-                    initContextType,
-                    contextParameterName,
+            // If the chained initializer's target has an InitializationContext parameter, replace the
+            // pulled argument with `context.Descend(OnConstructed)` so the chained constructor's epilogue
+            // skips. This applies to both :base(...) here and :this(...) in Pass 2 below — the helper
+            // dispatches on derivedConstructor.InitializerKind.
+            EmitDescendOverrideForChainedInitializer(
+                targetConstructor,
+                initContextType,
+                contextParameterName,
+                aspectLayerInstance,
+                context );
+        }
+
+        // Pass 2: Process :this(...) constructors. The InitializationContext parameter was already
+        // pulled to these constructors by Pass 1's recursive pull; we now emit the epilogue and
+        // the descend override for the :this(...) initializer argument.
+        // This is only needed when guardEpilogue is true (non-sealed, non-struct types): the guard
+        // prevents double invocation when both the :this(...) constructor and its target have the
+        // epilogue. For sealed types and structs, there is no guard, so the inner constructor's
+        // unconditional OnConstructed call is sufficient.
+        if ( !guardEpilogue )
+        {
+            return;
+        }
+
+        foreach ( var sourceCtor in allConstructors.Where( c => c.InitializerKind == ConstructorInitializerKind.This ) )
+        {
+            // The parameter was already introduced by the pull in Pass 1 but the constructor
+            // object captured in allConstructors may not reflect it yet. Try to find an existing
+            // parameter first; if not found, use the default name that the pull strategy used.
+            var existing = sourceCtor.Parameters.FirstOrDefault( p => p.Type.Equals( initContextType ) );
+            var contextParameterName = existing?.Name ?? _defaultContextParameterName;
+
+            context.AddTransformation(
+                new OnConstructedEpilogueTransformation(
                     aspectLayerInstance,
-                    context );
-            }
+                    targetType.ToRef(),
+                    sourceCtor.ToFullRef(),
+                    contextParameterName,
+                    guardEpilogue ) );
+
+            EmitDescendOverrideForChainedInitializer(
+                sourceCtor,
+                initContextType,
+                contextParameterName,
+                aspectLayerInstance,
+                context );
         }
     }
 
@@ -214,45 +256,63 @@ internal static class OnConstructedEpilogueEmitter
     }
 
     /// <summary>
-    /// Locates the <see cref="InitializationContext"/> parameter on the base constructor reached by
-    /// <paramref name="derivedConstructor"/>'s <c>:base(...)</c> initializer and, if found, emits an
-    /// <c>IsOverride=true</c> <see cref="IntroduceConstructorInitializerArgumentTransformation"/>
-    /// that replaces the pulled argument with <c>context.Descend(OnConstructed)</c>.
+    /// Locates the <see cref="InitializationContext"/> parameter on the constructor reached by
+    /// <paramref name="derivedConstructor"/>'s <c>:base(...)</c> or <c>:this(...)</c> initializer
+    /// and, if found, emits an <c>IsOverride=true</c>
+    /// <see cref="IntroduceConstructorInitializerArgumentTransformation"/> that replaces the pulled
+    /// argument with <c>context.Descend(OnConstructed)</c>.
     /// </summary>
-    private static void EmitDescendOverrideForBaseInitializer(
+    private static void EmitDescendOverrideForChainedInitializer(
         IConstructor derivedConstructor,
         IType initContextType,
         string contextParameterName,
         AspectLayerInstance aspectLayerInstance,
         AdviceImplementationContext context )
     {
-        var baseConstructor = ((IConstructorImpl) derivedConstructor).GetBaseConstructor()?.Definition;
+        var chainedConstructor = ((IConstructorImpl) derivedConstructor).GetBaseConstructor()?.Definition;
 
-        if ( baseConstructor == null )
+        if ( chainedConstructor == null )
         {
             return;
         }
 
-        var baseContextParameter = baseConstructor.Parameters.FirstOrDefault( p => p.Type.Equals( initContextType ) );
+        var chainedContextParameter = chainedConstructor.Parameters.FirstOrDefault( p => p.Type.Equals( initContextType ) );
 
-        if ( baseContextParameter == null )
+        int parameterIndex;
+        string parameterName;
+
+        if ( chainedContextParameter != null )
         {
-            // The base constructor has no InitializationContext parameter — no pulled arg to override.
+            parameterIndex = chainedContextParameter.Index;
+            parameterName = chainedContextParameter.Name;
+        }
+        else if ( derivedConstructor.InitializerKind == ConstructorInitializerKind.This )
+        {
+            // For :this(...) chains within the same type, the chained constructor's
+            // InitializationContext parameter was introduced by the parameter pull in
+            // Pass 1 and appended at the end. Since it isn't visible in the source model
+            // yet, compute the index from the original parameter count.
+            parameterIndex = chainedConstructor.Parameters.Count;
+            parameterName = _defaultContextParameterName;
+        }
+        else
+        {
+            // The chained constructor has no InitializationContext parameter — no pulled arg to override.
             // This happens when the base type does not have the aspect applied but inherits an
             // OnConstructed from an even deeper ancestor (or hand-authored one on a type whose
             // constructors don't take a context). Nothing to do here.
             return;
         }
 
-        var requiresParameterName = baseConstructor.Parameters.Any(
-            p => p.DefaultValue != null && p.Index < baseContextParameter.Index );
+        var requiresParameterName = chainedConstructor.Parameters.Any(
+            p => p.DefaultValue != null && p.Index < parameterIndex );
 
         context.AddTransformation(
             new IntroduceConstructorInitializerArgumentTransformation(
                 aspectLayerInstance,
                 derivedConstructor.ToFullRef(),
-                baseContextParameter.Index,
-                baseContextParameter.Name,
+                parameterIndex,
+                parameterName,
                 BuildDescendExpression( contextParameterName ),
                 requiresParameterName,
                 isOverride: true ) );
@@ -260,8 +320,8 @@ internal static class OnConstructedEpilogueEmitter
 
     /// <summary>
     /// Builds <c>context.Descend(global::...InitializationSlot.OnConstructed)</c>, used as the argument
-    /// override for the <c>:base(...)</c> initializer of a derived constructor so the base layer's epilogue
-    /// skips running.
+    /// override for the <c>:base(...)</c> or <c>:this(...)</c> initializer so the chained constructor's
+    /// epilogue skips running.
     /// </summary>
     private static ExpressionSyntax BuildDescendExpression( string contextParameterName )
         => InvocationExpression(

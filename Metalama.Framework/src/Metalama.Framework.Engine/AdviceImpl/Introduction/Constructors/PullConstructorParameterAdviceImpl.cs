@@ -270,6 +270,11 @@ internal sealed class PullConstructorParameterAdviceImpl
                 // Execute the strategy.
                 ExpressionSyntax parameterValue;
 
+                // Optional hint carried to MemberLevelTransformations.Sort(): if at sort time the caller
+                // constructor has an aspect-introduced parameter with this name, the fallback expression
+                // below is replaced with an identifier forwarding that parameter. See IntroduceConstructorInitializerArgumentTransformation.ForwardParameterName.
+                string? forwardParameterName = null;
+
                 switch ( pullParameterAction.Kind )
                 {
                     case PullActionKind.DoNotPull:
@@ -277,6 +282,11 @@ internal sealed class PullConstructorParameterAdviceImpl
                         continue;
 
                     case PullActionKind.UseExpression:
+                        // Emit the fallback expression, but mark the argument with the base parameter's name.
+                        // At Sort() time, if the caller constructor has its own aspect-introduced parameter
+                        // by that name, the linker rewrites this argument to forward that parameter — making
+                        // the result order-independent regardless of whether IntroduceParameter was called on
+                        // the base or the caller first.
                         parameterValue =
                             pullParameterAction.Expression.AssertNotNull()
                                 .ToExpressionSyntax(
@@ -285,6 +295,8 @@ internal sealed class PullConstructorParameterAdviceImpl
                                         chainedSyntaxGenerationContext,
                                         null,
                                         chainedConstructor.DeclaringType ) );
+
+                        forwardParameterName = baseParameter.Name;
 
                         break;
 
@@ -383,7 +395,8 @@ internal sealed class PullConstructorParameterAdviceImpl
                         baseParameter.Name,
                         parameterValue,
                         requiresParameterName,
-                        isOverride ) );
+                        isOverride,
+                        forwardParameterName ) );
             }
         }
     }

@@ -9,6 +9,7 @@ using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
@@ -273,6 +274,13 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
             forwardingHelper );
 
         impl.PullConstructorParameterRecursive( parameter );
+
+        // Note: when both a :this-chained caller and its target receive aspect-introduced parameters
+        // with the same name (in either advice order), the recursive pull above emits an initializer
+        // argument carrying a ForwardParameterName hint. The hint is resolved at LinkerInjectionStep
+        // Sort() time once every aspect-introduced parameter is visible on the target ctor, so no
+        // post-pull override is needed here. OnConstructedEpilogueEmitter still uses isOverride: true
+        // legitimately — that is a cross-aspect rewrite of the pulled 'context' argument.
 
         return new IntroductionAdviceResult<IParameter>(
             AdviceKind.IntroduceParameter,

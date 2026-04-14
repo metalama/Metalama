@@ -33,4 +33,20 @@ public interface ICompilationComparers
     ITypeComparer IncludeNullability { get; }
 
     ITypeComparer GetTypeComparer( TypeComparison comparison );
+
+    /// <summary>
+    /// Gets a deterministic ordering comparer for <see cref="IDeclaration"/>. The specific order produced by the
+    /// comparer is an implementation detail — it is guaranteed to be stable across builds of the same compilation
+    /// but the exact ordering is not part of the public contract. Sort key: depth, then containing declaration
+    /// (recursively), then name, then signature (for overloadable members).
+    /// </summary>
+    IComparer<IDeclaration> DeterministicDeclarationOrder { get; }
+
+    /// <summary>
+    /// Gets a deterministic ordering comparer for <see cref="IType"/>. Sort key: kind, then — for named types —
+    /// containing namespace, declaring type, name, and type arguments; arrays by rank and element type; pointers
+    /// by pointed-at type; type parameters by kind and index. The specific order is an implementation detail
+    /// but is stable.
+    /// </summary>
+    IComparer<IType> DeterministicTypeOrder { get; }
 }

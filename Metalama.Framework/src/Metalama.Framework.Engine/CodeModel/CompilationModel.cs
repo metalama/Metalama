@@ -542,6 +542,31 @@ namespace Metalama.Framework.Engine.CodeModel
                         return depth;
                     }
 
+                case DeclarationKind.Constructor when declaration is IConstructor constructor:
+                    {
+                        // A :this-chaining ctor is deeper than the ctor it chains into, mirroring "base types are
+                        // deeper than their bases". This makes WithDeterministicOrder yield root-first for a ctor chain
+                        // and depth-based pipeline step scheduling process chained targets first.
+                        var containingDepth = this.GetDepth( declaration.ContainingDeclaration! ) + 1;
+                        int depth;
+
+                        if ( constructor.InitializerKind != ConstructorInitializerKind.This )
+                        {
+                            depth = containingDepth;
+                        }
+                        else
+                        {
+                            var chainedTarget = ((IConstructorImpl) constructor).GetBaseConstructor();
+                            depth = chainedTarget != null
+                                ? this.GetDepth( chainedTarget ) + 1
+                                : containingDepth;
+                        }
+
+                        this._depthsCache = this._depthsCache.SetItem( reference, depth );
+
+                        return depth;
+                    }
+
                 default:
                     {
                         var depth = this.GetDepth( declaration.ContainingDeclaration! ) + 1;

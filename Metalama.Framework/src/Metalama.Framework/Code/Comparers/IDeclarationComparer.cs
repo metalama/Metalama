@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
 using System.Collections.Generic;
 
 namespace Metalama.Framework.Code.Comparers
@@ -15,5 +16,6 @@ namespace Metalama.Framework.Code.Comparers
     /// <seealso cref="ITypeComparer"/>
     /// <seealso cref="ICompilationComparers"/>
     [CompileTime]
+    [InternalImplement]
     public interface IDeclarationComparer : IEqualityComparer<IDeclaration>, ITypeComparer;
 }

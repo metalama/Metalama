@@ -2,8 +2,12 @@
 public class TargetCode
 {
   public int Value { get; }
-  public TargetCode([AspectGenerated] InitializationContext context = default) : this(0, context)
+  public TargetCode([AspectGenerated] InitializationContext context = default) : this(0, context.Descend(InitializationSlot.OnConstructed))
   {
+    if (!context.IsHandled(InitializationSlot.OnConstructed))
+    {
+      this.OnConstructed(context);
+    }
   }
   public TargetCode(int value, [AspectGenerated] InitializationContext context = default)
   {

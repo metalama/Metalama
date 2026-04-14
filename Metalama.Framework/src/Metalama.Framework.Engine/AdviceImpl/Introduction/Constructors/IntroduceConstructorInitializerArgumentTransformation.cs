@@ -39,6 +39,17 @@ internal sealed class IntroduceConstructorInitializerArgumentTransformation : Ba
     /// </summary>
     public bool IsOverride { get; }
 
+    /// <summary>
+    /// Gets the name of an aspect-introduced parameter on the target (caller) constructor that should
+    /// be forwarded as this argument's value, if such a parameter exists at
+    /// <c>LinkerInjectionStep.MemberLevelTransformations.Sort()</c> time. When <c>null</c> or when no matching parameter
+    /// is found, <see cref="Value"/> is used as-is. This enables late binding: the pull machinery emits
+    /// a fallback expression plus this hint, and the linker picks the forwarding identifier once every
+    /// aspect-introduced parameter in the final mutable compilation is visible — removing the need for
+    /// same-aspect <see cref="IsOverride"/> patching.
+    /// </summary>
+    public string? ForwardParameterName { get; }
+
     private ExpressionSyntax Value { get; }
 
     public IntroduceConstructorInitializerArgumentTransformation(
@@ -48,7 +59,8 @@ internal sealed class IntroduceConstructorInitializerArgumentTransformation : Ba
         string parameterName,
         ExpressionSyntax value,
         bool requiresParameterName,
-        bool isOverride = false ) : base( aspectLayerInstance, constructor )
+        bool isOverride = false,
+        string? forwardParameterName = null ) : base( aspectLayerInstance, constructor )
     {
         this._constructor = constructor;
         this.ParameterName = parameterName;
@@ -56,7 +68,23 @@ internal sealed class IntroduceConstructorInitializerArgumentTransformation : Ba
         this.ParameterIndex = parameterIndex;
         this.Value = value;
         this.IsOverride = isOverride;
+        this.ForwardParameterName = forwardParameterName;
     }
+
+    /// <summary>
+    /// Returns a copy of this transformation with its <see cref="Value"/> replaced and
+    /// <see cref="ForwardParameterName"/> cleared. Used by the linker after a hint is resolved.
+    /// </summary>
+    public IntroduceConstructorInitializerArgumentTransformation WithResolvedValue( ExpressionSyntax value )
+        => new(
+            this.AspectLayerInstance,
+            this._constructor,
+            this.ParameterIndex,
+            this.ParameterName,
+            value,
+            this._requiresParameterName,
+            this.IsOverride,
+            forwardParameterName: null );
 
     public ArgumentSyntax ToSyntax()
     {

@@ -450,5 +450,30 @@ namespace Metalama.Framework.Code
 
             return accessibility;
         }
+
+        /// <summary>
+        /// Sorts a sequence of <see cref="IDeclaration"/> in a deterministic order. The specific order is an
+        /// implementation detail; it is guaranteed to be stable across builds but is not part of the public
+        /// contract. Sort key: <see cref="IDeclaration.Depth"/>, then containing declaration (recursively),
+        /// then name, then signature (for overloadable members). Useful in aspects to make generated code
+        /// independent of source declaration order.
+        /// </summary>
+        /// <typeparam name="T">The element type, which must implement <see cref="IDeclaration"/>.</typeparam>
+        /// <param name="source">The sequence to sort.</param>
+        /// <returns>A new sequence sorted in deterministic order.</returns>
+        public static IOrderedEnumerable<T> WithDeterministicOrder<T>( this IEnumerable<T> source )
+            where T : class, IDeclaration
+        {
+            var materialized = source as IReadOnlyCollection<T> ?? source.ToList();
+
+            if ( materialized.Count == 0 )
+            {
+                return Enumerable.Empty<T>().OrderBy( static _ => 0 );
+            }
+
+            var comparer = materialized.First().Compilation.Comparers.DeterministicDeclarationOrder;
+
+            return materialized.OrderBy( static d => d, comparer );
+        }
     }
 }
