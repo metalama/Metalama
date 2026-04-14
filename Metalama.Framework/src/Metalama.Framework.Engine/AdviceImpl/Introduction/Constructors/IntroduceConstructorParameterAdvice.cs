@@ -7,9 +7,12 @@ using Metalama.Framework.Advising.PullStrategies;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Advising;
+using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
 using System;
@@ -273,6 +276,39 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
             forwardingHelper );
 
         impl.PullConstructorParameterRecursive( parameter );
+
+        // If this constructor chains via :this() to another constructor that already has a matching
+        // aspect-introduced parameter, override the initializer argument to forward our parameter
+        // instead of whatever the recursive pull from the target may have set (e.g. a pull expression).
+        // This handles the case where IntroduceParameter is called on both the root and chaining constructors.
+        // Only do this when a pull strategy is active (effectivePullStrategy != null), because when there is
+        // no pull strategy, the recursive pull uses DoNotPull and the :this() call relies on default values.
+        if ( effectivePullStrategy != null && initializedConstructor.InitializerKind == ConstructorInitializerKind.This )
+        {
+            var baseConstructorOfChaining = ((IConstructorImpl) initializedConstructor).GetBaseConstructor()?.Definition;
+
+            if ( baseConstructorOfChaining != null )
+            {
+                var matchingBaseParam = baseConstructorOfChaining.Parameters.FirstOrDefault(
+                    p => p.Name == parameterName && p.Origin.Kind == DeclarationOriginKind.Aspect );
+
+                if ( matchingBaseParam != null )
+                {
+                    var requiresParamName = baseConstructorOfChaining.Parameters.Any(
+                        p => p.DefaultValue != null && p.Index < matchingBaseParam.Index );
+
+                    context.AddTransformation(
+                        new IntroduceConstructorInitializerArgumentTransformation(
+                            this.AspectLayerInstance,
+                            initializedConstructor.ToFullRef(),
+                            matchingBaseParam.Index,
+                            matchingBaseParam.Name,
+                            SyntaxFactoryEx.SafeIdentifierName( parameterName ),
+                            requiresParamName,
+                            isOverride: true ) );
+                }
+            }
+        }
 
         return new IntroductionAdviceResult<IParameter>(
             AdviceKind.IntroduceParameter,

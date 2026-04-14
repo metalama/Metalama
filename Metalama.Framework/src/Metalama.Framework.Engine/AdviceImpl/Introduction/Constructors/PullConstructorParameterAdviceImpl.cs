@@ -277,14 +277,28 @@ internal sealed class PullConstructorParameterAdviceImpl
                         continue;
 
                     case PullActionKind.UseExpression:
-                        parameterValue =
-                            pullParameterAction.Expression.AssertNotNull()
-                                .ToExpressionSyntax(
-                                    new SyntaxSerializationContext(
-                                        this.Compilation,
-                                        chainedSyntaxGenerationContext,
-                                        null,
-                                        chainedConstructor.DeclaringType ) );
+                        // If the chaining constructor already has an aspect-introduced parameter matching
+                        // the base parameter, forward that parameter instead of using the pull expression.
+                        // This handles the case where IntroduceParameter was called on the chaining constructor
+                        // before the base constructor (reverse processing order).
+                        var existingIntroducedParam = chainedConstructor.Parameters.FirstOrDefault(
+                            p => p.Name == baseParameter.Name && p.Origin.Kind == DeclarationOriginKind.Aspect );
+
+                        if ( existingIntroducedParam != null )
+                        {
+                            parameterValue = SyntaxFactoryEx.SafeIdentifierName( existingIntroducedParam.Name );
+                        }
+                        else
+                        {
+                            parameterValue =
+                                pullParameterAction.Expression.AssertNotNull()
+                                    .ToExpressionSyntax(
+                                        new SyntaxSerializationContext(
+                                            this.Compilation,
+                                            chainedSyntaxGenerationContext,
+                                            null,
+                                            chainedConstructor.DeclaringType ) );
+                        }
 
                         break;
 
