@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
 using System;
 using System.Collections.Generic;
 
@@ -17,6 +18,7 @@ namespace Metalama.Framework.Code.Comparers;
 /// <seealso cref="ICompilationComparers"/>
 /// <seealso cref="ConversionKind"/>
 [CompileTime]
+[InternalImplement]
 public interface ITypeComparer : IEqualityComparer<IType>, IEqualityComparer<INamedType>
 {
     [Obsolete( "This method has been renamed IsConvertibleTo." )]

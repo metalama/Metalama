@@ -7,12 +7,10 @@ using Metalama.Framework.Advising.PullStrategies;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Advising;
-using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
 using System;
@@ -277,38 +275,12 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
 
         impl.PullConstructorParameterRecursive( parameter );
 
-        // If this constructor chains via :this() to another constructor that already has a matching
-        // aspect-introduced parameter, override the initializer argument to forward our parameter
-        // instead of whatever the recursive pull from the target may have set (e.g. a pull expression).
-        // This handles the case where IntroduceParameter is called on both the root and chaining constructors.
-        // Only do this when a pull strategy is active (effectivePullStrategy != null), because when there is
-        // no pull strategy, the recursive pull uses DoNotPull and the :this() call relies on default values.
-        if ( effectivePullStrategy != null && initializedConstructor.InitializerKind == ConstructorInitializerKind.This )
-        {
-            var baseConstructorOfChaining = ((IConstructorImpl) initializedConstructor).GetBaseConstructor()?.Definition;
-
-            if ( baseConstructorOfChaining != null )
-            {
-                var matchingBaseParam = baseConstructorOfChaining.Parameters.FirstOrDefault(
-                    p => p.Name == parameterName && p.Origin.Kind == DeclarationOriginKind.Aspect );
-
-                if ( matchingBaseParam != null )
-                {
-                    var requiresParamName = baseConstructorOfChaining.Parameters.Any(
-                        p => p.DefaultValue != null && p.Index < matchingBaseParam.Index );
-
-                    context.AddTransformation(
-                        new IntroduceConstructorInitializerArgumentTransformation(
-                            this.AspectLayerInstance,
-                            initializedConstructor.ToFullRef(),
-                            matchingBaseParam.Index,
-                            matchingBaseParam.Name,
-                            SyntaxFactoryEx.SafeIdentifierName( parameterName ),
-                            requiresParamName,
-                            isOverride: true ) );
-                }
-            }
-        }
+        // Note: when both a :this-chained caller and its target receive aspect-introduced parameters
+        // with the same name (in either advice order), the recursive pull above emits an initializer
+        // argument carrying a ForwardParameterName hint. The hint is resolved at LinkerInjectionStep
+        // Sort() time once every aspect-introduced parameter is visible on the target ctor, so no
+        // post-pull override is needed here. OnConstructedEpilogueEmitter still uses isOverride: true
+        // legitimately — that is a cross-aspect rewrite of the pulled 'context' argument.
 
         return new IntroductionAdviceResult<IParameter>(
             AdviceKind.IntroduceParameter,

@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -93,6 +94,66 @@ internal sealed partial class LinkerInjectionStep
                 }
 
                 this.Parameters = filteredParams.OrderBy( p => p.Parameter.Index ).ToImmutableArray();
+            }
+
+            // Resolve ForwardParameterName hints against the final parameter list for this target
+            // constructor. When an initializer argument was emitted with a hint (see PullConstructorParameterAdviceImpl
+            // UseExpression branch) and the target's final parameters contain an aspect-introduced parameter
+            // with that name, rewrite the argument value to forward that parameter's identifier. This makes
+            // the output independent of the order in which sibling IntroduceParameter advice calls were issued
+            // on ctors in a :this chain. When no match exists (e.g. the target is a forwarding constructor
+            // that carries only source-compatibility parameters), the original fallback expression is retained.
+            if ( this.Arguments.Length > 0 && this.Parameters.Length > 0 )
+            {
+                ImmutableArray<IntroduceConstructorInitializerArgumentTransformation>.Builder? resolved = null;
+
+                for ( var i = 0; i < this.Arguments.Length; i++ )
+                {
+                    var arg = this.Arguments[i];
+
+                    if ( arg.ForwardParameterName == null )
+                    {
+                        resolved?.Add( arg );
+
+                        continue;
+                    }
+
+                    IntroduceParameterTransformation? match = null;
+
+                    foreach ( var p in this.Parameters )
+                    {
+                        if ( p.Parameter.Name == arg.ForwardParameterName )
+                        {
+                            match = p;
+
+                            break;
+                        }
+                    }
+
+                    if ( match != null )
+                    {
+                        if ( resolved == null )
+                        {
+                            resolved = ImmutableArray.CreateBuilder<IntroduceConstructorInitializerArgumentTransformation>( this.Arguments.Length );
+
+                            for ( var j = 0; j < i; j++ )
+                            {
+                                resolved.Add( this.Arguments[j] );
+                            }
+                        }
+
+                        resolved.Add( arg.WithResolvedValue( SyntaxFactoryEx.SafeIdentifierName( match.Parameter.Name.AssertNotNull() ) ) );
+                    }
+                    else
+                    {
+                        resolved?.Add( arg );
+                    }
+                }
+
+                if ( resolved != null )
+                {
+                    this.Arguments = resolved.ToImmutable();
+                }
             }
         }
 
