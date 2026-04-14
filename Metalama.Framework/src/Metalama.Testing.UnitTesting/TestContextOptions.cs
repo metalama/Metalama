@@ -98,6 +98,13 @@ public record TestContextOptions
     internal bool ValidateRunTimeCode { get; init; } = true;
 
     /// <summary>
+    /// Gets a value indicating whether generated output code should be verified for syntax correctness.
+    /// When <c>true</c>, the output code will be parsed as a syntax tree and checked for errors.
+    /// This helps detect issues like missing whitespace that can cause syntax errors.
+    /// </summary>
+    internal bool VerifyOutputCode { get; init; }
+
+    /// <summary>
     /// Gets the list of extension types given explicitly as types using <see cref="ITestExtensionCollector"/>,
     /// typically through the unit test framework.
     /// </summary>

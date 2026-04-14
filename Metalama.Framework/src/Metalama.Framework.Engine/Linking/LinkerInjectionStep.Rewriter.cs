@@ -431,7 +431,7 @@ internal sealed partial class LinkerInjectionStep
                         .WithIdentifier(
                             node.Identifier.WithOptionalTrailingTrivia(
                                 default,
-                                syntaxGenerationContext.Options.TriviaMatters || node.Identifier.ContainsDirectives ) )
+                                syntaxGenerationContext.Options.WillBeTextualized || node.Identifier.ContainsDirectives ) )
                         .WithBaseList(
                             BaseList( SeparatedList( additionalBaseList.SelectAsReadOnlyList( i => i.Syntax ) ) )
                                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) )
@@ -439,11 +439,7 @@ internal sealed partial class LinkerInjectionStep
                 }
                 else
                 {
-                    node = (T) node.WithBaseList(
-                        BaseList(
-                            baseList.Types.AddRange(
-                                additionalBaseList.SelectAsReadOnlyList(
-                                    i => i.Syntax.WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) ) ) ) );
+                    node = (T) node.WithBaseList( AppendInjectedInterfaces( baseList, additionalBaseList, withGeneratedCodeAnnotation: true ) );
                 }
             }
             else if ( baseList != null )
@@ -687,16 +683,58 @@ internal sealed partial class LinkerInjectionStep
                 {
                     var injectedInterfaces = this._transformationCollection.GetIntroducedInterfacesForTypeBuilder( typeBuilder );
 
-                    if ( injectedInterfaces.Count > 0 )
-                    {
-                        return (TypeDeclarationSyntax) typeDeclaration.AddBaseListTypes( injectedInterfaces.SelectAsArray( i => i.Syntax ) );
-                    }
-                    else
+                    if ( injectedInterfaces.Count == 0 )
                     {
                         return typeDeclaration;
                     }
+
+                    var existingBaseList = typeDeclaration.BaseList;
+
+                    if ( existingBaseList == null || existingBaseList.Types.Count == 0 )
+                    {
+                        return (TypeDeclarationSyntax) typeDeclaration.AddBaseListTypes( injectedInterfaces.SelectAsArray( i => i.Syntax ) );
+                    }
+
+                    return typeDeclaration.WithBaseList( AppendInjectedInterfaces( existingBaseList, injectedInterfaces, withGeneratedCodeAnnotation: false ) );
                 }
             }
+        }
+
+        // Appends introduced interfaces to an existing base list. Without trivia adjustments, AddRange would
+        // insert the comma separator after the previously last base type's trailing trivia (typically the
+        // EndOfLine before the open brace), producing output like ": Exception\n,IIntroducedInterface".
+        // We give each new base type a leading space so the comma separator renders as ", IFoo", and we
+        // move the previously last type's trailing trivia onto the new last type to keep the EOL at the end
+        // of the base list. Reusing existingBaseList.WithTypes preserves the original colon token's trivia.
+        private static BaseListSyntax AppendInjectedInterfaces(
+            BaseListSyntax existingBaseList,
+            IReadOnlyList<LinkerInjectedInterface> injectedInterfaces,
+            bool withGeneratedCodeAnnotation )
+        {
+            var newBaseTypes = injectedInterfaces.SelectAsArray(
+                i =>
+                {
+                    var syntax = i.Syntax.WithRequiredLeadingTrivia( ElasticSpaceTriviaList );
+
+                    return withGeneratedCodeAnnotation
+                        ? syntax.WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation )
+                        : syntax;
+                } );
+
+            var existingTypes = existingBaseList.Types;
+            var previousLast = existingTypes[^1];
+            var trailingToMove = previousLast.GetTrailingTrivia();
+
+            var combined = existingTypes.Replace( previousLast, previousLast.WithRequiredTrailingTrivia( default ) );
+
+            for ( var i = 0; i < newBaseTypes.Length - 1; i++ )
+            {
+                combined = combined.Add( newBaseTypes[i] );
+            }
+
+            combined = combined.Add( newBaseTypes[^1].WithRequiredTrailingTrivia( trailingToMove ) );
+
+            return existingBaseList.WithTypes( combined );
         }
 
         private MemberDeclarationSyntax InjectStatementsIntoMemberDeclaration(
@@ -1748,7 +1786,7 @@ internal sealed partial class LinkerInjectionStep
                     var eventDeclaration = EventFieldDeclaration(
                         default,
                         node.Modifiers,
-                        Token( TriviaList(), SyntaxKind.EventKeyword, TriviaList( Space ) ),
+                        Token( TriviaList(), SyntaxKind.EventKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ),
                         declaration,
                         Token( default, SyntaxKind.SemicolonToken, context.TwoElasticEndOfLinesTriviaList ) );
 

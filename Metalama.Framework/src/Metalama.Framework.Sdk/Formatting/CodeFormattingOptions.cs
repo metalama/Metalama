@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.Formatting;
 
@@ -18,7 +19,11 @@ public enum CodeFormattingOptions
     Default,
 
     /// <summary>
-    /// No text output is required, only a syntax tree.
+    /// The resulting tree is not safe to textualize. Only a syntax tree is produced:
+    /// tokens may be left adjacent with no separator trivia, so
+    /// <see cref="SyntaxNode.ToFullString"/> generally will not round-trip through the
+    /// parser. Use this only for AST-level analysis (for example, test validation of
+    /// well-formedness).
     /// </summary>
     None,
 

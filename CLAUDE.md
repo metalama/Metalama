@@ -121,7 +121,7 @@ For `Metalama.Framework.Tests.UnitTests` (see `InvokerTests.cs`, `ExpressionFact
 
 The syntax generation pipeline intentionally produces over-specified syntax (redundant casts, fully-qualified type names, explicit `new DelegateType(methodGroup)` wrappers) to ensure correctness. The `CodeFormatter` pipeline then simplifies in context:
 
-- **Annotation**: Nodes that may be redundant are annotated with `FormattingAnnotations.WithSimplifierAnnotation<T>()` (or `WithSimplifierAnnotationIfNecessary` which checks `SyntaxGenerationOptions.AddFormattingAnnotations`)
+- **Annotation**: Nodes that may be redundant are annotated with `FormattingAnnotations.WithSimplifierAnnotation<T>()` (or `WithSimplifierAnnotationIfNecessary` which checks `SyntaxGenerationOptions.WillBeFormatted`)
 - **Roslyn Simplifier**: `Simplifier.ReduceAsync` removes unnecessary namespace qualifications, redundant casts, etc.
 - **Custom Simplifier** (`CodeFormatter.CustomSimplifier`): Handles Metalama-specific patterns — delegate creation simplification (e.g., `new Action(() => { ... })` → `() => { ... }` in target-typed contexts), tuple cast simplification, nullable suppression removal
 - **Key files**: `FormattingAnnotations.cs` (SDK layer), `SyntaxExtensions.WithSimplifierAnnotationIfNecessary` (Engine), `CodeFormatter.cs` (pipeline), `CodeFormatter.CustomSimplifier.cs`

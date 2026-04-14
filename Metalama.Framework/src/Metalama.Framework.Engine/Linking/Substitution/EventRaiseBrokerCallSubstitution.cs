@@ -55,14 +55,15 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
 
         var leadingTrivia = currentNode.GetLeadingTrivia();
 
-        var eventBrokerExpression =
+        ExpressionSyntax eventBrokerExpression =
             this._targetSemantic.Symbol.IsStatic
-                ? (ExpressionSyntax) SyntaxFactoryEx.SafeIdentifierName( currentEventBrokerInfo.EventBrokerFieldName )
+                ? SyntaxFactoryEx.SafeIdentifierName( currentEventBrokerInfo.EventBrokerFieldName )
                     .WithOptionalLeadingTrivia( leadingTrivia, substitutionContext.SyntaxGenerationContext )
                 : MemberAccessExpression(
-                    SyntaxKind.SimpleMemberAccessExpression,
-                    ThisExpression( Token( TriviaList( leadingTrivia ), SyntaxKind.ThisKeyword, TriviaList() ) ),
-                    SyntaxFactoryEx.SafeIdentifierName( currentEventBrokerInfo.EventBrokerFieldName ) );
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        ThisExpression(),
+                        SyntaxFactoryEx.SafeIdentifierName( currentEventBrokerInfo.EventBrokerFieldName ) )
+                    .WithOptionalLeadingTrivia( leadingTrivia, substitutionContext.SyntaxGenerationContext );
 
         switch ( currentNode.Kind() )
         {
@@ -96,7 +97,7 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                         ArgumentList(
                             Token( SyntaxKind.OpenParenToken ),
                             SingletonSeparatedList( Argument( TupleExpression( invokeArguments ) ) ),
-                            Token( TriviaList(), SyntaxKind.CloseParenToken, trailingTrivia ) ) );
+                            Token( SyntaxKind.CloseParenToken ).WithOptionalTrailingTrivia( trailingTrivia, substitutionContext.SyntaxGenerationContext.Options ) ) );
 
             case SyntaxKind.InvocationExpression when currentNode is InvocationExpressionSyntax
             {
@@ -113,7 +114,7 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                         ArgumentList(
                             Token( SyntaxKind.OpenParenToken ),
                             SingletonSeparatedList( Argument( TupleExpression( SeparatedList( arguments ) ) ) ),
-                            Token( TriviaList(), SyntaxKind.CloseParenToken, trailingTrivia ) ) );
+                            Token( SyntaxKind.CloseParenToken ).WithOptionalTrailingTrivia( trailingTrivia, substitutionContext.SyntaxGenerationContext.Options ) ) );
 
             default:
                 throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" );

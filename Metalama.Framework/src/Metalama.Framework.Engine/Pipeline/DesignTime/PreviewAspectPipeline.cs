@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Pipeline.DesignTime;
 
-public sealed class PreviewAspectPipeline : AspectPipeline
+public class PreviewAspectPipeline : AspectPipeline
 {
     public PreviewAspectPipeline( ProjectServiceProvider serviceProvider, ExecutionScenario executionScenario )
         : base( serviceProvider, executionScenario ) { }

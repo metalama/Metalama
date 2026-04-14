@@ -626,7 +626,7 @@ public sealed partial class ContextualSyntaxGenerator
             typeSyntax = (TypeSyntax) new RemoveReferenceNullableAnnotationsRewriter( type ).Visit( typeSyntax ).AssertNotNull();
         }
 
-        if ( this.Options.TriviaMatters )
+        if ( this.Options.WillBeTextualized )
         {
             // Just calling NormalizeWhitespaceIfNecessary here produces ugly whitespace, e.g. "typeof(global::System.Int32[, ])".
             typeSyntax = (TypeSyntax) new NormalizeSpaceRewriter( this.SyntaxGenerationContext.EndOfLine ).Visit( typeSyntax ).AssertNotNull();
@@ -644,7 +644,7 @@ public sealed partial class ContextualSyntaxGenerator
             typeSyntax = (ExpressionSyntax) new RemoveReferenceNullableAnnotationsRewriter( type ).Visit( typeSyntax ).AssertNotNull();
         }
 
-        if ( this.Options.TriviaMatters )
+        if ( this.Options.WillBeTextualized )
         {
             // Just calling NormalizeWhitespaceIfNecessary here produces ugly whitespace, e.g. "typeof(global::System.Int32[, ])".
             typeSyntax = (ExpressionSyntax) new NormalizeSpaceRewriter( this.SyntaxGenerationContext.EndOfLine ).Visit( typeSyntax ).AssertNotNull();

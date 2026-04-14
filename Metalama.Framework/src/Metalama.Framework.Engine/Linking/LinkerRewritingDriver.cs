@@ -601,10 +601,73 @@ internal sealed partial class LinkerRewritingDriver
     internal bool ShouldGenerateSourceMember( ISymbol symbol ) => this.InjectionRegistry.IsOverrideTarget( symbol );
 
     /// <summary>
+    /// Builds trivia for a brace token of a rewritten member body by stripping <em>vertical
+    /// whitespace</em> (whitespace and end-of-lines) and <em>XML documentation comments</em> from
+    /// the original brace token's trivia, while keeping directives and ordinary comments intact.
+    /// The indentation of the original brace is appended at the end.
+    /// <para>
+    /// Why strip vertical whitespace: the linker controls vertical positioning via the containing
+    /// member's leading/trailing line feeds (see
+    /// <c>Metalama.Framework/docs/trivia-and-formatting.md</c>); copying original EOLs verbatim
+    /// double-spaces the output. Each surviving item is therefore re-framed with a fresh EOL.
+    /// </para>
+    /// <para>
+    /// Why strip XML doc comments: they attach to a <em>member declaration</em>, not to a brace
+    /// slot — surfacing one on a brace would attach it to the wrong scope.
+    /// </para>
+    /// <para>
+    /// Why keep directives and ordinary comments: directives must NEVER be dropped
+    /// (directive-preservation invariant — a missing <c>#endregion</c> or <c>#endif</c> breaks
+    /// compilation with CS1038/CS1028), and ordinary comments (<c>//</c>, <c>/* */</c>) are
+    /// user-authored content.
+    /// </para>
+    /// </summary>
+    private static SyntaxTriviaList StripVerticalWhitespaceAndDocComments(
+        SyntaxTriviaList originalTrivia,
+        SyntaxGenerationContext generationContext )
+    {
+        var indentation = GetIndentationTrivia( originalTrivia );
+
+        List<SyntaxTrivia>? result = null;
+
+        foreach ( var t in originalTrivia )
+        {
+            if ( ShouldKeep( t ) )
+            {
+                result ??= new List<SyntaxTrivia>();
+                result.Add( SyntaxFactory.EndOfLine( generationContext.EndOfLine ) );
+                result.AddRange( indentation );
+                result.Add( t );
+            }
+        }
+
+        if ( result == null )
+        {
+            return indentation;
+        }
+
+        result.Add( SyntaxFactory.EndOfLine( generationContext.EndOfLine ) );
+        result.AddRange( indentation );
+
+        return new SyntaxTriviaList( result );
+
+        static bool ShouldKeep( SyntaxTrivia t )
+            => !t.IsKind( SyntaxKind.WhitespaceTrivia )
+               && !t.IsKind( SyntaxKind.EndOfLineTrivia )
+               && !t.IsKind( SyntaxKind.SingleLineDocumentationCommentTrivia )
+               && !t.IsKind( SyntaxKind.MultiLineDocumentationCommentTrivia );
+    }
+
+    /// <summary>
     /// Gets only the indentation trivia (whitespace after the last line break) from a trivia list.
     /// This ensures we preserve indentation without duplicating comments, pragmas, or line breaks
     /// that are already in the inlined body (issue #838).
     /// </summary>
+    /// <remarks>
+    /// This deliberately does <em>not</em> preserve directives or comments. When salvaging those
+    /// is required (any brace slot whose original trivia may carry user-authored content), use
+    /// <see cref="StripVerticalWhitespaceAndDocComments" /> instead.
+    /// </remarks>
     private static SyntaxTriviaList GetIndentationTrivia( SyntaxTriviaList trivia )
     {
         // Gets only the indentation trivia (whitespace after the last line break).

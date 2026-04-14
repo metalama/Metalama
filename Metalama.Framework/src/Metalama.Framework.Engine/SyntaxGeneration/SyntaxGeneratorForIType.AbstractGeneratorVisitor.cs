@@ -29,14 +29,14 @@ internal sealed partial class SyntaxGeneratorForIType
         {
             var generationOptions = this.SyntaxGenerator._generationOptions;
 
-            if ( generationOptions.TriviaMatters )
+            if ( generationOptions.WillBeTextualized )
             {
                 syntax = syntax
                     .WithRequiredLeadingTrivia( syntax.GetLeadingTrivia().Insert( 0, SyntaxFactory.ElasticMarker ) )
                     .WithRequiredTrailingTrivia( syntax.GetTrailingTrivia().Add( SyntaxFactory.ElasticMarker ) );
             }
 
-            if ( generationOptions.AddFormattingAnnotations )
+            if ( generationOptions.WillBeFormatted )
             {
                 syntax = syntax.WithAdditionalAnnotations( SymbolAnnotation.Create( symbol ) );
             }

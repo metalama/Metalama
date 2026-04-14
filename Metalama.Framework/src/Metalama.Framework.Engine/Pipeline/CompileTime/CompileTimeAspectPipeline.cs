@@ -308,6 +308,30 @@ public class CompileTimeAspectPipeline : AspectPipeline
             var resultingCompilation =
                 (PartialCompilation) await RunTimeAssemblyRewriter.RewriteAsync( resultPartialCompilation, configuration.ServiceProvider );
 
+            // Verify output code if requested.
+            if ( this.ProjectOptions.VerifyOutputCode )
+            {
+                var verifier = new SyntaxTreeVerifier( configuration.ServiceProvider );
+
+                var (isSuccessful, syntaxDiagnostics) = await verifier.VerifyAsync( resultingCompilation.Compilation, cancellationToken );
+
+                if ( !isSuccessful )
+                {
+                    foreach ( var diagnostic in syntaxDiagnostics! )
+                    {
+                        diagnosticAdder.Report( diagnostic );
+                    }
+
+                    // When dumping of transformed files is requested, keep flowing the transformations to
+                    // Metalama.Compiler so that it writes the failing trees to disk for inspection.
+                    // The reported diagnostics still cause the build to fail.
+                    if ( this.ProjectOptions.WriteTransformedFiles != true && this.ProjectOptions.DebugTransformedCode != true )
+                    {
+                        return default;
+                    }
+                }
+            }
+
             var syntaxTreeTransformations = resultingCompilation.ToTransformations();
 
             return new CompileTimeAspectPipelineResult(

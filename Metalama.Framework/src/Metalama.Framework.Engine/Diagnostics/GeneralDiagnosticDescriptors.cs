@@ -366,6 +366,24 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "Unknown transitive aspect class." );
 
+        internal static readonly DiagnosticDefinition<(string FilePath, string ExceptionType, string ExceptionMessage)>
+            GeneratedCodeParseFailed = new(
+                "LAMA0073",
+                _category,
+                "Failed to parse generated code for file '{0}'. " +
+                "This indicates a code generation issue where the generated syntax tree produces invalid text. " +
+                "Exception: {1}: {2}",
+                Error,
+                "Failed to parse generated code." );
+
+        internal static readonly DiagnosticDefinition<(string FilePath, string OriginalMessage, int Line, int Column, string ProblematicCode)>
+            GeneratedCodeSyntaxError = new(
+                "LAMA0074",
+                _category,
+                "Syntax error in generated code for file '{0}': {1}. Location: Line {2}, Column {3}. Problematic code: '{4}'.",
+                Error,
+                "Syntax error in generated code." );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(
