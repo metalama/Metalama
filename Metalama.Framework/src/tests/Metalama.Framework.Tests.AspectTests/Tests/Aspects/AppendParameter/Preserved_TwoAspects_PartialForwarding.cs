@@ -9,13 +9,22 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Preserved_MultipleAspects;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Preserved_TwoAspects_PartialForwarding;
+
+// The target type has two source constructors: the parameterless one and Order(int id). The first
+// aspect (Timestamped) uses ForwardDefaultConstructor, so only the parameterless constructor receives
+// a forwarder. The second aspect (Tracked) uses ForwardSourceConstructors. The resulting pipeline
+// exercises the scenario where, after the first aspect mutates both constructors, the unmutated
+// source constructor Order(int id) is no longer present (it has been mutated too, just without a
+// forwarder). When the second aspect pulls into the existing forwarder emitted by the first aspect,
+// the framework must use the forwarder expression supplied by the pull strategy for that forwarder.
+// When the second aspect mutates Order(int id, DateTime _) and emits its own forwarder Order(int id),
+// that new forwarder must likewise receive the strategy-supplied forwarder expression.
 
 public class TimestampedAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        // Target source constructors (regardless of whether they have been mutated by a prior aspect).
         foreach ( var constructor in builder.Target.Constructors.Where( c => c.Origin.Kind == DeclarationOriginKind.Source ) )
         {
             builder.With( constructor )
@@ -24,7 +33,7 @@ public class TimestampedAttribute : TypeAspect
                     typeof(DateTime),
                     pullStrategy: PullStrategy.IntroduceParameterAndPull(
                         forwarderExpression: ExpressionFactory.Parse( "global::System.DateTime.Now" ) ),
-                    overloadingStrategy: ConstructorOverloadingStrategy.ForwardSourceConstructors );
+                    overloadingStrategy: ConstructorOverloadingStrategy.ForwardDefaultConstructor );
         }
     }
 }
@@ -33,7 +42,6 @@ public class TrackedAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        // Target source constructors (regardless of whether they have been mutated by a prior aspect).
         foreach ( var constructor in builder.Target.Constructors.Where( c => c.Origin.Kind == DeclarationOriginKind.Source ) )
         {
             builder.With( constructor )
@@ -52,6 +60,8 @@ public class TrackedAttribute : TypeAspect
 [Tracked]
 public class Order
 {
+    public Order() { }
+
     public Order( int id )
     {
         this.Id = id;

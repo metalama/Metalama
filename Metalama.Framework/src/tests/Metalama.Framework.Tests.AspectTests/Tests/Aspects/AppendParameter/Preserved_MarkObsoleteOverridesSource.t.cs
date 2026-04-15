@@ -7,7 +7,6 @@ public class A
     this.Id = id;
   }
   public int Id { get; }
-  [SourceCompatibilityConstructor]
   [Obsolete("new message", false)]
   public A(int id) : this(id: id, creationTime: DateTime.Now)
   {

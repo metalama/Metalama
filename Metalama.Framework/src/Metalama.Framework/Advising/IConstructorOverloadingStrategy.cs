@@ -10,10 +10,9 @@ namespace Metalama.Framework.Advising;
 /// <summary>
 /// A strategy that decides whether the framework should generate an additional <em>forwarding constructor</em>
 /// when <see cref="IAdviceFactory.IntroduceParameter(IConstructor, string, IType, IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction}, IConstructorOverloadingStrategy?)"/>
-/// mutates a constructor with a required parameter. A forwarding constructor is a compile-time stub that
-/// preserves both the source and binary compatibility of the source constructor: it keeps the
-/// pre-mutation signature callable, marks itself with <see cref="Metalama.Framework.RunTime.SourceCompatibilityConstructorAttribute"/>,
-/// and chains via <c>: this(...)</c> to the now-mutated constructor. For the standard implementation see
+/// mutates a constructor with a required parameter. A forwarding constructor is a compile-time stub that keeps
+/// the pre-mutation signature callable and chains via <c>: this(...)</c> to the now-mutated constructor,
+/// preserving both source and binary compatibility. For the standard implementation see
 /// <see cref="ConstructorOverloadingStrategy"/>.
 /// </summary>
 /// <remarks>
@@ -27,18 +26,17 @@ namespace Metalama.Framework.Advising;
 /// </para>
 /// </remarks>
 /// <seealso cref="ConstructorOverloadingStrategy"/>
-/// <seealso cref="Metalama.Framework.Code.ConstructorExtensions.IsSourceCompatibilityConstructor"/>
+/// <seealso cref="PullStrategy.IntroduceParameterAndPull"/>
 public interface IConstructorOverloadingStrategy : ICompileTimeSerializable
 {
     /// <summary>
-    /// Gets the action the framework should apply when a constructor has just been mutated — whether to generate
-    /// a forwarding constructor, optionally decorated with <see cref="System.ObsoleteAttribute"/>, or to
-    /// do nothing.
+    /// Gets the action the framework should apply when a constructor has just been mutated: generate a forwarding
+    /// constructor (optionally decorated with <see cref="System.ObsoleteAttribute"/>), or do nothing.
     /// </summary>
     /// <param name="mutatedConstructor">The constructor immediately after the new parameter has been appended.</param>
     /// <param name="introducedParameter">The parameter that was just introduced.</param>
-    /// <returns>A <see cref="ConstructorOverloadingAction"/> describing the decision and — when
-    /// <see cref="ConstructorOverloadingAction.ForwardAndMarkObsolete"/> is used — the <c>[Obsolete]</c>
-    /// metadata to emit on the generated forwarding constructor.</returns>
+    /// <returns>A <see cref="ConstructorOverloadingAction"/> describing the decision; when
+    /// <see cref="ConstructorOverloadingAction.ForwardAndMarkObsolete"/> is used, it also carries the
+    /// <c>[Obsolete]</c> metadata to emit on the generated forwarding constructor.</returns>
     ConstructorOverloadingAction GetConstructorOverloadingAction( IConstructor mutatedConstructor, IParameter introducedParameter );
 }

@@ -120,9 +120,10 @@ internal sealed class PullConstructorParameterAdviceImpl
     /// <summary>
     /// Determines whether <paramref name="child"/>'s <c>: base(...)</c>/<c>: this(...)</c> call targets <paramref name="target"/>,
     /// either directly or through a forwarding constructor. When the base constructor lives in a
-    /// referenced project, Roslyn may resolve the chain call to a forwarding constructor emitted into the dependency's IL (arity match)
-    /// rather than the mutated constructor; we "see through" such forwarders by matching their parameter prefix against
-    /// <paramref name="target"/>'s parameters, since the framework only ever appends new parameters to mutated constructors.
+    /// referenced project, Roslyn may resolve the chain call to a forwarding constructor emitted into the dependency's IL
+    /// (arity match) rather than the mutated constructor; we "see through" such a forwarder by checking that its parameter
+    /// list exactly matches <paramref name="target"/>'s source parameters (i.e. <paramref name="target"/>'s parameters
+    /// minus those introduced by an aspect).
     /// </summary>
     private static bool IsChainedCall( IConstructor child, IConstructor target )
     {
@@ -152,11 +153,11 @@ internal sealed class PullConstructorParameterAdviceImpl
 
         // Roslyn's SemanticModel resolves `: base(id)` (or `: this(id)`) to whichever
         // ctor matches the source arity in IL. In cross-project scenarios that means
-        // it resolves to the forwarding ctor emitted by the aspect in
-        // project A, not to the mutated ctor. Treat that as a match for `target` when
-        // the resolved ctor is a forwarding constructor in the same
-        // declaring type whose parameters are a type+refkind prefix of `target`.
-        if ( !resolved.IsSourceCompatibilityConstructor() )
+        // it resolves to the forwarding ctor emitted by the aspect in project A, not to the
+        // mutated ctor. Treat that as a match for `target` when `resolved` is a same-type
+        // forwarder of `target`, i.e. its parameter list exactly matches `target`'s source
+        // (non-aspect-introduced) parameters.
+        if ( resolved.Parameters.Any( IsAspectGeneratedParameter ) )
         {
             return false;
         }
@@ -166,21 +167,43 @@ internal sealed class PullConstructorParameterAdviceImpl
             return false;
         }
 
-        if ( resolved.Parameters.Count >= target.Parameters.Count )
+        var targetSourceParamCount = 0;
+
+        foreach ( var p in target.Parameters )
+        {
+            if ( !IsAspectGeneratedParameter( p ) )
+            {
+                targetSourceParamCount++;
+            }
+        }
+
+        if ( resolved.Parameters.Count != targetSourceParamCount )
         {
             return false;
         }
 
-        for ( var i = 0; i < resolved.Parameters.Count; i++ )
+        var resolvedIndex = 0;
+
+        foreach ( var p in target.Parameters )
         {
-            if ( !SignatureTypeComparer.Instance.Equals( resolved.Parameters[i].Type, target.Parameters[i].Type )
-                 || resolved.Parameters[i].RefKind != target.Parameters[i].RefKind )
+            if ( IsAspectGeneratedParameter( p ) )
+            {
+                continue;
+            }
+
+            var resolvedParam = resolved.Parameters[resolvedIndex++];
+
+            if ( !SignatureTypeComparer.Instance.Equals( resolvedParam.Type, p.Type )
+                 || resolvedParam.RefKind != p.RefKind )
             {
                 return false;
             }
         }
 
         return true;
+
+        static bool IsAspectGeneratedParameter( IParameter parameter )
+            => parameter.Attributes.OfAttributeType( typeof(AspectGeneratedAttribute) ).Any();
     }
 
     public void PullConstructorParameterRecursive( IParameter baseParameter )

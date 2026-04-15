@@ -9,8 +9,10 @@ using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Preserved_IntroduceParameterAndPullOnClone;
 
-// A buggy pull strategy: always returns IntroduceParameterAndPull — invalid for a forwarding constructor.
-public sealed class BadPullStrategy : IPullStrategy
+// When a custom pull strategy returns IntroduceParameterAndPull without supplying a ForwarderExpression,
+// the framework falls back to default(T) (with the null-forgiving operator for non-nullable reference types)
+// so the emitted forwarder always compiles.
+public sealed class FallbackPullStrategy : IPullStrategy
 {
     public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
     {
@@ -28,7 +30,7 @@ public class MyAspect : TypeAspect
                 .IntroduceParameter(
                     "creationTime",
                     typeof(DateTime),
-                    pullStrategy: new BadPullStrategy(),
+                    pullStrategy: new FallbackPullStrategy(),
                     overloadingStrategy: ConstructorOverloadingStrategy.ForwardSourceConstructors );
         }
     }

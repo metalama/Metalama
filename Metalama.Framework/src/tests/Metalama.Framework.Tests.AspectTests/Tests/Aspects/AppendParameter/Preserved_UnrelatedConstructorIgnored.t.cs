@@ -12,7 +12,6 @@ public class A
   }
   public int Id { get; }
   public string? Name { get; }
-  [SourceCompatibilityConstructor]
   public A(int id) : this(id: id, creationTime: DateTime.Now)
   {
   }

@@ -10,7 +10,6 @@ public sealed record R
   {
     this.X = X;
   }
-  [SourceCompatibilityConstructor]
   public R(int X) : this(X: X, p: default)
   {
   }

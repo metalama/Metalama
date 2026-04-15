@@ -10,7 +10,6 @@ public record Base
   {
     this.X = X;
   }
-  [SourceCompatibilityConstructor]
   public Base(int X) : this(X: X, p: default)
   {
   }
@@ -27,7 +26,6 @@ public record Derived : Base
   {
     this.Y = Y;
   }
-  [SourceCompatibilityConstructor]
   public Derived(int X, int Y) : this(X: X, Y: Y, p: default)
   {
   }

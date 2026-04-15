@@ -5,7 +5,6 @@ public class Derived : Base
     this.Name = name;
   }
   public string Name { get; }
-  [SourceCompatibilityConstructor]
   [Obsolete("Use the new constructor.", false)]
   public Derived(int id, string name) : this(id: id, name: name, creationTime: default)
   {

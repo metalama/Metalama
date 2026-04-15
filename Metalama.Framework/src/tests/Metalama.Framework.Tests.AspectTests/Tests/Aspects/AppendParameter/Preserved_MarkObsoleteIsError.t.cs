@@ -6,7 +6,6 @@ public class A
     this.Id = id;
   }
   public int Id { get; }
-  [SourceCompatibilityConstructor]
   [Obsolete("This constructor has been removed.", true)]
   public A(int id) : this(id: id, creationTime: DateTime.Now)
   {

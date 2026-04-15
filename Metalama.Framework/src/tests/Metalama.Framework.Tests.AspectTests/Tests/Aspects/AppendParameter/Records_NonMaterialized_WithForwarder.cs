@@ -11,7 +11,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Rec
 /*
  * Verifies the forwarding-constructor path on a sealed record when the introduced parameter is
  * non-materialized: the linker strips the primary header, emits the materialized body ctor
- * carrying the appended parameter, and a [SourceCompatibilityConstructor] forwarder preserving
+ * carrying the appended parameter, and an aspect-generated forwarder preserving
  * the pre-mutation arity-1 signature. The appended parameter must NOT appear as a property
  * or in the Deconstruct.
  */

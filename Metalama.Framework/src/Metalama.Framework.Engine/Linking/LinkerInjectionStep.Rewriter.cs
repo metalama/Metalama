@@ -891,6 +891,24 @@ internal sealed partial class LinkerInjectionStep
             {
                 if ( exitStatements.Count > 0 )
                 {
+                    var isConstructor = declaration is IFullRef<IConstructor>;
+
+                    // For non-constructor methods, try the auxiliary-factory body patterns first.
+                    // `AuxiliaryMemberFactory` generates very specific body shapes for overrides that
+                    // carry output contracts (e.g. `{ local = proceed(); return local; }`); those
+                    // expect the exit statements to be inserted INSIDE the body between the local
+                    // declaration and the return, so the contract block runs before the return instead
+                    // of as dead code after it.
+                    //
+                    // If no auxiliary pattern matches, the body is a "free-form" body — either a
+                    // source hand-authored `Initialize` / `OnConstructed` (arbitrary user code) or an
+                    // injected Initialize/OnConstructed aux with no pre-shaped body — in which case we
+                    // fall through to the epilogue-wrap branch below (same as constructors).
+                    if ( !isConstructor && TryWrapAuxiliaryBody( targetBlock, entryStatements, exitStatements, out var auxWrapped ) )
+                    {
+                        return auxWrapped;
+                    }
+
                     // Constructor bodies can have arbitrary user code. The `AfterLastInstanceConstructor`
                     // advice emits a trailing call to `OnConstructed(context)` as an epilogue statement;
                     // we wrap the original body with entry/exit blocks and redirect any early `return;`
@@ -901,132 +919,45 @@ internal sealed partial class LinkerInjectionStep
                     // user body sits between the BeforeBase bucket (entry statements, conceptually the
                     // base call anchor) and the AfterBase bucket (exit statements), so early `return;`
                     // statements are redirected to a `postBase:` label so AfterBase templates still run.
-                    // Source methods only receive exit statements from the AfterBase bucket (see
-                    // `VisitMethodDeclarationCore`), so any `IFullRef<IMethod>` reaching this branch is
-                    // a hand-authored initializer method.
-                    var isConstructor = declaration is IFullRef<IConstructor>;
-                    var isInitializerMethod = !isConstructor && declaration is IFullRef<IMethod>;
+                    var baseLabelName = isConstructor ? "epilogue" : "postBase";
+                    var epilogueLabelName = this._lexicalScopeFactory.GetLexicalScope( declaration ).GetUniqueIdentifier( baseLabelName );
 
-                    if ( isConstructor || isInitializerMethod )
+                    var rewriter = new ConstructorEpilogueRewriter( epilogueLabelName );
+                    var rewrittenBody = (BlockSyntax) rewriter.Visit( targetBlock )!;
+
+                    var entryBlock = Block( List( entryStatements ) )
+                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+
+                    if ( rewriter.HasRewrites )
                     {
-                        var baseLabelName = isInitializerMethod ? "postBase" : "epilogue";
-                        var epilogueLabelName = this._lexicalScopeFactory.GetLexicalScope( declaration ).GetUniqueIdentifier( baseLabelName );
+                        // Attach the epilogue label to the first exit statement (the OnConstructed
+                        // call) rather than emitting a redundant empty-statement label — the
+                        // `exitStatements.Count > 0` guard above guarantees at least one exit
+                        // statement exists.
+                        var labeledExitStatements = new StatementSyntax[exitStatements.Count];
+                        labeledExitStatements[0] = LabeledStatement( SafeIdentifier( epilogueLabelName ), exitStatements[0] );
 
-                        var rewriter = new ConstructorEpilogueRewriter( epilogueLabelName );
-                        var rewrittenBody = (BlockSyntax) rewriter.Visit( targetBlock )!;
-
-                        var entryBlock = Block( List( entryStatements ) )
-                            .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
-
-                        if ( rewriter.HasRewrites )
+                        for ( var i = 1; i < exitStatements.Count; i++ )
                         {
-                            // Attach the epilogue label to the first exit statement (the OnConstructed
-                            // call) rather than emitting a redundant empty-statement label — the
-                            // `exitStatements.Count > 0` guard above guarantees at least one exit
-                            // statement exists.
-                            var labeledExitStatements = new StatementSyntax[exitStatements.Count];
-                            labeledExitStatements[0] = LabeledStatement( SafeIdentifier( epilogueLabelName ), exitStatements[0] );
-
-                            for ( var i = 1; i < exitStatements.Count; i++ )
-                            {
-                                labeledExitStatements[i] = exitStatements[i];
-                            }
-
-                            return Block(
-                                entryBlock,
-                                rewrittenBody
-                                    .WithSourceCodeAnnotationIfNotGenerated()
-                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
-                                Block( List( labeledExitStatements ) )
-                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ) );
+                            labeledExitStatements[i] = exitStatements[i];
                         }
 
                         return Block(
                             entryBlock,
-                            targetBlock
+                            rewrittenBody
                                 .WithSourceCodeAnnotationIfNotGenerated()
                                 .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
-                            Block( List( exitStatements ) )
+                            Block( List( labeledExitStatements ) )
                                 .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ) );
                     }
 
-                    // Patterns recognizing bodies generated by AuxiliaryMemberFactory.
-                    switch ( targetBlock )
-                    {
-                        case { Statements: [ExpressionStatementSyntax expressionStatement] }:
-                            return
-                                Block(
-                                    Block( List( entryStatements ) )
-                                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
-                                    expressionStatement,
-                                    Block( List( exitStatements ) )
-                                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ) );
-
-                        case { Statements: [LocalDeclarationStatementSyntax localDeclarationStatement, ReturnStatementSyntax returnStatement] }:
-                            return
-                                Block(
-                                    Block( List( entryStatements ) )
-                                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
-                                    localDeclarationStatement,
-                                    Block( List( exitStatements ) )
-                                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
-                                    returnStatement );
-
-                        case { Statements: [LocalDeclarationStatementSyntax localDeclarationStatement, ForEachStatementSyntax foreachStatement] }:
-                            return
-                                Block(
-                                    Block( List( entryStatements ) )
-                                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
-                                    localDeclarationStatement,
-                                    Block( List( exitStatements ) ).WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
-                                    foreachStatement );
-
-                        case
-                        {
-                            Statements:
-                            [
-                                LocalDeclarationStatementSyntax bufferedEnumerableLocal, LocalDeclarationStatementSyntax returnValueLocal,
-                                ExpressionStatementSyntax resetStatement, WhileStatementSyntax whileStatement
-                            ]
-                        }:
-                            return
-                                Block(
-                                    Block( List( entryStatements ) )
-                                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
-                                    bufferedEnumerableLocal,
-                                    returnValueLocal,
-                                    Block(
-                                            List(
-                                                exitStatements.Select(
-                                                    ( s, i ) =>
-                                                    {
-                                                        if ( i == 0 )
-                                                        {
-                                                            return s;
-                                                        }
-                                                        else
-                                                        {
-                                                            var declarator = returnValueLocal.Declaration.Variables.Single();
-
-                                                            return
-                                                                Block(
-                                                                        ExpressionStatement(
-                                                                            AssignmentExpression(
-                                                                                SyntaxKind.SimpleAssignmentExpression,
-                                                                                WellKnownIdentifierName( declarator.Identifier ),
-                                                                                declarator.Initializer.AssertNotNull().Value ) ),
-                                                                        resetStatement,
-                                                                        s )
-                                                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
-                                                        }
-                                                    } ) ) )
-                                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
-                                    resetStatement,
-                                    whileStatement );
-
-                        default:
-                            throw new AssertionFailedException( $"Unsupported form of body with exit statements for: {declaration}" );
-                    }
+                    return Block(
+                        entryBlock,
+                        targetBlock
+                            .WithSourceCodeAnnotationIfNotGenerated()
+                            .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                        Block( List( exitStatements ) )
+                            .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ) );
                 }
                 else
                 {
@@ -1037,6 +968,99 @@ internal sealed partial class LinkerInjectionStep
                             targetBlock
                                 .WithSourceCodeAnnotationIfNotGenerated()
                                 .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ) );
+                }
+            }
+
+            // Recognizes bodies generated by `AuxiliaryMemberFactory` for override methods and inserts
+            // the exit statements at the right internal seam so output contracts run BEFORE the
+            // trailing `return`/`foreach`/`while` — not as dead code after it.
+            static bool TryWrapAuxiliaryBody(
+                BlockSyntax targetBlock,
+                IReadOnlyList<StatementSyntax> entryStatements,
+                IReadOnlyList<StatementSyntax> exitStatements,
+                out BlockSyntax wrapped )
+            {
+                switch ( targetBlock )
+                {
+                    case { Statements: [ExpressionStatementSyntax expressionStatement] }:
+                        wrapped = Block(
+                            Block( List( entryStatements ) )
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            expressionStatement,
+                            Block( List( exitStatements ) )
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ) );
+
+                        return true;
+
+                    case { Statements: [LocalDeclarationStatementSyntax localDeclarationStatement, ReturnStatementSyntax returnStatement] }:
+                        wrapped = Block(
+                            Block( List( entryStatements ) )
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            localDeclarationStatement,
+                            Block( List( exitStatements ) )
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            returnStatement );
+
+                        return true;
+
+                    case { Statements: [LocalDeclarationStatementSyntax localDeclarationStatement, ForEachStatementSyntax foreachStatement] }:
+                        wrapped = Block(
+                            Block( List( entryStatements ) )
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            localDeclarationStatement,
+                            Block( List( exitStatements ) ).WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            foreachStatement );
+
+                        return true;
+
+                    case
+                    {
+                        Statements:
+                        [
+                            LocalDeclarationStatementSyntax bufferedEnumerableLocal, LocalDeclarationStatementSyntax returnValueLocal,
+                            ExpressionStatementSyntax resetStatement, WhileStatementSyntax whileStatement
+                        ]
+                    }:
+                        wrapped = Block(
+                            Block( List( entryStatements ) )
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            bufferedEnumerableLocal,
+                            returnValueLocal,
+                            Block(
+                                    List(
+                                        exitStatements.Select(
+                                            ( s, i ) =>
+                                            {
+                                                if ( i == 0 )
+                                                {
+                                                    return s;
+                                                }
+                                                else
+                                                {
+                                                    var declarator = returnValueLocal.Declaration.Variables.Single();
+
+                                                    return
+                                                        Block(
+                                                                ExpressionStatement(
+                                                                    AssignmentExpression(
+                                                                        SyntaxKind.SimpleAssignmentExpression,
+                                                                        WellKnownIdentifierName( declarator.Identifier ),
+                                                                        declarator.Initializer.AssertNotNull().Value ) ),
+                                                                resetStatement,
+                                                                s )
+                                                            .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+                                                }
+                                            } ) ) )
+                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
+                            resetStatement,
+                            whileStatement );
+
+                        return true;
+
+                    default:
+                        wrapped = null!;
+
+                        return false;
                 }
             }
 

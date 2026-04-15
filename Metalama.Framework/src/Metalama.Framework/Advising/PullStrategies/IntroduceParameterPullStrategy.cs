@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -15,6 +15,7 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
     private readonly string? _parameterName;
     private readonly IRef<IType>? _parameterType;
     private readonly string? _parameterDefaultValue;
+    private readonly string? _forwarderExpression;
     private readonly bool _reuseExistingParameterOfCompatibleType;
     private readonly bool _materializeOnRecord;
 
@@ -24,28 +25,20 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
         string? parameterName,
         IRef<IType>? parameterType,
         string? parameterDefaultValue,
+        string? forwarderExpression = null,
         bool reuseExistingParameterOfCompatibleType = false,
         bool materializeOnRecord = false )
     {
         this._parameterName = parameterName;
         this._parameterType = parameterType;
         this._parameterDefaultValue = parameterDefaultValue;
+        this._forwarderExpression = forwarderExpression;
         this._reuseExistingParameterOfCompatibleType = reuseExistingParameterOfCompatibleType;
         this._materializeOnRecord = materializeOnRecord;
     }
 
     public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
     {
-        // A forwarding constructor has a fixed signature (it keeps the pre-mutation
-        // source signature). We cannot append a new parameter to it, so forward the configured default
-        // value (or default(T) if none was supplied) to the mutated constructor.
-        if ( targetMember is IConstructor constructor && constructor.IsSourceCompatibilityConstructor() )
-        {
-            return this._parameterDefaultValue != null
-                ? PullAction.UseExpression( ExpressionFactory.Parse( this._parameterDefaultValue ) )
-                : PullAction.UseConstant( TypedConstant.Default( pulledParameter.Type ) );
-        }
-
         var resolvedParameterType = this._parameterType?.GetTarget( targetMember.Compilation ) ?? pulledParameter.Type;
 
         // Opt-in: if the target member already has a parameter whose type is convertible to the pulled
@@ -80,7 +73,8 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
         return PullAction.IntroduceParameterAndPull(
             this._parameterName ?? pulledParameter.Name,
             resolvedParameterType,
-            ExpressionFactory.Parse( this._parameterDefaultValue ),
+            parameterDefaultValue: this._parameterDefaultValue != null ? ExpressionFactory.Parse( this._parameterDefaultValue ) : null,
+            forwarderExpression: this._forwarderExpression != null ? ExpressionFactory.Parse( this._forwarderExpression ) : null,
             materializeOnRecord: this._materializeOnRecord );
     }
 
@@ -94,6 +88,7 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
             var parameterName = constructorArguments.GetValue<string>( nameof(_parameterName) )!;
             var parameterType = constructorArguments.GetValue<IRef<IType>>( nameof(_parameterType) )!;
             var parameterDefaultValue = constructorArguments.GetValue<string>( nameof(_parameterDefaultValue) );
+            var forwarderExpression = constructorArguments.GetValue<string>( nameof(_forwarderExpression) );
             var reuseExistingParameterOfCompatibleType = constructorArguments.GetValue<bool>( nameof(_reuseExistingParameterOfCompatibleType) );
             var materializeOnRecord = constructorArguments.GetValue<bool>( nameof(_materializeOnRecord) );
 
@@ -101,6 +96,7 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
                 parameterName,
                 parameterType,
                 parameterDefaultValue,
+                forwarderExpression,
                 reuseExistingParameterOfCompatibleType,
                 materializeOnRecord );
         }
@@ -113,6 +109,7 @@ internal class IntroduceParameterPullStrategy : IPullStrategy
             constructorArguments.SetValue( nameof(_parameterName), obj._parameterName );
             constructorArguments.SetValue( nameof(_parameterType), obj._parameterType );
             constructorArguments.SetValue( nameof(_parameterDefaultValue), obj._parameterDefaultValue );
+            constructorArguments.SetValue( nameof(_forwarderExpression), obj._forwarderExpression );
             constructorArguments.SetValue( nameof(_reuseExistingParameterOfCompatibleType), obj._reuseExistingParameterOfCompatibleType );
             constructorArguments.SetValue( nameof(_materializeOnRecord), obj._materializeOnRecord );
         }

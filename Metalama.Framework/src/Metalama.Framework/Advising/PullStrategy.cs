@@ -14,14 +14,15 @@ namespace Metalama.Framework.Advising;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A pull strategy determines how an introduced constructor parameter's value is obtained in child constructors.
-/// This class provides common implementations that cover most scenarios. For custom behavior, implement
-/// <see cref="IPullStrategy"/> directly.
+/// A pull strategy determines how the value of an introduced constructor parameter is supplied in two places:
+/// the framework-emitted forwarding constructor (when the required-parameter overload is used), and chained
+/// or derived constructors that must pass a value to the mutated constructor. This class provides common
+/// implementations that cover most scenarios. For custom behavior, implement <see cref="IPullStrategy"/> directly.
 /// </para>
 /// <para>
 /// The pull strategy is invoked for each constructor that calls the constructor where the parameter was introduced,
-/// either through <c>: base(...)</c> or <c>: this(...)</c> syntax. The strategy returns a <see cref="PullAction"/>
-/// that specifies what value to pass for the introduced parameter.
+/// either through <c>: base(...)</c> or <c>: this(...)</c> syntax, including the generated forwarding constructor.
+/// The strategy returns a <see cref="PullAction"/> that specifies what value to pass for the introduced parameter.
 /// </para>
 /// </remarks>
 /// <seealso cref="IPullStrategy"/>
@@ -72,7 +73,13 @@ public static class PullStrategy
     /// </summary>
     /// <param name="name">The name for the new parameter in the child constructor. If <c>null</c>, the introduced parameter's name is used.</param>
     /// <param name="type">The type for the new parameter in the child constructor. If <c>null</c>, the introduced parameter's type is used.</param>
-    /// <param name="defaultValue">The default value for the new parameter in the child constructor. If <c>null</c>, no default value is specified.</param>
+    /// <param name="defaultValue">The default value for the new parameter in the child constructor. If <c>null</c>, no default value is specified.
+    ///     Must be a compile-time constant expression (or <c>null</c>).</param>
+    /// <param name="forwarderExpression">Expression passed for the introduced parameter inside the framework-emitted forwarding
+    ///     constructor (the stub that preserves the pre-mutation signature when the required-parameter overload is used). Unlike
+    ///     <paramref name="defaultValue"/>, this expression does not need to be a compile-time constant. When a forwarder is
+    ///     emitted and this argument is <c>null</c>, <paramref name="defaultValue"/> is used if non-null; otherwise the framework
+    ///     falls back to <c>default(T)!</c>.</param>
     /// <param name="reuseExistingParameterOfCompatibleType">When <c>true</c>, if a child constructor already has a parameter whose type is
     ///     convertible to the introduced parameter's type (i.e. equally or more specific), that existing parameter is forwarded to the
     ///     base constructor instead of introducing a duplicate. If an existing <em>introduced</em> (aspect-generated) parameter has a
@@ -109,7 +116,14 @@ public static class PullStrategy
         string? name = null,
         IType? type = null,
         IExpression? defaultValue = null,
+        IExpression? forwarderExpression = null,
         bool reuseExistingParameterOfCompatibleType = false,
         bool materializeOnRecord = false )
-        => new IntroduceParameterPullStrategy( name, type?.ToRef(), defaultValue?.ToText(), reuseExistingParameterOfCompatibleType, materializeOnRecord );
+        => new IntroduceParameterPullStrategy(
+            name,
+            type?.ToRef(),
+            defaultValue?.ToText(),
+            forwarderExpression?.ToText(),
+            reuseExistingParameterOfCompatibleType,
+            materializeOnRecord );
 }

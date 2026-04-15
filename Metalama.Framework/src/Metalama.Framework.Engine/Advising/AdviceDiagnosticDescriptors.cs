@@ -291,7 +291,7 @@ namespace Metalama.Framework.Engine.Advising
                 Error );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IParameter IntroducedParameter, IConstructor Forwarder, string ReturnedKind)>
-            InvalidPullActionForSourceCompatibilityConstructor = new(
+            InvalidPullActionForForwardingConstructor = new(
                 "LAMA0536",
                 "Invalid pull action for a forwarding constructor.",
                 "The aspect '{0}' cannot pull parameter '{1}' into the forwarding constructor '{2}' because the pull strategy returned '{3}'. " +

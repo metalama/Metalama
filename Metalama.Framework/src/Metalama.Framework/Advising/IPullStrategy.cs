@@ -9,14 +9,18 @@ using Metalama.Framework.Serialization;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// A strategy that defines how an introduced constructor parameter should be propagated (or "pulled") to child constructors in derived classes.
+/// A strategy that defines how the value of an introduced constructor parameter is obtained in two contexts:
+/// (a) the framework-emitted <em>forwarding constructor</em> that preserves the pre-mutation signature when
+/// <see cref="IAdviceFactory.IntroduceParameter(IConstructor, string, IType, IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction}, IConstructorOverloadingStrategy?)"/>
+/// introduces a required parameter; and (b) chained constructors (in the same class) and derived constructors
+/// (in the same project or in referencing projects) that must pass a value to the mutated base constructor.
 /// For standard implementations, see <see cref="PullStrategy"/>.
 /// </summary>
 /// <remarks>
 /// <para>
 /// When you introduce a parameter to a base constructor using <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, Metalama.Framework.Advising.IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction}, Metalama.Framework.Advising.IConstructorOverloadingStrategy?)"/>
-/// or the corresponding extension methods in <see cref="AdviserExtensions"/>, this strategy determines how child constructors (in derived classes or in the same class)
-/// should obtain the value for this parameter when calling the base constructor.
+/// or the corresponding extension methods in <see cref="AdviserExtensions"/>, this strategy determines how chained and derived
+/// constructors (plus the forwarding constructor, when one is emitted) obtain the value for the newly introduced parameter.
 /// </para>
 /// <para>
 /// <strong>Cross-Project Operation:</strong> Pull strategies operate across project boundaries. Custom implementations

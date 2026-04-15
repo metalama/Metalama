@@ -47,11 +47,13 @@ public readonly struct PullAction
 
     internal IExpression? ParameterDefaultValue { get; }
 
+    internal IExpression? ForwarderExpression { get; }
+
     internal string? ParameterName { get; }
 
     /// <summary>
     /// Gets a value indicating whether, on record targets, the pulled parameter should be appended to the
-    /// positional (primary) constructor — making it part of the record's value shape (property, <c>Deconstruct</c>,
+    /// positional (primary) constructor, making it part of the record's value shape (property, <c>Deconstruct</c>,
     /// <c>Equals</c>, <c>ToString</c>). When <c>false</c> (the default), the parameter is carried on a synthesized
     /// non-primary sibling constructor and the record's positional list is left untouched. Ignored for non-record
     /// targets.
@@ -76,7 +78,8 @@ public readonly struct PullAction
         IExpression? parameterDefaultValue = null,
         ImmutableArray<AttributeConstruction> parameterAttributes = default,
         bool materializeOnRecord = false,
-        IParameter? existingParameter = null )
+        IParameter? existingParameter = null,
+        IExpression? forwarderExpression = null )
     {
         this.Kind = kind;
         this.Expression = expression;
@@ -86,6 +89,7 @@ public readonly struct PullAction
         this.ParameterDefaultValue = parameterDefaultValue;
         this.MaterializeOnRecord = materializeOnRecord;
         this.ExistingParameter = existingParameter;
+        this.ForwarderExpression = forwarderExpression;
     }
 
     /// <summary>
@@ -115,10 +119,16 @@ public readonly struct PullAction
     /// </summary>
     /// <param name="parameterName">Name of the new parameter.</param>
     /// <param name="parameterType">Type of the new parameter.</param>
-    /// <param name="parameterDefaultValue">Optional default value for the new parameter.</param>
+    /// <param name="parameterDefaultValue">Optional default value for the new parameter. Must be a compile-time constant
+    ///     (or <c>null</c>), because it becomes the declared default of a parameter in the chained constructor.</param>
+    /// <param name="forwarderExpression">Optional expression to pass for the introduced parameter in the framework-emitted
+    ///     forwarding constructor (the stub that preserves the pre-mutation signature when the required-parameter overload
+    ///     is used). Unlike <paramref name="parameterDefaultValue"/>, this expression does not need to be a compile-time
+    ///     constant (e.g. <c>System.DateTime.Now</c> is valid). When a forwarder is emitted and this argument is <c>null</c>,
+    ///     <paramref name="parameterDefaultValue"/> is used if non-null; otherwise the framework reports a diagnostic.</param>
     /// <param name="parameterAttributes">Optional attributes to apply to the new parameter.</param>
     /// <param name="materializeOnRecord">When <c>true</c> and the target is a record, the parameter is appended to the positional (primary)
-    ///     constructor and therefore becomes part of the record's value shape — an auto-generated property, a new entry in
+    ///     constructor and therefore becomes part of the record's value shape: an auto-generated property, a new entry in
     ///     <c>Equals</c>/<c>GetHashCode</c>/<c>ToString</c>, and a new <c>Deconstruct</c> overload. When <c>false</c> (the default),
     ///     the parameter is carried on a non-primary sibling constructor synthesized by Metalama, and the record's positional list
     ///     is left untouched. Ignored for non-record targets. Set this to <c>true</c> only if you deliberately want the pulled
@@ -144,16 +154,18 @@ public readonly struct PullAction
         string parameterName,
         IType parameterType,
         IExpression? parameterDefaultValue,
+        IExpression? forwarderExpression = null,
         ImmutableArray<AttributeConstruction> parameterAttributes = default,
         bool materializeOnRecord = false )
         => new(
             PullActionKind.AppendParameterAndPull,
-            null,
-            parameterName,
-            parameterType,
-            parameterDefaultValue,
-            parameterAttributes,
-            materializeOnRecord );
+            expression: null,
+            parameterName: parameterName,
+            parameterType: parameterType,
+            parameterDefaultValue: parameterDefaultValue,
+            parameterAttributes: parameterAttributes,
+            materializeOnRecord: materializeOnRecord,
+            forwarderExpression: forwarderExpression );
 
     /// <summary>
     /// Creates a <see cref="PullAction"/> that replaces the type of an existing introduced parameter with a more specific type
