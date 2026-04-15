@@ -54,7 +54,7 @@ The only additional constraint is on virtuality:
 
 - `Initialize` on a base class implementing `IInitializable` should be declared `virtual`
 - A derived class **may** `override` it, but may also declare a separate `Initialize` via a new aspect — both will be executed
-- The code model emits the `override` automatically, calling `base.Initialize(context.Descend(...))` before derived logic; if the author declares the override manually the code model leaves it untouched
+- The code model emits the `override` automatically, positioning the call to `base.Initialize(context.Descend(...))` between the pre-base and post-base template buckets (see §5.3). If the author declares the override manually, the user body plays the role of the base-call anchor — see §5.4.
 
 > **Source generator ordering caveat:** When multiple source generators each add `Initialize` logic to the same type (via partial classes), they must coordinate to ensure correct execution order.
 > Metalama solves this with its aspect ordering specification, but no equivalent coordination mechanism exists for independent source generators.
@@ -580,12 +580,23 @@ This enables cross-layer coordination — the code model uses the slot fields to
 
 ### 5.2 Signature
 
-This extends the existing `AddInitializer` API with a new `InitializerKind.AfterObjectInitializer` value and an optional `slotFields` parameter:
+This extends the existing `AddInitializer` API with a new `InitializerKind.AfterObjectInitializer` value, an optional `slotFields` parameter, and a second overload that takes an `InitializerPosition`:
 
 ```csharp
+// Default position — AfterBase (§5.3).
 IAddInitializerAdviceResult AddInitializer(
     string template,
     InitializerKind kind,
+    object? tags = null,
+    object? args = null,
+    IEnumerable<IField>? slotFields = null);
+
+// Explicit position. Only valid for InitializerKind.AfterObjectInitializer and
+// InitializerKind.AfterLastInstanceConstructor; reports a diagnostic otherwise.
+IAddInitializerAdviceResult AddInitializer(
+    string template,
+    InitializerKind kind,
+    InitializerPosition position,
     object? tags = null,
     object? args = null,
     IEnumerable<IField>? slotFields = null);
@@ -598,17 +609,67 @@ This parameter is meaningful when `kind` is `InitializerKind.AfterObjectInitiali
 **Template parameter:** Templates used with `InitializerKind.AfterObjectInitializer` or `AfterLastInstanceConstructor` may optionally declare an `InitializationContext` parameter in the template. This controls whether the template body can access slots and metadata — it does not affect the introduced method's signature, which always includes `InitializationContext context = default` (see §5.3).
 When the template declares the parameter, the code model maps it from the enclosing method's parameter.
 
+#### 5.2.1 `InitializerPosition`
+
+`InitializerPosition` selects which side of the base call a template's body lands on and, consequently, how it is ordered relative to other templates contributed by other aspect instances.
+
+```csharp
+[RunTimeOrCompileTime]
+public enum InitializerPosition
+{
+    /// <summary>
+    /// The template runs <b>after</b> the call to <c>base.Initialize</c> /
+    /// <c>base.OnConstructed</c>. Across aspect instances, templates in this position
+    /// run in <b>compile-time order</b> (inside-out — first-applied first). This is
+    /// the default.
+    /// </summary>
+    AfterBase = 0,
+
+    /// <summary>
+    /// The template runs <b>before</b> the call to <c>base.Initialize</c> /
+    /// <c>base.OnConstructed</c>. Across aspect instances, templates in this position
+    /// run in <b>run-time order</b> (outside-in — last-applied first).
+    /// </summary>
+    BeforeBase
+}
+```
+
+**Template ordering rule.** The pre/post split and the orderings above hold regardless of whether a base call is actually emitted (e.g. on a type with no base `IInitializable` / `OnConstructed`, or on a sealed class). Reversal is at the **aspect-instance** granularity: when a single aspect instance calls `AddInitializer` multiple times for the same position, those calls preserve their programmatic add-order within the bucket — the direct/reverse convention applies only *across* aspect instances.
+
+The matryoshka framing is documented on <see cref="Metalama.Framework.Aspects.AspectOrderDirection"/>: pre-base (`BeforeBase`) matches the run-time traversal (outer pre-blocks run first); post-base (`AfterBase`) matches the compile-time traversal (inner post-blocks run first, unwinding).
+
 ### 5.3 Method Introduction
 
 When the first `AddInitializer(InitializerKind.AfterObjectInitializer)` advice is applied to a type with no existing `Initialize` method, the code model introduces one:
 
 - `public virtual void Initialize(InitializationContext context = default)` on the declaring type
-- Body contains injected templates in aspect order
+- The body has two template buckets — `BeforeBase` and `AfterBase` — with the call to `base.Initialize(context.Descend(...))` (if a base exists) positioned between them
 - The advice also introduces the `IInitializable` interface on the target type if not already implemented
 
 When the target type already has a hand-authored `Initialize` method, the advice validates the virtuality contract: if the method is not `public virtual` (or `override`) on a non-sealed class, the advice reports **LAMA0550** (Error). This validation only applies when an aspect uses `AddInitializer` — hand-authored `IInitializable` without aspects is not validated (see §3.3).
 
-Subsequent advice appends templates to the same method body.
+Subsequent advice contributes templates to one of the two buckets, selected by the `InitializerPosition` argument (defaulting to `AfterBase`). Emission layout (pure code-model case, no hand-authored body):
+
+```csharp
+public virtual void Initialize(InitializationContext context)
+{
+    // BeforeBase bucket — run-time order across aspect instances (outer pre runs first).
+    // Within a single aspect instance, programmatic add-order is preserved.
+    <template_C_BeforeBase>
+    <template_B_BeforeBase>
+    <template_A_BeforeBase>
+
+    base.Initialize(context.Descend(slot1 | slot2 | ...));   // only if a base exists
+
+    // AfterBase bucket — compile-time order across aspect instances (inner post runs first).
+    // Within a single aspect instance, programmatic add-order is preserved.
+    <template_A_AfterBase>
+    <template_B_AfterBase>
+    <template_C_AfterBase>
+}
+```
+
+Templates themselves never emit `return`, so no label is needed here. When the method binds to a hand-authored body instead, a label is inserted between the user body and the `AfterBase` bucket so that `return;` in the user body can be rewritten to skip forward to the post-base templates — see §5.4.
 
 **Templates are always `void`-returning statement blocks** — they never emit `return`.
 
@@ -623,9 +684,25 @@ The same rule applies to the `OnConstructed` method introduced by `AfterLastInst
 
 When the code model introduces `Initialize` on a derived type whose base already implements `IInitializable`:
 
-- `base.Initialize(context.Descend(slot1 | slot2 | ...))` is emitted as the **first statement**, passing the union of all slots declared by aspects applied to the derived type
+- `base.Initialize(context.Descend(slot1 | slot2 | ...))` is emitted **between the `BeforeBase` and `AfterBase` buckets** (see §5.3), passing the union of all slots declared by aspects applied to the derived type
 - The override is `void` — straightforward override of the base method
-- If the derived type already has a hand-authored `Initialize`, templates are appended without modifying the existing `base.Initialize(...)` call
+
+**Hand-authored `Initialize`.** When the derived type already has a hand-authored `Initialize`, the entire user body plays the role of the base-call anchor: the `BeforeBase` bucket is prepended to the body, and the `AfterBase` bucket is appended after a `postBase:` label placed at the end of the user body. Top-level `return;` statements in the user body are rewritten to `goto postBase;` by the same rewriter used for constructor epilogues (§6.5), so the `AfterBase` bucket is always reached — `goto postBase;` jumps *to the start of the post-base bucket*, not past it. The user's own `base.Initialize(...)` call, if any, is not touched — the framework does not look inside the body for it. This yields uniform handling regardless of what the user wrote:
+
+```csharp
+public override void Initialize(InitializationContext context)
+{
+    // BeforeBase bucket prepended by the code model
+    <pre-base templates>
+
+    // user body — verbatim, with `return;` → `goto postBase;`
+    <hand-authored code>
+
+postBase:
+    // AfterBase bucket — always reached, even if the user body returned early
+    <post-base templates>
+}
+```
 
 > **Slot contract obligation:** When a derived type passes a slot to `Descend()`, it signals that the base should skip the behavior associated with that slot.
 > The derived type's template is then responsible for handling that behavior for **all** members, including inherited ones.
@@ -739,13 +816,19 @@ This is complementary to `BeforeInstanceConstructor` (which injects at the **beg
 
 ### 6.3 `OnConstructed` Method
 
-The introduced method follows the same pattern as `Initialize`:
+The introduced method follows the same pattern as `Initialize`, with the same two-bucket layout and ordering rule (§5.2.1, §5.3):
 
 ```csharp
 protected virtual void OnConstructed(InitializationContext context = default)
 {
+    // BeforeBase bucket — run-time order across aspect instances.
+    <pre-base templates>
+
     // base.OnConstructed(context.Descend(...)) — if base has OnConstructed
-    // template statements injected here
+    base.OnConstructed(context.Descend(...));
+
+    // AfterBase bucket — compile-time order across aspect instances.
+    <post-base templates>
 }
 ```
 
@@ -755,7 +838,8 @@ protected virtual void OnConstructed(InitializationContext context = default)
   - `private`, non-virtual on sealed classes and structs (no derived class can ever see it)
   - When overriding an inherited `OnConstructed`, the override matches the base accessibility
 - **`override`** when a base type already has `OnConstructed`
-- **Hand-authored `OnConstructed` is reused, not redeclared.** When the target type already declares an `OnConstructed(InitializationContext)` method, the advice binds to it and the templates are appended to its body — provided the existing method is callable from the derived constructors that need to invoke it (i.e. its accessibility is at least `protected` on non-sealed classes).
+- **Hand-authored `OnConstructed` is reused, not redeclared.** When the target type already declares an `OnConstructed(InitializationContext)` method, the advice binds to it and treats the user body as the base-call anchor: the `BeforeBase` bucket is prepended, the `AfterBase` bucket is appended after a `postBase:` label placed at the end of the user body, and `return;` statements in the user body are rewritten to `goto postBase;` so the `AfterBase` bucket is always reached (same uniform handling as `Initialize` — §5.4). The existing method must be callable from the derived constructors that need to invoke it (i.e. its accessibility is at least `protected` on non-sealed classes).
+- **Sealed classes and structs.** No base-call boundary exists, so `BeforeBase` and `AfterBase` collapse to two peer buckets. Their emission and ordering rule still apply: `BeforeBase` runs before `AfterBase`, with run-time-order and compile-time-order respectively across aspect instances.
 - **No `[OnConstructed]` attribute** — unlike `IInitializable`, this is a system concept, not a user concept. The method name is hardcoded by the advice.
 - **No Linker involvement** — the call to `OnConstructed` is wired by extending the existing constructor parameter append/pull mechanism (transitive aspect manifest) with an option to emit the `OnConstructed` call. This reuses the infrastructure already implemented for `InitializationContext` parameter propagation (§4).
 
@@ -784,7 +868,7 @@ The label name (`epilogue`) is uniquified per constructor by the lexical scope t
 
 Execution order within a constructor body:
 1. `: base(...)` call
-2. `BeforeInstanceConstructor` statements (in aspect order)
+2. `BeforeInstanceConstructor` statements (in compile-time order across aspect instances — first-applied first. `BeforeInstanceConstructor` sits after the `:base(...)` call, so it is a post-base region in the sense of §5.2.1 and follows the `AfterBase` ordering convention. There is no `InitializerPosition` option for this kind — it is pinned to this ordering.)
 3. User constructor code
 4. `OnConstructed(context)` call (only in most-derived constructor — coordinated via `InitializationSlot`)
 
