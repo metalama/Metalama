@@ -53,6 +53,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
     private readonly TemplateMember<IMethod> _template;
     private readonly IObjectReader? _templateArguments;
     private readonly IEnumerable<IField>? _slotFields;
+    private readonly InitializerPosition _position;
 
     private new INamedType TargetDeclaration => (INamedType) base.TargetDeclaration;
 
@@ -60,12 +61,14 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
         in AdviceConstructorParameters<INamedType> parameters,
         TemplateMember<IMethod> template,
         IObjectReader? templateArguments,
-        IEnumerable<IField>? slotFields )
+        IEnumerable<IField>? slotFields,
+        InitializerPosition position )
         : base( parameters )
     {
         this._template = template;
         this._templateArguments = templateArguments;
         this._slotFields = slotFields;
+        this._position = position;
     }
 
     protected override AddInitializerAdviceResult Implement( AdviceImplementationContext context )
@@ -104,12 +107,17 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
         // Step 2: bind and inject the template body into OnConstructed.
         var boundTemplate = this._template.ForInitializer( onConstructedMethod, this._templateArguments );
 
+        var statementKind = this._position == InitializerPosition.BeforeBase
+            ? InsertedStatementKind.InitializerBeforeBase
+            : InsertedStatementKind.InitializerAfterBase;
+
         context.AddTransformation(
             new InsertTemplateStatementsTransformation(
                 this.AspectLayerInstance,
                 targetType.ToRef(),
                 onConstructedMethod.ToFullRef(),
-                boundTemplate ) );
+                boundTemplate,
+                statementKind ) );
 
         // Step 2b: if we are introducing an override, prepend `base.OnConstructed(context.Descend(userSlots))`
         // — or plain `base.OnConstructed(context)` when there are no user slots, since Descend(default) is a no-op

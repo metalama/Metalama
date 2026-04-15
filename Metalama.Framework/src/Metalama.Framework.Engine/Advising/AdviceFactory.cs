@@ -1476,6 +1476,36 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         object? tags = null,
         object? args = null,
         IEnumerable<IField>? slotFields = null )
+        => this.AddInitializerCore( targetType, template, kind, InitializerPosition.AfterBase, tags, args, slotFields );
+
+    public IAddInitializerAdviceResult AddInitializer(
+        INamedType targetType,
+        string template,
+        InitializerKind kind,
+        InitializerPosition position,
+        object? tags = null,
+        object? args = null,
+        IEnumerable<IField>? slotFields = null )
+    {
+        if ( kind is not InitializerKind.AfterObjectInitializer and not InitializerKind.AfterLastInstanceConstructor )
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(kind),
+                kind,
+                $"An 'InitializerPosition' can only be specified with 'InitializerKind.AfterObjectInitializer' or 'InitializerKind.AfterLastInstanceConstructor'." );
+        }
+
+        return this.AddInitializerCore( targetType, template, kind, position, tags, args, slotFields );
+    }
+
+    private IAddInitializerAdviceResult AddInitializerCore(
+        INamedType targetType,
+        string template,
+        InitializerKind kind,
+        InitializerPosition position,
+        object? tags,
+        object? args,
+        IEnumerable<IField>? slotFields )
     {
         using ( this.WithNonUserCode() )
         {
@@ -1490,7 +1520,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     this.GetAdviceConstructorParameters<INamedType>( targetType ),
                     templateMember,
                     this.GetArgsReader( args ),
-                    slotFields );
+                    slotFields,
+                    position );
 
                 return advice.Execute( this._state );
             }
@@ -1500,7 +1531,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     this.GetAdviceConstructorParameters<INamedType>( targetType ),
                     templateMember,
                     this.GetArgsReader( args ),
-                    slotFields );
+                    slotFields,
+                    position );
 
                 return advice.Execute( this._state );
             }

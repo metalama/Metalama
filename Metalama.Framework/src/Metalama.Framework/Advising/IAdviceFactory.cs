@@ -721,7 +721,7 @@ namespace Metalama.Framework.Advising
             object? tags = null );
 
         /// <summary>
-        /// Adds a type or instance initializer by using a template. 
+        /// Adds a type or instance initializer by using a template.
         /// </summary>
         /// <param name="targetType">The type into which the initializer should be added.</param>
         /// <param name="template">The name of the template. This method must have no run-time parameter, be of <c>void</c> return type, and be annotated with the <see cref="TemplateAttribute"/> custom attribute.</param>
@@ -741,7 +741,28 @@ namespace Metalama.Framework.Advising
             IEnumerable<IField>? slotFields = null );
 
         /// <summary>
-        /// Adds a type or instance initializer by specifying an <see cref="IStatement"/>. 
+        /// Adds a type or instance initializer by using a template, specifying whether the initializer should run before or after the call to the base initializer.
+        /// </summary>
+        /// <param name="targetType">The type into which the initializer should be added.</param>
+        /// <param name="template">The name of the template. This method must have no run-time parameter, be of <c>void</c> return type, and be annotated with the <see cref="TemplateAttribute"/> custom attribute.</param>
+        /// <param name="kind">The type of initializer to add. Must be <see cref="InitializerKind.AfterObjectInitializer"/> or <see cref="InitializerKind.AfterLastInstanceConstructor"/>.</param>
+        /// <param name="position">Position of the initializer relative to the call to the base initializer (<c>base.Initialize(...)</c> or <c>base.OnConstructed(...)</c>).</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to templates and exposed under the <see cref="meta.Tags"/> property of the
+        ///     <see cref="meta"/> API.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
+        /// <param name="slotFields">An optional collection of <see cref="IField"/> references to <c>public static readonly InitializationSlot</c> fields
+        ///     on the aspect type, used for cross-layer coordination.</param>
+        IAddInitializerAdviceResult AddInitializer(
+            INamedType targetType,
+            string template,
+            InitializerKind kind,
+            InitializerPosition position,
+            object? tags = null,
+            object? args = null,
+            IEnumerable<IField>? slotFields = null );
+
+        /// <summary>
+        /// Adds a type or instance initializer by specifying an <see cref="IStatement"/>.
         /// </summary>
         /// <param name="targetType">The type into which the initializer should be added.</param>
         /// <param name="statement">The statement to be inserted at the top of constructors.</param>

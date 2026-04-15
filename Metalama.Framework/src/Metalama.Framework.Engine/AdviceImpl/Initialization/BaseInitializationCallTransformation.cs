@@ -103,7 +103,7 @@ internal abstract class BaseInitializationCallTransformation : BaseSyntaxTreeTra
                     .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
                 this.ContextDeclaration.GetTarget( context.FinalCompilation ),
                 this,
-                InsertedStatementKind.InitializerPrologue )
+                InsertedStatementKind.InitializerBase )
         ];
     }
 

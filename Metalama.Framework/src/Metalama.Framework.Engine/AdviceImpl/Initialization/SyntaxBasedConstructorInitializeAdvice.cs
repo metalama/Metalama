@@ -30,6 +30,7 @@ internal sealed class SyntaxBasedConstructorInitializeAdvice : ConstructorInitia
                 this.AspectLayerInstance,
                 targetDeclaration.ToRef(),
                 targetCtor.ToFullRef(),
-                _ => ((IStatementImpl) this._statement).GetSyntax( null ) ) );
+                _ => ((IStatementImpl) this._statement).GetSyntax( null ),
+                InsertedStatementKind.InitializerAfterBase ) );
     }
 }

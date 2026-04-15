@@ -1216,6 +1216,38 @@ public static class AdviserExtensions
             slotFields );
 
     /// <summary>
+    /// Adds a type or instance initializer by using a template, specifying whether the initializer should run before or after the call to the base initializer.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the initializer to a different type than the current one.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type.</param>
+    /// <param name="template">The name of the template. This method must have no run-time parameter, be of <c>void</c> return type, and be annotated with <see cref="TemplateAttribute"/>.</param>
+    /// <param name="kind">The type of initializer to add. Must be <see cref="InitializerKind.AfterObjectInitializer"/> or <see cref="InitializerKind.AfterLastInstanceConstructor"/>.</param>
+    /// <param name="position">Position of the initializer relative to the call to the base initializer.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
+    /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="slotFields">An optional collection of <see cref="IField"/> references to <c>public static readonly InitializationSlot</c> fields on the aspect type, used for cross-layer coordination.</param>
+    /// <returns>An <see cref="IAddInitializerAdviceResult"/> exposing the added initializer.</returns>
+    /// <seealso cref="InitializerKind"/>
+    /// <seealso cref="InitializerPosition"/>
+    /// <seealso href="@initializers"/>
+    public static IAddInitializerAdviceResult AddInitializer(
+        this IAdviser<INamedType> adviser,
+        string template,
+        InitializerKind kind,
+        InitializerPosition position,
+        object? args = null,
+        object? tags = null,
+        IEnumerable<IField>? slotFields = null )
+        => ((IAdviserInternal) adviser).AdviceFactory.AddInitializer(
+            adviser.Target,
+            template,
+            kind,
+            position,
+            tags,
+            args,
+            slotFields );
+
+    /// <summary>
     /// Adds a type or instance initializer by specifying an <see cref="IStatement"/>.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the initializer to a different type than the current one.
     /// </summary>

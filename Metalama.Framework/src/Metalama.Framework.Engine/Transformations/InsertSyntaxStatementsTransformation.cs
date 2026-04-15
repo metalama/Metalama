@@ -33,7 +33,7 @@ internal sealed class InsertSyntaxStatementsTransformation : BaseSyntaxTreeTrans
         IRef<IMemberOrNamedType> contextDeclaration,
         IFullRef<IMethodBase> targetMethodBase,
         Func<SyntaxGenerationContext, StatementSyntax> statement,
-        InsertedStatementKind statementKind = InsertedStatementKind.Initializer ) : base( aspectLayerInstance, targetMethodBase )
+        InsertedStatementKind statementKind ) : base( aspectLayerInstance, targetMethodBase )
     {
         this.ContextDeclaration = contextDeclaration;
         this._targetMethodBase = targetMethodBase;

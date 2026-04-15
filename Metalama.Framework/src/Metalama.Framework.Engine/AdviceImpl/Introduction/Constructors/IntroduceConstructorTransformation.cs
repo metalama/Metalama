@@ -141,7 +141,7 @@ internal sealed class IntroduceConstructorTransformation
                         .WithGeneratedCodeAnnotation( this.AspectInstance.AspectClass.GeneratedCodeAnnotation ),
                     constructorBuilder,
                     this,
-                    InsertedStatementKind.Initializer )
+                    InsertedStatementKind.InitializerAfterBase )
             ];
         }
 

@@ -896,9 +896,21 @@ internal sealed partial class LinkerInjectionStep
                     // we wrap the original body with entry/exit blocks and redirect any early `return;`
                     // statements to the epilogue via a generated label. The label name is obtained from
                     // the constructor's lexical scope so it cannot collide with a user-declared label.
-                    if ( declaration is IFullRef<IConstructor> constructorRef )
+                    //
+                    // Hand-authored `Initialize` / `OnConstructed` methods use the same pattern: the
+                    // user body sits between the BeforeBase bucket (entry statements, conceptually the
+                    // base call anchor) and the AfterBase bucket (exit statements), so early `return;`
+                    // statements are redirected to a `postBase:` label so AfterBase templates still run.
+                    // Source methods only receive exit statements from the AfterBase bucket (see
+                    // `VisitMethodDeclarationCore`), so any `IFullRef<IMethod>` reaching this branch is
+                    // a hand-authored initializer method.
+                    var isConstructor = declaration is IFullRef<IConstructor>;
+                    var isInitializerMethod = !isConstructor && declaration is IFullRef<IMethod>;
+
+                    if ( isConstructor || isInitializerMethod )
                     {
-                        var epilogueLabelName = this._lexicalScopeFactory.GetLexicalScope( constructorRef ).GetUniqueIdentifier( "epilogue" );
+                        var baseLabelName = isInitializerMethod ? "postBase" : "epilogue";
+                        var epilogueLabelName = this._lexicalScopeFactory.GetLexicalScope( declaration ).GetUniqueIdentifier( baseLabelName );
 
                         var rewriter = new ConstructorEpilogueRewriter( epilogueLabelName );
                         var rewrittenBody = (BlockSyntax) rewriter.Visit( targetBlock )!;
@@ -1538,7 +1550,12 @@ internal sealed partial class LinkerInjectionStep
                 var method = this._compilation.RefFactory.FromSymbol<IMethod>( symbol );
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( method );
 
-                node = (MethodDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration( method, entryStatements, [], node );
+                // Hand-authored `Initialize` / `OnConstructed` methods receive AfterBase initializer
+                // statements as exit statements (appended after the user body). For regular methods,
+                // this returns an empty list and behavior is unchanged.
+                var exitStatements = this._transformationCollection.GetInjectedInitializerAfterBaseStatements( method );
+
+                node = (MethodDeclarationSyntax) this.InjectStatementsIntoMemberDeclaration( method, entryStatements, exitStatements, node );
             }
 
             // Rewrite attributes.

@@ -614,7 +614,7 @@ When the template declares the parameter, the code model maps it from the enclos
 `InitializerPosition` selects which side of the base call a template's body lands on and, consequently, how it is ordered relative to other templates contributed by other aspect instances.
 
 ```csharp
-[RunTimeOrCompileTime]
+[CompileTime]
 public enum InitializerPosition
 {
     /// <summary>

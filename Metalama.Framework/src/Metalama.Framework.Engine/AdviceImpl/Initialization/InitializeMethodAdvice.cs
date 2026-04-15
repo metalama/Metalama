@@ -33,6 +33,7 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
     private readonly TemplateMember<IMethod> _template;
     private readonly IObjectReader? _templateArguments;
     private readonly IEnumerable<IField>? _slotFields;
+    private readonly InitializerPosition _position;
 
     private new INamedType TargetDeclaration => (INamedType) base.TargetDeclaration;
 
@@ -40,12 +41,14 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
         in AdviceConstructorParameters<INamedType> parameters,
         TemplateMember<IMethod> template,
         IObjectReader? templateArguments,
-        IEnumerable<IField>? slotFields )
+        IEnumerable<IField>? slotFields,
+        InitializerPosition position )
         : base( parameters )
     {
         this._template = template;
         this._templateArguments = templateArguments;
         this._slotFields = slotFields;
+        this._position = position;
     }
 
     protected override AddInitializerAdviceResult Implement( AdviceImplementationContext context )
@@ -178,12 +181,17 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
             var boundTemplate = this._template.ForInitializer( initializeMethod, this._templateArguments );
 
             // Add the template body as a statement in the Initialize method.
+            var statementKind = this._position == InitializerPosition.BeforeBase
+                ? InsertedStatementKind.InitializerBeforeBase
+                : InsertedStatementKind.InitializerAfterBase;
+
             context.AddTransformation(
                 new InsertTemplateStatementsTransformation(
                     this.AspectLayerInstance,
                     targetType.ToRef(),
                     initializeMethod.ToFullRef(),
-                    boundTemplate ) );
+                    boundTemplate,
+                    statementKind ) );
 
             // If overriding a base method, add `base.Initialize(context.Descend(userSlots))` as first
             // statement — or `base.Initialize(context)` when there are no user slots, since

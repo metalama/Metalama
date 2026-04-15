@@ -74,7 +74,10 @@ internal sealed partial class LinkerInjectionStep
         [Memo]
         public IReadOnlyList<IRef<IMethodBase>> ConstructorsWithInsertedStatements
             => this._insertedStatementsByTargetMethodBase
-                .Where( kvp => kvp.Value.Any( s => s.Kind == InsertedStatementKind.Initializer ) )
+                .Where(
+                    kvp => kvp.Value.Any(
+                        s => s.Kind is InsertedStatementKind.InitializerBeforeBase
+                            or InsertedStatementKind.InitializerAfterBase ) )
                 .Select( kvp => kvp.Key )
                 .ToReadOnlyList();
 
@@ -507,24 +510,40 @@ internal sealed partial class LinkerInjectionStep
 
             if ( (!hasInjectedMembers && targetInjectedMember == null) || (hasInjectedMembers && targetInjectedMember == injectedMembers![^1]) )
             {
-                // Return initializer statements to source members with no overrides or to the last override.
-                // This applies to both constructors (BeforeInstanceConstructor initializers) and methods (Initialize template statements).
+                // Return entry statements to source members with no overrides or to the last override.
+                // This applies to both constructors (BeforeInstanceConstructor / BeforeTypeConstructor
+                // initializers) and methods (Initialize / OnConstructed template statements).
+                //
+                // Entry part of the three-bucket matryoshka layout:
+                //   1. BeforeBase bucket — run in run-time order (last-applied aspect first, outer-to-inner).
+                //   2. Base-call anchor (base.Initialize / base.OnConstructed).
+                //
+                // For Initialize / OnConstructed methods, the AfterBase bucket is emitted as an exit
+                // statement (see GetInjectedExitStatements) so that for hand-authored bodies the user
+                // body plays the base-call-anchor role and AfterBase templates run after it.
+                //
+                // For constructors, however, there is no post-body seam — the conceptual "base call"
+                // lives in the constructor header (`: base(...)`), so AfterBase statements
+                // (BeforeInstanceConstructor / BeforeTypeConstructor) are emitted at the start of the
+                // constructor body, right after the implicit base call. They are still ordered in
+                // compile-time (inside-out) order across aspects.
 
-                // First: prologue statements (e.g. base.Initialize calls) — always before templates.
-                var prologueStatements =
+                var beforeBaseStatements = OrderInitializerStatements(
+                    insertedStatements.Where( s => s.Kind == InsertedStatementKind.InitializerBeforeBase ),
+                    reverseAcrossAspects: false );
+
+                statements.AddRange( beforeBaseStatements.Select( s => s.Statement ) );
+
+                var baseCallStatements =
                     insertedStatements
-                        .Where( s => s.Kind == InsertedStatementKind.InitializerPrologue );
+                        .Where( s => s.Kind == InsertedStatementKind.InitializerBase );
 
-                statements.AddRange( prologueStatements.Select( s => s.Statement ) );
+                statements.AddRange( baseCallStatements.Select( s => s.Statement ) );
 
-                // Then: initializer statements (templates) in runtime order.
-                var initializerStatements =
-                    insertedStatements
-                        .Where( s => s.Kind == InsertedStatementKind.Initializer );
-
-                var orderedInitializerStatements = OrderInitializerStatements( initializerStatements );
-
-                statements.AddRange( orderedInitializerStatements.Select( s => s.Statement ) );
+                if ( AfterBaseEmittedAtEntry( targetMethod ) )
+                {
+                    statements.AddRange( GetOrderedAfterBaseStatements( insertedStatements ) );
+                }
             }
 
             // For non-initializer statements we have to select a range of statements that fits this injected member.
@@ -597,6 +616,15 @@ internal sealed partial class LinkerInjectionStep
 
             var statements = new List<StatementSyntax>();
 
+            // AfterBase / legacy Initializer bucket: emitted exactly once per method at the last-override
+            // point. Targets with a post-body seam (Initialize / OnConstructed) emit it here, after the
+            // user body. Targets without a post-body seam (constructors) have it emitted at entry by
+            // GetInjectedEntryStatements; see AfterBaseEmittedAtEntry.
+            if ( targetInjectedMember == injectedMembers![^1] && !AfterBaseEmittedAtEntry( targetMethod ) )
+            {
+                statements.AddRange( GetOrderedAfterBaseStatements( insertedStatements ) );
+            }
+
             // For non-initializer statements we have to select a range of statements that fits this injected member.
             var outputContractStatements =
                 insertedStatements
@@ -619,6 +647,43 @@ internal sealed partial class LinkerInjectionStep
 
             return statements;
         }
+
+        /// <summary>
+        /// Returns the ordered list of <see cref="InsertedStatementKind.InitializerAfterBase"/> statements
+        /// to be appended at the end of a source <c>Initialize</c> / <c>OnConstructed</c> method body,
+        /// after the user body.
+        /// </summary>
+        internal IReadOnlyList<StatementSyntax> GetInjectedInitializerAfterBaseStatements( IRef<IMethodBase> targetMethod )
+        {
+            if ( !this._insertedStatementsByTargetMethodBase.TryGetValue( targetMethod, out var insertedStatements ) )
+            {
+                return ImmutableArray<StatementSyntax>.Empty;
+            }
+
+            return GetOrderedAfterBaseStatements( insertedStatements ).ToReadOnlyList();
+        }
+
+        /// <summary>
+        /// Returns the ordered <see cref="InsertedStatementKind.InitializerAfterBase"/> statements for a
+        /// target method. The ordering is shared by all AfterBase emission sites: constructor entry,
+        /// <c>Initialize</c> / <c>OnConstructed</c> method exit, and the source-method visitor in the rewriter.
+        /// </summary>
+        private static IEnumerable<StatementSyntax> GetOrderedAfterBaseStatements( IEnumerable<InsertedStatement> insertedStatements )
+            => OrderInitializerStatements(
+                    insertedStatements.Where( s => s.Kind == InsertedStatementKind.InitializerAfterBase ),
+                    reverseAcrossAspects: true )
+                .Select( s => s.Statement );
+
+        /// <summary>
+        /// Returns <c>true</c> when the AfterBase initializer bucket collapses into the method's entry
+        /// statements (i.e. the target has no post-body seam). Constructors fall into this category:
+        /// the conceptual base call lives in the constructor header, so AfterBase statements are
+        /// emitted at the start of the body. <c>Initialize</c> / <c>OnConstructed</c> methods have a
+        /// real <c>base.Initialize(...)</c> / <c>base.OnConstructed(...)</c> call in the body and
+        /// emit AfterBase statements after the (possibly hand-authored) user body.
+        /// </summary>
+        private static bool AfterBaseEmittedAtEntry( IRef<IMethodBase> targetMethod )
+            => targetMethod is IRef<IConstructor>;
 
         /// <summary>
         /// Returns the ordered list of output contract statements for a source constructor.
@@ -676,10 +741,19 @@ internal sealed partial class LinkerInjectionStep
                 .ToReadOnlyList();
         }
 
-        private static IEnumerable<InsertedStatement> OrderInitializerStatements( IEnumerable<InsertedStatement> statements )
-
+        /// <summary>
+        /// Orders initializer statements within one bucket (BeforeBase or AfterBase).
+        /// <paramref name="reverseAcrossAspects"/> controls the across-aspect sort direction:
+        /// <c>true</c> selects descending <c>OrderWithinPipeline</c> (compile-time / first-applied-first, inside-out) — used for the AfterBase bucket;
+        /// <c>false</c> selects ascending <c>OrderWithinPipeline</c> (run-time / last-applied-first, outside-in) — used for the BeforeBase bucket.
+        /// Within a single aspect instance, programmatic add-order is preserved in both buckets.
+        /// </summary>
+        private static IEnumerable<InsertedStatement> OrderInitializerStatements(
+            IEnumerable<InsertedStatement> statements,
+            bool reverseAcrossAspects )
+        {
             // Initializers of separate declarations should precede initializers of the type.
-            => statements
+            var ordered = statements
                 .OrderBy(
                     s => s.ContextDeclaration.DeclarationKind switch
                     {
@@ -687,11 +761,23 @@ internal sealed partial class LinkerInjectionStep
                         DeclarationKind.NamedType when s.ContextDeclaration is INamedType => 1,
                         _ => throw new AssertionFailedException( $"Unexpected declaration: '{s.ContextDeclaration}'." )
                     } )
-                .ThenBy( s => (s.ContextDeclaration as IMember)?.ToDisplayString(), StringComparer.Ordinal )
-                .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
-                .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
+                .ThenBy( s => (s.ContextDeclaration as IMember)?.ToDisplayString(), StringComparer.Ordinal );
+
+            if ( reverseAcrossAspects )
+            {
+                return ordered
+                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
+                    .ThenByDescending( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
+                    .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance )
+                    .ThenBy( s => s.Statement.ToFullString(), StringComparer.Ordinal );
+            }
+
+            return ordered
+                .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipeline )
+                .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndType )
                 .ThenBy( s => s.Transformation.AdviceOrderingIndices.OrderWithinPipelineStepAndTypeAndAspectInstance )
                 .ThenBy( s => s.Statement.ToFullString(), StringComparer.Ordinal );
+        }
 
         /// <summary>
         /// Orders contract statements ensuring:
