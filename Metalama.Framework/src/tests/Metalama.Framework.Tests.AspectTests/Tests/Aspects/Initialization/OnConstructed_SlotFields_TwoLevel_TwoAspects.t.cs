@@ -12,13 +12,13 @@ public class BaseClass
   }
   protected virtual void OnConstructed(InitializationContext context = default)
   {
-    if (!context.IsHandled(Slots.FirstSlot))
-    {
-      Console.WriteLine("First on BaseClass");
-    }
     if (!context.IsHandled(Slots.SecondSlot))
     {
       Console.WriteLine("Second on BaseClass");
+    }
+    if (!context.IsHandled(Slots.FirstSlot))
+    {
+      Console.WriteLine("First on BaseClass");
     }
   }
 }
@@ -34,13 +34,13 @@ public class DerivedClass : BaseClass
   protected override void OnConstructed(InitializationContext context = default)
   {
     base.OnConstructed(context.Descend(Slots.SecondSlot | Slots.FirstSlot));
-    if (!context.IsHandled(Slots.FirstSlot))
-    {
-      Console.WriteLine("First on DerivedClass");
-    }
     if (!context.IsHandled(Slots.SecondSlot))
     {
       Console.WriteLine("Second on DerivedClass");
+    }
+    if (!context.IsHandled(Slots.FirstSlot))
+    {
+      Console.WriteLine("First on DerivedClass");
     }
   }
 }

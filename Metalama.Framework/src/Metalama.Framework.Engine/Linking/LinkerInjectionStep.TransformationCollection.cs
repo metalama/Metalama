@@ -515,22 +515,26 @@ internal sealed partial class LinkerInjectionStep
                 // initializers) and methods (Initialize / OnConstructed template statements).
                 //
                 // Entry part of the three-bucket matryoshka layout:
-                //   1. BeforeBase bucket — run in run-time order (last-applied aspect first, outer-to-inner).
+                //   1. BeforeBase bucket — run in run-time order (outermost-first), so outer aspects
+                //      bracket inner ones before the base call.
                 //   2. Base-call anchor (base.Initialize / base.OnConstructed).
                 //
                 // For Initialize / OnConstructed methods, the AfterBase bucket is emitted as an exit
-                // statement (see GetInjectedExitStatements) so that for hand-authored bodies the user
-                // body plays the base-call-anchor role and AfterBase templates run after it.
+                // statement (see GetInjectedExitStatements) in innermost-first order so that the
+                // matryoshka unwinds correctly: the inner aspect's AfterBase runs first after the
+                // base call, and the outer aspect's AfterBase runs last.
                 //
                 // For constructors, however, there is no post-body seam — the conceptual "base call"
                 // lives in the constructor header (`: base(...)`), so AfterBase statements
                 // (BeforeInstanceConstructor / BeforeTypeConstructor) are emitted at the start of the
-                // constructor body, right after the implicit base call. They are still ordered in
-                // compile-time (inside-out) order across aspects.
+                // constructor body, right after the implicit base call. Semantically they are
+                // pre-user-body entry statements, so they are ordered outermost-first across aspects
+                // (the outer aspect's initializer runs before the inner aspect's, which in turn runs
+                // before the user's body).
 
                 var beforeBaseStatements = OrderInitializerStatements(
                     insertedStatements.Where( s => s.Kind == InsertedStatementKind.InitializerBeforeBase ),
-                    reverseAcrossAspects: false );
+                    reverseAcrossAspects: true );
 
                 statements.AddRange( beforeBaseStatements.Select( s => s.Statement ) );
 
@@ -542,7 +546,8 @@ internal sealed partial class LinkerInjectionStep
 
                 if ( AfterBaseEmittedAtEntry( targetMethod ) )
                 {
-                    statements.AddRange( GetOrderedAfterBaseStatements( insertedStatements ) );
+                    // Pre-user-body: outer first (same as BeforeBase above).
+                    statements.AddRange( GetOrderedAfterBaseStatements( insertedStatements, reverseAcrossAspects: true ) );
                 }
             }
 
@@ -622,7 +627,9 @@ internal sealed partial class LinkerInjectionStep
             // GetInjectedEntryStatements; see AfterBaseEmittedAtEntry.
             if ( targetInjectedMember == injectedMembers![^1] && !AfterBaseEmittedAtEntry( targetMethod ) )
             {
-                statements.AddRange( GetOrderedAfterBaseStatements( insertedStatements ) );
+                // Post-base-call / post-user-body: inner first so the matryoshka unwinds correctly
+                // (inner aspect's AfterBase runs before outer aspect's AfterBase).
+                statements.AddRange( GetOrderedAfterBaseStatements( insertedStatements, reverseAcrossAspects: false ) );
             }
 
             // For non-initializer statements we have to select a range of statements that fits this injected member.
@@ -660,18 +667,28 @@ internal sealed partial class LinkerInjectionStep
                 return ImmutableArray<StatementSyntax>.Empty;
             }
 
-            return GetOrderedAfterBaseStatements( insertedStatements ).ToReadOnlyList();
+            // Hand-authored Initialize / OnConstructed: emitted at method exit after the user body,
+            // inner first so the matryoshka unwinds correctly.
+            return GetOrderedAfterBaseStatements( insertedStatements, reverseAcrossAspects: false ).ToReadOnlyList();
         }
 
         /// <summary>
         /// Returns the ordered <see cref="InsertedStatementKind.InitializerAfterBase"/> statements for a
-        /// target method. The ordering is shared by all AfterBase emission sites: constructor entry,
-        /// <c>Initialize</c> / <c>OnConstructed</c> method exit, and the source-method visitor in the rewriter.
+        /// target method. The ordering differs by emission site:
+        /// <list type="bullet">
+        /// <item><c>reverseAcrossAspects: true</c> (outer-first) for constructor entry (<c>BeforeInstanceConstructor</c>/<c>BeforeTypeConstructor</c>),
+        /// which is semantically a pre-user-body bucket.</item>
+        /// <item><c>reverseAcrossAspects: false</c> (inner-first) for <c>Initialize</c> / <c>OnConstructed</c> method exit,
+        /// which is a post-base-call bucket and must unwind innermost-first.</item>
+        /// </list>
+        /// Within a single aspect instance, programmatic add-order is always preserved.
         /// </summary>
-        private static IEnumerable<StatementSyntax> GetOrderedAfterBaseStatements( IEnumerable<InsertedStatement> insertedStatements )
+        private static IEnumerable<StatementSyntax> GetOrderedAfterBaseStatements(
+            IEnumerable<InsertedStatement> insertedStatements,
+            bool reverseAcrossAspects )
             => OrderInitializerStatements(
                     insertedStatements.Where( s => s.Kind == InsertedStatementKind.InitializerAfterBase ),
-                    reverseAcrossAspects: true )
+                    reverseAcrossAspects )
                 .Select( s => s.Statement );
 
         /// <summary>
@@ -744,8 +761,10 @@ internal sealed partial class LinkerInjectionStep
         /// <summary>
         /// Orders initializer statements within one bucket (BeforeBase or AfterBase).
         /// <paramref name="reverseAcrossAspects"/> controls the across-aspect sort direction:
-        /// <c>true</c> selects descending <c>OrderWithinPipeline</c> (reverse aspect-application order — last-applied-first, outermost-first) — used for the AfterBase bucket;
-        /// <c>false</c> selects ascending <c>OrderWithinPipeline</c> (direct aspect-application order — first-applied-first, innermost-first) — used for the BeforeBase bucket.
+        /// <c>true</c> selects descending <c>OrderWithinPipeline</c> (reverse aspect-application order — last-applied-first, outermost-first) — used for buckets that run before the
+        /// conceptual base-call anchor (BeforeBase, and AfterBase emitted at constructor entry, which is semantically pre-user-body);
+        /// <c>false</c> selects ascending <c>OrderWithinPipeline</c> (direct aspect-application order — first-applied-first, innermost-first) — used for buckets that run after the
+        /// base-call anchor (AfterBase emitted at <c>Initialize</c> / <c>OnConstructed</c> method exit), so that the matryoshka unwinds innermost-first.
         /// Within a single aspect instance, programmatic add-order is preserved in both buckets.
         /// </summary>
         private static IEnumerable<InsertedStatement> OrderInitializerStatements(
