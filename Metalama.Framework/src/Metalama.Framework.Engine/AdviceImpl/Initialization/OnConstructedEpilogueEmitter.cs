@@ -256,6 +256,116 @@ internal static class OnConstructedEpilogueEmitter
     }
 
     /// <summary>
+    /// Emits the epilogue and descend override for all constructors of a same-project derived type.
+    /// Unlike <see cref="EmitForType"/>, this method does not need to resolve the <see cref="InitializationContext"/>
+    /// parameter from the code model — it uses the known default parameter name, because the parameter
+    /// was introduced by the recursive pull in <see cref="OnConstructedMethodAdvice"/> and may not yet
+    /// be visible in the code model for the derived constructors (the source model doesn't reflect
+    /// transformations from the same advice execution).
+    /// </summary>
+    internal static void EmitForDerivedType(
+        INamedType derivedType,
+        IType initContextType,
+        AspectLayerInstance aspectLayerInstance,
+        AdviceImplementationContext context )
+    {
+        var allConstructors = derivedType.Constructors
+            .Where( c => !c.IsRecordCopyConstructor() )
+            .ToList();
+
+        // Pass 1: non-:this(...) constructors.
+        foreach ( var ctor in allConstructors.Where( c => c.InitializerKind != ConstructorInitializerKind.This ) )
+        {
+            context.AddTransformation(
+                new OnConstructedEpilogueTransformation(
+                    aspectLayerInstance,
+                    derivedType.ToRef(),
+                    ctor.ToFullRef(),
+                    _defaultContextParameterName,
+                    guarded: true ) );
+
+            EmitDescendOverrideForChainedInitializerWithFallback(
+                ctor,
+                initContextType,
+                _defaultContextParameterName,
+                aspectLayerInstance,
+                context );
+        }
+
+        // Pass 2: :this(...) constructors — same treatment, guarded epilogue prevents double-fire.
+        foreach ( var ctor in allConstructors.Where( c => c.InitializerKind == ConstructorInitializerKind.This ) )
+        {
+            context.AddTransformation(
+                new OnConstructedEpilogueTransformation(
+                    aspectLayerInstance,
+                    derivedType.ToRef(),
+                    ctor.ToFullRef(),
+                    _defaultContextParameterName,
+                    guarded: true ) );
+
+            EmitDescendOverrideForChainedInitializerWithFallback(
+                ctor,
+                initContextType,
+                _defaultContextParameterName,
+                aspectLayerInstance,
+                context );
+        }
+    }
+
+    /// <summary>
+    /// Like <see cref="EmitDescendOverrideForChainedInitializer"/> but with a fallback for same-project
+    /// <c>:base(...)</c> chains where the chained constructor's <see cref="InitializationContext"/>
+    /// parameter was introduced by the pull and is not yet visible in the code model.
+    /// </summary>
+    private static void EmitDescendOverrideForChainedInitializerWithFallback(
+        IConstructor derivedConstructor,
+        IType initContextType,
+        string contextParameterName,
+        AspectLayerInstance aspectLayerInstance,
+        AdviceImplementationContext context )
+    {
+        var chainedConstructor = ((IConstructorImpl) derivedConstructor).GetBaseConstructor()?.Definition;
+
+        if ( chainedConstructor == null )
+        {
+            return;
+        }
+
+        var chainedContextParameter = chainedConstructor.Parameters.FirstOrDefault( p => p.Type.Equals( initContextType ) );
+
+        int parameterIndex;
+        string parameterName;
+
+        if ( chainedContextParameter != null )
+        {
+            parameterIndex = chainedContextParameter.Index;
+            parameterName = chainedContextParameter.Name;
+        }
+        else
+        {
+            // Same-project path: the chained constructor's InitializationContext parameter was
+            // introduced by the parameter pull and appended at the end. Since it isn't visible
+            // in the source model yet, compute the index from the original parameter count.
+            // This mirrors the :this() handling in EmitDescendOverrideForChainedInitializer.
+            parameterIndex = chainedConstructor.Parameters.Count;
+            parameterName = _defaultContextParameterName;
+        }
+
+        var requiresParameterName = chainedConstructor.Parameters.Any(
+            p => p.DefaultValue != null && p.Index < parameterIndex );
+
+        context.AddTransformation(
+            new IntroduceConstructorInitializerArgumentTransformation(
+                aspectLayerInstance,
+                derivedConstructor.ToFullRef(),
+                parameterIndex,
+                parameterName,
+                BuildDescendExpression( contextParameterName ),
+                requiresParameterName,
+                isOverride: true ) );
+    }
+
+    /// <summary>
     /// Locates the <see cref="InitializationContext"/> parameter on the constructor reached by
     /// <paramref name="derivedConstructor"/>'s <c>:base(...)</c> or <c>:this(...)</c> initializer
     /// and, if found, emits an <c>IsOverride=true</c>

@@ -152,6 +152,27 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
             context,
             registerPullFallback: true );
 
+        // Step 3b: emit the epilogue and descend override for all same-project derived types.
+        // The recursive parameter pull in Step 3 has already propagated the InitializationContext
+        // parameter to derived constructors, but the epilogue and descend rewrite were only emitted
+        // for the target type itself. When the aspect is [Inheritable], derived types get their own
+        // OnConstructedMethodAdvice, but when it is not, same-project derived constructors would
+        // otherwise only get the parameter without the epilogue/descend treatment. Using
+        // registerPullFallback: false because the parameter is already present from the recursive pull.
+        // The epilogue transformation is aggregatable, so duplicate emissions (when the aspect is
+        // inheritable and the derived type also gets its own advice) merge harmlessly.
+        if ( !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct )
+        {
+            foreach ( var derivedType in targetType.Compilation.GetDerivedTypes( targetType, DerivedTypesOptions.All ) )
+            {
+                OnConstructedEpilogueEmitter.EmitForDerivedType(
+                    derivedType,
+                    initContextType,
+                    this.AspectLayerInstance,
+                    context );
+            }
+        }
+
         // Step 4: cross-project propagation of the epilogue obligation. The transitive aspect runs
         // in dependent projects regardless of whether the user aspect is [Inheritable], so derived
         // classes in dependent projects also get the epilogue and the :base(context.Descend(...))
