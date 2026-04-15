@@ -744,8 +744,8 @@ internal sealed partial class LinkerInjectionStep
         /// <summary>
         /// Orders initializer statements within one bucket (BeforeBase or AfterBase).
         /// <paramref name="reverseAcrossAspects"/> controls the across-aspect sort direction:
-        /// <c>true</c> selects descending <c>OrderWithinPipeline</c> (compile-time / first-applied-first, inside-out) — used for the AfterBase bucket;
-        /// <c>false</c> selects ascending <c>OrderWithinPipeline</c> (run-time / last-applied-first, outside-in) — used for the BeforeBase bucket.
+        /// <c>true</c> selects descending <c>OrderWithinPipeline</c> (reverse aspect-application order — last-applied-first, outermost-first) — used for the AfterBase bucket;
+        /// <c>false</c> selects ascending <c>OrderWithinPipeline</c> (direct aspect-application order — first-applied-first, innermost-first) — used for the BeforeBase bucket.
         /// Within a single aspect instance, programmatic add-order is preserved in both buckets.
         /// </summary>
         private static IEnumerable<InsertedStatement> OrderInitializerStatements(
