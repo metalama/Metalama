@@ -1534,7 +1534,23 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     slotFields,
                     position );
 
-                return advice.Execute( this._state );
+                var result = advice.Execute( this._state );
+
+                // After OnConstructedMethodAdvice's transformations (including parameter pulls into
+                // derived constructors in the same compilation) have been applied to MutableCompilation,
+                // walk same-compilation derived types and emit the epilogue + descend rewrite. This is
+                // the in-project counterpart of AddConstructorEpilogueTransitiveAspect, which only
+                // handles cross-project propagation. See issue #1580: without this, a derived class in
+                // the same compilation receives the pulled InitializationContext parameter but neither
+                // calls OnConstructed nor descends the context to its base call.
+                if ( result.Outcome == AdviceOutcome.Success
+                     && !targetType.IsSealed
+                     && targetType.TypeKind != TypeKind.Struct )
+                {
+                    this.EmitOnConstructedEpilogueOnDerivedTypes( targetType );
+                }
+
+                return result;
             }
             else
             {

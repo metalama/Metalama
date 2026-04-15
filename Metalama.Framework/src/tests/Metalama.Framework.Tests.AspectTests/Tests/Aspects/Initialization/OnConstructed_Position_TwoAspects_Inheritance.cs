@@ -9,11 +9,12 @@ using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstr
 using System;
 
 // Cross-aspect ordering convention for BeforeBase/AfterBase (spec §5.2.1), applied to
-// OnConstructed (AfterLastInstanceConstructor). AspectOrder lists SecondAspect first, so
-// SecondAspect is applied first (innermost) and FirstAspect is applied last (outermost).
-// On the derived class we therefore expect:
+// OnConstructed (AfterLastInstanceConstructor). With AspectOrderDirection.RunTime, the first
+// aspect in the list runs first at runtime, i.e. is the outermost layer in the matryoshka
+// model. AspectOrder therefore lists FirstAspect first so that FirstAspect is outermost
+// and SecondAspect is innermost. On the derived class we expect:
 //   First.BeforeBase, Second.BeforeBase, base.OnConstructed, Second.AfterBase, First.AfterBase.
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(SecondAspect), typeof(FirstAspect) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(FirstAspect), typeof(SecondAspect) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_Position_TwoAspects_Inheritance;
 

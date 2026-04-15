@@ -21,10 +21,20 @@ internal enum InsertedStatementKind
     InitializerBase = -300,
 
     /// <summary>
-    /// Insert statement into an introduced <c>Initialize</c> or <c>OnConstructed</c> method <em>after</em>
-    /// the aggregated call to the base initializer. Also used for <c>BeforeInstanceConstructor</c> advice,
-    /// which is conceptually post-<c>:base()</c>. Emitted by <c>AddInitializer</c> advice with
-    /// <c>InitializerPosition.AfterBase</c> (the default).
+    /// Describes a statement that is semantically positioned <em>after</em> the base initializer call.
+    /// This is a <em>kind</em> label (semantic position relative to the base call); the physical emission
+    /// site varies by target:
+    /// <list type="bullet">
+    /// <item>For <c>Initialize</c> / <c>OnConstructed</c> methods the base call is a real body statement
+    /// (<c>base.Initialize(...)</c> / <c>base.OnConstructed(...)</c>), so these statements are emitted at
+    /// method <em>exit</em>, after the user body.</item>
+    /// <item>For source constructors (<c>BeforeInstanceConstructor</c> / <c>BeforeTypeConstructor</c> /
+    /// <c>AfterObjectInitializer</c>) the base call lives in the constructor header <c>:base(...)</c> —
+    /// there is no post-body seam — so these statements are emitted at the <em>start</em> of the
+    /// constructor body (pre-user-body).</item>
+    /// </list>
+    /// Emitted by <c>AddInitializer</c> advice with <c>InitializerPosition.AfterBase</c> (the default)
+    /// and by all constructor-targeting initialize advice (which always uses this kind).
     /// </summary>
     InitializerAfterBase = -250,
 
