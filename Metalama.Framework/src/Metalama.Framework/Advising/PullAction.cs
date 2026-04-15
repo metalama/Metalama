@@ -125,7 +125,8 @@ public readonly struct PullAction
     ///     forwarding constructor (the stub that preserves the pre-mutation signature when the required-parameter overload
     ///     is used). Unlike <paramref name="parameterDefaultValue"/>, this expression does not need to be a compile-time
     ///     constant (e.g. <c>System.DateTime.Now</c> is valid). When a forwarder is emitted and this argument is <c>null</c>,
-    ///     <paramref name="parameterDefaultValue"/> is used if non-null; otherwise the framework reports a diagnostic.</param>
+    ///     <paramref name="parameterDefaultValue"/> is used if non-null; otherwise the framework falls back to <c>default(T)!</c>
+    ///     so the forwarder always compiles.</param>
     /// <param name="parameterAttributes">Optional attributes to apply to the new parameter.</param>
     /// <param name="materializeOnRecord">When <c>true</c> and the target is a record, the parameter is appended to the positional (primary)
     ///     constructor and therefore becomes part of the record's value shape: an auto-generated property, a new entry in
