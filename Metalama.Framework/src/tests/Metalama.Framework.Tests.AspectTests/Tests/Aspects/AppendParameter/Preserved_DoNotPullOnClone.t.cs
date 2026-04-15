@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0536 on `A`: `The aspect 'MyAspect' cannot pull parameter 'A.A(int)@creationTime' into the forwarding constructor 'A.A(int)' because the pull strategy returned 'DoNotPull'. For forwarding constructors, only UseExpression, UseConstant, or UseExistingParameter are valid.`
+// Error LAMA0536 on `A`: `The aspect 'MyAspect' cannot pull parameter 'A.A(int)@creationTime' into the forwarding constructor 'A.A(int)' because the pull strategy returned 'DoNotPull'. For forwarding constructors, DoNotPull and ReplaceParameterTypeAndPull are not valid.`

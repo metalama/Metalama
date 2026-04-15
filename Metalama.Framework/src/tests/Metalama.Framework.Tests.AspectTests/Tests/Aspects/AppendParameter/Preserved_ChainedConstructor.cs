@@ -11,20 +11,6 @@ using Metalama.Framework.Code.SyntaxBuilders;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Preserved_ChainedConstructor;
 
-// A custom pull strategy: on a forwarding constructor, supply DateTime.Now; otherwise, cascade the parameter.
-public sealed class TimestampPullStrategy : IPullStrategy
-{
-    public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
-    {
-        if ( targetMember is IConstructor ctor && ctor.IsSourceCompatibilityConstructor() )
-        {
-            return PullAction.UseExpression( ExpressionFactory.Parse( "global::System.DateTime.Now" ) );
-        }
-
-        return PullAction.IntroduceParameterAndPull( pulledParameter.Name, pulledParameter.Type, parameterDefaultValue: null );
-    }
-}
-
 public class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
@@ -40,7 +26,8 @@ public class MyAspect : TypeAspect
                 .IntroduceParameter(
                     "creationTime",
                     typeof(DateTime),
-                    pullStrategy: new TimestampPullStrategy(),
+                    pullStrategy: PullStrategy.IntroduceParameterAndPull(
+                        forwarderExpression: ExpressionFactory.Parse( "global::System.DateTime.Now" ) ),
                     overloadingStrategy: ConstructorOverloadingStrategy.ForwardSourceConstructors );
         }
     }

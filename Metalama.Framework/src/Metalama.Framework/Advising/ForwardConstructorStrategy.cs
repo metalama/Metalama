@@ -13,7 +13,8 @@ namespace Metalama.Framework.Advising;
 /// <summary>
 /// A standard <see cref="IConstructorOverloadingStrategy"/> implementation that generates a forwarding
 /// constructor for matching source constructors, optionally decorated with
-/// <see cref="System.ObsoleteAttribute"/>. Obtain instances via
+/// <see cref="System.ObsoleteAttribute"/> so that callers are encouraged to migrate from the original
+/// signature to the new one. Obtain instances via
 /// <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> or
 /// <see cref="ConstructorOverloadingStrategy.ForwardDefaultConstructor"/>, and add the obsolete decoration
 /// by calling <see cref="WithObsoleteAttribute"/>.
@@ -43,8 +44,9 @@ public sealed class ForwardConstructorStrategy : IConstructorOverloadingStrategy
 
     /// <summary>
     /// Returns a new <see cref="ForwardConstructorStrategy"/> that additionally decorates the generated
-    /// forwarding constructor with <see cref="System.ObsoleteAttribute"/>. The scope (all source
-    /// constructors vs the parameterless default constructor) is preserved.
+    /// forwarding constructor with <see cref="System.ObsoleteAttribute"/>, so that callers receive a
+    /// compiler warning (or error) nudging them to migrate from the original signature to the new one. The
+    /// scope (all source constructors vs the parameterless default constructor) is preserved.
     /// </summary>
     /// <param name="description">Optional deprecation message displayed at the call site. When <c>null</c>, a bare
     /// <c>[Obsolete]</c> attribute is emitted.</param>

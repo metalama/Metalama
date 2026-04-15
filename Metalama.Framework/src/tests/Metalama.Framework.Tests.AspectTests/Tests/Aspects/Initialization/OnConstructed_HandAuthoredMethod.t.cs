@@ -13,7 +13,7 @@ public class TargetCode
   // rather than introducing a new one.
   public virtual void OnConstructed(InitializationContext ctx)
   {
-    Console.WriteLine("Injected!");
     Console.WriteLine("User-authored.");
+    Console.WriteLine("Injected!");
   }
 }

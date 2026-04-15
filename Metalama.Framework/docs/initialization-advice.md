@@ -54,7 +54,7 @@ The only additional constraint is on virtuality:
 
 - `Initialize` on a base class implementing `IInitializable` should be declared `virtual`
 - A derived class **may** `override` it, but may also declare a separate `Initialize` via a new aspect — both will be executed
-- The code model emits the `override` automatically, calling `base.Initialize(context.Descend(...))` before derived logic; if the author declares the override manually the code model leaves it untouched
+- The code model emits the `override` automatically, positioning the call to `base.Initialize(context.Descend(...))` between the pre-base and post-base template buckets (see §5.3). If the author declares the override manually, the user body plays the role of the base-call anchor — see §5.4.
 
 > **Source generator ordering caveat:** When multiple source generators each add `Initialize` logic to the same type (via partial classes), they must coordinate to ensure correct execution order.
 > Metalama solves this with its aspect ordering specification, but no equivalent coordination mechanism exists for independent source generators.
@@ -433,9 +433,9 @@ When an `AddInitializer(InitializerKind.AfterObjectInitializer)` or `AddInitiali
 
 ### 4.1 Two Strategies
 
-1. **Optional parameter** — call `IntroduceParameter(…, TypedConstant defaultValue, …)` with an initialized `defaultValue`. Simple, but **breaks binary compatibility** because optional parameters are baked into caller IL.
+1. **Optional parameter.** Call `IntroduceParameter(…, TypedConstant defaultValue, …)` with an initialized `defaultValue`. Simple, but **breaks binary compatibility** because optional parameters are baked into caller IL.
 
-2. **Required parameter + auto-generated forwarding constructor** — call `IntroduceParameter` without a `defaultValue`, combined with an `IConstructorOverloadingStrategy` and a user-supplied `IPullStrategy` that uses `IsSourceCompatibilityConstructor()` to branch. The framework appends a **required** parameter to the target, pulls it into every chained constructor, and — for every mutated constructor that the overloading strategy selects — generates a *forwarding constructor*: a compile-time stub, marked with `[SourceCompatibilityConstructor]`, that keeps the pre-mutation signature and chains via `: this(...)` to the mutated ctor with a strategy-supplied expression for the new parameter. The forwarding constructor preserves both source and binary compatibility with the source constructor: existing `new T(...)` call sites still compile, and existing referencing assemblies still bind to the same metadata token.
+2. **Required parameter + auto-generated forwarding constructor.** Call `IntroduceParameter` without a `defaultValue`, combined with an `IConstructorOverloadingStrategy` and an `IPullStrategy` that supplies a `forwarderExpression` for the forwarding constructor. The framework appends a **required** parameter to the target, pulls it into every chained constructor, and (for every mutated constructor that the overloading strategy selects) generates a *forwarding constructor*: a compile-time stub that keeps the pre-mutation signature and chains via `: this(...)` to the mutated ctor with the strategy-supplied expression for the new parameter. The forwarding constructor preserves both source and binary compatibility with the source constructor: existing `new T(...)` call sites still compile, and existing referencing assemblies still bind to the same metadata token.
 
 ### 4.2 API Shape
 
@@ -454,9 +454,9 @@ IIntroductionAdviceResult<IParameter> IntroduceParameter(
 
 A `Type`-based mirror exists for both families, so aspects can pass either an `IType` or a `System.Type`.
 
-- **The required-parameter overload** introduces a parameter with **no** C# default value — the appended C# parameter is required.
-- **`overloadingStrategy`** is a user-supplied (or standard) strategy that the framework calls for every mutated constructor to decide whether to emit a forwarding constructor. The standard `ConstructorOverloadingStrategy.ForwardSourceConstructors` matches all source constructors; `ConstructorOverloadingStrategy.ForwardDefaultConstructor` matches only the parameterless one. Each returns a `ForwardConstructorStrategy` whose fluent `WithObsoleteAttribute(description, isError)` method additionally decorates the generated forwarding constructor with `[Obsolete]`. Custom strategies can refine this by implementing `IConstructorOverloadingStrategy` directly.
-- **`pullStrategy`** still controls what happens at chain-call sites. Aspect authors either use one of the `PullStrategy.*` factory methods or write their own `IPullStrategy` implementation. A custom strategy can call `IsSourceCompatibilityConstructor()` on the `targetMember` argument and branch: when `true`, return `UseExpression(forwardingExpression)`; otherwise return `IntroduceParameterAndPull(...)` (or whatever suits the regular cascade). The stock `PullStrategy.IntroduceParameterAndPull(...)` already handles the forwarding constructor case by substituting a `UseExpression` action carrying the configured default value. Both strategies must implement `ICompileTimeSerializable` to work across project boundaries.
+- **The required-parameter overload** introduces a parameter with **no** C# default value; the appended C# parameter is required.
+- **`overloadingStrategy`** is a user-supplied (or standard) strategy that the framework calls for every mutated constructor to decide whether to emit a forwarding constructor. The standard `ConstructorOverloadingStrategy.ForwardSourceConstructors` matches all source constructors; `ConstructorOverloadingStrategy.ForwardDefaultConstructor` matches only the parameterless one. Each returns a `ForwardConstructorStrategy` whose fluent `WithObsoleteAttribute(description, isError)` method additionally decorates the generated forwarding constructor with `[Obsolete]` so callers are encouraged to migrate from the original signature to the new one. Custom strategies can refine this by implementing `IConstructorOverloadingStrategy` directly.
+- **`pullStrategy`** still controls what happens at chain-call sites. Aspect authors either use one of the `PullStrategy.*` factory methods or write their own `IPullStrategy` implementation. The typical shape is `PullAction.IntroduceParameterAndPull(..., forwarderExpression: ...)`: the `forwarderExpression` argument is the expression the framework substitutes when it emits the forwarding constructor — the strategy does not need to detect the forwarder itself. If it is omitted the framework falls back to the declared `parameterDefaultValue`, then to `default(T)!`, so the forwarder always compiles. Both strategies must implement `ICompileTimeSerializable` to work across project boundaries.
 
 The strategy interface is a single method:
 
@@ -476,23 +476,23 @@ For each constructor `C` the advice mutates (the target and every transitively p
 1. A parameter is appended to `C`. When the required-parameter overload is used, the parameter has **no** C# default value.
 2. If `C` chains to another constructor via `:this(...)` / `:base(...)` that also gets pulled, the chain call is updated so the newly introduced parameter is forwarded by name.
 3. **Forwarding constructor emission** (runs after mutation if `overloadingStrategy.GetConstructorOverloadingAction(C, introducedParam).Kind != None`): the framework ensures **exactly one** forwarding constructor exists for `C`. When the returned action is `ForwardAndMarkObsolete`, the framework additionally decorates the generated forwarding constructor with `[Obsolete(description, isError)]`, dropping any source `[Obsolete]` (strategy wins).
-   - If no forwarding constructor exists yet, one is created with `C`'s pre-mutation signature (derived by filtering `C.Parameters` to `Origin.Kind == Source` — aspect-introduced parameters are excluded). Its body is `: this(<existing params by name>, <forwardingExpression for new param>) { }`. It is marked with `SourceCompatibilityConstructorAttribute`.
+   - If no forwarding constructor exists yet, one is created with `C`'s pre-mutation signature (derived by filtering `C.Parameters` to exclude parameters carrying the `[AspectGenerated]` attribute). Its body is `: this(<existing params by name>, <forwardingExpression for new param>) { }`. The introduced parameters on `C` carry `[AspectGenerated]`, which also lets the pull-walk distinguish the forwarding constructor from a mutated sibling by comparing parameter lists (no attribute is emitted on the forwarder itself).
    - If a forwarding constructor already exists (because an earlier aspect already preserved `C`), the framework **extends the existing forwarding constructor in place** by appending the new forwarded argument to its `:this(...)` call. It does **not** create a second one. Invariant: at most one forwarding constructor per preserved constructor, growing monotonically with each successive advice.
 
-The forwarding expression is obtained by invoking the user-supplied `IPullStrategy.GetPullAction` with the forwarding constructor as the `targetMember` argument. For forwarding constructors, only `UseExpression`, `UseConstant`, and `UseExistingParameter` are valid pull actions; `DoNotPull` and `IntroduceParameterAndPull` emit `LAMA0536`.
+The forwarding expression is obtained by invoking the user-supplied `IPullStrategy.GetPullAction` with the forwarding constructor as the `targetMember` argument. `UseExpression`, `UseConstant`, and `UseExistingParameter` pass their expression through directly. `IntroduceParameterAndPull` is also valid: the framework uses its `forwarderExpression` if supplied, otherwise its `parameterDefaultValue`, otherwise `default(T)!`. Only `DoNotPull` and `ReplaceParameterTypeAndPull` are rejected and emit `LAMA0536`.
 
 **Diagnostics:**
-- `LAMA0520` — static constructor target.
-- `LAMA0530` — parameter name already exists on the target or a pulled constructor.
-- `LAMA0536` — pull strategy returned `DoNotPull` or `IntroduceParameterAndPull` for a forwarding constructor.
+- `LAMA0520`: static constructor target.
+- `LAMA0530`: parameter name already exists on the target or a pulled constructor.
+- `LAMA0536`: pull strategy returned `DoNotPull` or `ReplaceParameterTypeAndPull` for a forwarding constructor.
 
 ### 4.4 Cross-project behavior
 
 Both the pull strategy and the overloading strategy are `ICompileTimeSerializable`, so they are persisted into the transitive aspect metadata and re-hydrated in referencing projects. When project B derives from a base type in project A and A's aspect introduced a parameter via `ForwardSourceConstructors`:
 
 1. B's aspect pipeline runs `PullConstructorParameterTransitiveAspect`, which rebuilds a `PullConstructorParameterAdvice` carrying both strategies.
-2. The pull walk visits each derived constructor in B. Roslyn's symbol model resolves `: base(...)` to the **forwarding constructor** emitted in A's IL (because it matches the source arity). The pull-walk predicate therefore "sees through" it: if the resolved ctor is marked `SourceCompatibilityConstructorAttribute` and its parameters are a type+refkind prefix of the mutated ctor's parameters, it is treated as chaining to the mutated ctor. Safe because Metalama only ever appends parameters (never inserts).
-3. The parameter is pulled into B's derived ctors and the `base(...)` call is updated to pass the new argument — naturally resolving to the mutated (non-stub) ctor.
+2. The pull walk visits each derived constructor in B. Roslyn's symbol model resolves `: base(...)` to the **forwarding constructor** emitted in A's IL (because it matches the source arity). The pull-walk predicate therefore "sees through" it: if the resolved ctor has no `[AspectGenerated]` parameters of its own (so it is not a mutated constructor), lives on the same declaring type as the mutated ctor, and its parameter list matches the mutated ctor's source parameters by type and refkind, it is treated as chaining to the mutated ctor. Safe because Metalama only ever appends parameters (never inserts).
+3. The parameter is pulled into B's derived ctors and the `base(...)` call is updated to pass the new argument, naturally resolving to the mutated (non-stub) ctor.
 4. The overloading strategy then runs on B's own mutated derived ctors and may emit forwarding constructors there too, cascading the binary-compat guarantee across the hierarchy.
 
 ### 4.5 Example
@@ -508,25 +508,13 @@ public class Range
 
 **Aspect:**
 ```csharp
-public sealed class InitContextPullStrategy : IPullStrategy
-{
-    public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
-    {
-        if ( targetMember is IConstructor ctor && ctor.IsSourceCompatibilityConstructor() )
-            return PullAction.UseExpression( ExpressionFactory.Parse( "default" ) );
-
-        return PullAction.IntroduceParameterAndPull(
-            pulledParameter.Name, pulledParameter.Type, parameterDefaultValue: null );
-    }
-}
-
 // In BuildAspect:
 foreach ( var ctor in builder.Target.Constructors )
 {
     builder.With( ctor ).IntroduceParameter(
         "context",
         typeof( InitializationContext ),
-        pullStrategy: new InitContextPullStrategy(),
+        pullStrategy: PullStrategy.IntroduceParameterAndPull(),
         overloadingStrategy: ConstructorOverloadingStrategy.ForwardSourceConstructors );
 }
 ```
@@ -535,9 +523,8 @@ foreach ( var ctor in builder.Target.Constructors )
 ```csharp
 public class Range
 {
-    public Range(int min, int max, InitializationContext context) { Min = min; Max = max; }
+    public Range(int min, int max, [AspectGenerated] InitializationContext context) { Min = min; Max = max; }
 
-    [SourceCompatibilityConstructor]
     public Range(int min, int max) : this(min, max, default) { }
 
     public int Min { get; } public int Max { get; }
@@ -548,7 +535,7 @@ public class Range
 
 Non-instrumented callers (external assemblies, reflection, `Activator.CreateInstance`, `new()` generic constraint, DI containers) continue to see and call the original signatures, which resolve to the forwarding constructors. For `InitializationContract`, this means `Initialize` is still not invoked automatically for non-instrumented callers.
 
-> **Warning: Non-instrumented caller limitation:** Non-instrumented callers will **not** have `Initialize` called automatically — neither via the constructor nor after object initializers. This is an inherent limitation of the design: without Linker call-site rewriting, there is no safe point to invoke `Initialize`. The forwarding constructor intentionally does *not* self-invoke `Initialize` to avoid premature firing before `init` properties are set.
+> **Warning: Non-instrumented caller limitation:** Non-instrumented callers will **not** have `Initialize` called automatically, neither via the constructor nor after object initializers. This is an inherent limitation of the design: without Linker call-site rewriting, there is no safe point to invoke `Initialize`. The forwarding constructor intentionally does *not* self-invoke `Initialize` to avoid premature firing before `init` properties are set.
 >
 > **Mitigation strategies to consider:**
 > - Emit a Roslyn analyzer diagnostic when a non-instrumented call site constructs a type implementing `IInitializable` without calling `WithInitialize(expr)` afterward
@@ -562,7 +549,7 @@ For positional records, an appended parameter can participate in the record's va
 - **`materializeOnRecord: false` (default).** A threading-only parameter. The linker strips the primary header and emits a body-declared constructor that carries the appended parameter. The appended parameter does **not** become a positional property, does **not** appear in `Deconstruct`, and does **not** participate in `Equals`/`GetHashCode`/`ToString`. A compensating `Deconstruct` with the pre-mutation signature is emitted so existing deconstruction call sites keep binding. This is the right default for `OnConstructed`-style parameters (`InitializationContext`, tracing contexts, and other cross-cutting marker types) that should not pollute the record's identity.
 - **`materializeOnRecord: true` (opt-in).** The appended parameter keeps its position in the primary header and therefore becomes part of the record's value shape via the usual compiler-generated positional-property + `Deconstruct` + `Equals`/`GetHashCode`/`ToString` expansion. An extended `Deconstruct(out …, out T appended)` overload is emitted alongside the original-arity compensator. Use this when the parameter is semantically a field of the record (e.g. an injected `Owner`, `Tenant`, `Timestamp`) that callers should be able to read, compare, format, and destructure.
 
-In both modes, combining with `ConstructorOverloadingStrategy.ForwardSourceConstructors` produces a `[SourceCompatibilityConstructor]` forwarder preserving the pre-mutation arity so uninstrumented callers continue to bind by arity. On hierarchies the forwarder is emitted per record, and the derived record's body constructor threads the appended parameter through the `:base(...)` initializer — fire-once semantics work the normal way.
+In both modes, combining with `ConstructorOverloadingStrategy.ForwardSourceConstructors` produces an aspect-generated forwarder preserving the pre-mutation arity so uninstrumented callers continue to bind by arity. On hierarchies the forwarder is emitted per record, and the derived record's body constructor threads the appended parameter through the `:base(...)` initializer; fire-once semantics work the normal way.
 
 A deliberate gap remains: because the compiler-generated copy constructor is never modified (see §6.9 and §7.2), an appended parameter introduced with `materializeOnRecord: false` cannot flow through `r with { … }` expressions and has no effect on `with`-produced instances.
 
@@ -580,12 +567,23 @@ This enables cross-layer coordination — the code model uses the slot fields to
 
 ### 5.2 Signature
 
-This extends the existing `AddInitializer` API with a new `InitializerKind.AfterObjectInitializer` value and an optional `slotFields` parameter:
+This extends the existing `AddInitializer` API with a new `InitializerKind.AfterObjectInitializer` value, an optional `slotFields` parameter, and a second overload that takes an `InitializerPosition`:
 
 ```csharp
+// Default position — AfterBase (§5.3).
 IAddInitializerAdviceResult AddInitializer(
     string template,
     InitializerKind kind,
+    object? tags = null,
+    object? args = null,
+    IEnumerable<IField>? slotFields = null);
+
+// Explicit position. Only valid for InitializerKind.AfterObjectInitializer and
+// InitializerKind.AfterLastInstanceConstructor; reports a diagnostic otherwise.
+IAddInitializerAdviceResult AddInitializer(
+    string template,
+    InitializerKind kind,
+    InitializerPosition position,
     object? tags = null,
     object? args = null,
     IEnumerable<IField>? slotFields = null);
@@ -598,17 +596,67 @@ This parameter is meaningful when `kind` is `InitializerKind.AfterObjectInitiali
 **Template parameter:** Templates used with `InitializerKind.AfterObjectInitializer` or `AfterLastInstanceConstructor` may optionally declare an `InitializationContext` parameter in the template. This controls whether the template body can access slots and metadata — it does not affect the introduced method's signature, which always includes `InitializationContext context = default` (see §5.3).
 When the template declares the parameter, the code model maps it from the enclosing method's parameter.
 
+#### 5.2.1 `InitializerPosition`
+
+`InitializerPosition` selects which side of the base call a template's body lands on and, consequently, how it is ordered relative to other templates contributed by other aspect instances.
+
+```csharp
+[CompileTime]
+public enum InitializerPosition
+{
+    /// <summary>
+    /// The template runs <b>after</b> the call to <c>base.Initialize</c> /
+    /// <c>base.OnConstructed</c>. Across aspect instances, templates in this position
+    /// run in <b>compile-time order</b> (inside-out — first-applied first). This is
+    /// the default.
+    /// </summary>
+    AfterBase = 0,
+
+    /// <summary>
+    /// The template runs <b>before</b> the call to <c>base.Initialize</c> /
+    /// <c>base.OnConstructed</c>. Across aspect instances, templates in this position
+    /// run in <b>run-time order</b> (outside-in — last-applied first).
+    /// </summary>
+    BeforeBase
+}
+```
+
+**Template ordering rule.** The pre/post split and the orderings above hold regardless of whether a base call is actually emitted (e.g. on a type with no base `IInitializable` / `OnConstructed`, or on a sealed class). Reversal is at the **aspect-instance** granularity: when a single aspect instance calls `AddInitializer` multiple times for the same position, those calls preserve their programmatic add-order within the bucket — the direct/reverse convention applies only *across* aspect instances.
+
+The matryoshka framing is documented on <see cref="Metalama.Framework.Aspects.AspectOrderDirection"/>: pre-base (`BeforeBase`) matches the run-time traversal (outer pre-blocks run first); post-base (`AfterBase`) matches the compile-time traversal (inner post-blocks run first, unwinding).
+
 ### 5.3 Method Introduction
 
 When the first `AddInitializer(InitializerKind.AfterObjectInitializer)` advice is applied to a type with no existing `Initialize` method, the code model introduces one:
 
 - `public virtual void Initialize(InitializationContext context = default)` on the declaring type
-- Body contains injected templates in aspect order
+- The body has two template buckets — `BeforeBase` and `AfterBase` — with the call to `base.Initialize(context.Descend(...))` (if a base exists) positioned between them
 - The advice also introduces the `IInitializable` interface on the target type if not already implemented
 
 When the target type already has a hand-authored `Initialize` method, the advice validates the virtuality contract: if the method is not `public virtual` (or `override`) on a non-sealed class, the advice reports **LAMA0550** (Error). This validation only applies when an aspect uses `AddInitializer` — hand-authored `IInitializable` without aspects is not validated (see §3.3).
 
-Subsequent advice appends templates to the same method body.
+Subsequent advice contributes templates to one of the two buckets, selected by the `InitializerPosition` argument (defaulting to `AfterBase`). Emission layout (pure code-model case, no hand-authored body):
+
+```csharp
+public virtual void Initialize(InitializationContext context)
+{
+    // BeforeBase bucket — run-time order across aspect instances (outer pre runs first).
+    // Within a single aspect instance, programmatic add-order is preserved.
+    <template_C_BeforeBase>
+    <template_B_BeforeBase>
+    <template_A_BeforeBase>
+
+    base.Initialize(context.Descend(slot1 | slot2 | ...));   // only if a base exists
+
+    // AfterBase bucket — compile-time order across aspect instances (inner post runs first).
+    // Within a single aspect instance, programmatic add-order is preserved.
+    <template_A_AfterBase>
+    <template_B_AfterBase>
+    <template_C_AfterBase>
+}
+```
+
+Templates themselves never emit `return`, so no label is needed here. When the method binds to a hand-authored body instead, a label is inserted between the user body and the `AfterBase` bucket so that `return;` in the user body can be rewritten to skip forward to the post-base templates — see §5.4.
 
 **Templates are always `void`-returning statement blocks** — they never emit `return`.
 
@@ -623,9 +671,25 @@ The same rule applies to the `OnConstructed` method introduced by `AfterLastInst
 
 When the code model introduces `Initialize` on a derived type whose base already implements `IInitializable`:
 
-- `base.Initialize(context.Descend(slot1 | slot2 | ...))` is emitted as the **first statement**, passing the union of all slots declared by aspects applied to the derived type
+- `base.Initialize(context.Descend(slot1 | slot2 | ...))` is emitted **between the `BeforeBase` and `AfterBase` buckets** (see §5.3), passing the union of all slots declared by aspects applied to the derived type
 - The override is `void` — straightforward override of the base method
-- If the derived type already has a hand-authored `Initialize`, templates are appended without modifying the existing `base.Initialize(...)` call
+
+**Hand-authored `Initialize`.** When the derived type already has a hand-authored `Initialize`, the entire user body plays the role of the base-call anchor: the `BeforeBase` bucket is prepended to the body, and the `AfterBase` bucket is appended after a `postBase:` label placed at the end of the user body. Top-level `return;` statements in the user body are rewritten to `goto postBase;` by the same rewriter used for constructor epilogues (§6.5), so the `AfterBase` bucket is always reached — `goto postBase;` jumps *to the start of the post-base bucket*, not past it. The user's own `base.Initialize(...)` call, if any, is not touched — the framework does not look inside the body for it. This yields uniform handling regardless of what the user wrote:
+
+```csharp
+public override void Initialize(InitializationContext context)
+{
+    // BeforeBase bucket prepended by the code model
+    <pre-base templates>
+
+    // user body — verbatim, with `return;` → `goto postBase;`
+    <hand-authored code>
+
+postBase:
+    // AfterBase bucket — always reached, even if the user body returned early
+    <post-base templates>
+}
+```
 
 > **Slot contract obligation:** When a derived type passes a slot to `Descend()`, it signals that the base should skip the behavior associated with that slot.
 > The derived type's template is then responsible for handling that behavior for **all** members, including inherited ones.
@@ -739,13 +803,19 @@ This is complementary to `BeforeInstanceConstructor` (which injects at the **beg
 
 ### 6.3 `OnConstructed` Method
 
-The introduced method follows the same pattern as `Initialize`:
+The introduced method follows the same pattern as `Initialize`, with the same two-bucket layout and ordering rule (§5.2.1, §5.3):
 
 ```csharp
 protected virtual void OnConstructed(InitializationContext context = default)
 {
+    // BeforeBase bucket — run-time order across aspect instances.
+    <pre-base templates>
+
     // base.OnConstructed(context.Descend(...)) — if base has OnConstructed
-    // template statements injected here
+    base.OnConstructed(context.Descend(...));
+
+    // AfterBase bucket — compile-time order across aspect instances.
+    <post-base templates>
 }
 ```
 
@@ -755,7 +825,8 @@ protected virtual void OnConstructed(InitializationContext context = default)
   - `private`, non-virtual on sealed classes and structs (no derived class can ever see it)
   - When overriding an inherited `OnConstructed`, the override matches the base accessibility
 - **`override`** when a base type already has `OnConstructed`
-- **Hand-authored `OnConstructed` is reused, not redeclared.** When the target type already declares an `OnConstructed(InitializationContext)` method, the advice binds to it and the templates are appended to its body — provided the existing method is callable from the derived constructors that need to invoke it (i.e. its accessibility is at least `protected` on non-sealed classes).
+- **Hand-authored `OnConstructed` is reused, not redeclared.** When the target type already declares an `OnConstructed(InitializationContext)` method, the advice binds to it and treats the user body as the base-call anchor: the `BeforeBase` bucket is prepended, the `AfterBase` bucket is appended after a `postBase:` label placed at the end of the user body, and `return;` statements in the user body are rewritten to `goto postBase;` so the `AfterBase` bucket is always reached (same uniform handling as `Initialize` — §5.4). The existing method must be callable from the derived constructors that need to invoke it (i.e. its accessibility is at least `protected` on non-sealed classes).
+- **Sealed classes and structs.** No base-call boundary exists, so `BeforeBase` and `AfterBase` collapse to two peer buckets. Their emission and ordering rule still apply: `BeforeBase` runs before `AfterBase`, with run-time-order and compile-time-order respectively across aspect instances.
 - **No `[OnConstructed]` attribute** — unlike `IInitializable`, this is a system concept, not a user concept. The method name is hardcoded by the advice.
 - **No Linker involvement** — the call to `OnConstructed` is wired by extending the existing constructor parameter append/pull mechanism (transitive aspect manifest) with an option to emit the `OnConstructed` call. This reuses the infrastructure already implemented for `InitializationContext` parameter propagation (§4).
 
@@ -784,7 +855,7 @@ The label name (`epilogue`) is uniquified per constructor by the lexical scope t
 
 Execution order within a constructor body:
 1. `: base(...)` call
-2. `BeforeInstanceConstructor` statements (in aspect order)
+2. `BeforeInstanceConstructor` statements (in compile-time order across aspect instances — first-applied first. `BeforeInstanceConstructor` sits after the `:base(...)` call, so it is a post-base region in the sense of §5.2.1 and follows the `AfterBase` ordering convention. There is no `InitializerPosition` option for this kind — it is pinned to this ordering.)
 3. User constructor code
 4. `OnConstructed(context)` call (only in most-derived constructor — coordinated via `InitializationSlot`)
 

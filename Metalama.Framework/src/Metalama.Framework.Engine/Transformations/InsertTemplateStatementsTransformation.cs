@@ -24,6 +24,7 @@ internal sealed class InsertTemplateStatementsTransformation : BaseSyntaxTreeTra
 {
     private readonly IFullRef<IMethodBase> _targetMethodBase;
     private readonly BoundTemplateMethod _boundTemplate;
+    private readonly InsertedStatementKind _statementKind;
 
     private IRef<IMemberOrNamedType> ContextDeclaration { get; }
 
@@ -33,11 +34,13 @@ internal sealed class InsertTemplateStatementsTransformation : BaseSyntaxTreeTra
         AspectLayerInstance aspectLayerInstance,
         IRef<IMemberOrNamedType> contextDeclaration,
         IFullRef<IMethodBase> targetMethodBase,
-        BoundTemplateMethod boundTemplate ) : base( aspectLayerInstance, targetMethodBase )
+        BoundTemplateMethod boundTemplate,
+        InsertedStatementKind statementKind ) : base( aspectLayerInstance, targetMethodBase )
     {
         this.ContextDeclaration = contextDeclaration;
         this._targetMethodBase = targetMethodBase;
         this._boundTemplate = boundTemplate;
+        this._statementKind = statementKind;
     }
 
     public IReadOnlyList<InsertedStatement> GetInsertedStatements(
@@ -90,7 +93,7 @@ internal sealed class InsertTemplateStatementsTransformation : BaseSyntaxTreeTra
                     .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
                 contextDeclaration,
                 this,
-                InsertedStatementKind.Initializer )
+                this._statementKind )
         ];
     }
 

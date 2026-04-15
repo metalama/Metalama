@@ -9,7 +9,6 @@ public class A
     this.Id = id;
   }
   public int Id { get; }
-  [SourceCompatibilityConstructor]
   public A() : this(creationTime: DateTime.Now)
   {
   }

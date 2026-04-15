@@ -38,7 +38,8 @@ internal sealed class TemplateBasedConstructorInitializeAdvice : ConstructorInit
             this.AspectLayerInstance,
             targetDeclaration.ToRef(),
             targetCtor.ToFullRef(),
-            boundTemplate );
+            boundTemplate,
+            InsertedStatementKind.InitializerAfterBase );
 
         addTransformation( initialization );
     }

@@ -12,14 +12,17 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace Metalama.Framework.Engine.Linking;
 
 /// <summary>
-/// Rewrites top-level <c>return;</c> statements inside a constructor body to
-/// <c>goto &lt;labelName&gt;;</c> so that the <c>AfterLastInstanceConstructor</c> epilogue
-/// (the call to <c>OnConstructed</c>) still fires on early-return paths.
+/// Rewrites top-level <c>return;</c> statements inside a constructor body, or a
+/// hand-authored <c>Initialize</c> / <c>OnConstructed</c> method body, to
+/// <c>goto &lt;labelName&gt;;</c> so that the epilogue statements still fire on
+/// early-return paths. For constructors, the epilogue is the <c>AfterLastInstanceConstructor</c>
+/// call to <c>OnConstructed</c>; for <c>Initialize</c> / <c>OnConstructed</c>, the epilogue is
+/// the AfterBase bucket of aspect-contributed templates.
 /// </summary>
 /// <remarks>
-/// Rewrites are confined to the constructor body: nested lambdas, anonymous methods, and
+/// Rewrites are confined to the top-level body: nested lambdas, anonymous methods, and
 /// local functions are left untouched because their <c>return</c> statements belong to a
-/// different code path and must not be redirected to the constructor epilogue.
+/// different code path and must not be redirected to the epilogue.
 /// </remarks>
 internal sealed class ConstructorEpilogueRewriter : SafeSyntaxRewriter
 {
@@ -33,14 +36,14 @@ internal sealed class ConstructorEpilogueRewriter : SafeSyntaxRewriter
     /// <summary>
     /// Gets a value indicating whether the rewriter found and replaced at least one
     /// <c>return;</c> statement. Callers use this to decide whether to emit the epilogue
-    /// label — emitting an unused label would produce a CS0164 warning.
+    /// label, because emitting an unused label would produce a CS0164 warning.
     /// </summary>
     public bool HasRewrites { get; private set; }
 
     public override SyntaxNode? VisitReturnStatement( ReturnStatementSyntax node )
     {
         // Constructors cannot `return value;`, so the expression is always null in well-formed
-        // input — but guard defensively in case the input is malformed.
+        // input, but guard defensively in case the input is malformed.
         if ( node.Expression != null )
         {
             return base.VisitReturnStatement( node );

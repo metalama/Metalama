@@ -16,10 +16,11 @@ using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using Metalama.Framework.RunTime;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
@@ -67,6 +68,25 @@ internal sealed class ForwardingConstructorHelper
             return;
         }
 
+        // Compute pre-mutation parameters: the ones originating from source (aspect-introduced parameters
+        // are excluded).
+        var preMutationParams = mutatedConstructor.Parameters
+            .Where( p => p.Origin.Kind == DeclarationOriginKind.Source )
+            .ToList();
+
+        // An earlier aspect may have created a forwarder matching the pre-mutation signature. If so, it
+        // must receive the newly introduced parameter regardless of whether the current overloading
+        // strategy would create a forwarder itself — otherwise its :this(...) call would no longer satisfy
+        // the mutated constructor's required parameters.
+        var existingForwarder = FindExistingForwarder( mutatedConstructor, preMutationParams );
+
+        if ( existingForwarder is not null )
+        {
+            this.AppendForwarderArgument( existingForwarder, introducedParameter );
+
+            return;
+        }
+
         var action = this.GetConstructorOverloadingAction( mutatedConstructor, introducedParameter );
 
         if ( action.Kind == ConstructorOverloadingActionKind.None )
@@ -74,23 +94,7 @@ internal sealed class ForwardingConstructorHelper
             return;
         }
 
-        // Compute pre-mutation parameters: the ones originating from source (aspect-introduced parameters
-        // are excluded).
-        var preMutationParams = mutatedConstructor.Parameters
-            .Where( p => p.Origin.Kind == DeclarationOriginKind.Source )
-            .ToList();
-
-        // Find an existing forwarder for this constructor (from an earlier advice invocation).
-        var existingForwarder = FindExistingForwarder( mutatedConstructor, preMutationParams );
-
-        if ( existingForwarder is not null )
-        {
-            this.AppendForwarderArgument( existingForwarder, introducedParameter );
-        }
-        else
-        {
-            this.CreateForwarder( mutatedConstructor, preMutationParams, introducedParameter, action );
-        }
+        this.CreateForwarder( mutatedConstructor, preMutationParams, introducedParameter, action );
     }
 
     private ConstructorOverloadingAction GetConstructorOverloadingAction( IConstructor mutatedConstructor, IParameter introducedParameter )
@@ -106,13 +110,13 @@ internal sealed class ForwardingConstructorHelper
 
     private static IConstructor? FindExistingForwarder( IConstructor mutatedConstructor, IReadOnlyList<IParameter> preMutationParams )
     {
+        // A forwarder's signature is exactly the pre-mutation signature of the mutated constructor.
+        // C# guarantees no other source constructor can share that signature (duplicate-signature rule),
+        // so a same-type ctor that is not the mutated one and whose parameter types/refkinds match
+        // preMutationParams can only be the forwarder. The mutated constructor has a strictly larger
+        // parameter count, so it is rejected by the count comparison.
         foreach ( var ctor in mutatedConstructor.DeclaringType.Constructors )
         {
-            if ( !ctor.IsSourceCompatibilityConstructor() )
-            {
-                continue;
-            }
-
             if ( ctor.Parameters.Count != preMutationParams.Count )
             {
                 continue;
@@ -131,7 +135,7 @@ internal sealed class ForwardingConstructorHelper
                 }
             }
 
-            if ( match )
+            if ( match && !ctor.Equals( mutatedConstructor ) )
             {
                 return ctor;
             }
@@ -157,10 +161,6 @@ internal sealed class ForwardingConstructorHelper
             // is only needed at compile time, when the source constructor has been mutated with the introduced parameter.
             IsDesignTimeObservableOverride = false
         };
-
-        // Add the marker attribute up-front so the user's pull strategy can detect the forwarder via
-        // IsSourceCompatibilityConstructor() when GetForwardingExpression calls it below.
-        forwarderBuilder.AddAttribute( AttributeConstruction.Create( typeof(SourceCompatibilityConstructorAttribute) ) );
 
         // When the strategy asks for [Obsolete], emit it before copying source attributes so we can skip a
         // source [Obsolete] below (strategy wins).
@@ -288,11 +288,28 @@ internal sealed class ForwardingConstructorHelper
             case PullActionKind.UseExpression:
                 return pullAction.Expression;
 
+            case PullActionKind.AppendParameterAndPull:
+                // A forwarder has a fixed signature (the pre-mutation signature), so we cannot append a
+                // new parameter to it. Prefer the strategy-supplied ForwarderExpression, then the
+                // parameter's declared default, and fall back to default(T)! so the forwarder always
+                // compiles — the null-forgiving operator silences nullable warnings for reference types
+                // and is a no-op for value types.
+                if ( pullAction.ForwarderExpression != null )
+                {
+                    return pullAction.ForwarderExpression;
+                }
+
+                if ( pullAction.ParameterDefaultValue != null )
+                {
+                    return pullAction.ParameterDefaultValue;
+                }
+
+                return this.CreateDefaultForwarderExpression( introducedParameter, forwarderTarget );
+
             default:
-                // Only UseExpression / UseConstant / UseExistingParameter are valid for forwarders —
-                // they all map to UseExpression. DoNotPull and AppendParameterAndPull are invalid.
+                // DoNotPull, ReplaceParameterTypeAndPull are invalid for forwarders.
                 this._context.Diagnostics.Report(
-                    AdviceDiagnosticDescriptors.InvalidPullActionForSourceCompatibilityConstructor.CreateRoslynDiagnostic(
+                    AdviceDiagnosticDescriptors.InvalidPullActionForForwardingConstructor.CreateRoslynDiagnostic(
                         forwarderTarget.GetDiagnosticLocation(),
                         (this._owningAdvice.AspectInstance.AspectClass.ShortName, introducedParameter, forwarderTarget,
                          pullAction.Kind.ToString()),
@@ -300,5 +317,27 @@ internal sealed class ForwardingConstructorHelper
 
                 return null;
         }
+    }
+
+    private IExpression CreateDefaultForwarderExpression( IParameter introducedParameter, IConstructor forwarderTarget )
+    {
+        var syntaxGenerationOptions = this._context.ServiceProvider.GetRequiredService<SyntaxGenerationOptions>();
+
+        var syntaxGenerationContext = this._context.MutableCompilation.CompilationContext.GetSyntaxGenerationContext(
+            syntaxGenerationOptions,
+            forwarderTarget.DeclaringType.GetPrimaryDeclarationSyntax().AssertNotNull() );
+
+        var defaultSyntax = syntaxGenerationContext.SyntaxGenerator.DefaultExpression( introducedParameter.Type );
+
+        // Append the null-forgiving operator only when the parameter type may fire a nullable warning
+        // on a default value: excluded for value types and for types already known to be nullable
+        // (where null is a legal value). For unconstrained generic parameters we keep the operator
+        // defensively because nullability cannot be determined statically.
+        if ( introducedParameter.Type.IsReferenceType != false && introducedParameter.Type.IsNullable != true )
+        {
+            defaultSyntax = PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, defaultSyntax );
+        }
+
+        return new SyntaxUserExpression( defaultSyntax, introducedParameter.Type );
     }
 }

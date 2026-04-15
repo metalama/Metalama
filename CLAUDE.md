@@ -82,6 +82,7 @@ When starting work on a GitHub issue:
 - Github comments and issues and PRs must be signed by CLaude - not commits. No ad link, just signature.
 - don't loose time solving cosmetic warnings (such as redundant usings) until the finalizing stage of a commit
 - `Build.ps1 build` does not build test projects, only packable projects.
+- `Build.ps1 test` implicitly does a clean rebuild (not incremental), so do NOT chain it after `Build.ps1 build` — they overlap. After `Build.ps1 build`, run individual test projects with `dotnet test <project> --no-build`. Only re-run `Build.ps1 build` when you need a cross-solution rebuild.
 
 ## Nested Types in Separate Files
 

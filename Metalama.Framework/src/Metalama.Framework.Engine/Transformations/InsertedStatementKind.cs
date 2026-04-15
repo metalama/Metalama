@@ -7,15 +7,26 @@ namespace Metalama.Framework.Engine.Transformations;
 internal enum InsertedStatementKind
 {
     /// <summary>
-    /// Insert statement before all initializer statements in the final version of the declaration.
-    /// Used for base calls (e.g. <c>base.Initialize(...)</c>) that must precede template-injected statements.
+    /// Insert statement into an introduced <c>Initialize</c> or <c>OnConstructed</c> method <em>before</em>
+    /// the aggregated call to the base initializer (<c>base.Initialize(...)</c> / <c>base.OnConstructed(...)</c>).
+    /// Emitted by <c>AddInitializer</c> advice with <c>InitializerPosition.BeforeBase</c>.
     /// </summary>
-    InitializerPrologue = -300,
+    InitializerBeforeBase = -400,
 
     /// <summary>
-    /// Insert statement into the beginning of the final version of the declaration, in transformation order.
+    /// The aggregated call to the base initializer (<c>base.Initialize(...)</c> / <c>base.OnConstructed(...)</c>),
+    /// or any other anchor statement that must sit between <see cref="InitializerBeforeBase"/> and
+    /// <see cref="InitializerAfterBase"/>.
     /// </summary>
-    Initializer = -200,
+    InitializerBase = -300,
+
+    /// <summary>
+    /// Insert statement into an introduced <c>Initialize</c> or <c>OnConstructed</c> method <em>after</em>
+    /// the aggregated call to the base initializer. Also used for <c>BeforeInstanceConstructor</c> advice,
+    /// which is conceptually post-<c>:base()</c>. Emitted by <c>AddInitializer</c> advice with
+    /// <c>InitializerPosition.AfterBase</c> (the default).
+    /// </summary>
+    InitializerAfterBase = -250,
 
     /// <summary>
     /// Insert statement into the beginning of the current version of the target declaration (source, introduction or latest override). 

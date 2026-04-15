@@ -6,7 +6,6 @@ public class Base
     this.Id = id;
   }
   public int Id { get; }
-  [SourceCompatibilityConstructor]
   public Base(int id) : this(id: id, creationTime: DateTime.Now)
   {
   }
@@ -18,7 +17,6 @@ public class Derived : Base
     this.Name = name;
   }
   public string Name { get; }
-  [SourceCompatibilityConstructor]
   public Derived(int id, string name) : this(id: id, name: name, creationTime: DateTime.Now)
   {
   }
