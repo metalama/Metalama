@@ -436,6 +436,20 @@ internal sealed partial class LinkerInjectionStep
         public LateTypeLevelTransformations GetOrAddLateTypeLevelTransformations( ISymbolRef<INamedType> type )
             => this._lateTypeLevelTransformations.GetOrAdd( type, static _ => new LateTypeLevelTransformations() );
 
+        /// <summary>
+        /// Returns the statements that must be <em>prepended</em> to the body of the given injected
+        /// member — i.e. statements that run before the member's own body executes. This covers:
+        /// <list type="bullet">
+        /// <item>For constructors: pre-user-body initializers (<see cref="InsertedStatementKind.InitializerAfterBase"/>
+        /// — see that enum value for why constructor initializers land at entry despite the name);</item>
+        /// <item>For <c>Initialize</c> / <c>OnConstructed</c> methods on the last override layer: the
+        /// <c>BeforeBase</c> bucket, the synthesized <c>base.X()</c> anchor, and any input contracts;</item>
+        /// <item>For arbitrary methods and property/indexer accessors: input-contract statements
+        /// scoped to this specific injected member layer.</item>
+        /// </list>
+        /// "Entry" is a <em>physical placement</em> label (start of body) distinct from the semantic
+        /// <c>InitializerBeforeBase</c>/<c>InitializerAfterBase</c> <em>kinds</em>.
+        /// </summary>
         internal IReadOnlyList<StatementSyntax> GetInjectedEntryStatements( InjectedMember injectedMember )
         {
             var targetMethod = injectedMember.Declaration.As<IMethodBase>();
@@ -443,9 +457,11 @@ internal sealed partial class LinkerInjectionStep
             return this.GetInjectedEntryStatements( targetMethod, targetMethod, injectedMember );
         }
 
+        /// <inheritdoc cref="GetInjectedEntryStatements(InjectedMember)"/>
         internal IReadOnlyList<StatementSyntax> GetInjectedEntryStatements( IRef<IMethodBase> targetMethod, InjectedMember? targetInjectedMember = null )
             => this.GetInjectedEntryStatements( targetMethod, targetMethod, targetInjectedMember );
 
+        /// <inheritdoc cref="GetInjectedEntryStatements(InjectedMember)"/>
         /// <param name="targetTypeMember">In case of accessors, the property or event.</param>
         internal IReadOnlyList<StatementSyntax> GetInjectedEntryStatements(
             IRef<IMethodBase> targetMethod,
@@ -510,44 +526,29 @@ internal sealed partial class LinkerInjectionStep
 
             if ( (!hasInjectedMembers && targetInjectedMember == null) || (hasInjectedMembers && targetInjectedMember == injectedMembers![^1]) )
             {
-                // Return entry statements to source members with no overrides or to the last override.
-                // This applies to both constructors (BeforeInstanceConstructor / BeforeTypeConstructor
-                // initializers) and methods (Initialize / OnConstructed template statements).
-                //
-                // Entry part of the three-bucket matryoshka layout:
-                //   1. BeforeBase bucket — run in run-time order (outermost-first), so outer aspects
-                //      bracket inner ones before the base call.
-                //   2. Base-call anchor (base.Initialize / base.OnConstructed).
-                //
-                // For Initialize / OnConstructed methods, the AfterBase bucket is emitted as an exit
-                // statement (see GetInjectedExitStatements) in innermost-first order so that the
-                // matryoshka unwinds correctly: the inner aspect's AfterBase runs first after the
-                // base call, and the outer aspect's AfterBase runs last.
-                //
-                // For constructors, however, there is no post-body seam — the conceptual "base call"
-                // lives in the constructor header (`: base(...)`), so AfterBase statements
-                // (BeforeInstanceConstructor / BeforeTypeConstructor) are emitted at the start of the
-                // constructor body, right after the implicit base call. Semantically they are
-                // pre-user-body entry statements, so they are ordered outermost-first across aspects
-                // (the outer aspect's initializer runs before the inner aspect's, which in turn runs
-                // before the user's body).
+                // Initializer buckets are emitted once per method, at the last override layer.
+                // The layout depends on whether the target has a post-body seam around the base call
+                // (see AfterBaseEmittedAtEntry / InsertedStatementKind.InitializerAfterBase):
+                //   - Initialize / OnConstructed: BeforeBase + base.X() anchor here; AfterBase at exit.
+                //   - Constructors: no body seam — AfterBase collapses into entry, outer-first.
 
-                var beforeBaseStatements = OrderInitializerStatements(
-                    insertedStatements.Where( s => s.Kind == InsertedStatementKind.InitializerBeforeBase ),
-                    reverseAcrossAspects: true );
-
-                statements.AddRange( beforeBaseStatements.Select( s => s.Statement ) );
-
-                var baseCallStatements =
-                    insertedStatements
-                        .Where( s => s.Kind == InsertedStatementKind.InitializerBase );
-
-                statements.AddRange( baseCallStatements.Select( s => s.Statement ) );
-
-                if ( AfterBaseEmittedAtEntry( targetMethod ) )
+                if ( !AfterBaseEmittedAtEntry( targetMethod ) )
                 {
-                    // Pre-user-body: outer first (same as BeforeBase above).
-                    statements.AddRange( GetOrderedAfterBaseStatements( insertedStatements, reverseAcrossAspects: true ) );
+                    var beforeBaseStatements = OrderInitializerStatements(
+                        insertedStatements.Where( s => s.Kind == InsertedStatementKind.InitializerBeforeBase ),
+                        reverseAcrossAspects: true );
+
+                    statements.AddRange( beforeBaseStatements.Select( s => s.Statement ) );
+
+                    var baseCallStatements =
+                        insertedStatements
+                            .Where( s => s.Kind == InsertedStatementKind.InitializerBase );
+
+                    statements.AddRange( baseCallStatements.Select( s => s.Statement ) );
+                }
+                else
+                {
+                    statements.AddRange( GetOrderedInitializerAfterBaseStatements( insertedStatements, reverseAcrossAspects: true ) );
                 }
             }
 
@@ -574,6 +575,20 @@ internal sealed partial class LinkerInjectionStep
             return statements;
         }
 
+        /// <summary>
+        /// Returns the statements that must be <em>appended</em> to the body of the given injected
+        /// member — i.e. statements that run after the member's own body executes. This covers:
+        /// <list type="bullet">
+        /// <item>For <c>Initialize</c> / <c>OnConstructed</c> methods on the last override layer: the
+        /// <see cref="InsertedStatementKind.InitializerAfterBase"/> bucket, unwound innermost-first;</item>
+        /// <item>For arbitrary methods and property/indexer accessors: output-contract statements
+        /// scoped to this specific injected member layer.</item>
+        /// </list>
+        /// Constructors never have body-exit initializer statements — their <c>AfterBase</c> bucket
+        /// is emitted at entry (see <see cref="GetInjectedEntryStatements(InjectedMember)"/> and
+        /// <see cref="AfterBaseEmittedAtEntry"/>). For the constructor-body epilogue emitted by
+        /// <c>AfterLastInstanceConstructor</c>, see <see cref="GetInjectedEpilogueStatements"/>.
+        /// </summary>
         internal IReadOnlyList<StatementSyntax> GetInjectedExitStatements( InjectedMember injectedMember )
         {
             var targetMethod = injectedMember.Declaration.As<IMethodBase>();
@@ -581,6 +596,8 @@ internal sealed partial class LinkerInjectionStep
             return this.GetInjectedExitStatements( targetMethod, targetMethod, injectedMember );
         }
 
+        /// <inheritdoc cref="GetInjectedExitStatements(InjectedMember)"/>
+        /// <param name="targetTypeMember">In case of accessors, the property or event.</param>
         internal IReadOnlyList<StatementSyntax> GetInjectedExitStatements(
             IRef<IMethodBase> targetMethod,
             IRef<IMember> targetTypeMember,
@@ -621,15 +638,13 @@ internal sealed partial class LinkerInjectionStep
 
             var statements = new List<StatementSyntax>();
 
-            // AfterBase / legacy Initializer bucket: emitted exactly once per method at the last-override
-            // point. Targets with a post-body seam (Initialize / OnConstructed) emit it here, after the
-            // user body. Targets without a post-body seam (constructors) have it emitted at entry by
-            // GetInjectedEntryStatements; see AfterBaseEmittedAtEntry.
+            // AfterBase bucket — emitted once per method at the last-override layer, only for targets
+            // with a post-body seam (Initialize / OnConstructed). Constructors emit it at entry, see
+            // AfterBaseEmittedAtEntry. Inner-first so the matryoshka unwinds correctly (inner aspect's
+            // AfterBase runs before outer aspect's AfterBase).
             if ( targetInjectedMember == injectedMembers![^1] && !AfterBaseEmittedAtEntry( targetMethod ) )
             {
-                // Post-base-call / post-user-body: inner first so the matryoshka unwinds correctly
-                // (inner aspect's AfterBase runs before outer aspect's AfterBase).
-                statements.AddRange( GetOrderedAfterBaseStatements( insertedStatements, reverseAcrossAspects: false ) );
+                statements.AddRange( GetOrderedInitializerAfterBaseStatements( insertedStatements, reverseAcrossAspects: false ) );
             }
 
             // For non-initializer statements we have to select a range of statements that fits this injected member.
@@ -669,21 +684,24 @@ internal sealed partial class LinkerInjectionStep
 
             // Hand-authored Initialize / OnConstructed: emitted at method exit after the user body,
             // inner first so the matryoshka unwinds correctly.
-            return GetOrderedAfterBaseStatements( insertedStatements, reverseAcrossAspects: false ).ToReadOnlyList();
+            return GetOrderedInitializerAfterBaseStatements( insertedStatements, reverseAcrossAspects: false ).ToReadOnlyList();
         }
 
         /// <summary>
-        /// Returns the ordered <see cref="InsertedStatementKind.InitializerAfterBase"/> statements for a
-        /// target method. The ordering differs by emission site:
+        /// Filters and orders <see cref="InsertedStatementKind.InitializerAfterBase"/> statements. Note
+        /// that <c>InitializerAfterBase</c> is a semantic <em>kind</em> (position relative to the base
+        /// call) — the physical emission site depends on the target (see
+        /// <see cref="AfterBaseEmittedAtEntry"/>). The <paramref name="reverseAcrossAspects"/> argument
+        /// reflects which site this call is serving:
         /// <list type="bullet">
-        /// <item><c>reverseAcrossAspects: true</c> (outer-first) for constructor entry (<c>BeforeInstanceConstructor</c>/<c>BeforeTypeConstructor</c>),
+        /// <item><c>reverseAcrossAspects: true</c> (outer-first) for constructor entry (<c>BeforeInstanceConstructor</c>/<c>BeforeTypeConstructor</c>/<c>AfterObjectInitializer</c>),
         /// which is semantically a pre-user-body bucket.</item>
         /// <item><c>reverseAcrossAspects: false</c> (inner-first) for <c>Initialize</c> / <c>OnConstructed</c> method exit,
         /// which is a post-base-call bucket and must unwind innermost-first.</item>
         /// </list>
         /// Within a single aspect instance, programmatic add-order is always preserved.
         /// </summary>
-        private static IEnumerable<StatementSyntax> GetOrderedAfterBaseStatements(
+        private static IEnumerable<StatementSyntax> GetOrderedInitializerAfterBaseStatements(
             IEnumerable<InsertedStatement> insertedStatements,
             bool reverseAcrossAspects )
             => OrderInitializerStatements(
