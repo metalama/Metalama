@@ -97,7 +97,7 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
                         new Dictionary<IMember, IMember> { { interfaceMethod, ownInitializeMethod } } ) );
             }
 
-            return Succeed( ownInitializeMethod, baseMethod: null );
+            return Succeed( ownInitializeMethod, GetBaseMethodForAggregation( ownInitializeMethod ) );
         }
 
         // Resolves or introduces the Initialize method and returns it along with the base method (if overriding).
@@ -120,7 +120,7 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
                             this ) );
                 }
 
-                return Succeed( existingMethod, baseMethod: null );
+                return Succeed( existingMethod, GetBaseMethodForAggregation( existingMethod ) );
             }
 
             // Inherited from a base type — override it if possible.
@@ -131,6 +131,16 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
         }
 
         return Succeed( IntroduceMethod( null ), baseMethod: null );
+
+        // When the target type already exposes a peer-aspect-introduced Initialize override, we still
+        // need to emit the aggregatable base-call transformation so that this aspect's slot fields
+        // combine with peer aspects' into a single `base.Initialize(context.Descend(slotA | slotB))`.
+        // User-authored methods are excluded: they are assumed to forward to base already in source,
+        // and injecting another base call would duplicate it.
+        static IMethod? GetBaseMethodForAggregation( IMethod existing )
+            => existing.Origin.Kind == DeclarationOriginKind.Aspect && existing.IsOverride
+                ? existing.OverriddenMethod
+                : null;
 
         IMethod IntroduceMethod( IMethod? baseMethodToOverride )
         {
