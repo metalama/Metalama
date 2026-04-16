@@ -566,9 +566,10 @@ try
 
     function Get-TimestampFile
     {
-        param(
-            [switch]$Update
-        )
+        # Persists $script:DayStamp (the single source of truth, also mixed
+        # into the image tag by Get-ContentHash in Claude mode) to disk so
+        # Dockerfile.claude can COPY it in and invalidate inner layers on
+        # the same day boundary as the outer image tag.
 
         $timestampDir = if ($IsUnix)
         {
@@ -586,34 +587,24 @@ try
             New-Item -ItemType Directory -Path $timestampDir -Force | Out-Null
         }
 
-        if ($Update)
+        # Only rewrite the file if the content would actually change — avoids
+        # bumping mtime on every run, which would pointlessly invalidate the
+        # Docker COPY layer for the timestamp file.
+        $needsUpdate = $true
+        if (Test-Path $timestampFile)
         {
-            # Force update with full timestamp (seconds precision) to invalidate cache
-            $timestamp = [DateTime]::UtcNow.ToString("o")  # ISO 8601 format
-            Set-Content -Path $timestampFile -Value $timestamp -NoNewline -Force
-            Write-Host "Timestamp file updated (forced): $timestamp" -ForegroundColor Cyan
+            $currentTimestamp = Get-Content $timestampFile -Raw -ErrorAction SilentlyContinue
+            if ($currentTimestamp -eq $script:DayStamp)
+            {
+                $needsUpdate = $false
+            }
         }
-        else
+
+        if ($needsUpdate)
         {
-            # Daily timestamp - only update if file doesn't exist or date changed
-            $todayTimestamp = [DateTime]::UtcNow.Date.ToString("yyyy-MM-dd")
-            $needsUpdate = $true
-
-            if (Test-Path $timestampFile)
-            {
-                $currentTimestamp = Get-Content $timestampFile -Raw
-                # Check if current timestamp starts with today's date
-                if ($currentTimestamp -and $currentTimestamp.StartsWith($todayTimestamp))
-                {
-                    $needsUpdate = $false
-                }
-            }
-
-            if ($needsUpdate)
-            {
-                Set-Content -Path $timestampFile -Value $todayTimestamp -NoNewline -Force
-                Write-Host "Timestamp file updated (daily): $todayTimestamp" -ForegroundColor Cyan
-            }
+            Set-Content -Path $timestampFile -Value $script:DayStamp -NoNewline -Force
+            $label = if ($Update) { "forced" } else { "daily" }
+            Write-Host "Timestamp file updated ($label): $script:DayStamp" -ForegroundColor Cyan
         }
 
         return $timestampFile
@@ -623,7 +614,8 @@ try
     {
         param(
             [string]$DockerfilePath,
-            [string]$ContextDirectory
+            [string]$ContextDirectory,
+            [string]$DayStamp  # non-empty => mix into hash (used in -Claude mode)
         )
 
         $hashInput = Get-Content $DockerfilePath -Raw -ErrorAction SilentlyContinue
@@ -632,7 +624,8 @@ try
             $hashInput = ""
         }
 
-        # Add context files (excluding generated .g/ directory)
+        # Add context files (excluding generated .g/ directory, which holds
+        # per-invocation files like env.g.json and Init.g.ps1).
         $contextFiles = Get-ChildItem $ContextDirectory -Recurse -File -ErrorAction SilentlyContinue |
                 Where-Object { $_.FullName -notmatch '[/\\]\.g[/\\]' } |
                 Sort-Object FullName
@@ -645,6 +638,14 @@ try
                 $hashInput += "`n--- $( $file.Name ) ---`n"
                 $hashInput += $content
             }
+        }
+
+        # When a day stamp is supplied (Claude mode), rotate the image tag once
+        # per UTC day so @latest npm installs of the Claude CLI and marketplace
+        # plug-ins actually get refreshed. Same string as update.timestamp.
+        if ($DayStamp)
+        {
+            $hashInput += "`n--- day-stamp ---`n$DayStamp"
         }
 
         $hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
@@ -704,6 +705,20 @@ try
     }
     else
     {
+        # Single source of truth for today's cache-busting stamp, shared by
+        # Get-ContentHash (image tag, Claude mode only) and Get-TimestampFile
+        # (update.timestamp file baked into the image). Computing it once here
+        # guarantees both consumers see the same value even if the wall clock
+        # crosses UTC midnight mid-run.
+        $script:DayStamp = if ($Update)
+        {
+            [DateTime]::UtcNow.ToString("o")          # full ISO 8601, seconds precision
+        }
+        else
+        {
+            [DateTime]::UtcNow.Date.ToString("yyyy-MM-dd")
+        }
+
         # Determine which Dockerfile will be used (needed for ImageName generation)
         $DockerfilesDir = "$EngPath/docker"
 
@@ -744,8 +759,21 @@ try
             $dockerfileFullPath = Join-Path $PSScriptRoot $Dockerfile
         }
 
-        # Generate content-based hash for image tag
-        $contentHash = Get-ContentHash -DockerfilePath $dockerfileFullPath -ContextDirectory $dockerContextDirectory
+        # Generate content-based hash for image tag.
+        # Mix $script:DayStamp in whenever the Dockerfile bakes in the
+        # update.timestamp cache-invalidation layer (which itself rotates
+        # daily). Keying this off the Dockerfile content — not the -Claude
+        # runtime flag — keeps PrepareImage (-BuildImage, typically no
+        # -Claude) and the main step (-NoBuildImage -Claude) in sync when
+        # they share a Dockerfile; otherwise the two steps compute
+        # different tags and docker run tries to pull a tag that was never
+        # built or pushed.
+        $dockerfileBody = Get-Content $dockerfileFullPath -Raw -ErrorAction SilentlyContinue
+        $hashDayStamp = if ($dockerfileBody -and $dockerfileBody -match 'update\.timestamp') { $script:DayStamp } else { $null }
+        $contentHash = Get-ContentHash `
+                -DockerfilePath $dockerfileFullPath `
+                -ContextDirectory $dockerContextDirectory `
+                -DayStamp $hashDayStamp
         $dockerRegistry = $env:DOCKER_REGISTRY
 
         if ($dockerRegistry)
@@ -801,7 +829,7 @@ try
         # This is used by Dockerfile.claude but doesn't affect other Dockerfiles
         if (-not $NoBuildImage)
         {
-            $timestampFile = Get-TimestampFile -Update:$Update
+            $timestampFile = Get-TimestampFile
         }
 
         if ($Claude)
