@@ -760,9 +760,16 @@ try
         }
 
         # Generate content-based hash for image tag.
-        # In Claude mode, mix in $script:DayStamp so the tag rotates daily
-        # and picks up fresh @latest npm installs.
-        $hashDayStamp = if ($Claude) { $script:DayStamp } else { $null }
+        # Mix $script:DayStamp in whenever the Dockerfile bakes in the
+        # update.timestamp cache-invalidation layer (which itself rotates
+        # daily). Keying this off the Dockerfile content — not the -Claude
+        # runtime flag — keeps PrepareImage (-BuildImage, typically no
+        # -Claude) and the main step (-NoBuildImage -Claude) in sync when
+        # they share a Dockerfile; otherwise the two steps compute
+        # different tags and docker run tries to pull a tag that was never
+        # built or pushed.
+        $dockerfileBody = Get-Content $dockerfileFullPath -Raw -ErrorAction SilentlyContinue
+        $hashDayStamp = if ($dockerfileBody -and $dockerfileBody -match 'update\.timestamp') { $script:DayStamp } else { $null }
         $contentHash = Get-ContentHash `
                 -DockerfilePath $dockerfileFullPath `
                 -ContextDirectory $dockerContextDirectory `
