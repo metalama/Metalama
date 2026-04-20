@@ -125,7 +125,14 @@ namespace Metalama.Framework.Code
         /// Gets an <see cref="IExpression"/> representing 'typeof' expression for the given type.
         /// </summary>
         /// <param name="type">The type.</param>
+        /// <param name="preferClosedType">
+        /// When <c>true</c> and <paramref name="type"/> is a canonical generic instance (i.e. its type parameters
+        /// are bound to themselves), the generated <c>typeof</c> expression keeps the bound form (e.g. <c>typeof(List&lt;T&gt;)</c>)
+        /// instead of collapsing to the open generic definition (e.g. <c>typeof(List&lt;&gt;)</c>). The default is <c>false</c>,
+        /// which preserves the legacy behavior of emitting the open generic form for canonical instances.
+        /// </param>
         /// <returns>An <see cref="IExpression"/> representing <c>typeof(type)</c>.</returns>
-        public static IExpression ToTypeOfExpression( this IType type ) => ((ICompilationInternal) type.Compilation).Helpers.ToTypeOfExpression( type );
+        public static IExpression ToTypeOfExpression( this IType type, bool preferClosedType = false )
+            => ((ICompilationInternal) type.Compilation).Helpers.ToTypeOfExpression( type, preferClosedType );
     }
 }
