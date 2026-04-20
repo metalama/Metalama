@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Metalama.Framework.Advising;
@@ -26,13 +25,13 @@ internal class TestAspect : TypeAspect
 
         return new object?[]
         {
-            // Default behavior: open generic definition stays open.
+            // Default behavior: unbound generic type stays unbound.
             openDefinition.ToTypeOfExpression().Value,
 
-            // preferClosedType=true on a canonical self-instance keeps the bound form.
-            canonicalSelfInstance.ToTypeOfExpression( preferClosedType: true ).Value,
+            // preferConstructedType=true on a generic instance bound to its own type parameters emits the constructed form.
+            canonicalSelfInstance.ToTypeOfExpression( preferConstructedType: true ).Value,
 
-            // Default behavior: a canonical self-instance is still collapsed to the open form (backward-compatible).
+            // Default behavior: the generic instance bound to its own type parameters is emitted as the unbound generic type (backward-compatible).
             canonicalSelfInstance.ToTypeOfExpression().Value
         };
     }

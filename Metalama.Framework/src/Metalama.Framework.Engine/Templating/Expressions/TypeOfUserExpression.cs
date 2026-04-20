@@ -12,16 +12,16 @@ namespace Metalama.Framework.Engine.Templating.Expressions
     internal sealed class TypeOfUserExpression : UserExpression
     {
         private readonly IType _type;
-        private readonly bool _preferClosedType;
+        private readonly bool _preferConstructedType;
 
-        public TypeOfUserExpression( IType type, bool preferClosedType = false )
+        public TypeOfUserExpression( IType type, bool preferConstructedType = false )
         {
             this._type = type;
-            this._preferClosedType = preferClosedType;
+            this._preferConstructedType = preferConstructedType;
         }
 
         protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
-            => syntaxSerializationContext.SyntaxGenerator.TypeOfExpression( this._type, preferClosedType: this._preferClosedType );
+            => syntaxSerializationContext.SyntaxGenerator.TypeOfExpression( this._type, preferConstructedType: this._preferConstructedType );
 
         protected override bool CanBeNull => false;
 

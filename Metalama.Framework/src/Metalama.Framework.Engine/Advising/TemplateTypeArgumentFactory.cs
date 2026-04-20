@@ -26,9 +26,10 @@ internal sealed class TemplateTypeArgumentFactory
     {
         var syntax = context.SyntaxGenerator.TypeSyntax( type ).AssertNotNull();
 
-        // When the template argument is a canonical self-instance of a generic type (e.g. Handler<TMessage> for target Handler<TMessage>),
-        // we want 'typeof(TSelf)' to emit the bound form 'typeof(Handler<TMessage>)', not the open form 'typeof(Handler<>)'. See #1579.
-        var syntaxForTypeOf = context.SyntaxGenerator.TypeOfExpression( type, preferClosedType: true ).Type;
+        // When the template argument is a generic type whose type arguments are its own type parameters (e.g. Handler<TMessage>
+        // for target Handler<TMessage>), the enclosing type parameters are in scope at the template expansion site, so we emit
+        // the constructed form 'typeof(Handler<TMessage>)' rather than the unbound generic type 'typeof(Handler<>)'. See #1579.
+        var syntaxForTypeOf = context.SyntaxGenerator.TypeOfExpression( type, preferConstructedType: true ).Type;
 
         return new TemplateTypeArgument( name, type, syntax, syntaxForTypeOf );
     }

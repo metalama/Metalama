@@ -47,7 +47,7 @@ internal sealed class CompilationHelpers : ICompilationHelpers
 
     public SerializableTypeId GetSerializableId( IType type ) => type.GetSerializableTypeId();
 
-    public IExpression ToTypeOfExpression( IType type, bool preferClosedType = false ) => new TypeOfUserExpression( type, preferClosedType );
+    public IExpression ToTypeOfExpression( IType type, bool preferConstructedType = false ) => new TypeOfUserExpression( type, preferConstructedType );
 
     public bool DerivesFrom( INamedType left, INamedType right, DerivedTypesOptions options = DerivedTypesOptions.Default )
     {

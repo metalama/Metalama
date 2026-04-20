@@ -72,16 +72,17 @@ public sealed partial class ContextualSyntaxGenerator
         ITypeSymbol type,
         IReadOnlyDictionary<string, TypeSyntax>? substitutions = null,
         bool keepNullableAnnotations = false,
-        bool preferClosedType = false )
+        bool preferConstructedType = false )
     {
         var typeSyntax = this.TypeSyntax( type );
 
-        // A type is considered an open generic definition only when its type arguments are bound to the type's own type parameters.
-        // When preferClosedType is true, we keep the bound form (useful for canonical self-instances produced by templates).
+        // By default, a generic type whose type arguments are its own type parameters is emitted as the unbound generic type
+        // (e.g. 'List<>'). When preferConstructedType is true, we keep the constructed form (e.g. 'List<T>'), which is what
+        // callers want when the type parameters are in scope at the emission site (e.g. for a template's canonical self-instance).
         var shouldRemoveTypeArguments = type.Kind == SymbolKind.NamedType
                                         && type is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol
                                         && namedTypeSymbol.IsGenericTypeDefinition()
-                                        && !preferClosedType;
+                                        && !preferConstructedType;
 
         if ( shouldRemoveTypeArguments )
         {
@@ -125,21 +126,22 @@ public sealed partial class ContextualSyntaxGenerator
         IReadOnlyDictionary<string, TypeSyntax>? substitutions = null,
         bool keepNullableAnnotations = false,
         bool bypassSymbols = false,
-        bool preferClosedType = false )
+        bool preferConstructedType = false )
     {
         if ( type.GetSymbol() is { } symbol && !bypassSymbols )
         {
-            return this.TypeOfExpression( symbol, substitutions, keepNullableAnnotations, preferClosedType );
+            return this.TypeOfExpression( symbol, substitutions, keepNullableAnnotations, preferConstructedType );
         }
 
         var typeSyntax = this.TypeSyntax( type );
 
-        // A type is considered an open generic definition only when its type parameters are bound to themselves (canonical generic instance).
-        // When preferClosedType is true, we keep the bound form (useful for canonical self-instances produced by templates).
+        // By default, a generic type whose type arguments are its own type parameters is emitted as the unbound generic type
+        // (e.g. 'List<>'). When preferConstructedType is true, we keep the constructed form (e.g. 'List<T>'), which is what
+        // callers want when the type parameters are in scope at the emission site (e.g. for a template's canonical self-instance).
         var shouldRemoveTypeArguments =
             type.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
             && type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true }
-            && !preferClosedType;
+            && !preferConstructedType;
 
         if ( shouldRemoveTypeArguments )
         {
