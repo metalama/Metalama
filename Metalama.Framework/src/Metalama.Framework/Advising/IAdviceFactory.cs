@@ -1036,7 +1036,7 @@ namespace Metalama.Framework.Advising
 
         /// <summary>
         /// Introduces a new extension block into a static class. Extension blocks allow adding
-        /// extension members (methods, properties, indexers) to a type (represented as an <see cref="IType"/>). Requires C# 14+ and Roslyn 5.0+.
+        /// extension members (methods, properties, operators) to a type (represented as an <see cref="IType"/>). Requires C# 14+ and Roslyn 5.0+.
         /// </summary>
         /// <param name="targetStaticClass">The static class into which the extension block must be introduced.
         ///     Only static classes can contain extension blocks.</param>
@@ -1058,7 +1058,7 @@ namespace Metalama.Framework.Advising
 
         /// <summary>
         /// Introduces a new extension block into a static class. Extension blocks allow adding
-        /// extension members (methods, properties, indexers) to a type  (represented as a <see cref="Type"/>). Requires C# 14+ and Roslyn 5.0+.
+        /// extension members (methods, properties, operators) to a type  (represented as a <see cref="Type"/>). Requires C# 14+ and Roslyn 5.0+.
         /// </summary>
         /// <param name="targetStaticClass">The static class into which the extension block must be introduced.</param>
         /// <param name="receiverType">The <see cref="Type"/> being extended.</param>
