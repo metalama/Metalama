@@ -75,6 +75,7 @@ public static class LongTaskHelper
             catch ( OperationCanceledException )
             {
                 logger.Log( $"The task was cancelled: '{taskDescription}'." );
+
                 throw;
             }
 
@@ -102,9 +103,10 @@ public static class LongTaskHelper
             catch ( OperationCanceledException )
             {
                 logger.Log( $"The task was cancelled: '{taskDescription}'." );
+
                 throw;
             }
-            
+
             logger.Log( $"The task '{taskDescription}' has completed after {stopwatch.Elapsed}." );
         }
     }
@@ -165,11 +167,12 @@ public static class LongTaskHelper
         catch ( OperationCanceledException )
         {
             logger.Log( $"The task was cancelled: '{taskDescription}'." );
+
             throw;
         }
 
         if ( isLong )
-        {        
+        {
             logger.Log( $"The task '{taskDescription}' has completed after {stopwatch.Elapsed}." );
         }
 
@@ -199,6 +202,7 @@ public static class LongTaskHelper
         catch ( OperationCanceledException )
         {
             logger.Log( $"The task was cancelled: '{taskDescription}'." );
+
             throw;
         }
 

@@ -79,24 +79,26 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             => this.MethodSymbol.MethodKind == RoslynMethodKind.StaticConstructor
                 ? ConstructorInitializerKind.None
                 : this.GetPrimaryDeclarationSyntax()?.Kind() switch
-            {
-                null => this.MethodSymbol.ContainingType.IsValueType ? ConstructorInitializerKind.None : ConstructorInitializerKind.Base,
-                SyntaxKind.ConstructorDeclaration when this.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax { Initializer: null } =>
-                    this.MethodSymbol.ContainingType.IsValueType ? ConstructorInitializerKind.None : ConstructorInitializerKind.Base,
-                SyntaxKind.ConstructorDeclaration when this.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax { Initializer: { } initializer }
-                                                       && initializer.IsKind( SyntaxKind.ThisConstructorInitializer ) =>
-                    ConstructorInitializerKind.This,
-                SyntaxKind.ConstructorDeclaration when this.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax { Initializer: { } initializer }
-                                                       && initializer.IsKind( SyntaxKind.BaseConstructorInitializer ) =>
-                    ConstructorInitializerKind.Base,
-                { IsTypeDeclaration: true } when this.GetPrimaryDeclarationSyntax() is TypeDeclarationSyntax { BaseList: null } =>
-                    this.MethodSymbol.ContainingType.IsValueType ? ConstructorInitializerKind.None : ConstructorInitializerKind.Base,
-                { IsTypeDeclaration: true } when this.GetPrimaryDeclarationSyntax() is TypeDeclarationSyntax { BaseList: { } baseList } =>
-                    baseList.Types.Any( bt => bt.IsKind( SyntaxKind.PrimaryConstructorBaseType ) )
-                        ? ConstructorInitializerKind.Base
-                        : this.MethodSymbol.ContainingType.IsValueType ? ConstructorInitializerKind.None : ConstructorInitializerKind.Base,
-                _ => throw new AssertionFailedException( $"Unexpected initializer for '{this}'." )
-            };
+                {
+                    null => this.MethodSymbol.ContainingType.IsValueType ? ConstructorInitializerKind.None : ConstructorInitializerKind.Base,
+                    SyntaxKind.ConstructorDeclaration when this.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax { Initializer: null } =>
+                        this.MethodSymbol.ContainingType.IsValueType ? ConstructorInitializerKind.None : ConstructorInitializerKind.Base,
+                    SyntaxKind.ConstructorDeclaration when this.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax { Initializer: { } initializer }
+                                                           && initializer.IsKind( SyntaxKind.ThisConstructorInitializer ) =>
+                        ConstructorInitializerKind.This,
+                    SyntaxKind.ConstructorDeclaration when this.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax { Initializer: { } initializer }
+                                                           && initializer.IsKind( SyntaxKind.BaseConstructorInitializer ) =>
+                        ConstructorInitializerKind.Base,
+                    { IsTypeDeclaration: true } when this.GetPrimaryDeclarationSyntax() is TypeDeclarationSyntax { BaseList: null } =>
+                        this.MethodSymbol.ContainingType.IsValueType ? ConstructorInitializerKind.None : ConstructorInitializerKind.Base,
+                    { IsTypeDeclaration: true } when this.GetPrimaryDeclarationSyntax() is TypeDeclarationSyntax { BaseList: { } baseList } =>
+                        baseList.Types.Any( bt => bt.IsKind( SyntaxKind.PrimaryConstructorBaseType ) )
+                            ? ConstructorInitializerKind.Base
+                            : this.MethodSymbol.ContainingType.IsValueType
+                                ? ConstructorInitializerKind.None
+                                : ConstructorInitializerKind.Base,
+                    _ => throw new AssertionFailedException( $"Unexpected initializer for '{this}'." )
+                };
 
         public override DeclarationKind DeclarationKind => DeclarationKind.Constructor;
 

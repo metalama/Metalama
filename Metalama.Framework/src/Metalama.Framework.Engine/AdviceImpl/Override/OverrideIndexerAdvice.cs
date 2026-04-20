@@ -35,8 +35,7 @@ internal sealed class OverrideIndexerAdvice : OverrideMemberAdvice<IIndexer, IIn
         // emit a transformation to update the HasImplementation flag in the code model.
         if ( !targetDeclaration.HasImplementation )
         {
-            context.AddTransformation(
-                new SetHasImplementationTransformation( this.AspectLayerInstance, targetDeclaration.ToFullRef().As<IMember>() ) );
+            context.AddTransformation( new SetHasImplementationTransformation( this.AspectLayerInstance, targetDeclaration.ToFullRef().As<IMember>() ) );
         }
 
         context.AddTransformation(

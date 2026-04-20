@@ -32,8 +32,13 @@
                    checked="@( Model.PreferredFeed == RssFeed.Posts )">
             <label for="feedPosts">
                 <strong>Blog Posts Only</strong>
-                <small>Long-form articles with monthly status reports and major releases. <a
-                        href="https://metalama.net/blog" target="_blank">See past articles.</a></small>
+                <small>
+                    Long-form articles with monthly status reports and major releases.
+                    <a
+                        href="https://metalama.net/blog" target="_blank">
+                        See past articles.
+                    </a>
+                </small>
             </label>
         </div>
 
@@ -42,8 +47,13 @@
                    checked="@( Model.PreferredFeed == RssFeed.Briefs )">
             <label for="feedBriefs">
                 <strong>All Updates</strong>
-                <small>Stay in the loop with all news, including quick updates and brief announcements. <a
-                        href="https://metalama.net/briefs" target="_blank">See past briefs.</a></small>
+                <small>
+                    Stay in the loop with all news, including quick updates and brief announcements.
+                    <a
+                        href="https://metalama.net/briefs" target="_blank">
+                        See past briefs.
+                    </a>
+                </small>
             </label>
         </div>
 
@@ -55,7 +65,6 @@
         </div>
     </div>
 </form>
-
 
 
 <div asp-validation-summary="ModelOnly" class="text-danger"></div>

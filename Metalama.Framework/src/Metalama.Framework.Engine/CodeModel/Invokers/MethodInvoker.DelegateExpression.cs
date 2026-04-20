@@ -147,8 +147,7 @@ internal sealed partial class MethodInvoker
             {
                 name = GenericName(
                     SyntaxFactoryEx.SafeIdentifier( this._invoker.GetCleanTargetMemberName() ),
-                    TypeArgumentList(
-                        SeparatedList( this.Method.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
+                    TypeArgumentList( SeparatedList( this.Method.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
             }
             else
             {
@@ -166,7 +165,8 @@ internal sealed partial class MethodInvoker
             if ( GetTargetType()?.IsConvertibleTo( this.Method.DeclaringType ) ?? false )
             {
                 methodGroupExpression = methodGroupExpression.WithAspectReferenceAnnotation(
-                    receiverInfo.WithSyntax( receiverSyntax ).AspectReferenceSpecification
+                    receiverInfo.WithSyntax( receiverSyntax )
+                        .AspectReferenceSpecification
                         .WithTargetKind( AspectReferenceTargetKind.Self ) );
             }
 
@@ -280,10 +280,7 @@ internal sealed partial class MethodInvoker
             var delegateTypeSyntax = context.SyntaxGenerator.TypeSyntax( delegateType );
 
             return ObjectCreationExpression( delegateTypeSyntax )
-                .WithArgumentList(
-                    ArgumentList(
-                        SingletonSeparatedList(
-                            Argument( methodGroupExpression ) ) ) )
+                .WithArgumentList( ArgumentList( SingletonSeparatedList( Argument( methodGroupExpression ) ) ) )
                 .WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
         }
 
@@ -297,7 +294,8 @@ internal sealed partial class MethodInvoker
                 if ( param.RefKind is RefKind.Ref or RefKind.Out or RefKind.In or RefKind.RefReadOnly )
                 {
                     throw new InvalidOperationException(
-                        $"Cannot create a delegate expression for the overloaded method '{this.Method}' because it has a '{param.RefKind}' parameter '{param.Name}'. " +
+                        $"Cannot create a delegate expression for the overloaded method '{this.Method}' because it has a '{param.RefKind}' parameter '{param.Name}'. "
+                        +
                         $"Action<> and Func<> delegates cannot represent ref/out/in parameters, and a typed delegate is needed to disambiguate overloads. " +
                         $"Use the 'delegateType' parameter of CreateDelegateExpression or assign the expression to a variable of a specific delegate type." );
                 }
@@ -356,10 +354,7 @@ internal sealed partial class MethodInvoker
 
             // Generate: new DelegateType(methodGroupExpression)
             return ObjectCreationExpression( delegateTypeSyntax )
-                .WithArgumentList(
-                    ArgumentList(
-                        SingletonSeparatedList(
-                            Argument( methodGroupExpression ) ) ) )
+                .WithArgumentList( ArgumentList( SingletonSeparatedList( Argument( methodGroupExpression ) ) ) )
                 .WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
         }
     }

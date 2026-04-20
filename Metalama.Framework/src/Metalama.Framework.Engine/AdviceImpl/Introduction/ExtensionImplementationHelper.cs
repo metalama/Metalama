@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if ROSLYN_5_0_0_OR_GREATER
-
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;

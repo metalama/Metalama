@@ -31,7 +31,8 @@ public sealed class IntroduceDependencyResult
     /// Gets the field or property that was introduced or found to represent the dependency.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when <see cref="Outcome"/> indicates failure.</exception>
-    public IFieldOrProperty Declaration => this._declaration ?? throw new InvalidOperationException( $"Cannot get the declaration when the outcome is {this.Outcome}." );
+    public IFieldOrProperty Declaration
+        => this._declaration ?? throw new InvalidOperationException( $"Cannot get the declaration when the outcome is {this.Outcome}." );
 
     private IntroduceDependencyResult( AdviceOutcome outcome, IFieldOrProperty? declaration = null )
     {

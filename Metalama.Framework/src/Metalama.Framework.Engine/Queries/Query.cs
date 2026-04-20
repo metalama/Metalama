@@ -270,7 +270,8 @@ namespace Metalama.Framework.Engine.Queries
                         {
                             IEnumerable<INamedType> types;
 
-                            if ( declaration.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.AssemblyReference && declaration is IAssembly assembly )
+                            if ( declaration.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.AssemblyReference
+                                 && declaration is IAssembly assembly )
                             {
                                 types = includeNestedTypes ? assembly.AllTypes : assembly.Types;
                             }

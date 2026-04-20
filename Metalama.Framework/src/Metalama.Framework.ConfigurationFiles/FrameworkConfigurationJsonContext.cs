@@ -21,12 +21,12 @@ namespace Metalama.Framework.ConfigurationFiles;
 [JsonSerializable( typeof(UserDiagnosticsConfiguration) )]
 [JsonSerializable( typeof(UserDiagnosticRegistration) )]
 [JsonSerializable( typeof(TestRunnerOptions) )]
+
 // ImmutableDictionary and ImmutableHashSet types for UserDiagnosticsConfiguration
 [JsonSerializable( typeof(ImmutableDictionary<string, UserDiagnosticRegistration>) )]
 [JsonSerializable( typeof(ImmutableHashSet<string>) )]
+
 // Dictionary and HashSet types needed for deserialization
 [JsonSerializable( typeof(Dictionary<string, UserDiagnosticRegistration>) )]
 [JsonSerializable( typeof(HashSet<string>) )]
-public partial class FrameworkConfigurationJsonContext : JsonSerializerContext
-{
-}
+public partial class FrameworkConfigurationJsonContext : JsonSerializerContext { }

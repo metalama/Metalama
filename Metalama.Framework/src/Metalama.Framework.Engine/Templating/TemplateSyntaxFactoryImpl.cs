@@ -22,6 +22,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 using SpecialType = Metalama.Framework.Code.SpecialType;
@@ -555,7 +556,7 @@ namespace Metalama.Framework.Engine.Templating
                 float f => SyntaxFactory.Literal( text, f ),
                 double d => SyntaxFactory.Literal( text, d ),
                 decimal m => SyntaxFactory.Literal( text, m ),
-                _ => SyntaxFactory.Literal( text, Convert.ToInt32( value, System.Globalization.CultureInfo.InvariantCulture ) )
+                _ => SyntaxFactory.Literal( text, Convert.ToInt32( value, CultureInfo.InvariantCulture ) )
             };
 
         public TypedExpressionSyntax RunTimeExpression( IUserExpression syntax, string? type = null )
@@ -1002,7 +1003,6 @@ namespace Metalama.Framework.Engine.Templating
             return SyntaxFactoryEx.WellKnownIdentifierName( backingFieldName );
         }
 
-        public void SetPreferredLiteralText( object value, string text )
-            => this._templateExpansionContext.SetPreferredLiteralText( value, text );
+        public void SetPreferredLiteralText( object value, string text ) => this._templateExpansionContext.SetPreferredLiteralText( value, text );
     }
 }

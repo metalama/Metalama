@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 using System.Linq;
 using Xunit;
 
@@ -253,6 +254,7 @@ class B : A {}
 
             // ExpressionType must be 'object' (this.Type), not 'int' (targetType).
             Assert.NotNull( typed.ExpressionType );
+
             Assert.True(
                 compilation.Comparers.Default.Equals( objectType, typed.ExpressionType ),
                 $"Expected ExpressionType to be 'object' but was '{typed.ExpressionType}'." );
@@ -431,8 +433,8 @@ class B : A {}
             // Without target type, should produce qualified default (e.g. "default(global::System.Int32)").
             var syntax = typed.Syntax.NormalizeWhitespace().ToString();
 
-            Assert.Contains( "default", syntax, System.StringComparison.Ordinal );
-            Assert.Contains( "Int32", syntax, System.StringComparison.Ordinal );
+            Assert.Contains( "default", syntax, StringComparison.Ordinal );
+            Assert.Contains( "Int32", syntax, StringComparison.Ordinal );
             Assert.True( compilation.Comparers.Default.Equals( intType, typed.ExpressionType ) );
         }
     }
@@ -554,7 +556,7 @@ class B : A {}
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _code );
         var intType = compilation.Factory.GetTypeByReflectionType( typeof(int) );
-        var typeType = compilation.Factory.GetTypeByReflectionType( typeof(System.Type) );
+        var typeType = compilation.Factory.GetTypeByReflectionType( typeof(Type) );
 
         var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted );
 
@@ -563,7 +565,7 @@ class B : A {}
             var typeOfExpr = new TypeOfUserExpression( intType );
             var typed = typeOfExpr.ToTypedExpressionSyntax( syntaxSerializationContext );
 
-            Assert.Contains( "typeof", typed.Syntax.NormalizeWhitespace().ToString(), System.StringComparison.Ordinal );
+            Assert.Contains( "typeof", typed.Syntax.NormalizeWhitespace().ToString(), StringComparison.Ordinal );
             Assert.True( compilation.Comparers.Default.Equals( typeType, typed.ExpressionType ) );
         }
     }

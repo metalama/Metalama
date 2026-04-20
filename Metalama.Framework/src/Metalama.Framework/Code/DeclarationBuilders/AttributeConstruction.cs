@@ -225,8 +225,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                     if ( constructorArguments.Count <= i )
                     {
                         // No arguments provided for the params parameter — create an empty array.
-                        typedConstructorArguments.Add(
-                            TypedConstant.UnwrapOrCreate( ImmutableArray<TypedConstant>.Empty, parameterType ) );
+                        typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( ImmutableArray<TypedConstant>.Empty, parameterType ) );
                     }
                     else
                     {

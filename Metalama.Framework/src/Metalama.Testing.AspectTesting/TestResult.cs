@@ -333,7 +333,8 @@ internal class TestResult : IDisposable
         }
 
         var compilation =
-            new[] { (this.InputCompilation, "input"), (this.OutputCompilation, "output") }.FirstOrDefault( c => c.Item1 != null && c.Item1.ContainsSyntaxTree( syntaxTree ) );
+            new[] { (this.InputCompilation, "input"), (this.OutputCompilation, "output") }.FirstOrDefault(
+                c => c.Item1 != null && c.Item1.ContainsSyntaxTree( syntaxTree ) );
 
         if ( compilation.Item1 == null )
         {
@@ -520,6 +521,7 @@ internal class TestResult : IDisposable
                     {
                         case SyntaxKind.CompilationUnit:
                             var compilationUnit = (CompilationUnitSyntax) outputMembers[i];
+
                             consolidatedCompilationUnit = consolidatedCompilationUnit
                                 .AddMembers( compilationUnit.Members.ToArray() )
                                 .AddUsings( compilationUnit.Usings.ToArray() );

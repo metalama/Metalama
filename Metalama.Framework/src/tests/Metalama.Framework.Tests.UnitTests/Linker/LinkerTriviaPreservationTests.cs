@@ -285,7 +285,7 @@ public sealed class LinkerTriviaPreservationTests : UnitTestClass
         var count = 0;
         var idx = 0;
 
-        while ( ( idx = haystack.IndexOf( needle, idx, StringComparison.Ordinal ) ) >= 0 )
+        while ( (idx = haystack.IndexOf( needle, idx, StringComparison.Ordinal )) >= 0 )
         {
             count++;
             idx += needle.Length;

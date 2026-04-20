@@ -50,7 +50,12 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
 
                     var variableName = context.GetReturnValueVariableName();
 
-                    if ( !this.TryExecuteTemplate( context, SyntaxFactoryEx.SafeIdentifierName( variableName ), returnValueParam.Type, targetMethod, out var contractBlock ) )
+                    if ( !this.TryExecuteTemplate(
+                            context,
+                            SyntaxFactoryEx.SafeIdentifierName( variableName ),
+                            returnValueParam.Type,
+                            targetMethod,
+                            out var contractBlock ) )
                     {
                         return Array.Empty<InsertedStatement>();
                     }

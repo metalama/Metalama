@@ -33,14 +33,18 @@ internal abstract class TemplateMemberSymbolClassifier
             { Kind: SymbolKind.DynamicType } => true,
             { Kind: SymbolKind.ArrayType } and IArrayTypeSymbol { ElementType.Kind: SymbolKind.DynamicType } => true,
             { Kind: SymbolKind.ArrayType } when type is IArrayTypeSymbol arrayType && IsDynamicParameter( arrayType.ElementType ) => true,
-            { Kind: SymbolKind.NamedType } when type is INamedTypeSymbol { IsGenericType: true } genericType && genericType.TypeArguments.Any( IsDynamicParameter ) => true,
+            { Kind: SymbolKind.NamedType } when type is INamedTypeSymbol { IsGenericType: true } genericType
+                                                && genericType.TypeArguments.Any( IsDynamicParameter ) => true,
             _ => false
         };
 
     public static bool IsTemplateParameter( IParameterSymbol parameter )
         => parameter.ContainingSymbol.Kind switch
         {
-            SymbolKind.Method when parameter.ContainingSymbol is IMethodSymbol { MethodKind: not (MethodKind.LambdaMethod or MethodKind.LocalFunction) } => true,
+            SymbolKind.Method when parameter.ContainingSymbol is IMethodSymbol
+            {
+                MethodKind: not (MethodKind.LambdaMethod or MethodKind.LocalFunction)
+            } => true,
             SymbolKind.Property => true,
             SymbolKind.Event => true,
             _ => false
@@ -51,7 +55,10 @@ internal abstract class TemplateMemberSymbolClassifier
     public static bool IsTemplateTypeParameter( ITypeParameterSymbol parameter )
         => parameter.ContainingSymbol.Kind switch
         {
-            SymbolKind.Method when parameter.ContainingSymbol is IMethodSymbol { MethodKind: not (MethodKind.LambdaMethod or MethodKind.LocalFunction) } => true,
+            SymbolKind.Method when parameter.ContainingSymbol is IMethodSymbol
+            {
+                MethodKind: not (MethodKind.LambdaMethod or MethodKind.LocalFunction)
+            } => true,
             SymbolKind.Property => true,
             SymbolKind.Event => true,
             _ => false

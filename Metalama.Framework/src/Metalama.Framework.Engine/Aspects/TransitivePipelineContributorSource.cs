@@ -35,7 +35,9 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
 
     private readonly ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> _manifests;
 
-    private TransitivePipelineContributorSource( ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> manifests, ImmutableArray<IPipelineContributor> contributors )
+    private TransitivePipelineContributorSource(
+        ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> manifests,
+        ImmutableArray<IPipelineContributor> contributors )
     {
         this._manifests = manifests;
         this.Contributors = contributors;
@@ -130,7 +132,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         }
 
         contributorsBuilder.Add( new InheritedAspectSourceImpl( serviceProvider, inheritedAspectsBuilder.ToImmutable() ) );
-        
+
         return new TransitivePipelineContributorSource( manifestDictionaryBuilder.ToImmutable(), contributorsBuilder.ToImmutable() );
     }
 

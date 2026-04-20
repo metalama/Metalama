@@ -27,7 +27,8 @@ namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 /// asked to produce the statement, which deduplicates the otherwise-identical epilogue calls so the
 /// constructor ends up with a single <c>OnConstructed</c> invocation.
 /// </summary>
-internal sealed class OnConstructedEpilogueTransformation : BaseSyntaxTreeTransformation, IInsertStatementTransformation, IAggregatableInsertStatementTransformation
+internal sealed class OnConstructedEpilogueTransformation : BaseSyntaxTreeTransformation, IInsertStatementTransformation,
+                                                            IAggregatableInsertStatementTransformation
 {
     private readonly IFullRef<IConstructor> _targetConstructor;
     private readonly string _contextParameterName;
@@ -94,9 +95,7 @@ internal sealed class OnConstructedEpilogueTransformation : BaseSyntaxTreeTransf
                     SyntaxKind.SimpleMemberAccessExpression,
                     ThisExpression(),
                     IdentifierName( "OnConstructed" ) ),
-                ArgumentList(
-                    SingletonSeparatedList(
-                        Argument( SyntaxFactoryEx.SafeIdentifierName( contextParameterName ) ) ) ) ) );
+                ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.SafeIdentifierName( contextParameterName ) ) ) ) ) );
 
         if ( !guarded )
         {

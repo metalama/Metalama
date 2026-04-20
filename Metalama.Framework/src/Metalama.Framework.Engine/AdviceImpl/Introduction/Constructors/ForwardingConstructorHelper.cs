@@ -250,6 +250,7 @@ internal sealed class ForwardingConstructorHelper
         // Convert the expression to a syntax node for the argument. Use the declaring type's primary
         // declaration syntax for the generation context — the forwarder itself is a builder with no syntax.
         var syntaxGenerationOptions = this._context.ServiceProvider.GetRequiredService<SyntaxGenerationOptions>();
+
         var forwarderSyntaxGenerationContext = this._context.MutableCompilation.CompilationContext.GetSyntaxGenerationContext(
             syntaxGenerationOptions,
             existingForwarder.DeclaringType.GetPrimaryDeclarationSyntax().AssertNotNull() );

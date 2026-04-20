@@ -320,7 +320,8 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
                     SyntaxKind.QualifiedName when node is QualifiedNameSyntax => false,
                     SyntaxKind.AliasQualifiedName when node is AliasQualifiedNameSyntax => false,
                     SyntaxKind.AccessorList when node is AccessorListSyntax => false,
-                    SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration when node is AccessorDeclarationSyntax => false,
+                    SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                        or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration when node is AccessorDeclarationSyntax => false,
                     SyntaxKind.Block when node is BlockSyntax { Parent: ElseClauseSyntax } => false,
                     SyntaxKind.IdentifierName when node is IdentifierNameSyntax { Identifier.ValueText: "var" } => false,
                     _ => true
@@ -374,7 +375,8 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
                 {
                     switch ( node.Kind() )
                     {
-                        case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when node is TypeDeclarationSyntax typeDeclaration:
+                        case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
+                            or SyntaxKind.RecordStructDeclaration when node is TypeDeclarationSyntax typeDeclaration:
                             this.EllipsisSpans.Add( typeDeclaration.Members.Span );
 
                             break;

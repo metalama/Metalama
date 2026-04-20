@@ -635,7 +635,7 @@ internal sealed partial class LinkerRewritingDriver
             if ( ShouldKeep( t ) )
             {
                 result ??= new List<SyntaxTrivia>();
-                result.Add( SyntaxFactory.EndOfLine( generationContext.EndOfLine ) );
+                result.Add( EndOfLine( generationContext.EndOfLine ) );
                 result.AddRange( indentation );
                 result.Add( t );
             }
@@ -646,7 +646,7 @@ internal sealed partial class LinkerRewritingDriver
             return indentation;
         }
 
-        result.Add( SyntaxFactory.EndOfLine( generationContext.EndOfLine ) );
+        result.Add( EndOfLine( generationContext.EndOfLine ) );
         result.AddRange( indentation );
 
         return new SyntaxTriviaList( result );

@@ -32,7 +32,7 @@ namespace Metalama.Framework.CompilerExtensions
 
                 case ProcessKind.DevEnv:
                     break;
-                
+
                 case ProcessKind.Format:
                     // We should theoretically run our suppressors to ensure that diagnostics
                     // raised by the compiler and other analyzers are suppressed, but this is currently untested

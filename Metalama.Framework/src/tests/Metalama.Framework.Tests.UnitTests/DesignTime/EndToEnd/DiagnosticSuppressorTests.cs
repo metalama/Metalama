@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -361,7 +362,9 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
         // Create a synthetic CA1822 diagnostic at the template method location.
         var syntaxTree = compilation!.SyntaxTrees.Single();
         var root = await syntaxTree.GetRootAsync();
-        var methodDeclaration = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+
+        var methodDeclaration = root.DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
             .Single( m => m.Identifier.Text == "TemplateMethod" );
 
         var ca1822Descriptor = new DiagnosticDescriptor(
@@ -419,7 +422,9 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
         // Create a synthetic CA1822 diagnostic at the non-template method location.
         var syntaxTree = compilation!.SyntaxTrees.Single();
         var root = await syntaxTree.GetRootAsync();
-        var methodDeclaration = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+
+        var methodDeclaration = root.DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
             .Single( m => m.Identifier.Text == "RegularMethod" );
 
         var ca1822Descriptor = new DiagnosticDescriptor(

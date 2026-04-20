@@ -102,10 +102,10 @@ namespace System.Reflection
 
         // Compile the minimal runtime to an in-memory assembly.
         var minimalCompilation = CSharpCompilation.Create(
-                "MinimalRuntime",
-                new[] { CSharpSyntaxTree.ParseText( minimalSource ) },
-                Array.Empty<MetadataReference>(),
-                new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ) );
+            "MinimalRuntime",
+            new[] { CSharpSyntaxTree.ParseText( minimalSource ) },
+            Array.Empty<MetadataReference>(),
+            new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ) );
 
         using var ms = new MemoryStream();
         var emitResult = minimalCompilation.Emit( ms );

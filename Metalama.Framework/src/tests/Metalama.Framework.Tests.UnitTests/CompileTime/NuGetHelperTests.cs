@@ -39,8 +39,10 @@ public class NuGetHelperTests : UnitTestClass
         // The relative path "nuget/fallback" should be resolved to an absolute path
         // relative to the directory containing the nuget.config file.
         var fallbackElement = mergedConfig.Root.AssertNotNull()
-            .Element( "fallbackPackageFolders" ).AssertNotNull()
-            .Element( "add" ).AssertNotNull();
+            .Element( "fallbackPackageFolders" )
+            .AssertNotNull()
+            .Element( "add" )
+            .AssertNotNull();
 
         var value = fallbackElement.Attribute( "value" ).AssertNotNull().Value;
         var expectedAbsolutePath = Path.Combine( testContext.BaseDirectory, "nuget", "fallback" );
@@ -70,7 +72,8 @@ public class NuGetHelperTests : UnitTestClass
         var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
 
         var localSourceElement = mergedConfig.Root.AssertNotNull()
-            .Element( "packageSources" ).AssertNotNull()
+            .Element( "packageSources" )
+            .AssertNotNull()
             .Elements( "add" )
             .First( e => e.Attribute( "key" )?.Value == "LocalPackages" );
 
@@ -105,8 +108,10 @@ public class NuGetHelperTests : UnitTestClass
         var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
 
         var fallbackElement = mergedConfig.Root.AssertNotNull()
-            .Element( "fallbackPackageFolders" ).AssertNotNull()
-            .Element( "add" ).AssertNotNull();
+            .Element( "fallbackPackageFolders" )
+            .AssertNotNull()
+            .Element( "add" )
+            .AssertNotNull();
 
         var value = fallbackElement.Attribute( "value" ).AssertNotNull().Value;
 
@@ -133,7 +138,8 @@ public class NuGetHelperTests : UnitTestClass
         var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
 
         var nugetOrgElement = mergedConfig.Root.AssertNotNull()
-            .Element( "packageSources" ).AssertNotNull()
+            .Element( "packageSources" )
+            .AssertNotNull()
             .Elements( "add" )
             .First( e => e.Attribute( "key" )?.Value == "nuget.org" );
 
@@ -162,7 +168,8 @@ public class NuGetHelperTests : UnitTestClass
         var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
 
         var localElement = mergedConfig.Root.AssertNotNull()
-            .Element( "packageSources" ).AssertNotNull()
+            .Element( "packageSources" )
+            .AssertNotNull()
             .Elements( "add" )
             .First( e => e.Attribute( "key" )?.Value == "local" );
 
@@ -194,12 +201,14 @@ public class NuGetHelperTests : UnitTestClass
         var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
 
         var envSourceElement = mergedConfig.Root.AssertNotNull()
-            .Element( "packageSources" ).AssertNotNull()
+            .Element( "packageSources" )
+            .AssertNotNull()
             .Elements( "add" )
             .First( e => e.Attribute( "key" )?.Value == "envSource" );
 
         var envFallbackElement = mergedConfig.Root.AssertNotNull()
-            .Element( "fallbackPackageFolders" ).AssertNotNull()
+            .Element( "fallbackPackageFolders" )
+            .AssertNotNull()
             .Elements( "add" )
             .First( e => e.Attribute( "key" )?.Value == "envFallback" );
 
@@ -227,7 +236,8 @@ public class NuGetHelperTests : UnitTestClass
         var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
 
         var repoPathElement = mergedConfig.Root.AssertNotNull()
-            .Element( "config" ).AssertNotNull()
+            .Element( "config" )
+            .AssertNotNull()
             .Elements( "add" )
             .First( e => e.Attribute( "key" )?.Value == "repositoryPath" );
 
@@ -256,7 +266,8 @@ public class NuGetHelperTests : UnitTestClass
         var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
 
         var element = mergedConfig.Root.AssertNotNull()
-            .Element( "config" ).AssertNotNull()
+            .Element( "config" )
+            .AssertNotNull()
             .Elements( "add" )
             .First( e => e.Attribute( "key" )?.Value == "globalPackagesFolder" );
 
@@ -286,12 +297,14 @@ public class NuGetHelperTests : UnitTestClass
         var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
 
         var pushSourceElement = mergedConfig.Root.AssertNotNull()
-            .Element( "config" ).AssertNotNull()
+            .Element( "config" )
+            .AssertNotNull()
             .Elements( "add" )
             .First( e => e.Attribute( "key" )?.Value == "defaultPushSource" );
 
         var proxyElement = mergedConfig.Root.AssertNotNull()
-            .Element( "config" ).AssertNotNull()
+            .Element( "config" )
+            .AssertNotNull()
             .Elements( "add" )
             .First( e => e.Attribute( "key" )?.Value == "http_proxy" );
 
@@ -353,7 +366,8 @@ public class NuGetHelperTests : UnitTestClass
         // There should be exactly 3 packageSource entries: nuget.org (from child, replacing parent),
         // MyFeed (from parent), and LocalFeed (from child).
         var packageSourceMappingElement = mergedConfig.Root.AssertNotNull()
-            .Element( "packageSourceMapping" ).AssertNotNull();
+            .Element( "packageSourceMapping" )
+            .AssertNotNull();
 
         var packageSourceElements = packageSourceMappingElement.Elements( "packageSource" ).ToList();
 
@@ -611,14 +625,14 @@ public class NuGetHelperTests : UnitTestClass
 
         var expectedMergedConfig =
             $"""
-            <configuration>
-              <packageSources>
-                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-                <add key="LocalFeed" value="{resolvedParentPath}" />
-                <add key="ChildFeed" value="{resolvedChildPath}" />
-              </packageSources>
-            </configuration>
-            """;
+             <configuration>
+               <packageSources>
+                 <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                 <add key="LocalFeed" value="{resolvedParentPath}" />
+                 <add key="ChildFeed" value="{resolvedChildPath}" />
+               </packageSources>
+             </configuration>
+             """;
 
         AssertEx.WhitespaceInvariantEqual( expectedMergedConfig, mergedConfig );
     }
@@ -701,26 +715,26 @@ public class NuGetHelperTests : UnitTestClass
 
         var expectedMergedConfig =
             $"""
-            <configuration>
-              <packageSources>
-                <clear />
-                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-                <add key="Metalama" value="{resolvedChildPath}" />
-              </packageSources>
-              <packageSourceMapping>
-                <clear />
-                <packageSource key="nuget.org">
-                  <package pattern="*" />
-                </packageSource>
-                <packageSource key="Metalama">
-                  <package pattern="Metalama.Backstage*" />
-                  <package pattern="Metalama.Framework*" />
-                  <package pattern="Metalama.Patterns.*" />
-                  <package pattern="Metalama.Testing.*" />
-                </packageSource>
-              </packageSourceMapping>
-            </configuration>
-            """;
+             <configuration>
+               <packageSources>
+                 <clear />
+                 <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                 <add key="Metalama" value="{resolvedChildPath}" />
+               </packageSources>
+               <packageSourceMapping>
+                 <clear />
+                 <packageSource key="nuget.org">
+                   <package pattern="*" />
+                 </packageSource>
+                 <packageSource key="Metalama">
+                   <package pattern="Metalama.Backstage*" />
+                   <package pattern="Metalama.Framework*" />
+                   <package pattern="Metalama.Patterns.*" />
+                   <package pattern="Metalama.Testing.*" />
+                 </packageSource>
+               </packageSourceMapping>
+             </configuration>
+             """;
 
         AssertEx.WhitespaceInvariantEqual( expectedMergedConfig, mergedConfig );
     }

@@ -93,8 +93,7 @@ internal sealed class LinkerInjectionRegistry
 
         foreach ( var r in constructorsWithInsertedStatements.OfType<ISymbolRef>() )
         {
-            var translated = intermediateCompilation.CompilationContext.SymbolTranslator.Translate(
-                r.Symbol.GetCanonicalDefinition().AssertNotNull() );
+            var translated = intermediateCompilation.CompilationContext.SymbolTranslator.Translate( r.Symbol.GetCanonicalDefinition().AssertNotNull() );
 
             // Translation can legitimately return null for constructors with introduced parameters.
             if ( translated == null )
@@ -104,8 +103,7 @@ internal sealed class LinkerInjectionRegistry
 
             if ( translated is not IMethodSymbol methodSymbol )
             {
-                throw new AssertionFailedException(
-                    $"Translated constructor symbol '{r.Symbol}' is not an IMethodSymbol but '{translated.GetType().Name}'." );
+                throw new AssertionFailedException( $"Translated constructor symbol '{r.Symbol}' is not an IMethodSymbol but '{translated.GetType().Name}'." );
             }
 
             translatedConstructors.Add( methodSymbol );
@@ -329,7 +327,8 @@ internal sealed class LinkerInjectionRegistry
 
             SyntaxNode symbolSyntax = intermediateSyntax.Kind() switch
             {
-                SyntaxKind.EventFieldDeclaration when intermediateSyntax is EventFieldDeclarationSyntax eventFieldSyntax => eventFieldSyntax.Declaration.Variables.First(),
+                SyntaxKind.EventFieldDeclaration when intermediateSyntax is EventFieldDeclarationSyntax eventFieldSyntax => eventFieldSyntax.Declaration
+                    .Variables.First(),
                 SyntaxKind.FieldDeclaration when intermediateSyntax is FieldDeclarationSyntax fieldSyntax => fieldSyntax.Declaration.Variables.First(),
                 _ => intermediateSyntax
             };
@@ -398,7 +397,8 @@ internal sealed class LinkerInjectionRegistry
 
                 var symbolNode = intermediateNode.AssertNotNull().Kind() switch
                 {
-                    SyntaxKind.EventFieldDeclaration when intermediateNode is EventFieldDeclarationSyntax eventFieldNode => (SyntaxNode) eventFieldNode.Declaration.Variables.First(),
+                    SyntaxKind.EventFieldDeclaration when intermediateNode is EventFieldDeclarationSyntax eventFieldNode => (SyntaxNode) eventFieldNode
+                        .Declaration.Variables.First(),
                     _ => intermediateNode
                 };
 
@@ -417,7 +417,10 @@ internal sealed class LinkerInjectionRegistry
 
             foreach ( var translatedMember in translatedDeclaringType.GetMembers() )
             {
-                if ( translatedMember.Kind != SymbolKind.Method || translatedMember is not IMethodSymbol { MethodKind: MethodKind.Constructor } translatedConstructor )
+                if ( translatedMember.Kind != SymbolKind.Method || translatedMember is not IMethodSymbol
+                    {
+                        MethodKind: MethodKind.Constructor
+                    } translatedConstructor )
                 {
                     continue;
                 }

@@ -75,7 +75,9 @@ internal sealed partial class LinkerAnalysisStep
                 {
                     // Fast path: resolve the symbol using the declaration ID through Compilation.Assembly,
                     // which is much faster than SemanticModel.GetSymbolInfo.
-                    referencedSymbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( aspectReference.TargetDeclarationId, this._semanticModel.Compilation );
+                    referencedSymbol = DocumentationCommentId.GetFirstSymbolForDeclarationId(
+                        aspectReference.TargetDeclarationId,
+                        this._semanticModel.Compilation );
 
                     // Validate that the resolved symbol can be used directly by the resolver.
                     // Fall back to GetSymbolInfo for symbols that require complex resolution in ResolveTarget

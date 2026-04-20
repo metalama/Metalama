@@ -39,8 +39,7 @@ internal sealed class OverrideEventAdvice : OverrideMemberAdvice<IEvent, IEvent>
         // emit a transformation to update the HasImplementation flag in the code model.
         if ( !this.TargetDeclaration.HasImplementation )
         {
-            context.AddTransformation(
-                new SetHasImplementationTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef().As<IMember>() ) );
+            context.AddTransformation( new SetHasImplementationTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef().As<IMember>() ) );
         }
 
         context.AddTransformation(

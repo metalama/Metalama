@@ -196,10 +196,9 @@ namespace Metalama.Framework.Engine.Templating
             /// </summary>
             public string StatementListVariableName { get; }
 
-            
-            public void AddStatement( StatementSyntax statement ) => this._statements.Add( ( statement, static () => true ) );
-            
-            public void AddConditionalStatement( StatementSyntax statement, Func<bool> condition ) => this._statements.Add( ( statement, condition ) );
+            public void AddStatement( StatementSyntax statement ) => this._statements.Add( (statement, static () => true) );
+
+            public void AddConditionalStatement( StatementSyntax statement, Func<bool> condition ) => this._statements.Add( (statement, condition) );
 
             public void AddStatements( IEnumerable<StatementSyntax> statements )
             {
@@ -208,7 +207,7 @@ namespace Metalama.Framework.Engine.Templating
                     this.AddStatement( statement );
                 }
             }
-            
+
             public IEnumerable<StatementSyntax> GetStatements() => this._statements.Where( s => s.Condition() ).Select( s => s.Statement );
 
             /// <summary>

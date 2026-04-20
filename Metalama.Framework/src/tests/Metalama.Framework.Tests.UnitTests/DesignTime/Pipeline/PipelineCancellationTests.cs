@@ -38,7 +38,6 @@ public sealed class PipelineCancellationTests : UnitTestClass
 
     public PipelineCancellationTests( ITestOutputHelper logger ) : base( logger ) { }
 
-
     [Theory]
     [MemberData( nameof(GetCancellationPoints) )]
     public async Task WithCancellation( int cancelOnCancellationPointIndex )

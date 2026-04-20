@@ -95,7 +95,8 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
                 return declaration.Equals( property.GetMethod ) || declaration.Equals( property.SetMethod );
 
             case DeclarationKind.Event when metaApi.Declaration is IEvent @event:
-                return declaration.Equals( @event.AddMethod ) || declaration.Equals( @event.RemoveMethod ) || (@event.RaiseMethod != null && declaration.Equals( @event.RaiseMethod ));
+                return declaration.Equals( @event.AddMethod ) || declaration.Equals( @event.RemoveMethod )
+                                                              || (@event.RaiseMethod != null && declaration.Equals( @event.RaiseMethod ));
         }
 
         return false;
@@ -610,7 +611,10 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
 
         switch ( returnExpression?.Kind() )
         {
-            case SyntaxKind.SuppressNullableWarningExpression when returnExpression is PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.SuppressNullableWarningExpression, Operand: var operand }:
+            case SyntaxKind.SuppressNullableWarningExpression when returnExpression is PostfixUnaryExpressionSyntax
+            {
+                RawKind: (int) SyntaxKind.SuppressNullableWarningExpression, Operand: var operand
+            }:
                 // We're ignoring the value, so we don't care about its nullability and removing the ! operator might bring further opportunities for simplification.
                 return CreateReturnStatementVoid( operand );
 
@@ -801,35 +805,35 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
                 var childNode = child.AsNode();
 
                 if ( childNode?.Kind() is
-                    SyntaxKind.Block or
-                    SyntaxKind.LocalFunctionStatement or
-                    SyntaxKind.ExpressionStatement or
-                    SyntaxKind.IfStatement or
-                    SyntaxKind.WhileStatement or
-                    SyntaxKind.DoStatement or
-                    SyntaxKind.ForStatement or
-                    SyntaxKind.ForEachStatement or
-                    SyntaxKind.ForEachVariableStatement or
-                    SyntaxKind.UsingStatement or
-                    SyntaxKind.FixedStatement or
-                    SyntaxKind.CheckedStatement or
-                    SyntaxKind.UncheckedStatement or
-                    SyntaxKind.LockStatement or
-                    SyntaxKind.TryStatement or
-                    SyntaxKind.SwitchStatement or
-                    SyntaxKind.LocalDeclarationStatement or
-                    SyntaxKind.ReturnStatement or
-                    SyntaxKind.ThrowStatement or
-                    SyntaxKind.BreakStatement or
-                    SyntaxKind.ContinueStatement or
-                    SyntaxKind.GotoStatement or
-                    SyntaxKind.GotoCaseStatement or
-                    SyntaxKind.GotoDefaultStatement or
-                    SyntaxKind.LabeledStatement or
-                    SyntaxKind.YieldReturnStatement or
-                    SyntaxKind.YieldBreakStatement or
-                    SyntaxKind.EmptyStatement
-                    && childNode is StatementSyntax statement )
+                         SyntaxKind.Block or
+                         SyntaxKind.LocalFunctionStatement or
+                         SyntaxKind.ExpressionStatement or
+                         SyntaxKind.IfStatement or
+                         SyntaxKind.WhileStatement or
+                         SyntaxKind.DoStatement or
+                         SyntaxKind.ForStatement or
+                         SyntaxKind.ForEachStatement or
+                         SyntaxKind.ForEachVariableStatement or
+                         SyntaxKind.UsingStatement or
+                         SyntaxKind.FixedStatement or
+                         SyntaxKind.CheckedStatement or
+                         SyntaxKind.UncheckedStatement or
+                         SyntaxKind.LockStatement or
+                         SyntaxKind.TryStatement or
+                         SyntaxKind.SwitchStatement or
+                         SyntaxKind.LocalDeclarationStatement or
+                         SyntaxKind.ReturnStatement or
+                         SyntaxKind.ThrowStatement or
+                         SyntaxKind.BreakStatement or
+                         SyntaxKind.ContinueStatement or
+                         SyntaxKind.GotoStatement or
+                         SyntaxKind.GotoCaseStatement or
+                         SyntaxKind.GotoDefaultStatement or
+                         SyntaxKind.LabeledStatement or
+                         SyntaxKind.YieldReturnStatement or
+                         SyntaxKind.YieldBreakStatement or
+                         SyntaxKind.EmptyStatement
+                     && childNode is StatementSyntax statement )
                 {
                     if ( this.Visit( statement ) )
                     {

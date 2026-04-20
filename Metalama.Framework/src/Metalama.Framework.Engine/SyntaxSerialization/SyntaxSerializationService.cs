@@ -194,7 +194,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             // the Type identity doesn't match the registered serializer's Type. Fall back to name-based lookup.
             // We skip ValidateContractType here because it also uses Type identity which would fail for the same reason.
             if ( serializer == null && concreteTypeDeclaration.FullName != null
-                                   && this._serializerByInputTypeName.TryGetValue( concreteTypeDeclaration.FullName, out serializer ) )
+                                    && this._serializerByInputTypeName.TryGetValue( concreteTypeDeclaration.FullName, out serializer ) )
             {
                 return true;
             }

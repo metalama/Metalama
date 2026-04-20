@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Pipeline;
+using Metalama.Framework.DesignTime.Pipeline.Dependencies;
 using Metalama.Framework.DesignTime.Pipeline.Diff;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis.CSharp;
@@ -21,7 +22,7 @@ public sealed class SyntaxTreeChangeMergeTests
         var tree = CSharpSyntaxTree.ParseText( code, path: path );
         var hash = (ulong) code.GetHashCodeOrdinal();
 
-        return new SyntaxTreeVersion( tree, hasCompileTimeCode, hash, ImmutableArray<Framework.DesignTime.Pipeline.Dependencies.TypeDependencyKey>.Empty );
+        return new SyntaxTreeVersion( tree, hasCompileTimeCode, hash, ImmutableArray<TypeDependencyKey>.Empty );
     }
 
     private static SyntaxTreeChange CreateChange(

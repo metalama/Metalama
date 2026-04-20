@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if NET5_0_OR_GREATER
-
 using System;
 using Xunit;
 

@@ -70,8 +70,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                     ? new PseudoRaiser( this )
                     : null;
 
-        public IMethod GetRaiseMethodForAdvice()
-            => this.RaiseMethod ?? new PseudoRaiser( this );
+        public IMethod GetRaiseMethodForAdvice() => this.RaiseMethod ?? new PseudoRaiser( this );
 
         public IEvent? OverriddenEvent
         {
@@ -181,7 +180,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             else
             {
 #endif
-                return base.Sources;
+            return base.Sources;
 #if ROSLYN_5_0_0_OR_GREATER
             }
 #endif

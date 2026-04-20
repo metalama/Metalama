@@ -228,6 +228,5 @@ internal sealed class InitializableTypeRegistry
                      && this._compilationContext.SymbolComparer.Equals( m.Parameters[0].Type, this._initializationContextType ) );
 
     private IParameterSymbol? FindInitializationContextParameter( IMethodSymbol constructor )
-        => constructor.Parameters.FirstOrDefault(
-            p => this._compilationContext.SymbolComparer.Equals( p.Type, this._initializationContextType ) );
+        => constructor.Parameters.FirstOrDefault( p => this._compilationContext.SymbolComparer.Equals( p.Type, this._initializationContextType ) );
 }

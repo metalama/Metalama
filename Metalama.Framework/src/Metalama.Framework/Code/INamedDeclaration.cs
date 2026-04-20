@@ -7,7 +7,6 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a declaration that has a name.
     /// </summary>
-
     /// <seealso cref="IDeclaration"/>
     /// <seealso cref="INamedType"/>
     /// <seealso cref="INamespace"/>

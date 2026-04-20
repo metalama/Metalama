@@ -34,8 +34,7 @@ public readonly struct InitializationSlot
     /// <summary>
     /// Combines two slots into one.
     /// </summary>
-    public static InitializationSlot operator |( InitializationSlot a, InitializationSlot b )
-        => new( a._mask | b._mask );
+    public static InitializationSlot operator |( InitializationSlot a, InitializationSlot b ) => new( a._mask | b._mask );
 
     /// <summary>
     /// Gets the raw bitmask value. For internal engine use only.

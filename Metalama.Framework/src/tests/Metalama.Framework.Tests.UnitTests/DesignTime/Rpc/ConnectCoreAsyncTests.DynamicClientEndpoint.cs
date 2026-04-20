@@ -21,8 +21,7 @@ public sealed partial class ConnectCoreAsyncTests
         public DynamicClientEndpoint( IServiceProvider serviceProvider, string pipeName )
             : base( serviceProvider, pipeName ) { }
 
-        protected override IEnumerable<RpcClient> CreateServiceClients()
-            => [new TestServiceClient( this )];
+        protected override IEnumerable<RpcClient> CreateServiceClients() => [new TestServiceClient( this )];
 
         /// <summary>
         /// Exposes <see cref="ClientEndpoint.AddServiceClientsAsync"/> for testing.

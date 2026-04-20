@@ -100,6 +100,7 @@ public abstract class BaseEndpoint : IDisposable
         var resolver = CompositeResolver.Create(
             TypelessObjectResolver.Instance,
             StandardResolver.Instance );
+
         var options = MessagePackSerializerOptions.Standard.WithResolver( resolver );
         formatter.SetMessagePackSerializerOptions( options );
 
@@ -118,7 +119,7 @@ public abstract class BaseEndpoint : IDisposable
         var taskId = Interlocked.Increment( ref this._nextBackgroundTaskId );
 
         this.Logger.Trace?.Log( $"Scheduling background task {taskId}: '{description}'." );
-        
+
         var backgroundTaskWillBeRemoved = true;
 
         var task = Task.Run(

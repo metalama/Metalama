@@ -328,8 +328,7 @@ public sealed class MessagePackSerializationTests
     [Fact]
     public void AspectInstancesChangedEventData_Roundtrip()
     {
-        var original = new AspectInstancesChangedEventData(
-            new ProjectKey( "TestProject", 456UL, true ) );
+        var original = new AspectInstancesChangedEventData( new ProjectKey( "TestProject", 456UL, true ) );
 
         var result = Roundtrip( original );
 
@@ -339,8 +338,7 @@ public sealed class MessagePackSerializationTests
     [Fact]
     public void AspectClassesChangedEventData_Roundtrip()
     {
-        var original = new AspectClassesChangedEventData(
-            new ProjectKey( "TestProject", 789UL, true ) );
+        var original = new AspectClassesChangedEventData( new ProjectKey( "TestProject", 789UL, true ) );
 
         var result = Roundtrip( original );
 
@@ -357,7 +355,10 @@ public sealed class MessagePackSerializationTests
                     DiagnosticSeverity.Error,
                     "file.cs",
                     "CS0001: Error message",
-                    1, 0, 1, 10 ) ) );
+                    1,
+                    0,
+                    1,
+                    10 ) ) );
 
         var result = Roundtrip( original );
 

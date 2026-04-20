@@ -12,8 +12,7 @@ namespace Metalama.Framework.Engine.Formatting
         /// <summary>
         /// Normalizes all <see cref="SyntaxKind.EndOfLineTrivia"/> in a syntax tree to use the specified EOL string.
         /// </summary>
-        public static SyntaxNode NormalizeEndOfLines( SyntaxNode root, string endOfLine )
-            => new EndOfLineNormalizingRewriter( endOfLine ).Visit( root )!;
+        public static SyntaxNode NormalizeEndOfLines( SyntaxNode root, string endOfLine ) => new EndOfLineNormalizingRewriter( endOfLine ).Visit( root )!;
 
         /// <summary>
         /// Returns the first EOL string without allocating memory.

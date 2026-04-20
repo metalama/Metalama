@@ -323,9 +323,9 @@ namespace Metalama.Framework.Engine.Linking
                         List<AttributeListSyntax>(),
                         symbol.IsStatic
                             ? TokenList(
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ),
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
-                            : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
+                                TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ),
+                                TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
+                            : TokenList( TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
                         VariableDeclaration(
                             eventType.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
                             SingletonSeparatedList(
@@ -427,9 +427,9 @@ namespace Metalama.Framework.Engine.Linking
                         this.FilterAttributesOnSpecialImpl( symbol ),
                         symbol.IsStatic
                             ? TokenList(
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ),
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
-                            : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
+                                TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ),
+                                TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
+                            : TokenList( TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
                         eventType,
                         null,
                         WellKnownIdentifier( name ),
@@ -577,9 +577,9 @@ namespace Metalama.Framework.Engine.Linking
                         List<AttributeListSyntax>(),
                         eventSymbol.IsStatic
                             ? TokenList(
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ),
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
-                            : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
+                                TokenWithTrailingSpace( SyntaxKind.PublicKeyword ),
+                                TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
+                            : TokenList( TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
                         context.SyntaxGenerator.TypeSyntax( eventSymbol.Type ),
                         null,
                         WellKnownIdentifier( eventBrokerInfo.BrokerProxyName ),

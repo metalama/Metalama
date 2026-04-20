@@ -101,11 +101,11 @@ namespace Metalama.Framework.Engine.Templating
 
                     var isGeneratedFile =
                         !string.IsNullOrEmpty( filePath )
-                        && ( filePath.EndsWith( ".g.cs", StringComparison.OrdinalIgnoreCase )
-                             || filePath.EndsWith( ".designer.cs", StringComparison.OrdinalIgnoreCase )
-                             || filePath.EndsWith( ".generated.cs", StringComparison.OrdinalIgnoreCase )
-                             || filePath.IndexOf( "/obj/", StringComparison.OrdinalIgnoreCase ) >= 0
-                             || filePath.IndexOf( "\\obj\\", StringComparison.OrdinalIgnoreCase ) >= 0 );
+                        && (filePath.EndsWith( ".g.cs", StringComparison.OrdinalIgnoreCase )
+                            || filePath.EndsWith( ".designer.cs", StringComparison.OrdinalIgnoreCase )
+                            || filePath.EndsWith( ".generated.cs", StringComparison.OrdinalIgnoreCase )
+                            || filePath.IndexOf( "/obj/", StringComparison.OrdinalIgnoreCase ) >= 0
+                            || filePath.IndexOf( "\\obj\\", StringComparison.OrdinalIgnoreCase ) >= 0);
 
                     var isGeneratedBySyntaxTreeOptions =
                         compilationContext.SourceCompilation.Options.SyntaxTreeOptionsProvider?.IsGenerated( syntaxTree, ct )

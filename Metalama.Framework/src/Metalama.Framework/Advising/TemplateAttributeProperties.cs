@@ -40,4 +40,4 @@ public sealed record TemplateAttributeProperties(
     bool? IsAbstract = null,
     bool? IsPartial = null,
     bool? IsExtern = null,
-    string? Id = null);
+    string? Id = null );

@@ -49,7 +49,7 @@ public sealed class InboundReferenceIndexBuilder : ReferenceIndexBuilder
         var referencedSymbol = child.ReferencedSymbol;
 
         if ( referencedSymbol.Kind == SymbolKind.NamedType && referencedSymbol is INamedTypeSymbol { BaseType: { } baseType }
-             && this._options.MustDescendIntoReferencedBaseTypes( ReferenceKinds.All ) )
+                                                           && this._options.MustDescendIntoReferencedBaseTypes( ReferenceKinds.All ) )
         {
             this.AddToParent( child, baseType, ChildKinds.DerivedType );
         }

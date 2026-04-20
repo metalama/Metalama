@@ -344,7 +344,12 @@ public sealed class MulticastImplementation
                 .SelectMany(
                     compilation => compilation.AllTypes
                         .Where( t => FilterDeclaringType( t, attributeGroup, MulticastTargets.InstanceConstructor ) )
-                        .SelectMany( t => t.Constructors.Where( c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter( c, attributeGroup, MulticastTargets.InstanceConstructor ) ) ) )
+                        .SelectMany(
+                            t => t.Constructors.Where(
+                                c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter(
+                                    c,
+                                    attributeGroup,
+                                    MulticastTargets.InstanceConstructor ) ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
@@ -427,7 +432,9 @@ public sealed class MulticastImplementation
         if ( attributeGroup.TargetsAnyDeclarationKind( MulticastTargets.InstanceConstructor ) )
         {
             builder
-                .Outbound.SelectMany( t => t.Constructors.Where( c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter( c, attributeGroup, MulticastTargets.InstanceConstructor ) ) )
+                .Outbound.SelectMany(
+                    t => t.Constructors.Where(
+                        c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter( c, attributeGroup, MulticastTargets.InstanceConstructor ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 

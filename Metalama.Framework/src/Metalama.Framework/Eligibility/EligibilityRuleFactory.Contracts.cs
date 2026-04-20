@@ -115,16 +115,13 @@ public static partial class EligibilityRuleFactory
             // Note: The IsReceiverParameter check is not included here because these rules are applied conditionally
             // via If(IsReceiverParameter) in the combined parameter eligibility rules below.
             var receiverParameterEligibilityInput =
-                CreateRule<IParameter>(
-                    parameter => parameter.MustBeReadable() );
+                CreateRule<IParameter>( parameter => parameter.MustBeReadable() );
 
             var receiverParameterEligibilityOutput =
-                CreateRule<IParameter>(
-                    parameter => parameter.MustBeWritable() );
+                CreateRule<IParameter>( parameter => parameter.MustBeWritable() );
 
             var receiverParameterEligibilityBoth =
-                CreateRule<IParameter>(
-                    parameter => parameter.MustBeRef() );
+                CreateRule<IParameter>( parameter => parameter.MustBeRef() );
 
             // Receiver parameters with Default direction have no additional constraints beyond being a receiver parameter,
             // which is already checked by the If(IsReceiverParameter) wrapper.

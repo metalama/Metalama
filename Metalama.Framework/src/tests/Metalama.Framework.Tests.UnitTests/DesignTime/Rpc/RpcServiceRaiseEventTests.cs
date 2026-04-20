@@ -64,6 +64,7 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
 
             eventClients[i] = clients[i].GetRequiredClient<EventTestClient>();
             var tcs = eventReceivedTcs[i];
+
             eventClients[i].EventReceived += e =>
             {
                 if ( e is TestEventData testEvent )

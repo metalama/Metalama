@@ -83,8 +83,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
         {
             if ( this._operatorKind != OperatorKind.None && value != base.Name )
             {
-                throw new InvalidOperationException(
-                    "Cannot change the name of an operator method. The name is automatically set based on the OperatorKind." );
+                throw new InvalidOperationException( "Cannot change the name of an operator method. The name is automatically set based on the OperatorKind." );
             }
 
             base.Name = value;

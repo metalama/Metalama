@@ -277,11 +277,12 @@ internal static class SymbolSignatureMatcher
                     .Any( a => a.AttributeClass.GetFullName() == "System.Runtime.CompilerServices.CollectionBuilderAttribute" )
                 => GetIterationType( namedType, compilation ),
             SymbolKind.NamedType when type is INamedTypeSymbol { TypeKind: TypeKind.Struct or TypeKind.Class } namedType
-                && namedType.AllInterfaces.Any( i => i.GetFullName() == "System.Collections.Generic.IEnumerable" )
+                                      && namedType.AllInterfaces.Any( i => i.GetFullName() == "System.Collections.Generic.IEnumerable" )
                 => GetIterationType( namedType, compilation ),
             SymbolKind.NamedType when type is INamedTypeSymbol { TypeKind: TypeKind.Interface } namedType
-                && namedType.GetFullName() is "System.Collections.Generic.IEnumerable" or "System.Collections.Generic.IReadOnlyCollection"
-                    or "System.Collections.Generic.IReadOnlyList" or "System.Collections.Generic.ICollection" or "System.Collections.Generic.IList"
+                                      && namedType.GetFullName() is "System.Collections.Generic.IEnumerable" or "System.Collections.Generic.IReadOnlyCollection"
+                                          or "System.Collections.Generic.IReadOnlyList" or "System.Collections.Generic.ICollection"
+                                          or "System.Collections.Generic.IList"
                 => namedType.TypeArguments[0],
             _ => null
         };

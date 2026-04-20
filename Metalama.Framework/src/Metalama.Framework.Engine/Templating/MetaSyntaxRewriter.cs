@@ -82,7 +82,7 @@ internal partial class MetaSyntaxRewriter : SafeSyntaxRewriter
             // Using the new Create(ReadOnlySpan) avoids array allocation.
             ? SyntaxTriviaList.Create( [this.MetaSyntaxFactory.SyntaxGenerationContext.ElasticEndOfLineTrivia, Whitespace( this._indentTriviaStack.Peek() )] )
 #else
-            ? new SyntaxTriviaList(this.MetaSyntaxFactory.SyntaxGenerationContext.ElasticEndOfLineTrivia, Whitespace( this._indentTriviaStack.Peek() ))
+            ? new SyntaxTriviaList( this.MetaSyntaxFactory.SyntaxGenerationContext.ElasticEndOfLineTrivia, Whitespace( this._indentTriviaStack.Peek() ) )
 #endif
             : SyntaxTriviaList.Create( Whitespace( this._indentTriviaStack.Peek() ) );
 

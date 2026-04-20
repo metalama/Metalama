@@ -1635,7 +1635,7 @@ public class ReferencedClass
                 foreach ( var csFile in csFiles )
                 {
                     Assert.True(
-                        ( File.GetAttributes( csFile ) & FileAttributes.ReadOnly ) != 0,
+                        (File.GetAttributes( csFile ) & FileAttributes.ReadOnly) != 0,
                         $"File '{csFile}' should be read-only." );
                 }
 

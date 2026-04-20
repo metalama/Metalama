@@ -121,8 +121,7 @@ internal sealed partial class LinkerAnalysisStep
                     .Union( eventFieldRaiseReferences.SelectAsReadOnlyList( x => (IntermediateSymbolSemantic) x.ContainingSemantic ) )
                     .Union(
                         onInitializedMethodBodyCallSites.SelectAsReadOnlyList(
-                            x => (IntermediateSymbolSemantic) ((IMethodSymbol) x.ContainingSymbol).ToSemantic(
-                                IntermediateSymbolSemanticKind.Default ) ) )
+                            x => (IntermediateSymbolSemantic) ((IMethodSymbol) x.ContainingSymbol).ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
                     .Except( inlinedSemantics )
                     .Distinct()
                     .ToReadOnlyList();
@@ -492,7 +491,6 @@ internal sealed partial class LinkerAnalysisStep
                 }
 
 #if ROSLYN_5_0_0_OR_GREATER
-
                 // Add substitutions for backing field invocation references.
                 if ( this._backingFieldReferencesByContainingSemantic.TryGetValue(
                         inliningSpecification.TargetSemantic,
@@ -704,9 +702,11 @@ internal sealed partial class LinkerAnalysisStep
                         break;
 
                     case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol.Kind: SymbolKind.Property } }
-                        when nonInlinedReference.ResolvedSemantic.Symbol is IPropertySymbol property && property.IsAutoProperty() == true && this._injectionRegistry.IsOverrideTarget( property ):
+                        when nonInlinedReference.ResolvedSemantic.Symbol is IPropertySymbol property && property.IsAutoProperty() == true
+                                                                                                     && this._injectionRegistry.IsOverrideTarget( property ):
                     case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol.Kind: SymbolKind.Event } }
-                        when nonInlinedReference.ResolvedSemantic.Symbol is IEventSymbol @event && @event.IsEventFieldIntroduction() && this._injectionRegistry.IsOverrideTarget( @event ):
+                        when nonInlinedReference.ResolvedSemantic.Symbol is IEventSymbol @event && @event.IsEventFieldIntroduction()
+                                                                                                && this._injectionRegistry.IsOverrideTarget( @event ):
                         // For default semantic of auto properties and event fields, generate substitution that redirects to the backing field..
                         AddSubstitution(
                             context,
@@ -735,7 +735,8 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case { ResolvedSemantic.Symbol.Kind: SymbolKind.Property } when nonInlinedReference.ResolvedSemantic.Symbol is IPropertySymbol { Parameters.Length: > 0 }:
+                    case { ResolvedSemantic.Symbol.Kind: SymbolKind.Property }
+                        when nonInlinedReference.ResolvedSemantic.Symbol is IPropertySymbol { Parameters.Length: > 0 }:
                         // Indexers (and in future constructors), adds aspect parameter to the target.
                         // TODO: Currently unused because indexer inlining is not supported. See AspectReferenceParameterSubstitution in history.
 
@@ -789,7 +790,11 @@ internal sealed partial class LinkerAnalysisStep
                         // Default non-inlined semantics that are not override targets need no substitutions.
                         break;
 
-                    case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base, ResolvedSemantic.Symbol: IMethodSymbol { MethodKind: MethodKind.Ordinary or MethodKind.ExplicitInterfaceImplementation } }:
+                    case
+                    {
+                        ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base,
+                        ResolvedSemantic.Symbol: IMethodSymbol { MethodKind: MethodKind.Ordinary or MethodKind.ExplicitInterfaceImplementation }
+                    }:
                         // Base references to introduced ordinary methods with no base are replaced inline
                         // with an appropriate empty expression (expression context) or suppressed (statement context).
                         AddSubstitution(
@@ -870,9 +875,13 @@ internal sealed partial class LinkerAnalysisStep
                     usingSimpleInlining,
                     returnVariableIdentifier ),
 
-                SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                    when root is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } && targetSymbol.Kind == SymbolKind.Method && targetSymbol is { AssociatedSymbol.Kind: SymbolKind.Property } && targetSymbol.AssociatedSymbol is IPropertySymbol property
-                         && property.IsAutoProperty() == true =>
+                SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                    or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                    when root is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } && targetSymbol.Kind == SymbolKind.Method
+                                                                                                && targetSymbol is
+                                                                                                    { AssociatedSymbol.Kind: SymbolKind.Property }
+                                                                                                && targetSymbol.AssociatedSymbol is IPropertySymbol property
+                                                                                                && property.IsAutoProperty() == true =>
                     new PropertyImplicitAccessorSubstitution(
                         this._intermediateCompilationContext,
                         root,
@@ -885,7 +894,8 @@ internal sealed partial class LinkerAnalysisStep
                         usingSimpleInlining,
                         returnVariableIdentifier ),
 
-                SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                    or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
                     when root is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } emptyPartialAccessor
                     => new EmptyPartialAccessorSubstitution(
                         this._intermediateCompilationContext,

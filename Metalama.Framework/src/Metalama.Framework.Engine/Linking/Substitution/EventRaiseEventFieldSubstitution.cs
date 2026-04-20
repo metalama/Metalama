@@ -38,7 +38,10 @@ internal sealed class EventRaiseEventFieldSubstitution : SyntaxNodeSubstitution
                     .WithOptionalLeadingTrivia( identifierName.Identifier.LeadingTrivia, substitutionContext.SyntaxGenerationContext )
                     .WithOptionalTrailingTrivia( identifierName.Identifier.TrailingTrivia, substitutionContext.SyntaxGenerationContext );
 
-            case SyntaxKind.SimpleMemberAccessExpression when currentNode is MemberAccessExpressionSyntax { Expression: { }, Name: IdentifierNameSyntax identifierName } simpleMemberAccess:
+            case SyntaxKind.SimpleMemberAccessExpression when currentNode is MemberAccessExpressionSyntax
+            {
+                Expression: { }, Name: IdentifierNameSyntax identifierName
+            } simpleMemberAccess:
                 // Replacing the this expression invocation.
                 return
                     simpleMemberAccess.WithName(

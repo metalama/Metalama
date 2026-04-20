@@ -81,16 +81,13 @@ namespace Metalama.Framework.Engine.Utilities
             where T : unmanaged
             => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(T) ) );
 
-        public static unsafe void Append( this XxHash64 hash, long value )
-            => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(long) ) );
+        public static unsafe void Append( this XxHash64 hash, long value ) => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(long) ) );
 
-        public static unsafe void Append( this XxHash64 hash, ulong value )
-            => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(ulong) ) );
+        public static unsafe void Append( this XxHash64 hash, ulong value ) => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(ulong) ) );
 
         // The following overloads are redundant but they work around a compiler bug.
         public static void Append( this XxHash64 hash, ImmutableArray<byte> bytes ) => hash.Append( bytes.AsSpan() );
 
-        public static unsafe void Append( this XxHash64 hash, int value )
-            => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(int) ) );
+        public static unsafe void Append( this XxHash64 hash, int value ) => hash.Append( new ReadOnlySpan<byte>( &value, sizeof(int) ) );
     }
 }

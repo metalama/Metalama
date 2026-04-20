@@ -30,7 +30,9 @@ public sealed record ReferenceIndexerRequirements(
             _ => null
         };
 
-        if ( referenceKinds.IsDefined( ReferenceKinds.BaseType ) && validatedDeclaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock && validatedDeclaration is INamedType { IsSealed: true } )
+        if ( referenceKinds.IsDefined( ReferenceKinds.BaseType )
+             && validatedDeclaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
+             && validatedDeclaration is INamedType { IsSealed: true } )
         {
             referenceKinds &= ~ReferenceKinds.BaseType;
         }

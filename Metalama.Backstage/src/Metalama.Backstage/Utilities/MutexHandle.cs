@@ -43,7 +43,7 @@ internal sealed class MutexHandle : IDisposable
     private void Dispose( bool disposing )
     {
         _ = disposing;
-        
+
         lock ( this._disposingSync )
         {
             if ( !this._disposed )

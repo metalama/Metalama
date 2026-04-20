@@ -2931,8 +2931,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                         .AddArgumentListArguments( Argument( SyntaxFactoryEx.LiteralExpression( typeParameterSymbol.Name ) ) );
                 }
                 else if ( symbol?.Kind is SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.DynamicType or SymbolKind.ErrorType
-                         or SymbolKind.FunctionPointerType or SymbolKind.PointerType or SymbolKind.TypeParameter
-                     && symbol is INamespaceOrTypeSymbol namespaceOrType )
+                              or SymbolKind.FunctionPointerType or SymbolKind.PointerType or SymbolKind.TypeParameter
+                          && symbol is INamespaceOrTypeSymbol namespaceOrType )
                 {
                     return this.Transform( this.MetaSyntaxFactory.SyntaxGenerationContext.SyntaxGenerator.TypeOrNamespace( namespaceOrType ) );
                 }

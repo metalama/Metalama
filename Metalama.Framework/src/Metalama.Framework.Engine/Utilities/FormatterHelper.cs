@@ -23,10 +23,12 @@ internal static class FormatterHelper
     public static string ToDebugString( this ISymbol symbol )
         => symbol.Kind switch
         {
-            SymbolKind.Parameter when symbol is IParameterSymbol parameter => parameter.ContainingSymbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat ) + "/"
-                + parameter.Name,
-            SymbolKind.Field when symbol is IFieldSymbol { IsImplicitlyDeclared: true } field && TryGetBackedPropertyName( field.Name, out var propertyName ) => field.ContainingType
-                .ToDebugString() + "." + propertyName + ".field",
+            SymbolKind.Parameter when symbol is IParameterSymbol parameter => parameter.ContainingSymbol.ToDisplayString(
+                    SymbolDisplayFormat.CSharpShortErrorMessageFormat ) + "/"
+                                                                        + parameter.Name,
+            SymbolKind.Field when symbol is IFieldSymbol { IsImplicitlyDeclared: true } field && TryGetBackedPropertyName( field.Name, out var propertyName ) =>
+                field.ContainingType
+                    .ToDebugString() + "." + propertyName + ".field",
             _ => symbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )
         };
 

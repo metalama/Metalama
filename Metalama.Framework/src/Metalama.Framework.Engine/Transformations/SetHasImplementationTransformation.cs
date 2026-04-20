@@ -32,6 +32,5 @@ internal sealed class SetHasImplementationTransformation : BaseTransformation
 
     public override IntrospectionTransformationKind TransformationKind => IntrospectionTransformationKind.OverrideMember;
 
-    public override FormattableString ToDisplayString()
-        => $"Set HasImplementation on '{this.TargetMember.Definition.ToDisplayString()}'";
+    public override FormattableString ToDisplayString() => $"Set HasImplementation on '{this.TargetMember.Definition.ToDisplayString()}'";
 }

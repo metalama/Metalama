@@ -27,5 +27,4 @@ public class InitializationMetadata
     /// <see cref="IInitializable.Initialize"/> should revalidate invariants and reinitialize derived state.
     /// </summary>
     public static InitializationMetadata Modify { get; } = new();
-
 }

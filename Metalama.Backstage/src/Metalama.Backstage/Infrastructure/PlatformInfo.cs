@@ -46,8 +46,7 @@ namespace Metalama.Backstage.Infrastructure
                 return true;
             }
 
-            logger?.Warning?.Log(
-                $"'{dotnetExePath}' exists but its installation has no SDK directory. Ignoring." );
+            logger?.Warning?.Log( $"'{dotnetExePath}' exists but its installation has no SDK directory. Ignoring." );
 
             return false;
         }

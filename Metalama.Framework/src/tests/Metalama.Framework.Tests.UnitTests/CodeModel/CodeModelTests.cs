@@ -604,11 +604,11 @@ class C
 
         // Accessor-based event should only have add and remove accessors.
         Assert.Equal( 2, accessorEvent.Accessors.Count() );
-        Assert.All( accessorEvent.Accessors, a => Assert.Contains( a.MethodKind, new[] { Code.MethodKind.EventAdd, Code.MethodKind.EventRemove } ) );
+        Assert.All( accessorEvent.Accessors, a => Assert.Contains( a.MethodKind, new[] { EventAdd, EventRemove } ) );
 
         // Field-like event should have add, remove, and raise accessors.
         Assert.Equal( 3, fieldLikeEvent.Accessors.Count() );
-        Assert.Contains( fieldLikeEvent.Accessors, a => a.MethodKind == Code.MethodKind.EventRaise );
+        Assert.Contains( fieldLikeEvent.Accessors, a => a.MethodKind == EventRaise );
     }
 
     [Fact]
@@ -639,14 +639,14 @@ class C
         var fieldLikeEvent = type.Events.Single( e => e.Name == "FieldLikeEvent" );
 
         // For accessor-based event, GetAccessor(EventRaise) should return null.
-        Assert.Null( accessorEvent.GetAccessor( Code.MethodKind.EventRaise ) );
-        Assert.NotNull( accessorEvent.GetAccessor( Code.MethodKind.EventAdd ) );
-        Assert.NotNull( accessorEvent.GetAccessor( Code.MethodKind.EventRemove ) );
+        Assert.Null( accessorEvent.GetAccessor( EventRaise ) );
+        Assert.NotNull( accessorEvent.GetAccessor( EventAdd ) );
+        Assert.NotNull( accessorEvent.GetAccessor( EventRemove ) );
 
         // For field-like event, GetAccessor(EventRaise) should return a method.
-        Assert.NotNull( fieldLikeEvent.GetAccessor( Code.MethodKind.EventRaise ) );
-        Assert.NotNull( fieldLikeEvent.GetAccessor( Code.MethodKind.EventAdd ) );
-        Assert.NotNull( fieldLikeEvent.GetAccessor( Code.MethodKind.EventRemove ) );
+        Assert.NotNull( fieldLikeEvent.GetAccessor( EventRaise ) );
+        Assert.NotNull( fieldLikeEvent.GetAccessor( EventAdd ) );
+        Assert.NotNull( fieldLikeEvent.GetAccessor( EventRemove ) );
     }
 
     [Fact]
@@ -1917,7 +1917,6 @@ class C {}
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER
-
     [Fact]
     public void PartialConstructors()
     {
@@ -2774,7 +2773,7 @@ class Program
 }
 ";
 
-        var roslynCompilation = testContext.CreateCSharpCompilation( code, outputKind: Microsoft.CodeAnalysis.OutputKind.ConsoleApplication );
+        var roslynCompilation = testContext.CreateCSharpCompilation( code, outputKind: OutputKind.ConsoleApplication );
         var compilation = testContext.CreateCompilationModel( roslynCompilation );
 
         Assert.NotNull( compilation.EntryPoint );

@@ -87,5 +87,4 @@ internal static class TriviaHelper
 
         return member.WithRequiredLeadingTrivia( documentationTrivia.AddRange( existingTrivia ) );
     }
-
 }

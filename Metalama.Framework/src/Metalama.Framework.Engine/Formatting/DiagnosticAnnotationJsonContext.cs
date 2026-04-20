@@ -12,6 +12,4 @@ namespace Metalama.Framework.Engine.Formatting;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull )]
 [JsonSerializable( typeof(DiagnosticAnnotation) )]
 [JsonSerializable( typeof(DiagnosticSeverity) )]
-internal partial class DiagnosticAnnotationJsonContext : JsonSerializerContext
-{
-}
+internal partial class DiagnosticAnnotationJsonContext : JsonSerializerContext { }

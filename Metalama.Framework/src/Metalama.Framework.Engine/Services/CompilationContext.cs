@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Factories;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities;
@@ -128,7 +129,7 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
             isNullOblivious = (nullableContext & NullableContext.AnnotationsEnabled) == 0;
         }
 
-        var endOfLine = Formatting.EndOfLineHelper.DetermineEndOfLineStyleFast( tree );
+        var endOfLine = EndOfLineHelper.DetermineEndOfLineStyleFast( tree );
 
         return this.GetSyntaxGenerationContext( options, isPartial, isNullOblivious, endOfLine );
     }

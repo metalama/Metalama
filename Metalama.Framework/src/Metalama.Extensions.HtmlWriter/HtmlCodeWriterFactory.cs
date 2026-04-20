@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Extensions.HtmlWriter;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
@@ -10,7 +11,7 @@ using Metalama.Framework.Services;
 using Metalama.Testing.AspectTesting;
 using System.Collections.Generic;
 
-[assembly: ExportExtension( typeof( Metalama.Extensions.HtmlWriter.HtmlCodeWriterServiceFactory ), ExtensionKinds.ServiceFactory )]
+[assembly: ExportExtension( typeof(HtmlCodeWriterServiceFactory), ExtensionKinds.ServiceFactory )]
 
 namespace Metalama.Extensions.HtmlWriter;
 

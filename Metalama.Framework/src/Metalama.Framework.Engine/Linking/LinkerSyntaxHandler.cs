@@ -78,7 +78,10 @@ internal static class LinkerSyntaxHandler
 
                 case SyntaxKind.VariableDeclarator:
                     {
-                        if ( declaration is VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax } } variableDecl )
+                        if ( declaration is VariableDeclaratorSyntax
+                            {
+                                Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax }
+                            } variableDecl )
                         {
                             // Event field accessors start replacement as variableDecls.
                             return variableDecl;

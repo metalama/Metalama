@@ -14,6 +14,7 @@ using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 using System.Linq;
 using Xunit;
 using SpecialType = Metalama.Framework.Code.SpecialType;
@@ -339,7 +340,8 @@ class TargetCode
                     @"((global::TargetCode)a)?.P" );
 
                 AssertEx.DynamicEquals(
-                    ((FieldOrPropertyInvoker) property.WithObject( SyntaxFactoryEx.SafeIdentifierName( "a" ) )).SetValue( SyntaxFactoryEx.SafeIdentifierName( "b" ) ),
+                    ((FieldOrPropertyInvoker) property.WithObject( SyntaxFactoryEx.SafeIdentifierName( "a" ) )).SetValue(
+                        SyntaxFactoryEx.SafeIdentifierName( "b" ) ),
                     @"((global::TargetCode)a).P = b" );
             }
         }
@@ -561,8 +563,8 @@ delegate void StringDelegate(string s);
             using ( TemplateExpansionContext.WithTestingContext( syntaxSerializationContext, testContext.ServiceProvider ) )
             {
                 var delegateExpr = method
-                    .WithObject( new TypedExpressionSyntaxImpl(
-                        syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
+                    .WithObject(
+                        new TypedExpressionSyntaxImpl( syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
                     .CreateDelegateExpression();
 
                 // When target type is StringDelegate (param: string), and method has param object,
@@ -572,8 +574,8 @@ delegate void StringDelegate(string s);
 
                 var syntax = typed.Syntax.NormalizeWhitespace().ToString();
 
-                Assert.Contains( "StringDelegate", syntax, System.StringComparison.Ordinal );
-                Assert.DoesNotContain( "Action", syntax, System.StringComparison.Ordinal );
+                Assert.Contains( "StringDelegate", syntax, StringComparison.Ordinal );
+                Assert.DoesNotContain( "Action", syntax, StringComparison.Ordinal );
             }
         }
 
@@ -600,8 +602,8 @@ delegate void ObjectDelegate(object o);
             using ( TemplateExpansionContext.WithTestingContext( syntaxSerializationContext, testContext.ServiceProvider ) )
             {
                 var delegateExpr = method
-                    .WithObject( new TypedExpressionSyntaxImpl(
-                        syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
+                    .WithObject(
+                        new TypedExpressionSyntaxImpl( syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
                     .CreateDelegateExpression();
 
                 // M(string) is NOT compatible with ObjectDelegate(object) because
@@ -611,8 +613,8 @@ delegate void ObjectDelegate(object o);
 
                 var syntax = typed.Syntax.NormalizeWhitespace().ToString();
 
-                Assert.DoesNotContain( "ObjectDelegate", syntax, System.StringComparison.Ordinal );
-                Assert.Contains( "Action", syntax, System.StringComparison.Ordinal );
+                Assert.DoesNotContain( "ObjectDelegate", syntax, StringComparison.Ordinal );
+                Assert.Contains( "Action", syntax, StringComparison.Ordinal );
             }
         }
 
@@ -637,8 +639,8 @@ class C
             using ( TemplateExpansionContext.WithTestingContext( syntaxSerializationContext, testContext.ServiceProvider ) )
             {
                 var delegateExpr = method
-                    .WithObject( new TypedExpressionSyntaxImpl(
-                        syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
+                    .WithObject(
+                        new TypedExpressionSyntaxImpl( syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
                     .CreateDelegateExpression();
 
                 // When target type is 'object' (not a delegate type), a bare method group won't compile.
@@ -647,7 +649,7 @@ class C
 
                 var syntax = typed.Syntax.NormalizeWhitespace().ToString();
 
-                Assert.Contains( "Action", syntax, System.StringComparison.Ordinal );
+                Assert.Contains( "Action", syntax, StringComparison.Ordinal );
             }
         }
 
@@ -671,8 +673,8 @@ class C
             using ( TemplateExpansionContext.WithTestingContext( syntaxSerializationContext, testContext.ServiceProvider ) )
             {
                 var delegateExpr = method
-                    .WithObject( new TypedExpressionSyntaxImpl(
-                        syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
+                    .WithObject(
+                        new TypedExpressionSyntaxImpl( syntaxSerializationContext.SyntaxGenerationContext.SyntaxGenerator.ThisExpression(), compilation ) )
                     .CreateDelegateExpression();
 
                 // When target type is null (e.g., var context), bare method group is sufficient (C# 10+).
@@ -681,8 +683,8 @@ class C
                 var syntax = typed.Syntax.NormalizeWhitespace().ToString();
 
                 // Should NOT contain "new" — should be a bare method group.
-                Assert.DoesNotContain( "new", syntax, System.StringComparison.Ordinal );
-                Assert.Contains( "M", syntax, System.StringComparison.Ordinal );
+                Assert.DoesNotContain( "new", syntax, StringComparison.Ordinal );
+                Assert.Contains( "M", syntax, StringComparison.Ordinal );
             }
         }
 

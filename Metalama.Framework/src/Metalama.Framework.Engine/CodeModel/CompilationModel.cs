@@ -557,6 +557,7 @@ namespace Metalama.Framework.Engine.CodeModel
                         else
                         {
                             var chainedTarget = ((IConstructorImpl) constructor).GetBaseConstructor();
+
                             depth = chainedTarget != null
                                 ? this.GetDepth( chainedTarget ) + 1
                                 : containingDepth;

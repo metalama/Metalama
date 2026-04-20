@@ -97,7 +97,7 @@ namespace Metalama.Framework.Engine.Aspects
         {
             // TODO: Cache strings.
             return $"{this.AspectLayerId.FullName}${this.Order}${this.TargetKind}${this.Flags}"
-                + ( string.IsNullOrEmpty( this.TargetDeclarationId ) ? string.Empty : $"${this.TargetDeclarationId}" );
+                   + (string.IsNullOrEmpty( this.TargetDeclarationId ) ? string.Empty : $"${this.TargetDeclarationId}");
         }
     }
 }

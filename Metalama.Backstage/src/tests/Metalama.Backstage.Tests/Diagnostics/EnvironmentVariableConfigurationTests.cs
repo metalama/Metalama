@@ -27,6 +27,7 @@ public sealed class EnvironmentVariableConfigurationTests : TestsBase
 
         // Initialize local DiagnosticsConfiguration.
         this.FileSystem.CreateDirectory( standardDirectories.ApplicationDataDirectory );
+
         this.FileSystem.WriteAllText(
             this._configurationManager.GetFilePath( typeof(DiagnosticsConfiguration) ),
             jsonService.Serialize( new DiagnosticsConfiguration(), typeof(DiagnosticsConfiguration) ) );

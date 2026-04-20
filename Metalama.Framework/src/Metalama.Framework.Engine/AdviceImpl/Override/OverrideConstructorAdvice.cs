@@ -46,8 +46,7 @@ internal sealed class OverrideConstructorAdvice : OverrideMemberAdvice<IConstruc
         // emit a transformation to update the HasImplementation flag in the code model.
         if ( !constructor.HasImplementation )
         {
-            context.AddTransformation(
-                new SetHasImplementationTransformation( this.AspectLayerInstance, constructor.ToFullRef().As<IMember>() ) );
+            context.AddTransformation( new SetHasImplementationTransformation( this.AspectLayerInstance, constructor.ToFullRef().As<IMember>() ) );
         }
 
         return this.CreateSuccessResult( constructor );

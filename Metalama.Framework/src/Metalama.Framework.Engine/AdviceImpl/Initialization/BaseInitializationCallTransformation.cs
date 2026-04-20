@@ -27,7 +27,8 @@ namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 /// from all peers (including itself) and combines them with the <c>|</c> operator so a single <c>base.{method}(context.Descend(...))</c>
 /// call covers all slots.
 /// </summary>
-internal abstract class BaseInitializationCallTransformation : BaseSyntaxTreeTransformation, IInsertStatementTransformation, IAggregatableInsertStatementTransformation
+internal abstract class BaseInitializationCallTransformation : BaseSyntaxTreeTransformation, IInsertStatementTransformation,
+                                                               IAggregatableInsertStatementTransformation
 {
     private readonly IFullRef<IMethod> _targetMethod;
     private readonly string _contextParameterName;
@@ -157,9 +158,7 @@ internal abstract class BaseInitializationCallTransformation : BaseSyntaxTreeTra
                     SyntaxKind.SimpleMemberAccessExpression,
                     argument,
                     IdentifierName( "Descend" ) ),
-                ArgumentList(
-                    SingletonSeparatedList(
-                        Argument( slotExpression ) ) ) );
+                ArgumentList( SingletonSeparatedList( Argument( slotExpression ) ) ) );
         }
 
         return ExpressionStatement(
@@ -168,7 +167,6 @@ internal abstract class BaseInitializationCallTransformation : BaseSyntaxTreeTra
                     SyntaxKind.SimpleMemberAccessExpression,
                     BaseExpression(),
                     SyntaxFactoryEx.SafeIdentifierName( this.MethodName ) ),
-                ArgumentList(
-                    SingletonSeparatedList( Argument( argument ) ) ) ) );
+                ArgumentList( SingletonSeparatedList( Argument( argument ) ) ) ) );
     }
 }

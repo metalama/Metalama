@@ -225,8 +225,7 @@ public sealed class CompileTimeDomainTests : UnitTestClass
 
         if ( !result.Success )
         {
-            throw new InvalidOperationException(
-                $"Failed to emit assembly: {string.Join( ", ", result.Diagnostics )}" );
+            throw new InvalidOperationException( $"Failed to emit assembly: {string.Join( ", ", result.Diagnostics )}" );
         }
 
         return path;

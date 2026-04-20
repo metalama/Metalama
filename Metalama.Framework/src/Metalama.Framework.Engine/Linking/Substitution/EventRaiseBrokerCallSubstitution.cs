@@ -97,7 +97,8 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                         ArgumentList(
                             Token( SyntaxKind.OpenParenToken ),
                             SingletonSeparatedList( Argument( TupleExpression( invokeArguments ) ) ),
-                            Token( SyntaxKind.CloseParenToken ).WithOptionalTrailingTrivia( trailingTrivia, substitutionContext.SyntaxGenerationContext.Options ) ) );
+                            Token( SyntaxKind.CloseParenToken )
+                                .WithOptionalTrailingTrivia( trailingTrivia, substitutionContext.SyntaxGenerationContext.Options ) ) );
 
             case SyntaxKind.InvocationExpression when currentNode is InvocationExpressionSyntax
             {
@@ -114,7 +115,8 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                         ArgumentList(
                             Token( SyntaxKind.OpenParenToken ),
                             SingletonSeparatedList( Argument( TupleExpression( SeparatedList( arguments ) ) ) ),
-                            Token( SyntaxKind.CloseParenToken ).WithOptionalTrailingTrivia( trailingTrivia, substitutionContext.SyntaxGenerationContext.Options ) ) );
+                            Token( SyntaxKind.CloseParenToken )
+                                .WithOptionalTrailingTrivia( trailingTrivia, substitutionContext.SyntaxGenerationContext.Options ) ) );
 
             default:
                 throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" );

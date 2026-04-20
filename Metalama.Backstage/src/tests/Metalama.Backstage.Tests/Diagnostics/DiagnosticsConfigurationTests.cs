@@ -55,7 +55,7 @@ public sealed class DiagnosticsConfigurationTests : TestsBase
                     Logging = new LoggingConfiguration()
                     {
                         TraceCategories = ImmutableDictionary<string, bool>.Empty.Add( "*", true ),
-                        Processes = ImmutableDictionary<string, bool>.Empty.Add( ProcessKind.Other.ToString(), true ),
+                        Processes = ImmutableDictionary<string, bool>.Empty.Add( ProcessKind.Other.ToString(), true )
                     }
                 } ) );
 
@@ -63,13 +63,13 @@ public sealed class DiagnosticsConfigurationTests : TestsBase
         var logger1 = serviceProvider1.GetRequiredBackstageService<ILoggerFactory>().GetLogger( "Foo" );
         Assert.NotNull( logger1.Trace );
         Assert.True( this.FileSystem.FileExists( configFileName ) );
-        
+
         // Move the clock 10 minutes later.
         this.Time.AddTime( TimeSpan.FromMinutes( 10 ) );
         var (serviceProvider2, _) = BuildServiceProvider();
         var logger2 = serviceProvider2.GetRequiredBackstageService<ILoggerFactory>().GetLogger( "Foo" );
         Assert.NotNull( logger2.Trace );
-        
+
         // Move the clock 3 hours later.
         this.Time.AddTime( TimeSpan.FromHours( 3 ) );
         var (serviceProvider3, _) = BuildServiceProvider();

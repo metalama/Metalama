@@ -97,8 +97,7 @@ namespace Metalama.Framework.Engine.Linking
                 return fieldDeclaration;
             }
 
-            return fieldDeclaration.WithDeclaration(
-                fieldDeclaration.Declaration.WithVariables( SeparatedList( newVariables ) ) );
+            return fieldDeclaration.WithDeclaration( fieldDeclaration.Declaration.WithVariables( SeparatedList( newVariables ) ) );
         }
 
         private static MemberDeclarationSyntax GetEmptyImplField(
@@ -136,9 +135,9 @@ namespace Metalama.Framework.Engine.Linking
                         attributes,
                         symbol.IsStatic
                             ? TokenList(
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ),
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
-                            : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
+                                TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ),
+                                TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
+                            : TokenList( TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
                         type,
                         null,
                         WellKnownIdentifier( GetEmptyImplMemberName( symbol ) ),

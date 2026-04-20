@@ -44,7 +44,10 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
                     .WithOptionalLeadingTrivia( identifierName.Identifier.LeadingTrivia, substitutionContext.SyntaxGenerationContext )
                     .WithOptionalTrailingTrivia( identifierName.Identifier.TrailingTrivia, substitutionContext.SyntaxGenerationContext );
 
-            case SyntaxKind.SimpleMemberAccessExpression when currentNode is MemberAccessExpressionSyntax { Expression: { }, Name: IdentifierNameSyntax identifierName } simpleMemberAccess:
+            case SyntaxKind.SimpleMemberAccessExpression when currentNode is MemberAccessExpressionSyntax
+            {
+                Expression: { }, Name: IdentifierNameSyntax identifierName
+            } simpleMemberAccess:
                 // Replacing the this expression invocation.
                 return
                     simpleMemberAccess.WithName(
@@ -78,6 +81,7 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
                 var eventFieldAccess = eventMemberAccess.WithName(
                     SyntaxFactoryEx.SafeIdentifierName( targetName )
                         .WithOptionalLeadingTrivia( leadingTrivia, substitutionContext.SyntaxGenerationContext ) );
+
                 var invokeArguments = EventRaiseArgumentsHelper.ExtractInvokeArguments( arguments );
 
                 // backingField?.Invoke()

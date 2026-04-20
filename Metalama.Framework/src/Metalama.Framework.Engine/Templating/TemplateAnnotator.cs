@@ -1469,9 +1469,9 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         ExpressionSyntax annotatedVariable;
 
         using ( this.WithScopeContext(
-            forEachScope == CompileTimeOnly
-                ? this._currentScopeContext.CompileTimeOnly( reason )
-                : null ) )
+                   forEachScope == CompileTimeOnly
+                       ? this._currentScopeContext.CompileTimeOnly( reason )
+                       : null ) )
         {
             annotatedVariable = this.Visit( node.Variable );
         }

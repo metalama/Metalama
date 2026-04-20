@@ -19,7 +19,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Accessibility = Metalama.Framework.Code.Accessibility;
+using SpecialType = Metalama.Framework.Code.SpecialType;
 using TypedConstant = Metalama.Framework.Code.TypedConstant;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
@@ -75,7 +77,7 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
             // The target type itself declares Initialize — validate and use it.
             if ( ((!ownInitializeMethod.IsVirtual && !ownInitializeMethod.IsOverride)
                   || ownInitializeMethod.Accessibility != Accessibility.Public)
-                 && !targetType.IsSealed && targetType.TypeKind == Code.TypeKind.Class )
+                 && !targetType.IsSealed && targetType.TypeKind == TypeKind.Class )
             {
                 return this.CreateFailedResult(
                     AdviceDiagnosticDescriptors.InitializeNotVirtual.CreateRoslynDiagnostic(
@@ -111,7 +113,7 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
                 // The target type itself declares Initialize — validate and use it.
                 if ( ((!existingMethod.IsVirtual && !existingMethod.IsOverride)
                       || existingMethod.Accessibility != Accessibility.Public)
-                     && !targetType.IsSealed && targetType.TypeKind == Code.TypeKind.Class )
+                     && !targetType.IsSealed && targetType.TypeKind == TypeKind.Class )
                 {
                     return this.CreateFailedResult(
                         AdviceDiagnosticDescriptors.InitializeNotVirtual.CreateRoslynDiagnostic(
@@ -146,8 +148,7 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
         {
             var builder = new MethodBuilder( this.AspectLayerInstance, targetType, nameof(IInitializable.Initialize) )
             {
-                ReturnType = factory.GetSpecialType( Code.SpecialType.Void ),
-                Accessibility = Accessibility.Public
+                ReturnType = factory.GetSpecialType( SpecialType.Void ), Accessibility = Accessibility.Public
             };
 
             if ( baseMethodToOverride != null )
@@ -159,15 +160,14 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
             else
             {
                 // New method — virtual unless the type is sealed or a struct.
-                builder.IsVirtual = !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct;
+                builder.IsVirtual = !targetType.IsSealed && targetType.TypeKind != TypeKind.Struct;
             }
 
             builder.AddParameter( _defaultContextParameterName, initContextType, defaultValue: TypedConstant.Default( initContextType ) );
 
             builder.Freeze();
 
-            context.AddTransformation(
-                new IntroduceMethodTransformation( this.AspectLayerInstance, builder.BuilderData ) );
+            context.AddTransformation( new IntroduceMethodTransformation( this.AspectLayerInstance, builder.BuilderData ) );
 
             // Introduce the IInitializable interface if the type doesn't already implement it.
             if ( baseMethodToOverride == null )

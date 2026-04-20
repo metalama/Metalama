@@ -16,9 +16,9 @@ internal static class LinkerSyntaxHelper
         return syntax.Kind() switch
         {
             SyntaxKind.PropertyDeclaration when syntax is PropertyDeclarationSyntax { AccessorList.Accessors: { } accessors }
-                && accessors.Any( a => a.IsKind( SyntaxKind.UnknownAccessorDeclaration ) ) => true,
+                                                && accessors.Any( a => a.IsKind( SyntaxKind.UnknownAccessorDeclaration ) ) => true,
             SyntaxKind.IndexerDeclaration when syntax is IndexerDeclarationSyntax { AccessorList.Accessors: { } accessors }
-                && accessors.Any( a => a.IsKind( SyntaxKind.UnknownAccessorDeclaration ) ) => true,
+                                               && accessors.Any( a => a.IsKind( SyntaxKind.UnknownAccessorDeclaration ) ) => true,
             _ => false
         };
     }

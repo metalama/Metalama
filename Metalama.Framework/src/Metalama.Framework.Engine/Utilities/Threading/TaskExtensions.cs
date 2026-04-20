@@ -51,7 +51,7 @@ public static class TaskExtensions
 #if NET6_0_OR_GREATER
             return ValueTask.FromCanceled( cancellationToken );
 #else
-            return new ValueTask(Task.FromCanceled(cancellationToken));
+            return new ValueTask( Task.FromCanceled( cancellationToken ) );
 #endif
         }
 
@@ -70,7 +70,7 @@ public static class TaskExtensions
 #if NET6_0_OR_GREATER
             return ValueTask.FromCanceled<T>( cancellationToken );
 #else
-            return new ValueTask<T>(Task.FromCanceled<T>(cancellationToken));
+            return new ValueTask<T>( Task.FromCanceled<T>( cancellationToken ) );
 #endif
         }
 

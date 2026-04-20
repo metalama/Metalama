@@ -38,7 +38,8 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
             if ( memberName is nameof(this.Property) or nameof(this.Field) or nameof(this.FieldOrProperty) && this._fieldOrPropertyOrIndexer != null )
             {
-                var alternativeMemberName = this._fieldOrPropertyOrIndexer.DeclarationKind is DeclarationKind.Field or DeclarationKind.Property && this._fieldOrPropertyOrIndexer is IFieldOrProperty
+                var alternativeMemberName = this._fieldOrPropertyOrIndexer.DeclarationKind is DeclarationKind.Field or DeclarationKind.Property
+                                            && this._fieldOrPropertyOrIndexer is IFieldOrProperty
                     ? nameof(this.FieldOrProperty)
                     : nameof(this.FieldOrPropertyOrIndexer);
 
@@ -72,7 +73,8 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
             };
 
         public IFieldOrProperty FieldOrProperty
-            => this._fieldOrPropertyOrIndexer?.DeclarationKind is DeclarationKind.Field or DeclarationKind.Property && this._fieldOrPropertyOrIndexer is IFieldOrProperty fieldOrProperty
+            => this._fieldOrPropertyOrIndexer?.DeclarationKind is DeclarationKind.Field or DeclarationKind.Property
+               && this._fieldOrPropertyOrIndexer is IFieldOrProperty fieldOrProperty
                 ? fieldOrProperty
                 : throw this.CreateInvalidOperationException( nameof(this.FieldOrProperty) );
 
@@ -81,8 +83,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public IDeclaration Declaration { get; }
 
-        public IExpression Expression
-            => this.Declaration as IExpression ?? throw this.CreateInvalidOperationException( nameof(this.Expression) );
+        public IExpression Expression => this.Declaration as IExpression ?? throw this.CreateInvalidOperationException( nameof(this.Expression) );
 
         public IDeclaration DiagnosticDeclaration
         {
@@ -258,7 +259,8 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
                     {
                         switch ( propertyOrEvent.DeclarationKind )
                         {
-                            case DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Indexer when propertyOrEvent is IFieldOrPropertyOrIndexer fieldOrPropOrIdx:
+                            case DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Indexer
+                                when propertyOrEvent is IFieldOrPropertyOrIndexer fieldOrPropOrIdx:
                                 this._fieldOrPropertyOrIndexer = fieldOrPropOrIdx;
 
                                 break;
@@ -311,11 +313,9 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         public static MetaApi ForContract( IDeclaration declaration, IMethodBase method, MetaApiProperties common, ContractDirection contractDirection )
             => declaration.DeclarationKind switch
             {
-                DeclarationKind.Field or DeclarationKind.Property or DeclarationKind.Indexer when declaration is IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer
-                    => new MetaApi( fieldOrPropertyOrIndexer, (IMethod) method, common )
-                    {
-                        ContractDirection = contractDirection
-                    },
+                DeclarationKind.Field or DeclarationKind.Property or DeclarationKind.Indexer when
+                    declaration is IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer
+                    => new MetaApi( fieldOrPropertyOrIndexer, (IMethod) method, common ) { ContractDirection = contractDirection },
                 DeclarationKind.Event when declaration is IEvent @event
                     => new MetaApi( @event, (IMethod) method, common ) { ContractDirection = contractDirection },
                 DeclarationKind.Constructor when declaration is IConstructor constructor

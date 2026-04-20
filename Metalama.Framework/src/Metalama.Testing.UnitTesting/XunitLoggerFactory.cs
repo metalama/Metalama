@@ -27,9 +27,9 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
 
 #pragma warning disable CA1822
     void ILoggerFactory.Flush() { }
-    
+
     public IDisposable EnterScope( string scope ) => default(DisposableAction);
-    
+
 #pragma warning restore CA1822
 
     private sealed class Logger : ILogger

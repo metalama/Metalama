@@ -147,8 +147,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         // Suggest to install Visual Studio Tools for Metalama.
         if ( !notificationReported && this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
         {
-            this._toastNotificationService.Show(
-                new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
+            this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
         }
     }
 

@@ -171,7 +171,8 @@ internal sealed partial class LinkerLinkingStep
                             // We need to replace trailing trivia of the last statement.
                             var newTrailingTrivia =
                                 overflowingTrivia.Count > 0
-                                    ? finalStatements[^1].GetTrailingTrivia()
+                                    ? finalStatements[^1]
+                                        .GetTrailingTrivia()
                                         .AddRange( overflowingTrivia )
                                         .AddRange( leadingTrivia )
                                     : finalStatements[^1].GetTrailingTrivia().AddRange( leadingTrivia );
@@ -197,7 +198,8 @@ internal sealed partial class LinkerLinkingStep
 
                 foreach ( var statement in block.Statements )
                 {
-                    if ( statement.Kind() == SyntaxKind.Block && statement is BlockSyntax innerBlock && innerBlock.GetLinkerGeneratedFlags().HasFlagFast( LinkerGeneratedFlags.FlattenableBlock ) )
+                    if ( statement.Kind() == SyntaxKind.Block && statement is BlockSyntax innerBlock
+                                                              && innerBlock.GetLinkerGeneratedFlags().HasFlagFast( LinkerGeneratedFlags.FlattenableBlock ) )
                     {
                         AddFlattenedBlockStatements( innerBlock, statements );
                     }

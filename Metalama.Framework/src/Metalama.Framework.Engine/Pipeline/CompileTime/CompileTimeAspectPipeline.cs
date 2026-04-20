@@ -20,6 +20,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
+using Metalama.Framework.RunTime.Initialization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
@@ -279,7 +280,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
             // some derived types live in referenced assemblies and resolving them through GetTarget(LastCompilationModel)
             // throws because the cross-compilation symbol-mapping check fails. We only need .Any() here.
             var initializableType = (INamedType) result.Value.LastCompilationModel.Factory
-                .GetTypeByReflectionType( typeof(Framework.RunTime.Initialization.IInitializable) );
+                .GetTypeByReflectionType( typeof(IInitializable) );
 
             var containsInitializableTypes = result.Value.LastCompilationModel
                 .GetDerivedTypes( initializableType.ToFullRef() )

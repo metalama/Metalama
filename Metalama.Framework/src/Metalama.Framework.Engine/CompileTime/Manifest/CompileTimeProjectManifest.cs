@@ -92,7 +92,7 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
 #if ROSLYN_4_12_0_OR_GREATER
             => this.LanguageVersion ?? Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp13;
 #else
-         => this.LanguageVersion ?? Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp12;
+            => this.LanguageVersion ?? Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp12;
 #endif
 
         /// <summary>
@@ -169,8 +169,7 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             return manifest;
         }
 
-        public static CompileTimeProjectManifest FromJson( string json )
-            => ManifestSerializer.Deserialize<CompileTimeProjectManifest>( json );
+        public static CompileTimeProjectManifest FromJson( string json ) => ManifestSerializer.Deserialize<CompileTimeProjectManifest>( json );
 
         public void Serialize( Stream stream )
         {

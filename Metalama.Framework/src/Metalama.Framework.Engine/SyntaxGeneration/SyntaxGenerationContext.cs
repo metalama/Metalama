@@ -63,7 +63,8 @@ public sealed class SyntaxGenerationContext
     internal SyntaxTrivia ElasticEndOfLineTrivia => SyntaxFactory.ElasticEndOfLine( this.EndOfLine );
 
     [Memo]
-    public SyntaxTriviaList OptionalElasticEndOfLineTriviaList => this.Options.WillBeTextualized ? new SyntaxTriviaList( this.ElasticEndOfLineTrivia ) : default;
+    public SyntaxTriviaList OptionalElasticEndOfLineTriviaList
+        => this.Options.WillBeTextualized ? new SyntaxTriviaList( this.ElasticEndOfLineTrivia ) : default;
 
     [Memo]
     public SyntaxTriviaList ElasticEndOfLineTriviaList => new( this.ElasticEndOfLineTrivia );

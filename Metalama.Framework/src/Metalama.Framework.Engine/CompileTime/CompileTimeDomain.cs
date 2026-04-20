@@ -50,6 +50,7 @@ namespace Metalama.Framework.Engine.CompileTime
         /// to track domains via weak references.
         /// </summary>
         public Guid Guid { get; } = Guid.NewGuid();
+
         private readonly ILogger _logger;
         private readonly object _sync = new();
         private readonly ConcurrentDictionary<string, (Assembly Assembly, AssemblyIdentity Identity)> _assembliesByName = new();
@@ -318,8 +319,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 {
                     // If we cannot read the assembly metadata, treat the domain as compatible and let the
                     // normal extension loader report a diagnostic when it attempts to load the assembly.
-                    this._logger.Trace?.Log(
-                        $"Domain {this._domainId}: cannot read assembly metadata for '{path}': {e.Message}. Treating as compatible." );
+                    this._logger.Trace?.Log( $"Domain {this._domainId}: cannot read assembly metadata for '{path}': {e.Message}. Treating as compatible." );
 
                     continue;
                 }
@@ -330,7 +330,7 @@ namespace Metalama.Framework.Engine.CompileTime
                     var existingName = existingEntry.Assembly.GetName();
 
                     if ( existingName.Version != assemblyName.Version
-                         || !( existingName.GetPublicKeyToken() ?? [] ).SequenceEqual( assemblyName.GetPublicKeyToken() ?? [] ) )
+                         || !(existingName.GetPublicKeyToken() ?? []).SequenceEqual( assemblyName.GetPublicKeyToken() ?? [] ) )
                     {
                         this._logger.Trace?.Log(
                             $"Domain {this._domainId} is incompatible with assembly '{assemblyName}' at '{path}': " +

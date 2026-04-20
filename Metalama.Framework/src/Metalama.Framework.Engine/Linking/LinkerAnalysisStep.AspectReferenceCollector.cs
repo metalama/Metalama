@@ -175,8 +175,7 @@ internal sealed partial class LinkerAnalysisStep
                             SyntaxKind.DestructorDeclaration when declarationSyntax is DestructorDeclarationSyntax destructor
                                 => destructor.Body
                                    ?? (SyntaxNode?) destructor.ExpressionBody
-                                   ?? throw new AssertionFailedException(
-                                       $"'{containingSemantic.Symbol}' has no implementation." ),
+                                   ?? throw new AssertionFailedException( $"'{containingSemantic.Symbol}' has no implementation." ),
                             SyntaxKind.OperatorDeclaration when declarationSyntax is OperatorDeclarationSyntax @operator
                                 => @operator.Body
                                    ?? (SyntaxNode?) @operator.ExpressionBody
@@ -190,15 +189,16 @@ internal sealed partial class LinkerAnalysisStep
                                 when declarationSyntax is AccessorDeclarationSyntax accessor
                                 => accessor.Body
                                    ?? (SyntaxNode?) accessor.ExpressionBody
-                                   ?? accessor ?? throw new AssertionFailedException(
-                                       $"'{containingSemantic.Symbol}' has no implementation." ),
+                                   ?? accessor ?? throw new AssertionFailedException( $"'{containingSemantic.Symbol}' has no implementation." ),
                             SyntaxKind.VariableDeclarator when declarationSyntax is VariableDeclaratorSyntax declarator
                                 => declarator
-                                   ?? throw new AssertionFailedException(
-                                       $"'{containingSemantic.Symbol}' has no implementation." ),
+                                   ?? throw new AssertionFailedException( $"'{containingSemantic.Symbol}' has no implementation." ),
                             SyntaxKind.ArrowExpressionClause when declarationSyntax is ArrowExpressionClauseSyntax arrowExpressionClause
                                 => arrowExpressionClause,
-                            SyntaxKind.Parameter when declarationSyntax is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter
+                            SyntaxKind.Parameter when declarationSyntax is ParameterSyntax
+                                {
+                                    Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax }
+                                } recordParameter
                                 => recordParameter,
                             SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
                                 when declarationSyntax is RecordDeclarationSyntax recordDeclaration
@@ -294,8 +294,9 @@ internal sealed partial class LinkerAnalysisStep
             //  - Constructors that are already injected members (already processed above by ProcessInjectedMember).
             //  - Primary constructors (their initializer statements are in an auxiliary body, an injected member).
             var constructorsWithInsertedStatements = this._injectionRegistry.GetConstructorsWithInsertedStatements()
-                .Where( c => this._injectionRegistry.GetInjectedMemberForSymbol( c ) == null
-                             && c.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax )
+                .Where(
+                    c => this._injectionRegistry.GetInjectedMemberForSymbol( c ) == null
+                         && c.GetPrimaryDeclarationSyntax() is ConstructorDeclarationSyntax )
                 .ToList();
 
             await this._concurrentTaskRunner.RunConcurrentlyAsync(

@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if ROSLYN_5_0_0_OR_GREATER && NET7_0_OR_GREATER
-
 // We don't run these tests with old frameworks because they require the type CompilerFeatureRequiredAttribute.
 
 using Metalama.Framework.Code;

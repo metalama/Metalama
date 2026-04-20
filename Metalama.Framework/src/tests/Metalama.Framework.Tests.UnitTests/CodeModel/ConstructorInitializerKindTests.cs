@@ -18,11 +18,11 @@ public sealed class ConstructorInitializerKindTests : UnitTestClass
         using var testContext = this.CreateTestContext();
 
         const string code = """
-            class SomeClass
-            {
-                public SomeClass() { }
-            }
-            """;
+                            class SomeClass
+                            {
+                                public SomeClass() { }
+                            }
+                            """;
 
         var compilation = testContext.CreateCompilationModel( code );
         var type = compilation.Types.OfName( "SomeClass" ).Single();
@@ -38,18 +38,18 @@ public sealed class ConstructorInitializerKindTests : UnitTestClass
         using var testContext = this.CreateTestContext();
 
         const string code = """
-            class SomeClass
-            {
-                private readonly string _name;
+                            class SomeClass
+                            {
+                                private readonly string _name;
 
-                public SomeClass() : this( "" ) { }
+                                public SomeClass() : this( "" ) { }
 
-                public SomeClass( string name )
-                {
-                    this._name = name;
-                }
-            }
-            """;
+                                public SomeClass( string name )
+                                {
+                                    this._name = name;
+                                }
+                            }
+                            """;
 
         var compilation = testContext.CreateCompilationModel( code );
         var type = compilation.Types.OfName( "SomeClass" ).Single();
@@ -67,16 +67,16 @@ public sealed class ConstructorInitializerKindTests : UnitTestClass
         using var testContext = this.CreateTestContext();
 
         const string code = """
-            class BaseClass
-            {
-                public BaseClass( int x ) { }
-            }
+                            class BaseClass
+                            {
+                                public BaseClass( int x ) { }
+                            }
 
-            class DerivedClass : BaseClass
-            {
-                public DerivedClass() : base( 42 ) { }
-            }
-            """;
+                            class DerivedClass : BaseClass
+                            {
+                                public DerivedClass() : base( 42 ) { }
+                            }
+                            """;
 
         var compilation = testContext.CreateCompilationModel( code );
         var type = compilation.Types.OfName( "DerivedClass" ).Single();
@@ -92,15 +92,15 @@ public sealed class ConstructorInitializerKindTests : UnitTestClass
         using var testContext = this.CreateTestContext();
 
         const string code = """
-            struct SomeStruct
-            {
-                public int Value;
-                public SomeStruct( int value )
-                {
-                    this.Value = value;
-                }
-            }
-            """;
+                            struct SomeStruct
+                            {
+                                public int Value;
+                                public SomeStruct( int value )
+                                {
+                                    this.Value = value;
+                                }
+                            }
+                            """;
 
         var compilation = testContext.CreateCompilationModel( code );
         var type = compilation.Types.OfName( "SomeStruct" ).Single();
@@ -116,10 +116,10 @@ public sealed class ConstructorInitializerKindTests : UnitTestClass
         using var testContext = this.CreateTestContext();
 
         const string code = """
-            class SomeClass
-            {
-            }
-            """;
+                            class SomeClass
+                            {
+                            }
+                            """;
 
         var compilation = testContext.CreateCompilationModel( code );
         var type = compilation.Types.OfName( "SomeClass" ).Single();
@@ -135,13 +135,13 @@ public sealed class ConstructorInitializerKindTests : UnitTestClass
         using var testContext = this.CreateTestContext();
 
         const string code = """
-            class BaseClass { }
+                            class BaseClass { }
 
-            class DerivedClass : BaseClass
-            {
-                public DerivedClass() { }
-            }
-            """;
+                            class DerivedClass : BaseClass
+                            {
+                                public DerivedClass() { }
+                            }
+                            """;
 
         var compilation = testContext.CreateCompilationModel( code );
         var type = compilation.Types.OfName( "DerivedClass" ).Single();
@@ -157,11 +157,11 @@ public sealed class ConstructorInitializerKindTests : UnitTestClass
         using var testContext = this.CreateTestContext();
 
         const string code = """
-            class SomeClass
-            {
-                static SomeClass() { }
-            }
-            """;
+                            class SomeClass
+                            {
+                                static SomeClass() { }
+                            }
+                            """;
 
         var compilation = testContext.CreateCompilationModel( code );
         var type = compilation.Types.OfName( "SomeClass" ).Single();

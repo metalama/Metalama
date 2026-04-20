@@ -120,7 +120,8 @@ internal sealed partial class SyntaxGeneratorForIType
                 SyntaxFactoryEx.WellKnownIdentifierName( "Object" ) );
         }
 
-        private static IdentifierNameSyntax CreateGlobalIdentifier() => SyntaxFactoryEx.WellKnownIdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) );
+        private static IdentifierNameSyntax CreateGlobalIdentifier()
+            => SyntaxFactoryEx.WellKnownIdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) );
 
         private TypeSyntax? TryCreateSpecializedNamedTypeSyntax( INamedType type )
         {
@@ -156,8 +157,9 @@ internal sealed partial class SyntaxGeneratorForIType
             {
                 var containingTypeSyntax = this.VisitNamedType( type.DeclaringType );
 
-                if ( containingTypeSyntax.Kind() is SyntaxKind.IdentifierName or SyntaxKind.GenericName or SyntaxKind.QualifiedName or SyntaxKind.AliasQualifiedName
-                    && containingTypeSyntax is NameSyntax name )
+                if ( containingTypeSyntax.Kind() is SyntaxKind.IdentifierName or SyntaxKind.GenericName or SyntaxKind.QualifiedName
+                         or SyntaxKind.AliasQualifiedName
+                     && containingTypeSyntax is NameSyntax name )
                 {
                     typeSyntax = this.AddTriviaAndAnnotations( SyntaxFactory.QualifiedName( name, simpleNameSyntax ), type );
                 }

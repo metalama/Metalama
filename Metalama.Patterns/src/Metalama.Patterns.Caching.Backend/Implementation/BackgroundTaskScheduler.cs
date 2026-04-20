@@ -344,8 +344,7 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var retryTask = this._retryPolicy!.TryAsync(
-                    OperationKind.Background, attempt, lastException, ref retryState, cancellationToken );
+                var retryTask = this._retryPolicy!.TryAsync( OperationKind.Background, attempt, lastException, ref retryState, cancellationToken );
 
                 if ( !retryTask.IsCompleted )
                 {

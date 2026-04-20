@@ -1171,8 +1171,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                             ExplicitInterfaceSpecifier(
                                                 (NameSyntax) this._syntaxGenerationContext.SyntaxGenerator.TypeSyntax( interfaceProperty.ContainingType ) ),
                                             rewrittenProperty.Identifier,
-                                            AccessorList(
-                                                List( accessors ) ) );
+                                            AccessorList( List( accessors ) ) );
                                 }
                             }
                         }

@@ -497,5 +497,4 @@ public sealed class RemotingTests : UnitTestClass
                     null ) );
         }
     }
-
 }

@@ -162,7 +162,8 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                 {
                     name = GenericName(
                         SyntaxFactoryEx.SafeIdentifier( this.GetCleanTargetMemberName() ),
-                        TypeArgumentList( SeparatedList( methodForCodeGen.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
+                        TypeArgumentList(
+                            SeparatedList( methodForCodeGen.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
                 }
                 else
                 {
@@ -277,7 +278,7 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
         // For array types, match element types only when ranks are equal.
         if ( parameterType is IArrayType paramArrayType && argumentType is IArrayType argArrayType
-             && paramArrayType.Rank == argArrayType.Rank )
+                                                        && paramArrayType.Rank == argArrayType.Rank )
         {
             TryMatchTypeArguments( paramArrayType.ElementType, argArrayType.ElementType, typeParameters, inferredTypes );
         }
@@ -442,5 +443,4 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             return ((INamedType) genericFunc).MakeGenericInstance( funcTypeArgs );
         }
     }
-
 }

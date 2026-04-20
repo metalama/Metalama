@@ -44,7 +44,6 @@ internal sealed partial class SyntaxGeneratorForIType
             return syntax;
         }
 
-        protected static IdentifierNameSyntax ToIdentifierName( string identifier )
-            => SyntaxFactoryEx.SafeIdentifierName( identifier );
+        protected static IdentifierNameSyntax ToIdentifierName( string identifier ) => SyntaxFactoryEx.SafeIdentifierName( identifier );
     }
 }

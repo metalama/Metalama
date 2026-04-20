@@ -240,8 +240,7 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
         // non-materialized (false) is used as the default on a record primary.
         var materializeOnRecord = (this._pullStrategy as IntroduceParameterPullStrategy)?.MaterializeOnRecord ?? false;
 
-        context.AddTransformation(
-            new IntroduceParameterTransformation( this.AspectLayerInstance, parameterBuilderData, materializeOnRecord ) );
+        context.AddTransformation( new IntroduceParameterTransformation( this.AspectLayerInstance, parameterBuilderData, materializeOnRecord ) );
 
         // Determine the effective pull strategy.
         // - If the user supplied one, use it.

@@ -17,8 +17,7 @@ public sealed partial class RpcServicesTests
         public MultiServiceClientEndpoint( IServiceProvider serviceProvider, string pipeName )
             : base( serviceProvider, pipeName ) { }
 
-        protected override IEnumerable<RpcClient> CreateServiceClients()
-            => [new ServiceAClient( this ), new ServiceBClient( this )];
+        protected override IEnumerable<RpcClient> CreateServiceClients() => [new ServiceAClient( this ), new ServiceBClient( this )];
 
         public Task AddServiceClientAsync( RpcClient client, string pipeName, CancellationToken cancellationToken )
             => this.AddServiceClientsAsync( pipeName, [client], cancellationToken );

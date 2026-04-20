@@ -30,7 +30,9 @@ public sealed class TestUserDiagnosticRegistrationService : IUserDiagnosticRegis
         ImmutableArray<SuppressionDescriptor> initialSuppressionDescriptors = default )
     {
         this.ShouldWrapUnsupportedDiagnostics = shouldWrapUnsupportedDiagnostics;
-        this._initialSuppressionDescriptors = initialSuppressionDescriptors.IsDefault ? ImmutableArray<SuppressionDescriptor>.Empty : initialSuppressionDescriptors;
+
+        this._initialSuppressionDescriptors =
+            initialSuppressionDescriptors.IsDefault ? ImmutableArray<SuppressionDescriptor>.Empty : initialSuppressionDescriptors;
     }
 
     public bool ShouldWrapUnsupportedDiagnostics { get; }

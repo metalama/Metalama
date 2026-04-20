@@ -4,9 +4,9 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-
 #pragma warning disable IDE0005
 using Metalama.Framework.Advising;
+
 #pragma warning restore IDE0005
 
 namespace Metalama.Extensions.DependencyInjection;

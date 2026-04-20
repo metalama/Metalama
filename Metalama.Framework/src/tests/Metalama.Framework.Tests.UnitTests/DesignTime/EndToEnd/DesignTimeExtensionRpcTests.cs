@@ -310,11 +310,9 @@ public sealed class TestExtensionServiceFactory : IRpcServiceFactory
 {
     public string ExtensionName => TestDesignTimeExtension.ExtensionName;
 
-    public RpcService CreateRpcService( GlobalServiceProvider serviceProvider, ServerEndpoint endpoint )
-        => new TestExtensionService( endpoint );
+    public RpcService CreateRpcService( GlobalServiceProvider serviceProvider, ServerEndpoint endpoint ) => new TestExtensionService( endpoint );
 
-    public RpcClient CreateRpcClient( GlobalServiceProvider serviceProvider, ClientEndpoint endpoint )
-        => new TestExtensionClient( endpoint );
+    public RpcClient CreateRpcClient( GlobalServiceProvider serviceProvider, ClientEndpoint endpoint ) => new TestExtensionClient( endpoint );
 }
 
 /// <summary>

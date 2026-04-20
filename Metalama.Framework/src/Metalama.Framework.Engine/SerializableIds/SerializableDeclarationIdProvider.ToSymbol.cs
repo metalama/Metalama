@@ -116,8 +116,9 @@ public static partial class SerializableDeclarationIdProvider
             var symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( idString, compilation );
 
             // Make sure to return the non-nullable type.
-            if ( symbol?.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter
-                && symbol is ITypeSymbol { NullableAnnotation: NullableAnnotation.None } typeSymbol2 )
+            if ( symbol?.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType
+                     or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter
+                 && symbol is ITypeSymbol { NullableAnnotation: NullableAnnotation.None } typeSymbol2 )
             {
                 return typeSymbol2.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
             }
@@ -127,5 +128,4 @@ public static partial class SerializableDeclarationIdProvider
             }
         }
     }
-
 }

@@ -103,7 +103,9 @@ internal sealed class OverrideConstructorTransformation : OverrideMemberTransfor
                     this.GetParameterList( context, overriddenDeclaration ),
                     ConstructorInitializer(
                         SyntaxKind.ThisConstructorInitializer,
-                        ArgumentList( SeparatedList( overriddenDeclaration.Parameters.SelectAsArray( x => Argument( SyntaxFactoryEx.SafeIdentifierName( x.Name ) ) ) ) ) ),
+                        ArgumentList(
+                            SeparatedList(
+                                overriddenDeclaration.Parameters.SelectAsArray( x => Argument( SyntaxFactoryEx.SafeIdentifierName( x.Name ) ) ) ) ) ),
                     newMethodBody,
                     null );
 

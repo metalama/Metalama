@@ -8,6 +8,7 @@ using StreamJsonRpc;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.IO.Pipes;
+
 namespace Metalama.Framework.DesignTime.Rpc;
 
 /// <summary>

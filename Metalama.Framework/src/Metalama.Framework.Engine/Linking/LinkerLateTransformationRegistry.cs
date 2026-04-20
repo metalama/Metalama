@@ -146,7 +146,9 @@ internal sealed class LinkerLateTransformationRegistry
 #if ROSLYN_4_8_0_OR_GREATER
         var typeSyntax =
             (TypeDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )
-                .Single( d => (d.IsKind( SyntaxKind.ClassDeclaration ) || d.IsKind( SyntaxKind.StructDeclaration ) || d.IsKind( SyntaxKind.RecordDeclaration ) || d.IsKind( SyntaxKind.RecordStructDeclaration )) && ((TypeDeclarationSyntax) d).ParameterList != null );
+                .Single(
+                    d => (d.IsKind( SyntaxKind.ClassDeclaration ) || d.IsKind( SyntaxKind.StructDeclaration ) || d.IsKind( SyntaxKind.RecordDeclaration )
+                          || d.IsKind( SyntaxKind.RecordStructDeclaration )) && ((TypeDeclarationSyntax) d).ParameterList != null );
 
         if ( typeSyntax.IsKind( SyntaxKind.RecordDeclaration ) || typeSyntax.IsKind( SyntaxKind.RecordStructDeclaration ) )
         {
@@ -175,8 +177,7 @@ internal sealed class LinkerLateTransformationRegistry
     public bool IsNonMaterializedIntroducedParameter( INamedTypeSymbol type, string name )
         => this._nonMaterializedIntroducedParameterNamesByType.TryGetValue( type, out var names ) && names.Contains( name );
 
-    public bool HasAnyNonMaterializedIntroducedParameter( INamedTypeSymbol type )
-        => this._nonMaterializedIntroducedParameterNamesByType.ContainsKey( type );
+    public bool HasAnyNonMaterializedIntroducedParameter( INamedTypeSymbol type ) => this._nonMaterializedIntroducedParameterNamesByType.ContainsKey( type );
 
     public bool HasMaterializedIntroducedParameterOnPrimary( INamedTypeSymbol type )
         => this._typesWithMaterializedIntroducedParameterOnPrimary.Contains( type );
@@ -190,7 +191,9 @@ internal sealed class LinkerLateTransformationRegistry
 #if ROSLYN_4_8_0_OR_GREATER
         var typeSyntax =
             (TypeDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )
-                .Single( d => (d.IsKind( SyntaxKind.ClassDeclaration ) || d.IsKind( SyntaxKind.StructDeclaration ) || d.IsKind( SyntaxKind.RecordDeclaration ) || d.IsKind( SyntaxKind.RecordStructDeclaration )) && ((TypeDeclarationSyntax) d).ParameterList != null );
+                .Single(
+                    d => (d.IsKind( SyntaxKind.ClassDeclaration ) || d.IsKind( SyntaxKind.StructDeclaration ) || d.IsKind( SyntaxKind.RecordDeclaration )
+                          || d.IsKind( SyntaxKind.RecordStructDeclaration )) && ((TypeDeclarationSyntax) d).ParameterList != null );
 #else
         var typeSyntax =
             (RecordDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )

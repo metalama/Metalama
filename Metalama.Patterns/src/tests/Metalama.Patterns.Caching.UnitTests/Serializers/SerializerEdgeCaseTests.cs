@@ -11,7 +11,6 @@ namespace Metalama.Patterns.Caching.Tests.Serializers;
 
 public sealed class SerializerEdgeCaseTests
 {
-
     #region CacheItemSerializer Tests
 
     [Fact]
@@ -441,9 +440,7 @@ public sealed class SerializerEdgeCaseTests
         // Create object with 16KB string property
         var largeObject = new LargePayloadObject
         {
-            Id = 42,
-            LargeData = new string( 'y', 16 * 1024 ),
-            Items = Enumerable.Range( 0, 100 ).Select( i => $"item_{i}" ).ToList()
+            Id = 42, LargeData = new string( 'y', 16 * 1024 ), Items = Enumerable.Range( 0, 100 ).Select( i => $"item_{i}" ).ToList()
         };
 
         using var memoryStream = new MemoryStream();
@@ -474,9 +471,7 @@ public sealed class SerializerEdgeCaseTests
 
         var largeObject = new LargePayloadObject
         {
-            Id = 123,
-            LargeData = new string( 'z', 16 * 1024 ),
-            Items = Enumerable.Range( 0, 50 ).Select( i => $"value_{i}" ).ToList()
+            Id = 123, LargeData = new string( 'z', 16 * 1024 ), Items = Enumerable.Range( 0, 50 ).Select( i => $"value_{i}" ).ToList()
         };
 
         var originalItem = new CacheItem( largeObject );
@@ -501,10 +496,10 @@ public sealed class SerializerEdgeCaseTests
     }
 
     [Theory]
-    [InlineData( 1024 )]        // 1 KB
-    [InlineData( 16 * 1024 )]   // 16 KB
-    [InlineData( 64 * 1024 )]   // 64 KB
-    [InlineData( 256 * 1024 )]  // 256 KB
+    [InlineData( 1024 )]       // 1 KB
+    [InlineData( 16 * 1024 )]  // 16 KB
+    [InlineData( 64 * 1024 )]  // 64 KB
+    [InlineData( 256 * 1024 )] // 256 KB
     public void JsonSerializer_RoundTrip_VariousPayloadSizes( int size )
     {
         var serializer = new JsonCachingSerializer();

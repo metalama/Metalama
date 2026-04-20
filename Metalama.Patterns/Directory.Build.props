@@ -7,12 +7,12 @@
         <RepoKind>GitHub</RepoKind>
     </PropertyGroup>
 
-    <Import Project="..\eng\Versions.props"/>
-    <Import Project="..\eng\Packaging.props"/>
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="StrongName.props"/>
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
-     <Import Sdk="PostSharp.Engineering.Sdk" Project="EmbeddedSystemTypes.props" />
+    <Import Project="..\eng\Versions.props" />
+    <Import Project="..\eng\Packaging.props" />
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props" />
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="StrongName.props" />
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props" />
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="EmbeddedSystemTypes.props" />
 
     <PropertyGroup>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>

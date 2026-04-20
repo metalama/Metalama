@@ -7,6 +7,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Serialization;
+using System.Numerics;
 using System.Text;
 
 namespace Metalama.Patterns.Contracts.Numeric;
@@ -387,11 +388,11 @@ public readonly struct NumericRange : ICompileTimeSerializable
 
                 if ( IsZeroBound( bound ) )
                 {
-                    builder.AppendVerbatim( nameof(System.Numerics.INumberBase<int>.Zero) );
+                    builder.AppendVerbatim( nameof(INumberBase<int>.Zero) );
                 }
                 else
                 {
-                    builder.AppendVerbatim( nameof(System.Numerics.INumberBase<int>.CreateChecked) );
+                    builder.AppendVerbatim( nameof(INumberBase<int>.CreateChecked) );
                     builder.AppendVerbatim( "(" );
                     bound.AppendValueToExpression( builder );
                     builder.AppendVerbatim( ")" );

@@ -57,8 +57,7 @@ public readonly struct InitializationContext
     /// The resulting context has <see cref="CallerIntent.WillInitialize"/>, signaling to descendants
     /// that <see cref="IInitializable.Initialize"/> is being invoked.
     /// </summary>
-    public static InitializationContext Create( InitializationMetadata metadata )
-        => new( CallerIntent.WillInitialize, 0u, metadata );
+    public static InitializationContext Create( InitializationMetadata metadata ) => new( CallerIntent.WillInitialize, 0u, metadata );
 
     /// <summary>
     /// The caller's intent regarding <see cref="IInitializable.Initialize"/> invocation.
@@ -97,6 +96,5 @@ public readonly struct InitializationContext
     /// that <see cref="IInitializable.Initialize"/> is being invoked, and <see cref="Metadata"/> is propagated
     /// unchanged from the current context.
     /// </remarks>
-    public InitializationContext Descend( InitializationSlot slots = default )
-        => new( CallerIntent.WillInitialize, this._slots | slots.Mask, this._metadata );
+    public InitializationContext Descend( InitializationSlot slots = default ) => new( CallerIntent.WillInitialize, this._slots | slots.Mask, this._metadata );
 }

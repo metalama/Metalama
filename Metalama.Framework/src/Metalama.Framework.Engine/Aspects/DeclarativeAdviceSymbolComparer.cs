@@ -37,7 +37,9 @@ internal sealed class DeclarativeAdviceSymbolComparer : IComparer<ISymbol>
 
     private static int GetOrderByKind( ISymbol symbol )
     {
-        var kind = symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol methodSymbol ? (SymbolKind.Method, methodSymbol.MethodKind) : (symbol.Kind, default);
+        var kind = symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol methodSymbol
+            ? (SymbolKind.Method, methodSymbol.MethodKind)
+            : (symbol.Kind, default);
 
         if ( _orderedSymbolKinds.TryGetValue( kind, out var order ) )
         {

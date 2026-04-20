@@ -15,6 +15,7 @@ public partial class CachingService
 {
     private const string _nullMetadataWarning =
         "Caching is bypassed because the cache registration has not been initialized yet. This typically happens when a cached method is called from a static field initializer.";
+
     private ICacheItemConfiguration GetMergedMethodConfiguration( CachedMethodMetadata methodMetadata )
         => this.Profiles[methodMetadata.Configuration.ProfileName].GetMergedConfiguration( methodMetadata );
 

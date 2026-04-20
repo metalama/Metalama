@@ -150,6 +150,7 @@ public sealed partial class BaseEndpointTests : RpcUnitTestClass
             _ =>
             {
                 taskStarted.SetResult( true );
+
                 throw new InvalidOperationException( "Test exception" );
             },
             "ThrowingTask" );

@@ -26,8 +26,7 @@ internal class InitializationSlotFactory
 
         if ( bit >= 32 )
         {
-            throw new InvalidOperationException(
-                "Cannot allocate an InitializationSlot: the maximum of 32 slots has been exceeded." );
+            throw new InvalidOperationException( "Cannot allocate an InitializationSlot: the maximum of 32 slots has been exceeded." );
         }
 
         return new InitializationSlot( 1u << bit );

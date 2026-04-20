@@ -109,7 +109,6 @@ public static class SyntaxKindExtensions
         /// Gets a value indicating whether the syntax kind represents a namespace declaration
         /// (namespace or file-scoped namespace).
         /// </summary>
-        public bool IsNamespaceDeclaration
-            => kind is SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration;
+        public bool IsNamespaceDeclaration => kind is SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration;
     }
 }

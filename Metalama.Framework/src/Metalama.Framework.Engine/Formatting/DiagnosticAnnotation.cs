@@ -30,7 +30,8 @@ namespace Metalama.Framework.Engine.Formatting
 
         public string ToJson() => JsonSerializer.Serialize( this, DiagnosticAnnotationJsonContext.Default.DiagnosticAnnotation );
 
-        public static DiagnosticAnnotation? FromJson( string json ) => JsonSerializer.Deserialize( json, DiagnosticAnnotationJsonContext.Default.DiagnosticAnnotation );
+        public static DiagnosticAnnotation? FromJson( string json )
+            => JsonSerializer.Deserialize( json, DiagnosticAnnotationJsonContext.Default.DiagnosticAnnotation );
 
         public override string ToString() => $"{this.Severity} {this.Id}: {this.Message}";
     }

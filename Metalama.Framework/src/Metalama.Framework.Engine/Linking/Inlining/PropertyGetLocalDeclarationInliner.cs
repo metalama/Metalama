@@ -65,7 +65,8 @@ namespace Metalama.Framework.Engine.Linking.Inlining
             }
 
             // Should be within local declaration.
-            if ( !variableDeclaration.Parent.IsKind( SyntaxKind.LocalDeclarationStatement ) || variableDeclaration.Parent is not LocalDeclarationStatementSyntax )
+            if ( !variableDeclaration.Parent.IsKind( SyntaxKind.LocalDeclarationStatement )
+                 || variableDeclaration.Parent is not LocalDeclarationStatementSyntax )
             {
                 // Coverage: ignore (only incorrect code can get here).
                 return false;
@@ -102,7 +103,8 @@ namespace Metalama.Framework.Engine.Linking.Inlining
                     LocalDeclarationStatement(
                             VariableDeclaration(
                                 syntaxGenerationContext.SyntaxGenerator.TypeSyntax( specification.DestinationSemantic.Symbol.ReturnType ),
-                                SingletonSeparatedList( VariableDeclarator( SyntaxFactoryEx.SafeIdentifier( specification.ReturnVariableIdentifier.AssertNotNull() ) ) ) ) )
+                                SingletonSeparatedList(
+                                    VariableDeclarator( SyntaxFactoryEx.SafeIdentifier( specification.ReturnVariableIdentifier.AssertNotNull() ) ) ) ) )
                         .NormalizeWhitespaceIfNecessary( syntaxGenerationContext )
                         .WithOptionalTrailingLineFeed( syntaxGenerationContext ),
                     linkedTargetBody )

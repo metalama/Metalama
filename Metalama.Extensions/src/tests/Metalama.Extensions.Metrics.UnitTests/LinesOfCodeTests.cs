@@ -61,8 +61,10 @@ class C
 
             // Logical (braces excluded): void M(), var x = 0;, x++; = 3 lines
             Assert.Equal( 3, loc.Logical );
+
             // NonBlank: void M(), {, var x = 0;, x++;, } = 5 lines
             Assert.Equal( 5, loc.NonBlank );
+
             // Total: line span = 5 lines
             Assert.Equal( 5, loc.Total );
         }
@@ -94,6 +96,7 @@ class C
 
             // Comments and braces excluded: void M(), var x = 0;, x++; = 3 lines
             Assert.Equal( 3, loc.Logical );
+
             // NonBlank: void M(), {, // comment, var x = 0;, // comment, x++;, } = 7 lines
             Assert.Equal( 7, loc.NonBlank );
             Assert.Equal( 7, loc.Total );
@@ -126,6 +129,7 @@ class C
 
             // Multi-line comments and braces excluded: void M(), var x = 0; = 2 lines
             Assert.Equal( 2, loc.Logical );
+
             // NonBlank: void M(), {, /* comment, multi-line, comment */, var x = 0;, } = 7 lines
             Assert.Equal( 7, loc.NonBlank );
             Assert.Equal( 7, loc.Total );
@@ -158,6 +162,7 @@ class C
 
             // XML doc comments and braces excluded: void M(), var x = 0; = 2 lines
             Assert.Equal( 2, loc.Logical );
+
             // NonBlank: void M(), {, var x = 0;, } = 4 lines (XML doc is leading trivia, not part of method span)
             Assert.Equal( 4, loc.NonBlank );
             Assert.Equal( 4, loc.Total );
@@ -189,6 +194,7 @@ line3"";
 
             // Method with verbatim string (braces excluded): void M(), var s = @"line1, line2, line3"; = 4 lines
             Assert.Equal( 4, loc.Logical );
+
             // NonBlank: void M(), {, var s = @"line1, line2, line3";, } = 6 lines
             Assert.Equal( 6, loc.NonBlank );
             Assert.Equal( 6, loc.Total );
@@ -219,6 +225,7 @@ class C
 
             // Method with interpolated string (braces excluded): void M(), var x = 5;, var s = ...; = 3 lines
             Assert.Equal( 3, loc.Logical );
+
             // NonBlank: void M(), {, var x = 5;, var s = ...;, } = 5 lines
             Assert.Equal( 5, loc.NonBlank );
             Assert.Equal( 5, loc.Total );
@@ -252,8 +259,10 @@ class C
 
             // Logical (braces excluded): void M(), var x = 0;, x++; = 3 lines
             Assert.Equal( 3, loc.Logical );
+
             // NonBlank: void M(), {, var x = 0;, x++;, } = 5 lines (blank lines excluded)
             Assert.Equal( 5, loc.NonBlank );
+
             // Total: line span including blank lines = 8 lines
             Assert.Equal( 8, loc.Total );
         }
@@ -282,6 +291,7 @@ class C
 
             // Type (braces excluded): class C, void M1(), void M2(), var x = 0; = 4 lines
             Assert.Equal( 4, loc.Logical );
+
             // NonBlank: class C, {, void M1() {}, void M2(), {, var x = 0;, }, } = 8 lines
             Assert.Equal( 8, loc.NonBlank );
             Assert.Equal( 8, loc.Total );
@@ -315,6 +325,7 @@ class C
             // #if and #endif are trivia and not counted. Braces excluded.
             // Only: void M() = 1 line
             Assert.Equal( 1, loc.Logical );
+
             // NonBlank includes inactive branches: void M(), {, #if DEBUG, var x = 0;, #endif, } = 6 lines
             Assert.Equal( 6, loc.NonBlank );
             Assert.Equal( 6, loc.Total );
@@ -348,6 +359,7 @@ class C
             // #if and #endif are trivia and not counted. Braces excluded.
             // Code: void M(), var x = 0; = 2 lines
             Assert.Equal( 2, loc.Logical );
+
             // NonBlank: void M(), {, #if true, var x = 0;, #endif, } = 6 lines
             Assert.Equal( 6, loc.NonBlank );
             Assert.Equal( 6, loc.Total );
@@ -383,6 +395,7 @@ class C
             // #if, #else, #endif are trivia and not counted. Braces excluded.
             // Code: void M(), var y = 1; = 2 lines
             Assert.Equal( 2, loc.Logical );
+
             // NonBlank includes both branches: void M(), {, #if, var x, #else, var y, #endif, } = 8 lines
             Assert.Equal( 8, loc.NonBlank );
             Assert.Equal( 8, loc.Total );
@@ -417,6 +430,7 @@ class C
             // #define, #if, #endif are all trivia and not counted. Braces excluded.
             // Code: void M(), var x = 0; = 2 lines
             Assert.Equal( 2, loc.Logical );
+
             // NonBlank: void M(), {, #if FEATURE, var x = 0;, #endif, } = 6 lines
             Assert.Equal( 6, loc.NonBlank );
             Assert.Equal( 6, loc.Total );
@@ -468,8 +482,10 @@ class C
             // Type (braces excluded): class C, int x y z (1 line for all 3 fields), M1 (2), M2 (3) = 7 lines
             // Multi-field declaration on same line counts as 1 line, not 3
             Assert.Equal( 7, locType.Logical );
+
             // NonBlank: 15 lines - 2 blank lines = 13 lines
             Assert.Equal( 13, locType.NonBlank );
+
             // Total = 15 lines
             Assert.Equal( 15, locType.Total );
         }
@@ -519,6 +535,7 @@ partial class C
             // Type aggregates from both partial declarations (braces excluded):
             // partial class C, M1 (2), partial class C, M2 (2) = 6 lines
             Assert.Equal( 6, locType.Logical );
+
             // NonBlank: partial class C (7) + partial class C (7) = 14 lines
             Assert.Equal( 14, locType.NonBlank );
             Assert.Equal( 14, locType.Total );
@@ -555,6 +572,7 @@ partial class C
             // Declaration: partial void M(); = 1 line
             // Implementation: partial void M(), var x = 1; = 2 lines (braces excluded)
             Assert.Equal( 3, loc.Logical );
+
             // NonBlank: declaration (1) + implementation (4) = 5 lines
             Assert.Equal( 5, loc.NonBlank );
             Assert.Equal( 5, loc.Total );
@@ -585,6 +603,7 @@ class C
             // Multiple statements on one line count as one line (braces excluded)
             // void M(), var x = 0; x++; x++; = 2 lines
             Assert.Equal( 2, loc.Logical );
+
             // NonBlank: void M(), {, var x = 0; x++; x++;, } = 4 lines
             Assert.Equal( 4, loc.NonBlank );
             Assert.Equal( 4, loc.Total );
@@ -616,6 +635,7 @@ class C
 
             // Property (braces excluded): public int X, get return _x;, set _x = value; = 3 lines
             Assert.Equal( 3, loc.Logical );
+
             // NonBlank: public int X, {, get { return _x; }, set { _x = value; }, } = 5 lines
             Assert.Equal( 5, loc.NonBlank );
             Assert.Equal( 5, loc.Total );

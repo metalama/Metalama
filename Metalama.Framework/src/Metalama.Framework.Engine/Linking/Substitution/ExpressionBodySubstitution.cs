@@ -52,7 +52,10 @@ namespace Metalama.Framework.Engine.Linking.Substitution
 
             switch ( currentNode.Kind() )
             {
-                case SyntaxKind.ArrowExpressionClause when currentNode is ArrowExpressionClauseSyntax { Expression: ThrowExpressionSyntax throwExpressionSyntax }:
+                case SyntaxKind.ArrowExpressionClause when currentNode is ArrowExpressionClauseSyntax
+                {
+                    Expression: ThrowExpressionSyntax throwExpressionSyntax
+                }:
                     {
                         return
                             syntaxGenerator.FormattedBlock(
@@ -78,7 +81,10 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                             return
                                 syntaxGenerator.FormattedBlock(
                                         ReturnStatement(
-                                            Token( arrowExpressionClause.Expression.GetLeadingTrivia(), SyntaxKind.ReturnKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ),
+                                            Token(
+                                                arrowExpressionClause.Expression.GetLeadingTrivia(),
+                                                SyntaxKind.ReturnKeyword,
+                                                SyntaxFactoryEx.ElasticSpaceTriviaList ),
                                             arrowExpressionClause.Expression,
                                             Token(
                                                 TriviaList(),

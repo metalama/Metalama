@@ -308,5 +308,4 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
         Assert.Contains( "MLTEST", diagnostic.GetLocalizedMessage(), StringComparison.Ordinal );
         Assert.Contains( "Warning!", diagnostic.GetLocalizedMessage(), StringComparison.Ordinal );
     }
-
 }

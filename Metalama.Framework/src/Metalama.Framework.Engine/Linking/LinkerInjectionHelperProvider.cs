@@ -135,7 +135,8 @@ internal sealed class LinkerInjectionHelperProvider
                 TypeArgumentList( SeparatedList( typeParameters ) ) ) );
     }
 
-    public TypeSyntax GetSourceType() => QualifiedName( SyntaxFactoryEx.WellKnownIdentifierName( HelperTypeName ), SyntaxFactoryEx.WellKnownIdentifierName( _sourceCodeTypeName ) );
+    public TypeSyntax GetSourceType()
+        => QualifiedName( SyntaxFactoryEx.WellKnownIdentifierName( HelperTypeName ), SyntaxFactoryEx.WellKnownIdentifierName( _sourceCodeTypeName ) );
 
     public TypeSyntax GetOverriddenByType( SyntaxGenerationContext context, IAspectClass aspectType, int ordinal )
         => this.GetNumberedHelperType( context, _overriddenByTypeName, "override", aspectType, ordinal );

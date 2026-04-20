@@ -340,7 +340,11 @@ public abstract class AspectPipeline : IDisposable
 
         if ( extensionLoader != null )
         {
-            var extensionTypes = extensionLoader.GetExtensionTypes( this.ProjectOptions, domain, ExtensionKinds.Default | ExtensionKinds.ServiceFactory, diagnosticAdder );
+            var extensionTypes = extensionLoader.GetExtensionTypes(
+                this.ProjectOptions,
+                domain,
+                ExtensionKinds.Default | ExtensionKinds.ServiceFactory,
+                diagnosticAdder );
 
             foreach ( var extensionType in extensionTypes )
             {
@@ -440,7 +444,12 @@ public abstract class AspectPipeline : IDisposable
 
         var contributors = ImmutableArray.CreateBuilder<IPipelineContributor>();
 
-        var transitivePipelineContributorSource = TransitivePipelineContributorSource.Create( compilationContext, aspectClasses, configuration.ServiceProvider, diagnosticSink );
+        var transitivePipelineContributorSource = TransitivePipelineContributorSource.Create(
+            compilationContext,
+            aspectClasses,
+            configuration.ServiceProvider,
+            diagnosticSink );
+
         contributors.AddRange( transitivePipelineContributorSource.Contributors );
         contributors.Add( new CompilationAspectSource( configuration.ServiceProvider, aspectClasses ) );
         contributors.Add( new CompilationHierarchicalOptionsSource( configuration.ServiceProvider ) );
@@ -494,7 +503,6 @@ public abstract class AspectPipeline : IDisposable
         var serviceProvider = pipelineConfiguration.ServiceProvider;
         var initializationDiagnosticSink = new UserDiagnosticSink( serviceProvider );
 
-
         // We need to override the execution scenario in this service provider as well.
         var executionScenario = this.ServiceProvider.GetRequiredService<ExecutionScenario>();
         serviceProvider = serviceProvider.WithService( executionScenario, allowOverride: true );
@@ -511,7 +519,11 @@ public abstract class AspectPipeline : IDisposable
                 pipelineConfiguration );
         }
 
-        var contributorSources = this.CreatePipelineContributorSources( pipelineConfiguration, compilation.CompilationContext, initializationDiagnosticSink, cancellationToken );
+        var contributorSources = this.CreatePipelineContributorSources(
+            pipelineConfiguration,
+            compilation.CompilationContext,
+            initializationDiagnosticSink,
+            cancellationToken );
 
         var additionalCompilationOutputFiles = GetAdditionalCompilationOutputFiles( serviceProvider );
 
@@ -523,7 +535,7 @@ public abstract class AspectPipeline : IDisposable
             compilation,
             hierarchicalOptionsManager: hierarchicalOptionsManager,
             externalAnnotationProvider: contributorSources.ExternalAnnotationProvider );
-        
+
         await hierarchicalOptionsManager.InitializeAsync(
             pipelineConfiguration.CompileTimeProject,
             contributorSources.Contributors.OfKind( ContributorKind.HierarchicalOptionsSource ),

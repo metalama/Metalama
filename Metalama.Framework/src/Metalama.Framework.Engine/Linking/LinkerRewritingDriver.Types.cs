@@ -109,7 +109,7 @@ internal sealed partial class LinkerRewritingDriver
                 var propertySymbol = parameterSymbol.ContainingType.GetMembers( parameterSymbol.Name ).OfType<IPropertySymbol>().FirstOrDefault();
 
                 if ( propertySymbol?.GetPrimaryDeclarationSyntax()?.Kind() == SyntaxKind.Parameter
-                    && propertySymbol.GetPrimaryDeclarationSyntax() is ParameterSyntax && this.IsRewriteTarget( propertySymbol ) )
+                     && propertySymbol.GetPrimaryDeclarationSyntax() is ParameterSyntax && this.IsRewriteTarget( propertySymbol ) )
                 {
                     SyntaxGenerationContext GetSyntaxGenerationContext()
                     {

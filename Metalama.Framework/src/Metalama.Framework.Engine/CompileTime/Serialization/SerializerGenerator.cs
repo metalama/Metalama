@@ -569,7 +569,8 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 BaseExpression(),
                                 IdentifierName( nameof(ReferenceTypeSerializer.SerializeObject) ) ),
-                            ArgumentList( SeparatedList( baseSerializeMethod.Parameters.Select( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) ) );
+                            ArgumentList(
+                                SeparatedList( baseSerializeMethod.Parameters.Select( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) ) );
         }
     }
 
@@ -631,7 +632,8 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 BaseExpression(),
                                 IdentifierName( nameof(ReferenceTypeSerializer.DeserializeFields) ) ),
-                            ArgumentList( SeparatedList( baseDeserializeMethod.Parameters.Select( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) ) );
+                            ArgumentList(
+                                SeparatedList( baseDeserializeMethod.Parameters.Select( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) ) );
         }
     }
 
@@ -687,7 +689,8 @@ internal sealed class SerializerGenerator : ISerializerGenerator
             null,
             ParameterList(
                 SeparatedList(
-                    methodSymbol.Parameters.Select( p => Parameter( SyntaxFactoryEx.SafeIdentifier( p.Name ) ).WithType( this._context.SyntaxGenerator.TypeSyntax( p.Type ) ) ) ) ),
+                    methodSymbol.Parameters.Select(
+                        p => Parameter( SyntaxFactoryEx.SafeIdentifier( p.Name ) ).WithType( this._context.SyntaxGenerator.TypeSyntax( p.Type ) ) ) ) ),
             List<TypeParameterConstraintClauseSyntax>(),
             body,
             null );
@@ -872,7 +875,8 @@ internal sealed class SerializerGenerator : ISerializerGenerator
         var (containingType, type, isReadOnly) = symbol.Kind switch
         {
             SymbolKind.Field when symbol is IFieldSymbol field => (field.ContainingType, field.Type, field.IsReadOnly),
-            SymbolKind.Property when symbol is IPropertySymbol property => (property.ContainingType, property.Type, property.IsReadOnly || property.SetMethod?.IsInitOnly == true),
+            SymbolKind.Property when symbol is IPropertySymbol property => (
+                property.ContainingType, property.Type, property.IsReadOnly || property.SetMethod?.IsInitOnly == true),
             _ => throw new AssertionFailedException( $"Unexpected symbol kind: {symbol.Kind}." )
         };
 

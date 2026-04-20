@@ -45,10 +45,10 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
         var assemblyName = context.Compilation.AssemblyName;
 
         if ( assemblyName == null ||
-             !( assemblyName.StartsWith( "Metalama.Framework", StringComparison.Ordinal ) ||
-                assemblyName.StartsWith( "Metalama.Testing", StringComparison.Ordinal ) ||
-                assemblyName.StartsWith( "Metalama.Extensions", StringComparison.Ordinal ) ||
-                assemblyName.StartsWith( "Metalama.Patterns", StringComparison.Ordinal ) ) )
+             !(assemblyName.StartsWith( "Metalama.Framework", StringComparison.Ordinal ) ||
+               assemblyName.StartsWith( "Metalama.Testing", StringComparison.Ordinal ) ||
+               assemblyName.StartsWith( "Metalama.Extensions", StringComparison.Ordinal ) ||
+               assemblyName.StartsWith( "Metalama.Patterns", StringComparison.Ordinal )) )
         {
             return;
         }

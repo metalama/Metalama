@@ -385,7 +385,10 @@ internal sealed partial class LinkerAnalysisStep
                     }:
                         return IsInlinedSemanticBody( semantic.ToTyped<IMethodSymbol>() );
 
-                    case SymbolKind.Method when semantic.Symbol is IMethodSymbol { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet } propertyAccessor:
+                    case SymbolKind.Method when semantic.Symbol is IMethodSymbol
+                    {
+                        MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet
+                    } propertyAccessor:
                         return IsInlinedSemantic( semantic.WithSymbol( propertyAccessor.AssociatedSymbol.AssertNotNull() ) );
 
                     case SymbolKind.Method when semantic.Symbol is IMethodSymbol { MethodKind: MethodKind.EventAdd or MethodKind.EventRemove } eventAccessor:

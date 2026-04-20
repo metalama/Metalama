@@ -717,8 +717,7 @@ internal sealed partial class LinkerInjectionStep
         /// real <c>base.Initialize(...)</c> / <c>base.OnConstructed(...)</c> call in the body and
         /// emit AfterBase statements after the (possibly hand-authored) user body.
         /// </summary>
-        private static bool AfterBaseEmittedAtEntry( IRef<IMethodBase> targetMethod )
-            => targetMethod is IRef<IConstructor>;
+        private static bool AfterBaseEmittedAtEntry( IRef<IMethodBase> targetMethod ) => targetMethod is IRef<IConstructor>;
 
         /// <summary>
         /// Returns the ordered list of output contract statements for a source constructor.
@@ -731,8 +730,7 @@ internal sealed partial class LinkerInjectionStep
                 return ImmutableArray<StatementSyntax>.Empty;
             }
 
-            var outputContractStatements = OrderContractStatements(
-                insertedStatements.Where( s => s.Kind == InsertedStatementKind.OutputContract ) );
+            var outputContractStatements = OrderContractStatements( insertedStatements.Where( s => s.Kind == InsertedStatementKind.OutputContract ) );
 
             return outputContractStatements
                 .Select(

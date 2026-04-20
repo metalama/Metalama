@@ -8,6 +8,7 @@ using Metalama.Patterns.Caching.TestHelpers;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
+
 // ReSharper disable UseAwaitUsing
 // ReSharper disable MethodHasAsyncOverload
 // ReSharper disable MethodHasAsyncOverloadWithCancellation
