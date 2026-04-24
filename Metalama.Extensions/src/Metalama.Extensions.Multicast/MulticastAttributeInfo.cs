@@ -13,7 +13,7 @@ namespace Metalama.Extensions.Multicast;
 /// Encapsulates an <see cref="IMulticastAttribute"/> and provides matching methods for it.
 /// </summary>
 [CompileTime]
-internal class MulticastAttributeInfo : IComparable<MulticastAttributeInfo>
+internal sealed class MulticastAttributeInfo : IComparable<MulticastAttributeInfo>
 {
     public IMulticastAttribute Attribute { get; }
 

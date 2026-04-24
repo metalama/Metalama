@@ -14,7 +14,7 @@ namespace Metalama.Extensions.Multicast;
 /// Encapsulates a group of attributes of an aspect type applied to the same declaration.
 /// </summary>
 [CompileTime]
-internal class MulticastAttributeGroup
+internal sealed class MulticastAttributeGroup
 {
     private readonly MulticastTargets _allowedTargets;
     private readonly List<MulticastAttributeInfo> _attributes;

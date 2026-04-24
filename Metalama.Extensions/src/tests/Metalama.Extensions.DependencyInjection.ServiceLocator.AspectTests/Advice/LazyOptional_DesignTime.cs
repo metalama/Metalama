@@ -22,6 +22,7 @@ public sealed class MyAspect : TypeAspect
 }
 
 // ReSharper disable once MemberCanBeInternal
+// ReSharper disable once PartialTypeWithSinglePart
 // <target>
 [MyAspect]
 public partial class TargetClass

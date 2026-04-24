@@ -12,7 +12,7 @@ namespace Metalama.Extensions.DependencyInjection;
 /// Builder for configuring dependency injection options.
 /// </summary>
 /// <remarks>
-/// Use this builder with <see cref="DependencyInjectionExtensions.ConfigureDependencyInjection"/> to configure
+/// Use this builder with <see cref="DependencyInjectionExtensions.ConfigureDependencyInjection(Metalama.Framework.Fabrics.IQuery{Metalama.Framework.Code.ICompilation},System.Action{DependencyInjectionOptionsBuilder})"/> to configure
 /// the dependency injection framework, set default options, and register custom DI frameworks.
 /// </remarks>
 /// <seealso cref="DependencyInjectionExtensions"/>

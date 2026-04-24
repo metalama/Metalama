@@ -6,7 +6,7 @@ using System;
 
 namespace Metalama.Extensions.DependencyInjection.ServiceLocator;
 
-internal class EmptyServiceProvider : IServiceProvider
+internal sealed class EmptyServiceProvider : IServiceProvider
 {
     public static EmptyServiceProvider Instance { get; } = new();
 
