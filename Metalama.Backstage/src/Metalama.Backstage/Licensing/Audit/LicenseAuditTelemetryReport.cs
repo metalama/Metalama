@@ -22,11 +22,7 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
 
     public override string Kind => "LicenseAudit";
 
-    public DateTime BuildDate { get; }
-
-    public DateTime Date { get; }
-
-    public bool IsUsageReportingEnabled => this._usageReporter.IsUsageReportingEnabled;
+    private bool IsUsageReportingEnabled => this._usageReporter.IsUsageReportingEnabled;
 
     public long AuditHashCode { get; }
 
@@ -35,12 +31,12 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
         LicenseConsumptionProperties license ) : base( serviceProvider, new MetricCollection() )
     {
         this.License = license;
-        this.Date = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>().UtcNow;
+        var date = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>().UtcNow;
 
         this._usageReporter = serviceProvider.GetRequiredBackstageService<IUsageReporter>();
 
-        this.BuildDate = this.ReportedComponent.BuildDate
-                         ?? throw new InvalidOperationException( $"Build date of '{this.ReportedComponent.Name}' application is unknown." );
+        var buildDate = this.ReportedComponent.BuildDate
+                        ?? throw new InvalidOperationException( $"Build date of '{this.ReportedComponent.Name}' application is unknown." );
 
         var auditHashCodeBuilder = new XxHash64();
 
@@ -53,9 +49,9 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
         }
 
         // Audit date is not part of the audit hash code. 
-        this.Metrics.Add( new LicenseAuditDateMetric( "Date", this.Date ) );
+        this.Metrics.Add( new LicenseAuditDateMetric( "Date", date ) );
         AddToMetricsAndHashCode( new StringMetric( "Version", this.ReportedComponent.PackageVersion ) );
-        AddToMetricsAndHashCode( new LicenseAuditDateMetric( "BuildDate", this.BuildDate ) );
+        AddToMetricsAndHashCode( new LicenseAuditDateMetric( "BuildDate", buildDate ) );
         AddToMetricsAndHashCode( new StringMetric( "License", this.License.LicenseString ) );
         AddToMetricsAndHashCode( new LicenseAuditHashMetric( "User", this.UserHash ) );
         AddToMetricsAndHashCode( new LicenseAuditHashMetric( "Machine", this.DeviceHash ) );

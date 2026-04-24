@@ -38,7 +38,7 @@ public sealed class UsageReporterTests : TestsBase
             .AddSingleton( serviceProvider => new TelemetryLogger( serviceProvider ) )
             .AddSingleton<ITelemetryUploader>( new NullTelemetryUploader() )
             .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )
-            .AddSingleton( services => new MatomoUploader( services ) );
+            .AddSingleton( serviceProvider => new MatomoUploader( serviceProvider ) );
 
     private void ReportSession( string kind = "TestSession" )
     {

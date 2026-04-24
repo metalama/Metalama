@@ -11,5 +11,10 @@ namespace Metalama.Backstage.Worker.WebServer;
 internal class WebServerCommandSettings : CommandSettings
 {
     [CommandOption( "--port" )]
-    public int Port { get; set; } = 5252;
+    public int Port
+    {
+        get;
+        [UsedImplicitly]
+        init;
+    } = 5252;
 }

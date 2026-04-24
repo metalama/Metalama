@@ -11,7 +11,7 @@ namespace Metalama.Backstage.Testing;
 // https://github.com/Testably/Testably.Abstractions/blob/main/Source/Testably.Abstractions.Compression/Internal/ZipUtilities.cs
 internal static class TestFileSystemZipUtilities
 {
-    internal static void ExtractRelativeToDirectory(
+    private static void ExtractRelativeToDirectory(
         TestFileSystem fileSystem,
         ZipArchiveEntry sourceEntry,
         string destinationDirectoryName,

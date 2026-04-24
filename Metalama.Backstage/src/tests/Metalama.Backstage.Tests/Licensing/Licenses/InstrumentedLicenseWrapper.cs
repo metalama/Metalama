@@ -13,13 +13,13 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
 {
     internal sealed class InstrumentedLicenseWrapper : ILicense, IUsable
     {
-        public ILicense License { get; }
+        private readonly ILicense _license;
 
         public int NumberOfAuditReports { get; private set; }
 
         public InstrumentedLicenseWrapper( ILicense license )
         {
-            this.License = license;
+            this._license = license;
         }
 
         // MaybeNullWhenAttribute cannot be used here since the Metalama.Backstage assembly shares internals with this assembly.
@@ -30,19 +30,19 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
             LicenseConsumptionOptions options,
             out LicenseConsumptionProperties licenseProperties,
             out string errorMessage )
-            => this.License.TryGetConsumptionProperties( options, out licenseProperties!, out errorMessage! );
+            => this._license.TryGetConsumptionProperties( options, out licenseProperties!, out errorMessage! );
 
         // MaybeNullWhenAttribute cannot be used here since the Metalama.Backstage assembly shares internals with this assembly.
         // That causes CS0433 error. (Same type defined in two referenced assemblies.)
         public bool TryGetRegistrationProperties( /* [MaybeNullWhenAttribute( false )] */
             out LicenseRegistrationProperties licenseProperties,
             out string errorMessage )
-            => this.License.TryGetRegistrationProperties( out licenseProperties!, out errorMessage! );
+            => this._license.TryGetRegistrationProperties( out licenseProperties!, out errorMessage! );
 
         public void ReportUse()
         {
             this.NumberOfAuditReports++;
-            this.License.ReportUse();
+            this._license.ReportUse();
         }
 
         public void ResetNumberOfAuditReports()
@@ -53,12 +53,12 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
         public override bool Equals( object? obj )
         {
             return obj is InstrumentedLicenseWrapper license &&
-                   EqualityComparer<ILicense>.Default.Equals( this.License, license.License );
+                   EqualityComparer<ILicense>.Default.Equals( this._license, license._license );
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine( this.License );
+            return HashCode.Combine( this._license );
         }
     }
 }

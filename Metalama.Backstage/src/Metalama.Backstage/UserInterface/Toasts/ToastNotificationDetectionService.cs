@@ -34,7 +34,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         this._toastNotificationService = serviceProvider.GetRequiredBackstageService<IToastNotificationService>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
         this._webLinks = serviceProvider.GetRequiredBackstageService<WebLinks>();
-        this._logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
+        this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(ToastNotificationDetectionService) );
     }
 
     private string FormatExpiration( DateTime expiration )

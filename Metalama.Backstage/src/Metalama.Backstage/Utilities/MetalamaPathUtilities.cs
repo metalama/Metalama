@@ -4,11 +4,13 @@
 
 // There is a copy of this code in Metalama.Compiler.Shared and partially in Metalama ResourceExtractor.
 
+using JetBrains.Annotations;
 using System;
 using System.IO;
 
 namespace Metalama.Backstage.Utilities;
 
+[PublicAPI]
 public static class MetalamaPathUtilities
 {
     private static readonly string? _overriddenTempPath;

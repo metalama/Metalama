@@ -60,7 +60,7 @@ public sealed class TempFileManager : ITempFileManager
     /// <param name="force">Ignore last clean-up time.</param>
     public void CleanTempDirectories( bool force = false, bool all = false )
     {
-        using var mutex = MutexHelper.WithLock(
+        var mutex = MutexHelper.WithLock(
             this._standardDirectories.TempDirectory,
             this._fileSystem.SynchronizationPrefix,
             TimeSpan.FromMilliseconds( 1 ),

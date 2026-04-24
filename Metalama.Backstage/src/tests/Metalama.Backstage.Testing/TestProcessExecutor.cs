@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Backstage.Infrastructure;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,7 @@ using System.Diagnostics;
 
 namespace Metalama.Backstage.Testing;
 
+[PublicAPI]
 public class TestProcessExecutor : IProcessExecutor
 {
     public List<ProcessStartInfo> StartedProcesses { get; } = [];
@@ -20,7 +22,7 @@ public class TestProcessExecutor : IProcessExecutor
         return new TestProcess();
     }
 
-    private class TestProcess : IProcess
+    private sealed class TestProcess : IProcess
     {
         public void Dispose() { }
 

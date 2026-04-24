@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using System;
@@ -20,6 +21,7 @@ namespace Metalama.Backstage.Testing
 {
     // Resharper disable UnusedMember.Global
 
+    [PublicAPI]
     public partial class TestFileSystem : Infrastructure_IFileSystem
     {
         private enum ExecutionKind
@@ -368,7 +370,7 @@ namespace Metalama.Backstage.Testing
             return handle;
         }
 
-        private class WatcherHandle : IDisposable
+        private sealed class WatcherHandle : IDisposable
         {
             private readonly TestFileSystem _fileSystem;
             private readonly string _directory;

@@ -6,14 +6,14 @@ using Metalama.Backstage.Licensing.Licenses;
 
 namespace PostSharp.LicenseKeyReader
 {
-    public partial class MainForm : Form
+    internal sealed partial class MainForm : Form
     {
         public MainForm()
         {
             this.InitializeComponent();
         }
 
-        public void ShowError( string message )
+        private void ShowError( string message )
         {
             MessageBox.Show( this, message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error );
         }

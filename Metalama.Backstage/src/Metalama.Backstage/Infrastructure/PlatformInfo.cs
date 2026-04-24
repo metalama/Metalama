@@ -143,6 +143,7 @@ namespace Metalama.Backstage.Infrastructure
 
                 if ( !string.IsNullOrWhiteSpace( environmentVariableValue ) )
                 {
+                    // ReSharper disable once RedundantSuppressNullableWarningExpression
                     yield return environmentVariableValue!;
                 }
             }
@@ -157,7 +158,7 @@ namespace Metalama.Backstage.Infrastructure
                     var baseDirectory = Path.Combine( programFiles, "dotnet" );
 
                     // On ARM64 OS running x64 process, check the x64 subfolder first.
-                    if ( this._runtimeInformation.OSArchitecture == Architecture.Arm64 && this._runtimeInformation.ProcessArchitecture == Architecture.X64 )
+                    if ( this._runtimeInformation is { OSArchitecture: Architecture.Arm64, ProcessArchitecture: Architecture.X64 } )
                     {
                         yield return Path.Combine( baseDirectory, "x64" );
                     }
@@ -170,7 +171,7 @@ namespace Metalama.Backstage.Infrastructure
                 const string baseDirectory = "/usr/local/share/dotnet";
 
                 // On ARM64 macOS running x64 process, check the x64 subfolder first.
-                if ( this._runtimeInformation.OSArchitecture == Architecture.Arm64 && this._runtimeInformation.ProcessArchitecture == Architecture.X64 )
+                if ( this._runtimeInformation is { OSArchitecture: Architecture.Arm64, ProcessArchitecture: Architecture.X64 } )
                 {
                     yield return Path.Combine( baseDirectory, "x64" );
                 }
@@ -187,7 +188,7 @@ namespace Metalama.Backstage.Infrastructure
                 ];
 
                 // On ARM64 Linux running x64 process, check x64 subfolders first.
-                if ( this._runtimeInformation.OSArchitecture == Architecture.Arm64 && this._runtimeInformation.ProcessArchitecture == Architecture.X64 )
+                if ( this._runtimeInformation is { OSArchitecture: Architecture.Arm64, ProcessArchitecture: Architecture.X64 } )
                 {
                     foreach ( var location in linuxLocations )
                     {

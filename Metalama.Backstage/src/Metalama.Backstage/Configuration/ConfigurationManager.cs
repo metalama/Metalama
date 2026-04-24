@@ -195,8 +195,6 @@ namespace Metalama.Backstage.Configuration
             {
                 settings = GetCore();
                 this.AddToCache( settings );
-
-                return settings;
             }
             else
             {

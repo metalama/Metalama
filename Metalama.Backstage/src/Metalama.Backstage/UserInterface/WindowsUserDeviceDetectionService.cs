@@ -79,7 +79,7 @@ internal sealed class WindowsUserDeviceDetectionService : IUserDeviceDetectionSe
                 EnumDisplayMonitors(
                     IntPtr.Zero,
                     IntPtr.Zero,
-                    ( IntPtr _, IntPtr _, ref Rect rect, IntPtr _ ) =>
+                    ( _, _, ref rect, _ ) =>
                     {
                         totalWidth += rect.Right - rect.Left;
 

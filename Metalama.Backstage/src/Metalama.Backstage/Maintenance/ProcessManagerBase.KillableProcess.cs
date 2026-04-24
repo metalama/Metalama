@@ -14,12 +14,11 @@ internal abstract partial class ProcessManagerBase
     protected sealed class KillableProcess
     {
         private readonly ILogger _logger;
+        private readonly string? _mainModule;
 
         public KillableProcessSpec Spec { get; }
 
         public Process Process { get; }
-
-        public string? MainModule { get; }
 
         private bool Shutdown()
         {
@@ -37,7 +36,7 @@ internal abstract partial class ProcessManagerBase
                     StartInfo = new ProcessStartInfo()
                     {
                         FileName = this.Process.MainModule!.FileName,
-                        Arguments = this.MainModule != null ? $"\"{this.MainModule}\" -shutdown" : "-shutdown",
+                        Arguments = this._mainModule != null ? $"\"{this._mainModule}\" -shutdown" : "-shutdown",
                         RedirectStandardOutput = true
                     }
                 };
@@ -100,7 +99,7 @@ internal abstract partial class ProcessManagerBase
             this.Process = process;
             this._logger = logger;
             this.Spec = spec;
-            this.MainModule = mainModule;
+            this._mainModule = mainModule;
         }
 
         public void ShutdownOrKill()
