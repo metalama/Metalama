@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.DesignTime.Rpc;
 using System;
 using System.Collections.Concurrent;
@@ -35,6 +36,7 @@ namespace Metalama.Testing.UnitTesting;
 /// Always call <see cref="ReleaseAll"/> in test cleanup to avoid deadlocks if a test fails.
 /// </para>
 /// </remarks>
+[PublicAPI]
 #pragma warning disable LAMA0821 // Cannot expose an internal Metalama API - Exceptionally because ITestSynchronizationProvider is defined in Rpc and we don't want to reference Sdk.
 public sealed class TestSynchronizationProvider : ITestSynchronizationProvider, IDisposable
 #pragma warning restore LAMA0821 // Cannot expose an internal Metalama API

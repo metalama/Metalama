@@ -180,7 +180,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             else
             {
 #endif
-            return base.Sources;
+                return base.Sources;
 #if ROSLYN_5_0_0_OR_GREATER
             }
 #endif

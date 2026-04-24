@@ -32,7 +32,7 @@ internal sealed class CompileTimeEditingStatusService : ICompileTimeEditingStatu
 
     public CompileTimeEditingStatusService( GlobalServiceProvider serviceProvider )
     {
-        var logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
+        var logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(CompileTimeEditingStatusService) );
         this._pendingTasks = new TaskBag( logger, serviceProvider );
         this._serviceHub = serviceProvider.GetRequiredService<IServiceHubRpcServiceProvider>().ServiceHub;
         this._serviceHub.EventReceived += this.OnEventReceived;

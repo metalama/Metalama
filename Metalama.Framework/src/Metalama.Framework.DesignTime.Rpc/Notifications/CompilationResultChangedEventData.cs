@@ -10,7 +10,7 @@ namespace Metalama.Framework.DesignTime.Rpc.Notifications;
 /// Event data raised when a compilation result changes in a project.
 /// </summary>
 [RpcContract]
-public class CompilationResultChangedEventData : RpcEventData
+public sealed class CompilationResultChangedEventData : RpcEventData
 {
     /// <summary>
     /// Gets the key of the project whose compilation result changed.

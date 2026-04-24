@@ -28,6 +28,7 @@ namespace Metalama.Framework.Engine.Services;
 
 #pragma warning disable CA1822
 
+[PublicAPI]
 public sealed class CompilationContext : ICompilationServices, ITemplateReflectionContext
 {
     private readonly ConcurrentDictionary<SyntaxGenerationContextCacheKey, SyntaxGenerationContext> _syntaxGenerationContextCache = new();
@@ -171,5 +172,5 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
     public LanguageVersion LanguageVersion
         => ((CSharpParseOptions?) this.Compilation.SyntaxTrees.FirstOrDefault()?.Options)?.LanguageVersion ?? SupportedCSharpVersions.Latest;
 
-    public override string ToString() => $"{this.GetType().Name} #{this._id}, Assembly={this.Compilation.AssemblyName}";
+    public override string ToString() => $"{nameof(CompilationContext)} #{this._id}, Assembly={this.Compilation.AssemblyName}";
 }

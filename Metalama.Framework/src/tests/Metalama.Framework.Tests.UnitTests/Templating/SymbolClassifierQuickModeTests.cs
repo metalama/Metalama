@@ -321,7 +321,7 @@ public sealed class SymbolClassifierQuickModeTests : UnitTestClass
         // Cache hit rate should be reasonable (at least some hits)
         // Note: The actual ratio depends on implementation, but with repeated types
         // we should see some benefit from caching
-        var hitRate = totalLookups > 0 ? (double) stats.CacheHits / totalLookups : 0;
+        var hitRate = (double) stats.CacheHits / totalLookups;
 
         // Log the stats for diagnostic purposes
         this._output.WriteLine( $"Cache Stats - Hits: {stats.CacheHits}, Misses: {stats.CacheMisses}, Hit rate: {hitRate:P1}" );
@@ -415,9 +415,7 @@ public sealed class SymbolClassifierQuickModeTests : UnitTestClass
                 quickModeSkips,
                 expensiveOperations,
                 this._cacheHits,
-                this._cacheMisses,
-                this._attributeCacheHits,
-                this._attributeCacheMisses );
+                this._cacheMisses );
         }
 
         public sealed record Statistics(
@@ -426,8 +424,6 @@ public sealed class SymbolClassifierQuickModeTests : UnitTestClass
             int QuickModeSkips,
             int ExpensiveOperations,
             int CacheHits,
-            int CacheMisses,
-            int AttributeCacheHits,
-            int AttributeCacheMisses );
+            int CacheMisses );
     }
 }

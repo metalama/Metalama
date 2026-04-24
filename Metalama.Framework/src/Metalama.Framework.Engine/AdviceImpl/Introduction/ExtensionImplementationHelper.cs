@@ -93,7 +93,7 @@ internal static class ExtensionImplementationHelper
             var receiverParam = extensionBlock.ReceiverParameter;
 
             implicitMethodBuilder.AddParameter(
-                receiverParam.Name ?? "self",
+                receiverParam.Name,
                 receiverParam.Type,
                 receiverParam.RefKind );
         }
@@ -105,7 +105,7 @@ internal static class ExtensionImplementationHelper
             var defaultValue = param.DefaultValue?.ToTypedConstant( compilation );
 
             var paramBuilder = (BaseParameterBuilder) implicitMethodBuilder.AddParameter(
-                param.Name ?? $"arg{param.Index}",
+                param.Name,
                 paramType,
                 param.RefKind,
                 defaultValue );
@@ -183,8 +183,7 @@ internal static class ExtensionImplementationHelper
             methodName )
         {
             // Always static.
-            Accessibility = accessorAccessibility,
-            IsStatic = true
+            Accessibility = accessorAccessibility, IsStatic = true
         };
 
         implicitMethodBuilder.SetImplicitlyDeclared();
@@ -212,7 +211,7 @@ internal static class ExtensionImplementationHelper
             var receiverParam = extensionBlock.ReceiverParameter;
 
             implicitMethodBuilder.AddParameter(
-                receiverParam.Name ?? "self",
+                receiverParam.Name,
                 receiverParam.Type,
                 receiverParam.RefKind );
         }

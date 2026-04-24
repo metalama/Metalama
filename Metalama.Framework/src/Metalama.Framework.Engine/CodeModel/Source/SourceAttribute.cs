@@ -108,7 +108,7 @@ internal sealed class SourceAttribute : IAttributeImpl
                 .Select( kvp => new KeyValuePair<string, TypedConstant>( kvp.Key, kvp.Value.ToOurTypedConstant( this.Compilation ) ) )
                 .ToReadOnlyList() );
 
-    public override string? ToString() => this.AttributeData.ToString();
+    public override string ToString() => this.AttributeData.ToString().AssertNotNull();
 
     T IMeasurableInternal.GetMetric<T>() => throw new NotSupportedException();
 

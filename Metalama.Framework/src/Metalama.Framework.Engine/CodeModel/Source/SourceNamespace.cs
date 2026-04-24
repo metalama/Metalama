@@ -24,7 +24,9 @@ internal sealed class SourceNamespace : SourceDeclaration, INamespace
         this._symbol = symbol;
     }
 
-    private bool IsExternal => this._symbol.ContainingAssembly != this.Compilation.RoslynCompilation.Assembly;
+    // this._symbol.ContainingAssembly is null for global namespaces.
+    private bool IsExternal
+        => this._symbol.ContainingAssembly != null && !this._symbol.ContainingAssembly.Equals( this.Compilation.RoslynCompilation.Assembly );
 
     public override IDeclaration? ContainingDeclaration
     {

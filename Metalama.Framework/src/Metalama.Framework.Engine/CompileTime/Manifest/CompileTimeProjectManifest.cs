@@ -34,7 +34,6 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             IReadOnlyList<CompileTimeFileManifest> files,
             IReadOnlyList<CompileTimeDiagnosticManifest> diagnostics,
             bool referencesMetalamaSdk,
-            string? metalamaVersion = null,
             int manifestVersion = 0,
             LanguageVersion? languageVersion = null )
         {

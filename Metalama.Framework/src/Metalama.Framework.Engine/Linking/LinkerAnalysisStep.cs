@@ -1003,7 +1003,7 @@ namespace Metalama.Framework.Engine.Linking
 
             foreach ( var reference in allGetOnlyAutoPropertyReferences )
             {
-                if ( reference.ContainingSemantic.Symbol.Kind == SymbolKind.Method && reference.ContainingSemantic.Symbol is IMethodSymbol
+                if ( reference.ContainingSemantic.Symbol.Kind == SymbolKind.Method && reference.ContainingSemantic.Symbol is
                     {
                         MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor
                     } )
@@ -1101,7 +1101,10 @@ namespace Metalama.Framework.Engine.Linking
                                     ]
                                 }
                                 => (getAccessor, setAccessor),
-                            SyntaxKind.PropertyDeclaration when declaration is PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
+                            SyntaxKind.PropertyDeclaration when declaration is PropertyDeclarationSyntax
+                                {
+                                    AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor]
+                                }
                                 => (getAccessor, null),
                             _ => throw new InvalidOperationException( "Auto property expected." )
                         };

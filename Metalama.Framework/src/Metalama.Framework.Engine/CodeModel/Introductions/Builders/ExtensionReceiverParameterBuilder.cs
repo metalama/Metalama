@@ -52,7 +52,8 @@ internal sealed class ExtensionReceiverParameterBuilder : BaseParameterBuilder
         set
         {
             this.CheckNotFrozen();
-            this._name = value ?? "";
+
+            this._name = value;
         }
     }
 
@@ -109,6 +110,7 @@ internal sealed class ExtensionReceiverParameterBuilder : BaseParameterBuilder
     /// <summary>
     /// Gets a value indicating whether this creates a static extension (no parameter name).
     /// </summary>
+
     public bool IsStaticExtension => string.IsNullOrEmpty( this._name );
 
     public override DeclarationKind DeclarationKind => DeclarationKind.Parameter;

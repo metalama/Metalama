@@ -29,6 +29,7 @@ internal sealed class OverridePropertyTransformation : OverridePropertyBaseTrans
     /// Gets the name of the backing field introduced for a template that uses the C# 14 <c>field</c> keyword.
     /// This is <c>null</c> if the template does not use the <c>field</c> keyword.
     /// </summary>
+
     internal string? BackingFieldName { get; }
 
     /// <summary>

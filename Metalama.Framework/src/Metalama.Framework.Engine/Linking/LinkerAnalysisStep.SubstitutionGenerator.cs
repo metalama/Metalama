@@ -47,6 +47,7 @@ internal sealed partial class LinkerAnalysisStep
             _eventFieldRaiseReferencesByContainingSemantic;
 
 #pragma warning disable IDE0052
+
         private readonly IReadOnlyDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyList<IntermediateSymbolSemanticReference>>
             _backingFieldReferencesByContainingSemantic;
 #pragma warning restore IDE0052
@@ -491,6 +492,7 @@ internal sealed partial class LinkerAnalysisStep
                 }
 
 #if ROSLYN_5_0_0_OR_GREATER
+
                 // Add substitutions for backing field invocation references.
                 if ( this._backingFieldReferencesByContainingSemantic.TryGetValue(
                         inliningSpecification.TargetSemantic,

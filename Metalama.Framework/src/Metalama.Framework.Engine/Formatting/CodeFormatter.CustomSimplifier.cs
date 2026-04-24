@@ -197,8 +197,7 @@ public sealed partial class CodeFormatter
                         var targetType = this._semanticModel.GetTypeInfo( node.Type ).Type;
                         var expressionType = this._semanticModel.GetTypeInfo( node.Expression ).Type;
 
-                        if ( targetType != null && expressionType != null
-                                                && expressionType.IsReferenceType
+                        if ( targetType != null && expressionType is { IsReferenceType: true }
                                                 && targetType.Equals( expressionType, SymbolEqualityComparer.Default ) )
                         {
                             return this.Visit( node.Expression );

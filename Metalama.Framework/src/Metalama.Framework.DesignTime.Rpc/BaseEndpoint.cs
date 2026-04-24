@@ -91,7 +91,7 @@ public abstract class BaseEndpoint : IDisposable
         }
     }
 
-    protected JsonRpc CreateRpc( Stream stream )
+    protected static JsonRpc CreateRpc( Stream stream )
     {
         var formatter = new MessagePackFormatter();
 

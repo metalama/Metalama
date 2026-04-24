@@ -45,7 +45,8 @@ public sealed class VerifyOutputCodeTests : UnitTestClass
         using var testContext = this.CreateTestContext( testOptions );
         var compilation = testContext.CreateCSharpCompilation( code );
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
-        var result = await pipeline.ExecuteAsync( null, null, compilation, default, default );
+
+        var result = await pipeline.ExecuteAsync( null, null, compilation, default, testContext.CancellationToken );
 
         Assert.True( result.IsSuccessful, "Pipeline should succeed with valid code" );
     }
@@ -110,7 +111,8 @@ public sealed class VerifyOutputCodeTests : UnitTestClass
             } );
 
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
-        var result = await pipeline.ExecuteAsync( null, null, compilation, default, default );
+
+        var result = await pipeline.ExecuteAsync( null, null, compilation, default, testContext.CancellationToken );
 
         // With VerifyOutputCode disabled, the pipeline does not run the round-trip parse check,
         // so generated syntax errors do not cause failure here.
@@ -176,7 +178,8 @@ public sealed class VerifyOutputCodeTests : UnitTestClass
             } );
 
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
-        var result = await pipeline.ExecuteAsync( null, null, compilation, default, default );
+
+        var result = await pipeline.ExecuteAsync( null, null, compilation, default, testContext.CancellationToken );
 
         // The pipeline should fail because the generated code has syntax errors
         Assert.False( result.IsSuccessful, "Pipeline should fail when generated code has syntax errors" );

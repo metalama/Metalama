@@ -24,22 +24,20 @@ namespace Metalama.Framework.RunTime.Initialization;
 /// </remarks>
 public readonly struct InitializationSlot
 {
-    private readonly uint _mask;
-
     internal InitializationSlot( uint mask )
     {
-        this._mask = mask;
+        this.Mask = mask;
     }
 
     /// <summary>
     /// Combines two slots into one.
     /// </summary>
-    public static InitializationSlot operator |( InitializationSlot a, InitializationSlot b ) => new( a._mask | b._mask );
+    public static InitializationSlot operator |( InitializationSlot a, InitializationSlot b ) => new( a.Mask | b.Mask );
 
     /// <summary>
     /// Gets the raw bitmask value. For internal engine use only.
     /// </summary>
-    internal uint Mask => this._mask;
+    internal uint Mask { get; }
 
     private static readonly InitializationSlotFactory _defaultFactory = new();
 

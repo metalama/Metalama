@@ -75,9 +75,9 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
         if ( ownInitializeMethod != null )
         {
             // The target type itself declares Initialize — validate and use it.
-            if ( ((!ownInitializeMethod.IsVirtual && !ownInitializeMethod.IsOverride)
+            if ( (ownInitializeMethod is { IsVirtual: false, IsOverride: false }
                   || ownInitializeMethod.Accessibility != Accessibility.Public)
-                 && !targetType.IsSealed && targetType.TypeKind == TypeKind.Class )
+                 && targetType is { IsSealed: false, TypeKind: TypeKind.Class } )
             {
                 return this.CreateFailedResult(
                     AdviceDiagnosticDescriptors.InitializeNotVirtual.CreateRoslynDiagnostic(
@@ -111,9 +111,9 @@ internal sealed class InitializeMethodAdvice : Advice<AddInitializerAdviceResult
             if ( existingMethod.DeclaringType.Equals( targetType ) )
             {
                 // The target type itself declares Initialize — validate and use it.
-                if ( ((!existingMethod.IsVirtual && !existingMethod.IsOverride)
+                if ( (existingMethod is { IsVirtual: false, IsOverride: false }
                       || existingMethod.Accessibility != Accessibility.Public)
-                     && !targetType.IsSealed && targetType.TypeKind == TypeKind.Class )
+                     && targetType is { IsSealed: false, TypeKind: TypeKind.Class } )
                 {
                     return this.CreateFailedResult(
                         AdviceDiagnosticDescriptors.InitializeNotVirtual.CreateRoslynDiagnostic(

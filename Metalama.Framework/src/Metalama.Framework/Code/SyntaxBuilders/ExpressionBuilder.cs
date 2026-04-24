@@ -14,7 +14,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// <para>
     /// <see cref="ExpressionBuilder"/> provides a text-based approach to constructing complex C# expressions programmatically or
     /// dynamically. It offers specialized methods for appending different syntax elements: <see cref="SyntaxBuilder.AppendLiteral(byte, bool)"/>
-    /// for literals, <see cref="SyntaxBuilder.AppendTypeName(IType)"/> for fully-qualified type names, <see cref="SyntaxBuilder.AppendExpression(dynamic?)"/>
+    /// for literals, <see cref="SyntaxBuilder.AppendTypeName(IType)"/> for fully-qualified type names, <see cref="SyntaxBuilder.AppendExpression(object?)"/>
     /// for existing expressions, and <see cref="SyntaxBuilder.AppendVerbatim"/> for keywords and punctuation.
     /// </para>
     /// <para>

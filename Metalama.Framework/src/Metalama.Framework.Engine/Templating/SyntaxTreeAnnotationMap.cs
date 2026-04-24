@@ -241,7 +241,7 @@ namespace Metalama.Framework.Engine.Templating
             return null;
         }
 
-        public static SyntaxAnnotation? GetDeclaredSymbolAnnotation( SyntaxNode node )
+        private static SyntaxAnnotation? GetDeclaredSymbolAnnotation( SyntaxNode node )
         {
             return node.GetAnnotations( _declaredSymbolAnnotationKind ).SingleOrDefault();
         }

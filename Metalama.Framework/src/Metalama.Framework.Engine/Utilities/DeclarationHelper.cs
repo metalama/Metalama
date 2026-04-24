@@ -94,7 +94,7 @@ internal static class DeclarationHelper
                     case null:
                         break;
 
-                    case IDeclaration { DeclarationKind: DeclarationKind.NamedType or DeclarationKind.ExtensionBlock or DeclarationKind.TypeParameter }
+                    case { DeclarationKind: DeclarationKind.NamedType or DeclarationKind.ExtensionBlock or DeclarationKind.TypeParameter }
                         and IType type:
                         Append( type, kind, sb, currentTypeArguments );
 
@@ -102,7 +102,7 @@ internal static class DeclarationHelper
 
                         break;
 
-                    case IDeclaration { DeclarationKind: DeclarationKind.Namespace } and INamespace ns:
+                    case { DeclarationKind: DeclarationKind.Namespace } and INamespace ns:
                         if ( !ns.IsGlobalNamespace )
                         {
                             Append( ns, kind, sb );

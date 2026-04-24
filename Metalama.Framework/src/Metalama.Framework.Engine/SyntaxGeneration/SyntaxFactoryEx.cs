@@ -20,6 +20,7 @@ namespace Metalama.Framework.Engine.SyntaxGeneration;
 /// <summary>
 /// Helper methods that would ideally be in the <see cref="SyntaxFactory"/> class.
 /// </summary>
+[PublicAPI]
 public static partial class SyntaxFactoryEx
 {
     private static readonly ConcurrentDictionary<SyntaxKind, SyntaxToken> _tokensWithTrailingSpace = new();
@@ -35,6 +36,7 @@ public static partial class SyntaxFactoryEx
 
     internal static SyntaxTriviaList ElasticLineFeedTriviaList { get; } = new( SyntaxFactory.ElasticLineFeed );
 
+    [PublicAPI]
     public static SyntaxToken TokenWithTrailingSpace( SyntaxKind kind )
         => _tokensWithTrailingSpace.GetOrAdd( kind, static k => SyntaxFactory.Token( default, k, ElasticSpaceTriviaList ) );
 
@@ -55,6 +57,7 @@ public static partial class SyntaxFactoryEx
 #pragma warning disable LAMA0850 // Intentional use of SyntaxFactory.Identifier/IdentifierName for special tokens
     internal static IdentifierNameSyntax DiscardIdentifierName() => SyntaxFactory.IdentifierName( DiscardIdentifier() );
 
+    [PublicAPI]
     public static SyntaxToken DiscardIdentifier()
     {
         return SyntaxFactory.Identifier(

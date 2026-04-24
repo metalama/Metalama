@@ -24,6 +24,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
             var i = 0;
             var k = 0;
 
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             while ( i < 0 )
             {
                 int result;

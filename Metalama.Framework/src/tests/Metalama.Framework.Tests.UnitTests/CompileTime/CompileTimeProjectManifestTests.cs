@@ -31,7 +31,6 @@ public sealed class CompileTimeProjectManifestTests
             [],
             [],
             false,
-            null,
             0,
             languageVersion );
 
@@ -60,7 +59,6 @@ public sealed class CompileTimeProjectManifestTests
             [],
             [],
             false,
-            null,
             0,
             languageVersion );
 

@@ -49,7 +49,8 @@ public readonly struct UserCodeDescription : IFormattable
                 GetTypeName( member.DeclaringType! ) + "." + member.Name,
             string s => s,
             null => "<null>",
-            _ => arg.ToString() ?? arg.GetType().Name
+
+            _ => arg.ToString().CanBeNull() ?? arg.GetType().Name
         };
 
     public string ToString( string? format, IFormatProvider? formatProvider )

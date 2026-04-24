@@ -67,7 +67,7 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
 
     [Memo]
     public IMethod Definition
-        => this.MethodSymbol == this.MethodSymbol.OriginalDefinition ? this : this.Compilation.Factory.GetMethod( this.MethodSymbol.OriginalDefinition );
+        => this.MethodSymbol.Equals( this.MethodSymbol.OriginalDefinition ) ? this : this.Compilation.Factory.GetMethod( this.MethodSymbol.OriginalDefinition );
 
     IMemberOrNamedType IMemberOrNamedType.Definition => this.Definition;
 

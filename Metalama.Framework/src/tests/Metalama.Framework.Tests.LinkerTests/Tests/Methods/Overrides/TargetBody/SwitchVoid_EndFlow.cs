@@ -17,6 +17,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
                 case 1:
                     return;
 
+                // ReSharper disable once RedundantEmptySwitchSection
                 default:
                     break;
             }

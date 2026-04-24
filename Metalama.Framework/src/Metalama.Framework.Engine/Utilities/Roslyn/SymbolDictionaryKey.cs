@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.SerializableIds;
@@ -19,6 +20,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 /// with the <see cref="SymbolId"/> is done lazily, only in case where the hash codes match. This instance is meant to be
 /// used for a dictionary lookup.
 /// </summary>
+[PublicAPI]
 public readonly struct SymbolDictionaryKey : IEquatable<SymbolDictionaryKey>
 {
     private readonly int _hashCode;

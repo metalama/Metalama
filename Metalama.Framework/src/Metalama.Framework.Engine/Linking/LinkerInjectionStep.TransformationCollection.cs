@@ -642,7 +642,7 @@ internal sealed partial class LinkerInjectionStep
             // with a post-body seam (Initialize / OnConstructed). Constructors emit it at entry, see
             // AfterBaseEmittedAtEntry. Inner-first so the matryoshka unwinds correctly (inner aspect's
             // AfterBase runs before outer aspect's AfterBase).
-            if ( targetInjectedMember == injectedMembers![^1] && !AfterBaseEmittedAtEntry( targetMethod ) )
+            if ( targetInjectedMember == injectedMembers[^1] && !AfterBaseEmittedAtEntry( targetMethod ) )
             {
                 statements.AddRange( GetOrderedInitializerAfterBaseStatements( insertedStatements, reverseAcrossAspects: false ) );
             }

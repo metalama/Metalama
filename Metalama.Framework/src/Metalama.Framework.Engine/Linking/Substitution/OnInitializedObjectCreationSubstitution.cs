@@ -32,7 +32,7 @@ internal sealed class OnInitializedObjectCreationSubstitution : OnInitializedCal
         this._contextParamName = contextParamName;
     }
 
-    public override SyntaxNode? Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
+    public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
         var expression = (ExpressionSyntax) currentNode;
 

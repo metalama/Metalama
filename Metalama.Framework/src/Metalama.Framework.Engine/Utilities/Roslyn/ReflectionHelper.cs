@@ -193,7 +193,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                         break;
 
                     default:
-                        throw new AssertionFailedException( $"Don't know how to process a {symbol!.Kind}." );
+                        throw new AssertionFailedException( $"Don't know how to process a {symbol.Kind}." );
                 }
 
                 if ( typeArguments == null && currentTypeArguments.Any() )

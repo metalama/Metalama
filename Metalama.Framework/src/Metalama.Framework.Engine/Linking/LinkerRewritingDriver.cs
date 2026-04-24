@@ -165,15 +165,8 @@ internal sealed partial class LinkerRewritingDriver
             // TODO: Convert to block.
             if ( symbol.ReturnsVoid )
             {
-                switch ( node?.Kind() )
+                switch ( node.Kind() )
                 {
-                    case null:
-                        throw new AssertionFailedException( Justifications.CoverageMissing );
-
-                    // return
-                    //     SyntaxFactoryEx.FormattedBlock()
-                    //         .AddLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
-
                     case SyntaxKind.Block when node is BlockSyntax rewrittenBlock:
                         return rewrittenBlock;
 
@@ -188,19 +181,8 @@ internal sealed partial class LinkerRewritingDriver
             }
             else
             {
-                switch ( node?.Kind() )
+                switch ( node.Kind() )
                 {
-                    case null:
-                        throw new AssertionFailedException( Justifications.CoverageMissing );
-
-                    // return
-                    //     Block(
-                    //             ReturnStatement(
-                    //                 Token( SyntaxKind.ReturnKeyword ).WithTrailingTrivia( ElasticSpace ),
-                    //                 LiteralExpression( SyntaxKind.DefaultLiteralExpression ),
-                    //                 Token( SyntaxKind.SemicolonToken ) ) )
-                    //         .AddLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
-
                     case SyntaxKind.ArrowExpressionClause when node is ArrowExpressionClauseSyntax rewrittenArrowClause:
                         return
                             substitutionContext.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock(

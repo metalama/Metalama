@@ -1824,7 +1824,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
         if ( symbol?.Kind == SymbolKind.Method
              && symbol is IMethodSymbol { ContainingNamespace: not null } constructor
-             && (constructor.ContainingNamespace.ToString()?.StartsWith( "Metalama.Framework", StringComparison.Ordinal ) ?? false) )
+             && constructor.ContainingNamespace.ToString().AssertNotNull().StartsWith( "Metalama.Framework", StringComparison.Ordinal ) )
         {
             node = node.AddColoringAnnotation( TextSpanClassification.CompileTime );
         }

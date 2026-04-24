@@ -40,6 +40,7 @@ public abstract class Cache<TKey, TValue, TTag> : ICache<TKey, TValue>
         {
             var caches = this._caches;
 
+            // ReSharper disable once ArrangeRedundantParentheses
             return (caches.Recent.Count + caches.Old?.Count) ?? 0;
         }
     }

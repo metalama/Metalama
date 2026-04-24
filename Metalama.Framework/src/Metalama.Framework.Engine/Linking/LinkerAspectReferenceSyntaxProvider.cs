@@ -15,6 +15,8 @@ using System.Collections.Generic;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
+// ReSharper disable RedundantLinebreak
+
 namespace Metalama.Framework.Engine.Linking;
 
 internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSyntaxProvider

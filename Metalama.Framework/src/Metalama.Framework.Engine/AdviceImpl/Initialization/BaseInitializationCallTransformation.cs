@@ -27,7 +27,7 @@ namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 /// from all peers (including itself) and combines them with the <c>|</c> operator so a single <c>base.{method}(context.Descend(...))</c>
 /// call covers all slots.
 /// </summary>
-internal abstract class BaseInitializationCallTransformation : BaseSyntaxTreeTransformation, IInsertStatementTransformation,
+internal abstract class BaseInitializationCallTransformation : BaseSyntaxTreeTransformation,
                                                                IAggregatableInsertStatementTransformation
 {
     private readonly IFullRef<IMethod> _targetMethod;

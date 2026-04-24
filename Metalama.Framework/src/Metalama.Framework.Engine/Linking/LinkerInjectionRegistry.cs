@@ -692,7 +692,6 @@ internal sealed class LinkerInjectionRegistry
         return this._overrideToOverrideTargetMap.ContainsKey( symbol );
     }
 
-    // Resharper disable once UnusedMember.Global
     public bool IsLastOverride( ISymbol symbol )
     {
         symbol = symbol.GetCanonicalDefinition();

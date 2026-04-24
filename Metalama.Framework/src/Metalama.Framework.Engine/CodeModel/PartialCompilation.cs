@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Compiler;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Services;
@@ -20,6 +21,7 @@ namespace Metalama.Framework.Engine.CodeModel
     /// Represents a subset of a Roslyn <see cref="Microsoft.CodeAnalysis.Compilation"/>. The subset is limited
     /// to specific syntax trees.
     /// </summary>
+    [PublicAPI]
     public abstract partial class PartialCompilation : IPartialCompilationInternal
     {
         public DerivedTypeIndex DerivedTypes => this.LazyDerivedTypes.Value;

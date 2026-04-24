@@ -314,8 +314,9 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     private IExtensionBlockCollection GetExtensionBlocksCore()
     {
 #if ROSLYN_5_0_0_OR_GREATER
+
         // Use the updatable collection which includes both source and introduced extension blocks
-        var allBlocks = this.Compilation.GetExtensionBlockCollection( this.Ref, false );
+        var allBlocks = this.Compilation.GetExtensionBlockCollection( this.Ref );
 
         return new ExtensionBlockCollection( this.Facade, allBlocks );
 #else

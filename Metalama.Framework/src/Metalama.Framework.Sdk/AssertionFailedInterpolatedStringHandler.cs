@@ -219,7 +219,6 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
 
                     break;
 
-#if ROSLYN_4_8_0_OR_GREATER
                 case SyntaxKind.SingleLineRawStringLiteralToken or SyntaxKind.MultiLineRawStringLiteralToken:
                     builder.Append( "<raw_string_literal>" );
 
@@ -234,7 +233,6 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
                     builder.Append( "<utf8_raw_string_literal>" );
 
                     break;
-#endif
 
                 case SyntaxKind.XmlTextLiteralToken or SyntaxKind.XmlTextLiteralNewLineToken or SyntaxKind.XmlEntityLiteralToken:
                     builder.Append( "<xml_literal>" );
@@ -412,7 +410,6 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
             }
         }
 
-#if ROSLYN_4_8_0_OR_GREATER
         public override void VisitCollectionExpression( CollectionExpressionSyntax node )
         {
             if ( this._currentMaskingDepth >= this._maskingDepthLimit )
@@ -430,7 +427,6 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
                 base.VisitCore( element );
             }
         }
-#endif
 
         public override void VisitInitializerExpression( InitializerExpressionSyntax node )
         {

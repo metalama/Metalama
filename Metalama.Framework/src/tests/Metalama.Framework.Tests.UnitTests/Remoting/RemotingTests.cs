@@ -489,6 +489,7 @@ public sealed class RemotingTests : UnitTestClass
             ProjectKey projectKey,
             string syntaxTreeName,
             CancellationToken cancellationToken )
+
         {
             return Task.FromResult(
                 new SerializablePreviewTransformationResult(

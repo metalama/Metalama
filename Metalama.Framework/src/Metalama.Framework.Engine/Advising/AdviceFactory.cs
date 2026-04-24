@@ -1517,7 +1517,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             if ( kind == InitializerKind.AfterObjectInitializer )
             {
                 var advice = new InitializeMethodAdvice(
-                    this.GetAdviceConstructorParameters<INamedType>( targetType ),
+                    this.GetAdviceConstructorParameters( targetType ),
                     templateMember,
                     this.GetArgsReader( args ),
                     slotFields,
@@ -1528,7 +1528,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             else if ( kind == InitializerKind.AfterLastInstanceConstructor )
             {
                 var advice = new OnConstructedMethodAdvice(
-                    this.GetAdviceConstructorParameters<INamedType>( targetType ),
+                    this.GetAdviceConstructorParameters( targetType ),
                     templateMember,
                     this.GetArgsReader( args ),
                     slotFields,

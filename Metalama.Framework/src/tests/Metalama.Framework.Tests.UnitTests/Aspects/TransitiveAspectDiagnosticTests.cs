@@ -48,7 +48,7 @@ public sealed class TransitiveAspectDiagnosticTests
         Assert.Equal( expectedClassName, instance.AspectClassName );
     }
 
-    private class EmptyAspectClassResolver : IAspectClassResolver
+    private sealed class EmptyAspectClassResolver : IAspectClassResolver
     {
         public bool TryGetAspectClass( Type aspectType, [NotNullWhen( true )] out IAspectClass? aspectClass )
         {
@@ -65,5 +65,5 @@ public sealed class TransitiveAspectDiagnosticTests
         }
     }
 
-    private class DummyAspect : IAspect;
+    private sealed class DummyAspect : IAspect;
 }

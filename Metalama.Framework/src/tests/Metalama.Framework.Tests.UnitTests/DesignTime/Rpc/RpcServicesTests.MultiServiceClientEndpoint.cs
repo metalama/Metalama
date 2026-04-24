@@ -5,8 +5,6 @@
 using Metalama.Framework.DesignTime.Rpc;
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
@@ -18,8 +16,5 @@ public sealed partial class RpcServicesTests
             : base( serviceProvider, pipeName ) { }
 
         protected override IEnumerable<RpcClient> CreateServiceClients() => [new ServiceAClient( this ), new ServiceBClient( this )];
-
-        public Task AddServiceClientAsync( RpcClient client, string pipeName, CancellationToken cancellationToken )
-            => this.AddServiceClientsAsync( pipeName, [client], cancellationToken );
     }
 }

@@ -9,7 +9,6 @@ using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
-using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
@@ -55,7 +54,6 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
         var compilation = context.MutableCompilation;
 
         var constructor = (IConstructor) this.TargetDeclaration.ForCompilation( compilation );
-        var initializedConstructor = constructor;
 
         var existingParameter = constructor.Parameters.FirstOrDefault( p => p.Name == this._parameterName );
 

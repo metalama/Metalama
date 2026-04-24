@@ -8,7 +8,7 @@ using Metalama.Framework.Engine.DesignTime;
 namespace Metalama.Framework.DesignTime.Preview;
 
 [RpcContract]
-public class SerializablePreviewTransformationResult
+public sealed class SerializablePreviewTransformationResult
 {
     public bool IsSuccessful { get; }
 

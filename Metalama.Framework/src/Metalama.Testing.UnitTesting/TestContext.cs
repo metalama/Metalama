@@ -98,7 +98,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
     /// by the <see cref="TestContextOptions.Timeout"/> option.
     /// </summary>
     public CancellationToken CancellationToken { get; }
-
+    
     public ImmutableArray<object> PlugIns => this._plugIns.Value;
 
     // ReSharper disable once RedundantOverload.Global

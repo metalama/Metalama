@@ -25,12 +25,15 @@ namespace Metalama.Framework.DesignTime.Pipeline
 
 #pragma warning disable SA1401 // Fields should be private
             public ImmutableArray<Diagnostic>.Builder? Diagnostics;
+
             public ImmutableArray<CacheableScopedSuppression>.Builder? Suppressions;
             public ImmutableArray<IntroducedSyntaxTree>.Builder? Introductions;
             public ImmutableArray<InheritableAspectInstance>.Builder? InheritableAspects;
             public ImmutableArray<IDesignTimePipelineResultExtension>.Builder? Extensions;
             public ImmutableArray<DesignTimeAspectInstance>.Builder? AspectInstances;
+
             public ImmutableArray<DesignTimeTransformation>.Builder? Transformations;
+
             public ImmutableArray<InheritableOptionsInstance>.Builder? InheritableOptions;
             public ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>.Builder? Annotations;
 

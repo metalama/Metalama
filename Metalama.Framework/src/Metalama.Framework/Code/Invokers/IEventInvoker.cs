@@ -17,8 +17,8 @@ namespace Metalama.Framework.Code.Invokers
     /// event handlers, or raise the event. These operations can then be used in templates and will be expanded into actual C# code.
     /// </para>
     /// <para>
-    /// The <see cref="Add(dynamic?)"/> and <see cref="Remove(dynamic?)"/> methods generate code to manage event handlers, while <see cref="Raise(dynamic?[])"/>
-    /// generates code to invoke the event. Use <see cref="WithObject(dynamic?)"/> to specify the target instance and <see cref="WithOptions"/>
+    /// The <see cref="Add(object?)"/> and <see cref="Remove(object?)"/> methods generate code to manage event handlers, while <see cref="Raise(object?[])"/>
+    /// generates code to invoke the event. Use <see cref="WithObject(object?)"/> to specify the target instance and <see cref="WithOptions"/>
     /// to control nullability behavior and which implementation layer (base, current, or final) to access.
     /// </para>
     /// <para>
@@ -46,7 +46,7 @@ namespace Metalama.Framework.Code.Invokers
         /// there is no backing delegate to invoke, so this property returns <c>false</c>.
         /// </para>
         /// <para>
-        /// When this property returns <c>false</c>, calling <see cref="Raise(dynamic?[])"/> will throw an <see cref="InvalidOperationException"/>,
+        /// When this property returns <c>false</c>, calling <see cref="Raise(object?[])"/> will throw an <see cref="InvalidOperationException"/>,
         /// and <see cref="IEvent.RaiseMethod"/> will return <c>null</c>.
         /// </para>
         /// </remarks>

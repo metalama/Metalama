@@ -27,13 +27,13 @@ public sealed partial class ServiceProvider<TBase> : ServiceProvider, IServicePr
     // ReSharper disable once StaticMemberInGenericType
     private static readonly ConcurrentDictionary<Type, ImmutableArray<Type>> _interfaceImplementationCache = new();
 
+    // A collection of services that is shared by all instances derived from a root instance.
+    // That is, adding a shared service to any instance of the same family will add the service to all instances of the family.
+    private readonly ConcurrentDictionary<Type, ServiceNode> _sharedServices;
+
     // This field is not readonly because we use two-phase initialization to resolve the problem of cyclic dependencies.
     private ImmutableDictionary<Type, ServiceNode> _services;
     private Dictionary<Type, ServiceNode>? _servicesFast;
-
-    // A collection of services that is shared by all instances derived from a root instance.
-    // That is, adding a shared service to any instance of the same family will add the service to all instances of the family.
-    private ConcurrentDictionary<Type, ServiceNode> _sharedServices;
 
     // Make sure to return a new instance at each call to avoid unwanted shared services.
     public static ServiceProvider<TBase> Empty => new();

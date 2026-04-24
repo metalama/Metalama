@@ -226,7 +226,6 @@ public partial class DeclarationFactory
 
         // Standardize on the partial definition part for partial properties.
         propertySymbol = propertySymbol.PartialDefinitionPart ?? propertySymbol;
-
 #endif
 
         return this.GetDeclarationFromSymbol<IProperty, IPropertySymbol>(
@@ -274,6 +273,7 @@ public partial class DeclarationFactory
     public IEvent GetEvent( IEventSymbol eventSymbol, GenericContext? genericContext = null )
     {
 #if ROSLYN_5_0_0_OR_GREATER
+
         // Standardize on the partial definition part for partial events.
         eventSymbol = eventSymbol.PartialDefinitionPart ?? eventSymbol;
 

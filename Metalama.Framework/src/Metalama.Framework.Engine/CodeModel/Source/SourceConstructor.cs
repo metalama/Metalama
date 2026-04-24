@@ -151,7 +151,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         [Memo]
         public IConstructor Definition
-            => this.MethodSymbol == this.MethodSymbol.OriginalDefinition
+            => this.MethodSymbol.Equals( this.MethodSymbol.OriginalDefinition )
                 ? this
                 : this.Compilation.Factory.GetConstructor( this.MethodSymbol.OriginalDefinition );
 

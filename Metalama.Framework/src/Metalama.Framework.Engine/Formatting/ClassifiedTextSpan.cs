@@ -14,6 +14,7 @@ namespace Metalama.Framework.Engine.Formatting
     /// <summary>
     /// Represents a <see cref="TextSpan"/> and its <see cref="TextSpanClassification"/>.
     /// </summary>
+    [PublicAPI]
     public readonly struct ClassifiedTextSpan : IClassifiedTextSpan
     {
         /// <summary>

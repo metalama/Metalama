@@ -467,14 +467,14 @@ namespace Metalama.Compiler
 
         // Check if the node contains any 'field' keyword expressions (C# 14 semi-automatic properties).
         var introducesBackingField =
-            (node.Kind() is SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
-                or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration) && node is AccessorDeclarationSyntax accessor
-                                                                                              && SyntaxHelpers.ContainsFieldExpression( accessor );
+            node.Kind() is SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration && node is AccessorDeclarationSyntax accessor
+                                                                                             && SyntaxHelpers.ContainsFieldExpression( accessor );
 
         var isBackingFieldAssigned =
-            (node.Kind() is SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
-                or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration) && node is AccessorDeclarationSyntax accessorForAssignment
-                                                                                              && SyntaxHelpers.ContainsFieldAssignment( accessorForAssignment );
+            node.Kind() is SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration && node is AccessorDeclarationSyntax accessorForAssignment
+                                                                                             && SyntaxHelpers.ContainsFieldAssignment( accessorForAssignment );
 
         var attributeArguments = new List<AttributeArgumentSyntax>
         {

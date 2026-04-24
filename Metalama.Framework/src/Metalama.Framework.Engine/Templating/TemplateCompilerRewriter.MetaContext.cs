@@ -40,75 +40,19 @@ namespace Metalama.Framework.Engine.Templating
                 SkipCompileTimeLogicVariable skipCompileTimeLogicVariable,
                 Dictionary<ISymbol, SyntaxToken> generatedCodeSymbolNameLocals,
                 Dictionary<ISymbol, SyntaxToken> templateCodeSymbolNameLocals,
-                TemplateLexicalScope templateUniqueNames,
-                MetaContext? parent = null,
-                bool isRunTimeBlock = false,
-                bool isCompileTimeConditionalBlock = false )
+                TemplateLexicalScope templateUniqueNames )
             {
                 this.StatementListVariableName = statementListVariableName;
                 this.SkipCompileTimeLogicVariable = skipCompileTimeLogicVariable;
                 this._generatedCodeSymbolNameLocals = generatedCodeSymbolNameLocals;
                 this._templateCodeSymbolNameLocals = templateCodeSymbolNameLocals;
                 this._templateUniqueNames = templateUniqueNames;
-                this.Parent = parent;
-                this.IsRunTimeBlock = isRunTimeBlock;
-                this.IsCompileTimeConditionalBlock = isCompileTimeConditionalBlock;
             }
-
-            /// <summary>
-            /// Gets the parent context, or <c>null</c> if this is the root context.
-            /// </summary>
-            public MetaContext? Parent { get; }
-
-            /// <summary>
-            /// Gets a value indicating whether this context corresponds to a run-time block.
-            /// </summary>
-            public bool IsRunTimeBlock { get; }
-
-            /// <summary>
-            /// Gets a value indicating whether this context corresponds to a compile-time conditional block
-            /// (e.g., the body of a compile-time if/while/for statement).
-            /// </summary>
-            public bool IsCompileTimeConditionalBlock { get; }
 
             /// <summary>
             /// Gets the the variable used to track whether compile-time logic should be skipped in this block.
             /// </summary>
             public SkipCompileTimeLogicVariable SkipCompileTimeLogicVariable { get; }
-
-            /// <summary>
-            /// Determines whether this context or any of its ancestors is a run-time block.
-            /// A return statement inside a run-time block should not terminate compile-time flow.
-            /// </summary>
-            public bool IsInsideRunTimeBlock()
-            {
-                for ( var context = this; context != null; context = context.Parent )
-                {
-                    if ( context.IsRunTimeBlock )
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            /// <summary>
-            /// Determines whether this context or any of its ancestors is a compile-time conditional block.
-            /// Only returns inside compile-time conditionals should terminate compile-time flow.
-            /// </summary>
-            public bool IsInsideCompileTimeConditionalBlock()
-            {
-                for ( var context = this; context != null; context = context.Parent )
-                {
-                    if ( context.IsCompileTimeConditionalBlock )
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
 
             /// <summary>
             /// Creates a child <see cref="MetaContext"/> that corresponds to a run-time block, so it has its own
@@ -141,9 +85,7 @@ namespace Metalama.Framework.Engine.Templating
                     skipCompileTimeLogicVariable,
                     generatedCodeSymbolNameLocals,
                     templateCodeSymbolNameLocals,
-                    templateLexicalScope,
-                    parentContext,
-                    isRunTimeBlock: parentContext != null );
+                    templateLexicalScope );
             }
 
             /// <summary>
@@ -158,8 +100,7 @@ namespace Metalama.Framework.Engine.Templating
                     parentContext.SkipCompileTimeLogicVariable,
                     parentContext._generatedCodeSymbolNameLocals,
                     parentContext._templateCodeSymbolNameLocals,
-                    parentContext._templateUniqueNames,
-                    parentContext );
+                    parentContext._templateUniqueNames );
             }
 
             /// <summary>
@@ -167,14 +108,10 @@ namespace Metalama.Framework.Engine.Templating
             /// Symbols defined in the child scope are not defined in the parent scope.
             /// </summary>
             /// <param name="parentContext">The parent context.</param>
-            /// <param name="isConditionalBlock">
-            /// <c>true</c> if this block is the body of a compile-time conditional (if/while/for/do);
-            /// <c>false</c> for regular lexical scopes like the template body.
-            /// </param>
-            public static MetaContext CreateForCompileTimeBlock( MetaContext parentContext, bool isConditionalBlock = false )
+            public static MetaContext CreateForCompileTimeBlock( MetaContext parentContext )
             {
                 // Compile-time blocks are currently without effect because the dictionary maps resolved symbols, and not symbol
-                // names. Two declaration of variables with the same name are still different symbols, so we don't strictly
+                // names. Two declarations of variables with the same name are still different symbols, so we don't strictly
                 // need to split the dictionaries.
                 // However, we're keeping this method for completeness and clarity.
 
@@ -185,9 +122,7 @@ namespace Metalama.Framework.Engine.Templating
                     parentContext.SkipCompileTimeLogicVariable,
                     lexicalScope,
                     parentContext._templateCodeSymbolNameLocals,
-                    parentContext._templateUniqueNames,
-                    parentContext,
-                    isCompileTimeConditionalBlock: isConditionalBlock );
+                    parentContext._templateUniqueNames );
             }
 
             /// <summary>

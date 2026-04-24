@@ -69,7 +69,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         [Memo]
         public IProperty Definition
-            => this.PropertySymbol == this.PropertySymbol.OriginalDefinition
+            => this.PropertySymbol.Equals( this.PropertySymbol.OriginalDefinition )
                 ? this
                 : this.Compilation.Factory.GetProperty( this.PropertySymbol.OriginalDefinition );
 

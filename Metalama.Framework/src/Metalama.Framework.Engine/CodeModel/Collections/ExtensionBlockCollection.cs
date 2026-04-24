@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Collections;
 
-internal class ExtensionBlockCollection : MemberOrNamedTypeCollection<IExtensionBlock>, IExtensionBlockCollection
+internal sealed class ExtensionBlockCollection : MemberOrNamedTypeCollection<IExtensionBlock>, IExtensionBlockCollection
 {
     public ExtensionBlockCollection( INamedType declaringType, IReadOnlyList<IFullRef<IExtensionBlock>> sourceItems ) : base(
         declaringType,

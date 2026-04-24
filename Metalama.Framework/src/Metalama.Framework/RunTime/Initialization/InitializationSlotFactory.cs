@@ -11,7 +11,7 @@ namespace Metalama.Framework.RunTime.Initialization;
 /// Factory for allocating <see cref="InitializationSlot"/> instances. Each factory maintains
 /// its own counter, allowing tests to allocate slots independently without polluting global state.
 /// </summary>
-internal class InitializationSlotFactory
+internal sealed class InitializationSlotFactory
 {
     private int _nextBit;
 

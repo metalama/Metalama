@@ -185,7 +185,7 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
     }
 
     [Fact]
-    public async Task SuppressionFromDependencyReportsLAMA0306WhenNotInUserProfile()
+    public async Task SuppressionFromDependencyReportsLama0306WhenNotInUserProfile()
     {
         // Regression test for #726: When a dependency defines a SuppressionDefinition (e.g., for IDE0051 "Private member is unused")
         // and the suppression is NOT in the user profile (because the IDE was started before the suppression was registered),

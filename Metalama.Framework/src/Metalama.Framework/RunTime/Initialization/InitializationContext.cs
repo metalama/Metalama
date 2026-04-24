@@ -21,15 +21,13 @@ namespace Metalama.Framework.RunTime.Initialization;
 /// </remarks>
 public readonly struct InitializationContext
 {
-    private readonly CallerIntent _intent;
     private readonly uint _slots;
-    private readonly InitializationMetadata? _metadata;
 
     private InitializationContext( CallerIntent intent, uint slots = 0u, InitializationMetadata? metadata = null )
     {
-        this._intent = intent;
+        this.Intent = intent;
         this._slots = slots;
-        this._metadata = metadata;
+        this.Metadata = metadata;
     }
 
     /// <summary>
@@ -62,20 +60,22 @@ public readonly struct InitializationContext
     /// <summary>
     /// The caller's intent regarding <see cref="IInitializable.Initialize"/> invocation.
     /// </summary>
-    public CallerIntent Intent => this._intent;
+
+    public CallerIntent Intent { get; }
 
     /// <summary>
     /// Whether <see cref="IInitializable.Initialize"/> will be called by the caller.
     /// <c>true</c> when <see cref="Intent"/> is <see cref="CallerIntent.WillInitialize"/>.
     /// </summary>
-    public bool WillCallOnInitialized => this._intent != CallerIntent.None;
+    public bool WillCallOnInitialized => this.Intent != CallerIntent.None;
 
     /// <summary>
     /// Optional metadata describing the initialization context. Typically a singleton.
     /// Returns <c>null</c> for default construction (equivalent to
     /// <see cref="InitializationMetadata.Default"/>).
     /// </summary>
-    public InitializationMetadata? Metadata => this._metadata;
+
+    public InitializationMetadata? Metadata { get; }
 
     /// <summary>
     /// Returns <c>true</c> when the given <see cref="InitializationSlot"/> is set in this context, meaning a
@@ -96,5 +96,5 @@ public readonly struct InitializationContext
     /// that <see cref="IInitializable.Initialize"/> is being invoked, and <see cref="Metadata"/> is propagated
     /// unchanged from the current context.
     /// </remarks>
-    public InitializationContext Descend( InitializationSlot slots = default ) => new( CallerIntent.WillInitialize, this._slots | slots.Mask, this._metadata );
+    public InitializationContext Descend( InitializationSlot slots = default ) => new( CallerIntent.WillInitialize, this._slots | slots.Mask, this.Metadata );
 }

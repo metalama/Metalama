@@ -89,7 +89,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
             return true;
         }
 
-        switch ( metaApi.Declaration?.DeclarationKind )
+        switch ( metaApi.Declaration.DeclarationKind )
         {
             case DeclarationKind.Property when metaApi.Declaration is IProperty property:
                 return declaration.Equals( property.GetMethod ) || declaration.Equals( property.SetMethod );
@@ -356,7 +356,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         {
             // This is a special case where there is no current method.
 
-            switch ( this.MetaApi.Declaration?.DeclarationKind )
+            switch ( this.MetaApi.Declaration.DeclarationKind )
             {
                 case DeclarationKind.Field when this.MetaApi.Declaration is IField field:
                     // This is field initializer template expansion.

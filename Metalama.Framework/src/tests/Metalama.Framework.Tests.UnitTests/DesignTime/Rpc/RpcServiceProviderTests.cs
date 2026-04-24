@@ -12,11 +12,13 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
+// ReSharper disable AccessToDisposedClosure
+
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
 public sealed partial class RpcServiceProviderTests : RpcUnitTestClass
 {
-    internal const string ExtensionName = "TheExtension";
+    private const string _extensionName = "TheExtension";
 
     public RpcServiceProviderTests( ITestOutputHelper logger ) : base( logger ) { }
 
@@ -47,7 +49,7 @@ public sealed partial class RpcServiceProviderTests : RpcUnitTestClass
         await clientEndpoint.WaitUntilInitializedAsync( testContext.CancellationToken );
 
         // Enable the sync point BEFORE adding services so it will block.
-        testContext.SyncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}" );
+        testContext.SyncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
 
         // Add services - client will block at sync point.
         var extensionServiceFactory = new ExtensionServiceFactory();
@@ -55,12 +57,12 @@ public sealed partial class RpcServiceProviderTests : RpcUnitTestClass
 
         // Wait for client to reach the sync point.
         await testContext.SyncProvider.WaitForSyncPointReachedAsync(
-            $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}",
+            $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}",
             testContext.CancellationToken );
 
         // Release sync point WITHOUT registering extension first.
         // This forces the retry path - client will see extension not loaded.
-        testContext.SyncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}" );
+        testContext.SyncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
 
         // Now register extension - retry task will complete.
         clientExtensionManager.OnExtensionDiscovered( new Extension() );
@@ -102,7 +104,7 @@ public sealed partial class RpcServiceProviderTests : RpcUnitTestClass
         await clientEndpoint.WaitUntilInitializedAsync( testContext.CancellationToken );
 
         // Enable the sync point BEFORE adding services so it will block.
-        testContext.SyncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}" );
+        testContext.SyncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
 
         // Add services - client will block at sync point before checking if extension is loaded.
         var extensionServiceFactory = new ExtensionServiceFactory();
@@ -110,7 +112,7 @@ public sealed partial class RpcServiceProviderTests : RpcUnitTestClass
 
         // Wait for client to reach the sync point (about to check IsCompleted).
         await testContext.SyncProvider.WaitForSyncPointReachedAsync(
-            $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}",
+            $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}",
             testContext.CancellationToken );
 
         // Register extension WHILE client is paused at sync point.
@@ -118,7 +120,7 @@ public sealed partial class RpcServiceProviderTests : RpcUnitTestClass
         clientExtensionManager.OnExtensionDiscovered( new Extension() );
 
         // Release the sync point - client will now see extension as loaded.
-        testContext.SyncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}" );
+        testContext.SyncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
 
         await clientEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
 

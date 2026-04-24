@@ -21,6 +21,7 @@ internal sealed class InitializableTypeInfo
     /// <summary>
     /// Gets the <c>Initialize</c> method (the most-derived one in the hierarchy).
     /// </summary>
+
     public IMethodSymbol InitializeMethod { get; }
 
     /// <summary>

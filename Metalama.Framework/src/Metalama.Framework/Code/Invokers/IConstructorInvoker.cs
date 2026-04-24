@@ -17,7 +17,7 @@ namespace Metalama.Framework.Code.Invokers;
 /// objects that represent object instantiation. These expressions can then be used in templates and will be expanded into actual C# code.
 /// </para>
 /// <para>
-/// The <see cref="Invoke(dynamic[])"/> method returns a <c>dynamic</c> value that can be used directly in template code, while
+/// The <see cref="Invoke(object?[])"/> method returns a <c>dynamic</c> value that can be used directly in template code, while
 /// <see cref="CreateInvokeExpression()"/> and its overloads return an <see cref="IObjectCreationExpression"/> for use in compile-time APIs.
 /// </para>
 /// <para>

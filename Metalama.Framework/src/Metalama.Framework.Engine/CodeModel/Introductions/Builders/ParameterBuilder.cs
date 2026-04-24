@@ -84,6 +84,7 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
         }
     }
 
+    // ReSharper disable once ConvertToAutoPropertyWithPrivateSetter
     public override int Index => this._index;
 
     internal void SetIndex( int index ) => this._index = index;

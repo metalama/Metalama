@@ -4,6 +4,7 @@
 
 using System;
 using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
+
 // ReSharper disable RedundantJumpStatement
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBody.AnonymousDelegate

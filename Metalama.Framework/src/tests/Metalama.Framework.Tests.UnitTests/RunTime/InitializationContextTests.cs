@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.RunTime;
 
-public class InitializationContextTests
+public sealed class InitializationContextTests
 {
     [Fact]
     public void DefaultContext_HasNoneIntent()

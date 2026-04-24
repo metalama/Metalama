@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -19,6 +20,7 @@ namespace Metalama.Framework.RunTime.Events;
 /// <typeparam name="TArgs">The event arguments type  (i.e. the arguments of <typeparamref name="TDelegate"/> packed as a tuple).</typeparam>
 /// <typeparam name="TState">An opaque state stored by the <see cref="EventBroker{TDelegate,TArgs,TState}"/> and passed along to the <see cref="IEventAdapter{TDelegate,TArgs,TState}"/>.
 /// For instance events, typically set to the declaring type of the event. For static events, it is typically set to <see cref="None"/>.</typeparam> 
+[PublicAPI]
 public sealed class EventBroker<TDelegate, TArgs, TState>
     where TDelegate : Delegate
 {

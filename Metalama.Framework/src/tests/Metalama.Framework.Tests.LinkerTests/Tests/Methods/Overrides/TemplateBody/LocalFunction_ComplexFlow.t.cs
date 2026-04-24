@@ -28,7 +28,6 @@ internal class TargetClass
           {
             Console.WriteLine("Original Begin");
             return x + 1;
-            ;
           }
           Console.WriteLine("Override1 Local Function End");
           return 0;

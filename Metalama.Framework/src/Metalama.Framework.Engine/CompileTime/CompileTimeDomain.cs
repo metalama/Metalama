@@ -38,6 +38,7 @@ namespace Metalama.Framework.Engine.CompileTime
     /// and the old domain becomes eligible for garbage collection once no compilation holds a reference to it. In tests,
     /// domains are disposed explicitly via <c>TestContext.Dispose</c>.</para>
     /// </remarks>
+    [PublicAPI]
     public class CompileTimeDomain : IDisposable
     {
         private static readonly ConcurrentDictionary<string, object> _locksByPath = new();

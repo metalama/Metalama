@@ -6,14 +6,13 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 using Xunit;
 
 namespace Metalama.Framework.Engine.Analyzers.Tests;
 
-public class KindCheckOptimizationAnalyzerTests
+public sealed class KindCheckOptimizationAnalyzerTests
 {
     #region Test Infrastructure
 
@@ -79,7 +78,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_IDeclaration_NoKindCheck_ShouldWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -96,7 +95,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_ISymbol_NoKindCheck_ShouldWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    class Test
                    {
@@ -113,7 +112,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_SyntaxNode_NoKindCheck_ShouldWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -132,7 +131,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_RecursivePattern_NoKindCheck_ShouldWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -153,7 +152,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_PrecedingKindCheck_Equality_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -170,7 +169,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_PrecedingKindCheck_ISymbol_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    class Test
                    {
@@ -187,7 +186,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_PrecedingKindCheck_IsKind_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -206,7 +205,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_PrecedingKindCheck_ConditionalIsKind_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -225,7 +224,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_KindPropertyPattern_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -242,7 +241,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_AbstractSyntaxNode_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -261,7 +260,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_NotRelevantBaseType_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -278,7 +277,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_KindIdentifierVariable_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -299,7 +298,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task SwitchStatement_IDeclaration_NoKindCheck_ShouldWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -320,7 +319,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task SwitchStatement_ISymbol_MultipleArms_ShouldWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    class Test
                    {
@@ -347,7 +346,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task SwitchStatement_GoverningKindAccess_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -368,7 +367,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task SwitchStatement_CasePatternWithKindCheck_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -393,7 +392,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task SwitchExpression_ISymbol_NoKindCheck_ShouldWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    class Test
                    {
@@ -411,7 +410,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task SwitchExpression_SyntaxNode_MultipleArms_ShouldWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -436,7 +435,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task SwitchExpression_GoverningKindAccess_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    class Test
                    {
@@ -454,7 +453,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task SwitchExpression_ArmWithKindPropertyPattern_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -476,7 +475,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_InsideSwitchOnKind_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -498,7 +497,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_InsideSwitchExpressionArmWithKindPattern_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -520,7 +519,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task NoWarning_TypeNotInHierarchy_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    interface IUnrelated {}
                    class Test
                    {
@@ -538,7 +537,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task NoWarning_MissingReferences_ShouldNotWarn()
     {
         // Compilation without Metalama references - should not crash
-        var code = """
+        const string code = """
                    class Test
                    {
                        void M(object obj)
@@ -577,7 +576,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task MultiplePatterns_SameFile_ShouldWarnMultiple()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    using Microsoft.CodeAnalysis;
                    class Test
@@ -597,7 +596,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task TupleKindAccess_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    class Test
                    {
@@ -615,7 +614,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task ParenthesizedKindAccess_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    class Test
                    {
@@ -637,7 +636,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task FalsePositive_NestedPropertyPattern_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    class Wrapper { public ISymbol Symbol { get; set; } }
                    class Test
@@ -655,7 +654,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task FalsePositive_KindInIdentifierName_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -672,7 +671,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task FalsePositive_SyntaxKindMethod_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -692,7 +691,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task FalsePositive_MethodStartsWithIs_InWhenClause_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    static class SymbolKindExtensions
                    {
@@ -722,7 +721,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_WithNegation_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -739,7 +738,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task IsPattern_IsKindPattern_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -756,7 +755,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task SwitchExpression_OnKindMethod_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -776,7 +775,7 @@ public class KindCheckOptimizationAnalyzerTests
     [Fact]
     public async Task SwitchExpression_ConditionalKindAccess_ShouldNotWarn()
     {
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -801,7 +800,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task SwitchExpression_ConstantPatternForType_ShouldWarn()
     {
         // Verifies that ConstantPatternSyntax that resolves to a type is handled correctly
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    class Test
                    {
@@ -825,7 +824,7 @@ public class KindCheckOptimizationAnalyzerTests
     {
         // Test: decl.DeclarationKind is DeclarationKind.Method (old-style IsExpression)
         // This pattern is parsed as BinaryExpressionSyntax with SyntaxKind.IsExpression, not IsPatternExpressionSyntax
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -850,7 +849,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_DeclarationKindExtensionProperty_IsMember_ShouldNotWarn()
     {
         // Pattern: { DeclarationKind.IsMember: true } - uses extension property on DeclarationKind
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -868,7 +867,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_DeclarationKindExtensionProperty_IsMemberOrNamedType_ShouldNotWarn()
     {
         // Pattern: { DeclarationKind.IsMemberOrNamedType: true } - uses extension property on DeclarationKind
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -886,7 +885,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task SwitchExpression_DeclarationKindExtensionProperty_ShouldNotWarn()
     {
         // Pattern: case { DeclarationKind.IsMember: true } when declaration is IMember member
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -905,7 +904,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task SwitchStatement_DeclarationKindExtensionProperty_ShouldNotWarn()
     {
         // Pattern in switch statement: case { DeclarationKind.IsMember: true } and IMember member:
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -927,7 +926,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_SyntaxKindExtensionProperty_IsAccessorDeclaration_ShouldNotWarn()
     {
         // Pattern: { SyntaxKind.IsAccessorDeclaration: true }
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -948,7 +947,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_SyntaxKindExtensionProperty_IsTypeDeclaration_ShouldNotWarn()
     {
         // Pattern: { SyntaxKind.IsTypeDeclaration: true }
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -969,7 +968,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_SyntaxKindExtensionProperty_IsBaseMethodDeclaration_ShouldNotWarn()
     {
         // Pattern: { SyntaxKind.IsBaseMethodDeclaration: true }
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -990,7 +989,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task SwitchExpression_SyntaxKindExtensionProperty_ShouldNotWarn()
     {
         // Pattern in switch expression with SyntaxKind extension property
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1013,7 +1012,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_SymbolKindExtensionProperty_IsMember_ShouldNotWarn()
     {
         // Pattern: { Kind.IsMember: true }
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Metalama.Framework.Engine.Utilities.Roslyn;
                    class Test
@@ -1032,7 +1031,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_SymbolKindExtensionProperty_IsNonNamedType_ShouldNotWarn()
     {
         // Pattern: { Kind.IsNonNamedType: true }
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Metalama.Framework.Engine.Utilities.Roslyn;
                    class Test
@@ -1052,7 +1051,7 @@ public class KindCheckOptimizationAnalyzerTests
     {
         // Pattern: case { IsMember: true } when currentDeclaration is IMember
         // This tests direct extension property access in a pattern (without Kind. prefix)
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -1075,7 +1074,7 @@ public class KindCheckOptimizationAnalyzerTests
     {
         // Pattern: declaration.DeclarationKind.IsMemberOrNamedType && declaration is IMemberOrNamedType
         // This tests extension property access in a preceding && expression
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -1093,7 +1092,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_PrecedingExtensionPropertyCheck_IsMember_ShouldNotWarn()
     {
         // Pattern: declaration.DeclarationKind.IsMember && declaration is IMember
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -1115,7 +1114,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_SyntaxKindExtensionProperty_IsRecordDeclaration_ShouldNotWarn()
     {
         // Pattern: { SyntaxKind.IsRecordDeclaration: true }
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1136,7 +1135,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_SyntaxKindExtensionProperty_IsSimpleName_ShouldNotWarn()
     {
         // Pattern: { SyntaxKind.IsSimpleName: true }
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1157,7 +1156,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_SyntaxKindExtensionProperty_IsName_ShouldNotWarn()
     {
         // Pattern: { SyntaxKind.IsName: true }
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1178,7 +1177,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_DeclarationKindExtensionProperty_IsAssembly_ShouldNotWarn()
     {
         // Pattern: { DeclarationKind.IsAssembly: true }
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    class Test
                    {
@@ -1196,7 +1195,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_TypeKindExtensionProperty_IsClassOrStruct_ShouldNotWarn()
     {
         // Pattern: { TypeKind.IsClassOrStruct: true }
-        var code = """
+        const string code = """
                    using Metalama.Framework.Code;
                    using Metalama.Framework.Engine.Utilities.Roslyn;
                    class Test
@@ -1215,7 +1214,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_PrecedingConditionalKindExtensionPropertyCheck_ShouldNotWarn()
     {
         // Pattern: node?.Kind().IsRecordDeclaration == true && node is RecordDeclarationSyntax
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1236,7 +1235,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task SwitchExpression_NewExtensionPropertyPatterns_ShouldNotWarn()
     {
         // Test multiple new extension properties in switch expression
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1264,7 +1263,7 @@ public class KindCheckOptimizationAnalyzerTests
     {
         // Pattern: node.SyntaxKind.IsRecordDeclaration && node is RecordDeclarationSyntax
         // The SyntaxKind extension property on SyntaxNode returns node.Kind()
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1285,7 +1284,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_SyntaxKindExtensionProperty_ConditionalAccess_ShouldNotWarn()
     {
         // Pattern: parent?.SyntaxKind.IsRecordDeclaration == true && parent is RecordDeclarationSyntax
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1306,7 +1305,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_SyntaxKindExtensionProperty_IsTypeDeclaration_PrecedingCheck_ShouldNotWarn()
     {
         // Pattern: node.SyntaxKind.IsTypeDeclaration && node is TypeDeclarationSyntax
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1327,7 +1326,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_SyntaxKindExtensionProperty_IsBaseMethodDeclaration_PrecedingCheck_ShouldNotWarn()
     {
         // Pattern: node.SyntaxKind.IsBaseMethodDeclaration && node is BaseMethodDeclarationSyntax
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1348,7 +1347,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task SwitchExpression_GoverningOnSyntaxKindProperty_ShouldNotWarn()
     {
         // Pattern: switch on node.SyntaxKind (extension property that returns Kind())
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1371,7 +1370,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task SwitchExpression_GoverningOnConditionalSyntaxKindProperty_ShouldNotWarn()
     {
         // Pattern: switch on node?.SyntaxKind (conditional extension property access)
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1398,7 +1397,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task IsPattern_RawKindPropertyPattern_ShouldNotWarn()
     {
         // Pattern: { RawKind: (int) SyntaxKind.X } - uses RawKind property pattern
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1418,7 +1417,7 @@ public class KindCheckOptimizationAnalyzerTests
     public async Task SwitchExpression_RawKindPropertyPattern_ShouldNotWarn()
     {
         // Pattern in switch expression with RawKind property pattern
-        var code = """
+        const string code = """
                    using Microsoft.CodeAnalysis;
                    using Microsoft.CodeAnalysis.CSharp;
                    using Microsoft.CodeAnalysis.CSharp.Syntax;

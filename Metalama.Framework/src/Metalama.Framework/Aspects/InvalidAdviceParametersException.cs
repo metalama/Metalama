@@ -14,8 +14,8 @@ namespace Metalama.Framework.Aspects;
 /// <remarks>
 /// <para>
 /// This exception is thrown at compile time when an aspect's <see cref="IAspect{T}.BuildAspect"/> method
-/// calls an advice factory method (such as <see cref="O:AdviserExtensions.Override">Override</see>
-/// or <see cref="O:AdviserExtensions.IntroduceMethod">IntroduceMethod</see>)
+/// calls an advice factory method (such as <see cref="AdviserExtensions.Override(IAdviser{Code.IFieldOrProperty}, string, object)">Override</see>
+/// or <see cref="AdviserExtensions.IntroduceMethod">IntroduceMethod</see>)
 /// with parameters that are not valid for the target declaration.
 /// </para>
 /// <para>

@@ -2,14 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.DesignTime.Extensibility;
-using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.DesignTime.Services;
-using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
-using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using System;
 using System.Collections.Generic;
@@ -17,6 +11,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+
+// ReSharper disable AccessToDisposedClosure
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.EndToEnd;
 
@@ -80,7 +76,7 @@ public sealed class DesignTimeExtensionRpcTests : DistributedDesignTimeTestBase
 
         // Enable the sync point BEFORE running the pipeline.
         // This will block the client when it tries to load services for the TestDesignTimeExtension.
-        var syncPointName = $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{TestDesignTimeExtension.ExtensionName}";
+        const string syncPointName = $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{TestDesignTimeExtension.ExtensionName}";
         testContext.SyncProvider.EnableSyncPoint( syncPointName );
 
         // Execute the pipeline - this triggers extension discovery in the analysis process only.
@@ -149,7 +145,7 @@ public sealed class DesignTimeExtensionRpcTests : DistributedDesignTimeTestBase
         await testContext.AnalysisProcessEndpoint.RegisterProjectAsync( projectKey, testContext.CancellationToken );
 
         // Enable the sync point BEFORE running the pipeline.
-        var syncPointName = $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{TestDesignTimeExtension.ExtensionName}";
+        const string syncPointName = $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{TestDesignTimeExtension.ExtensionName}";
         testContext.SyncProvider.EnableSyncPoint( syncPointName );
 
         // 2. Run pipeline FIRST - extension discovered in analysis process, RPC services added
@@ -260,80 +256,4 @@ public sealed class DesignTimeExtensionRpcTests : DistributedDesignTimeTestBase
         await api1.PingAsync();
         await api2.PingAsync();
     }
-}
-
-/// <summary>
-/// Test design-time extension that adds an RPC service when initialized.
-/// This extension is used to reproduce GitHub issue #1242.
-/// </summary>
-public sealed class TestDesignTimeExtension : IDesignTimeExtension
-{
-    public const string ExtensionName = "TestDesignTimeExtension";
-
-    public string Name => ExtensionName;
-
-    public bool Initialize( DesignTimeInitializationContext context )
-    {
-        // Configure shared services like Premium's CodeFixesDesignTimeExtension does.
-        // This might trigger earlier service resolution.
-        context.ConfigureSharedServices(
-            serviceProvider => serviceProvider.Underlying
-                .AddSharedService( _ => new TestSharedService() ) );
-
-        // Only add RPC service in the analysis process (server side)
-        if ( context.ProcessKind == DesignTimeProcessKind.VsAnalysisProcess )
-        {
-            context.AddRpcService( new TestExtensionServiceFactory() );
-        }
-
-        return true;
-    }
-}
-
-/// <summary>
-/// Test shared service to mimic Premium's CodeFixService.
-/// </summary>
-public sealed class TestSharedService : IGlobalService { }
-
-/// <summary>
-/// RPC API interface for the test extension service.
-/// </summary>
-public interface ITestExtensionApi : IRpcApi
-{
-    Task PingAsync();
-}
-
-/// <summary>
-/// Factory that creates the RPC service and client.
-/// </summary>
-public sealed class TestExtensionServiceFactory : IRpcServiceFactory
-{
-    public string ExtensionName => TestDesignTimeExtension.ExtensionName;
-
-    public RpcService CreateRpcService( GlobalServiceProvider serviceProvider, ServerEndpoint endpoint ) => new TestExtensionService( endpoint );
-
-    public RpcClient CreateRpcClient( GlobalServiceProvider serviceProvider, ClientEndpoint endpoint ) => new TestExtensionClient( endpoint );
-}
-
-/// <summary>
-/// Server-side RPC service implementation.
-/// </summary>
-public sealed class TestExtensionService : RpcService<ITestExtensionApi>
-{
-    public TestExtensionService( ServerEndpoint endpoint ) : base( endpoint ) { }
-
-    protected override ITestExtensionApi CreateApi( IRpcEventSender eventSender ) => new Api();
-
-    private sealed class Api : ITestExtensionApi
-    {
-        public Task PingAsync() => Task.CompletedTask;
-    }
-}
-
-/// <summary>
-/// Client-side RPC client implementation.
-/// </summary>
-public sealed class TestExtensionClient : RpcClient<ITestExtensionApi>
-{
-    public TestExtensionClient( ClientEndpoint endpoint ) : base( endpoint ) { }
 }

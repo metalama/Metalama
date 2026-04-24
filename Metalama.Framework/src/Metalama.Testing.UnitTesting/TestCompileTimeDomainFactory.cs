@@ -13,6 +13,7 @@ namespace Metalama.Testing.UnitTesting;
 internal sealed class TestCompileTimeDomainFactory : ICompileTimeDomainFactory
 {
     private readonly GlobalServiceProvider _serviceProvider;
+
     private readonly ConcurrentDictionary<Guid, WeakReference<CompileTimeDomain>> _domains = new();
     private readonly object _lock = new();
 
@@ -23,16 +24,15 @@ internal sealed class TestCompileTimeDomainFactory : ICompileTimeDomainFactory
 
     public CompileTimeDomain CreateDomain()
     {
-        CompileTimeDomain domain;
-
 #if NET5_0_OR_GREATER
         var unloadableDomain = new UnloadableCompileTimeDomain( this._serviceProvider );
         unloadableDomain.UnloadError += _ => MemoryDumpHelper.CaptureMiniDumpOnce();
-        domain = unloadableDomain;
+        CompileTimeDomain domain = unloadableDomain;
 #else
-        domain = new CompileTimeDomain( this._serviceProvider );
+        var domain = new CompileTimeDomain( this._serviceProvider );
 #endif
 
+        // ReSharper disable once InconsistentlySynchronizedField
         this._domains.TryAdd( domain.Guid, new WeakReference<CompileTimeDomain>( domain ) );
 
         return domain;

@@ -9,7 +9,7 @@ namespace Metalama.Framework.DesignTime.Rpc;
 /// The envelope contains the originating API name so the client can route the event to the correct handler.
 /// </summary>
 [RpcContract]
-public class RpcEventEnvelope
+public sealed class RpcEventEnvelope
 {
     /// <summary>
     /// Gets the name of the originating <see cref="IRpcApi"/> interface. Used for routing events to the correct client handler.

@@ -9,7 +9,7 @@ namespace Metalama.Framework.DesignTime.Rpc.Notifications;
 /// that they may need to reconnect or refresh their connection to a specific project's services.
 /// </summary>
 [RpcContract]
-public class EndpointChangedEventData : RpcEventData
+public sealed class EndpointChangedEventData : RpcEventData
 {
     /// <summary>
     /// Gets the GUID of the project whose endpoint has changed.

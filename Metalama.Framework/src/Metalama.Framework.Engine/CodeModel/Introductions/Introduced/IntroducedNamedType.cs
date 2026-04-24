@@ -172,7 +172,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     private IExtensionBlockCollection GetExtensionBlocksCore()
     {
 #if ROSLYN_5_0_0_OR_GREATER
-        var collection = this.Compilation.GetExtensionBlockCollection( this.Ref, false );
+        var collection = this.Compilation.GetExtensionBlockCollection( this.Ref );
 
         return new ExtensionBlockCollection( this, collection.ToImmutableArray() );
 #else
@@ -218,7 +218,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
                 var typeParam = (IType) t.ToRef().GetTarget( this.Compilation );
 
                 // Then map it through the generic context, which substitutes e.g. T -> int.
-                return this.GenericContext.Map( typeParam ) ?? typeParam;
+                return this.GenericContext.Map( typeParam );
             } );
 
     public bool IsGeneric => this._namedTypeBuilderData.TypeParameters.Length > 0;
@@ -257,7 +257,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
         }
         else if ( this.IsReferenceType ?? true )
         {
-            return this.Compilation.Factory.GetNamedType( this._namedTypeBuilderData, this.GenericContext, false );
+            return this.Compilation.Factory.GetNamedType( this._namedTypeBuilderData, this.GenericContext );
         }
         else
         {

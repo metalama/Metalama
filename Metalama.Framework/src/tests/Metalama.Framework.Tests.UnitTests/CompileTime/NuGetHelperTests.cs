@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 
-public class NuGetHelperTests : UnitTestClass
+public sealed class NuGetHelperTests : UnitTestClass
 {
     [Fact]
     public void RelativeFallbackPackageFoldersAreResolvedToAbsolutePaths()

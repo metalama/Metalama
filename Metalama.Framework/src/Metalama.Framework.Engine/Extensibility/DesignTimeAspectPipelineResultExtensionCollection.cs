@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Collections;
@@ -14,6 +15,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Extensibility;
 
+[PublicAPI]
 public sealed class DesignTimeAspectPipelineResultExtensionCollection
 {
     private readonly ReferenceIndexerOptions _ownOptions;

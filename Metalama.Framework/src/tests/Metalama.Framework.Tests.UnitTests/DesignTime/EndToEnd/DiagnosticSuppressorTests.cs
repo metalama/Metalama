@@ -223,7 +223,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
     }
 
     [Fact]
-    public async Task StaleUserProfileDoesNotSuppressDiagnosticAndReportsLAMA0306()
+    public async Task StaleUserProfileDoesNotSuppressDiagnosticAndReportsLama0306()
     {
         // Regression test for #726: When the user profile (SupportedSuppressionDescriptors) is stale/empty
         // but the suppression is defined in the compile-time project's DiagnosticManifest:

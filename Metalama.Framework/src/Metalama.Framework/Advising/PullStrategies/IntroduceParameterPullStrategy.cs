@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Advising.PullStrategies;
 
-internal class IntroduceParameterPullStrategy : IPullStrategy
+internal sealed class IntroduceParameterPullStrategy : IPullStrategy
 {
     private readonly string? _parameterName;
     private readonly IRef<IType>? _parameterType;

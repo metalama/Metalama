@@ -2,6 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
+
 namespace Metalama.Framework.RunTime.Initialization;
 
 /// <summary>
@@ -9,6 +11,7 @@ namespace Metalama.Framework.RunTime.Initialization;
 /// Subclass to carry extension-specific context (e.g., deserialization framework info).
 /// Instances should be singletons where possible to avoid allocation.
 /// </summary>
+[PublicAPI]
 public class InitializationMetadata
 {
     /// <summary>

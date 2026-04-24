@@ -725,9 +725,6 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
         switch ( symbol.Kind )
         {
-            case var _ when symbol is null:
-                throw new ArgumentNullException( nameof(symbol) );
-
             case SymbolKind.Parameter when symbol is IParameterSymbol parameter:
                 h = HashCode.Combine( h, GetHashCode( symbol.ContainingSymbol, options ), parameter.Ordinal );
 

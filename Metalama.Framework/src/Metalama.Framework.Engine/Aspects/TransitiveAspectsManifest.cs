@@ -166,9 +166,8 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
                 ?? ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions>.Empty;
 
             if ( initializationArguments.TryGetValue<ImmutableDictionary<SerializableDeclarationId, ImmutableArray<IAnnotation>>>(
-                     nameof(instance.Annotations),
-                     out var annotations )
-                 && annotations != null )
+                    nameof(instance.Annotations),
+                    out var annotations ) )
             {
                 instance.Annotations = new ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>( annotations );
             }

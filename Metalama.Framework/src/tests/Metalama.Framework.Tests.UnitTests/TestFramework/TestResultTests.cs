@@ -13,7 +13,7 @@ public sealed class TestResultTests
     [Fact]
     public void FormatErrorMessageAsComments_MultiLineMessage()
     {
-        var errorMessage = "Program execution failed\nSystem.Exception: Test exception\n   at Program.Main()";
+        const string errorMessage = "Program execution failed\nSystem.Exception: Test exception\n   at Program.Main()";
 
         var comments = TestResult.FormatErrorMessageAsComments( errorMessage ).ToList();
 
@@ -51,7 +51,7 @@ public sealed class TestResultTests
     [Fact]
     public void FormatErrorMessageAsComments_WindowsLineEndings()
     {
-        var errorMessage = "Line1\r\nLine2\r\nLine3";
+        const string errorMessage = "Line1\r\nLine2\r\nLine3";
 
         var comments = TestResult.FormatErrorMessageAsComments( errorMessage ).ToList();
 

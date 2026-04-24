@@ -30,7 +30,8 @@ namespace Metalama.Framework.Engine.SerializableIds
         private readonly object _symbolKey;
 
         [JsonProperty]
-        public string Id => this._symbolKey.ToString() ?? "";
+
+        public string Id => this._symbolKey.ToString().AssertNotNull();
 
         static SymbolId()
         {

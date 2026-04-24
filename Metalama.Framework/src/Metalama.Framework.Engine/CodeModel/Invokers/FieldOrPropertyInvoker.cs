@@ -35,6 +35,7 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
         this.CheckInvocationOptionsAndTarget();
 
 #if ROSLYN_5_0_0_OR_GREATER
+
         // For extension properties, redirect to the implementation method.
         if ( this.IsExtensionMember && this.Member.DeclarationKind == DeclarationKind.Property && this.Member is IProperty property )
         {
@@ -125,6 +126,7 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
     public object SetValue( object? value )
     {
 #if ROSLYN_5_0_0_OR_GREATER
+
         // For extension properties, generate a call to the setter implementation method.
         if ( this.IsExtensionMember && this.Member.DeclarationKind == DeclarationKind.Property && this.Member is IProperty property )
         {
@@ -173,17 +175,16 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
 
         if ( property.IsStatic )
         {
-            args = new IExpression[] { valueExpression };
+            args = [valueExpression];
         }
         else
         {
             if ( this.Target == null )
             {
-                throw new InvalidOperationException(
-                    $"Cannot set instance extension property '{property}' because the receiver (target) expression is null." );
+                throw new InvalidOperationException( $"Cannot set instance extension property '{property}' because the receiver (target) expression is null." );
             }
 
-            args = new IExpression[] { this.Target, valueExpression };
+            args = [this.Target, valueExpression];
         }
 
         return (DelegateUserExpression) implInvoker.CreateInvokeExpression( args );

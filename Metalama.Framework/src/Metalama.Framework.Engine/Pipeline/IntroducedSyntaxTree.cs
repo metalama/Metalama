@@ -14,6 +14,7 @@ namespace Metalama.Framework.Engine.Pipeline
         /// <summary>
         /// Gets the source syntax tree or null if the generated syntax tree does not have a source syntax tree.
         /// </summary>
+
         public SyntaxTree? SourceSyntaxTree { get; }
 
         public SyntaxTree GeneratedSyntaxTree { get; }

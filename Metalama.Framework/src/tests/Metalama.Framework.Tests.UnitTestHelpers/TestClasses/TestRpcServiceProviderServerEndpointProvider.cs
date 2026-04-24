@@ -6,7 +6,7 @@ using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 
 namespace Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 
-internal class TestRpcServiceProviderServerEndpointProvider : IRpcServiceProviderServerEndpointProvider
+internal sealed class TestRpcServiceProviderServerEndpointProvider : IRpcServiceProviderServerEndpointProvider
 {
     public TestRpcServiceProviderServerEndpointProvider( RpcServiceProviderServerEndpoint endpoint )
     {

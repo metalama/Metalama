@@ -73,7 +73,7 @@ namespace Metalama.Framework.DesignTime.CodeFixes
 
         private protected virtual ICodeFixContext WrapContext( ICodeFixContext context ) => context;
 
-        public Task RegisterCodeFixesAsync( ICodeFixContext context )
+        internal Task RegisterCodeFixesAsync( ICodeFixContext context )
         {
             try
             {

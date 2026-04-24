@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -10,6 +11,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 /// <summary>
 /// Extension properties for <see cref="SyntaxKind"/>.
 /// </summary>
+[PublicAPI]
 public static class SyntaxKindExtensions
 {
     extension( SyntaxNode node )

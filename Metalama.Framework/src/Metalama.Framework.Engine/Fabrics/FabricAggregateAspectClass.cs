@@ -24,10 +24,12 @@ namespace Metalama.Framework.Engine.Fabrics
     /// </summary>
     internal sealed class FabricAggregateAspectClass : IAspectClassImpl
     {
-        public const string AspectClassName = "<Fabric>";
+#pragma warning disable IDE1006 // Naming rule violation: intentional angle-bracketed name mirrors CLR compiler-generated identifier
+        private const string _aspectClassName = "<Fabric>";
+#pragma warning restore IDE1006
 
         public static IBoundAspectClass CreateTopLevelAspectClass( in ProjectServiceProvider serviceProvider, CompilationModel compilation )
-            => new SystemAspectClass( serviceProvider, compilation, AspectClassName, typeof(Fabric) );
+            => new SystemAspectClass( serviceProvider, compilation, _aspectClassName, typeof(Fabric) );
 
         public FabricAggregateAspectClass( ImmutableArray<TemplateClass> templateClasses )
         {
@@ -43,9 +45,9 @@ namespace Metalama.Framework.Engine.Fabrics
 
         public string FullName => typeof(Fabric).FullName.AssertNotNull();
 
-        public string ShortName => AspectClassName;
+        public string ShortName => _aspectClassName;
 
-        public string DisplayName => AspectClassName;
+        public string DisplayName => _aspectClassName;
 
         public string? Description => null;
 
@@ -63,7 +65,7 @@ namespace Metalama.Framework.Engine.Fabrics
 
         public SyntaxAnnotation GeneratedCodeAnnotation { get; }
 
-        public ImmutableArray<AspectLayer> Layers { get; } = ImmutableArray.Create( new AspectLayer( AspectClassName, null ) );
+        public ImmutableArray<AspectLayer> Layers { get; } = ImmutableArray.Create( new AspectLayer( _aspectClassName, null ) );
 
         EligibleScenarios IAspectClassImpl.GetEligibility( IDeclaration obj, bool isInheritable ) => EligibleScenarios.Default;
 

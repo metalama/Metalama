@@ -335,7 +335,7 @@ internal sealed partial class MethodInvoker
                             SyntaxFactoryEx.WellKnownIdentifierName( "System" ) ),
                         GenericName(
                             SyntaxFactoryEx.WellKnownIdentifier( "Action" ),
-                            TypeArgumentList( SeparatedList<TypeSyntax>( parameterTypes ) ) ) );
+                            TypeArgumentList( SeparatedList( parameterTypes ) ) ) );
                 }
             }
             else
@@ -349,7 +349,7 @@ internal sealed partial class MethodInvoker
                         SyntaxFactoryEx.WellKnownIdentifierName( "System" ) ),
                     GenericName(
                         SyntaxFactoryEx.WellKnownIdentifier( "Func" ),
-                        TypeArgumentList( SeparatedList<TypeSyntax>( allTypeArgs ) ) ) );
+                        TypeArgumentList( SeparatedList( allTypeArgs ) ) ) );
             }
 
             // Generate: new DelegateType(methodGroupExpression)

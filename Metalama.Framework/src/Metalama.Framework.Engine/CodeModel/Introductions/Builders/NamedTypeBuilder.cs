@@ -64,11 +64,13 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
         this.Ref = new IntroducedRef<INamedType>( this.Compilation.RefFactory );
 
+        // ReSharper disable once VirtualMemberCallInConstructor
         this.InitializeBaseType();
 
         if ( this.TypeKind == TypeKind.Interface )
         {
             // Interfaces are always abstract.
+            // ReSharper disable once VirtualMemberCallInConstructor
             this.IsAbstract = true;
         }
     }

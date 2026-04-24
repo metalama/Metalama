@@ -47,7 +47,7 @@ namespace Metalama.Framework.Engine.Templating
                             // This block was already processed - it does not contain empty statements and nested blocks that can be flattened.
                             var mustFlatten = innerBlock.HasFlattenBlockAnnotation();
 
-                            if ( mustFlatten || !innerBlock.Statements.Any( s => s.Kind() == SyntaxKind.LocalDeclarationStatement ) )
+                            if ( mustFlatten || innerBlock.Statements.All( s => s.Kind() != SyntaxKind.LocalDeclarationStatement ) )
                             {
                                 previousTrivia =
                                     previousTrivia

@@ -11,7 +11,7 @@ using System.Reflection;
 
 namespace Metalama.Framework.Engine.Utilities;
 
-internal class LanguageVersionProvider : ILanguageVersionProvider
+internal sealed class LanguageVersionProvider : ILanguageVersionProvider
 {
     private readonly IProjectOptions _projectOptions;
     private LanguageVersion? _cachedValue;

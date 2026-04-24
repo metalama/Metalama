@@ -31,7 +31,7 @@ internal static class LinkerSyntaxHandler
             {
                 case SyntaxKind.MethodDeclaration:
                     {
-                        var methodDecl = (MethodDeclarationSyntax) declaration!;
+                        var methodDecl = (MethodDeclarationSyntax) declaration;
 
                         // Partial methods without declared body have the whole declaration as body.
                         return methodDecl.Body ?? (SyntaxNode?) methodDecl.ExpressionBody ?? methodDecl;
@@ -39,7 +39,7 @@ internal static class LinkerSyntaxHandler
 
                 case SyntaxKind.ConstructorDeclaration:
                     {
-                        var constructorDecl = (ConstructorDeclarationSyntax) declaration!;
+                        var constructorDecl = (ConstructorDeclarationSyntax) declaration;
 
                         return constructorDecl.Body ?? (SyntaxNode?) constructorDecl.ExpressionBody ?? constructorDecl;
                     }
@@ -48,7 +48,7 @@ internal static class LinkerSyntaxHandler
                 case SyntaxKind.OperatorDeclaration:
                 case SyntaxKind.ConversionOperatorDeclaration:
                     {
-                        var otherMethodDecl = (BaseMethodDeclarationSyntax) declaration!;
+                        var otherMethodDecl = (BaseMethodDeclarationSyntax) declaration;
 
                         return (SyntaxNode?) otherMethodDecl.Body
                                ?? otherMethodDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
@@ -60,7 +60,7 @@ internal static class LinkerSyntaxHandler
                 case SyntaxKind.AddAccessorDeclaration:
                 case SyntaxKind.RemoveAccessorDeclaration:
                     {
-                        var accessorDecl = (AccessorDeclarationSyntax) declaration!;
+                        var accessorDecl = (AccessorDeclarationSyntax) declaration;
 
                         // Accessors with no body are auto-properties or partial properties, in which case we have a substitution for the whole accessor declaration.
                         Invariant.Assert( !symbol.IsAbstract );
@@ -70,7 +70,7 @@ internal static class LinkerSyntaxHandler
 
                 case SyntaxKind.ArrowExpressionClause:
                     {
-                        var arrowExpressionClause = (ArrowExpressionClauseSyntax) declaration!;
+                        var arrowExpressionClause = (ArrowExpressionClauseSyntax) declaration;
 
                         // Expression-bodied property.
                         return arrowExpressionClause;
@@ -105,7 +105,7 @@ internal static class LinkerSyntaxHandler
                 case SyntaxKind.RecordStructDeclaration:
                     {
                         // Record-synthesized method (e.g. Equals, GetHashCode).
-                        return declaration!;
+                        return declaration;
                     }
 
                 default:
@@ -121,7 +121,7 @@ internal static class LinkerSyntaxHandler
                 case SyntaxKind.ConstructorDeclaration:
                 case SyntaxKind.DestructorDeclaration:
                     {
-                        var methodDecl = (BaseMethodDeclarationSyntax) declaration!;
+                        var methodDecl = (BaseMethodDeclarationSyntax) declaration;
                         Invariant.Assert( methodDecl is MethodDeclarationSyntax or ConstructorDeclarationSyntax or DestructorDeclarationSyntax );
 
                         return (SyntaxNode?) methodDecl.Body
@@ -134,7 +134,7 @@ internal static class LinkerSyntaxHandler
                 case SyntaxKind.AddAccessorDeclaration:
                 case SyntaxKind.RemoveAccessorDeclaration:
                     {
-                        var accessorDecl = (AccessorDeclarationSyntax) declaration!;
+                        var accessorDecl = (AccessorDeclarationSyntax) declaration;
 
                         return (SyntaxNode?) accessorDecl.Body
                                ?? accessorDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );

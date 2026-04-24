@@ -48,6 +48,8 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
             var diagnosticDeclaration = this.DiagnosticDeclaration;
 
+            // ReSharper disable once ArrangeRedundantParentheses
+
             return TemplatingDiagnosticDescriptors.MetaMemberNotAvailable.CreateException(
                 (this._common.Template.GetDeclaration( this.Compilation ), "meta.Target." + memberName, diagnosticDeclaration,
                  diagnosticDeclaration.DeclarationKind,
@@ -105,7 +107,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public IMember Member => this.MemberOrNull ?? throw this.CreateInvalidOperationException( nameof(this.Member) );
 
-        public IMember? MemberOrNull => this.MethodOrNull ?? this._constructor ?? this._fieldOrPropertyOrIndexer ?? (IMember?) this._event;
+        private IMember? MemberOrNull => this.MethodOrNull ?? this._constructor ?? this._fieldOrPropertyOrIndexer ?? (IMember?) this._event;
 
         public IMethod Method => this.MethodOrNull ?? throw this.CreateInvalidOperationException( nameof(this.Method) );
 

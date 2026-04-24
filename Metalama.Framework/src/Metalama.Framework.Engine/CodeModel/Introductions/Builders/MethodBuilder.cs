@@ -31,6 +31,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     public IntroducedRef<IMethod> Ref { get; }
 
+    // ReSharper disable once ConvertToAutoPropertyWithPrivateSetter
     public override bool IsImplicitlyDeclared => this._isImplicitlyDeclared;
 
     public void SetImplicitlyDeclared()
@@ -191,6 +192,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     public bool IsCanonicalGenericInstance => true;
 
+    // ReSharper disable once ConvertToAutoPropertyWithPrivateSetter
     public MethodKind MethodKind => this._methodKind;
 
     public override MethodBase ToMethodBase() => this.ToMethodInfo();

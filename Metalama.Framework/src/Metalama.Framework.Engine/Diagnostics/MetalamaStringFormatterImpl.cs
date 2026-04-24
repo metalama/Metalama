@@ -30,7 +30,7 @@ namespace Metalama.Framework.Engine.Diagnostics
             return EscapeNewLines( this.FormatCore( format, arg, formatProvider ) );
         }
 
-        internal static string EscapeNewLines( string s ) => s.ReplaceOrdinal( "\r\n", " " ).ReplaceOrdinal( "\n", " " );
+        private static string EscapeNewLines( string s ) => s.ReplaceOrdinal( "\r\n", " " ).ReplaceOrdinal( "\n", " " );
 
         private string FormatCore( string? format, object? arg, IFormatProvider? formatProvider )
         {
@@ -67,7 +67,7 @@ namespace Metalama.Framework.Engine.Diagnostics
                         }
                         catch
                         {
-                            return displayable.ToString() ?? "";
+                            return displayable.ToString().CanBeNull() ?? "";
                         }
 
                     case DeclarationKind declarationKind:

@@ -25,7 +25,7 @@ internal abstract class TypeSymbolRewriter
     {
         var elementTypeSymbol = this.Visit( arrayTypeSymbol.ElementType );
 
-        if ( elementTypeSymbol == arrayTypeSymbol.ElementType )
+        if ( elementTypeSymbol.Equals( arrayTypeSymbol.ElementType ) )
         {
             return arrayTypeSymbol;
         }
@@ -57,7 +57,7 @@ internal abstract class TypeSymbolRewriter
     {
         var pointedAtTypeSymbol = this.Visit( pointerTypeSymbol.PointedAtType );
 
-        if ( pointedAtTypeSymbol == pointerTypeSymbol.PointedAtType )
+        if ( pointedAtTypeSymbol.Equals( pointerTypeSymbol.PointedAtType ) )
         {
             return pointerTypeSymbol;
         }

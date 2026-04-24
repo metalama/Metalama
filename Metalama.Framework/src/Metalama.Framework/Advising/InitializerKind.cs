@@ -73,7 +73,7 @@ namespace Metalama.Framework.Advising
         /// </para>
         /// <para>
         /// The <c>InitializationContext</c> parameter is pulled into constructors via the constructor parameter
-        /// introduction mechanism (<see cref="O:IAdviceFactory.IntroduceParameter"/>).
+        /// introduction mechanism (<see cref="IAdviceFactory.IntroduceParameter(Code.IConstructor, string, Code.IType, Code.TypedConstant, IPullStrategy, System.Collections.Immutable.ImmutableArray{Code.DeclarationBuilders.AttributeConstruction})">IAdviceFactory.IntroduceParameter</see>).
         /// </para>
         /// </remarks>
         /// <seealso href="@initializers"/>
@@ -104,7 +104,7 @@ namespace Metalama.Framework.Advising
         /// <see cref="RunTime.Initialization.InitializationContext"/> parameter to inspect caller intent,
         /// metadata (e.g. <see cref="RunTime.Initialization.InitializationMetadata.Modify"/> for
         /// <c>with</c> expressions), or coordination slots passed to the <c>slotFields</c> parameter of
-        /// <see cref="O:IAdviceFactory.AddInitializer"/>.
+        /// <see cref="IAdviceFactory.AddInitializer(Code.INamedType, string, InitializerKind, object, object, System.Collections.Generic.IEnumerable{Code.IField})">IAdviceFactory.AddInitializer</see>.
         /// </para>
         /// </remarks>
         /// <seealso cref="AfterLastInstanceConstructor"/>

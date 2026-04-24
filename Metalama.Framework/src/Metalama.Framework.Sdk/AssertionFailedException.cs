@@ -5,16 +5,15 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Metalama.Framework.Sdk
+namespace Metalama.Framework.Engine
 {
-    /// <summary>
-    /// An exception thrown when an internal assertion fails. This indicates a bug in Metalama code.
-    /// </summary>
     [ExcludeFromCodeCoverage]
     public sealed class AssertionFailedException : Exception
     {
         public AssertionFailedException() { }
 
         public AssertionFailedException( string message ) : base( message ) { }
+
+        internal AssertionFailedException( AssertionFailedInterpolatedStringHandler messageHandler ) : base( messageHandler.GetFormattedText() ) { }
     }
 }

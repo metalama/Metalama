@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Templating.Expressions;
 
-internal class ReceiverParameterUserReceiver : InstanceUserReceiver
+internal sealed class ReceiverParameterUserReceiver : InstanceUserReceiver
 {
     private readonly IParameter _parameter;
 

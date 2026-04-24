@@ -6,7 +6,6 @@ using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
-using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
@@ -1612,7 +1611,7 @@ class D{version}
 
         var targetPipeline1 = CreatePipeline( testContext.ProjectOptions );
 
-        CreatePipeline( new TestProjectOptions( testContext.TestProjectOptions, CodeFormattingOptions.None ) );
+        CreatePipeline( new TestProjectOptions( testContext.TestProjectOptions ) );
 
         GC.Collect();
 
@@ -1701,7 +1700,7 @@ class D{version}
         {
             ["options.cs"] = options,
             ["aspect.cs"] = aspect,
-            ["optionsAttribute.cs"] = "",
+            ["optionsAttribute.cs"] = "", 
             ["target.cs"] = target,
 #if NETFRAMEWORK
             ["isexternalinit.cs"] = "namespace System.Runtime.CompilerServices { internal static class IsExternalInit; }"
@@ -2332,16 +2331,16 @@ partial class A<T, U>
         // Simulate a change to a file in a different namespace (design-time partial compilation scenario).
         // The modified file is in MyApp.Other, so the partial compilation does not include the
         // fabric's target namespace (MyApp.Fabrics), which previously caused SymbolNotFoundException.
-        var modifiedOtherCode = """
-                                namespace MyApp.Other
-                                {
-                                    class OtherClass
-                                    {
-                                        public void DoWork() { }
-                                        public int DoMoreWork() => 42;
-                                    }
-                                }
-                                """;
+        const string modifiedOtherCode = """
+                                         namespace MyApp.Other
+                                         {
+                                             class OtherClass
+                                             {
+                                                 public void DoWork() { }
+                                                 public int DoMoreWork() => 42;
+                                             }
+                                         }
+                                         """;
 
         var originalOtherTree = compilation.SyntaxTrees.Single( t => t.FilePath == "other.cs" );
         var parseOptions = (CSharpParseOptions) originalOtherTree.Options;

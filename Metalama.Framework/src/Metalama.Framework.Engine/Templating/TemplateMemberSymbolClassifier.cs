@@ -32,9 +32,9 @@ internal abstract class TemplateMemberSymbolClassifier
             null => false,
             { Kind: SymbolKind.DynamicType } => true,
             { Kind: SymbolKind.ArrayType } and IArrayTypeSymbol { ElementType.Kind: SymbolKind.DynamicType } => true,
-            { Kind: SymbolKind.ArrayType } when type is IArrayTypeSymbol arrayType && IsDynamicParameter( arrayType.ElementType ) => true,
-            { Kind: SymbolKind.NamedType } when type is INamedTypeSymbol { IsGenericType: true } genericType
-                                                && genericType.TypeArguments.Any( IsDynamicParameter ) => true,
+            { Kind: SymbolKind.ArrayType } and IArrayTypeSymbol arrayType when IsDynamicParameter( arrayType.ElementType ) => true,
+            { Kind: SymbolKind.NamedType } and INamedTypeSymbol { IsGenericType: true } genericType when genericType.TypeArguments.Any( IsDynamicParameter ) =>
+                true,
             _ => false
         };
 

@@ -42,6 +42,7 @@ internal sealed partial class LinkerAnalysisStep
         /// <summary>
         /// Gets the resolved constructor symbol, or <c>null</c> for <c>with</c> expressions.
         /// </summary>
+
         public IMethodSymbol? Constructor { get; }
 
         /// <summary>

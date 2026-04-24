@@ -168,6 +168,6 @@ public sealed class ConstructorInitializerKindTests : UnitTestClass
         var staticCtor = type.StaticConstructor;
 
         Assert.NotNull( staticCtor );
-        Assert.Equal( ConstructorInitializerKind.None, staticCtor!.InitializerKind );
+        Assert.Equal( ConstructorInitializerKind.None, staticCtor.InitializerKind );
     }
 }

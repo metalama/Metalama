@@ -22,7 +22,7 @@ namespace Metalama.Framework.Engine.Aspects;
 /// </summary>
 internal sealed class SystemAspectClass : IBoundAspectClass
 {
-    public AspectLayer Layer { get; }
+    private AspectLayer Layer { get; }
 
     public string FullName => this.Type.FullName.AssertNotNull();
 

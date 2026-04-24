@@ -30,7 +30,7 @@ public sealed class IndexSerializerNetStandard20Tests : SerializerTestsBase
     private static CSharpCompilation CreateCompilationWithoutSystemIndex()
     {
         // Build a minimal "runtime" assembly that has fundamental types but NOT System.Index.
-        var minimalSource = @"
+        const string minimalSource = @"
 namespace System
 {
     public class Object { }

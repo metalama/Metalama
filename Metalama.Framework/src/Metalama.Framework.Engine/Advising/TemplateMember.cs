@@ -101,6 +101,8 @@ internal abstract class TemplateMember
             }
             else if ( this.IsIteratorMethod )
             {
+                // ReSharper disable once ArrangeRedundantParentheses
+
                 var iteratorMethod = declaration.Kind == SymbolKind.Method
                     ? declaration as IMethodSymbol
                     : (declaration.Kind == SymbolKind.Property ? (declaration as IPropertySymbol)?.GetMethod : null);

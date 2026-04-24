@@ -8,7 +8,7 @@ using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
-internal class LegacyPullStrategy : IPullStrategy
+internal sealed class LegacyPullStrategy : IPullStrategy
 {
     private readonly Func<IParameter, IConstructor, PullAction> _func;
 

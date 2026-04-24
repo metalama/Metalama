@@ -929,9 +929,10 @@ class C
 
                 // Extension method with out/ref parameters.
                 AssertEx.DynamicEquals(
-                    method.WithObject( receiverExpr ).Invoke(
-                        new TypedExpressionSyntaxImpl( generator.IdentifierName( "x" ), intType, compilation, isReferenceable: true ),
-                        new TypedExpressionSyntaxImpl( generator.IdentifierName( "y" ), intType, compilation, isReferenceable: true ) ),
+                    method.WithObject( receiverExpr )
+                        .Invoke(
+                            new TypedExpressionSyntaxImpl( generator.IdentifierName( "x" ), intType, compilation, isReferenceable: true ),
+                            new TypedExpressionSyntaxImpl( generator.IdentifierName( "y" ), intType, compilation, isReferenceable: true ) ),
                     @"global::C.ByRefMethod((global::System.Int32)receiver, out x, ref y)" );
             }
         }

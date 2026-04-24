@@ -319,13 +319,12 @@ namespace Metalama.Framework.RunTime
         /// <typeparam name="T">The type of items.</typeparam>
         public sealed class AsyncEnumerator<T> : IAsyncEnumerator<T>
         {
-            private readonly AsyncEnumerableList<T> _list;
             private readonly CancellationToken _cancellationToken;
             private List<T>.Enumerator _enumerator;
 
             internal AsyncEnumerator( AsyncEnumerableList<T> list, CancellationToken cancellationToken )
             {
-                this._list = list;
+                this.Parent = list;
                 this._cancellationToken = cancellationToken;
                 this._enumerator = list.GetEnumerator();
             }
@@ -333,7 +332,8 @@ namespace Metalama.Framework.RunTime
             /// <summary>
             /// Gets the parent list.
             /// </summary>
-            internal AsyncEnumerableList<T> Parent => this._list;
+
+            internal AsyncEnumerableList<T> Parent { get; }
 
             /// <inheritdoc />
             public T Current => this._enumerator.Current;
@@ -351,7 +351,7 @@ namespace Metalama.Framework.RunTime
             /// </summary>
             public void Reset()
             {
-                this._enumerator = this._list.GetEnumerator();
+                this._enumerator = this.Parent.GetEnumerator();
             }
 
             /// <inheritdoc />

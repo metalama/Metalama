@@ -147,7 +147,7 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
 
     public override void VisitNamespace( INamespace declaration ) => this.Append( declaration.FullName );
 
-    public override void VisitAssemblyReference( IAssembly declaration ) => this.Append( declaration.Identity.ToString()! );
+    public override void VisitAssemblyReference( IAssembly declaration ) => this.Append( declaration.Identity.ToString().AssertNotNull() );
 
     public override void VisitConstructor( IConstructor declaration )
     {
@@ -341,7 +341,7 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
 
     public override void VisitCompilation( ICompilation declaration )
     {
-        this.Append( declaration.Identity.ToString()! );
+        this.Append( declaration.Identity.ToString().AssertNotNull() );
     }
 
     protected override void VisitNamedType( INamedType namedType )

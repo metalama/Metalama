@@ -33,5 +33,5 @@ public readonly struct ObjectPoolHandle<T> : IDisposable
         this._pool?.Free( this.Value );
     }
 
-    public override string ToString() => this.Value.ToString()!;
+    public override string ToString() => this.Value.ToString().AssertNotNull();
 }

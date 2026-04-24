@@ -39,7 +39,7 @@ internal sealed class IndexerInvoker : Invoker<IIndexer>, IIndexerInvoker
 
     public IExpression this[ params IExpression[] args ] => this.GetItemExpression( args );
 
-    public IExpression GetItemExpression( IExpression[] args )
+    private IExpression GetItemExpression( IExpression[] args )
     {
         return new DelegateUserExpression(
             context => this.CreateIndexerAccess( args, context ),
@@ -49,7 +49,7 @@ internal sealed class IndexerInvoker : Invoker<IIndexer>, IIndexerInvoker
 
     public IExpression this[ params object?[] args ] => this.GetItemExpression( args );
 
-    public IExpression GetItemExpression( object?[] args ) => this.GetItemExpression( this.CaptureExpressions( args ) );
+    private IExpression GetItemExpression( object?[] args ) => this.GetItemExpression( this.CaptureExpressions( args ) );
 
     private IExpression[] CaptureExpressions( object?[] args ) => CapturedUserExpression.Create( this.Compilation, args );
 

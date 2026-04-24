@@ -120,34 +120,34 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
             {
                 // field = value, field += x, field -= x, etc.
                 SyntaxKind.SimpleAssignmentExpression
-                or SyntaxKind.AddAssignmentExpression
-                or SyntaxKind.SubtractAssignmentExpression
-                or SyntaxKind.MultiplyAssignmentExpression
-                or SyntaxKind.DivideAssignmentExpression
-                or SyntaxKind.ModuloAssignmentExpression
-                or SyntaxKind.AndAssignmentExpression
-                or SyntaxKind.ExclusiveOrAssignmentExpression
-                or SyntaxKind.OrAssignmentExpression
-                or SyntaxKind.LeftShiftAssignmentExpression
-                or SyntaxKind.RightShiftAssignmentExpression
-                or SyntaxKind.UnsignedRightShiftAssignmentExpression
-                or SyntaxKind.CoalesceAssignmentExpression
+                    or SyntaxKind.AddAssignmentExpression
+                    or SyntaxKind.SubtractAssignmentExpression
+                    or SyntaxKind.MultiplyAssignmentExpression
+                    or SyntaxKind.DivideAssignmentExpression
+                    or SyntaxKind.ModuloAssignmentExpression
+                    or SyntaxKind.AndAssignmentExpression
+                    or SyntaxKind.ExclusiveOrAssignmentExpression
+                    or SyntaxKind.OrAssignmentExpression
+                    or SyntaxKind.LeftShiftAssignmentExpression
+                    or SyntaxKind.RightShiftAssignmentExpression
+                    or SyntaxKind.UnsignedRightShiftAssignmentExpression
+                    or SyntaxKind.CoalesceAssignmentExpression
                     when node is AssignmentExpressionSyntax { Left: FieldExpressionSyntax } => true,
 
                 // ++field, --field
                 SyntaxKind.PreIncrementExpression
-                or SyntaxKind.PreDecrementExpression
+                    or SyntaxKind.PreDecrementExpression
                     when node is PrefixUnaryExpressionSyntax { Operand: FieldExpressionSyntax } => true,
 
                 // field++, field--
                 SyntaxKind.PostIncrementExpression
-                or SyntaxKind.PostDecrementExpression
+                    or SyntaxKind.PostDecrementExpression
                     when node is PostfixUnaryExpressionSyntax { Operand: FieldExpressionSyntax } => true,
 
                 // Method(out field), Method(ref field)
                 SyntaxKind.Argument
                     when node is ArgumentSyntax { Expression: FieldExpressionSyntax } arg
-                    && (arg.RefOrOutKeyword.IsKind( SyntaxKind.OutKeyword ) || arg.RefOrOutKeyword.IsKind( SyntaxKind.RefKeyword )) => true,
+                         && (arg.RefOrOutKeyword.IsKind( SyntaxKind.OutKeyword ) || arg.RefOrOutKeyword.IsKind( SyntaxKind.RefKeyword )) => true,
 
                 _ => false
             };

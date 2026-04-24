@@ -25,7 +25,7 @@ using System.Threading.Tasks;
 
 namespace Metalama.Testing.AspectTesting;
 
-internal enum DiagnosticOrigin { OutputCompilation, Pipeline, Dependency };
+internal enum DiagnosticOrigin { OutputCompilation, Pipeline, Dependency }
 
 /// <summary>
 /// Represents the result of a test run.
@@ -104,10 +104,10 @@ internal class TestResult : IDisposable
                 .Select( d => (d, DiagnosticOrigin.OutputCompilation) )
                 .Concat( this.PipelineDiagnostics.Select( d => (d, DiagnosticOrigin.Pipeline) ) )
                 .Concat( this.DependencyDiagnostics.Select( d => (d, DiagnosticOrigin.Dependency) ) )
-                .Where( d => this.ShouldDiagnosticBeReported( d.Item1 ) )
+                .Where( d => this.ShouldDiagnosticBeReported( d.d ) )
                 .GroupBy(
                     d => (d.Item1.Id, d.Item1.GetMessage( CultureInfo.InvariantCulture ), d.Item1.Location.SourceTree?.FilePath, d.Item1.Location.SourceSpan) )
-                .Select( g => g.OrderBy( g => g.Item2 ).First() );
+                .Select( g => g.OrderBy( item => item.Item2 ).First() );
 
             return allDiagnostics;
         }
@@ -644,7 +644,7 @@ internal class TestResult : IDisposable
             yield break;
         }
 
-        foreach ( var line in errorMessage!.Split( '\n' ) )
+        foreach ( var line in errorMessage.Split( '\n' ) )
         {
             var trimmedLine = line.TrimEnd( '\r' );
 

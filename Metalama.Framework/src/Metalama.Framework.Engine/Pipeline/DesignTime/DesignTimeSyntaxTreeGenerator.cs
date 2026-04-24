@@ -204,6 +204,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     CreateInjectedConstructors( initialCompilationModel, finalCompilationModel, syntaxGenerationContext, declaringType ) );
 
 #if ROSLYN_5_0_0_OR_GREATER
+
                 // Create the extension block.
                 if ( extensionBlock != null )
                 {
