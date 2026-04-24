@@ -7,6 +7,8 @@ using Metalama.Patterns.Caching.TestHelpers;
 using Xunit;
 using Xunit.Abstractions;
 
+// ReSharper disable AccessToDisposedClosure
+
 namespace Metalama.Patterns.Caching.Tests.Implementation;
 
 public sealed class AwaitableEventTests
@@ -85,7 +87,8 @@ public sealed class AwaitableEventTests
                     // This will block until signaled
                     awaitableEvent.Wait( cts.Token );
                     Interlocked.Increment( ref waitersReleased );
-                } );
+                },
+                CancellationToken.None );
         }
 
         // Wait until all waiters have started
@@ -155,7 +158,8 @@ public sealed class AwaitableEventTests
                 waiterStarted.SetResult( true );
                 awaitableEvent.Wait( cts.Token );
                 waiterReleased.SetResult( true );
-            } );
+            },
+            CancellationToken.None );
 
         await waiterStarted.Task.WaitWithTimeoutAsync();
 
@@ -198,13 +202,15 @@ public sealed class AwaitableEventTests
                     }
 
                     awaitableEvent.Wait( cts.Token );
+
+                    // ReSharper disable once AccessToModifiedClosure
                     var releasedCount = Interlocked.Increment( ref waitersReleased );
 
                     if ( releasedCount == 1 )
                     {
                         firstWaiterReleased.TrySetResult( true );
                     }
-                } );
+                }, CancellationToken.None );
         }
 
         await allWaitersStarted.Task.WaitWithTimeoutAsync();
@@ -400,7 +406,8 @@ public sealed class AwaitableEventTests
                 {
                     awaitableEvent.Set();
                 }
-            } );
+            },
+            CancellationToken.None );
 
         var resetTask = Task.Run(
             () =>
@@ -409,7 +416,8 @@ public sealed class AwaitableEventTests
                 {
                     awaitableEvent.Reset();
                 }
-            } );
+            },
+            CancellationToken.None );
 
         await Task.WhenAll( setTask, resetTask ).WaitWithTimeoutAsync( "ConcurrentSetReset deadlock" );
     }
@@ -430,7 +438,8 @@ public sealed class AwaitableEventTests
                     awaitableEvent.Set();
                     awaitableEvent.Reset();
                 }
-            } );
+            },
+            CancellationToken.None );
 
         var waitTask = Task.Run(
             () =>
@@ -442,7 +451,8 @@ public sealed class AwaitableEventTests
                         Interlocked.Increment( ref waitSuccessCount );
                     }
                 }
-            } );
+            },
+            CancellationToken.None );
 
         await Task.WhenAll( setTask, waitTask ).WaitWithTimeoutAsync( "ConcurrentSetWait deadlock" );
 
@@ -481,7 +491,8 @@ public sealed class AwaitableEventTests
                     {
                         Interlocked.Increment( ref waitersReleased );
                     }
-                } );
+                },
+                CancellationToken.None );
         }
 
         await allWaitersStarted.Task.WaitWithTimeoutAsync();

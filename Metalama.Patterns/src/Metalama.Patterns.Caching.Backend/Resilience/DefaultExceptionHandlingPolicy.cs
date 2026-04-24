@@ -36,6 +36,8 @@ public class DefaultExceptionHandlingPolicy : IExceptionHandlingPolicy
             RecoveryAction.InvalidateDependencyInBackground => FlashtraceLevel.Warning,
             RecoveryAction.RemoveItemInBackground => FlashtraceLevel.Warning,
             RecoveryAction.Swallow => FlashtraceLevel.Warning,
+
+            // ReSharper disable once UnreachableSwitchArmDueToIntegerAnalysis
             _ => FlashtraceLevel.Error
         };
 

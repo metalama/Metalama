@@ -9,6 +9,10 @@ using System.Collections.Concurrent;
 using Xunit;
 using Xunit.Abstractions;
 
+// ReSharper disable MethodHasAsyncOverload
+
+// ReSharper disable UseAwaitUsing
+
 namespace Metalama.Patterns.Caching.Tests.Implementation;
 
 public sealed partial class BackgroundTaskSchedulerTests : IDisposable
@@ -287,7 +291,6 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
             overloadThreshold: overloadThreshold );
 
         var holdTasks = new TaskCompletionSource<bool>();
-        var isOverloadedDuringTest = false;
         var overloadedChanged = false;
 
         scheduler.IsOverloadedChanged += () => overloadedChanged = true;
@@ -303,7 +306,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
         }
 
         // Check if overloaded
-        isOverloadedDuringTest = scheduler.IsOverloaded;
+        var isOverloadedDuringTest = scheduler.IsOverloaded;
 
         // Release all tasks
         holdTasks.SetResult( true );
@@ -414,7 +417,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
                             break;
                         }
 
-                        await Task.Delay( 10 );
+                        await Task.Delay( 10, ct );
                     }
 
                     if ( ct.IsCancellationRequested )
@@ -708,7 +711,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
 
         // Cleanup
         holdTask.SetResult( true );
-        await scheduler.DisposeAsync();
+        await scheduler.DisposeAsync( CancellationToken.None );
     }
 
     #endregion
@@ -824,7 +827,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
         // Cleanup
         holdTask.SetResult( true );
         scheduler.Cancel();
-        await scheduler.DisposeAsync();
+        await scheduler.DisposeAsync( CancellationToken.None );
     }
 
     #endregion

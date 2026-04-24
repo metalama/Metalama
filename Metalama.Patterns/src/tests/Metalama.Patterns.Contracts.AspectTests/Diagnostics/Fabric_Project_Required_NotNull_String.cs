@@ -21,8 +21,6 @@ namespace Metalama.Patterns.Contracts.AspectTests.Diagnostics.Fabric_Project_Req
     {
         // When both [Required] and [NotNull] are on a string, [NotNull] is redundant
         // but [Required] is not (it also validates empty/whitespace).
-        public void PrintString( [Required] [NotNull] string foo )
-        {
-        }
+        public void PrintString( [Required] [NotNull] string foo ) { }
     }
 }

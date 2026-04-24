@@ -21,8 +21,6 @@ namespace Metalama.Patterns.Contracts.AspectTests.Diagnostics.Fabric_Project_Req
     {
         // [Required] on object parameter SHOULD trigger LAMA5003 because [Required]
         // and [NotNull] have identical behavior for non-string, non-collection types.
-        public void DoSomething( [Required] object foo )
-        {
-        }
+        public void DoSomething( [Required] object foo ) { }
     }
 }

@@ -23,12 +23,11 @@ namespace Metalama.Patterns.Caching;
 /// <remarks>
 /// <para>Caching profiles allow different groups of cached methods to have different configurations,
 /// such as different expiration times, backends, or locking strategies. Methods are assigned to profiles
-/// at compile time using the <see cref="Aspects.CachingBaseAttribute.ProfileName"/> property.</para>
+/// at compile time using the <c>CachingBaseAttribute.ProfileName</c> property.</para>
 /// <para>Profiles are registered when creating the <see cref="CachingService"/> using
 /// <see cref="Building.ICachingServiceBuilder.AddProfile"/>.</para>
 /// </remarks>
 /// <seealso cref="CachingService"/>
-/// <seealso cref="Aspects.CachingBaseAttribute.ProfileName"/>
 /// <seealso cref="Building.ICachingServiceBuilder.AddProfile"/>
 /// <seealso href="@caching-configuration"/>
 [PublicAPI]
@@ -99,6 +98,7 @@ public sealed class CachingProfile : ICacheItemConfiguration
     /// </summary>
     public bool OwnsBackend
     {
+        // ReSharper disable once ArrangeRedundantParentheses
         get => this._ownsBackend ?? (this.BackendFactory != null);
         init => this._ownsBackend = value;
     }

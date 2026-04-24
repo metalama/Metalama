@@ -7,7 +7,9 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Serialization;
+#if NET8_0_OR_GREATER
 using System.Numerics;
+#endif
 using System.Text;
 
 namespace Metalama.Patterns.Contracts.Numeric;

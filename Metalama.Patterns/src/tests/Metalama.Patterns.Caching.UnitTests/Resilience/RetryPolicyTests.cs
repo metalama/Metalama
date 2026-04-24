@@ -88,6 +88,7 @@ public class RetryPolicyTests
         object? state = null;
 
         using var cts = new CancellationTokenSource();
+        // ReSharper disable once MethodHasAsyncOverload
         cts.Cancel();
 
         await Assert.ThrowsAsync<TaskCanceledException>(
