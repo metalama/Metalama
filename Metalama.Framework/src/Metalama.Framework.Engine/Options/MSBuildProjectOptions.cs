@@ -190,6 +190,9 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override bool VerifyOutputCode => this.GetBooleanOption( MSBuildPropertyNames.MetalamaVerifyOutputCode );
 
     [Memo]
+    public override CompilationScenario CompilationScenario => this.GetEnumOption<CompilationScenario>( MSBuildPropertyNames.MetalamaCompilationScenario );
+
+    [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
 
     public override bool AvoidLockingExtensionAssemblies => this.GetBooleanOption( MSBuildPropertyNames.MetalamaAvoidLockingExtensionAssemblies );
@@ -247,6 +250,17 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
         }
 
         return null;
+    }
+
+    private T GetEnumOption<T>( string name, T defaultValue = default )
+        where T : struct, Enum
+    {
+        if ( this._source.TryGetValue( name, out var s ) && Enum.TryParse<T>( s, ignoreCase: true, out var value ) )
+        {
+            return value;
+        }
+
+        return defaultValue;
     }
 
     [return: NotNullIfNotNull( nameof(defaultValue) )]

@@ -56,6 +56,7 @@ public static class MSBuildPropertyNames
     public const string MetalamaValidateRunTimeCode = nameof(MetalamaValidateRunTimeCode);
     public const string TargetFrameworks = nameof(TargetFrameworks);
     public const string MetalamaVerifyOutputCode = nameof(MetalamaVerifyOutputCode);
+    public const string MetalamaCompilationScenario = nameof(MetalamaCompilationScenario);
 
     public static ImmutableArray<string> All { get; } = ImmutableArray.Create(
         MetalamaBuildTouchFile,
@@ -98,5 +99,6 @@ public static class MSBuildPropertyNames
         MetalamaAssemblyLocatorSalt,
         MetalamaValidateRunTimeCode,
         TargetFrameworks,
-        MetalamaVerifyOutputCode );
+        MetalamaVerifyOutputCode,
+        MetalamaCompilationScenario );
 }

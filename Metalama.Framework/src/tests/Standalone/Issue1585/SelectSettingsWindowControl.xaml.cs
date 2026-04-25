@@ -2,6 +2,7 @@ using System.Windows;
 
 namespace Issue1585;
 
+[WithButtonHandler]
 public partial class SelectSettingsWindowControl : Window
 {
     private readonly SwapTransformPackage _package = new();

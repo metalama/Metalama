@@ -52,6 +52,15 @@
         <IncludePackageReferencesDuringMarkupCompilation Condition="'$(IncludePackageReferencesDuringMarkupCompilation)'==''">true</IncludePackageReferencesDuringMarkupCompilation>
     </PropertyGroup>
 
+    <!-- Inside the WPF MarkupCompilePass1 temporary assembly (project name suffix _wpftmp), switch Metalama
+         to the WpfPrecompile compilation scenario. The pipeline then emits aspect-introduced member signatures
+         only and skips the linker, since the temp assembly is consumed only by the XAML compiler for type
+         resolution and then discarded. The full linker still runs in the real compile pass that follows.
+         The user can override by setting MetalamaCompilationScenario explicitly. See https://github.com/metalama/Metalama/issues/1590. -->
+    <PropertyGroup Condition="'$(UseWPF)'=='true' AND '$(MetalamaEnabled)'!='False' AND '$(MetalamaCompilationScenario)'==''">
+        <MetalamaCompilationScenario Condition="$(MSBuildProjectName.EndsWith('_wpftmp'))">WpfPrecompile</MetalamaCompilationScenario>
+    </PropertyGroup>
+
       <!-- The LangVersionImplicitlySet property is set by Metalama.Compiler when LangVersion is not defined, according to the current target framework.
          We change this value to our own lowest supported version. 
         -->
