@@ -38,6 +38,20 @@
         <MetalamaFormatOutput Condition="'$(MetalamaFormatOutput)'==''">True</MetalamaFormatOutput>
     </PropertyGroup>
 
+    <!-- For WPF projects, default IncludePackageReferencesDuringMarkupCompilation to true so that
+         Metalama runs in the temporary assembly that MarkupCompilePass1 builds via
+         GenerateTemporaryTargetAssembly. Without this, the temp compile excludes PackageReferences
+         (and therefore Metalama analyzers/targets), so XAML references to aspect-introduced members
+         fail with CS0117/CS1061, which cascades into MC3074. The known tradeoff is that the
+         Metalama pipeline runs twice per WPF build (once in the temp compile, once in the real
+         one); this matches the default modern .NET SDK WPF projects already use. The default
+         is user-overridable, but an explicit false is rejected by MetalamaCheckMarkupCompilation
+         (below) since it is incompatible with Metalama in a WPF project.
+         See https://github.com/metalama/Metalama/issues/1588. -->
+    <PropertyGroup Condition="'$(UseWPF)'=='true' AND '$(MetalamaEnabled)'!='False'">
+        <IncludePackageReferencesDuringMarkupCompilation Condition="'$(IncludePackageReferencesDuringMarkupCompilation)'==''">true</IncludePackageReferencesDuringMarkupCompilation>
+    </PropertyGroup>
+
       <!-- The LangVersionImplicitlySet property is set by Metalama.Compiler when LangVersion is not defined, according to the current target framework.
          We change this value to our own lowest supported version. 
         -->
@@ -116,9 +130,19 @@
 
    <Target Name="MetalamaCheckLangVersion" BeforeTargets="CoreCompile">
     <Warning
-      Text="The C# language version of the current project was updated from $(_LangVersionBeforeMetalamaFix) to $(LangVersion) despite the project targeting $(TargetFramework) because $(LangVersion) is the lowest version supported by Metalama Framework. To use C# $(LangVersion) features in $(TargetFramework), add a package like Polyfill. To suppress this warning, set &lt;LangVersion&gt; to at least $(LangVersion) in your project file." 
+      Text="The C# language version of the current project was updated from $(_LangVersionBeforeMetalamaFix) to $(LangVersion) despite the project targeting $(TargetFramework) because $(LangVersion) is the lowest version supported by Metalama Framework. To use C# $(LangVersion) features in $(TargetFramework), add a package like Polyfill. To suppress this warning, set &lt;LangVersion&gt; to at least $(LangVersion) in your project file."
        Condition="'$(_LangVersionBeforeMetalamaFix)' != ''"
       />
+  </Target>
+
+  <!-- Reject IncludePackageReferencesDuringMarkupCompilation=false in WPF + Metalama projects.
+       That setting excludes PackageReferences (and therefore Metalama) from the WPF MarkupCompilePass1
+       temp assembly, so XAML references to aspect-introduced members fail with CS0117/CS1061 and
+       cascade into MC3074. Failing fast with a clear error is friendlier than the cascading XAML errors. -->
+  <Target Name="MetalamaCheckMarkupCompilation" BeforeTargets="MarkupCompilePass1">
+    <Error
+      Text="IncludePackageReferencesDuringMarkupCompilation is set to 'false' in a WPF project that uses Metalama. This excludes Metalama from the temporary assembly that WPF builds for MarkupCompilePass1, which causes XAML references to aspect-introduced members to fail. Remove the explicit 'false' (or set it to 'true') to let Metalama run in the temp compile."
+      Condition="'$(UseWPF)'=='true' AND '$(MetalamaEnabled)'!='False' AND '$(IncludePackageReferencesDuringMarkupCompilation)'=='false'" />
   </Target>
     
 </Project>
