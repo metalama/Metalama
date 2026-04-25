@@ -167,7 +167,8 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
 
             if ( initializationArguments.TryGetValue<ImmutableDictionary<SerializableDeclarationId, ImmutableArray<IAnnotation>>>(
                     nameof(instance.Annotations),
-                    out var annotations ) )
+                    out var annotations )
+                 && annotations != null )
             {
                 instance.Annotations = new ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>( annotations );
             }
