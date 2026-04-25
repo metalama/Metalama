@@ -22,8 +22,7 @@ public sealed partial class RpcClientTests
         /// <summary>
         /// Raises a test event to all connected clients.
         /// </summary>
-        public Task RaiseTestEventAsync( TestEventData data, CancellationToken cancellationToken )
-            => this.RaiseEventAsync( data, cancellationToken );
+        public Task RaiseTestEventAsync( TestEventData data, CancellationToken cancellationToken ) => this.RaiseEventAsync( data, cancellationToken );
 
         private sealed class Api : ITestApi { }
     }

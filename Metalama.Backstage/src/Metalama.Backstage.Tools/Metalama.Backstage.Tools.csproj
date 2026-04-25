@@ -18,6 +18,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Metalama.Backstage\Metalama.Backstage.csproj" />
+      <PackageReference Include="JetBrains.Annotations" />
       <PackageReference Include="Newtonsoft.Json" VersionOverride="$(NewtonsoftJsonMinVersion)" NoWarn="NU1903" />
     </ItemGroup>
 

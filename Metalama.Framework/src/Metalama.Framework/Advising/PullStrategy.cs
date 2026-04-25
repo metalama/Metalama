@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Advising.PullStrategies;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -29,6 +30,7 @@ namespace Metalama.Framework.Advising;
 /// <seealso cref="PullAction"/>
 /// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, Metalama.Framework.Advising.IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction}, Metalama.Framework.Advising.IConstructorOverloadingStrategy?)"/>
 /// <seealso href="@introducing-constructor-parameters"/>
+[PublicAPI]
 public static class PullStrategy
 {
     /// <summary>

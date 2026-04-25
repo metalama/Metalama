@@ -110,7 +110,7 @@ namespace Metalama.Framework.Engine.Linking
                 return
                     PropertyDeclaration(
                         FilterAttributeListsForTarget( recordParameter.AttributeLists, SyntaxKind.PropertyKeyword, false, false ),
-                        TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
+                        TokenList( TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
                         recordParameter.Type.AssertNotNull().WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
                         null,
                         recordParameter.Identifier,
@@ -168,7 +168,7 @@ namespace Metalama.Framework.Engine.Linking
                     SyntaxKind.GetAccessorDeclaration,
                     context.SyntaxGenerator.FormattedBlock(
                         ReturnStatement(
-                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                            TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
                             GetInvocationTarget(),
                             Token( SyntaxKind.SemicolonToken ) ) ) );
 
@@ -185,7 +185,7 @@ namespace Metalama.Framework.Engine.Linking
             return
                 PropertyDeclaration(
                     List<AttributeListSyntax>(),
-                    TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
+                    TokenList( TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
                     type.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
                     null,
                     identifier,
@@ -198,11 +198,11 @@ namespace Metalama.Framework.Engine.Linking
             {
                 if ( targetSymbol.IsStatic )
                 {
-                    return SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name );
+                    return SafeIdentifierName( targetSymbol.Name );
                 }
                 else
                 {
-                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name ) )
+                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SafeIdentifierName( targetSymbol.Name ) )
                         .WithSimplifierAnnotationIfNecessary( context );
                 }
             }

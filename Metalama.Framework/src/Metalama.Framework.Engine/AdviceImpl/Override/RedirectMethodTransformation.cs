@@ -79,7 +79,9 @@ internal sealed class RedirectMethodTransformation : OverrideMemberTransformatio
             return
                 InvocationExpression(
                     GetInvocationTargetExpression(),
-                    ArgumentList( SeparatedList( overriddenDeclaration.Parameters.SelectAsReadOnlyList( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) );
+                    ArgumentList(
+                        SeparatedList(
+                            overriddenDeclaration.Parameters.SelectAsReadOnlyList( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) );
         }
 
         ExpressionSyntax GetInvocationTargetExpression()

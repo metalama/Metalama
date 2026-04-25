@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Factories;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities;
@@ -27,6 +28,7 @@ namespace Metalama.Framework.Engine.Services;
 
 #pragma warning disable CA1822
 
+[PublicAPI]
 public sealed class CompilationContext : ICompilationServices, ITemplateReflectionContext
 {
     private readonly ConcurrentDictionary<SyntaxGenerationContextCacheKey, SyntaxGenerationContext> _syntaxGenerationContextCache = new();
@@ -128,7 +130,7 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
             isNullOblivious = (nullableContext & NullableContext.AnnotationsEnabled) == 0;
         }
 
-        var endOfLine = Formatting.EndOfLineHelper.DetermineEndOfLineStyleFast( tree );
+        var endOfLine = EndOfLineHelper.DetermineEndOfLineStyleFast( tree );
 
         return this.GetSyntaxGenerationContext( options, isPartial, isNullOblivious, endOfLine );
     }
@@ -170,5 +172,5 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
     public LanguageVersion LanguageVersion
         => ((CSharpParseOptions?) this.Compilation.SyntaxTrees.FirstOrDefault()?.Options)?.LanguageVersion ?? SupportedCSharpVersions.Latest;
 
-    public override string ToString() => $"{this.GetType().Name} #{this._id}, Assembly={this.Compilation.AssemblyName}";
+    public override string ToString() => $"{nameof(CompilationContext)} #{this._id}, Assembly={this.Compilation.AssemblyName}";
 }

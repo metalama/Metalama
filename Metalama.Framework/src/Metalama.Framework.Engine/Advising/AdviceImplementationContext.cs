@@ -53,8 +53,7 @@ internal sealed class AdviceImplementationContext
     /// transformation counter, so each call returns a unique set of indices. Do not call this method more than once
     /// per transformation.
     /// </summary>
-    public AdviceOrderingIndices GetNextAdviceOrderIndices()
-        => this._adviceExecutionContext.GetNextAdviceOrderIndices();
+    public AdviceOrderingIndices GetNextAdviceOrderIndices() => this._adviceExecutionContext.GetNextAdviceOrderIndices();
 
     public void AddTransformationWithoutSettingOrders( ITransformation transformation )
     {

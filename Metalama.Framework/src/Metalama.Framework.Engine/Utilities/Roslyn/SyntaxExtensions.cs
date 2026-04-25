@@ -339,7 +339,6 @@ public static class SyntaxExtensions
         where TNode : SyntaxNode
         => node.WithOptionalTrailingTrivia( trailingTrivia, context.Options );
 
-    // Resharper disable once UnusedMember.Global
     internal static SyntaxToken WithOptionalTrailingTrivia( this SyntaxToken token, SyntaxTriviaList trailingTrivia, SyntaxGenerationOptions options )
     {
         if ( !options.WillBeTextualized && !trailingTrivia.ContainsDirectives() )

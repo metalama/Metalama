@@ -7,4 +7,4 @@ using System;
 
 namespace Metalama.Backstage.Worker;
 
-internal record AppData( ServiceCollection ServiceCollection, IServiceProvider ServiceProvider );
+internal sealed record AppData( ServiceCollection ServiceCollection, IServiceProvider ServiceProvider );

@@ -47,7 +47,8 @@ namespace Metalama.Framework.Code
                 true );
 
             static bool IsMatchingParameter(
-                (TPayload InnerPayload, Func<TPayload, int, (IType? Type, RefKind? RefKind)>? ArgumentGetter, ICompilation Compilation, ConversionKind ConversionKind) payload,
+                (TPayload InnerPayload, Func<TPayload, int, (IType? Type, RefKind? RefKind)>? ArgumentGetter, ICompilation Compilation, ConversionKind
+                    ConversionKind) payload,
                 int parameterIndex,
                 IType expectedType,
                 RefKind expectedRefKind )
@@ -133,7 +134,8 @@ namespace Metalama.Framework.Code
             return matching.FirstOrDefault();
 
             static bool IsMatchingParameter(
-                (TPayload InnerPayload, Func<TPayload, int, (IType Type, RefKind RefKind)> ParameterGetter, ICompilation Compilation, ConversionKind ConversionKind) payload,
+                (TPayload InnerPayload, Func<TPayload, int, (IType Type, RefKind RefKind)> ParameterGetter, ICompilation Compilation, ConversionKind
+                    ConversionKind) payload,
                 int parameterIndex,
                 IType expectedType,
                 RefKind expectedRefKind )

@@ -29,15 +29,15 @@ internal static class SymbolExtensions
                 or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
                 or SyntaxKind.RecordStructDeclaration
                 or SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration:
-                return ((MemberDeclarationSyntax) declaration!).GetLinkerDeclarationFlags();
+                return ((MemberDeclarationSyntax) declaration).GetLinkerDeclarationFlags();
 
             case SyntaxKind.VariableDeclarator:
-                var variableDeclarator = (VariableDeclaratorSyntax) declaration!;
+                var variableDeclarator = (VariableDeclaratorSyntax) declaration;
 
                 return ((MemberDeclarationSyntax?) variableDeclarator.Parent?.Parent).AssertNotNull().GetLinkerDeclarationFlags();
 
             case SyntaxKind.Parameter:
-                var parameter = (ParameterSyntax) declaration!;
+                var parameter = (ParameterSyntax) declaration;
                 var grandParent = parameter.Parent?.Parent;
 
                 if ( grandParent is { SyntaxKind.IsRecordDeclaration: true } and RecordDeclarationSyntax )
@@ -48,7 +48,7 @@ internal static class SymbolExtensions
                 throw new AssertionFailedException( $"Unexpected declaration syntax for parameter: {declaration}" );
 
             case { IsAccessorDeclaration: true }:
-                var accessorDeclaration = (AccessorDeclarationSyntax) declaration!;
+                var accessorDeclaration = (AccessorDeclarationSyntax) declaration;
 
                 return accessorDeclaration.Parent.AssertNotNull().GetLinkerDeclarationFlags();
 

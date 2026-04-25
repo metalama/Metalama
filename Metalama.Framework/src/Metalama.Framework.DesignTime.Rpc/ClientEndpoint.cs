@@ -8,6 +8,7 @@ using StreamJsonRpc;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.IO.Pipes;
+
 namespace Metalama.Framework.DesignTime.Rpc;
 
 /// <summary>
@@ -260,7 +261,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             this.Logger.Trace?.Log( $"Connected to the named pipe '{pipeName}'." );
 
             // Create the callback channel.
-            var rpc = this.CreateRpc( pipeStream );
+            var rpc = CreateRpc( pipeStream );
             rpc.Disconnected += this.OnRpcDisconnected;
 
             if ( firstConnection )

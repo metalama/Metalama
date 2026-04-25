@@ -79,8 +79,11 @@ internal partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
 
         // Verify that we're using ITypeExtension or ITupleType when necessary.
         Invariant.Assert(
-            symbol.Kind != SymbolKind.NamedType || symbol is not INamedTypeSymbol namedTypeSymbol || typeof(T) == (namedTypeSymbol.IsExtensionSafe() ? typeof(IExtensionBlock) :
-                namedTypeSymbol.IsTupleType ? typeof(ITupleType) : typeof(INamedType)) );
+            symbol.Kind != SymbolKind.NamedType || symbol is not INamedTypeSymbol namedTypeSymbol || typeof(T) == (namedTypeSymbol.IsExtensionSafe()
+                ? typeof(IExtensionBlock)
+                : namedTypeSymbol.IsTupleType
+                    ? typeof(ITupleType)
+                    : typeof(INamedType)) );
 
         this.Symbol = symbol;
         this.TargetKind = targetKind;

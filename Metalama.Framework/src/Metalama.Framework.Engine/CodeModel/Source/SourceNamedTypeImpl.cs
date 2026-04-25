@@ -316,7 +316,7 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 #if ROSLYN_5_0_0_OR_GREATER
 
         // Use the updatable collection which includes both source and introduced extension blocks
-        var allBlocks = this.Compilation.GetExtensionBlockCollection( this.Ref, false );
+        var allBlocks = this.Compilation.GetExtensionBlockCollection( this.Ref );
 
         return new ExtensionBlockCollection( this.Facade, allBlocks );
 #else
@@ -392,7 +392,9 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
         => this.NamedTypeSymbol.ContainingSymbol?.Kind switch
         {
             SymbolKind.Namespace => this.Compilation.Factory.GetAssembly( this.NamedTypeSymbol.ContainingAssembly ),
-            SymbolKind.NamedType when this.NamedTypeSymbol.ContainingSymbol is INamedTypeSymbol containingType => this.Compilation.Factory.GetNamedType( containingType, this.GenericContextForSymbolMapping ),
+            SymbolKind.NamedType when this.NamedTypeSymbol.ContainingSymbol is INamedTypeSymbol containingType => this.Compilation.Factory.GetNamedType(
+                containingType,
+                this.GenericContextForSymbolMapping ),
             null => this.Compilation, // Empty error type symbol goes here. Other error types return a namespace, which we handle above.
             _ => throw new AssertionFailedException( $"Unexpected containing symbol kind: {this.NamedTypeSymbol.ContainingSymbol.Kind}." )
         };

@@ -39,8 +39,7 @@ internal sealed class AttributeBuilderCollection : List<AttributeBuilder>, IAttr
         return this.OfAttributeType( namedType, conversionKind );
     }
 
-    public IEnumerable<IAttribute> OfAttributeType( Func<IType, bool> predicate )
-        => ((IEnumerable<AttributeBuilder>) this).Where( a => predicate( a.Type ) );
+    public IEnumerable<IAttribute> OfAttributeType( Func<IType, bool> predicate ) => ((IEnumerable<AttributeBuilder>) this).Where( a => predicate( a.Type ) );
 
     public IEnumerable<T> GetConstructedAttributesOfType<T>()
         where T : Attribute

@@ -45,7 +45,10 @@ internal sealed class CompileTimeParameterInfoSerializer : ObjectSerializer<Comp
 
         return ElementAccessExpression(
                 InvocationExpression(
-                    MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, memberExpression, SyntaxFactoryEx.WellKnownIdentifierName( getParametersMethodName ) ) ),
+                    MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        memberExpression,
+                        SyntaxFactoryEx.WellKnownIdentifierName( getParametersMethodName ) ) ),
                 BracketedArgumentList(
                     SingletonSeparatedList( Argument( LiteralExpression( SyntaxKind.NumericLiteralExpression, Literal( parameter.Index ) ) ) ) ) )
             .NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );

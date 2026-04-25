@@ -34,8 +34,10 @@ public sealed class ConfigurationManagerLoadTests : TestsBase
         services.AddSingleton<IEnvironmentVariableProvider>( this.EnvironmentVariableProvider );
         services.AddSingleton<EarlyLoggerFactory>();
         services.AddSingleton<IStandardDirectories>( s => new StandardDirectories( s ) );
+
         services.AddSingleton<IJsonSerializationService>(
             _ => new JsonSerializationService( new IJsonTypeInfoResolver[] { TestConfigurationJsonContext.Default } ) );
+
         var serviceProvider = services.BuildServiceProvider();
 
         for ( var i = 0; i < 50; i++ )

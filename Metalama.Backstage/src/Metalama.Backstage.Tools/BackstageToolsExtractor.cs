@@ -11,7 +11,7 @@ using System.IO.Compression;
 
 namespace Metalama.Backstage.Tools;
 
-internal class BackstageToolsExtractor : IBackstageToolsExtractor
+internal sealed class BackstageToolsExtractor : IBackstageToolsExtractor
 {
     private readonly IFileSystem _fileSystem;
     private readonly IBackstageToolsLocator _locator;

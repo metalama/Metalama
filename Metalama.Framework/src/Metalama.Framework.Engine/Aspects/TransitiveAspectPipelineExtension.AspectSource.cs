@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Aspects;
 
-internal partial class TransitiveAspectPipelineExtension
+internal sealed partial class TransitiveAspectPipelineExtension
 {
     private sealed class AspectSource : IAspectSource
     {

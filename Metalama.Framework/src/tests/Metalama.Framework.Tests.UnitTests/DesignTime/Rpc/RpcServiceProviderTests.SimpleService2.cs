@@ -21,30 +21,13 @@ public sealed partial class RpcServiceProviderTests
 
     private sealed class SimpleService2Impl : RpcService<ISimpleService2>
     {
-        private readonly SimpleService2Factory _factory;
+        public SimpleService2Impl( ServerEndpoint serverEndpoint ) : base( serverEndpoint ) { }
 
-        public SimpleService2Impl( ServerEndpoint serverEndpoint, SimpleService2Factory factory ) : base( serverEndpoint )
-        {
-            this._factory = factory;
-        }
-
-        protected override ISimpleService2 CreateApi( IRpcEventSender eventSender ) => new Api( this._factory );
+        protected override ISimpleService2 CreateApi( IRpcEventSender eventSender ) => new Api();
 
         private sealed class Api : ISimpleService2
         {
-            private readonly SimpleService2Factory _factory;
-
-            public Api( SimpleService2Factory factory )
-            {
-                this._factory = factory;
-            }
-
-            public Task PongAsync()
-            {
-                this._factory.OnPongCalled();
-
-                return Task.CompletedTask;
-            }
+            public Task PongAsync() => Task.CompletedTask;
         }
     }
 
@@ -57,15 +40,8 @@ public sealed partial class RpcServiceProviderTests
     {
         public string? ExtensionName => null;
 
-        public RpcService CreateRpcService( GlobalServiceProvider serviceProvider, ServerEndpoint endpoint ) => new SimpleService2Impl( endpoint, this );
+        public RpcService CreateRpcService( GlobalServiceProvider serviceProvider, ServerEndpoint endpoint ) => new SimpleService2Impl( endpoint );
 
         public RpcClient CreateRpcClient( GlobalServiceProvider serviceProvider, ClientEndpoint endpoint ) => new SimpleService2Client( endpoint );
-
-        public void OnPongCalled()
-        {
-            this.IsPongCalled = true;
-        }
-
-        public bool IsPongCalled { get; private set; }
     }
 }

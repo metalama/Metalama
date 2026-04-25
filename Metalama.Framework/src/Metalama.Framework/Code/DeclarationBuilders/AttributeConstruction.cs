@@ -24,8 +24,8 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <para>
     /// The <see cref="Create(IConstructor, IReadOnlyList{TypedConstant}?, IReadOnlyList{KeyValuePair{string, TypedConstant}}?)"/> method
     /// creates an attribute by specifying an explicit constructor and strongly-typed <see cref="TypedConstant"/> arguments.
-    /// The <see cref="Create(Type, IReadOnlyList{object?}?, IReadOnlyList{KeyValuePair{string, object?}}?)"/> and
-    /// <see cref="Create(INamedType, IReadOnlyList{object?}?, IReadOnlyList{KeyValuePair{string, object?}}?)"/> overloads
+    /// The <see cref="Create(Type, IReadOnlyList{object}, IReadOnlyList{KeyValuePair{string, object}})"/> and
+    /// <see cref="Create(INamedType, IReadOnlyList{object}, IReadOnlyList{KeyValuePair{string, object}})"/> overloads
     /// automatically find a suitable constructor based on the provided argument types.
     /// </para>
     /// <para>
@@ -225,8 +225,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders
                     if ( constructorArguments.Count <= i )
                     {
                         // No arguments provided for the params parameter — create an empty array.
-                        typedConstructorArguments.Add(
-                            TypedConstant.UnwrapOrCreate( ImmutableArray<TypedConstant>.Empty, parameterType ) );
+                        typedConstructorArguments.Add( TypedConstant.UnwrapOrCreate( ImmutableArray<TypedConstant>.Empty, parameterType ) );
                     }
                     else
                     {

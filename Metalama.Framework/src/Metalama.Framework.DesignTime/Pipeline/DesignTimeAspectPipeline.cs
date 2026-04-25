@@ -1212,7 +1212,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
     protected override IDiagnosticExtensionPolicy GetDiagnosticExtensionPolicy() => ConstantDiagnosticExtensionPolicy.PropertiesOnly;
 
-    public override string ToString() => $"{this.GetType().Name}, Project='{this.ProjectKey}'";
+    public override string ToString() => $"{nameof(DesignTimeAspectPipeline)}, Project='{this.ProjectKey}'";
 
     internal ProjectVersion? LastProjectVersion => this._currentState.ProjectVersion;
 }

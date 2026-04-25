@@ -696,7 +696,8 @@ namespace Test
         public async Task When_AttributeAppliedToPropertyWithExplicitCrLf_Then_NoExtraBlankLineAsync()
         {
             // Simulate a file with \r\n line endings - the bug in #779 was related to line ending handling.
-            var syntax = "namespace Test\r\n{\r\n    public class Class1\r\n    {\r\n        public string Name { get; set; }\r\n\r\n        public int Value { get; set; }\r\n    }\r\n}\r\n";
+            const string syntax =
+                "namespace Test\r\n{\r\n    public class Class1\r\n    {\r\n        public string Name { get; set; }\r\n\r\n        public int Value { get; set; }\r\n    }\r\n}\r\n";
 
             SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
                 .OfType<PropertyDeclarationSyntax>()
@@ -719,7 +720,8 @@ namespace Test
         {
             // Simulate a file with mixed line endings (\r\n and \n) - this is the exact scenario from #779.
             // The file mostly uses \r\n but the blank line between properties uses \n only.
-            var syntax = "namespace Test\r\n{\r\n    public class Class1\r\n    {\r\n        public string Name { get; set; }\r\n\n        public int Value { get; set; }\r\n    }\r\n}\r\n";
+            const string syntax =
+                "namespace Test\r\n{\r\n    public class Class1\r\n    {\r\n        public string Name { get; set; }\r\n\n        public int Value { get; set; }\r\n    }\r\n}\r\n";
 
             SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
                 .OfType<PropertyDeclarationSyntax>()
@@ -740,7 +742,8 @@ namespace Test
         public async Task When_AttributeAppliedToPropertyWithLfOnly_Then_NoExtraBlankLineAsync()
         {
             // Simulate a file with \n-only line endings.
-            var syntax = "namespace Test\n{\n    public class Class1\n    {\n        public string Name { get; set; }\n\n        public int Value { get; set; }\n    }\n}\n";
+            const string syntax =
+                "namespace Test\n{\n    public class Class1\n    {\n        public string Name { get; set; }\n\n        public int Value { get; set; }\n    }\n}\n";
 
             SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
                 .OfType<PropertyDeclarationSyntax>()
@@ -761,7 +764,7 @@ namespace Test
         public async Task When_SyntaxGenerationContextCreatedFromLfOnlyTree_Then_EndOfLineIsLfAsync()
         {
             // Verify that a SyntaxGenerationContext created from a \n-only file uses \n for line endings (#779).
-            var syntax = "namespace Test\n{\n    public class Class1\n    {\n        public int Value { get; set; }\n    }\n}\n";
+            const string syntax = "namespace Test\n{\n    public class Class1\n    {\n        public int Value { get; set; }\n    }\n}\n";
 
             var root = await this.GetSyntaxRootAsync( syntax );
 

@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using SyntaxExtensions = Metalama.Framework.Engine.Utilities.Roslyn.SyntaxExtensions;
 
 namespace Metalama.Framework.Engine.Linking;
 
@@ -45,14 +46,21 @@ internal sealed partial class LinkerLinkingStep
                     continue;
                 }
 
-                if ( currentStatement.Kind() == SyntaxKind.GotoStatement && currentStatement is GotoStatementSyntax { Expression: IdentifierNameSyntax { Identifier.ValueText: var gotoLabel } } gotoStatement
-                     && nextStatement?.Kind() == SyntaxKind.LabeledStatement && nextStatement is LabeledStatementSyntax { Identifier.ValueText: var declaredLabel } labeledStatement
-                     && gotoLabel == declaredLabel
-                     && observedLabelCounter.TryGetValue( declaredLabel, out var counter )
-                     && counter == 1 )
+                if ( currentStatement.Kind() == SyntaxKind.GotoStatement && currentStatement is GotoStatementSyntax
+                                                                         {
+                                                                             Expression: IdentifierNameSyntax { Identifier.ValueText: var gotoLabel }
+                                                                         } gotoStatement
+                                                                         && nextStatement?.Kind() == SyntaxKind.LabeledStatement
+                                                                         && nextStatement is LabeledStatementSyntax
+                                                                         {
+                                                                             Identifier.ValueText: var declaredLabel
+                                                                         } labeledStatement
+                                                                         && gotoLabel == declaredLabel
+                                                                         && observedLabelCounter.TryGetValue( declaredLabel, out var counter )
+                                                                         && counter == 1 )
                 {
-                    if ( Utilities.Roslyn.SyntaxExtensions.ShouldTriviaBePreserved( gotoStatement, generationContext.Options )
-                         || Utilities.Roslyn.SyntaxExtensions.ShouldTriviaBePreserved( labeledStatement, generationContext.Options ) )
+                    if ( SyntaxExtensions.ShouldTriviaBePreserved( gotoStatement, generationContext.Options )
+                         || SyntaxExtensions.ShouldTriviaBePreserved( labeledStatement, generationContext.Options ) )
                     {
                         List<SyntaxTrivia> trivia =
                         [

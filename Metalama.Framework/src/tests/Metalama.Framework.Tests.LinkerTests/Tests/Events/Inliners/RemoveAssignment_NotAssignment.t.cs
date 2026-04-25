@@ -9,7 +9,7 @@ public class Target
     remove
     {
       Console.WriteLine("Before");
-      this._foo?.Invoke(null, new EventArgs());
+      this._foo?.Invoke(null, EventArgs.Empty);
       Console.WriteLine("After");
     }
   }

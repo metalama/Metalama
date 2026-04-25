@@ -178,6 +178,6 @@ internal sealed class ValueTupleRestSerializer<T1, T2, T3, T4, T5, T6, T7, TRest
             constructorArguments.GetValue<T5>( "5" )!,
             constructorArguments.GetValue<T6>( "6" )!,
             constructorArguments.GetValue<T7>( "7" )!,
-            constructorArguments.GetValue<TRest>( "r" )! );
+            constructorArguments.GetValue<TRest>( "r" ) );
     }
 }

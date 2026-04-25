@@ -21,6 +21,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.RemoveAssig
             remove
             {
                 Console.WriteLine( "Before" );
+
                 EventHandler? x = null;
                 x -= Link[This.Foo.add, Inline];
                 Console.WriteLine( "After" );

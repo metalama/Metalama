@@ -415,7 +415,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 return;
             }
 
-            if ( parameter.DeclaringMember.DeclarationKind == DeclarationKind.Method && parameter.DeclaringMember is IMethod { MethodKind: MethodKind.PropertySet } )
+            if ( parameter.DeclaringMember.DeclarationKind == DeclarationKind.Method
+                 && parameter.DeclaringMember is IMethod { MethodKind: MethodKind.PropertySet } )
             {
                 return;
             }
@@ -886,7 +887,6 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             // Set template represents both set and init accessors.
             var propertyTemplate = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IProperty>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
-
 
             var accessorTemplates = propertyTemplate.GetAccessorTemplates();
 
@@ -1517,7 +1517,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             if ( kind == InitializerKind.AfterObjectInitializer )
             {
                 var advice = new InitializeMethodAdvice(
-                    this.GetAdviceConstructorParameters<INamedType>( targetType ),
+                    this.GetAdviceConstructorParameters( targetType ),
                     templateMember,
                     this.GetArgsReader( args ),
                     slotFields,
@@ -1528,7 +1528,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             else if ( kind == InitializerKind.AfterLastInstanceConstructor )
             {
                 var advice = new OnConstructedMethodAdvice(
-                    this.GetAdviceConstructorParameters<INamedType>( targetType ),
+                    this.GetAdviceConstructorParameters( targetType ),
                     templateMember,
                     this.GetArgsReader( args ),
                     slotFields,
@@ -1887,8 +1887,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
-            var advice = new OnConstructedEpilogueAdvice(
-                this.GetAdviceConstructorParameters( baseType, requireTemplate: false ) );
+            var advice = new OnConstructedEpilogueAdvice( this.GetAdviceConstructorParameters( baseType, requireTemplate: false ) );
 
             advice.Execute( this._state );
         }

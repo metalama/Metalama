@@ -56,7 +56,7 @@ internal static class OverrideHelper
 
             if ( property != null )
             {
-                backingFieldName = ComputeBackingFieldName( property, mutableCompilation! );
+                backingFieldName = ComputeBackingFieldName( property, mutableCompilation );
             }
         }
 

@@ -14,7 +14,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// <para>
     /// <see cref="InterpolatedStringBuilder"/> provides a convenient way to generate run-time interpolated strings when the
     /// content is determined at compile time. Instead of using <c>string.Format</c> and building separate arrays of arguments,
-    /// you can use <see cref="AddText"/> to add literal text and <see cref="AddExpression(dynamic, int?, string?)"/> to add
+    /// you can use <see cref="AddText"/> to add literal text and <see cref="AddExpression(object?, int?, string?)"/> to add
     /// interpolated expressions with optional alignment and format specifiers.
     /// </para>
     /// <para>

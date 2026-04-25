@@ -7,7 +7,7 @@ using Metalama.Framework.Code.Invokers;
 
 namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
-internal class TupleElementInvoker : FieldOrPropertyInvoker
+internal sealed class TupleElementInvoker : FieldOrPropertyInvoker
 {
     public TupleElementInvoker( IFieldOrProperty tupleElement, InvokerOptions options = default, IExpression? target = null ) : base(
         tupleElement,

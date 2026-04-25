@@ -161,7 +161,7 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
             compilation,
             interfaceType );
 
-    public override string ToString() => this.BuilderData.ToString()!;
+    public override string ToString() => this.BuilderData.ToString().AssertNotNull();
 
     protected override IFullRef<TOut> CastAsFullRef<TOut>()
     {

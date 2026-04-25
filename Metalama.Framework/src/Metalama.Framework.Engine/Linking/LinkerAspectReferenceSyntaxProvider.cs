@@ -15,6 +15,8 @@ using System.Collections.Generic;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
+// ReSharper disable RedundantLinebreak
+
 namespace Metalama.Framework.Engine.Linking;
 
 internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSyntaxProvider
@@ -208,7 +210,8 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                         syntaxGenerator.TypeSyntax( implementedInterfaceMember.DeclaringType ),
                         ThisExpression() ) );
         }
-        else if ( targetIndexer.DeclaringType.DeclarationKind == DeclarationKind.ExtensionBlock && targetIndexer.DeclaringType is IExtensionBlock extensionBlock )
+        else if ( targetIndexer.DeclaringType.DeclarationKind == DeclarationKind.ExtensionBlock
+                  && targetIndexer.DeclaringType is IExtensionBlock extensionBlock )
         {
             // For extension block indexers, use the receiver parameter instead of 'this'.
             expression = SyntaxFactoryEx.SafeIdentifierName( extensionBlock.ReceiverParameter.Name );
@@ -235,7 +238,7 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
         SimpleNameSyntax memberName;
 
         if ( targetDeclaration.DeclarationKind == DeclarationKind.Method
-            && targetDeclaration is IGeneric { TypeParameters.Count: > 0 } generic )
+             && targetDeclaration is IGeneric { TypeParameters.Count: > 0 } generic )
         {
             memberName = GenericName( memberNameString )
                 .WithTypeArgumentList(
@@ -262,7 +265,8 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                         memberName )
                     .WithSimplifierAnnotationIfNecessary( syntaxGenerator.SyntaxGenerationContext );
             }
-            else if ( targetDeclaration.DeclaringType.DeclarationKind == DeclarationKind.ExtensionBlock && targetDeclaration.DeclaringType is IExtensionBlock extensionBlock )
+            else if ( targetDeclaration.DeclaringType.DeclarationKind == DeclarationKind.ExtensionBlock
+                      && targetDeclaration.DeclaringType is IExtensionBlock extensionBlock )
             {
                 // For extension block members, use the receiver parameter instead of 'this'.
                 expression = MemberAccessExpression(
@@ -282,7 +286,8 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
         }
         else
         {
-            if ( targetDeclaration.DeclaringType.DeclarationKind == DeclarationKind.ExtensionBlock && targetDeclaration.DeclaringType is IExtensionBlock extensionBlock )
+            if ( targetDeclaration.DeclaringType.DeclarationKind == DeclarationKind.ExtensionBlock
+                 && targetDeclaration.DeclaringType is IExtensionBlock extensionBlock )
             {
                 // For static extension block members, use the receiver type.
                 expression =

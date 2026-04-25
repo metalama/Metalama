@@ -60,7 +60,14 @@ public static class DiagnosticDescriptorExtensions
         // ConvertDiagnosticArguments treats an array as multiple arguments, so we need to wrap it in another array.
         var argumentArray = ConvertDiagnosticArguments( typeof(T).IsArray ? new[] { arguments } : arguments );
 
-        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, diagnosticSource, additionalLocations, deduplicationKey, properties, description );
+        return definition.CreateRoslynDiagnosticImpl(
+            location,
+            argumentArray,
+            diagnosticSource,
+            additionalLocations,
+            deduplicationKey,
+            properties,
+            description );
     }
 
     // If this was named CreateRoslynDiagnostic, type safety of the generic versions would be lost.
@@ -76,7 +83,14 @@ public static class DiagnosticDescriptorExtensions
     {
         var argumentArray = ConvertDiagnosticArguments( arguments );
 
-        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, diagnosticSource, additionalLocations, deduplicationKey, properties, description );
+        return definition.CreateRoslynDiagnosticImpl(
+            location,
+            argumentArray,
+            diagnosticSource,
+            additionalLocations,
+            deduplicationKey,
+            properties,
+            description );
     }
 
     private static object?[] ConvertDiagnosticArguments( object? arguments )

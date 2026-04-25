@@ -414,21 +414,21 @@ namespace Metalama.Framework.Code
                     return pointerType.PointedAtType.GetEffectiveAccessibility();
 
                 case INamedType namedType:
-                {
-                    var accessibility = GetEffectiveAccessibilityOfMemberOrNamedType( namedType );
-
-                    foreach ( var typeArgument in namedType.TypeArguments )
                     {
-                        var typeArgumentAccessibility = typeArgument.GetEffectiveAccessibility();
+                        var accessibility = GetEffectiveAccessibilityOfMemberOrNamedType( namedType );
 
-                        if ( typeArgumentAccessibility < accessibility )
+                        foreach ( var typeArgument in namedType.TypeArguments )
                         {
-                            accessibility = typeArgumentAccessibility;
-                        }
-                    }
+                            var typeArgumentAccessibility = typeArgument.GetEffectiveAccessibility();
 
-                    return accessibility;
-                }
+                            if ( typeArgumentAccessibility < accessibility )
+                            {
+                                accessibility = typeArgumentAccessibility;
+                            }
+                        }
+
+                        return accessibility;
+                    }
 
                 default:
                     // For dynamic, type parameters, function pointers, etc.

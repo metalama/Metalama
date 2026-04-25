@@ -34,6 +34,7 @@ internal sealed class LateTypeLevelTransformations
 
     public bool ShouldRemovePrimaryConstructor => this._shouldRemovePrimaryConstructor;
 
+    // ReSharper disable once InconsistentlySynchronizedField
     public IReadOnlyCollection<string> NonMaterializedIntroducedParameterNames => this._nonMaterializedIntroducedParameterNames;
 
     public bool HasMaterializedIntroducedParameterOnPrimary => this._hasMaterializedIntroducedParameterOnPrimary;

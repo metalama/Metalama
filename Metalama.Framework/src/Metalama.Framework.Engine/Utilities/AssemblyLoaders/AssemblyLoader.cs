@@ -12,7 +12,7 @@ namespace Metalama.Framework.Engine.Utilities.AssemblyLoaders;
 
 internal abstract class AssemblyLoader : IDisposable
 {
-    public string DebugName { get; }
+    private string DebugName { get; }
 
     private static readonly Version _defaultVersion = new();
 

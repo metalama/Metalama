@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Microsoft.CodeAnalysis;
 using System;
 using System.Linq;
 
@@ -63,7 +64,7 @@ internal readonly struct TemplateMemberRef
             this._templateMember.Name,
             symbol => classifier.IsTemplate( symbol )
                       && symbol.GetParameters().Select( p => p.Type ).SequenceEqual( parameters.Select( p => p.Type ), StructuralSymbolComparer.Default )
-                      && (symbol is not Microsoft.CodeAnalysis.IMethodSymbol methodSymbol || methodSymbol.TypeParameters.Length == typeParameterCount) );
+                      && (symbol is not IMethodSymbol methodSymbol || methodSymbol.TypeParameters.Length == typeParameterCount) );
 
         var declaration = templateReflectionContext.GetCompilationModel( compilation ).Factory.GetDeclaration( symbol );
 

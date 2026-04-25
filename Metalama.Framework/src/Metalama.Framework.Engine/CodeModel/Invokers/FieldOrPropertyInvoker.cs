@@ -175,17 +175,16 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
 
         if ( property.IsStatic )
         {
-            args = new IExpression[] { valueExpression };
+            args = [valueExpression];
         }
         else
         {
             if ( this.Target == null )
             {
-                throw new InvalidOperationException(
-                    $"Cannot set instance extension property '{property}' because the receiver (target) expression is null." );
+                throw new InvalidOperationException( $"Cannot set instance extension property '{property}' because the receiver (target) expression is null." );
             }
 
-            args = new IExpression[] { this.Target, valueExpression };
+            args = [this.Target, valueExpression];
         }
 
         return (DelegateUserExpression) implInvoker.CreateInvokeExpression( args );

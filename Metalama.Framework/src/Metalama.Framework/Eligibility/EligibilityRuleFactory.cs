@@ -73,7 +73,7 @@ public static partial class EligibilityRuleFactory
             builder.MustSatisfy( m => !m.IsExtern, m => $"'{m}' must not be extern" );
 
             builder.MustSatisfy(
-                m => !(m.MethodKind == MethodKind.PropertyGet && m.DeclaringMember is IField { Writeability: Writeability.None }),
+                m => !(m is { MethodKind: MethodKind.PropertyGet, DeclaringMember: IField { Writeability: Writeability.None } }),
                 m => $"'{m}' must not be the getter of a const field." );
 
             builder.MustNotBePartialMemberWithSourceGeneratorAttribute();
@@ -129,7 +129,7 @@ public static partial class EligibilityRuleFactory
         builder =>
         {
             builder.MustSatisfy(
-                t => t.TypeKind == TypeKind.Class && t.IsStatic && t.DeclaringType == null,
+                t => t is { TypeKind: TypeKind.Class, IsStatic: true, DeclaringType: null },
                 t => $"'{t}' must be a top-level static class" );
 
             builder.MustBeExplicitlyDeclared();
@@ -204,7 +204,8 @@ public static partial class EligibilityRuleFactory
             b => b.Convert()
                 .To<IParameter>()
                 .MustSatisfy(
-                    p => p is { IsReturnParameter: true } or { DeclaringMember: { IsImplicitlyDeclared: false } or IMethod { MethodKind: MethodKind.PropertySet } },
+                    p => p is { IsReturnParameter: true } or
+                        { DeclaringMember: { IsImplicitlyDeclared: false } or IMethod { MethodKind: MethodKind.PropertySet } },
                     p => $"{p} must be a return parameter of an explicitly-declared member or the `value` parameter of a property setter" ),
 
             // Allow default constructors (implicitly declared)

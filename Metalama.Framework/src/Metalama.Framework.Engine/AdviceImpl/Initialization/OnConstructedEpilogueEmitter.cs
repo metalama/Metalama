@@ -66,7 +66,7 @@ internal static class OnConstructedEpilogueEmitter
         AdviceImplementationContext context,
         bool registerPullFallback )
     {
-        var guardEpilogue = !targetType.IsSealed && targetType.TypeKind != Code.TypeKind.Struct;
+        var guardEpilogue = !targetType.IsSealed && targetType.TypeKind != TypeKind.Struct;
 
         var allConstructors = targetType.Constructors
             .Where( c => !c.IsRecordCopyConstructor() )
@@ -172,8 +172,7 @@ internal static class OnConstructedEpilogueEmitter
         // 1. Look for an existing parameter of type InitializationContext on this constructor.
         // This path satisfies the subtle constraint: even if the parameter was added by another aspect
         // or by the user, the epilogue must still be added using that existing parameter's name.
-        var existing = sourceConstructor.Parameters.FirstOrDefault(
-            p => p.Type.Equals( initializationContextType ) );
+        var existing = sourceConstructor.Parameters.FirstOrDefault( p => p.Type.Equals( initializationContextType ) );
 
         if ( existing != null )
         {
@@ -304,8 +303,7 @@ internal static class OnConstructedEpilogueEmitter
             return;
         }
 
-        var requiresParameterName = chainedConstructor.Parameters.Any(
-            p => p.DefaultValue != null && p.Index < parameterIndex );
+        var requiresParameterName = chainedConstructor.Parameters.Any( p => p.DefaultValue != null && p.Index < parameterIndex );
 
         context.AddTransformation(
             new IntroduceConstructorInitializerArgumentTransformation(

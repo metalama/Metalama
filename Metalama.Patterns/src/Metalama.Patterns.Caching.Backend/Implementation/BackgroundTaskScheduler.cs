@@ -61,7 +61,7 @@ namespace Metalama.Patterns.Caching.Implementation;
 /// </para>
 /// </remarks>
 [PublicAPI]
-public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITestableCachingComponent
+public sealed class BackgroundTaskScheduler : IAsyncDisposable, ITestableCachingComponent
 {
     private readonly FlashtraceSource _logger;
     private readonly AwaitableEvent _backgroundTasksFinishedEvent = new( EventResetMode.ManualReset, true );
@@ -176,7 +176,7 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
                 var previousTask = this._lastTask;
 
                 var createdTask = Task.Run(
-                    () => this.RunTask( task, previousTask, stopwatch, cancellationToken, observedTaskId ),
+                    () => this.RunTask( task, previousTask, stopwatch, observedTaskId, cancellationToken ),
                     cancellationToken );
 
                 this._lastTask = createdTask;
@@ -185,7 +185,7 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
         else
         {
             Task.Run(
-                () => this.RunTask( task, null, stopwatch, cancellationToken, observedTaskId ),
+                () => this.RunTask( task, null, stopwatch, observedTaskId, cancellationToken ),
                 cancellationToken );
         }
     }
@@ -227,7 +227,7 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
 
             if ( isOverloaded )
             {
-                if ( !this.IsOverloaded || (taskCount % 100) == 0 )
+                if ( !this.IsOverloaded || taskCount % 100 == 0 )
                 {
                     this._logger.Warning.IfEnabled?.Write(
                         FormattedMessageBuilder.Formatted(
@@ -255,8 +255,8 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
         Func<CancellationToken, Task> task,
         Task? lastTask,
         Stopwatch stopwatch,
-        CancellationToken taskCancellationToken,
-        int? observedTaskId )
+        int? observedTaskId,
+        CancellationToken taskCancellationToken )
     {
         if ( lastTask != null )
         {
@@ -313,11 +313,11 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
 
             if ( this._retryPolicy != null )
             {
-                await this.TryAndReleaseSemaphoreAsync( task, combinedCancellationToken, stopwatch, observedTaskId );
+                await this.TryAndReleaseSemaphoreAsync( task, stopwatch, observedTaskId, combinedCancellationToken );
             }
             else
             {
-                await this.RunTaskWithoutRetryAsync( task, combinedCancellationToken, stopwatch, observedTaskId );
+                await this.RunTaskWithoutRetryAsync( task, stopwatch, observedTaskId, combinedCancellationToken );
             }
         }
         finally
@@ -328,9 +328,9 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
 
     private async Task TryAndReleaseSemaphoreAsync(
         Func<CancellationToken, Task> task,
-        CancellationToken cancellationToken,
         Stopwatch stopwatch,
-        int? observedTaskId )
+        int? observedTaskId,
+        CancellationToken cancellationToken )
     {
         var semaphoreHeld = true;
 
@@ -344,8 +344,7 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var retryTask = this._retryPolicy!.TryAsync(
-                    OperationKind.Background, attempt, lastException, ref retryState, cancellationToken );
+                var retryTask = this._retryPolicy!.TryAsync( OperationKind.Background, attempt, lastException, ref retryState, cancellationToken );
 
                 if ( !retryTask.IsCompleted )
                 {
@@ -407,9 +406,9 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable, ITe
 
     private async Task RunTaskWithoutRetryAsync(
         Func<CancellationToken, Task> task,
-        CancellationToken cancellationToken,
         Stopwatch stopwatch,
-        int? observedTaskId )
+        int? observedTaskId,
+        CancellationToken cancellationToken )
     {
         try
         {

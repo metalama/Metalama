@@ -12,7 +12,7 @@ using System;
 
 namespace Metalama.Framework.Engine.Linking;
 
-internal class EventBrokerTransformationInfo
+internal sealed class EventBrokerTransformationInfo
 {
     public EventBrokerInfo Parent { get; }
 

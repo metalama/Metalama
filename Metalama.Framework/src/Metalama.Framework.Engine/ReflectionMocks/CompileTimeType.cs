@@ -26,7 +26,7 @@ namespace Metalama.Framework.Engine.ReflectionMocks
 
         IRef<IType> ICompileTimeReflectionObject<IType>.Target => this.Target;
 
-        private Exception CreateNotSupportedException() => CompileTimeMocksHelper.CreateNotSupportedException( this.Target.ToString() ?? "Type" );
+        private Exception CreateNotSupportedException() => CompileTimeMocksHelper.CreateNotSupportedException( this.Target.ToString().AssertNotNull() );
 
         private CompileTimeType( IRef<IType> targetRef, ITypeSymbol symbolForMetadata )
         {

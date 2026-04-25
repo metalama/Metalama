@@ -20,7 +20,8 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.AddAssignme
             add
             {
                 Console.WriteLine( "Before" );
-                Link[This.Foo.raise, Inline]?.Invoke( null, new EventArgs() );
+
+                Link[This.Foo.raise, Inline]?.Invoke( null, EventArgs.Empty );
                 Console.WriteLine( "After" );
             }
             remove { }

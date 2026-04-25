@@ -15,14 +15,14 @@ public class FieldKeyword_WithComputedProperty
     public string FirstName
     {
         get => field;
-        set => field = value?.Trim() ?? string.Empty;
+        set => field = value.Trim();
     } = "";
 
     // Semi-automatic property with validation.
     public string LastName
     {
         get => field;
-        set => field = value?.Trim() ?? string.Empty;
+        set => field = value.Trim();
     } = "";
 
     // Computed property that depends on semi-automatic properties.

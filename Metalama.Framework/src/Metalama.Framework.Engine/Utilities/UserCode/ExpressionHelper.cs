@@ -10,7 +10,7 @@ using System;
 
 namespace Metalama.Framework.Engine.Utilities.UserCode;
 
-internal class ExpressionHelper : IExpressionHelper
+internal sealed class ExpressionHelper : IExpressionHelper
 {
     private readonly SyntaxGenerationContext _syntaxGenerationContext;
 

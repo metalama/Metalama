@@ -10,7 +10,8 @@ using Metalama.Framework.Eligibility;
 namespace Metalama.Extensions.Multicast.AspectTests
 {
     [AttributeUsage( AttributeTargets.All, AllowMultiple = true )]
-    internal class AddTagAttribute : MulticastAspect, IAspect<IMethod>, IAspect<IConstructor>, IAspect<IFieldOrProperty>, IAspect<IEvent>, IAspect<IParameter>
+    internal sealed class AddTagAttribute : MulticastAspect, IAspect<IMethod>, IAspect<IConstructor>, IAspect<IFieldOrProperty>, IAspect<IEvent>,
+                                            IAspect<IParameter>
     {
         private readonly string _tag;
 
@@ -71,7 +72,7 @@ namespace Metalama.Extensions.Multicast.AspectTests
 
     [AttributeUsage( AttributeTargets.All, AllowMultiple = true )]
     [Inheritable]
-    internal class AddTagInheritedAttribute : MulticastAspect, IAspect<IMethod>, IAspect<IConstructor>, IAspect<IFieldOrProperty>, IAspect<IEvent>
+    internal sealed class AddTagInheritedAttribute : MulticastAspect, IAspect<IMethod>, IAspect<IConstructor>, IAspect<IFieldOrProperty>, IAspect<IEvent>
     {
         private readonly string _tag;
 
@@ -128,7 +129,7 @@ namespace Metalama.Extensions.Multicast.AspectTests
     }
 
     [AttributeUsage( AttributeTargets.All, AllowMultiple = true )]
-    public class TagAttribute : Attribute
+    internal sealed class TagAttribute : Attribute
     {
         public TagAttribute( string tag ) { }
     }

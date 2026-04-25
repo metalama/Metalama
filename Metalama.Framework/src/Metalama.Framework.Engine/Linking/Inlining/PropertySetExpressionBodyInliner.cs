@@ -22,9 +22,9 @@ internal sealed class PropertySetExpressionBodyInliner : PropertyInliner
         // The syntax needs to be in form: <annotated_property_expression> = value;
         if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Property
              && (aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method
-                 || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol
-                 || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol?.Kind != SymbolKind.Property
-                 || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol is not IPropertySymbol) )
+                 || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol methodSymbol
+                 || methodSymbol.AssociatedSymbol?.Kind != SymbolKind.Property
+                 || methodSymbol.AssociatedSymbol is not IPropertySymbol) )
         {
             // Coverage: ignore (hit only when the check in base class is incorrect).
             return false;
@@ -33,7 +33,8 @@ internal sealed class PropertySetExpressionBodyInliner : PropertyInliner
         // The property access (possibly through parentheses) should be the left side of an assignment.
         var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
 
-        if ( !expressionOrWrapped.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) || expressionOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        if ( !expressionOrWrapped.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression )
+             || expressionOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }

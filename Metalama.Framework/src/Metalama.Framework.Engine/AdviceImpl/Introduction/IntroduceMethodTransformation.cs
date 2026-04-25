@@ -26,6 +26,7 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
     /// When <c>null</c> (the default), the body returns <c>default(ReturnType)</c>.
     /// Ignored for void-returning methods.
     /// </summary>
+
     public ExpressionSyntax? DefaultReturnExpression { get; init; }
 
     public IntroduceMethodTransformation( AspectLayerInstance aspectLayerInstance, MethodBuilderData introducedDeclaration )

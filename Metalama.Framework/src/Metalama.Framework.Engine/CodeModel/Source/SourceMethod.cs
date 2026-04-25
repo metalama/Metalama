@@ -15,6 +15,7 @@ using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -66,7 +67,7 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
 
     [Memo]
     public IMethod Definition
-        => this.MethodSymbol == this.MethodSymbol.OriginalDefinition ? this : this.Compilation.Factory.GetMethod( this.MethodSymbol.OriginalDefinition );
+        => this.MethodSymbol.Equals( this.MethodSymbol.OriginalDefinition ) ? this : this.Compilation.Factory.GetMethod( this.MethodSymbol.OriginalDefinition );
 
     IMemberOrNamedType IMemberOrNamedType.Definition => this.Definition;
 
@@ -101,7 +102,7 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
     {
         if ( !this.IsGeneric )
         {
-            throw new System.ArgumentException(
+            throw new ArgumentException(
                 $"The method '{this.ToDisplayString()}' is not a generic method definition and cannot be used with MakeGenericInstance. Only generic method definitions (methods that have their own type parameters) can be constructed as generic instances." );
         }
 

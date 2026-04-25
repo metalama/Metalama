@@ -4,7 +4,7 @@
 
 namespace Metalama.Backstage.Telemetry;
 
-internal class NullUsageSession : IUsageSession
+internal sealed class NullUsageSession : IUsageSession
 {
     public static IUsageSession Instance { get; } = new NullUsageSession();
 

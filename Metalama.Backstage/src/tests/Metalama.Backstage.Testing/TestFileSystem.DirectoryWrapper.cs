@@ -11,17 +11,17 @@ namespace Metalama.Backstage.Testing;
 
 public partial class TestFileSystem
 {
-    private class DirectoryWrapper : FileSystemWrapper
+    private sealed class DirectoryWrapper : FileSystemWrapper
     {
         public DirectoryWrapper( TestFileSystem parent ) : base( parent ) { }
 
-        public override bool Exists( string path ) => this.Parent.Mock.Directory.Exists( path );
+        protected override bool Exists( string path ) => this.Parent.Mock.Directory.Exists( path );
 
-        public override void SetCreationTime( string path, DateTime creationTime ) => this.Parent.Mock.Directory.SetCreationTime( path, creationTime );
+        protected override void SetCreationTime( string path, DateTime creationTime ) => this.Parent.Mock.Directory.SetCreationTime( path, creationTime );
 
-        public override void SetLastAccessTime( string path, DateTime lastAccessTime ) => this.Parent.Mock.Directory.SetLastAccessTime( path, lastAccessTime );
+        protected override void SetLastAccessTime( string path, DateTime lastAccessTime ) => this.Parent.Mock.Directory.SetLastAccessTime( path, lastAccessTime );
 
-        public override void SetLastWriteTime( string path, DateTime lastWriteTime ) => this.Parent.Mock.Directory.SetLastWriteTime( path, lastWriteTime );
+        protected override void SetLastWriteTime( string path, DateTime lastWriteTime ) => this.Parent.Mock.Directory.SetLastWriteTime( path, lastWriteTime );
 
         public TResult Execute<TResult>(
             ExecutionKind executionKind,

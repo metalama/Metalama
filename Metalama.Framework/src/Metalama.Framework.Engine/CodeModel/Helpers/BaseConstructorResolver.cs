@@ -54,8 +54,7 @@ internal static class BaseConstructorResolver
         {
             1 => possibleConstructors[0],
             0 => null,
-            _ => throw new AmbiguousMatchException(
-                $"The base type '{baseType}' has several constructors where all parameters are optional." )
+            _ => throw new AmbiguousMatchException( $"The base type '{baseType}' has several constructors where all parameters are optional." )
         };
     }
 }

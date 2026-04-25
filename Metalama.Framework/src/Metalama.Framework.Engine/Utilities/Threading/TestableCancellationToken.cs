@@ -37,6 +37,8 @@ public readonly struct TestableCancellationToken
 
         return token._cancellationToken;
     }
+    
+    public static implicit operator TestableCancellationToken( CancellationToken token ) => token.ToTestable();
 
     [DebuggerStepThrough]
     internal TestableCancellationToken( CancellationToken cancellationToken, TestableCancellationTokenSource? testableSource = null )

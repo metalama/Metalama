@@ -64,8 +64,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
         lock ( this._extensions )
         {
             // Get a domain compatible with this project's design-time extension assemblies.
-            var extensionAssemblyPaths = new List<string>(
-                this._extensionLoader.GetExtensionAssemblyPaths( options.DesignTimeExtensionAssemblies ) );
+            var extensionAssemblyPaths = new List<string>( this._extensionLoader.GetExtensionAssemblyPaths( options.DesignTimeExtensionAssemblies ) );
 
             var domain = this._domainFactory.GetOrCreateDomain( extensionAssemblyPaths );
 

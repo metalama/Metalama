@@ -114,11 +114,15 @@ internal sealed partial class LinkerLinkingStep
                     member.Kind() switch
                     {
                         SyntaxKind.ConstructorDeclaration when member is ConstructorDeclarationSyntax ctorDecl => [semanticModel.GetDeclaredSymbol( ctorDecl )],
-                        SyntaxKind.OperatorDeclaration when member is OperatorDeclarationSyntax operatorDecl => [semanticModel.GetDeclaredSymbol( operatorDecl )],
-                        SyntaxKind.ConversionOperatorDeclaration when member is ConversionOperatorDeclarationSyntax destructorDecl => [semanticModel.GetDeclaredSymbol( destructorDecl )],
-                        SyntaxKind.DestructorDeclaration when member is DestructorDeclarationSyntax destructorDecl => [semanticModel.GetDeclaredSymbol( destructorDecl )],
+                        SyntaxKind.OperatorDeclaration when member is OperatorDeclarationSyntax operatorDecl =>
+                            [semanticModel.GetDeclaredSymbol( operatorDecl )],
+                        SyntaxKind.ConversionOperatorDeclaration when member is ConversionOperatorDeclarationSyntax destructorDecl =>
+                            [semanticModel.GetDeclaredSymbol( destructorDecl )],
+                        SyntaxKind.DestructorDeclaration when member is DestructorDeclarationSyntax destructorDecl =>
+                            [semanticModel.GetDeclaredSymbol( destructorDecl )],
                         SyntaxKind.MethodDeclaration when member is MethodDeclarationSyntax methodDecl => [semanticModel.GetDeclaredSymbol( methodDecl )],
-                        SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration when member is BasePropertyDeclarationSyntax basePropertyDecl => [semanticModel.GetDeclaredSymbol( basePropertyDecl )],
+                        SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration when
+                            member is BasePropertyDeclarationSyntax basePropertyDecl => [semanticModel.GetDeclaredSymbol( basePropertyDecl )],
                         SyntaxKind.FieldDeclaration when member is FieldDeclarationSyntax fieldDecl =>
                             fieldDecl.Declaration.Variables.SelectAsArray( v => semanticModel.GetDeclaredSymbol( v ) ),
                         SyntaxKind.EventFieldDeclaration when member is EventFieldDeclarationSyntax eventFieldDecl =>

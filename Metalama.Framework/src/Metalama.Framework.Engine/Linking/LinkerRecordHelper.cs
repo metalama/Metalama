@@ -62,7 +62,7 @@ internal sealed class LinkerRecordHelper
                  && this._rewritingDriver.IntermediateCompilationContext.SymbolComparer.Equals( propertySymbol.ContainingType, typeSymbol )
                  && propertySymbol.IsImplicitlyDeclared
                  && (propertySymbol.GetPrimaryDeclarationSyntax() ?? propertySymbol.ContainingType?.GetPrimaryDeclarationSyntax())?.Kind()
-                    is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration )
+                 is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration )
             {
                 yield return propertySymbol;
             }
@@ -92,12 +92,12 @@ internal sealed class LinkerRecordHelper
                     p =>
                     {
                         var parameterSyntax = Parameter(
-                                default,
-                                default,
-                                generationContext.SyntaxGenerator.TypeSyntax( p.Type )
-                                    .WithOptionalTrailingTrivia( ElasticSpace, generationContext.Options ),
-                                SafeIdentifier( p.Name ),
-                                null );
+                            default,
+                            default,
+                            generationContext.SyntaxGenerator.TypeSyntax( p.Type )
+                                .WithOptionalTrailingTrivia( ElasticSpace, generationContext.Options ),
+                            SafeIdentifier( p.Name ),
+                            null );
 
                         if ( p.RefKind != RefKind.None )
                         {
@@ -120,8 +120,7 @@ internal sealed class LinkerRecordHelper
                                     _ => throw new AssertionFailedException( $"Unexpected RefKind: {p.RefKind}." )
                                 };
 
-                                parameterSyntax = parameterSyntax.WithModifiers(
-                                    TokenList( Token( default, refKindKeyword, TriviaList( ElasticSpace ) ) ) );
+                                parameterSyntax = parameterSyntax.WithModifiers( TokenList( Token( default, refKindKeyword, TriviaList( ElasticSpace ) ) ) );
                             }
                         }
 
@@ -136,10 +135,7 @@ internal sealed class LinkerRecordHelper
             | ModifierCategories.ReadOnly );
 
         var typeParameterList = symbol.TypeParameters.Length > 0
-            ? TypeParameterList(
-                SeparatedList(
-                    symbol.TypeParameters.SelectAsReadOnlyList(
-                        tp => TypeParameter( SafeIdentifier( tp.Name ) ) ) ) )
+            ? TypeParameterList( SeparatedList( symbol.TypeParameters.SelectAsReadOnlyList( tp => TypeParameter( SafeIdentifier( tp.Name ) ) ) ) )
             : null;
 
         var syntheticMethodDeclaration = MethodDeclaration(
@@ -243,7 +239,13 @@ internal sealed class LinkerRecordHelper
                         null ),
                     Token( SyntaxKind.SemicolonToken ) ) );
 
-        return this._rewritingDriver.GetSpecialImplMethod( method, notSupportedBody, null, symbol, LinkerRewritingDriver.GetOriginalImplMemberName( symbol ), generationContext );
+        return this._rewritingDriver.GetSpecialImplMethod(
+            method,
+            notSupportedBody,
+            null,
+            symbol,
+            LinkerRewritingDriver.GetOriginalImplMemberName( symbol ),
+            generationContext );
     }
 
     private MethodDeclarationSyntax GetTrampolineForSynthesizedMethod(
@@ -464,6 +466,7 @@ internal sealed class LinkerRecordHelper
         SyntaxGenerationContext context )
     {
         var getAccessor = property.AccessorList?.Accessors.SingleOrDefault( x => x.Kind() == SyntaxKind.GetAccessorDeclaration );
+
         var setAccessor = property.AccessorList?.Accessors.SingleOrDefault(
             x => x.Kind() == SyntaxKind.SetAccessorDeclaration || x.Kind() == SyntaxKind.InitAccessorDeclaration );
 

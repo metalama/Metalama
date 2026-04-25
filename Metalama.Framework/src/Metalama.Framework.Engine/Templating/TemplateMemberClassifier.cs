@@ -88,8 +88,10 @@ namespace Metalama.Framework.Engine.Templating
 
             var nodeSymbol = this._syntaxTreeAnnotationMap.GetSymbol( originalNode );
 
-            return (nodeSymbol?.Kind == SymbolKind.Method && nodeSymbol is IMethodSymbol method && this.SymbolClassifier.GetTemplatingScope( method.ReturnType ) == TemplatingScope.Dynamic) ||
-                   (nodeSymbol?.Kind == SymbolKind.Property && nodeSymbol is IPropertySymbol property && this.SymbolClassifier.GetTemplatingScope( property.Type ) == TemplatingScope.Dynamic);
+            return (nodeSymbol?.Kind == SymbolKind.Method && nodeSymbol is IMethodSymbol method
+                                                          && this.SymbolClassifier.GetTemplatingScope( method.ReturnType ) == TemplatingScope.Dynamic) ||
+                   (nodeSymbol?.Kind == SymbolKind.Property && nodeSymbol is IPropertySymbol property
+                                                            && this.SymbolClassifier.GetTemplatingScope( property.Type ) == TemplatingScope.Dynamic);
         }
 
         /// <summary>

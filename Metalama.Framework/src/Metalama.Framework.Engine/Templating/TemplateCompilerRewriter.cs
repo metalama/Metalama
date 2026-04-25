@@ -308,7 +308,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     }
 
 #if ROSLYN_5_0_0_OR_GREATER
-    public override SyntaxNode? VisitFieldExpression( FieldExpressionSyntax node )
+
+    public override SyntaxNode VisitFieldExpression( FieldExpressionSyntax node )
     {
         // Handle the C# 14 'field' keyword in property accessors.
         // Transform to a call to ITemplateSyntaxFactory.GetPropertyBackingField().
@@ -2089,6 +2090,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             // Each local function gets a unique name to support nested local functions.
             if ( localFunctionInfo != null )
             {
+                // ReSharper disable once ArrangeRedundantParentheses
                 var localFactoryName = _templateSyntaxFactoryLocalName + (++this._nextLocalFunctionFactoryId);
                 this._templateMetaSyntaxFactory = new TemplateMetaSyntaxFactoryImpl( localFactoryName );
 
@@ -2237,7 +2239,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         if ( statement.IsKind( SyntaxKind.Block ) && statement is BlockSyntax block )
         {
             // Push the compile-time template block.
-            newContext = MetaContext.CreateForCompileTimeBlock( this._currentMetaContext!, isConditionalBlock );
+            newContext = MetaContext.CreateForCompileTimeBlock( this._currentMetaContext! );
 
             using ( this.WithMetaContext( newContext ) )
             {
@@ -2257,7 +2259,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             // a compile-time switch, return/throw should still terminate compile-time flow. We use
             // CreateForCompileTimeBlock to mark the context as a conditional block in this case.
             newContext = isConditionalBlock
-                ? MetaContext.CreateForCompileTimeBlock( this._currentMetaContext!, isConditionalBlock: true )
+                ? MetaContext.CreateForCompileTimeBlock( this._currentMetaContext! )
                 : MetaContext.CreateStatementGroupContext( this._currentMetaContext! );
 
             using ( this.WithMetaContext( newContext ) )
@@ -2931,8 +2933,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                         .AddArgumentListArguments( Argument( SyntaxFactoryEx.LiteralExpression( typeParameterSymbol.Name ) ) );
                 }
                 else if ( symbol?.Kind is SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.DynamicType or SymbolKind.ErrorType
-                         or SymbolKind.FunctionPointerType or SymbolKind.PointerType or SymbolKind.TypeParameter
-                     && symbol is INamespaceOrTypeSymbol namespaceOrType )
+                              or SymbolKind.FunctionPointerType or SymbolKind.PointerType or SymbolKind.TypeParameter
+                          && symbol is INamespaceOrTypeSymbol namespaceOrType )
                 {
                     return this.Transform( this.MetaSyntaxFactory.SyntaxGenerationContext.SyntaxGenerator.TypeOrNamespace( namespaceOrType ) );
                 }

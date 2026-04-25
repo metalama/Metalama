@@ -51,7 +51,7 @@ namespace Metalama.Framework.Code
         /// </para>
         /// <para>
         /// Use the <see cref="IEventInvoker.CanRaise"/> property to programmatically check whether an event can be raised
-        /// before attempting to use this property or the <see cref="IEventInvoker.Raise(dynamic?[])"/> method.
+        /// before attempting to use this property or the <see cref="IEventInvoker.Raise(object?[])"/> method.
         /// </para>
         /// </remarks>
         IMethod? RaiseMethod { get; }

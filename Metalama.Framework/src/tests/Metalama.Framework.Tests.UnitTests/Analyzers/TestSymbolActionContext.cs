@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace Metalama.Framework.Tests.UnitTests.Analyzers;
 
-internal class TestSymbolActionContext : ISymbolAnalysisContext
+internal sealed class TestSymbolActionContext : ISymbolAnalysisContext
 {
     public TestSymbolActionContext( ISymbol symbol, Compilation compilation )
     {

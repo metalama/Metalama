@@ -67,6 +67,7 @@ namespace Metalama.Extensions.Metrics
         /// already includes all partial declarations. For partial methods and properties, we need to
         /// explicitly collect references from both the definition and implementation parts.
         /// </remarks>
+
         // TODO: Add support for partial properties (C# 13), events and constructors (C# 14).
         private static IEnumerable<SyntaxReference> GetAllSyntaxReferences( ISymbol symbol )
         {
@@ -152,12 +153,7 @@ namespace Metalama.Extensions.Metrics
                 }
             }
 
-            return new LinesOfCode
-            {
-                Logical = logicalCount,
-                NonBlank = nonBlankCount,
-                Total = totalCount
-            };
+            return new LinesOfCode { Logical = logicalCount, NonBlank = nonBlankCount, Total = totalCount };
         }
     }
 }

@@ -117,7 +117,8 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                         case null:
                             break;
 
-                        case SymbolKind.NamedType or SymbolKind.ErrorType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.DynamicType or SymbolKind.TypeParameter
+                        case SymbolKind.NamedType or SymbolKind.ErrorType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.DynamicType
+                            or SymbolKind.TypeParameter
                             when symbol.ContainingSymbol is ITypeSymbol type:
                             Append( type, currentTypeArguments );
 
@@ -144,8 +145,8 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 switch ( symbol.Kind )
                 {
                     case SymbolKind.NamedType when symbol is INamedTypeSymbol { IsGenericType: true } unboundGenericType
-                        && ((!unboundGenericType.IsGenericTypeDefinition() && kind != TypeNameKind.Name)
-                             || kind == TypeNameKind.ToString):
+                                                   && ((!unboundGenericType.IsGenericTypeDefinition() && kind != TypeNameKind.Name)
+                                                       || kind == TypeNameKind.ToString):
                         sb.Append( unboundGenericType.MetadataName );
 
                         currentTypeArguments.AddRange( unboundGenericType.TypeArguments );
@@ -192,7 +193,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                         break;
 
                     default:
-                        throw new AssertionFailedException( $"Don't know how to process a {symbol!.Kind}." );
+                        throw new AssertionFailedException( $"Don't know how to process a {symbol.Kind}." );
                 }
 
                 if ( typeArguments == null && currentTypeArguments.Any() )

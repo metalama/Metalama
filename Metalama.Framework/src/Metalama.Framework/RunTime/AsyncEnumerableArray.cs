@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if NET5_0_OR_GREATER
-
 using JetBrains.Annotations;
 using System;
 using System.Collections;
@@ -21,8 +20,8 @@ namespace Metalama.Framework.RunTime;
 [PublicAPI]
 public sealed class AsyncEnumerableArray<T> : IReadOnlyList<T>, IAsyncEnumerable<T>
 {
-    public static AsyncEnumerableArray<T> Empty { get; } = new AsyncEnumerableArray<T>( Array.Empty<T>() );
-    
+    public static AsyncEnumerableArray<T> Empty { get; } = new( Array.Empty<T>() );
+
     private readonly T[] _array;
 
     public AsyncEnumerableArray( T[] array )

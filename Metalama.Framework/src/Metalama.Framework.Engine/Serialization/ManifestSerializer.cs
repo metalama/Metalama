@@ -36,7 +36,7 @@ internal static class ManifestSerializer
     /// <summary>
     /// Deserializes a manifest from JSON using System.Text.Json.
     /// </summary>
-    public static bool TryDeserialize<T>( string json, [NotNullWhen( true )] out T? result )
+    private static bool TryDeserialize<T>( string json, [NotNullWhen( true )] out T? result )
     {
         try
         {

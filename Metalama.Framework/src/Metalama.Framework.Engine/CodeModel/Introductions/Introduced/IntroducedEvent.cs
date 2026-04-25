@@ -54,8 +54,7 @@ internal sealed class IntroducedEvent : IntroducedMember, IEventImpl
             ? new IntroducedAccessor( this, this.EventBuilderData.RaiseMethod )
             : null;
 
-    public IMethod GetRaiseMethodForAdvice()
-        => new IntroducedAccessor( this, this.EventBuilderData.RaiseMethod );
+    public IMethod GetRaiseMethodForAdvice() => new IntroducedAccessor( this, this.EventBuilderData.RaiseMethod );
 
     [Memo]
     public IEvent? OverriddenEvent => this.MapDeclaration( this.EventBuilderData.OverriddenEvent );

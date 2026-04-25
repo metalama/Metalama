@@ -122,6 +122,7 @@ using System.Collections.Generic;
 internal class InternalClass {}
 public class C { public IList<InternalClass> Items; }
 ";
+
         var compilation = testContext.CreateCompilationModel( code, ignoreErrors: true );
         var field = compilation.Types.OfName( "C" ).Single().Fields.OfName( "Items" ).Single();
 
@@ -137,6 +138,7 @@ public class C { public IList<InternalClass> Items; }
 using System.Collections.Generic;
 public class C { public IList<int> Items; }
 ";
+
         var compilation = testContext.CreateCompilationModel( code );
         var field = compilation.Types.OfName( "C" ).Single().Fields.OfName( "Items" ).Single();
 
@@ -153,6 +155,7 @@ using System.Collections.Generic;
 internal class InternalClass {}
 public class C { public IDictionary<string, IList<InternalClass>> Items; }
 ";
+
         var compilation = testContext.CreateCompilationModel( code, ignoreErrors: true );
         var field = compilation.Types.OfName( "C" ).Single().Fields.OfName( "Items" ).Single();
 

@@ -13,7 +13,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.RunTime;
 
-public partial class EventBrokerTests
+public sealed partial class EventBrokerTests
 {
     [Fact]
     public void AddDelegate()

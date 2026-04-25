@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -15,6 +16,7 @@ namespace Metalama.Backstage.Serialization;
 /// that uses <see cref="StringComparer.OrdinalIgnoreCase"/>.
 /// </summary>
 /// <typeparam name="TValue">The dictionary value type.</typeparam>
+[PublicAPI]
 public sealed class CaseInsensitiveImmutableDictionaryConverter<TValue> : JsonConverter<ImmutableDictionary<string, TValue>>
 {
     public override ImmutableDictionary<string, TValue>? Read( ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options )

@@ -24,7 +24,8 @@ internal sealed class CompileTimeFieldOrPropertyInfoSerializer : ObjectSerialize
     {
         var fieldInfoOrPropertyInfo = member.DeclarationKind switch
         {
-            DeclarationKind.Property or DeclarationKind.Indexer when member is IPropertyOrIndexer property => CompileTimePropertyInfoSerializer.SerializeProperty( property, serializationContext ),
+            DeclarationKind.Property or DeclarationKind.Indexer when member is IPropertyOrIndexer property => CompileTimePropertyInfoSerializer
+                .SerializeProperty( property, serializationContext ),
             DeclarationKind.Field when member is IField field => CompileTimeFieldInfoSerializer.SerializeField( field, serializationContext ),
             _ => throw new NotImplementedException()
         };

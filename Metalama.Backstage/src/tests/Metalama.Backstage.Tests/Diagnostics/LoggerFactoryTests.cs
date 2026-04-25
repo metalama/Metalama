@@ -51,7 +51,7 @@ public sealed class LoggerFactoryTests : TestsBase
 
         var logger = loggerFactory.GetLogger( "Test" );
 
-        var n = 10000;
+        const int n = 10000;
 
         for ( var i = 0; i < n; i++ )
         {

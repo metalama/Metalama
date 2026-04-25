@@ -178,7 +178,7 @@ public abstract class ServerEndpoint : BaseEndpoint
 
         this.Logger.Trace?.Log( $"Endpoint '{pipeName}': got a client (now has {this.ClientCount + 1})." );
 
-        var rpc = this.CreateRpc( pipe );
+        var rpc = CreateRpc( pipe );
 
         this.Logger.Trace?.Log( $"Endpoint '{pipeName}': adding services {string.Join( ", ", services.Select( s => s.GetType().Name ) )}." );
 

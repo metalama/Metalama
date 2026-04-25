@@ -1021,7 +1021,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 return;
             }
 
-            using ( var cache = await this.CreateBackendAsync() )
+            await using ( var cache = await this.CreateBackendAsync() )
             {
                 // Create a chain: A depends on B, B depends on C, ..., G depends on H.
                 var keys = new[] { "A", "B", "C", "D", "E", "F", "G", "H" };
@@ -1090,7 +1090,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 return;
             }
 
-            using ( var cache = await this.CreateBackendAsync() )
+            await using ( var cache = await this.CreateBackendAsync() )
             {
                 var itemRemovedEvent = new TaskCompletionSource<bool>();
                 CacheItemRemovedEventArgs? removedArgs = null;
@@ -1135,7 +1135,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 return;
             }
 
-            using ( var cache = await this.CreateBackendAsync() )
+            await using ( var cache = await this.CreateBackendAsync() )
             {
                 var removedItems = new List<string>();
                 var allRemovedEvent = new TaskCompletionSource<bool>();
@@ -1194,7 +1194,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 return;
             }
 
-            using ( var cache = await this.CreateBackendAsync() )
+            await using ( var cache = await this.CreateBackendAsync() )
             {
                 const int itemCount = 20;
                 const string sharedDependency = "shared";

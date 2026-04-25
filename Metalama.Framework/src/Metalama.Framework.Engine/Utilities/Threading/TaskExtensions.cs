@@ -2,11 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Utilities.Threading;
 
+[PublicAPI]
 public static class TaskExtensions
 {
     public static Task WithCancellation( this Task task, CancellationToken cancellationToken )
@@ -51,7 +53,7 @@ public static class TaskExtensions
 #if NET6_0_OR_GREATER
             return ValueTask.FromCanceled( cancellationToken );
 #else
-            return new ValueTask(Task.FromCanceled(cancellationToken));
+            return new ValueTask( Task.FromCanceled( cancellationToken ) );
 #endif
         }
 
@@ -70,7 +72,7 @@ public static class TaskExtensions
 #if NET6_0_OR_GREATER
             return ValueTask.FromCanceled<T>( cancellationToken );
 #else
-            return new ValueTask<T>(Task.FromCanceled<T>(cancellationToken));
+            return new ValueTask<T>( Task.FromCanceled<T>( cancellationToken ) );
 #endif
         }
 

@@ -27,7 +27,8 @@ internal sealed class AwaitDiscardInliner : AsyncMethodInliner
             return false;
         }
 
-        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression )
+             || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -43,7 +44,8 @@ internal sealed class AwaitDiscardInliner : AsyncMethodInliner
         // The await expression (possibly parenthesized) should be the right side of an assignment.
         var awaitOrParenthesized = InlinerHelper.SkipParenthesizedExpressionAncestors( awaitExpression );
 
-        if ( !awaitOrParenthesized.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) || awaitOrParenthesized.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        if ( !awaitOrParenthesized.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression )
+             || awaitOrParenthesized.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }

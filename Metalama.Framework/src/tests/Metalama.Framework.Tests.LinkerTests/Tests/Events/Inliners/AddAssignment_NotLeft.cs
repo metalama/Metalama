@@ -20,6 +20,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.AddAssignme
             add
             {
                 Console.WriteLine( "Before" );
+
                 EventHandler? x = null;
                 x += Link[This.Foo.add, Inline];
                 Console.WriteLine( "After" );

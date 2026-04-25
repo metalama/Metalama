@@ -15,11 +15,7 @@ public sealed class MSBuildProjectOptionsTests
     {
         // Simulates the scenario where MSBuild provides an empty string for MetalamaSourceGeneratorTouchFile,
         // which happens when the SDK is not resolved and IntermediateOutputPath is empty.
-        var source = new DictionaryOptionsSource(
-            new Dictionary<string, string>
-            {
-                [MSBuildPropertyNames.MetalamaSourceGeneratorTouchFile] = ""
-            } );
+        var source = new DictionaryOptionsSource( new Dictionary<string, string> { [MSBuildPropertyNames.MetalamaSourceGeneratorTouchFile] = "" } );
 
         var options = new TestableMSBuildProjectOptions( source );
 
@@ -29,11 +25,7 @@ public sealed class MSBuildProjectOptionsTests
     [Fact]
     public void EmptyBuildTouchFile_ReturnsNull()
     {
-        var source = new DictionaryOptionsSource(
-            new Dictionary<string, string>
-            {
-                [MSBuildPropertyNames.MetalamaBuildTouchFile] = ""
-            } );
+        var source = new DictionaryOptionsSource( new Dictionary<string, string> { [MSBuildPropertyNames.MetalamaBuildTouchFile] = "" } );
 
         var options = new TestableMSBuildProjectOptions( source );
 
@@ -43,11 +35,7 @@ public sealed class MSBuildProjectOptionsTests
     [Fact]
     public void WhitespaceSourceGeneratorTouchFile_ReturnsNull()
     {
-        var source = new DictionaryOptionsSource(
-            new Dictionary<string, string>
-            {
-                [MSBuildPropertyNames.MetalamaSourceGeneratorTouchFile] = "   "
-            } );
+        var source = new DictionaryOptionsSource( new Dictionary<string, string> { [MSBuildPropertyNames.MetalamaSourceGeneratorTouchFile] = "   " } );
 
         var options = new TestableMSBuildProjectOptions( source );
 
@@ -59,11 +47,7 @@ public sealed class MSBuildProjectOptionsTests
     {
         const string touchFilePath = @"C:\project\obj\MetalamaSourceGenerator.touch";
 
-        var source = new DictionaryOptionsSource(
-            new Dictionary<string, string>
-            {
-                [MSBuildPropertyNames.MetalamaSourceGeneratorTouchFile] = touchFilePath
-            } );
+        var source = new DictionaryOptionsSource( new Dictionary<string, string> { [MSBuildPropertyNames.MetalamaSourceGeneratorTouchFile] = touchFilePath } );
 
         var options = new TestableMSBuildProjectOptions( source );
 

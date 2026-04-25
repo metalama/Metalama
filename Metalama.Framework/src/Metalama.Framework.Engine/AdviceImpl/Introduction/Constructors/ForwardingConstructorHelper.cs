@@ -35,7 +35,6 @@ internal sealed class ForwardingConstructorHelper
 {
     private readonly AdviceImplementationContext _context;
     private readonly AspectLayerInstance _aspectLayerInstance;
-    private readonly IConstructorOverloadingStrategy? _overloadingStrategy;
     private readonly IPullStrategy? _pullStrategy;
     private readonly Advice _owningAdvice;
 
@@ -48,14 +47,14 @@ internal sealed class ForwardingConstructorHelper
     {
         this._context = context;
         this._aspectLayerInstance = aspectLayerInstance;
-        this._overloadingStrategy = overloadingStrategy;
+        this.OverloadingStrategy = overloadingStrategy;
         this._pullStrategy = pullStrategy;
         this._owningAdvice = owningAdvice;
     }
 
-    public IConstructorOverloadingStrategy? OverloadingStrategy => this._overloadingStrategy;
+    public IConstructorOverloadingStrategy? OverloadingStrategy { get; }
 
-    public bool IsEnabled => this._overloadingStrategy is not null;
+    public bool IsEnabled => this.OverloadingStrategy is not null;
 
     /// <summary>
     /// Invoked after <paramref name="mutatedConstructor"/> has received <paramref name="introducedParameter"/>.
@@ -104,7 +103,7 @@ internal sealed class ForwardingConstructorHelper
                    this._context.MutableCompilation,
                    UserCodeDescription.Create( "executing GetConstructorOverloadingAction" ) ) )
         {
-            return this._overloadingStrategy!.GetConstructorOverloadingAction( mutatedConstructor, introducedParameter );
+            return this.OverloadingStrategy!.GetConstructorOverloadingAction( mutatedConstructor, introducedParameter );
         }
     }
 
@@ -250,6 +249,7 @@ internal sealed class ForwardingConstructorHelper
         // Convert the expression to a syntax node for the argument. Use the declaring type's primary
         // declaration syntax for the generation context — the forwarder itself is a builder with no syntax.
         var syntaxGenerationOptions = this._context.ServiceProvider.GetRequiredService<SyntaxGenerationOptions>();
+
         var forwarderSyntaxGenerationContext = this._context.MutableCompilation.CompilationContext.GetSyntaxGenerationContext(
             syntaxGenerationOptions,
             existingForwarder.DeclaringType.GetPrimaryDeclarationSyntax().AssertNotNull() );

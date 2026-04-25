@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Aspects;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Xunit;
 
@@ -47,9 +48,9 @@ public sealed class TransitiveAspectDiagnosticTests
         Assert.Equal( expectedClassName, instance.AspectClassName );
     }
 
-    private class EmptyAspectClassResolver : IAspectClassResolver
+    private sealed class EmptyAspectClassResolver : IAspectClassResolver
     {
-        public bool TryGetAspectClass( System.Type aspectType, [NotNullWhen( true )] out IAspectClass? aspectClass )
+        public bool TryGetAspectClass( Type aspectType, [NotNullWhen( true )] out IAspectClass? aspectClass )
         {
             aspectClass = null;
 
@@ -64,5 +65,5 @@ public sealed class TransitiveAspectDiagnosticTests
         }
     }
 
-    private class DummyAspect : IAspect;
+    private sealed class DummyAspect : IAspect;
 }

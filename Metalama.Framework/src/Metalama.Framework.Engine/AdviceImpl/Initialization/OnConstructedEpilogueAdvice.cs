@@ -33,7 +33,7 @@ internal sealed class OnConstructedEpilogueAdvice : Advice<EmptyAdviceResult>
         var baseType = ((INamedType) this.TargetDeclaration).ToRef().GetTarget( context.MutableCompilation );
         var initContextType = baseType.Compilation.Factory.GetTypeByReflectionType( typeof(InitializationContext) );
 
-        foreach ( var derivedType in baseType.Compilation.GetDerivedTypes( baseType, DerivedTypesOptions.All ) )
+        foreach ( var derivedType in baseType.Compilation.GetDerivedTypes( baseType ) )
         {
             // The emitter filters out the compiler-generated copy constructor per-ctor, so record
             // primary / explicit / user-authored constructors receive the epilogue just like classes.

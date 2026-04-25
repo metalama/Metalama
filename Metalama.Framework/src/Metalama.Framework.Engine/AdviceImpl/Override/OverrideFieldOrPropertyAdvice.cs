@@ -37,8 +37,7 @@ internal sealed class OverrideFieldOrPropertyAdvice : OverrideMemberAdvice<IFiel
         // emit a transformation to update the HasImplementation flag in the code model.
         if ( !targetDeclaration.HasImplementation )
         {
-            context.AddTransformation(
-                new SetHasImplementationTransformation( this.AspectLayerInstance, targetDeclaration.ToFullRef() ) );
+            context.AddTransformation( new SetHasImplementationTransformation( this.AspectLayerInstance, targetDeclaration.ToFullRef() ) );
         }
 
         var promotedField = OverrideHelper.OverrideProperty(

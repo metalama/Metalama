@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.Fabrics;
 
-public class TypeAmenderTests
+public sealed class TypeAmenderTests
 {
     [Fact]
     public void ITypeAmender_Implements_IAdviser_INamedType()

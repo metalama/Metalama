@@ -32,6 +32,7 @@ internal sealed class ExtensionBlockBuilder : NamedTypeBuilder, IExtensionBlockB
     /// <summary>
     /// Gets a value indicating whether this is a static extension (no parameter name).
     /// </summary>
+
     public bool IsStaticExtension => string.IsNullOrEmpty( this.ReceiverParameterBuilder.Name );
 
     public ExtensionBlockBuilder(

@@ -101,6 +101,7 @@ namespace Metalama.Testing.AspectTesting
                     .Select( tfm => tfm.Trim() )
                     .Where( tfm => tfm.Length > 0 )
                     .ToList();
+
                 var currentFramework = this.ProjectProperties.TargetFramework;
 
                 if ( requestedFrameworks.Count == 0 )

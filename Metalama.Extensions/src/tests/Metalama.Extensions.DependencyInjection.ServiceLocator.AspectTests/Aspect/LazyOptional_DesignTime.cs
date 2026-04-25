@@ -8,6 +8,7 @@
 
 namespace Metalama.Extensions.DependencyInjection.DotNet.Tests.Aspect.LazyOptional_DesignTime;
 
+// ReSharper disable once PartialTypeWithSinglePart
 // ReSharper disable once MemberCanBeInternal
 // <target>
 public partial class TargetClass

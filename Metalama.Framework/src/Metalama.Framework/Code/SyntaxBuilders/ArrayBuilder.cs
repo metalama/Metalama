@@ -15,7 +15,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// <para>
     /// <see cref="ArrayBuilder"/> provides a convenient way to generate run-time arrays when the number of elements or their
     /// values are determined at compile time. Instead of generating array initialization code as text, you can add items
-    /// programmatically using <see cref="Add(dynamic)"/>, then call <see cref="ToExpression"/> to get an <see cref="IExpression"/>
+    /// programmatically using <see cref="Add(object?)"/>, then call <see cref="ToExpression"/> to get an <see cref="IExpression"/>
     /// representing the array creation expression.
     /// </para>
     /// <para>

@@ -248,7 +248,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                             pair.Value.ReturnValueVariableName );
                 }
             }
-            else if ( pair.Key.Definition.DeclarationKind == DeclarationKind.ExtensionBlock && pair.Key.Definition is IExtensionBlock extensionBlock && pair.Value.WasUsedForOutputContracts )
+            else if ( pair.Key.Definition.DeclarationKind == DeclarationKind.ExtensionBlock && pair.Key.Definition is IExtensionBlock extensionBlock
+                                                                                            && pair.Value.WasUsedForOutputContracts )
             {
                 // Extension block with output contracts - create auxiliary contract members for each instance member.
                 pair.Value.Complete();
@@ -681,8 +682,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             => x.Key.Equals( y.Key ) && RefEqualityComparer<IMemberOrNamedType>.Default.Equals( x.Target, y.Target );
 
         public int GetHashCode( (IFullRef<IMemberOrNamedType> Target, object Key) obj )
-            => unchecked( (RefEqualityComparer<IMemberOrNamedType>.Default.GetHashCode( obj.Target ) * 397)
-                          ^ obj.Key.GetHashCode() );
+            => unchecked((RefEqualityComparer<IMemberOrNamedType>.Default.GetHashCode( obj.Target ) * 397)
+                         ^ obj.Key.GetHashCode());
     }
 
     private void IndexInsertStatementTransformation(
@@ -795,8 +796,12 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                                 .Where(
                                     s =>
                                         s.ContextDeclaration.IsContainedIn( propertyOrIndexer.GetMethod )
-                                        || (propertyOrIndexer.DeclarationKind == DeclarationKind.Indexer && propertyOrIndexer is IIndexer indexer && s.ContextDeclaration.DeclarationKind == DeclarationKind.Parameter && s.ContextDeclaration is IParameter parameter
-                                                                                  && parameter.ContainingDeclaration!.Equals( indexer )) )
+                                        || (propertyOrIndexer.DeclarationKind == DeclarationKind.Indexer && propertyOrIndexer is IIndexer indexer
+                                                                                                         && s.ContextDeclaration.DeclarationKind
+                                                                                                         == DeclarationKind.Parameter
+                                                                                                         && s.ContextDeclaration is IParameter parameter
+                                                                                                         && parameter.ContainingDeclaration!
+                                                                                                             .Equals( indexer )) )
                                 .ToReadOnlyList() );
                     }
 
@@ -808,8 +813,12 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                                 .Where(
                                     s =>
                                         s.ContextDeclaration.IsContainedIn( propertyOrIndexer.SetMethod )
-                                        || (propertyOrIndexer.DeclarationKind == DeclarationKind.Indexer && propertyOrIndexer is IIndexer indexer && s.ContextDeclaration.DeclarationKind == DeclarationKind.Parameter && s.ContextDeclaration is IParameter parameter
-                                                                                  && parameter.ContainingDeclaration!.Equals( indexer )) )
+                                        || (propertyOrIndexer.DeclarationKind == DeclarationKind.Indexer && propertyOrIndexer is IIndexer indexer
+                                                                                                         && s.ContextDeclaration.DeclarationKind
+                                                                                                         == DeclarationKind.Parameter
+                                                                                                         && s.ContextDeclaration is IParameter parameter
+                                                                                                         && parameter.ContainingDeclaration!
+                                                                                                             .Equals( indexer )) )
                                 .ToReadOnlyList() );
                     }
 
@@ -839,7 +848,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 
                     foreach ( var statement in insertedStatements )
                     {
-                        if ( statement.ContextDeclaration.ContainingDeclaration?.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor && statement.ContextDeclaration.ContainingDeclaration is IMethodBase method )
+                        if ( statement.ContextDeclaration.ContainingDeclaration?.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor
+                             && statement.ContextDeclaration.ContainingDeclaration is IMethodBase method )
                         {
                             var methodRef = method.ToRef();
 
@@ -871,7 +881,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                 throw new AssertionFailedException( $"Unexpected target: {targetMemberOrNamedType}." );
         }
 
-        if ( targetMemberOrNamedType.DeclarationKind == DeclarationKind.Constructor && targetMemberOrNamedType is IConstructor { IsPrimary: true } overriddenConstructor )
+        if ( targetMemberOrNamedType.DeclarationKind == DeclarationKind.Constructor
+             && targetMemberOrNamedType is IConstructor { IsPrimary: true } overriddenConstructor )
         {
             auxiliaryMemberTransformations.GetOrAdd( overriddenConstructor.ToFullRef(), _ => new AuxiliaryMemberTransformations() )
                 .InjectAuxiliarySourceMember();
@@ -914,7 +925,9 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     context.MarkAsUsedForOutputContracts();
 
                     if ( targetMemberOrNamedType.DeclarationKind is DeclarationKind.Property or DeclarationKind.Indexer
-                         || (targetMemberOrNamedType.DeclarationKind == DeclarationKind.Method && targetMemberOrNamedType is IMethod method && method.GetAsyncInfo().ResultType.SpecialType != SpecialType.Void) )
+                         || (targetMemberOrNamedType.DeclarationKind == DeclarationKind.Method && targetMemberOrNamedType is IMethod method
+                                                                                               && method.GetAsyncInfo().ResultType.SpecialType
+                                                                                               != SpecialType.Void) )
                     {
                         // Force the return variable name to be allocated if the return type is not void.
                         // If there are output contracts that don't use the return value, the return value is still required.
@@ -1003,9 +1016,9 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                     transformationCollection.AddIntroducedParameter( introduceParameterTransformation );
 
                     if ( introduceParameterTransformation.Parameter.ContainingDeclaration is IFullRef<IConstructor>
-                         {
-                             Definition: { IsPrimary: true, DeclaringType.IsRecord: true } primaryCtor
-                         } primaryCtorRef )
+                        {
+                            Definition: { IsPrimary: true, DeclaringType.IsRecord: true } primaryCtor
+                        } primaryCtorRef )
                     {
                         if ( !introduceParameterTransformation.MaterializeOnRecord )
                         {

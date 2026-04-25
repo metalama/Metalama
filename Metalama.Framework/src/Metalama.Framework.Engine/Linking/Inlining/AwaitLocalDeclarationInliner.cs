@@ -33,7 +33,8 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
             return false;
         }
 
-        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression )
+             || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -138,7 +139,8 @@ internal sealed class AwaitLocalDeclarationInliner : AsyncMethodInliner
                 LocalDeclarationStatement(
                         VariableDeclaration(
                             syntaxGenerationContext.SyntaxGenerator.TypeSyntax( awaitedType ),
-                            SingletonSeparatedList( VariableDeclarator( SyntaxFactoryEx.SafeIdentifier( specification.ReturnVariableIdentifier.AssertNotNull() ) ) ) ) )
+                            SingletonSeparatedList(
+                                VariableDeclarator( SyntaxFactoryEx.SafeIdentifier( specification.ReturnVariableIdentifier.AssertNotNull() ) ) ) ) )
                     .NormalizeWhitespaceIfNecessary( syntaxGenerationContext )
                     .WithOptionalTrailingLineFeed( syntaxGenerationContext ),
                 linkedTargetBody )

@@ -205,7 +205,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         }
 
         if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol }
-             && this.GetTemplateInfo( associatedSymbol, isInherited ) is { IsNone: false } associatedTemplateInfo )
+                                              && this.GetTemplateInfo( associatedSymbol, isInherited ) is { IsNone: false } associatedTemplateInfo )
         {
             return associatedTemplateInfo;
         }
@@ -478,14 +478,16 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
                 // If the return type is marked [CompileTime] (as in meta.CompileTime), enforce that.
                 if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol methodSymbol
-                     && methodSymbol.GetReturnTypeAttributes().Any( a => a.AttributeClass?.Name == nameof(CompileTimeAttribute) ) )
+                                                      && methodSymbol.GetReturnTypeAttributes()
+                                                          .Any( a => a.AttributeClass?.Name == nameof(CompileTimeAttribute) ) )
                 {
                     scope = scope.Value.Scope == TemplatingScope.CompileTimeOnlyReturningRuntimeOnly
                         ? OnConflict()
                         : (TemplatingScope.CompileTimeOnly, TemplatingRule.Other);
                 }
             }
-            else if ( symbol.Kind == SymbolKind.TypeParameter && symbol is ITypeParameterSymbol { DeclaringMethod: { } declaringMethod } && !this.GetTemplateInfo( declaringMethod ).IsNone )
+            else if ( symbol.Kind == SymbolKind.TypeParameter && symbol is ITypeParameterSymbol { DeclaringMethod: { } declaringMethod }
+                                                              && !this.GetTemplateInfo( declaringMethod ).IsNone )
             {
                 // Compile-time template parameters always represent run-time types.
                 scope = (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingRule.Other);
@@ -520,7 +522,8 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                     var scopeFromAttribute = GetScopeFromAttributes( tracer, typeParameterSymbol );
 
                     if ( scopeFromAttribute?.Scope == TemplatingScope.CompileTimeOnly && typeParameterSymbol.ContainingSymbol.Kind == SymbolKind.Method
-                         && typeParameterSymbol.ContainingSymbol is IMethodSymbol m && !this.GetTemplateInfo( m ).IsNone )
+                                                                                      && typeParameterSymbol.ContainingSymbol is IMethodSymbol m
+                                                                                      && !this.GetTemplateInfo( m ).IsNone )
                     {
                         return (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingRule.Attribute);
                     }

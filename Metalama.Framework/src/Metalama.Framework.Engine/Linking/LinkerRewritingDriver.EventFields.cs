@@ -131,8 +131,7 @@ namespace Metalama.Framework.Engine.Linking
 
                     eventFieldDeclaration =
                         eventFieldDeclaration.WithDeclaration(
-                            eventFieldDeclaration.Declaration.WithVariables(
-                                SingletonSeparatedList( declarator.WithInitializer( rewrittenInitializer ) ) ) );
+                            eventFieldDeclaration.Declaration.WithVariables( SingletonSeparatedList( declarator.WithInitializer( rewrittenInitializer ) ) ) );
                 }
 
                 members.Add( eventFieldDeclaration );
@@ -272,7 +271,10 @@ namespace Metalama.Framework.Engine.Linking
                 }
                 else
                 {
-                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name ) )
+                    return MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            ThisExpression(),
+                            SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name ) )
                         .WithSimplifierAnnotationIfNecessary( context );
                 }
             }

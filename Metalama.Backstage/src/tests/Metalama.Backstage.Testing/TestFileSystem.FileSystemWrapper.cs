@@ -14,24 +14,24 @@ public partial class TestFileSystem
     {
         protected TestFileSystem Parent { get; }
 
-        public FileSystemWrapper( TestFileSystem parent )
+        protected FileSystemWrapper( TestFileSystem parent )
         {
             this.Parent = parent;
         }
 
-        public abstract bool Exists( string path );
+        protected abstract bool Exists( string path );
 
-        public abstract void SetCreationTime( string path, DateTime creationTime );
+        protected abstract void SetCreationTime( string path, DateTime creationTime );
 
-        public abstract void SetLastAccessTime( string path, DateTime lastAccessTime );
+        protected abstract void SetLastAccessTime( string path, DateTime lastAccessTime );
 
-        public abstract void SetLastWriteTime( string path, DateTime lastWriteTime );
+        protected abstract void SetLastWriteTime( string path, DateTime lastWriteTime );
 
         protected TResult Execute<TResult>( ExecutionKind executionKind, WatcherChangeTypes changeType, string path, Func<TResult> action, string operation )
         {
             lock ( this.Parent.Mock )
             {
-                if ( executionKind == ExecutionKind.Read || executionKind == ExecutionKind.Write )
+                if ( executionKind is ExecutionKind.Read or ExecutionKind.Write )
                 {
                     this.Parent.WaitAndThrowIfBlocked( path, true, operation );
                 }
@@ -48,7 +48,7 @@ public partial class TestFileSystem
                     this.SetCreationTime( path, accessTime );
                 }
 
-                if ( executionKind == ExecutionKind.Read || executionKind == ExecutionKind.Write )
+                if ( executionKind is ExecutionKind.Read or ExecutionKind.Write )
                 {
                     this.SetLastAccessTime( path, accessTime );
                 }

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
@@ -40,6 +41,7 @@ namespace Metalama.Extensions.Multicast;
 /// <seealso cref="MulticastTargets"/>
 /// <seealso href="@migrating-multicasting"/>
 [CompileTime]
+[PublicAPI]
 public sealed class MulticastImplementation
 {
     /// <summary>
@@ -344,7 +346,12 @@ public sealed class MulticastImplementation
                 .SelectMany(
                     compilation => compilation.AllTypes
                         .Where( t => FilterDeclaringType( t, attributeGroup, MulticastTargets.InstanceConstructor ) )
-                        .SelectMany( t => t.Constructors.Where( c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter( c, attributeGroup, MulticastTargets.InstanceConstructor ) ) ) )
+                        .SelectMany(
+                            t => t.Constructors.Where(
+                                c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter(
+                                    c,
+                                    attributeGroup,
+                                    MulticastTargets.InstanceConstructor ) ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
@@ -427,7 +434,9 @@ public sealed class MulticastImplementation
         if ( attributeGroup.TargetsAnyDeclarationKind( MulticastTargets.InstanceConstructor ) )
         {
             builder
-                .Outbound.SelectMany( t => t.Constructors.Where( c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter( c, attributeGroup, MulticastTargets.InstanceConstructor ) ) )
+                .Outbound.SelectMany(
+                    t => t.Constructors.Where(
+                        c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter( c, attributeGroup, MulticastTargets.InstanceConstructor ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 

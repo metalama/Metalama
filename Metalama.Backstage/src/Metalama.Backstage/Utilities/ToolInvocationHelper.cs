@@ -173,7 +173,7 @@ public static class ToolInvocationHelper
         exitCode = 0;
         options ??= new ToolInvocationOptions();
         var processShouldRetry = false;
-        var retryAttempts = 3;
+        const int retryAttempts = 3;
 
         for ( var attempt = 0; attempt < retryAttempts; attempt++ )
         {

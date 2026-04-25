@@ -17,7 +17,9 @@ internal sealed class CompileTimeSerializationBinder : BaseCompileTimeSerializat
     /// (see <see cref="BaseCompileTimeSerializationBinder"/> for details).</param>
     /// <param name="serviceProvider">The project service provider.</param>
     /// <param name="project">The compile-time project, or <c>null</c> during early initialization.</param>
-    public CompileTimeSerializationBinder( CompileTimeDomain? domain, in ProjectServiceProvider serviceProvider, CompileTimeProject? project ) : base( domain, serviceProvider )
+    public CompileTimeSerializationBinder( CompileTimeDomain? domain, in ProjectServiceProvider serviceProvider, CompileTimeProject? project ) : base(
+        domain,
+        serviceProvider )
     {
         this._project = project;
         this._deserializationSurrogateProvider = serviceProvider.GetService<IDeserializationSurrogateProvider>();

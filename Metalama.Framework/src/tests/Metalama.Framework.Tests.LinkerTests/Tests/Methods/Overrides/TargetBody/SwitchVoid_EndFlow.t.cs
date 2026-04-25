@@ -7,6 +7,7 @@ internal class Target
     {
       case 1:
         break;
+      // ReSharper disable once RedundantEmptySwitchSection
       default:
         break;
     }

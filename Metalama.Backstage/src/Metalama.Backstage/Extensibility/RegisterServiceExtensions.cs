@@ -134,7 +134,6 @@ public static class RegisterServiceExtensions
             .AddSingleton<IHttpClientFactory>( new HttpClientFactory() )
             .AddSingleton<IJsonSerializationService>( _ => new JsonSerializationService( options.AdditionalJsonTypeInfoResolvers ) )
             .AddSingleton<IConfigurationManager>( serviceProvider => new ConfigurationManager( serviceProvider ) )
-            .AddSingleton<IProcessInfo>( _ => ProcessInfoService.Instance )
             .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
             .AddSingleton<BackstageBackgroundTasksService>( _ => BackstageBackgroundTasksService.Default )
             .AddSingleton<WebLinks>( _ => new WebLinks() )

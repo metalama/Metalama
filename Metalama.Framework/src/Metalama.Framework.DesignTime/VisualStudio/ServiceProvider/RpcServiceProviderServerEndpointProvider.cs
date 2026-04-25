@@ -6,7 +6,7 @@ using Metalama.Framework.Engine.Services;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 
-internal class RpcServiceProviderServerEndpointProvider : IRpcServiceProviderServerEndpointProvider
+internal sealed class RpcServiceProviderServerEndpointProvider : IRpcServiceProviderServerEndpointProvider
 {
     private readonly GlobalServiceProvider _serviceProvider;
 

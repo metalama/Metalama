@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Compiler;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
@@ -40,6 +41,7 @@ using SyntaxReference = Microsoft.CodeAnalysis.SyntaxReference;
 
 namespace Metalama.Framework.Engine.CodeModel
 {
+    [PublicAPI]
     public sealed partial class CompilationModel : SymbolBasedDeclaration, ICompilationInternal, ISdkCompilation
     {
         private static int _nextId;
@@ -557,6 +559,7 @@ namespace Metalama.Framework.Engine.CodeModel
                         else
                         {
                             var chainedTarget = ((IConstructorImpl) constructor).GetBaseConstructor();
+
                             depth = chainedTarget != null
                                 ? this.GetDepth( chainedTarget ) + 1
                                 : containingDepth;

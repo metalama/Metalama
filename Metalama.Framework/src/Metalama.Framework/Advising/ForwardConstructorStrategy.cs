@@ -80,10 +80,10 @@ public sealed class ForwardConstructorStrategy : IConstructorOverloadingStrategy
     {
         public override ForwardConstructorStrategy CreateInstance( IArgumentsReader constructorArguments )
         {
-            var defaultConstructorOnly = constructorArguments.GetValue<bool>( nameof(ForwardConstructorStrategy._defaultConstructorOnly) );
-            var markObsolete = constructorArguments.GetValue<bool>( nameof(ForwardConstructorStrategy._markObsolete) );
-            var obsoleteDescription = constructorArguments.GetValue<string>( nameof(ForwardConstructorStrategy._obsoleteDescription) );
-            var obsoleteIsError = constructorArguments.GetValue<bool>( nameof(ForwardConstructorStrategy._obsoleteIsError) );
+            var defaultConstructorOnly = constructorArguments.GetValue<bool>( nameof(_defaultConstructorOnly) );
+            var markObsolete = constructorArguments.GetValue<bool>( nameof(_markObsolete) );
+            var obsoleteDescription = constructorArguments.GetValue<string>( nameof(_obsoleteDescription) );
+            var obsoleteIsError = constructorArguments.GetValue<bool>( nameof(_obsoleteIsError) );
 
             return new ForwardConstructorStrategy( defaultConstructorOnly, markObsolete, obsoleteDescription, obsoleteIsError );
         }
@@ -93,10 +93,10 @@ public sealed class ForwardConstructorStrategy : IConstructorOverloadingStrategy
             IArgumentsWriter constructorArguments,
             IArgumentsWriter initializationArguments )
         {
-            constructorArguments.SetValue( nameof(ForwardConstructorStrategy._defaultConstructorOnly), obj._defaultConstructorOnly );
-            constructorArguments.SetValue( nameof(ForwardConstructorStrategy._markObsolete), obj._markObsolete );
-            constructorArguments.SetValue( nameof(ForwardConstructorStrategy._obsoleteDescription), obj._obsoleteDescription );
-            constructorArguments.SetValue( nameof(ForwardConstructorStrategy._obsoleteIsError), obj._obsoleteIsError );
+            constructorArguments.SetValue( nameof(_defaultConstructorOnly), obj._defaultConstructorOnly );
+            constructorArguments.SetValue( nameof(_markObsolete), obj._markObsolete );
+            constructorArguments.SetValue( nameof(_obsoleteDescription), obj._obsoleteDescription );
+            constructorArguments.SetValue( nameof(_obsoleteIsError), obj._obsoleteIsError );
         }
     }
 }

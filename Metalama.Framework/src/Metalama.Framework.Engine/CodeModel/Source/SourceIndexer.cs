@@ -50,7 +50,9 @@ internal sealed class SourceIndexer : SourcePropertyOrIndexer, IIndexerImpl
 
     [Memo]
     public IIndexer Definition
-        => this.PropertySymbol == this.PropertySymbol.OriginalDefinition ? this : this.Compilation.Factory.GetIndexer( this.PropertySymbol.OriginalDefinition );
+        => this.PropertySymbol.Equals( this.PropertySymbol.OriginalDefinition )
+            ? this
+            : this.Compilation.Factory.GetIndexer( this.PropertySymbol.OriginalDefinition );
 
     protected override IMemberOrNamedType GetDefinitionMemberOrNamedType() => this.Definition;
 

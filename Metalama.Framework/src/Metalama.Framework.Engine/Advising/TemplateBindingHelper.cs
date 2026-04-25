@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.RunTime.Initialization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -91,6 +92,7 @@ internal static class TemplateBindingHelper
                 {
                     parameter = targetMethod.Parameters[i];
                 }
+
                 ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( parameter.Name );
                 parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, parameter.Type );
                 mappingBuilder.Add( templateParameter.Name, parameterSyntax );
@@ -114,7 +116,7 @@ internal static class TemplateBindingHelper
                 OperatorCategory.Binary => 2,
                 OperatorCategory.Conversion => 1,
                 OperatorCategory.Unary => 1,
-                OperatorCategory.UnaryAssignment => 0, // C# 14 compound operators like ++
+                OperatorCategory.UnaryAssignment => 0,  // C# 14 compound operators like ++
                 OperatorCategory.BinaryAssignment => 1, // C# 14 compound operators like +=
                 _ => throw new AssertionFailedException( $"Invalid value for OperatorCategory: {targetMethod.OperatorKind.GetCategory()}." )
             };
@@ -169,6 +171,7 @@ internal static class TemplateBindingHelper
                 {
                     parameter = targetConstructor.Parameters[i];
                 }
+
                 ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( parameter.Name );
                 parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, parameter.Type );
                 mappingBuilder.Add( templateParameter.Name, parameterSyntax );
@@ -228,9 +231,9 @@ internal static class TemplateBindingHelper
             // directly rather than computing the reflection full name, which allocates (and goes through
             // a cache lookup) on every call.
             if ( parameterSymbol.Type is not INamedTypeSymbol
-                {
-                    Name: nameof(Metalama.Framework.RunTime.Initialization.InitializationContext)
-                } namedType
+                 {
+                     Name: nameof(InitializationContext)
+                 } namedType
                  || namedType.ContainingNamespace.GetFullName() != "Metalama.Framework.RunTime.Initialization" )
             {
                 throw new InvalidTemplateSignatureException(
@@ -245,7 +248,7 @@ internal static class TemplateBindingHelper
                 .FirstOrDefault(
                     p => p.Type is INamedType
                     {
-                        Name: nameof(Metalama.Framework.RunTime.Initialization.InitializationContext),
+                        Name: nameof(InitializationContext),
                         ContainingNamespace.FullName: "Metalama.Framework.RunTime.Initialization"
                     } );
 
@@ -449,13 +452,20 @@ internal static class TemplateBindingHelper
                 {
                     var expectedParameterCount = targetMethod switch
                     {
-                        { MethodKind: OurMethodKind.PropertyGet, ContainingDeclaration: { DeclarationKind: DeclarationKind.Indexer } and IIndexer { Parameters.Count: var parameterCount } } => parameterCount,
-                        { MethodKind: OurMethodKind.PropertySet, ContainingDeclaration: { DeclarationKind: DeclarationKind.Indexer } and IIndexer { Parameters.Count: var parameterCount } } => parameterCount
-                            + 1,
+                        {
+                            MethodKind: OurMethodKind.PropertyGet,
+                            ContainingDeclaration: { DeclarationKind: DeclarationKind.Indexer } and IIndexer { Parameters.Count: var parameterCount }
+                        } => parameterCount,
+                        {
+                                MethodKind: OurMethodKind.PropertySet,
+                                ContainingDeclaration: { DeclarationKind: DeclarationKind.Indexer } and IIndexer { Parameters.Count: var parameterCount }
+                            } => parameterCount
+                                 + 1,
                         { MethodKind: OurMethodKind.PropertyGet } => 0,
                         { MethodKind: OurMethodKind.PropertySet or OurMethodKind.EventAdd or OurMethodKind.EventRemove or OurMethodKind.EventRaise } => 1,
                         _ when targetMethod.OperatorKind.GetCategory() is OperatorCategory.Binary => 2,
-                        _ when targetMethod.OperatorKind.GetCategory() is OperatorCategory.Conversion or OperatorCategory.Unary or OperatorCategory.BinaryAssignment => 1,
+                        _ when targetMethod.OperatorKind.GetCategory() is OperatorCategory.Conversion or OperatorCategory.Unary
+                            or OperatorCategory.BinaryAssignment => 1,
                         _ when targetMethod.OperatorKind.GetCategory() is OperatorCategory.UnaryAssignment => 0,
                         _ => throw new AssertionFailedException( $"Unexpected operator/accessor method: {targetMethod}." )
                     };
@@ -762,8 +772,8 @@ internal static class TemplateBindingHelper
         }
 
         if ( fromType.TypeKind == TypeKind.TypeParameter && fromType is ITypeParameter fromGenericParameter
-             && toType.TypeKind == TypeKind.TypeParameter && toType is ITypeParameter toGenericParameter
-             && fromGenericParameter.Name == toGenericParameter.Name )
+                                                         && toType.TypeKind == TypeKind.TypeParameter && toType is ITypeParameter toGenericParameter
+                                                         && fromGenericParameter.Name == toGenericParameter.Name )
         {
             // If we are comparing two generic parameters, we only compare the name here. The caller will then check
             // the compatibility of constraints, so we don't have to do it here.
@@ -976,8 +986,7 @@ internal static class TemplateBindingHelper
                 if ( typeModel.SpecialType == OurSpecialType.Void )
                 {
                     throw new InvalidAdviceParametersException(
-                        MetalamaStringFormatter.Format(
-                            $"The type parameter '{parameter.Name}' of template '{template.Symbol}' cannot be 'void'." ) );
+                        MetalamaStringFormatter.Format( $"The type parameter '{parameter.Name}' of template '{template.Symbol}' cannot be 'void'." ) );
                 }
 
                 templateArguments.Add( new TemplateTypeArgumentFactory( typeModel, parameter.Name ) );

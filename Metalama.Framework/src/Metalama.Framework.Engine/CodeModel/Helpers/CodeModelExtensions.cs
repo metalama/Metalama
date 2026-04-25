@@ -20,6 +20,7 @@ using MethodKind = Metalama.Framework.Code.MethodKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Helpers;
 
+[PublicAPI]
 public static class CodeModelExtensions
 {
     internal static bool CanBeInherited( this IDeclaration declaration ) => ((IDeclarationImpl) declaration).CanBeInherited;

@@ -14,7 +14,7 @@ namespace Metalama.Framework.Engine.Linking;
 /// <summary>
 /// Contains event broker information for a specific event.
 /// </summary>
-internal class EventBrokerInfo
+internal sealed class EventBrokerInfo
 {
     public IEventSymbol Event { get; }
 

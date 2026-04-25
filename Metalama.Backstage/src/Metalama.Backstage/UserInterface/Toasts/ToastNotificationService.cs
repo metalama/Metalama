@@ -18,7 +18,7 @@ internal sealed class ToastNotificationService : IToastNotificationService
     {
         this._toastNotificationStatusService = serviceProvider.GetRequiredBackstageService<IToastNotificationStatusService>();
         this._userInterfaceService = serviceProvider.GetRequiredBackstageService<IUserInterfaceService>();
-        this._logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
+        this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(ToastNotificationService) );
     }
 
     public bool Show( ToastNotification notification )

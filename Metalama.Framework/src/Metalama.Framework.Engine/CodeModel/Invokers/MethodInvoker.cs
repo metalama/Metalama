@@ -134,8 +134,8 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         // with unresolved type parameters like `Bar<T>` instead of `Bar<int>`. (See #765)
         var resolvedMethod = this.Member;
 
-        if ( resolvedMethod.IsGeneric && resolvedMethod.IsCanonicalGenericInstance && args.Count > 0
-             && !this._skipTypeArgumentInference )
+        if ( resolvedMethod is { IsGeneric: true, IsCanonicalGenericInstance: true } && args.Count > 0
+                                                                                     && !this._skipTypeArgumentInference )
         {
             var inferredMethod = TryInferTypeArguments( resolvedMethod, args );
 
@@ -162,7 +162,8 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                 {
                     name = GenericName(
                         SyntaxFactoryEx.SafeIdentifier( this.GetCleanTargetMemberName() ),
-                        TypeArgumentList( SeparatedList( methodForCodeGen.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
+                        TypeArgumentList(
+                            SeparatedList( methodForCodeGen.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
                 }
                 else
                 {
@@ -213,13 +214,13 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             var argType = args[i].Type;
             var paramType = parameters[i].Type;
 
-            TryMatchTypeArguments( paramType, argType, typeParameters, inferredTypes );
+            TryMatchTypeArguments( paramType, argType, inferredTypes );
         }
 
         // Check if all type parameters were inferred.
-        for ( var i = 0; i < inferredTypes.Length; i++ )
+        foreach ( var inferredType in inferredTypes )
         {
-            if ( inferredTypes[i] == null )
+            if ( inferredType == null )
             {
                 return null;
             }
@@ -235,7 +236,6 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
     private static void TryMatchTypeArguments(
         IType parameterType,
         IType argumentType,
-        IReadOnlyList<ITypeParameter> typeParameters,
         IType?[] inferredTypes )
     {
         if ( parameterType.TypeKind == TypeKind.TypeParameter && parameterType is ITypeParameter typeParam )
@@ -270,16 +270,16 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             {
                 for ( var i = 0; i < paramNamedType.TypeArguments.Count; i++ )
                 {
-                    TryMatchTypeArguments( paramNamedType.TypeArguments[i], argNamedType.TypeArguments[i], typeParameters, inferredTypes );
+                    TryMatchTypeArguments( paramNamedType.TypeArguments[i], argNamedType.TypeArguments[i], inferredTypes );
                 }
             }
         }
 
         // For array types, match element types only when ranks are equal.
         if ( parameterType is IArrayType paramArrayType && argumentType is IArrayType argArrayType
-             && paramArrayType.Rank == argArrayType.Rank )
+                                                        && paramArrayType.Rank == argArrayType.Rank )
         {
-            TryMatchTypeArguments( paramArrayType.ElementType, argArrayType.ElementType, typeParameters, inferredTypes );
+            TryMatchTypeArguments( paramArrayType.ElementType, argArrayType.ElementType, inferredTypes );
         }
     }
 
@@ -442,5 +442,4 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
             return ((INamedType) genericFunc).MakeGenericInstance( funcTypeArgs );
         }
     }
-
 }

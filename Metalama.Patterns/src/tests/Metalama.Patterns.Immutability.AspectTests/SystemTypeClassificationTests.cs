@@ -21,7 +21,7 @@ public class C
         {
             var byteType = TypeFactory.GetType( typeof(byte) );
 
-            var typesToCheck = new IType[]
+            var typesToCheck = new[]
             {
                 TypeFactory.GetType( typeof(ValueTuple<int, string>) ),
                 TypeFactory.GetType( typeof(DateTime) ),

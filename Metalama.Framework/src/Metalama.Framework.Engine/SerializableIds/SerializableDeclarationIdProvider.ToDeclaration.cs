@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Globalization;
 using System.Linq;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.SerializableIds;
 
@@ -39,7 +40,7 @@ public static partial class SerializableDeclarationIdProvider
                 (IHasParameters method, "Parameter") => method.Parameters[ordinal],
                 (IGeneric generic, "TypeParameter") => generic.TypeParameters[ordinal],
                 (IMethod method, nameof(RefTargetKind.Return)) => method.ReturnParameter,
-                (INamedType { TypeKind: Code.TypeKind.Delegate } delegateType, nameof(RefTargetKind.Return))
+                (INamedType { TypeKind: TypeKind.Delegate } delegateType, nameof(RefTargetKind.Return))
                     => delegateType.Methods.OfName( "Invoke" ).SingleOrDefault()?.ReturnParameter,
                 (IField field, nameof(RefTargetKind.PropertyGet)) => field.GetMethod,
                 (IField field, nameof(RefTargetKind.PropertySet)) => field.SetMethod,

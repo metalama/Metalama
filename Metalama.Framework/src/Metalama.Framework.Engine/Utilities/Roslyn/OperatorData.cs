@@ -14,7 +14,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 
 #pragma warning disable SA1111, SA1113
 
-internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVersion? MinimumLangVersion, SyntaxKind OperatorKeyword, bool IsChecked )
+internal sealed record OperatorData( OperatorKind Kind, string MemberName, LanguageVersion? MinimumLangVersion, SyntaxKind OperatorKeyword, bool IsChecked )
 {
 #pragma warning disable SA1115, SA1114
     public static ImmutableArray<OperatorData> All { get; } = ImmutableArray.Create(

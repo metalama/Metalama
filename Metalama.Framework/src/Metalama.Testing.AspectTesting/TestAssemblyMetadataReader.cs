@@ -92,8 +92,9 @@ namespace Metalama.Testing.AspectTesting
 
                 return lines.SelectAsReadOnlyCollection(
                         t => TargetedAssemblyReference.ParsePipeSeparatedString( t, path => FindImplementationAssembly( projectDirectory, path ) ) )
-                    .Where( t => t.SatisfiesCurrentProcess
-                                 && !string.Equals( Path.GetFileName( t.Path ), testAssemblyFileName, StringComparison.OrdinalIgnoreCase ) )
+                    .Where(
+                        t => t.SatisfiesCurrentProcess
+                             && !string.Equals( Path.GetFileName( t.Path ), testAssemblyFileName, StringComparison.OrdinalIgnoreCase ) )
                     .ToImmutableArray();
             }
 

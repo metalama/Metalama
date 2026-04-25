@@ -10,6 +10,7 @@ using Xunit.Abstractions;
 
 namespace Metalama.Backstage.Tests.Licensing.Consumption;
 
+// ReSharper disable once InconsistentNaming
 public sealed class LicenseUITests : LicenseConsumptionServiceTestsBase
 {
     public LicenseUITests( ITestOutputHelper logger ) : base( logger ) { }

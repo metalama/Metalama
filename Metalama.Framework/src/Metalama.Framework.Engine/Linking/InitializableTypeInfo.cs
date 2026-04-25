@@ -21,6 +21,7 @@ internal sealed class InitializableTypeInfo
     /// <summary>
     /// Gets the <c>Initialize</c> method (the most-derived one in the hierarchy).
     /// </summary>
+
     public IMethodSymbol InitializeMethod { get; }
 
     /// <summary>
@@ -43,6 +44,5 @@ internal sealed class InitializableTypeInfo
     /// Returns the name of the <c>InitializationContext</c> parameter to supply as a named
     /// argument for the given constructor, or <c>null</c> if no context argument should be appended.
     /// </summary>
-    public string? GetContextParamName( IMethodSymbol constructor )
-        => this._constructorContextParamName.TryGetValue( constructor, out var name ) ? name : null;
+    public string? GetContextParamName( IMethodSymbol constructor ) => this._constructorContextParamName.TryGetValue( constructor, out var name ) ? name : null;
 }

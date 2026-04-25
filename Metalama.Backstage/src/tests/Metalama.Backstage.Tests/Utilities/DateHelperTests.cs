@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Metalama.Backstage.Tests.Utilities;
 
-public class DateHelperTests
+public sealed class DateHelperTests
 {
     [Theory]
     [InlineData( "2025-05-05", "2025-05-05" )]

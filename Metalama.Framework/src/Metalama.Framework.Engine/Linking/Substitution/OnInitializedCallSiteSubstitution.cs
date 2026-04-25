@@ -20,6 +20,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution;
 internal abstract class OnInitializedCallSiteSubstitution : SyntaxNodeSubstitution
 {
     private readonly SyntaxNode _replacedNode;
+
     protected InitializableTypeInfo TypeInfo { get; }
 
     protected OnInitializedCallSiteSubstitution(
@@ -73,13 +74,7 @@ internal abstract class OnInitializedCallSiteSubstitution : SyntaxNodeSubstituti
 
         if ( metadataArgument != null )
         {
-            argList = ArgumentList(
-                SeparatedList(
-                    new[]
-                    {
-                        Argument( expression ),
-                        Argument( metadataArgument )
-                    } ) );
+            argList = ArgumentList( SeparatedList( new[] { Argument( expression ), Argument( metadataArgument ) } ) );
         }
         else
         {

@@ -26,7 +26,7 @@ namespace Metalama.Framework.CompilerExtensions
                 case ProcessKind.Compiler:
                     // The service is not required.
                     break;
-                
+
                 case ProcessKind.Format:
                     // The service is intentionally skipped.
                     break;

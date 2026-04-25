@@ -106,8 +106,8 @@ internal abstract class TemplateClassFactory<T>
                 // for one assembly (same aspects, two different assembly names). In this case, we silently overwrite with the latest entry.
                 // However, if two versions of the same assembly provide the same type, report a diagnostic.
                 if ( existingEntry.Project != null && aspectType.Project != null
-                     && existingEntry.Project.RunTimeIdentity.Name == aspectType.Project.RunTimeIdentity.Name
-                     && existingEntry.Project.RunTimeIdentity.Version != aspectType.Project.RunTimeIdentity.Version )
+                                                   && existingEntry.Project.RunTimeIdentity.Name == aspectType.Project.RunTimeIdentity.Name
+                                                   && existingEntry.Project.RunTimeIdentity.Version != aspectType.Project.RunTimeIdentity.Version )
                 {
                     diagnosticAdder.Report(
                         TemplatingDiagnosticDescriptors.DuplicateAspectTypeInCompilation.CreateRoslynDiagnostic(

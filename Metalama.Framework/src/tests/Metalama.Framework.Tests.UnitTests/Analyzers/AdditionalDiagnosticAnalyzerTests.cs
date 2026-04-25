@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.Analyzers;
 
-public class AdditionalDiagnosticAnalyzerTests : UnitTestClass
+public sealed class AdditionalDiagnosticAnalyzerTests : UnitTestClass
 {
     [Fact]
     public void ImplementsDirectly()

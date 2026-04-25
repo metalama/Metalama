@@ -18,8 +18,7 @@ namespace Metalama.Backstage.Serialization;
 /// <typeparam name="TValue">The dictionary value type.</typeparam>
 public sealed class CaseInsensitiveImmutableDictionaryConverterFactory<TValue> : JsonConverterFactory
 {
-    public override bool CanConvert( Type typeToConvert )
-        => typeToConvert == typeof(ImmutableDictionary<string, TValue>);
+    public override bool CanConvert( Type typeToConvert ) => typeToConvert == typeof(ImmutableDictionary<string, TValue>);
 
     public override JsonConverter CreateConverter( Type typeToConvert, JsonSerializerOptions options )
         => new CaseInsensitiveImmutableDictionaryConverter<TValue>();

@@ -44,12 +44,12 @@ internal static class EventBrokerSyntaxHelper
                 ExpressionStatement( fieldInitializationExpression )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ),
                 ExpressionStatement(
-                    InvocationExpression(
-                        MemberAccessExpression(
-                            SyntaxKind.SimpleMemberAccessExpression,
-                            GetEventBrokerField( eventBrokerFieldName, isStatic ),
-                            SyntaxFactoryEx.WellKnownIdentifierName( "AddHandler" ) ),
-                        ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ) ) ) )
+                        InvocationExpression(
+                            MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                GetEventBrokerField( eventBrokerFieldName, isStatic ),
+                                SyntaxFactoryEx.WellKnownIdentifierName( "AddHandler" ) ),
+                            ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ) ) ) )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) );
     }
 
@@ -64,11 +64,11 @@ internal static class EventBrokerSyntaxHelper
         return
             context.SyntaxGenerator.FormattedBlock(
                 ExpressionStatement(
-                    ConditionalAccessExpression(
-                        GetEventBrokerField( eventBrokerFieldName, isStatic ),
-                        InvocationExpression(
-                            MemberBindingExpression( SyntaxFactoryEx.WellKnownIdentifierName( "RemoveHandler" ) ),
-                            ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ) ) ) ) )
+                        ConditionalAccessExpression(
+                            GetEventBrokerField( eventBrokerFieldName, isStatic ),
+                            InvocationExpression(
+                                MemberBindingExpression( SyntaxFactoryEx.WellKnownIdentifierName( "RemoveHandler" ) ),
+                                ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ) ) ) ) )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) );
     }
 }

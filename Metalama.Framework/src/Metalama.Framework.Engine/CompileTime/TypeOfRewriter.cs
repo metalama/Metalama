@@ -30,7 +30,7 @@ internal sealed class TypeOfRewriter
     public ExpressionSyntax RewriteTypeOf( ITypeSymbol typeSymbol, ExpressionSyntax? substitutions = null )
     {
         if ( typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol { IsUnboundGenericType: true } namedType
-             && namedType.TypeArguments[0].Kind == SymbolKind.ErrorType )
+                                                     && namedType.TypeArguments[0].Kind == SymbolKind.ErrorType )
         {
             // We have a case like typeof(Foo<>). We need to fix it here, otherwise later processing is incorrect.
 

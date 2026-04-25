@@ -1690,7 +1690,7 @@ namespace Metalama.Patterns.Caching.Tests
         private const string _testStaticFieldCallingCachedInstanceMethodProfileName = _profileNamePrefix + "TestStaticFieldCallingCachedInstanceMethod";
 
         [CachingConfiguration( ProfileName = _testStaticFieldCallingCachedInstanceMethodProfileName, UseDependencyInjection = false )]
-        private class StaticFieldCallingCachedInstanceMethodClass
+        private sealed class StaticFieldCallingCachedInstanceMethodClass
         {
             // This static field initializer calls a cached instance method. The caching aspect
             // introduces a _cacheRegistration field initialized in the static constructor, but

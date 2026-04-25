@@ -19,9 +19,11 @@ public static partial class SerializableDeclarationIdProvider
     /// </summary>
     private static bool IsInFileLocalType( ISymbol symbol )
     {
-        var current = symbol.Kind == SymbolKind.NamedType && symbol is INamedTypeSymbol ? symbol : symbol.ContainingType;
+        var current = symbol is INamedTypeSymbol ? symbol : symbol.ContainingType;
 
-        while ( current != null && current.Kind == SymbolKind.NamedType && current is INamedTypeSymbol namedType )
+#pragma warning disable LAMA0860 // This checks Roslyn symbols, not Metalama declarations
+        while ( current is INamedTypeSymbol namedType )
+#pragma warning restore LAMA0860
         {
             if ( namedType.IsFileLocal )
             {

@@ -17,7 +17,7 @@ public class FieldKeyword_WithInitializer
     public string Name
     {
         get => field;
-        set => field = value?.Trim() ?? string.Empty;
+        set => field = value.Trim();
     } = "Default";
 
     // Semi-automatic property with value type, validation, and initializer.

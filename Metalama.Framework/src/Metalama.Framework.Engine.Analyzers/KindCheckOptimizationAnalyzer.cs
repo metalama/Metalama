@@ -45,10 +45,10 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
         var assemblyName = context.Compilation.AssemblyName;
 
         if ( assemblyName == null ||
-             !( assemblyName.StartsWith( "Metalama.Framework", StringComparison.Ordinal ) ||
-                assemblyName.StartsWith( "Metalama.Testing", StringComparison.Ordinal ) ||
-                assemblyName.StartsWith( "Metalama.Extensions", StringComparison.Ordinal ) ||
-                assemblyName.StartsWith( "Metalama.Patterns", StringComparison.Ordinal ) ) )
+             !(assemblyName.StartsWith( "Metalama.Framework", StringComparison.Ordinal ) ||
+               assemblyName.StartsWith( "Metalama.Testing", StringComparison.Ordinal ) ||
+               assemblyName.StartsWith( "Metalama.Extensions", StringComparison.Ordinal ) ||
+               assemblyName.StartsWith( "Metalama.Patterns", StringComparison.Ordinal )) )
         {
             return;
         }
@@ -319,16 +319,20 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
 
                 // Check if this is an extension property on a Kind() call (e.g., x?.Kind().IsXxx)
                 if ( extensionPropertyName.StartsWith( "Is", StringComparison.Ordinal ) &&
-                     extensionPropertyAccess.Expression is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax kindBinding } &&
-                     kindBinding.Name.Identifier.Text == "Kind" )
+                     extensionPropertyAccess.Expression is InvocationExpressionSyntax
+                     {
+                         Expression: MemberBindingExpressionSyntax { Name.Identifier.Text: "Kind" }
+                     } )
                 {
                     return true;
                 }
 
                 // Check if this is an extension property on a Kind property access (e.g., x?.SyntaxKind.IsXxx)
                 if ( extensionPropertyName.StartsWith( "Is", StringComparison.Ordinal ) &&
-                     extensionPropertyAccess.Expression is MemberBindingExpressionSyntax kindPropertyBinding &&
-                     kindPropertyBinding.Name.Identifier.Text is "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind" )
+                     extensionPropertyAccess.Expression is MemberBindingExpressionSyntax
+                     {
+                         Name.Identifier.Text: "Kind" or "DeclarationKind" or "TypeKind" or "SyntaxKind"
+                     } )
                 {
                     return true;
                 }
@@ -368,9 +372,7 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             if ( current is SwitchExpressionArmSyntax arm )
             {
                 // Find the switch expression
-                var switchExpr = arm.Parent as SwitchExpressionSyntax;
-
-                if ( switchExpr != null )
+                if ( arm.Parent is SwitchExpressionSyntax switchExpr )
                 {
                     // If the switch is on Kind access, check if arm has a Kind enum pattern
                     if ( IsKindAccess( switchExpr.GoverningExpression ) && IsKindEnumPattern( arm.Pattern ) )
@@ -402,9 +404,8 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             {
                 // Find the switch statement
                 var caseLabelSection = caseLabel.Parent;
-                var switchStatement = caseLabelSection?.Parent as SwitchStatementSyntax;
 
-                if ( switchStatement != null )
+                if ( caseLabelSection?.Parent is SwitchStatementSyntax switchStatement )
                 {
                     // If the switch is on Kind access, check if case has a Kind enum pattern
                     if ( IsKindAccess( switchStatement.Expression ) && IsKindEnumPattern( caseLabel.Pattern ) )
@@ -434,9 +435,7 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             // Check if we're inside a switch section (switch statement body)
             if ( current is SwitchSectionSyntax switchSection )
             {
-                var switchStatement = switchSection.Parent as SwitchStatementSyntax;
-
-                if ( switchStatement != null && IsKindAccess( switchStatement.Expression ) )
+                if ( switchSection.Parent is SwitchStatementSyntax switchStatement && IsKindAccess( switchStatement.Expression ) )
                 {
                     // Check if any label in this section has a Kind enum pattern or a when clause with Kind check
                     foreach ( var label in switchSection.Labels )
@@ -503,17 +502,14 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
     private static bool ContainsKindCheckingMethodCall( ExpressionSyntax expression )
     {
         // Check for method invocations that are Kind checks
-        if ( expression is InvocationExpressionSyntax invocation )
+        if ( expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } )
         {
-            if ( invocation.Expression is MemberAccessExpressionSyntax memberAccess )
-            {
-                var methodName = memberAccess.Name.Identifier.Text;
+            var methodName = memberAccess.Name.Identifier.Text;
 
-                // Check for methods like IsTypeDeclaration, IsMemberKind(), IsMemberOrNamedTypeKind()
-                if ( methodName.StartsWith( "Is", StringComparison.Ordinal ) )
-                {
-                    return true;
-                }
+            // Check for methods like IsTypeDeclaration, IsMemberKind(), IsMemberOrNamedTypeKind()
+            if ( methodName.StartsWith( "Is", StringComparison.Ordinal ) )
+            {
+                return true;
             }
         }
 
@@ -667,18 +663,20 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
                 }
             }
         }
-        else if ( expression is ConditionalAccessExpressionSyntax conditionalAccess )
-        {
-            // Handle x?.IsKind(SyntaxKind.X) pattern
-            if ( conditionalAccess.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax invokeBinding } )
-            {
-                var methodName = invokeBinding.Name.Identifier.Text;
+        else if ( expression is ConditionalAccessExpressionSyntax
+                 {
+                     WhenNotNull: InvocationExpressionSyntax
+                     {
+                         Expression: MemberBindingExpressionSyntax
+                         {
+                             Name.Identifier.Text: "IsKind"
+                         }
+                     }
+                 } )
 
-                if ( methodName == "IsKind" )
-                {
-                    return true;
-                }
-            }
+            // Handle x?.IsKind(SyntaxKind.X) pattern
+        {
+            return true;
         }
 
         return false;
@@ -758,7 +756,7 @@ public class KindCheckOptimizationAnalyzer : DiagnosticAnalyzer
             {
                 foreach ( var subpattern in props.Subpatterns )
                 {
-                    if ( subpattern.Pattern != null && PatternContainsKindCheck( subpattern.Pattern ) )
+                    if ( PatternContainsKindCheck( subpattern.Pattern ) )
                     {
                         return true;
                     }

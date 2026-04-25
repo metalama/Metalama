@@ -390,7 +390,7 @@ internal sealed class CompileTimeAssemblyLocator
                         // So do overload resolution based on the parameter types of the run-time overload.
 
                         if ( symbol.Kind is SymbolKind.Method or SymbolKind.Property
-                            && symbol is (IMethodSymbol or IPropertySymbol { IsIndexer: true }) and { ContainingType: { } containingType } )
+                             && symbol is (IMethodSymbol or IPropertySymbol { IsIndexer: true }) and { ContainingType: { } containingType } )
                         {
                             if ( this.TryGetAvailableSymbol( containingType, compilation, out var compileTimeContainingType ) != true )
                             {

@@ -107,7 +107,12 @@ namespace Metalama.AspectWorkbench.ViewModels
                 return Color.FromArgb( (byte) (255 * alpha), brush.R, brush.G, brush.B );
             }
 
-            var classified = await this._formattedCodeWriter.GetClassifiedTextSpansAsync( document, areNodesAnnotated, diagnostics, cancellationToken: cancellationToken );
+            var classified = await this._formattedCodeWriter.GetClassifiedTextSpansAsync(
+                document,
+                areNodesAnnotated,
+                diagnostics,
+                cancellationToken: cancellationToken );
+
             var sourceText = await document.GetTextAsync( cancellationToken );
 
             var paragraph = new Paragraph();

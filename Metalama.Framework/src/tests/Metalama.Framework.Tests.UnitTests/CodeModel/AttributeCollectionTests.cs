@@ -4,6 +4,8 @@
 
 using Metalama.Framework.Code;
 using Metalama.Testing.UnitTesting;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -142,7 +144,7 @@ class C
             var type = compilation.Types.Single( t => t.Name == "C" );
 
             // Non-generic reflection type should work as before.
-            var attributes = type.Attributes.OfAttributeType( typeof(System.ObsoleteAttribute) )
+            var attributes = type.Attributes.OfAttributeType( typeof(ObsoleteAttribute) )
                 .ToArray();
 
             Assert.Single( attributes );
@@ -165,7 +167,7 @@ class C
 
             // Passing an unbound generic reflection type (List<>) should be accepted and
             // go through the ConversionKind.Default -> TypeDefinition promotion path.
-            var unboundGenericReflectionType = typeof(System.Collections.Generic.List<>);
+            var unboundGenericReflectionType = typeof(List<>);
 
             var attributes = type.Attributes.OfAttributeType( unboundGenericReflectionType )
                 .ToArray();
@@ -319,6 +321,7 @@ class C
             // Passing a constructed generic type (not unbound) should only match that specific construction.
             var intType = compilation.Factory.GetTypeByReflectionType( typeof(int) );
             var constructedType = attributeType.MakeGenericInstance( intType );
+
             var attributes = type.Attributes.OfAttributeType( constructedType )
                 .ToArray();
 

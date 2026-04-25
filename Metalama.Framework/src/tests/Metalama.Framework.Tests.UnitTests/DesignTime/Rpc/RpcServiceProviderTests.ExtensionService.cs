@@ -16,7 +16,7 @@ public sealed partial class RpcServiceProviderTests
     {
         public bool Initialize( DesignTimeInitializationContext context ) => true;
 
-        public string Name => ExtensionName;
+        public string Name => _extensionName;
     }
 
     private interface IExtensionService : IRpcApi
@@ -60,7 +60,7 @@ public sealed partial class RpcServiceProviderTests
 
     private sealed class ExtensionServiceFactory : IRpcServiceFactory
     {
-        public string ExtensionName => RpcServiceProviderTests.ExtensionName;
+        public string ExtensionName => _extensionName;
 
         public RpcService CreateRpcService( GlobalServiceProvider serviceProvider, ServerEndpoint endpoint ) => new ExtensionServiceImpl( endpoint, this );
 

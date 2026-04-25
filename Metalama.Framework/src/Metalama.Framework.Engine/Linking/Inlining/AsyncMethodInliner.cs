@@ -15,8 +15,11 @@ namespace Metalama.Framework.Engine.Linking.Inlining;
 internal abstract class AsyncMethodInliner : Inliner
 {
     public override bool IsValidForTargetSymbol( ISymbol symbol )
-        => symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: not MethodKind.Constructor, AssociatedSymbol: null, IsAsync: true } methodSymbol
-           && !methodSymbol.IsIteratorMethod();
+        => symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol
+                                            {
+                                                MethodKind: not MethodKind.Constructor, AssociatedSymbol: null, IsAsync: true
+                                            } methodSymbol
+                                            && !methodSymbol.IsIteratorMethod();
 
     public override bool IsValidForContainingSymbol( ISymbol symbol ) => true;
 
@@ -24,8 +27,7 @@ internal abstract class AsyncMethodInliner : Inliner
     /// Unwraps parentheses from an expression and returns the inner await expression if present.
     /// Handles patterns like: (await x), ((await x)), await x
     /// </summary>
-    protected static AwaitExpressionSyntax? GetAwaitExpression( ExpressionSyntax expression )
-        => expression.RemoveParenthesis() as AwaitExpressionSyntax;
+    protected static AwaitExpressionSyntax? GetAwaitExpression( ExpressionSyntax expression ) => expression.RemoveParenthesis() as AwaitExpressionSyntax;
 
     /// <summary>
     /// Gets the invocation expression from an await expression.

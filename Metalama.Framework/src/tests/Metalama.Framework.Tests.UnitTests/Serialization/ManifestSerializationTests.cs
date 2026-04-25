@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.Serialization;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -40,7 +41,7 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
             ],
             diagnostics: [],
             referencesMetalamaSdk: false,
-            languageVersion: Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp12 );
+            languageVersion: LanguageVersion.CSharp12 );
 
         // Test round-trip serialization
         var json = input.ToJson();
@@ -69,18 +70,14 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
     [Fact]
     public void CompileTimeFileManifest_Serialization()
     {
-        var input = new CompileTimeFileManifest
-        {
-            SourcePath = "/src/MyFile.cs",
-            TransformedPath = "/obj/compile-time/MyFile.cs"
-        };
+        var input = new CompileTimeFileManifest { SourcePath = "/src/MyFile.cs", TransformedPath = "/obj/compile-time/MyFile.cs" };
 
         const string expectedJson = """
-            {
-              "sourcePath": "/src/MyFile.cs",
-              "transformedPath": "/obj/compile-time/MyFile.cs"
-            }
-            """;
+                                    {
+                                      "sourcePath": "/src/MyFile.cs",
+                                      "transformedPath": "/obj/compile-time/MyFile.cs"
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
@@ -131,21 +128,17 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
     [Fact]
     public void CompileTimeDiagnosticLocationManifest_WithFileIndex_Serialization()
     {
-        var input = new CompileTimeDiagnosticLocationManifest
-        {
-            FileIndex = 5,
-            TextSpan = new TextSpan( 100, 50 )
-        };
+        var input = new CompileTimeDiagnosticLocationManifest { FileIndex = 5, TextSpan = new TextSpan( 100, 50 ) };
 
         const string expectedJson = """
-            {
-              "fileIndex": 5,
-              "textSpan": {
-                "start": 100,
-                "length": 50
-              }
-            }
-            """;
+                                    {
+                                      "fileIndex": 5,
+                                      "textSpan": {
+                                        "start": 100,
+                                        "length": 50
+                                      }
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
@@ -161,24 +154,24 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
         };
 
         const string expectedJson = """
-            {
-              "filePath": "/src/External.cs",
-              "textSpan": {
-                "start": 200,
-                "length": 30
-              },
-              "lineSpan": {
-                "start": {
-                  "line": 10,
-                  "character": 5
-                },
-                "end": {
-                  "line": 10,
-                  "character": 35
-                }
-              }
-            }
-            """;
+                                    {
+                                      "filePath": "/src/External.cs",
+                                      "textSpan": {
+                                        "start": 200,
+                                        "length": 30
+                                      },
+                                      "lineSpan": {
+                                        "start": {
+                                          "line": 10,
+                                          "character": 5
+                                        },
+                                        "end": {
+                                          "line": 10,
+                                          "character": 35
+                                        }
+                                      }
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
@@ -186,20 +179,17 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
     [Fact]
     public void CompileTimeDiagnosticLocationManifest_None_Serialization()
     {
-        var input = new CompileTimeDiagnosticLocationManifest
-        {
-            FileIndex = -1
-        };
+        var input = new CompileTimeDiagnosticLocationManifest { FileIndex = -1 };
 
         const string expectedJson = """
-            {
-              "fileIndex": -1,
-              "textSpan": {
-                "start": 0,
-                "length": 0
-              }
-            }
-            """;
+                                    {
+                                      "fileIndex": -1,
+                                      "textSpan": {
+                                        "start": 0,
+                                        "length": 0
+                                      }
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
@@ -228,10 +218,7 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
             usedApiVersion: null,
             children: null );
 
-        var rootChildren = new Dictionary<string, IReadOnlyList<TemplateSymbolManifest>>
-        {
-            ["MyMethod"] = [childSymbol]
-        };
+        var rootChildren = new Dictionary<string, IReadOnlyList<TemplateSymbolManifest>> { ["MyMethod"] = [childSymbol] };
 
         var rootSymbol = new TemplateSymbolManifest(
             id: "",
@@ -264,11 +251,11 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
             children: null );
 
         const string expectedJson = """
-            {
-              "id": "MyNamespace.MyClass",
-              "scope": "CompileTime"
-            }
-            """;
+                                    {
+                                      "id": "MyNamespace.MyClass",
+                                      "scope": "CompileTime"
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
@@ -284,16 +271,16 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
             children: null );
 
         const string expectedJson = """
-            {
-              "id": "MyNamespace.MyClass.MyTemplate()",
-              "scope": "RunTimeOrCompileTime",
-              "templateInfo": {
-                "attributeType": "Template",
-                "isAbstract": false,
-                "hasNoBody": false
-              }
-            }
-            """;
+                                    {
+                                      "id": "MyNamespace.MyClass.MyTemplate()",
+                                      "scope": "RunTimeOrCompileTime",
+                                      "templateInfo": {
+                                        "attributeType": "Template",
+                                        "isAbstract": false,
+                                        "hasNoBody": false
+                                      }
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
@@ -304,14 +291,13 @@ public sealed class ManifestSerializationTests : JsonSerializationTestsBase
         var input = new TemplateInfoManifest( TemplateAttributeType.DeclarativeAdvice, isAbstract: true, hasNoBody: true );
 
         const string expectedJson = """
-            {
-              "attributeType": "DeclarativeAdvice",
-              "isAbstract": true,
-              "hasNoBody": true
-            }
-            """;
+                                    {
+                                      "attributeType": "DeclarativeAdvice",
+                                      "isAbstract": true,
+                                      "hasNoBody": true
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
-
 }

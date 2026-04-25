@@ -193,25 +193,27 @@ internal sealed class AspectDatabase : IGlobalService
 
         var transformationAspectInstances = aspectInstances
             .Where( aspectInstance => aspectInstance.AspectClass.FullName == aspectClassFullName )
-            .Select( aspectInstance => new AspectDatabaseAspectInstance(
-                         GetSerializableIdForOriginalDeclaration( aspectInstance.TargetDeclaration ),
-                         aspectInstance.Advice
-                             .SelectMany( advice => advice.Transformations )
-                             .Where( transformation => transformation.ShouldBeDisplayed() )
-                             .Select( transformation =>
-                             {
-                                 var transformedDeclaration = transformation.IntroducedDeclaration ?? transformation.TargetDeclaration;
+            .Select(
+                aspectInstance => new AspectDatabaseAspectInstance(
+                    GetSerializableIdForOriginalDeclaration( aspectInstance.TargetDeclaration ),
+                    aspectInstance.Advice
+                        .SelectMany( advice => advice.Transformations )
+                        .Where( transformation => transformation.ShouldBeDisplayed() )
+                        .Select(
+                            transformation =>
+                            {
+                                var transformedDeclaration = transformation.IntroducedDeclaration ?? transformation.TargetDeclaration;
 
-                                 // ReSharper disable once RedundantSuppressNullableWarningExpression
-                                 return new AspectDatabaseAspectTransformation(
-                                     GetSerializableIdForOriginalDeclaration( transformation.TargetDeclaration ),
-                                     transformation.ToString()!,
-                                     transformedDeclaration.GetClosestNamedType() is { } transformedType
-                                         ? GetSerializableIdForOriginalDeclaration( transformedType )
-                                         : null,
-                                     transformedDeclaration.GetPrimarySyntaxTree()?.FilePath );
-                             } )
-                             .ToImmutableArray() ) );
+                                // ReSharper disable once RedundantSuppressNullableWarningExpression
+                                return new AspectDatabaseAspectTransformation(
+                                    GetSerializableIdForOriginalDeclaration( transformation.TargetDeclaration ),
+                                    transformation.ToString()!,
+                                    transformedDeclaration.GetClosestNamedType() is { } transformedType
+                                        ? GetSerializableIdForOriginalDeclaration( transformedType )
+                                        : null,
+                                    transformedDeclaration.GetPrimarySyntaxTree()?.FilePath );
+                            } )
+                        .ToImmutableArray() ) );
 
         static string GetSerializableIdForOriginalDeclaration( IDeclaration declaration )
         {
@@ -239,12 +241,13 @@ internal sealed class AspectDatabase : IGlobalService
 
         var predecessorAspectInstances = aspectInstances
             .Where( aspectInstance => aspectInstance.Predecessors.Any( predecessor => GetPredecessorFullName( predecessor.Instance ) == aspectClassFullName ) )
-            .Select( aspectInstance => new AspectDatabaseAspectInstance(
-                         GetSerializableIdForOriginalDeclaration( aspectInstance.TargetDeclaration ),
-                         ImmutableArray.Create(
-                             new AspectDatabaseAspectTransformation(
-                                 GetSerializableIdForOriginalDeclaration( aspectInstance.TargetDeclaration ),
-                                 $"Add the '{aspectInstance.AspectClass}' aspect to '{aspectInstance.TargetDeclaration}'." ) ) ) );
+            .Select(
+                aspectInstance => new AspectDatabaseAspectInstance(
+                    GetSerializableIdForOriginalDeclaration( aspectInstance.TargetDeclaration ),
+                    ImmutableArray.Create(
+                        new AspectDatabaseAspectTransformation(
+                            GetSerializableIdForOriginalDeclaration( aspectInstance.TargetDeclaration ),
+                            $"Add the '{aspectInstance.AspectClass}' aspect to '{aspectInstance.TargetDeclaration}'." ) ) ) );
 
         return transformationAspectInstances.Concat( predecessorAspectInstances ).ToArray();
     }

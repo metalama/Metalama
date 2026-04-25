@@ -44,6 +44,7 @@ internal sealed partial class LinkerAnalysisStep
         {
             // Cast is required for Roslyn 4.8.0 where GetDeclaredSymbol returns ISymbol? instead of IMethodSymbol?
 #pragma warning disable IDE0004 // Remove unnecessary cast
+
             var symbol = (IMethodSymbol) this._semanticModel.GetDeclaredSymbol( node ).AssertNotNull();
 #pragma warning restore IDE0004
 
@@ -75,7 +76,9 @@ internal sealed partial class LinkerAnalysisStep
                 {
                     // Fast path: resolve the symbol using the declaration ID through Compilation.Assembly,
                     // which is much faster than SemanticModel.GetSymbolInfo.
-                    referencedSymbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( aspectReference.TargetDeclarationId, this._semanticModel.Compilation );
+                    referencedSymbol = DocumentationCommentId.GetFirstSymbolForDeclarationId(
+                        aspectReference.TargetDeclarationId,
+                        this._semanticModel.Compilation );
 
                     // Validate that the resolved symbol can be used directly by the resolver.
                     // Fall back to GetSymbolInfo for symbols that require complex resolution in ResolveTarget

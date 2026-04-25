@@ -19,7 +19,7 @@ public class FieldKeyword_WithInitializer : INotifyPropertyChanged
       }
     }
   }
-  private string Name_Source { get => field; set => field = value?.Trim() ?? string.Empty; } = "Default";
+  private string Name_Source { get => field; set => field = value.Trim(); } = "Default";
   private int _count = 10;
   // Semi-automatic property with value type, validation, and initializer.
   public int Count

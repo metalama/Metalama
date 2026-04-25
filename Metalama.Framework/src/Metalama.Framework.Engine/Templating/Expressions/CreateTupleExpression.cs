@@ -12,7 +12,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Templating.Expressions;
 
-internal class CreateTupleExpression : UserExpression
+internal sealed class CreateTupleExpression : UserExpression
 {
     private readonly ITupleType _tupleType;
     private readonly Func<SyntaxSerializationContext, IReadOnlyList<TypedExpressionSyntaxImpl>> _getValues;

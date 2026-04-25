@@ -154,7 +154,8 @@ internal sealed class AspectReferenceResolver
         }
 
         // At this point we should always target a method or a specific target.
-        Invariant.AssertNot( resolvedReferencedSymbol.Kind is SymbolKind.Property or SymbolKind.Event or SymbolKind.Field && targetKind == AspectReferenceTargetKind.Self );
+        Invariant.AssertNot(
+            resolvedReferencedSymbol.Kind is SymbolKind.Property or SymbolKind.Event or SymbolKind.Field && targetKind == AspectReferenceTargetKind.Self );
 
         // For Final order on static base class members, redirect to an aspect-managed hiding member
         // in the target type if one exists. Static members have no runtime dispatch, so the type qualifier
@@ -609,7 +610,7 @@ internal sealed class AspectReferenceResolver
             return;
         }
 
-        if ( expression.Parent?.Parent?.Parent?.Parent.IsKind(SyntaxKind.InvocationExpression) == true
+        if ( expression.Parent?.Parent?.Parent?.Parent.IsKind( SyntaxKind.InvocationExpression ) == true
              && expression.Parent?.Parent?.Parent?.Parent is InvocationExpressionSyntax { Expression: { } wrappingExpression }
              && semanticModel.GetSymbolInfo( wrappingExpression ).Symbol?.Kind == SymbolKind.Method
              && semanticModel.GetSymbolInfo( wrappingExpression ).Symbol is IMethodSymbol
@@ -634,7 +635,10 @@ internal sealed class AspectReferenceResolver
             }
         }
 
-        if ( referencedSymbol.Kind == SymbolKind.Method && referencedSymbol is IMethodSymbol { ContainingType.Name: LinkerInjectionHelperProvider.HelperTypeName } helperMethod )
+        if ( referencedSymbol.Kind == SymbolKind.Method && referencedSymbol is IMethodSymbol
+            {
+                ContainingType.Name: LinkerInjectionHelperProvider.HelperTypeName
+            } helperMethod )
         {
             switch ( helperMethod )
             {
@@ -826,26 +830,34 @@ internal sealed class AspectReferenceResolver
         return (referencedSymbol.Kind, expression) switch
         {
             (SymbolKind.Property, _) when expression.Parent?.Kind() is SyntaxKind.SimpleAssignmentExpression or SyntaxKind.AddAssignmentExpression
-                or SyntaxKind.SubtractAssignmentExpression or SyntaxKind.MultiplyAssignmentExpression or SyntaxKind.DivideAssignmentExpression
-                or SyntaxKind.ModuloAssignmentExpression or SyntaxKind.AndAssignmentExpression or SyntaxKind.OrAssignmentExpression
-                or SyntaxKind.ExclusiveOrAssignmentExpression or SyntaxKind.LeftShiftAssignmentExpression or SyntaxKind.RightShiftAssignmentExpression
-                or SyntaxKind.UnsignedRightShiftAssignmentExpression or SyntaxKind.CoalesceAssignmentExpression
-                && expression.Parent is AssignmentExpressionSyntax
+                                              or SyntaxKind.SubtractAssignmentExpression or SyntaxKind.MultiplyAssignmentExpression
+                                              or SyntaxKind.DivideAssignmentExpression
+                                              or SyntaxKind.ModuloAssignmentExpression or SyntaxKind.AndAssignmentExpression
+                                              or SyntaxKind.OrAssignmentExpression
+                                              or SyntaxKind.ExclusiveOrAssignmentExpression or SyntaxKind.LeftShiftAssignmentExpression
+                                              or SyntaxKind.RightShiftAssignmentExpression
+                                              or SyntaxKind.UnsignedRightShiftAssignmentExpression or SyntaxKind.CoalesceAssignmentExpression
+                                          && expression.Parent is AssignmentExpressionSyntax
                 => AspectReferenceTargetKind.PropertySetAccessor,
             (SymbolKind.Property, _) => AspectReferenceTargetKind.PropertyGetAccessor,
             (SymbolKind.Field, _) when expression.Parent?.Kind() is SyntaxKind.SimpleAssignmentExpression or SyntaxKind.AddAssignmentExpression
-                or SyntaxKind.SubtractAssignmentExpression or SyntaxKind.MultiplyAssignmentExpression or SyntaxKind.DivideAssignmentExpression
-                or SyntaxKind.ModuloAssignmentExpression or SyntaxKind.AndAssignmentExpression or SyntaxKind.OrAssignmentExpression
-                or SyntaxKind.ExclusiveOrAssignmentExpression or SyntaxKind.LeftShiftAssignmentExpression or SyntaxKind.RightShiftAssignmentExpression
-                or SyntaxKind.UnsignedRightShiftAssignmentExpression or SyntaxKind.CoalesceAssignmentExpression
-                && expression.Parent is AssignmentExpressionSyntax
+                                           or SyntaxKind.SubtractAssignmentExpression or SyntaxKind.MultiplyAssignmentExpression
+                                           or SyntaxKind.DivideAssignmentExpression
+                                           or SyntaxKind.ModuloAssignmentExpression or SyntaxKind.AndAssignmentExpression or SyntaxKind.OrAssignmentExpression
+                                           or SyntaxKind.ExclusiveOrAssignmentExpression or SyntaxKind.LeftShiftAssignmentExpression
+                                           or SyntaxKind.RightShiftAssignmentExpression
+                                           or SyntaxKind.UnsignedRightShiftAssignmentExpression or SyntaxKind.CoalesceAssignmentExpression
+                                       && expression.Parent is AssignmentExpressionSyntax
                 => AspectReferenceTargetKind.PropertySetAccessor,
             (SymbolKind.Field, _) => AspectReferenceTargetKind.PropertyGetAccessor,
-            (SymbolKind.Event, _) when expression.Parent.IsKind(SyntaxKind.AddAssignmentExpression)
-                && expression.Parent is AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.AddAssignmentExpression }
+            (SymbolKind.Event, _) when expression.Parent.IsKind( SyntaxKind.AddAssignmentExpression )
+                                       && expression.Parent is AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.AddAssignmentExpression }
                 => AspectReferenceTargetKind.EventAddAccessor,
-            (SymbolKind.Event, _) when expression.Parent.IsKind(SyntaxKind.SubtractAssignmentExpression)
-                && expression.Parent is AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.SubtractAssignmentExpression }
+            (SymbolKind.Event, _) when expression.Parent.IsKind( SyntaxKind.SubtractAssignmentExpression )
+                                       && expression.Parent is AssignmentExpressionSyntax
+                                       {
+                                           OperatorToken.RawKind: (int) SyntaxKind.SubtractAssignmentExpression
+                                       }
                 => AspectReferenceTargetKind.EventRemoveAccessor,
             (SymbolKind.Event, _) => AspectReferenceTargetKind.EventRaiseAccessor,
             _ => throw new AssertionFailedException( $"Unexpected referenced symbol: '{referencedSymbol}'" )
@@ -858,7 +870,8 @@ internal sealed class AspectReferenceResolver
         {
             SymbolKind.Field => true,
             SymbolKind.Property when symbol is IPropertySymbol property && property.IsAutoProperty().GetValueOrDefault() => true,
-            SymbolKind.Event when symbol is IEventSymbol @event && (@event.IsExplicitInterfaceEventField() || @event.IsEventField().GetValueOrDefault()) => true,
+            SymbolKind.Event when symbol is IEventSymbol @event && (@event.IsExplicitInterfaceEventField() || @event.IsEventField().GetValueOrDefault()) =>
+                true,
             _ => false
         };
     }
@@ -921,18 +934,22 @@ internal sealed class AspectReferenceResolver
             (SymbolKind.Method, SymbolKind.Property)
                 when referencedSymbol is IMethodSymbol { MethodKind: MethodKind.PropertyGet }
                 => throw new AssertionFailedException( Justifications.CoverageMissing ),
+
             // return propertySymbol.GetMethod.AssertNotNull();
             (SymbolKind.Method, SymbolKind.Property)
                 when referencedSymbol is IMethodSymbol { MethodKind: MethodKind.PropertySet }
                 => throw new AssertionFailedException( Justifications.CoverageMissing ),
+
             // return propertySymbol.SetMethod.AssertNotNull();
             (SymbolKind.Method, SymbolKind.Event)
                 when referencedSymbol is IMethodSymbol { MethodKind: MethodKind.EventAdd }
                 => throw new AssertionFailedException( Justifications.CoverageMissing ),
+
             // return eventSymbol.AddMethod.AssertNotNull();
             (SymbolKind.Method, SymbolKind.Event)
                 when referencedSymbol is IMethodSymbol { MethodKind: MethodKind.EventRemove }
                 => throw new AssertionFailedException( Justifications.CoverageMissing ),
+
             // return eventSymbol.RemoveMethod.AssertNotNull();
             _ => throw new AssertionFailedException( $"Unexpected combination: ('{referencedSymbol}', '{resolvedSymbol}')" )
         };

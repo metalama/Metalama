@@ -8,7 +8,7 @@ using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Advising;
 
-internal class EmptyAdviceResult : AdviceResult
+internal sealed class EmptyAdviceResult : AdviceResult
 {
     public EmptyAdviceResult(
         AdviceKind adviceKind,

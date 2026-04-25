@@ -21,7 +21,7 @@ namespace Metalama.Patterns.Contracts.AspectTests.Fabric_PrimaryConstructor
 
     public sealed class Memento( Action action ) : IDisposable
     {
-        private Action Action { get; init; } = action;
+        private Action Action { get; } = action;
 
         void IDisposable.Dispose()
         {

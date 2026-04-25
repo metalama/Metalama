@@ -280,7 +280,7 @@ namespace Metalama.Framework.Engine.Linking
         private BlockSyntax GetImplicitIndexerGetterBody( IMethodSymbol symbol, SyntaxGenerationContext context )
             => context.SyntaxGenerator.FormattedBlock(
                     ReturnStatement(
-                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                        TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
                         MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 symbol.IsStatic
@@ -391,9 +391,9 @@ namespace Metalama.Framework.Engine.Linking
                         this.FilterAttributesOnSpecialImpl( symbol ),
                         symbol.IsStatic
                             ? TokenList(
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ),
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
-                            : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
+                                TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ),
+                                TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
+                            : TokenList( TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
                         indexerType,
                         null,
                         Token( SyntaxKind.ThisKeyword ),
@@ -428,7 +428,7 @@ namespace Metalama.Framework.Engine.Linking
                                             SyntaxKind.GetAccessorDeclaration,
                                             context.SyntaxGenerator.FormattedBlock(
                                                 ReturnStatement(
-                                                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                                                    TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
                                                     GetInvocationTarget(),
                                                     Token( SyntaxKind.SemicolonToken ) ) ) )
                                         : null,
@@ -452,11 +452,11 @@ namespace Metalama.Framework.Engine.Linking
             {
                 if ( targetSymbol.IsStatic )
                 {
-                    return SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name );
+                    return SafeIdentifierName( targetSymbol.Name );
                 }
                 else
                 {
-                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name ) )
+                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SafeIdentifierName( targetSymbol.Name ) )
                         .WithSimplifierAnnotationIfNecessary( context );
                 }
             }

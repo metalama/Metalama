@@ -113,7 +113,7 @@ internal partial class DeclarationEqualityComparer
                             return true;
                         }
 
-                        return false;
+                        break;
 
                     case TypeKind.TypeParameter:
                         var leftTypeParameter = (ITypeParameter) left;
@@ -126,7 +126,7 @@ internal partial class DeclarationEqualityComparer
                             }
                         }
 
-                        return false;
+                        break;
 
                     case TypeKind.Array:
                         return this.HasImplicitConversionFromArray( (IArrayType) left, right );

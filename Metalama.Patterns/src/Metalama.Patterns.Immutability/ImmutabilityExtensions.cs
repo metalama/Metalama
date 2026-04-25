@@ -78,10 +78,10 @@ public static class ImmutabilityExtensions
         // that could be overwritten, but this does not seem necessary for now.
 
         if ( namedType is
-            {
-                IsReferenceType: false,
-                ContainingNamespace.FullName: "System"
-            }
+             {
+                 IsReferenceType: false,
+                 ContainingNamespace.FullName: "System"
+             }
              && !IsNonImmutableSystemValueType( namedType ) )
         {
             return ImmutabilityKind.Deep;

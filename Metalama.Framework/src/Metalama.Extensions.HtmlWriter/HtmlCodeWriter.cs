@@ -4,10 +4,10 @@
 
 using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Sdk;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
@@ -535,7 +535,7 @@ internal sealed class HtmlCodeWriter : IHtmlCodeWriter
         }
 
         var projectDirectory = Path.GetFullPath( Path.GetDirectoryName( projectPath )! );
-        var outputDirectory = Path.Combine( projectDirectory, "obj", "html", options.TargetFramework ?? "" );
+        var outputDirectory = Path.Combine( projectDirectory, "obj", "html", options.TargetFramework );
 
         foreach ( var document in project.Documents )
         {

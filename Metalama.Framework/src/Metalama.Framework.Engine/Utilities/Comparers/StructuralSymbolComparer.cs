@@ -445,7 +445,10 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
         {
             // Prevent infinite recursion.
             var comparer = parameterTypeX?.ContainingSymbol?.Kind == SymbolKind.Method && parameterTypeX.ContainingSymbol is IMethodSymbol
-                           && parameterTypeY?.ContainingSymbol?.Kind == SymbolKind.Method && parameterTypeY.ContainingSymbol is IMethodSymbol ? NonRecursive : this;
+                                                                                       && parameterTypeY?.ContainingSymbol?.Kind == SymbolKind.Method
+                                                                                       && parameterTypeY.ContainingSymbol is IMethodSymbol
+                ? NonRecursive
+                : this;
 
             return comparer.Compare( parameterTypeX, parameterTypeY );
         }
@@ -597,7 +600,8 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
             case TypeKind.Pointer when typeX is IPointerTypeSymbol xPointerType && typeY is IPointerTypeSymbol yPointerType:
                 return this.CompareTypes( xPointerType.PointedAtType, yPointerType.PointedAtType );
 
-            case TypeKind.FunctionPointer when typeX is IFunctionPointerTypeSymbol xFunctionPointerType && typeY is IFunctionPointerTypeSymbol yFunctionPointerType:
+            case TypeKind.FunctionPointer
+                when typeX is IFunctionPointerTypeSymbol xFunctionPointerType && typeY is IFunctionPointerTypeSymbol yFunctionPointerType:
                 return this.CompareMethods(
                     xFunctionPointerType.Signature,
                     yFunctionPointerType.Signature,
@@ -721,9 +725,6 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
         switch ( symbol.Kind )
         {
-            case var _ when symbol is null:
-                throw new ArgumentNullException( nameof(symbol) );
-
             case SymbolKind.Parameter when symbol is IParameterSymbol parameter:
                 h = HashCode.Combine( h, GetHashCode( symbol.ContainingSymbol, options ), parameter.Ordinal );
 

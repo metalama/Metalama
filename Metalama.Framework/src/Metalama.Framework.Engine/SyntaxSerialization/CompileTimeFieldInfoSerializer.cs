@@ -34,10 +34,9 @@ internal sealed class CompileTimeFieldInfoSerializer : ObjectSerializer<CompileT
         var allBindingFlags = SyntaxUtility.CreateBindingFlags( field, serializationContext );
 
         ExpressionSyntax fieldInfo = InvocationExpression(
-                MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, typeCreation, IdentifierName( "GetField" ) ),
-                ArgumentList(
-                    SeparatedList(
-                        [Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( field.Name ) ) ), Argument( allBindingFlags )] ) ) );
+            MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, typeCreation, IdentifierName( "GetField" ) ),
+            ArgumentList(
+                SeparatedList( [Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( field.Name ) ) ), Argument( allBindingFlags )] ) ) );
 
         fieldInfo = SyntaxUtility.CoalesceWithMissingMemberException(
             fieldInfo,

@@ -187,7 +187,7 @@ public sealed class InvalidateCacheAttribute : MethodAspect
 
         foreach ( var method in methods.OrderBy( x => x.ToString() ) )
         {
-            b.Add( method.ToMethodInfo()! );
+            b.Add( method.ToMethodInfo() );
         }
 
         field.Value = b.ToValue();

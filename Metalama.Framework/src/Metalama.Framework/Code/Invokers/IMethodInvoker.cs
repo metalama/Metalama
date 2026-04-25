@@ -18,9 +18,9 @@ namespace Metalama.Framework.Code.Invokers
     /// that represent method calls. These expressions can then be used in templates and will be expanded into actual C# code.
     /// </para>
     /// <para>
-    /// The <see cref="Invoke(dynamic[])"/> method returns a <c>dynamic</c> value that can be used directly in template code, while
+    /// The <see cref="Invoke(object[])"/> method returns a <c>dynamic</c> value that can be used directly in template code, while
     /// <see cref="CreateInvokeExpression(IEnumerable{IExpression})"/> returns an <see cref="IExpression"/> for use in compile-time APIs.
-    /// Use <see cref="WithObject(dynamic?)"/> to specify the target instance and <see cref="WithOptions"/> to control nullability behavior and
+    /// Use <see cref="WithObject(object?)"/> to specify the target instance and <see cref="WithOptions"/> to control nullability behavior and
     /// which implementation layer (base, current, or final) to invoke.
     /// </para>
     /// <para>
@@ -140,7 +140,7 @@ namespace Metalama.Framework.Code.Invokers
         /// </para>
         /// <para>
         /// By default, the delegate references the method on the current object (<c>this</c>), unless the method is static.
-        /// Use <see cref="WithObject(dynamic?)"/> to specify a different target instance before calling this method.
+        /// Use <see cref="WithObject(object?)"/> to specify a different target instance before calling this method.
         /// </para>
         /// </remarks>
         IExpression CreateDelegateExpression( INamedType? delegateType = null );

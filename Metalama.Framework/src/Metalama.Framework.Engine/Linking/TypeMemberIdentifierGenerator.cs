@@ -10,7 +10,7 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Linking;
 
-internal class TypeMemberIdentifierGenerator
+internal sealed class TypeMemberIdentifierGenerator
 {
     private ConcurrentDictionary<INamedTypeSymbol, HashSet<string>> UsedNames { get; }
 

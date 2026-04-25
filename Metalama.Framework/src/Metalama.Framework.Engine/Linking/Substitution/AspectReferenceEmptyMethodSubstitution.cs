@@ -157,8 +157,7 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
                         SyntaxKind.SimpleMemberAccessExpression,
                         taskTypeSyntax,
                         GenericName( SyntaxFactoryEx.WellKnownIdentifier( "FromResult" ) )
-                            .WithTypeArgumentList(
-                                TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( asyncResultType ) ) ) ) ),
+                            .WithTypeArgumentList( TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( asyncResultType ) ) ) ) ),
                     ArgumentList( SingletonSeparatedList( Argument( DefaultExpression( syntaxGenerator.TypeSyntax( asyncResultType ) ) ) ) ) );
             }
         }
@@ -214,8 +213,7 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
                 SyntaxKind.SimpleMemberAccessExpression,
                 SyntaxFactoryEx.CreateFullyQualifiedName( "System", "Linq", "Enumerable" ),
                 GenericName( SyntaxFactoryEx.WellKnownIdentifier( "Empty" ) )
-                    .WithTypeArgumentList(
-                        TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( typeArg ) ) ) ) ) );
+                    .WithTypeArgumentList( TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( typeArg ) ) ) ) ) );
     }
 
     /// <summary>
@@ -234,8 +232,7 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
         var qualifiedName = SyntaxFactoryEx.CreateFullyQualifiedName( "Metalama", "Framework", "RunTime" );
 
         var genericTypeName = GenericName( SyntaxFactoryEx.WellKnownIdentifier( "AsyncEnumerableArray" ) )
-            .WithTypeArgumentList(
-                TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( typeArg ) ) ) );
+            .WithTypeArgumentList( TypeArgumentList( SingletonSeparatedList( syntaxGenerator.TypeSyntax( typeArg ) ) ) );
 
         var fullType = MemberAccessExpression(
             SyntaxKind.SimpleMemberAccessExpression,
@@ -283,5 +280,4 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
 
         return asyncEnumerableType.Construct( typeArg );
     }
-
 }

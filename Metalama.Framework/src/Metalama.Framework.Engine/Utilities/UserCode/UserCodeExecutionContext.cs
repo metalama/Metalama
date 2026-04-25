@@ -34,6 +34,7 @@ namespace Metalama.Framework.Engine.Utilities.UserCode;
 /// "cleaner" way to get the context. Specifically, this is used to in the transformed expression of <c>typeof</c>.
 /// The current class is a service that must be registered and then disposed.
 /// </summary>
+[PublicAPI]
 public class UserCodeExecutionContext : IExecutionContextInternal
 {
     private readonly IDiagnosticAdder? _diagnosticAdder;
@@ -97,7 +98,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
             switch ( type )
             {
                 case INamedType namedType:
-                    return namedType.ContainingNamespace?.FullName;
+                    return namedType.ContainingNamespace.FullName;
 
                 case IArrayType arrayType:
                     type = arrayType.ElementType;

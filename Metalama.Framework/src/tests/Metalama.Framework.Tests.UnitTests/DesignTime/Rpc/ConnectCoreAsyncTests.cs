@@ -84,6 +84,7 @@ public sealed partial class ConnectCoreAsyncTests : RpcUnitTestClass
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         // The awaiter should now be signaled with the client.
+        // ReSharper disable once RedundantWithCancellation
         var client = await waitTask.WithCancellation( testContext.CancellationToken );
         Assert.NotNull( client );
 

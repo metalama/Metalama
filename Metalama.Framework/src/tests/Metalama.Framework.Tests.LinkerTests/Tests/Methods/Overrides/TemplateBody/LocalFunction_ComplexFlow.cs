@@ -38,8 +38,6 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
                 if ( x > 0 )
                 {
                     return Link( This.Method, Inline )( x );
-
-                    ;
                 }
 
                 Console.WriteLine( "Override1 Local Function End" );

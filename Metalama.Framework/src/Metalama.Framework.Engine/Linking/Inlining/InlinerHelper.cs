@@ -99,7 +99,7 @@ internal static class InlinerHelper
     public static SyntaxNode SkipParenthesizedExpressionAncestors( SyntaxNode node )
     {
         while ( node.Parent is ParenthesizedExpressionSyntax
-                or PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.SuppressNullableWarningExpression } )
+               or PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.SuppressNullableWarningExpression } )
         {
             node = node.Parent;
         }

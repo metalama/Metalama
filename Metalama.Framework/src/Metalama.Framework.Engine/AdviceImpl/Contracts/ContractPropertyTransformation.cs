@@ -53,7 +53,12 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
         {
             Invariant.Assert( targetProperty.SetMethod is not null );
 
-            inputResult = this.TryExecuteTemplate( context, SyntaxFactoryEx.SafeIdentifierName( "value" ), targetProperty.Type, targetProperty.SetMethod, out inputContractBlock );
+            inputResult = this.TryExecuteTemplate(
+                context,
+                SyntaxFactoryEx.SafeIdentifierName( "value" ),
+                targetProperty.Type,
+                targetProperty.SetMethod,
+                out inputContractBlock );
         }
         else
         {

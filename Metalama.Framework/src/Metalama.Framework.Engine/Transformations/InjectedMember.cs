@@ -52,8 +52,7 @@ internal sealed class InjectedMember
     /// </summary>
     public IFullRef<IDeclaration> Declaration { get; }
 
-    public SyntaxTree GetTargetSyntaxTree()
-        => this.Transformation?.TransformedSyntaxTree ?? this.Declaration.PrimarySyntaxTree.AssertNotNull();
+    public SyntaxTree GetTargetSyntaxTree() => this.Transformation?.TransformedSyntaxTree ?? this.Declaration.PrimarySyntaxTree.AssertNotNull();
 
     public InjectedMember(
         IInjectMemberTransformation injectMemberTransformation,

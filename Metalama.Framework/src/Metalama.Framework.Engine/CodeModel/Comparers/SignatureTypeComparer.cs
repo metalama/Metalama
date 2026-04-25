@@ -40,17 +40,20 @@ namespace Metalama.Framework.Engine.CodeModel.Comparers
                 case (SymbolKind.DynamicType, SymbolKind.DynamicType):
                     return true;
 
-                case (SymbolKind.TypeParameter, SymbolKind.TypeParameter) when left is ITypeParameterSymbol leftTypeParameter && right is ITypeParameterSymbol rightTypeParameter:
+                case (SymbolKind.TypeParameter, SymbolKind.TypeParameter)
+                    when left is ITypeParameterSymbol leftTypeParameter && right is ITypeParameterSymbol rightTypeParameter:
                     // TODO: Interpret compile-time parameters for generic interfaces.
                     return
                         leftTypeParameter.TypeParameterKind == rightTypeParameter.TypeParameterKind
                         && leftTypeParameter.Ordinal == rightTypeParameter.Ordinal;
 
-                case (SymbolKind.PointerType, SymbolKind.PointerType) when left is IPointerTypeSymbol leftPointerType && right is IPointerTypeSymbol rightPointerType:
+                case (SymbolKind.PointerType, SymbolKind.PointerType)
+                    when left is IPointerTypeSymbol leftPointerType && right is IPointerTypeSymbol rightPointerType:
                     // TODO: Constraints.
                     return this.Equals( leftPointerType.PointedAtType, rightPointerType.PointedAtType );
 
-                case (SymbolKind.FunctionPointerType, SymbolKind.FunctionPointerType) when left is IFunctionPointerTypeSymbol leftFunctionPointerType && right is IFunctionPointerTypeSymbol rightFunctionPointerType:
+                case (SymbolKind.FunctionPointerType, SymbolKind.FunctionPointerType) when left is IFunctionPointerTypeSymbol leftFunctionPointerType
+                                                                                           && right is IFunctionPointerTypeSymbol rightFunctionPointerType:
                     return
                         this.Equals( leftFunctionPointerType.Signature, rightFunctionPointerType.Signature );
 

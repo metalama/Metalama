@@ -158,8 +158,8 @@ public class FormattersTests : FormattersTestsBase
 #pragma warning disable IDE0044
 #pragma warning disable IDE0052
 #pragma warning disable IDE1006
-        private static int staticField;
-        private int instanceField;
+        private static readonly int staticField;
+        private readonly int instanceField;
 #pragma warning restore IDE1006
 #pragma warning restore IDE0052
 #pragma warning restore IDE0044

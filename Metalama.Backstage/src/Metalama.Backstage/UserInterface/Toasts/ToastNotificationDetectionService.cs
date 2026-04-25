@@ -34,7 +34,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         this._toastNotificationService = serviceProvider.GetRequiredBackstageService<IToastNotificationService>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
         this._webLinks = serviceProvider.GetRequiredBackstageService<WebLinks>();
-        this._logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
+        this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(ToastNotificationDetectionService) );
     }
 
     private string FormatExpiration( DateTime expiration )
@@ -147,8 +147,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         // Suggest to install Visual Studio Tools for Metalama.
         if ( !notificationReported && this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
         {
-            this._toastNotificationService.Show(
-                new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
+            this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
         }
     }
 

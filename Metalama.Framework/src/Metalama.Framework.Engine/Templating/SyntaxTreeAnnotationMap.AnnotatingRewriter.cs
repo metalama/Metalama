@@ -185,9 +185,12 @@ namespace Metalama.Framework.Engine.Templating
                 => symbol.Kind switch
                 {
                     SymbolKind.ErrorType when symbol is IErrorTypeSymbol => true,
-                    SymbolKind.NamedType when symbol is INamedTypeSymbol { IsUnboundGenericType: false } namedType => namedType.TypeArguments.Any( this.IsPartiallyError ),
-                    SymbolKind.Method when symbol is IMethodSymbol method => this.IsPartiallyError( method.ReturnType ) || method.Parameters.Any( p => this.IsPartiallyError( p.Type ) ),
-                    SymbolKind.Property when symbol is IPropertySymbol property => this.IsPartiallyError( property.Type ) || property.Parameters.Any( p => this.IsPartiallyError( p.Type ) ),
+                    SymbolKind.NamedType when symbol is INamedTypeSymbol { IsUnboundGenericType: false } namedType => namedType.TypeArguments.Any(
+                        this.IsPartiallyError ),
+                    SymbolKind.Method when symbol is IMethodSymbol method => this.IsPartiallyError( method.ReturnType )
+                                                                             || method.Parameters.Any( p => this.IsPartiallyError( p.Type ) ),
+                    SymbolKind.Property when symbol is IPropertySymbol property => this.IsPartiallyError( property.Type )
+                                                                                   || property.Parameters.Any( p => this.IsPartiallyError( p.Type ) ),
                     SymbolKind.Event when symbol is IEventSymbol @event => this.IsPartiallyError( @event.Type ),
                     SymbolKind.Field when symbol is IFieldSymbol field => this.IsPartiallyError( field.Type ),
                     _ => false

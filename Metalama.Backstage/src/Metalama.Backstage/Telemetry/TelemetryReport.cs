@@ -53,9 +53,10 @@ internal abstract class TelemetryReport
 
     public Version? AssemblyVersion => this.ReportedComponent.AssemblyVersion;
 
-    public string ApplicationName => this.ReportedComponent.Name;
+    protected string ApplicationName => this.ReportedComponent.Name;
 
 #pragma warning disable CA1822
+
     public long UserHash => HashUtilities.ComputeInt64Hmac( Environment.UserName, this._telemetryConfigurationService.Salt );
 #pragma warning restore CA1822
 
