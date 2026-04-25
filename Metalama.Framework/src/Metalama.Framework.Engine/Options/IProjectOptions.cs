@@ -251,8 +251,8 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     bool VerifyOutputCode { get; }
 
     /// <summary>
-    /// Gets the kind of compilation Metalama is participating in. Defaults to <see cref="Options.CompilationScenario.Default"/>.
-    /// Specific values trigger tailored pipelines (e.g. <see cref="Options.CompilationScenario.WpfPrecompile"/> for the
+    /// Gets the kind of compilation Metalama is participating in. Defaults to <see cref="CompilationScenario.Default"/>.
+    /// Specific values trigger tailored pipelines (e.g. <see cref="CompilationScenario.WpfPrecompile"/> for the
     /// WPF MarkupCompilePass1 temporary assembly).
     /// </summary>
     CompilationScenario CompilationScenario { get; }
