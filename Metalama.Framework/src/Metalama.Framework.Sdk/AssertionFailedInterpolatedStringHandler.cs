@@ -219,7 +219,6 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
 
                     break;
 
-#if ROSLYN_4_8_0_OR_GREATER
                 case SyntaxKind.SingleLineRawStringLiteralToken or SyntaxKind.MultiLineRawStringLiteralToken:
                     builder.Append( "<raw_string_literal>" );
 
@@ -234,7 +233,6 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
                     builder.Append( "<utf8_raw_string_literal>" );
 
                     break;
-#endif
 
                 case SyntaxKind.XmlTextLiteralToken or SyntaxKind.XmlTextLiteralNewLineToken or SyntaxKind.XmlEntityLiteralToken:
                     builder.Append( "<xml_literal>" );
@@ -320,7 +318,8 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
                     SyntaxKind.QualifiedName when node is QualifiedNameSyntax => false,
                     SyntaxKind.AliasQualifiedName when node is AliasQualifiedNameSyntax => false,
                     SyntaxKind.AccessorList when node is AccessorListSyntax => false,
-                    SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration when node is AccessorDeclarationSyntax => false,
+                    SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                        or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration when node is AccessorDeclarationSyntax => false,
                     SyntaxKind.Block when node is BlockSyntax { Parent: ElseClauseSyntax } => false,
                     SyntaxKind.IdentifierName when node is IdentifierNameSyntax { Identifier.ValueText: "var" } => false,
                     _ => true
@@ -374,7 +373,8 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
                 {
                     switch ( node.Kind() )
                     {
-                        case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when node is TypeDeclarationSyntax typeDeclaration:
+                        case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
+                            or SyntaxKind.RecordStructDeclaration when node is TypeDeclarationSyntax typeDeclaration:
                             this.EllipsisSpans.Add( typeDeclaration.Members.Span );
 
                             break;
@@ -410,7 +410,6 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
             }
         }
 
-#if ROSLYN_4_8_0_OR_GREATER
         public override void VisitCollectionExpression( CollectionExpressionSyntax node )
         {
             if ( this._currentMaskingDepth >= this._maskingDepthLimit )
@@ -428,7 +427,6 @@ internal readonly ref struct AssertionFailedInterpolatedStringHandler
                 base.VisitCore( element );
             }
         }
-#endif
 
         public override void VisitInitializerExpression( InitializerExpressionSyntax node )
         {

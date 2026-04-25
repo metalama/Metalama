@@ -7,11 +7,12 @@
         <label asp-for="LicenseKey ">Please paste the license key below:</label>
     </p>
     <p>
-        <textarea asp-for="LicenseKey"></textarea>
+        <textarea asp-for="LicenseKey "></textarea>
     </p>
 
     <div class="navigation-buttons">
         <div class="back-button">
+            @* ReSharper disable once Html.PathError *@
             <a href="/ChooseLicenseKind">&larr; Back</a>
         </div>
         <div class="continue-button">

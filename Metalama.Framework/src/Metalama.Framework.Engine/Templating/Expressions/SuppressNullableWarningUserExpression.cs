@@ -24,7 +24,11 @@ internal sealed class SuppressNullableWarningUserExpression : UserExpression
     {
         var underlyingSyntax = this._underlying.ToTypedExpressionSyntax( syntaxSerializationContext, targetType );
 
-        return syntaxSerializationContext.SyntaxGenerator.SuppressNullableWarningExpression( underlyingSyntax.Syntax, this._underlying.Type, targetType, this._force );
+        return syntaxSerializationContext.SyntaxGenerator.SuppressNullableWarningExpression(
+            underlyingSyntax.Syntax,
+            this._underlying.Type,
+            targetType,
+            this._force );
     }
 
     // We don't change the type to non-nullable because it would change the behavior of our null-conditional invokers, which rely

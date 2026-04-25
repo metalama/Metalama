@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
-public class TupleTypeTests : UnitTestClass
+public sealed class TupleTypeTests : UnitTestClass
 {
     [Fact]
     public void SourceTuple_2_Items()

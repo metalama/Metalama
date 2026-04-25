@@ -1,5 +1,5 @@
 <Project>
-    <Import Project="../Directory.Packages.props"/>
+    <Import Project="../Directory.Packages.props" />
 
     <ItemGroup>
         <!-- Patterns are not loaded in VS, so we can apply security updates. -->

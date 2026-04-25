@@ -64,7 +64,7 @@ public sealed partial class CodeFormatter
                                         var argumentIndex = invocation.ArgumentList.Arguments.IndexOf( argument );
 
                                         if ( symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol invokedMethod
-                                             && invokedMethod.Parameters[argumentIndex].Type.TypeKind == TypeKind.Delegate )
+                                                                               && invokedMethod.Parameters[argumentIndex].Type.TypeKind == TypeKind.Delegate )
                                         {
                                             return this.Visit( anonymousFunctionExpression )!;
                                         }
@@ -76,14 +76,17 @@ public sealed partial class CodeFormatter
 
                                     break;
 
-                                case var parent when parent.IsKind( SyntaxKind.ObjectCreationExpression ) && parent is ObjectCreationExpressionSyntax { ArgumentList: not null } objectCreation:
+                                case var parent when parent.IsKind( SyntaxKind.ObjectCreationExpression ) && parent is ObjectCreationExpressionSyntax
+                                {
+                                    ArgumentList: not null
+                                } objectCreation:
                                     if ( this._semanticModel != null )
                                     {
                                         var symbol = this._semanticModel.GetSymbolInfo( objectCreation ).Symbol;
                                         var argumentIndex = objectCreation.ArgumentList.Arguments.IndexOf( argument );
 
                                         if ( symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol invokedMethod
-                                             && invokedMethod.Parameters[argumentIndex].Type.TypeKind == TypeKind.Delegate )
+                                                                               && invokedMethod.Parameters[argumentIndex].Type.TypeKind == TypeKind.Delegate )
                                         {
                                             return this.Visit( anonymousFunctionExpression )!;
                                         }
@@ -106,10 +109,11 @@ public sealed partial class CodeFormatter
 
                             break;
 
-                        case SyntaxKind.EqualsValueClause when anonymousFunctionExpression.IsKind( SyntaxKind.ParenthesizedLambdaExpression ) && anonymousFunctionExpression is ParenthesizedLambdaExpressionSyntax
-                        {
-                            ParameterList.Parameters.Count: 0
-                        }:
+                        case SyntaxKind.EqualsValueClause when anonymousFunctionExpression.IsKind( SyntaxKind.ParenthesizedLambdaExpression )
+                                                               && anonymousFunctionExpression is ParenthesizedLambdaExpressionSyntax
+                                                               {
+                                                                   ParameterList.Parameters.Count: 0
+                                                               }:
                             return anonymousFunctionExpression;
 
                         case SyntaxKind.SimpleAssignmentExpression:
@@ -193,9 +197,8 @@ public sealed partial class CodeFormatter
                         var targetType = this._semanticModel.GetTypeInfo( node.Type ).Type;
                         var expressionType = this._semanticModel.GetTypeInfo( node.Expression ).Type;
 
-                        if ( targetType != null && expressionType != null
-                                               && expressionType.IsReferenceType
-                                               && targetType.Equals( expressionType, SymbolEqualityComparer.Default ) )
+                        if ( targetType != null && expressionType is { IsReferenceType: true }
+                                                && targetType.Equals( expressionType, SymbolEqualityComparer.Default ) )
                         {
                             return this.Visit( node.Expression );
                         }

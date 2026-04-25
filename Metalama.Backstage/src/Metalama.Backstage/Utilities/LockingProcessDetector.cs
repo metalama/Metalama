@@ -10,6 +10,7 @@
 #pragma warning disable IDE1006 // Inconsistent naming
 #pragma warning disable SA1310
 
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,6 +22,7 @@ using FILETIME = System.Runtime.InteropServices.ComTypes.FILETIME;
 
 namespace Metalama.Backstage.Utilities;
 
+[PublicAPI]
 public sealed class LockingProcessDetector : ILockingProcessDetector
 {
     public static bool IsSupported => RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) && Environment.OSVersion.Version.Major >= 6;

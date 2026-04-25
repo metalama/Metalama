@@ -14,6 +14,7 @@ using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Linq;
+using MethodKind = Metalama.Framework.Code.MethodKind;
 using SpecialType = Microsoft.CodeAnalysis.SpecialType;
 
 namespace Metalama.Framework.Engine.CodeModel.Factories;
@@ -111,10 +112,10 @@ public partial class DeclarationFactory
                 var parent = (IHasAccessors) args.Builder.ContainingDeclaration.GetTarget( args.Compilation, args.GenericContext );
 
                 return parent.GetAccessor( args.Builder.MethodKind )
-                    ?? (args.Builder.MethodKind == Code.MethodKind.EventRaise
-                        ? ((IEventImpl) parent).GetRaiseMethodForAdvice()
-                        : throw new AssertionFailedException(
-                            $"The reference to IMethod must not be null: GetAccessor({args.Builder.MethodKind}) returned null for {parent}." ));
+                       ?? (args.Builder.MethodKind == MethodKind.EventRaise
+                           ? ((IEventImpl) parent).GetRaiseMethodForAdvice()
+                           : throw new AssertionFailedException(
+                               $"The reference to IMethod must not be null: GetAccessor({args.Builder.MethodKind}) returned null for {parent}." ));
             } );
 
     internal IConstructor GetConstructor(
@@ -219,8 +220,10 @@ public partial class DeclarationFactory
             {
                 ContainingDeclaration.DeclarationKind: DeclarationKind.Property or DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Indexer
             } accessorBuilder => this.GetAccessor( accessorBuilder, genericContext ),
-            DeclarationKind.Field when builder is FieldBuilderData fieldBuilder && (interfaceType == null || interfaceType != typeof(IProperty)) => this.GetField( fieldBuilder, genericContext ),
-            DeclarationKind.Field when builder is FieldBuilderData fieldBuilder && interfaceType == typeof(IProperty) => fieldBuilder.OverridingProperty.AssertNotNull()
+            DeclarationKind.Field when builder is FieldBuilderData fieldBuilder && (interfaceType == null || interfaceType != typeof(IProperty)) =>
+                this.GetField( fieldBuilder, genericContext ),
+            DeclarationKind.Field when builder is FieldBuilderData fieldBuilder && interfaceType == typeof(IProperty) => fieldBuilder.OverridingProperty
+                .AssertNotNull()
                 .GetTarget( this._compilationModel, genericContext ),
             DeclarationKind.Property when builder is PropertyBuilderData propertyBuilder && (interfaceType == null || interfaceType != typeof(IField)) =>
                 this.GetProperty( propertyBuilder, genericContext ),
@@ -232,7 +235,9 @@ public partial class DeclarationFactory
             DeclarationKind.Event when builder is EventBuilderData eventBuilder => this.GetEvent( eventBuilder, genericContext ),
             DeclarationKind.Parameter when builder is ParameterBuilderData parameterBuilder => this.GetParameter( parameterBuilder, genericContext ),
             DeclarationKind.Attribute when builder is AttributeBuilderData attributeBuilder => this.GetAttribute( attributeBuilder, genericContext ),
-            DeclarationKind.TypeParameter when builder is TypeParameterBuilderData genericParameterBuilder => this.GetTypeParameter( genericParameterBuilder, genericContext ),
+            DeclarationKind.TypeParameter when builder is TypeParameterBuilderData genericParameterBuilder => this.GetTypeParameter(
+                genericParameterBuilder,
+                genericContext ),
             DeclarationKind.Constructor when builder is ConstructorBuilderData constructorBuilder => this.GetConstructor( constructorBuilder, genericContext ),
             DeclarationKind.NamedType when builder is NamedTypeBuilderData namedTypeBuilder => this.GetNamedType( namedTypeBuilder, genericContext ),
             DeclarationKind.Namespace when builder is NamespaceBuilderData namespaceBuilder => this.GetNamespace( namespaceBuilder, genericContext ),

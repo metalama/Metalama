@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using System;
@@ -20,6 +21,7 @@ namespace Metalama.Backstage.Testing
 {
     // Resharper disable UnusedMember.Global
 
+    [PublicAPI]
     public partial class TestFileSystem : Infrastructure_IFileSystem
     {
         private enum ExecutionKind
@@ -42,7 +44,10 @@ namespace Metalama.Backstage.Testing
         private readonly IDateTimeProvider _time;
         private readonly DirectoryWrapper _directory;
         private readonly FileWrapper _file;
-        private readonly ConcurrentDictionary<string, ConcurrentDictionary<WatcherHandle, Action<FileSystemEventArgs>>> _changeWatchers = new( StringComparer.OrdinalIgnoreCase );
+
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<WatcherHandle, Action<FileSystemEventArgs>>> _changeWatchers =
+            new( StringComparer.OrdinalIgnoreCase );
+
         private readonly DateTime _initializationTime;
 
         public MockFileSystem Mock { get; private set; } = new();
@@ -355,14 +360,17 @@ namespace Metalama.Backstage.Testing
             // Path.GetFullPath normalizes separators and removes trailing slashes.
             var normalizedDirectory = Path.GetFullPath( directory );
 
-            var subDictionary = this._changeWatchers.GetOrAdd( normalizedDirectory, _ => new ConcurrentDictionary<WatcherHandle, Action<FileSystemEventArgs>>() );
+            var subDictionary = this._changeWatchers.GetOrAdd(
+                normalizedDirectory,
+                _ => new ConcurrentDictionary<WatcherHandle, Action<FileSystemEventArgs>>() );
+
             var handle = new WatcherHandle( this, normalizedDirectory, filter );
             subDictionary.TryAdd( handle, callback );
 
             return handle;
         }
 
-        private class WatcherHandle : IDisposable
+        private sealed class WatcherHandle : IDisposable
         {
             private readonly TestFileSystem _fileSystem;
             private readonly string _directory;

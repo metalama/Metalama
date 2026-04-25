@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
-public class ReflectionHelperTests
+public sealed class ReflectionHelperTests
 {
     [Fact]
     public void AssemblyNameToAssemblyIdentity()

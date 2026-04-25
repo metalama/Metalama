@@ -158,6 +158,6 @@ internal abstract class DesignTimeServiceProviderFactory
                                      ?? throw new InvalidOperationException( "DesignTimeExceptionHandler is required." );
         }
 
-        public void OnException( Exception e, ILogger logger, bool isDisposing ) => this._exceptionHandler.ReportException( e );
+        public void OnException( Exception e, ILogger logger, bool _ ) => this._exceptionHandler.ReportException( e );
     }
 }

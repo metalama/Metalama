@@ -20,6 +20,7 @@ namespace Metalama.Framework.Engine.SyntaxGeneration;
 /// <summary>
 /// Helper methods that would ideally be in the <see cref="SyntaxFactory"/> class.
 /// </summary>
+[PublicAPI]
 public static partial class SyntaxFactoryEx
 {
     private static readonly ConcurrentDictionary<SyntaxKind, SyntaxToken> _tokensWithTrailingSpace = new();
@@ -35,6 +36,7 @@ public static partial class SyntaxFactoryEx
 
     internal static SyntaxTriviaList ElasticLineFeedTriviaList { get; } = new( SyntaxFactory.ElasticLineFeed );
 
+    [PublicAPI]
     public static SyntaxToken TokenWithTrailingSpace( SyntaxKind kind )
         => _tokensWithTrailingSpace.GetOrAdd( kind, static k => SyntaxFactory.Token( default, k, ElasticSpaceTriviaList ) );
 
@@ -55,6 +57,7 @@ public static partial class SyntaxFactoryEx
 #pragma warning disable LAMA0850 // Intentional use of SyntaxFactory.Identifier/IdentifierName for special tokens
     internal static IdentifierNameSyntax DiscardIdentifierName() => SyntaxFactory.IdentifierName( DiscardIdentifier() );
 
+    [PublicAPI]
     public static SyntaxToken DiscardIdentifier()
     {
         return SyntaxFactory.Identifier(
@@ -159,8 +162,7 @@ public static partial class SyntaxFactoryEx
     /// </summary>
     /// <param name="name">The identifier name.</param>
 #pragma warning disable LAMA0850 // False positive: passing SyntaxToken from SafeIdentifier, not a string
-    internal static IdentifierNameSyntax SafeIdentifierName( string name )
-        => SyntaxFactory.IdentifierName( SafeIdentifier( name ) );
+    internal static IdentifierNameSyntax SafeIdentifierName( string name ) => SyntaxFactory.IdentifierName( SafeIdentifier( name ) );
 #pragma warning restore LAMA0850
 
     /// <summary>
@@ -169,8 +171,7 @@ public static partial class SyntaxFactoryEx
     /// </summary>
     /// <param name="name">The well-known identifier name.</param>
 #pragma warning disable LAMA0850 // False positive: passing SyntaxToken from WellKnownIdentifier, not a string
-    internal static IdentifierNameSyntax WellKnownIdentifierName( string name )
-        => SyntaxFactory.IdentifierName( WellKnownIdentifier( name ) );
+    internal static IdentifierNameSyntax WellKnownIdentifierName( string name ) => SyntaxFactory.IdentifierName( WellKnownIdentifier( name ) );
 #pragma warning restore LAMA0850
 
     /// <summary>
@@ -190,16 +191,14 @@ public static partial class SyntaxFactoryEx
     /// </summary>
     /// <param name="token">The well-known identifier token.</param>
 #pragma warning disable LAMA0850 // Intentional use for well-known tokens
-    internal static IdentifierNameSyntax WellKnownIdentifierName( SyntaxToken token )
-        => SyntaxFactory.IdentifierName( token );
+    internal static IdentifierNameSyntax WellKnownIdentifierName( SyntaxToken token ) => SyntaxFactory.IdentifierName( token );
 #pragma warning restore LAMA0850
 
     /// <summary>
     /// Creates a <c>global::Namespace.Type</c> qualified name expression from a fully-qualified
     /// type name string with parts separated by dots.
     /// </summary>
-    internal static ExpressionSyntax CreateFullyQualifiedName( string fullName )
-        => CreateFullyQualifiedName( fullName.Split( '.' ) );
+    internal static ExpressionSyntax CreateFullyQualifiedName( string fullName ) => CreateFullyQualifiedName( fullName.Split( '.' ) );
 
     /// <summary>
     /// Creates a <c>global::Namespace.Type</c> qualified name expression from a sequence of

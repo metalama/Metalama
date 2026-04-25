@@ -325,7 +325,8 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         {
             foreach ( var member in injectedMembers )
             {
-                if ( member.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                if ( member.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+                         or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
                      && member is TypeDeclarationSyntax typeDeclaration
                      && !typeDeclaration.Modifiers.Any( SyntaxKind.PartialKeyword ) )
                 {
@@ -355,9 +356,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             // Go through all types that will get generated constructors and index existing constructors.
             foreach ( var constructor in initialType.Constructors )
             {
-                existingSignatures.Add(
-                    constructor.Parameters.SelectAsArray(
-                        p => (p.Type, p.RefKind) ) );
+                existingSignatures.Add( constructor.Parameters.SelectAsArray( p => (p.Type, p.RefKind) ) );
             }
 
             // Additionally, add all introduced constructors to the list.
@@ -371,8 +370,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                 existingSignatures.Add(
                     introducedConstructor.Parameters
-                        .SelectAsArray(
-                            p => (p.Type, p.RefKind) ) );
+                        .SelectAsArray( p => (p.Type, p.RefKind) ) );
             }
 
             foreach ( var constructor in type.Constructors )
@@ -394,8 +392,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var finalParameters = finalConstructor.Parameters.ToImmutableArray();
                 var initialParameters = initialConstructor.Parameters.ToImmutableArray();
 
-                var finalSignature = finalParameters.SelectAsArray(
-                    p => (p.Type, p.RefKind) );
+                var finalSignature = finalParameters.SelectAsArray( p => (p.Type, p.RefKind) );
 
                 if ( !existingSignatures.Add( finalSignature ) )
                 {
@@ -434,9 +431,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     var nonOptionalParameters = initialParameters.Where( p => p.DefaultValue == null ).ToArray();
                     var optionalParameters = initialParameters.Where( p => p.DefaultValue != null ).ToArray();
 
-                    if ( existingSignatures.Add(
-                            nonOptionalParameters.SelectAsArray(
-                                p => (p.Type, p.RefKind) ) ) )
+                    if ( existingSignatures.Add( nonOptionalParameters.SelectAsArray( p => (p.Type, p.RefKind) ) ) )
                     {
                         constructors.Add(
                             ConstructorDeclaration(

@@ -25,6 +25,8 @@ namespace Metalama.Framework.Engine.CompileTime
         public CompileTimeDomain CreateDomain()
         {
             var domain = new CompileTimeDomain( this._serviceProvider );
+
+            // ReSharper disable once InconsistentlySynchronizedField
             this._domains.TryAdd( domain.Guid, new WeakReference<CompileTimeDomain>( domain ) );
 
             return domain;

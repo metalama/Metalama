@@ -252,7 +252,8 @@ namespace Metalama.Framework.Engine.Templating
 
                 this._observer?.OnSemanticModelUsed();
                 var symbol = this._semanticModel.GetSymbolInfo( node ).Symbol;
-                var attributeSymbol = (symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol method) ? method.ContainingType : null;
+
+                var attributeSymbol = symbol?.Kind == SymbolKind.Method && symbol is IMethodSymbol method ? method.ContainingType : null;
                 var iAspectSymbol = this._compilationContext.ReflectionMapper.GetTypeSymbol( typeof(IAspect) );
 
                 var compilation = this._compilationContext.SourceCompilation;

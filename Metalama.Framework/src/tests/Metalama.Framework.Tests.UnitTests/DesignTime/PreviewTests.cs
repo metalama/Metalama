@@ -422,10 +422,7 @@ class MyAspect : TypeAspect
     [Fact]
     public async Task WhenFrameworkNotEnabled_ReturnsSpecificError()
     {
-        var code = new Dictionary<string, string>()
-        {
-            ["target.cs"] = "class C {}"
-        };
+        var code = new Dictionary<string, string>() { ["target.cs"] = "class C {}" };
 
         using var testContext = this.CreateTestContext();
 
@@ -476,8 +473,7 @@ class MyAspect : TypeAspect
             this._projectOptions = projectOptions;
         }
 
-        public IProjectOptions GetProjectOptions( AnalyzerConfigOptions options, TransformerOptions? transformerOptions = null )
-            => this._projectOptions;
+        public IProjectOptions GetProjectOptions( AnalyzerConfigOptions options, TransformerOptions? transformerOptions = null ) => this._projectOptions;
     }
 
     [Fact]
@@ -716,7 +712,7 @@ class MyAspect : TypeAspect
         var projectKey = workspace.AddOrUpdateProject( testContext, _mainProjectName, code );
 
         var service = new TransformationPreviewServiceImpl( serviceProvider );
-        var result = await service.PreviewTransformationAsync( projectKey, "target.cs", default( CancellationToken ) );
+        var result = await service.PreviewTransformationAsync( projectKey, "target.cs", default(CancellationToken) );
 
         Assert.False( result.IsSuccessful );
         Assert.NotNull( result.ErrorMessages );

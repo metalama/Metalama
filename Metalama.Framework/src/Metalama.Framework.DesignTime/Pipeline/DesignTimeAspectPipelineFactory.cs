@@ -219,8 +219,6 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
 
                 this._pipelinesByProjectKey.TryRemove( projectKey, out _ );
                 pipeline = null;
-
-                return false;
             }
         }
 

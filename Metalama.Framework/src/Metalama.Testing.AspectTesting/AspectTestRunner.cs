@@ -7,7 +7,6 @@ using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.DesignTime.CodeFixes;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
@@ -28,6 +27,8 @@ using System.Runtime.Loader;
 using System.Threading;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 #endif
+
+// ReSharper disable MethodHasAsyncOverload
 
 namespace Metalama.Testing.AspectTesting;
 
@@ -262,7 +263,7 @@ internal class AspectTestRunner : BaseTestRunner
         // Execute the pipeline with unformatted options to check well-formness of syntax trees.
         if ( testInput.Options.TestUnformattedOutput == true )
         {
-            using var unformattedOptions = new TestProjectOptions( testContext.TestProjectOptions, CodeFormattingOptions.None );
+            using var unformattedOptions = new TestProjectOptions( testContext.TestProjectOptions );
 
             var unformattedServiceProvider =
                 testContext.ServiceProvider.WithService( unformattedOptions, true );

@@ -19,18 +19,21 @@ public enum IntrospectionDiagnosticSource
     /// <summary>
     /// The diagnostic is produced by the C# compiler.
     /// </summary>
+
     // Resharper disable UnusedMember.Global
     CSharp,
 
     /// <summary>
     /// The diagnostic is reported by the user using an API.
     /// </summary>
+
     // Reported by the user using an API
     User,
 
     /// <summary>
     /// The diagnostic is reported by MSBuild.
     /// </summary>
+
     // Reported by MSBuild.
     MSBuild
 }

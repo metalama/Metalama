@@ -9,9 +9,9 @@ namespace Metalama.Framework.Advising;
 
 /// <summary>
 /// Represents the result of introduction advice methods such as <see cref="AdviserExtensions.IntroduceMethod"/>,
-/// <see cref="O:AdviserExtensions.IntroduceProperty">IntroduceProperty</see>,
-/// <see cref="O:AdviserExtensions.IntroduceField">IntroduceField</see>, or
-/// <see cref="O:AdviserExtensions.IntroduceEvent">IntroduceEvent</see>.
+/// <see cref="AdviserExtensions.IntroduceProperty(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType}, string, IntroductionScope, OverrideStrategy, System.Action{Metalama.Framework.Code.DeclarationBuilders.IPropertyBuilder}, object)">IntroduceProperty</see>,
+/// <see cref="AdviserExtensions.IntroduceField(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType}, string, IntroductionScope, OverrideStrategy, System.Action{Metalama.Framework.Code.DeclarationBuilders.IFieldBuilder}, object)">IntroduceField</see>, or
+/// <see cref="AdviserExtensions.IntroduceEvent(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType}, string, IntroductionScope, OverrideStrategy, System.Action{Metalama.Framework.Code.DeclarationBuilders.IEventBuilder}, object)">IntroduceEvent</see>.
 /// </summary>
 /// <remarks>
 /// <para>

@@ -4,12 +4,15 @@
 
 #pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
 
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Utilities.Threading;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+
+// ReSharper disable AccessToDisposedClosure
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
@@ -81,7 +84,7 @@ public sealed partial class ServerEndpointTests : RpcUnitTestClass
         {
             foreach ( var client in clients )
             {
-                client?.Dispose();
+                client.CanBeNull()?.Dispose();
             }
         }
     }

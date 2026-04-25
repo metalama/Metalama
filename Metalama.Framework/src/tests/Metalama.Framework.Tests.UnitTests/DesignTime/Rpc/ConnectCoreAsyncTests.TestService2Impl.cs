@@ -21,8 +21,7 @@ public sealed partial class ConnectCoreAsyncTests
 
         private sealed class Api : ITestService2Api
         {
-            public Task<string> GetValue2Async( CancellationToken cancellationToken )
-                => Task.FromResult( "TestValue2" );
+            public Task<string> GetValue2Async( CancellationToken cancellationToken ) => Task.FromResult( "TestValue2" );
         }
     }
 }

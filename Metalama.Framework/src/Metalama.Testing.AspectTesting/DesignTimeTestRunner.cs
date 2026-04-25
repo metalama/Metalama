@@ -6,7 +6,6 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
-using Microsoft.CodeAnalysis;
 using System;
 using System.Linq;
 using System.Threading.Tasks;

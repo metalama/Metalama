@@ -6,7 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Metalama.Framework.Tests.Benchmarks/**/*.cs" Exclude="../Metalama.Framework.Tests.Benchmarks/bin/**/*.cs;../Metalama.Framework.Tests.Benchmarks/obj/**/*.cs" />
-    <Compile Remove="**/*" Condition="'$(FormattingCode)'=='True'" />
   </ItemGroup>
   <Import Project="../Metalama.Framework.Tests.Benchmarks/Metalama.Framework.Tests.Benchmarks.csproj" />
 </Project>

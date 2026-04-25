@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
-using Metalama.Extensions.DependencyInjection;
 
 // https://github.com/metalama/Metalama/issues/744
 // Variant: array of internal type — should report error.
@@ -23,7 +22,4 @@ public class MyAspect : TypeAspect
 
 // <target>
 [MyAspect]
-public class TargetClass
-{
-    public TargetClass() { }
-}
+public class TargetClass;

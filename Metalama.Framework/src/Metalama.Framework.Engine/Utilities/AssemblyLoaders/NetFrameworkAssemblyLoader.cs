@@ -9,7 +9,7 @@ using System.Reflection;
 
 namespace Metalama.Framework.Engine.Utilities.AssemblyLoaders;
 
-internal class NetFrameworkAssemblyLoader : AssemblyLoader
+internal sealed class NetFrameworkAssemblyLoader : AssemblyLoader
 {
     private readonly Func<string, Assembly?> _resolveAssembly;
 

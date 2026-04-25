@@ -5,12 +5,14 @@
 using System;
 using System.Collections;
 using System.Xml;
+using JetBrains.Annotations;
 
 namespace Metalama.Backstage.Telemetry
 {
     // Warning: this file is linked to UserInterface solution. We need to serialize
     // exceptions from debugging server in the same way as ExceptionPackager does without
     // referencing PostSharp.Compiler.Settings.
+    [PublicAPI]
     public static class ExceptionXmlFormatter
     {
         public static void WriteException( XmlWriter writer, Exception e )

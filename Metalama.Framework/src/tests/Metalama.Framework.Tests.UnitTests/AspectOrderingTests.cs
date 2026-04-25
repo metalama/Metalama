@@ -292,6 +292,7 @@ class DerivedAspect : BaseAspect { }
             // DerivedAspect should have layers: default, L1 (inherited), L2 (deduplicated), L3 (own).
             // L2 should appear exactly once per aspect (not duplicated).
             var ordered = this.GetOrderedAspectLayers( code, "BaseAspect", "DerivedAspect" );
+
             Assert.Equal(
                 "DerivedAspect => 0, BaseAspect => 0, DerivedAspect:L1 => 1, BaseAspect:L1 => 1, DerivedAspect:L2 => 2, BaseAspect:L2 => 2, DerivedAspect:L3 => 3",
                 ordered );

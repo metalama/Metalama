@@ -69,7 +69,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public bool IsParams => this._parameterSymbol.IsParams;
 
-        public bool IsThis => this.Index == 0 && this._parameterSymbol.ContainingSymbol.Kind == SymbolKind.Method && this._parameterSymbol.ContainingSymbol is IMethodSymbol { IsExtensionMethod: true };
+        public bool IsThis
+            => this.Index == 0 && this._parameterSymbol.ContainingSymbol.Kind == SymbolKind.Method
+                               && this._parameterSymbol.ContainingSymbol is IMethodSymbol { IsExtensionMethod: true };
 
         public override IDeclaration ContainingDeclaration => this.DeclaringMember;
 
@@ -98,7 +100,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         bool IExpression.IsAssignable => true;
 
-        public ref object? Value => ref RefHelper.Wrap( new SyntaxVariableExpression( SyntaxFactoryEx.SafeIdentifierName( this.Name ), this.Type, this.RefKind ) );
+        public ref object? Value
+            => ref RefHelper.Wrap( new SyntaxVariableExpression( SyntaxFactoryEx.SafeIdentifierName( this.Name ), this.Type, this.RefKind ) );
 
         public TypedExpressionSyntax ToTypedExpressionSyntax( ISyntaxGenerationContext syntaxGenerationContext, IType? targetType = null )
             => new(

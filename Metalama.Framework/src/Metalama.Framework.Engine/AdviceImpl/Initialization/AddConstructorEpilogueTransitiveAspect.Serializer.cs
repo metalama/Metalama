@@ -12,8 +12,7 @@ internal sealed partial class AddConstructorEpilogueTransitiveAspect
     [UsedImplicitly]
     private sealed class Serializer : ReferenceTypeSerializer<AddConstructorEpilogueTransitiveAspect>
     {
-        public override AddConstructorEpilogueTransitiveAspect CreateInstance( IArgumentsReader constructorArguments )
-            => new();
+        public override AddConstructorEpilogueTransitiveAspect CreateInstance( IArgumentsReader constructorArguments ) => new();
 
         public override void SerializeObject(
             AddConstructorEpilogueTransitiveAspect obj,

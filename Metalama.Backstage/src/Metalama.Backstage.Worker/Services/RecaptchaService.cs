@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Metalama.Backstage.Services;
 
-internal class RecaptchaService( IHttpClientFactory httpClientFactory, WebLinks webLinks )
+internal sealed class RecaptchaService( IHttpClientFactory httpClientFactory, WebLinks webLinks )
 {
     private readonly TaskCompletionSource<string?> _recaptchaSiteKeyTcs = new();
 
@@ -29,6 +29,4 @@ internal class RecaptchaService( IHttpClientFactory httpClientFactory, WebLinks 
             } );
 
     public Task<string?> GetRecaptchaSiteKeyAsync() => this._recaptchaSiteKeyTcs.Task;
-
-    public async Task<bool> IsDeviceOnlineAsync() => await this._recaptchaSiteKeyTcs.Task != null;
 }

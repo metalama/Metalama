@@ -69,6 +69,7 @@ public partial class TestContext
             nullableContextOptions,
             warnAsErrors );
 
+    // ReSharper disable once ArrangeRedundantParentheses
     public CSharpCompilation CreateEmptyCSharpCompilation(
         string? name,
         IEnumerable<MetadataReference> metadataReferences,

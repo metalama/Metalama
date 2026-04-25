@@ -13,6 +13,7 @@ public interface IRpcServiceFactory
     /// Gets the name of the extension that implements the service, or <c>null</c> if the service is implemented
     /// by the core. The extension name is the value of <c>IDesignTimeExtension.Name</c>.
     /// </summary>
+
     string? ExtensionName { get; }
 
     RpcService CreateRpcService( GlobalServiceProvider serviceProvider, ServerEndpoint endpoint );

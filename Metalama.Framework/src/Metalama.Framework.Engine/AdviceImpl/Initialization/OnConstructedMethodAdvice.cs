@@ -19,7 +19,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Accessibility = Metalama.Framework.Code.Accessibility;
+using SpecialType = Metalama.Framework.Code.SpecialType;
 using TypedConstant = Metalama.Framework.Code.TypedConstant;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
@@ -88,8 +90,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
         if ( baseOnConstructed != null )
         {
             var declaringType = baseOnConstructed.DeclaringType;
-            var hasContextConstructor = declaringType.Constructors.Any(
-                c => c.Parameters.Any( p => p.Type.Equals( initContextType ) ) );
+            var hasContextConstructor = declaringType.Constructors.Any( c => c.Parameters.Any( p => p.Type.Equals( initContextType ) ) );
 
             if ( !hasContextConstructor )
             {
@@ -160,7 +161,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
         // has an InitializationContext parameter from another source), this aspect still emits
         // the epilogue.
         if ( !targetType.IsSealed
-             && targetType.TypeKind != Code.TypeKind.Struct
+             && targetType.TypeKind != TypeKind.Struct
              && targetType.IsAccessibleFromOutsideAssembly() )
         {
             var transitiveAspect = new AddConstructorEpilogueTransitiveAspect();
@@ -200,10 +201,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
 
         var factory = targetType.Compilation.Factory;
 
-        var builder = new MethodBuilder( this.AspectLayerInstance, targetType, _methodName )
-        {
-            ReturnType = factory.GetSpecialType( Code.SpecialType.Void )
-        };
+        var builder = new MethodBuilder( this.AspectLayerInstance, targetType, _methodName ) { ReturnType = factory.GetSpecialType( SpecialType.Void ) };
 
         if ( baseOnConstructed != null )
         {
@@ -219,7 +217,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
             // New method — virtual unless the type is sealed or a struct. Choose the minimum accessibility
             // required: private on sealed types and structs (no derived class can ever see it), protected
             // otherwise (so derived classes can override or call it).
-            var isSealedLike = targetType.IsSealed || targetType.TypeKind == Code.TypeKind.Struct;
+            var isSealedLike = targetType.IsSealed || targetType.TypeKind == TypeKind.Struct;
             builder.IsVirtual = !isSealedLike;
             builder.Accessibility = isSealedLike ? Accessibility.Private : Accessibility.Protected;
         }
@@ -228,8 +226,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
 
         builder.Freeze();
 
-        context.AddTransformation(
-            new IntroduceMethodTransformation( this.AspectLayerInstance, builder.BuilderData ) );
+        context.AddTransformation( new IntroduceMethodTransformation( this.AspectLayerInstance, builder.BuilderData ) );
 
         return builder;
     }

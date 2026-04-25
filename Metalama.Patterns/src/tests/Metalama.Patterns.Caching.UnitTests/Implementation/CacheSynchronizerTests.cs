@@ -206,7 +206,7 @@ public sealed class CacheSynchronizerTests : IDisposable
         await backend.SetItemAsync( _testKey, new CacheItem( _testValue ), CancellationToken.None );
 
         // Invalid GUID
-        var message = $"invalidate:item:not-a-valid-guid:{_testKey}";
+        const string message = $"invalidate:item:not-a-valid-guid:{_testKey}";
 
         // Should not throw
         synchronizer.ProcessMessage( message );

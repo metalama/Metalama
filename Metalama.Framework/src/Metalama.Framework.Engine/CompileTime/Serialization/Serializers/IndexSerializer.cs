@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if !NET472
-
 using Metalama.Framework.Serialization;
 using System;
 

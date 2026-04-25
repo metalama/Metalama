@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Testing.UnitTesting;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,14 +14,9 @@ namespace Metalama.Framework.Tests.UnitTests.Aspects;
 
 public sealed class IncrementalAspectRepositoryTests : UnitTestClass
 {
-    private static (CompilationModel CompilationModel, Microsoft.CodeAnalysis.CSharp.CSharpCompilation RoslynCompilation) CreatePartialCompilationModel(
-        TestContext testContext )
+    private static (CompilationModel CompilationModel, CSharpCompilation RoslynCompilation) CreatePartialCompilationModel( TestContext testContext )
     {
-        var code = new Dictionary<string, string>
-        {
-            ["ClassA.cs"] = "public class ClassA { }",
-            ["ClassB.cs"] = "public class ClassB { }"
-        };
+        var code = new Dictionary<string, string> { ["ClassA.cs"] = "public class ClassA { }", ["ClassB.cs"] = "public class ClassB { }" };
 
         var compilation = testContext.CreateCSharpCompilation( code );
 
@@ -102,10 +98,7 @@ public sealed class IncrementalAspectRepositoryTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
 
-        var code = new Dictionary<string, string>
-        {
-            ["ClassA.cs"] = "public class ClassA { }"
-        };
+        var code = new Dictionary<string, string> { ["ClassA.cs"] = "public class ClassA { }" };
 
         var compilation = testContext.CreateCSharpCompilation( code );
 

@@ -83,9 +83,9 @@ public static class ConstructorCollectionExtensions
     public static IConstructor? OfExactSignature( this IConstructorCollection constructors, IReadOnlyList<Type> parameterTypes )
     {
         // By-ref reflection types are not supported by this overload.
-        for ( var i = 0; i < parameterTypes.Count; i++ )
+        foreach ( var parameterType in parameterTypes )
         {
-            if ( parameterTypes[i].IsByRef )
+            if ( parameterType.IsByRef )
             {
                 return null;
             }

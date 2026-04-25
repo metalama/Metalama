@@ -21,7 +21,7 @@ namespace Metalama.Backstage.Tests.Maintenance;
 
 public sealed class CleanUpTests : TestsBase
 {
-    private readonly int _subdirectoriesPerCacheDirectory = 5;
+    private const int _subdirectoriesPerCacheDirectory = 5;
     private readonly IStandardDirectories _standardDirectories;
 
     private readonly ImmutableDictionary<string, CleanUpStrategy> _cleanUpStrategyByDirectory = new Dictionary<string, CleanUpStrategy>()
@@ -63,7 +63,7 @@ public sealed class CleanUpTests : TestsBase
             this.FileSystem.CreateDirectory( cacheDirectoryPath );
             this.Logger.WriteLine( $"Populating '{cacheDirectoryPath}'." );
 
-            for ( var i = 0; i < this._subdirectoriesPerCacheDirectory; i++ )
+            for ( var i = 0; i < _subdirectoriesPerCacheDirectory; i++ )
             {
                 var subdirectoryPath = Path.Combine( cacheDirectoryPath, $"0.1.{42 + i}-test" );
                 this.FileSystem.CreateDirectory( subdirectoryPath );
@@ -363,7 +363,7 @@ public sealed class CleanUpTests : TestsBase
         this.FileSystem.WriteAllText( Path.Combine( directoryPath, "foo.bar" ), "Foo" );
         this.Time.AddTime( TimeSpan.FromDays( 32 ) );
 
-        var deleteDirectoryOperation = nameof(this.FileSystem.DeleteDirectory);
+        const string deleteDirectoryOperation = nameof(TestFileSystem.DeleteDirectory);
         var newDirectoryPath = $"{directoryPath}0";
 
         this.FileSystem.SetEvent(

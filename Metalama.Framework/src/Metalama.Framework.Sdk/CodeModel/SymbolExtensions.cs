@@ -9,7 +9,6 @@ using Metalama.Framework.Engine.CodeModel.References;
 using Microsoft.CodeAnalysis;
 using System;
 using SpecialType = Microsoft.CodeAnalysis.SpecialType;
-using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel
 {
@@ -244,7 +243,7 @@ namespace Metalama.Framework.Engine.CodeModel
         /// <param name="symbol">The field symbol.</param>
         /// <returns>The original definition of the field.</returns>
         public static IFieldSymbol GetRootDefinition( this IFieldSymbol symbol )
-            => symbol.CorrespondingTupleField == symbol
+            => symbol.CorrespondingTupleField.Equals( symbol )
                 ? symbol.OriginalDefinition
                 : symbol.CorrespondingTupleField?.OriginalDefinition ?? symbol.OriginalDefinition;
 

@@ -68,7 +68,7 @@ internal sealed class PullConstructorParameterAdviceImpl
             return desiredName;
         }
 
-        for ( var i = 1; ; i++ )
+        for ( var i = 1;; i++ )
         {
             var candidate = desiredName + i;
 
@@ -202,8 +202,7 @@ internal sealed class PullConstructorParameterAdviceImpl
 
         return true;
 
-        static bool IsAspectGeneratedParameter( IParameter parameter )
-            => parameter.Attributes.OfAttributeType( typeof(AspectGeneratedAttribute) ).Any();
+        static bool IsAspectGeneratedParameter( IParameter parameter ) => parameter.Attributes.OfAttributeType( typeof(AspectGeneratedAttribute) ).Any();
     }
 
     public void PullConstructorParameterRecursive( IParameter baseParameter )
@@ -324,28 +323,28 @@ internal sealed class PullConstructorParameterAdviceImpl
                         break;
 
                     case PullActionKind.ReplaceParameterTypeAndPull:
-                    {
-                        // Replace the type of an existing introduced parameter with a more specific type.
-                        var existingParam = pullParameterAction.ExistingParameter.AssertNotNull();
-                        var newType = pullParameterAction.ParameterType.AssertNotNull();
+                        {
+                            // Replace the type of an existing introduced parameter with a more specific type.
+                            var existingParam = pullParameterAction.ExistingParameter.AssertNotNull();
+                            var newType = pullParameterAction.ParameterType.AssertNotNull();
 
-                        var replaceParameterBuilder = CreateReplacementParameter(
-                            this._context,
-                            this._aspectLayerInstance,
-                            initializedChainedConstructor,
-                            existingParam,
-                            newType,
-                            TypedConstant.Default( newType ) );
+                            var replaceParameterBuilder = CreateReplacementParameter(
+                                this._context,
+                                this._aspectLayerInstance,
+                                initializedChainedConstructor,
+                                existingParam,
+                                newType,
+                                TypedConstant.Default( newType ) );
 
-                        // Use the existing parameter's name as the base call argument.
-                        parameterValue = SyntaxFactoryEx.SafeIdentifierName( existingParam.Name );
+                            // Use the existing parameter's name as the base call argument.
+                            parameterValue = SyntaxFactoryEx.SafeIdentifierName( existingParam.Name );
 
-                        // Recursively pull using a virtual parameter with the NEW type so that
-                        // downstream GetPullAction calls see the updated type for matching.
-                        this.PullConstructorParameterRecursive( replaceParameterBuilder );
+                            // Recursively pull using a virtual parameter with the NEW type so that
+                            // downstream GetPullAction calls see the updated type for matching.
+                            this.PullConstructorParameterRecursive( replaceParameterBuilder );
 
-                        break;
-                    }
+                            break;
+                        }
 
                     case PullActionKind.AppendParameterAndPull:
                         // Create a new parameter, deduplicating the name if it collides with a source-defined parameter.

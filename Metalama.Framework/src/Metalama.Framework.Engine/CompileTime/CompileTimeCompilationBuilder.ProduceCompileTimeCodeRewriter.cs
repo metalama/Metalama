@@ -805,8 +805,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 {
                     var typeInfo = semanticModel.GetTypeInfo( baseType.Type );
 
-                    if ( typeInfo.Type is INamedTypeSymbol namedType
-                         && namedType.TypeKind == TypeKind.Interface
+                    if ( typeInfo.Type is INamedTypeSymbol { TypeKind: TypeKind.Interface } namedType
                          && this.SymbolClassifier.GetTemplatingScope( namedType ) == TemplatingScope.RunTimeOnly )
                     {
                         // Skip runtime-only interfaces.
@@ -1171,8 +1170,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                             ExplicitInterfaceSpecifier(
                                                 (NameSyntax) this._syntaxGenerationContext.SyntaxGenerator.TypeSyntax( interfaceProperty.ContainingType ) ),
                                             rewrittenProperty.Identifier,
-                                            AccessorList(
-                                                List( accessors ) ) );
+                                            AccessorList( List( accessors ) ) );
                                 }
                             }
                         }

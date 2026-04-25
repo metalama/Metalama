@@ -47,12 +47,14 @@ namespace Metalama.Backstage.Serialization;
 [JsonSerializable( typeof(ImmutableDictionary<long, DateTime>) )]
 [JsonSerializable( typeof(ImmutableArray<string>) )]
 [JsonSerializable( typeof(ImmutableArray<string?>) )]
+
 // Dictionary types needed for ImmutableDictionary converter deserialization
 [JsonSerializable( typeof(Dictionary<string, bool>) )]
 [JsonSerializable( typeof(Dictionary<string, DateTime>) )]
 [JsonSerializable( typeof(Dictionary<string, ReportingStatus>) )]
 [JsonSerializable( typeof(Dictionary<string, ToastNotificationConfiguration>) )]
 [JsonSerializable( typeof(Dictionary<long, DateTime>) )]
+
 // HashSet types needed for ImmutableHashSet built-in support
 [JsonSerializable( typeof(HashSet<string>) )]
 internal partial class BackstageJsonContext : JsonSerializerContext
@@ -67,12 +69,7 @@ internal partial class BackstageJsonContext : JsonSerializerContext
         bool writeIndented,
         IEnumerable<IJsonTypeInfoResolver> additionalResolvers )
     {
-        var options = new JsonSerializerOptions
-        {
-            WriteIndented = writeIndented,
-            PropertyNameCaseInsensitive = true,
-            TypeInfoResolver = Default
-        };
+        var options = new JsonSerializerOptions { WriteIndented = writeIndented, PropertyNameCaseInsensitive = true, TypeInfoResolver = Default };
 
         // Add additional resolvers (e.g., FrameworkConfigurationJsonContext)
         foreach ( var resolver in additionalResolvers )

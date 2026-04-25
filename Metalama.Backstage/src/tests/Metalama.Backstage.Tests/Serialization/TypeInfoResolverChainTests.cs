@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Serialization;
@@ -32,7 +33,7 @@ public sealed partial class TypeInfoResolverChainTests
     /// A test configuration type that is NOT registered in BackstageJsonContext.
     /// </summary>
     [ConfigurationFile( "testExternal.json" )]
-    public record TestExternalConfiguration : ConfigurationFile
+    public sealed record TestExternalConfiguration : ConfigurationFile
     {
         public string Name { get; init; } = "";
 
@@ -43,9 +44,8 @@ public sealed partial class TypeInfoResolverChainTests
     /// A test JsonSerializerContext for external types.
     /// </summary>
     [JsonSerializable( typeof(TestExternalConfiguration) )]
-    internal partial class TestExternalJsonContext : JsonSerializerContext
-    {
-    }
+    [UsedImplicitly]
+    internal partial class TestExternalJsonContext : JsonSerializerContext { }
 
     [Fact]
     public void CreateCombinedOptions_WithNoAdditionalResolvers_UsesBackstageContext()
@@ -94,8 +94,7 @@ public sealed partial class TypeInfoResolverChainTests
 
         // Act & Assert - TestExternalConfiguration is NOT registered in BackstageJsonContext
         // System.Text.Json throws NotSupportedException for unregistered types
-        Assert.Throws<NotSupportedException>(
-            () => options.GetTypeInfo( typeof(TestExternalConfiguration) ) );
+        Assert.Throws<NotSupportedException>( () => options.GetTypeInfo( typeof(TestExternalConfiguration) ) );
     }
 
     [Fact]
@@ -105,12 +104,7 @@ public sealed partial class TypeInfoResolverChainTests
         var additionalResolvers = new List<IJsonTypeInfoResolver> { TestExternalJsonContext.Default };
         var options = BackstageJsonContext.CreateCombinedOptions( writeIndented: true, additionalResolvers );
 
-        var input = new TestExternalConfiguration
-        {
-            Name = "Test",
-            Value = 42,
-            Version = 1
-        };
+        var input = new TestExternalConfiguration { Name = "Test", Value = 42, Version = 1 };
 
         // Act
         var typeInfo = options.GetTypeInfo( typeof(TestExternalConfiguration) );
@@ -179,12 +173,7 @@ public sealed partial class TypeInfoResolverChainTests
         var additionalResolvers = new List<IJsonTypeInfoResolver> { TestExternalJsonContext.Default };
         var service = new JsonSerializationService( additionalResolvers );
 
-        var input = new TestExternalConfiguration
-        {
-            Name = "Test",
-            Value = 42,
-            Version = 1
-        };
+        var input = new TestExternalConfiguration { Name = "Test", Value = 42, Version = 1 };
 
         // Act
         var json = service.Serialize( input, typeof(TestExternalConfiguration) );

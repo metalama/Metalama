@@ -30,7 +30,8 @@ namespace Metalama.Framework.Engine.Templating
             {
                 var symbol = this._parent._syntaxTreeAnnotationMap.GetSymbol( node.Type );
 
-                if ( symbol?.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter
+                if ( symbol?.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType
+                         or SymbolKind.DynamicType or SymbolKind.ErrorType or SymbolKind.TypeParameter
                      && symbol is ITypeSymbol typeSymbol )
                 {
                     var typeOfString = this._syntaxGenerator.TypeOfExpression( typeSymbol ).ToString();
@@ -56,7 +57,8 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     var methodName = node.Expression.Kind() switch
                     {
-                        SyntaxKind.SimpleMemberAccessExpression when node.Expression is MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
+                        SyntaxKind.SimpleMemberAccessExpression when node.Expression is MemberAccessExpressionSyntax memberAccess => memberAccess.Name
+                            .Identifier.Text,
                         SyntaxKind.IdentifierName when node.Expression is IdentifierNameSyntax identifier => identifier.Identifier.Text,
                         _ => throw new AssertionFailedException( $"Don't know how to get the member name in {node.Expression.GetType().Name}" )
                     };
@@ -82,7 +84,9 @@ namespace Metalama.Framework.Engine.Templating
                               }
                           && this.TryRewriteProceedInvocation( innerInvocation, out var transformedInner ) )
                 {
-                    if ( expression.Kind() is not (SyntaxKind.CharacterLiteralExpression or SyntaxKind.StringLiteralExpression or SyntaxKind.NumericLiteralExpression or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression or SyntaxKind.DefaultLiteralExpression)
+                    if ( expression.Kind() is not (SyntaxKind.CharacterLiteralExpression or SyntaxKind.StringLiteralExpression
+                             or SyntaxKind.NumericLiteralExpression or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression
+                             or SyntaxKind.NullLiteralExpression or SyntaxKind.DefaultLiteralExpression)
                          || expression is not LiteralExpressionSyntax literal )
                     {
                         this._parent.Report(
@@ -140,15 +144,17 @@ namespace Metalama.Framework.Engine.Templating
                 if ( node.Identifier.IsKind( SyntaxKind.IdentifierToken )
                      && node is { IsVar: false, Parent: not (QualifiedNameSyntax or AliasQualifiedNameSyntax) } &&
                      !(node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression ) && node.Parent is MemberAccessExpressionSyntax memberAccessExpressionSyntax
-                       && node == memberAccessExpressionSyntax.Name) )
+                                                                                     && node == memberAccessExpressionSyntax.Name) )
                 {
                     // Fully qualifies simple identifiers.
-                    if ( symbol?.Kind is SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.DynamicType or SymbolKind.TypeParameter or SymbolKind.ErrorType
+                    if ( symbol?.Kind is SymbolKind.Namespace or SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType
+                             or SymbolKind.DynamicType or SymbolKind.TypeParameter or SymbolKind.ErrorType
                          && symbol is INamespaceOrTypeSymbol namespaceOrType )
                     {
                         return node.CopyAnnotationsTo( this._syntaxGenerator.TypeOrNamespace( namespaceOrType ).WithTriviaFrom( node ) );
                     }
-                    else if ( symbol is { IsStatic: true } && !node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression ) && !node.Parent.IsKind( SyntaxKind.AliasQualifiedName ) )
+                    else if ( symbol is { IsStatic: true } && !node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression )
+                                                           && !node.Parent.IsKind( SyntaxKind.AliasQualifiedName ) )
                     {
                         switch ( symbol.Kind )
                         {

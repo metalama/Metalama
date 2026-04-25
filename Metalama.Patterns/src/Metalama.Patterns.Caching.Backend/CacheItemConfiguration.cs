@@ -13,11 +13,9 @@ namespace Metalama.Patterns.Caching;
 /// </summary>
 /// <remarks>
 /// <para>This class represents run-time configuration for cache items. Compile-time configuration
-/// is specified through the <see cref="Aspects.CacheAttribute"/> or <see cref="Aspects.CachingConfigurationAttribute"/>.</para>
+/// is specified through the <c>CacheAttribute</c> or <c>CachingConfigurationAttribute</c>.</para>
 /// </remarks>
 /// <seealso cref="Implementation.ICacheItemConfiguration"/>
-/// <seealso cref="CachingProfile"/>
-/// <seealso cref="Aspects.CachingBaseAttribute"/>
 [RunTimeOrCompileTime]
 [PublicAPI]
 public record CacheItemConfiguration : ICacheItemConfiguration

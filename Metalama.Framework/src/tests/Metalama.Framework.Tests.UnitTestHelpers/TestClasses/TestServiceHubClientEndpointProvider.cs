@@ -7,7 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 
-internal class TestServiceHubClientEndpointProvider : IServiceHubClientEndpointProvider
+internal sealed class TestServiceHubClientEndpointProvider : IServiceHubClientEndpointProvider
 {
     private readonly ServiceHubClientEndpoint _endpoint;
 

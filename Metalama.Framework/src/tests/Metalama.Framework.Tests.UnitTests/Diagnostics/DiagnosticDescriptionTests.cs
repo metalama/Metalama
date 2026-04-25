@@ -93,7 +93,7 @@ public sealed class DiagnosticDescriptionTests : AspectTestBase
         await pipeline.ExecuteAsync( diagnostics.Report, null, compilation, ImmutableArray<ManagedResource>.Empty );
 
         // Find the LAMA0041 diagnostic (ExceptionInUserCode) — BuildAspect exceptions are also reported as LAMA0041.
-        var exceptionDiagnostic = diagnostics.ToImmutableArray().FirstOrDefault( d => d.Id == "LAMA0041" || d.Id == "LAMA0001" );
+        var exceptionDiagnostic = diagnostics.ToImmutableArray().FirstOrDefault( d => d.Id is "LAMA0041" or "LAMA0001" );
 
         Assert.NotNull( exceptionDiagnostic );
 

@@ -27,7 +27,7 @@ internal sealed record TestAssemblyMetadata(
 {
     public TestProjectReferences ToProjectReferences()
         => new(
-            [..this.AssemblyReferences.Select( x => x.ToMetadataReference()! )],
+            [..this.AssemblyReferences.Select( x => x.ToMetadataReference() )],
             this.ExtensionReferences,
             this.CompileTimeAssemblyReferences,
             this.PlugInTypes,

@@ -11,7 +11,7 @@ using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Aspects;
 
-internal class SerializableTransitiveAspectInstance : ICompileTimeSerializable, ITransitiveAspectsManifestExtension
+internal sealed class SerializableTransitiveAspectInstance : ICompileTimeSerializable, ITransitiveAspectsManifestExtension
 {
     public IAspect Aspect { get; }
 

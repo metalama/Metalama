@@ -30,7 +30,7 @@ public sealed class IndexSerializerNetStandard20Tests : SerializerTestsBase
     private static CSharpCompilation CreateCompilationWithoutSystemIndex()
     {
         // Build a minimal "runtime" assembly that has fundamental types but NOT System.Index.
-        var minimalSource = @"
+        const string minimalSource = @"
 namespace System
 {
     public class Object { }
@@ -102,10 +102,10 @@ namespace System.Reflection
 
         // Compile the minimal runtime to an in-memory assembly.
         var minimalCompilation = CSharpCompilation.Create(
-                "MinimalRuntime",
-                new[] { CSharpSyntaxTree.ParseText( minimalSource ) },
-                Array.Empty<MetadataReference>(),
-                new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ) );
+            "MinimalRuntime",
+            new[] { CSharpSyntaxTree.ParseText( minimalSource ) },
+            Array.Empty<MetadataReference>(),
+            new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ) );
 
         using var ms = new MemoryStream();
         var emitResult = minimalCompilation.Emit( ms );

@@ -13,7 +13,7 @@ namespace Metalama.Framework.Tests.UnitTests.RunTime;
 /// Tests for <see cref="RunTimeAspectHelper.Buffer{T}(IEnumerator{T})"/> and related methods,
 /// verifying that the buffered enumerator can be used multiple times (issue #695).
 /// </summary>
-public class RunTimeAspectHelperBufferTests
+public sealed class RunTimeAspectHelperBufferTests
 {
     private static IEnumerator<string> CreateTestEnumerator()
     {

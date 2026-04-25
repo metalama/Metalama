@@ -249,7 +249,7 @@ namespace Metalama.Framework.Engine.Linking
                         ? generationContext.SyntaxGenerator.FormattedBlock()
                         : generationContext.SyntaxGenerator.FormattedBlock(
                             ReturnStatement(
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                                TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
                                 DefaultExpression( generationContext.SyntaxGenerator.TypeSyntax( resultType ) ),
                                 Token( SyntaxKind.SemicolonToken ) ) );
 
@@ -268,7 +268,7 @@ namespace Metalama.Framework.Engine.Linking
 
             var modifiers = symbol
                 .GetSyntaxModifierList( ModifierCategories.Static | ModifierCategories.Unsafe | ModifierCategories.Async )
-                .Insert( 0, SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) );
+                .Insert( 0, TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) );
 
             var constraints = method.ConstraintClauses;
 
@@ -321,13 +321,14 @@ namespace Metalama.Framework.Engine.Linking
                     InvocationExpression(
                         GetInvocationTarget(),
                         ArgumentList(
-                            SeparatedList( method.ParameterList.Parameters.SelectAsReadOnlyList( x => Argument( WellKnownIdentifierName( x.Identifier ) ) ) ) ) );
+                            SeparatedList(
+                                method.ParameterList.Parameters.SelectAsReadOnlyList( x => Argument( WellKnownIdentifierName( x.Identifier ) ) ) ) ) );
 
                 if ( !targetSemantic.Symbol.ReturnsVoid )
                 {
                     return context.SyntaxGenerator.FormattedBlock(
                         ReturnStatement(
-                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                            TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
                             invocation,
                             Token( SyntaxKind.SemicolonToken ) ) );
                 }

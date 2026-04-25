@@ -94,14 +94,15 @@ internal static class DeclarationHelper
                     case null:
                         break;
 
-                    case IDeclaration { DeclarationKind: DeclarationKind.NamedType or DeclarationKind.ExtensionBlock or DeclarationKind.TypeParameter } and IType type:
+                    case { DeclarationKind: DeclarationKind.NamedType or DeclarationKind.ExtensionBlock or DeclarationKind.TypeParameter }
+                        and IType type:
                         Append( type, kind, sb, currentTypeArguments );
 
                         sb.Append( '+' );
 
                         break;
 
-                    case IDeclaration { DeclarationKind: DeclarationKind.Namespace } and INamespace ns:
+                    case { DeclarationKind: DeclarationKind.Namespace } and INamespace ns:
                         if ( !ns.IsGlobalNamespace )
                         {
                             Append( ns, kind, sb );
@@ -122,7 +123,7 @@ internal static class DeclarationHelper
             {
                 case INamedType { IsGeneric: true } unboundGenericType
                     when (!unboundGenericType.IsCanonicalGenericInstance && kind != TypeNameKind.Name)
-                          || kind == TypeNameKind.ToString:
+                         || kind == TypeNameKind.ToString:
                     sb.Append( unboundGenericType.GetMetadataName() );
 
                     currentTypeArguments.AddRange( unboundGenericType.TypeArguments );
@@ -187,7 +188,7 @@ internal static class DeclarationHelper
 
     private static string GetMetadataName( this INamedDeclaration declaration )
         => declaration.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock or DeclarationKind.Method
-            && declaration is IGeneric { TypeArguments.Count: > 0 and var count }
+           && declaration is IGeneric { TypeArguments.Count: > 0 and var count }
             ? $"{declaration.Name}`{count}"
             : declaration.Name;
 

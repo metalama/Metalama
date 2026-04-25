@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Patterns.Caching.Resilience;
-using System.Collections.Concurrent;
 
 namespace Metalama.Patterns.Caching.Tests.Implementation;
 
@@ -14,12 +13,10 @@ public sealed partial class BackgroundTaskSchedulerTests
     /// </summary>
     private sealed class MockRetryPolicy : IRetryPolicy
     {
-        public int MaxAttempts { get; set; } = 3;
+        public int MaxAttempts { get; init; } = 3;
 
-        public TaskCompletionSource<bool>? DelayTcs { get; set; }
-
-        public ConcurrentBag<int> AttemptsMade { get; } = new();
-
+        public TaskCompletionSource<bool>? DelayTcs { get; init; }
+        
         public ValueTask<bool> TryAsync(
             OperationKind kind,
             int attempt,
@@ -30,8 +27,6 @@ public sealed partial class BackgroundTaskSchedulerTests
 
         private async ValueTask<bool> TryAsyncImpl( int attempt, CancellationToken cancellationToken )
         {
-            this.AttemptsMade.Add( attempt );
-
             if ( attempt >= this.MaxAttempts )
             {
                 throw new CachingException( $"Max attempts ({this.MaxAttempts}) exceeded" );

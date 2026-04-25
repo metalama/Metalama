@@ -314,7 +314,9 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
     {
         switch ( syntax.Kind() )
         {
-            case SyntaxKind.StringLiteralExpression or SyntaxKind.NumericLiteralExpression or SyntaxKind.CharacterLiteralExpression or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression or SyntaxKind.DefaultLiteralExpression
+            case SyntaxKind.StringLiteralExpression or SyntaxKind.NumericLiteralExpression or SyntaxKind.CharacterLiteralExpression
+                or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression
+                or SyntaxKind.DefaultLiteralExpression
                 when syntax is LiteralExpressionSyntax literalExpression:
                 typedConstant = Code.TypedConstant.Create( literalExpression.Token.Value );
 

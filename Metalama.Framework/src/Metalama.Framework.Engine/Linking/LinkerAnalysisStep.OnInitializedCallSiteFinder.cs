@@ -8,6 +8,7 @@ using Metalama.Framework.RunTime.Initialization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -175,7 +176,7 @@ internal sealed partial class LinkerAnalysisStep
             // SyntaxNode overload that always returns null; only the typed CSharpExtensions overloads
             // (e.g. GetDeclaredSymbol( MethodDeclarationSyntax )) return a useful symbol. Each VisitXxx
             // override therefore resolves the symbol at its own concrete type before delegating here.
-            private void VisitWithContainingSymbol<T>( T node, ISymbol? symbol, System.Action<T> baseVisit )
+            private void VisitWithContainingSymbol<T>( T node, ISymbol? symbol, Action<T> baseVisit )
                 where T : SyntaxNode
             {
                 if ( symbol == null )

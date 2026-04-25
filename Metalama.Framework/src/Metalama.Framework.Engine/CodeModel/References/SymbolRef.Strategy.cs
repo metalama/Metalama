@@ -241,7 +241,7 @@ internal partial class SymbolRef<T>
             return false;
         }
 
-        if ( symbol.ContainingAssembly == compilation.RoslynCompilation.Assembly )
+        if ( symbol.ContainingAssembly != null && symbol.ContainingAssembly.Equals( compilation.RoslynCompilation.Assembly ) )
         {
             // For types defined in the current assembly, we need to take partial compilations into account.
 
@@ -281,7 +281,8 @@ internal partial class SymbolRef<T>
             return false;
         }
 
-        if ( symbol.ContainingAssembly == compilation.RoslynCompilation.Assembly && !IsIncludedInPartialCompilation( symbol ) )
+        if ( symbol.ContainingAssembly != null && symbol.ContainingAssembly.Equals( compilation.RoslynCompilation.Assembly )
+                                               && !IsIncludedInPartialCompilation( symbol ) )
         {
             // For types defined in the current assembly, we need to take partial compilations into account.
             return false;

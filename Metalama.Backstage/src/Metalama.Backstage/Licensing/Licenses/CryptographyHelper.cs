@@ -15,7 +15,7 @@ namespace Metalama.Backstage.Licensing.Licenses
     {
         public static DSA CreateDsaFromXml( string xml ) => CreateDsaFromParameters( ParseDsaParameters( xml ) );
 
-        public static DSA CreateDsaFromParameters( DSAParameters parameters )
+        private static DSA CreateDsaFromParameters( DSAParameters parameters )
         {
 #if NET472 || NET5_0_OR_GREATER
             var dsa = DSA.Create( parameters );

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Engine.Services;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ namespace Metalama.Framework.Engine.Utilities.Caching;
 /// <summary>
 /// Abstract base class for weak caches that supports invalidation of static instances.
 /// </summary>
+[PublicAPI]
 public abstract class WeakCache
 {
     private static readonly object _lock = new();
@@ -78,7 +80,7 @@ public sealed class WeakCache<TKey, TValue> : WeakCache, ICache<TKey, TValue>
         }
     }
 
-    public WeakCache( GlobalServiceProvider serviceProvider, string cacheName, bool isStaticCache = false ) : this( isStaticCache )
+    internal WeakCache( GlobalServiceProvider serviceProvider, string cacheName, bool isStaticCache = false ) : this( isStaticCache )
     {
         this._observer = serviceProvider.GetService<IWeakCacheObserver>();
         this._cacheName = cacheName;
@@ -87,6 +89,7 @@ public sealed class WeakCache<TKey, TValue> : WeakCache, ICache<TKey, TValue>
     /// <inheritdoc />
     public override void Clear()
     {
+        // ReSharper disable once InconsistentlySynchronizedField
         this._cache = new ConditionalWeakTable<TKey, StrongBox<TValue>>();
     }
 

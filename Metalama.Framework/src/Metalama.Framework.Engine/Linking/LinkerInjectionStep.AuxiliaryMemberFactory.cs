@@ -91,7 +91,7 @@ internal sealed partial class LinkerInjectionStep
                 List<AttributeListSyntax>(),
                 constructor.Definition.GetSyntaxModifierList( ModifierCategories.Unsafe )
                     .Insert( 0, TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
-                SyntaxFactoryEx.SafeIdentifier( constructor.DeclaringType.AssertNotNull().Name.AssertNotNull() ),
+                SafeIdentifier( constructor.DeclaringType.AssertNotNull().Name.AssertNotNull() ),
                 parameters,
                 ConstructorInitializer(
                     SyntaxKind.ThisConstructorInitializer,
@@ -102,7 +102,7 @@ internal sealed partial class LinkerInjectionStep
                                     Argument(
                                         null,
                                         p.Modifiers.FirstOrDefault( m => !m.IsKind( SyntaxKind.ParamsKeyword ) ),
-                                        SyntaxFactoryEx.WellKnownIdentifierName( p.Identifier ) ) ) ) ) ),
+                                        WellKnownIdentifierName( p.Identifier ) ) ) ) ) ),
                 Block(),
                 null,
                 default );
@@ -154,7 +154,8 @@ internal sealed partial class LinkerInjectionStep
                     ProceedHelper.CreateMemberAccessExpression( method, aspectLayerId, AspectReferenceTargetKind.Self, syntaxGenerationContext ),
                     ArgumentList(
                         SeparatedList(
-                            method.Parameters.SelectAsReadOnlyList( p => Argument( null, p.RefKind.InvocationRefKindToken(), SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) );
+                            method.Parameters.SelectAsReadOnlyList(
+                                p => Argument( null, p.RefKind.InvocationRefKindToken(), SafeIdentifierName( p.Name ) ) ) ) ) );
 
             var (useStateMachine, emulatedTemplateKind) = (returnVariableName != null, asyncInfo, iteratorInfo) switch
             {

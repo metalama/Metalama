@@ -265,7 +265,8 @@ internal sealed class SerializationWriter
                     var genericTypeDefinition = typeSymbol.OriginalDefinition;
                     this._binaryWriter.WriteByte( (byte) intrinsicType );
 
-                    if ( typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol && namedTypeSymbol.OriginalDefinition != namedTypeSymbol )
+                    if ( typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol
+                                                                 && namedTypeSymbol.OriginalDefinition != namedTypeSymbol )
                     {
                         this._binaryWriter.WriteByte( (byte) SerializationIntrinsicTypeFlags.Generic );
                         this.WriteTypeName( genericTypeDefinition );
@@ -288,7 +289,8 @@ internal sealed class SerializationWriter
 
                 break;
 
-            case SerializationIntrinsicType.GenericTypeParameter when typeSymbol.Kind == SymbolKind.TypeParameter && typeSymbol is ITypeParameterSymbol typeParameterSymbol:
+            case SerializationIntrinsicType.GenericTypeParameter
+                when typeSymbol.Kind == SymbolKind.TypeParameter && typeSymbol is ITypeParameterSymbol typeParameterSymbol:
                 this.WriteGenericTypeParameter( typeParameterSymbol, cause );
 
                 break;
@@ -324,7 +326,8 @@ internal sealed class SerializationWriter
 
     private void WriteTypeName( ITypeSymbol typeSymbol )
     {
-        if ( typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol && namedTypeSymbol.ConstructedFrom != namedTypeSymbol )
+        if ( typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol
+                                                     && namedTypeSymbol.ConstructedFrom != namedTypeSymbol )
         {
             throw new ArgumentOutOfRangeException( nameof(typeSymbol) );
         }

@@ -342,8 +342,10 @@ namespace Metalama.Framework.Engine.Templating
         public static bool IsTemplateFromAnnotation( this SyntaxNode node )
             => node.Kind() switch
             {
-                SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
-                    when node is AccessorDeclarationSyntax accessor => node.HasAnnotation( _templateAnnotation ) || IsTemplateFromAnnotation( accessor.Parent! ),
+                SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
+                    or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration
+                    when node is AccessorDeclarationSyntax accessor =>
+                    node.HasAnnotation( _templateAnnotation ) || IsTemplateFromAnnotation( accessor.Parent! ),
                 _ => node.HasAnnotation( _templateAnnotation )
             };
 

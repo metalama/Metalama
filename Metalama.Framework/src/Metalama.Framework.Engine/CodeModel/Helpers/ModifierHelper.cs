@@ -91,8 +91,8 @@ internal static class ModifierHelper
         }
 
         if ( (categories & ModifierCategories.Required) != 0
-            && member.DeclarationKind is DeclarationKind.Field or DeclarationKind.Property
-            && member is IFieldOrProperty { IsRequired: true } )
+             && member.DeclarationKind is DeclarationKind.Field or DeclarationKind.Property
+             && member is IFieldOrProperty { IsRequired: true } )
         {
             AddToken( SyntaxKind.RequiredKeyword );
         }
@@ -181,8 +181,8 @@ internal static class ModifierHelper
         }
 
         if ( (categories & ModifierCategories.Volatile) != 0
-            && member.GetSymbol()?.Kind == SymbolKind.Field
-            && member.GetSymbol() is IFieldSymbol { IsVolatile: true } )
+             && member.GetSymbol()?.Kind == SymbolKind.Field
+             && member.GetSymbol() is IFieldSymbol { IsVolatile: true } )
         {
             AddToken( SyntaxKind.VolatileKeyword );
         }

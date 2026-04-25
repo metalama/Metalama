@@ -52,7 +52,10 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
 
             currentNode = this.AspectReference.RootNode.Kind() switch
             {
-                SyntaxKind.InvocationExpression when this.AspectReference.RootNode is InvocationExpressionSyntax { ArgumentList: { Arguments.Count: 1 } argumentList } =>
+                SyntaxKind.InvocationExpression when this.AspectReference.RootNode is InvocationExpressionSyntax
+                    {
+                        ArgumentList: { Arguments.Count: 1 } argumentList
+                    } =>
                     argumentList.Arguments[0].Expression,
                 _ => throw new AssertionFailedException( $"Unsupported form: {this.AspectReference.RootNode}" )
             };
@@ -188,7 +191,8 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
     protected static SimpleNameSyntax RewriteName( SimpleNameSyntax name, string targetMemberName )
         => name.Kind() switch
         {
-            SyntaxKind.GenericName when name is GenericNameSyntax genericName => genericName.WithIdentifier( SyntaxFactoryEx.WellKnownIdentifier( targetMemberName.AssertNotNull() ) ),
+            SyntaxKind.GenericName when name is GenericNameSyntax genericName => genericName.WithIdentifier(
+                SyntaxFactoryEx.WellKnownIdentifier( targetMemberName.AssertNotNull() ) ),
             SyntaxKind.IdentifierName => name.WithIdentifier( SyntaxFactoryEx.WellKnownIdentifier( targetMemberName.AssertNotNull() ) ),
             _ => throw new AssertionFailedException( $"Unsupported name: {name}" )
         };

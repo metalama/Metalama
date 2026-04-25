@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace Metalama.Testing.UnitTesting;
 
-internal class TestLanguageVersionProvider : ILanguageVersionProvider
+internal sealed class TestLanguageVersionProvider : ILanguageVersionProvider
 {
     public LanguageVersion GetCompileTimeLanguageVersion() => SupportedCSharpVersions.Latest;
 }

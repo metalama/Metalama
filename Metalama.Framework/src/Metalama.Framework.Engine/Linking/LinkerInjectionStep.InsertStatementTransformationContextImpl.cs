@@ -47,7 +47,12 @@ internal sealed partial class LinkerInjectionStep
             CompilationModel compilation,
             ITemplateLexicalScopeProvider lexicalScopeProvider,
             IInsertStatementTransformation originTransformation,
-            IFullRef<IMemberOrNamedType> contextMemberOrNamedType ) : base( serviceProvider, diagnosticSink, syntaxGenerationContext, compilation, lexicalScopeProvider )
+            IFullRef<IMemberOrNamedType> contextMemberOrNamedType ) : base(
+            serviceProvider,
+            diagnosticSink,
+            syntaxGenerationContext,
+            compilation,
+            lexicalScopeProvider )
         {
             this.ContextMemberOrNamedType = contextMemberOrNamedType;
             this.OriginTransformation = originTransformation;

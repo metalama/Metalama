@@ -29,7 +29,6 @@ using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 
 #if NET8_0_OR_GREATER
 using System.Runtime.CompilerServices;
-
 #else
 using System.Runtime.Serialization;
 #endif
@@ -381,7 +380,9 @@ public sealed class AspectClass : TemplateClass, IBoundAspectClass
     {
         var ourDeclarationInterface = symbol.Kind switch
         {
-            SymbolKind.Method when symbol is IMethodSymbol method && IsMethod( method.MethodKind ) => method.MethodKind != MethodKind.LocalFunction ? typeof(IMethod) : null,
+            SymbolKind.Method when symbol is IMethodSymbol method && IsMethod( method.MethodKind ) => method.MethodKind != MethodKind.LocalFunction
+                ? typeof(IMethod)
+                : null,
             SymbolKind.Method when symbol is IMethodSymbol method && IsConstructor( method.MethodKind ) => typeof(IConstructor),
             SymbolKind.Property when symbol is IPropertySymbol => typeof(IProperty),
             SymbolKind.Event when symbol is IEventSymbol => typeof(IEvent),

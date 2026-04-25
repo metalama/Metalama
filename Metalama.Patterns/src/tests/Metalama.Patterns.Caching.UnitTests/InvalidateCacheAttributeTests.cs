@@ -1130,7 +1130,7 @@ namespace Metalama.Patterns.Caching.Tests
             // We use ToString() to distinguish target type instances by default
             public override string ToString()
             {
-                return $"{this.GetType().Name}@{this.GetHashCode()}";
+                return $"{nameof(TestFromTheSameTypeIgnoringThisParameterInvalidatingAndCachingClass)}@{this.GetHashCode()}";
             }
         }
 
@@ -1289,7 +1289,7 @@ namespace Metalama.Patterns.Caching.Tests
             // We use ToString() to distinguish target type instances by default
             public override string ToString()
             {
-                return $"{this.GetType().Name}@{this.GetHashCode()}";
+                return $"{nameof(TestFromTheSameTypeIgnoringThisParameterAsyncInvalidatingAndCachingClass)}@{this.GetHashCode()}";
             }
         }
 
@@ -1443,7 +1443,7 @@ namespace Metalama.Patterns.Caching.Tests
             // We use ToString() to distinguish target type instances by default
             public override string ToString()
             {
-                return $"{this.GetType().Name}@{this.GetHashCode()}";
+                return $"{nameof(TestFromTheSameTypeNotIgnoringThisParameterInvalidatingAndCachingClass)}@{this.GetHashCode()}";
             }
         }
 
@@ -1602,7 +1602,7 @@ namespace Metalama.Patterns.Caching.Tests
             // We use ToString() to distinguish target type instances by default
             public override string ToString()
             {
-                return $"{this.GetType().Name}@{this.GetHashCode()}";
+                return $"{nameof(TestFromTheSameTypeNotIgnoringThisParameterAsyncInvalidatingAndCachingClass)}@{this.GetHashCode()}";
             }
         }
 

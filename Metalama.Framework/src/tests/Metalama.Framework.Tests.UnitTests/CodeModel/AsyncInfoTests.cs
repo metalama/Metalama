@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Testing.UnitTesting;
+using System;
 #if NET5_0_OR_GREATER
 using System.Collections.Generic;
 #endif
@@ -578,10 +579,7 @@ class C
             isAutoProperty: false,
             hasInitOnlySetter: false,
             hasImplicitGetter: false,
-            hasImplicitSetter: false )
-        {
-            Type = compilation.Factory.GetTypeByReflectionType( typeof(bool) )
-        };
+            hasImplicitSetter: false ) { Type = compilation.Factory.GetTypeByReflectionType( typeof(bool) ) };
 
         isCompletedBuilder.Freeze();
 
@@ -591,7 +589,7 @@ class C
 
         // Add OnCompleted(Action) method to the awaiter (required by C# spec for awaiters).
         var onCompletedBuilder = new MethodBuilder( null!, awaiterTypeBuilder, "OnCompleted" );
-        onCompletedBuilder.AddParameter( "action", compilation.Factory.GetTypeByReflectionType( typeof(System.Action) ) );
+        onCompletedBuilder.AddParameter( "action", compilation.Factory.GetTypeByReflectionType( typeof(Action) ) );
         onCompletedBuilder.Freeze();
 
         awaiterTypeBuilder.Freeze();

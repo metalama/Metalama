@@ -14,14 +14,13 @@ internal sealed partial class TemplateCompilerRewriter
         /// Indicates that the variable has been set in any execution path.
         /// </summary>
         public bool HasBeenSet { get; set; }
-        
+
         /// <summary>
         /// Indicates that the variable is known to be false in the current context.
         /// </summary>
         public bool IsKnownFalse { get; set; }
-        
+
         public bool MightBeTrue => this.HasBeenSet && !this.IsKnownFalse;
-        
 
         public SkipCompileTimeLogicVariable( string name )
         {

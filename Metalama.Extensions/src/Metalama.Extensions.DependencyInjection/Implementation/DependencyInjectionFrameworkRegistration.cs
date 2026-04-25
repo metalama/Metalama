@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Options;
 using System;
@@ -12,6 +13,7 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 /// Represents a registration of a <see cref="IDependencyInjectionFramework"/>.
 /// </summary>
 [CompileTime]
+[PublicAPI]
 public sealed class DependencyInjectionFrameworkRegistration : IIncrementalKeyedCollectionItem<Type>
 {
     /// <summary>
@@ -19,7 +21,7 @@ public sealed class DependencyInjectionFrameworkRegistration : IIncrementalKeyed
     /// </summary>
     /// <param name="type">A type implementing the <see cref="IDependencyInjectionFramework"/> interface and having a default constructor.</param>
     /// <param name="priority">The priority of the aspect framework. The default priority of system-registered frameworks is 100 and 101.
-    /// The default priority for user-registered frameworks is 0. 
+    /// The default priority for user-registered frameworks is 0.
     /// </param>
     public DependencyInjectionFrameworkRegistration( Type type, int? priority = null )
     {

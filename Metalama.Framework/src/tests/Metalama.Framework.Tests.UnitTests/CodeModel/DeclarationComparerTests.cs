@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Comparers;
 using Metalama.Testing.UnitTesting;
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -287,12 +288,12 @@ class D<T> where T : IEnumerable<int> {}
 
             // T : IList<int> should match IList<> (TypeDefinition).
             var typeParamC = compilation.Types.OfName( "C" ).Single().TypeParameters[0];
-            var listType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IList<>) );
+            var listType = compilation.Factory.GetTypeByReflectionType( typeof(IList<>) );
 
             Assert.True( comparer.IsConvertibleTo( typeParamC, listType, ConversionKind.TypeDefinition, bypassSymbols ) );
 
             // T : IList<int> should also match IEnumerable<> (transitive via IList<int> : IEnumerable<int>).
-            var enumerableType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IEnumerable<>) );
+            var enumerableType = compilation.Factory.GetTypeByReflectionType( typeof(IEnumerable<>) );
             Assert.True( comparer.IsConvertibleTo( typeParamC, enumerableType, ConversionKind.TypeDefinition, bypassSymbols ) );
 
             // T : IList<int> should NOT match I2<> (unrelated interface).
@@ -320,7 +321,7 @@ class D<T> where T : IList<string> {}
             var compilation = testContext.CreateCompilationModel( code );
             var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
 
-            var listType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IList<>) );
+            var listType = compilation.Factory.GetTypeByReflectionType( typeof(IList<>) );
 
             // Both T : IList<int> and T : IList<string> should match IList<> (TypeDefinition ignores type args).
             var typeParamC = compilation.Types.OfName( "C" ).Single().TypeParameters[0];
@@ -346,14 +347,14 @@ class C<T> where T : IList<T> {}
             var compilation = testContext.CreateCompilationModel( code );
             var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
 
-            var listType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IList<>) );
+            var listType = compilation.Factory.GetTypeByReflectionType( typeof(IList<>) );
 
             // T : IList<T> should match IList<> and not cause infinite recursion.
             var typeParamC = compilation.Types.OfName( "C" ).Single().TypeParameters[0];
             Assert.True( comparer.IsConvertibleTo( typeParamC, listType, ConversionKind.TypeDefinition, bypassSymbols ) );
 
             // T : IList<T> should also match IEnumerable<> transitively.
-            var enumerableType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IEnumerable<>) );
+            var enumerableType = compilation.Factory.GetTypeByReflectionType( typeof(IEnumerable<>) );
             Assert.True( comparer.IsConvertibleTo( typeParamC, enumerableType, ConversionKind.TypeDefinition, bypassSymbols ) );
         }
 
@@ -373,7 +374,7 @@ class C<T, U> where T : U where U : IList<int> {}
             var compilation = testContext.CreateCompilationModel( code );
             var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
 
-            var listType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IList<>) );
+            var listType = compilation.Factory.GetTypeByReflectionType( typeof(IList<>) );
 
             // T : U where U : IList<int> should transitively match IList<>.
             var typeParamT = compilation.Types.OfName( "C" ).Single().TypeParameters[0];
@@ -433,7 +434,7 @@ class C<T> {}
             var compilation = testContext.CreateCompilationModel( code );
             var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
 
-            var listType = compilation.Factory.GetTypeByReflectionType( typeof(System.Collections.Generic.IList<>) );
+            var listType = compilation.Factory.GetTypeByReflectionType( typeof(IList<>) );
 
             // Unconstrained T should NOT match IList<>.
             var typeParamC = compilation.Types.OfName( "C" ).Single().TypeParameters[0];

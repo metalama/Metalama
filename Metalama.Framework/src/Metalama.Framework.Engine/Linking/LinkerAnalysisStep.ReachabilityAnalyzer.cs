@@ -175,7 +175,8 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case SymbolKind.Method when current.Symbol is IMethodSymbol eventBrokerMethod && this._injectionRegistry.IsEventRaiseOverride( eventBrokerMethod ):
+                    case SymbolKind.Method when current.Symbol is IMethodSymbol eventBrokerMethod
+                                                && this._injectionRegistry.IsEventRaiseOverride( eventBrokerMethod ):
                         var eventBrokerEvent = (IEventSymbol) this._injectionRegistry.GetMainOverrideForSatelliteOverride( eventBrokerMethod ).AssertNotNull();
 
                         DepthFirstSearch( new IntermediateSymbolSemantic( eventBrokerEvent, current.Kind ) );

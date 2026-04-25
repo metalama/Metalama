@@ -60,6 +60,7 @@ internal sealed class SyntaxSerializationContext : ISyntaxGenerationContext
     public AspectReferenceSyntaxProvider? AspectReferenceSyntaxProvider { get; }
 
     [Memo]
+
     public INamedType? CurrentType => this.CurrentDeclaration?.GetClosestNamedType();
 
     public ContextualSyntaxGenerator SyntaxGenerator => this.SyntaxGenerationContext.SyntaxGenerator;

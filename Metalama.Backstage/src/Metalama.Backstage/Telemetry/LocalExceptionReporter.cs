@@ -31,7 +31,7 @@ internal sealed class LocalExceptionReporter : IBackstageService
         this._applicationInfoProvider = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>();
         this._toastNotificationService = serviceProvider.GetBackstageService<IToastNotificationService>();
         this._loggerFactory = serviceProvider.GetLoggerFactory();
-        this._logger = this._loggerFactory.GetLogger( this.GetType().Name );
+        this._logger = this._loggerFactory.GetLogger( nameof(LocalExceptionReporter) );
         this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
     }
 

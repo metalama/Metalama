@@ -16,6 +16,7 @@ using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.RunTime.Events;
+using Metalama.Framework.RunTime.Initialization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -202,7 +203,9 @@ namespace Metalama.Framework.Engine.Linking
             var inliningSpecifications = await inliningAlgorithm.RunAsync( cancellationToken );
 
             var overriddenHybridAutoProperties = input.InjectionRegistry.GetOverriddenMembers()
-                .Where( s => s.Kind == SymbolKind.Property && s is IPropertySymbol propertySymbol && propertySymbol.IsAutoProperty() == true && propertySymbol.HasBody() == true )
+                .Where(
+                    s => s.Kind == SymbolKind.Property && s is IPropertySymbol propertySymbol && propertySymbol.IsAutoProperty() == true
+                         && propertySymbol.HasBody() == true )
                 .Cast<IPropertySymbol>()
                 .ToArray();
 
@@ -279,7 +282,7 @@ namespace Metalama.Framework.Engine.Linking
             var closureContainsInitializable =
                 input.IntermediateCompilation.IsPartial
                 || input.CallSiteAdviceInfo.ReferencesContainInitializableTypes
-                || input.InputCompilationModel.GetDerivedTypes( typeof(Framework.RunTime.Initialization.IInitializable) ).Any();
+                || input.InputCompilationModel.GetDerivedTypes( typeof(IInitializable) ).Any();
 
             if ( closureContainsInitializable )
             {
@@ -366,7 +369,8 @@ namespace Metalama.Framework.Engine.Linking
 
                         var overrideName = overrideMember.Syntax.Kind() switch
                         {
-                            SyntaxKind.EventDeclaration when overrideMember.Syntax is EventDeclarationSyntax eventDeclaration => eventDeclaration.Identifier.ValueText,
+                            SyntaxKind.EventDeclaration when overrideMember.Syntax is EventDeclarationSyntax eventDeclaration => eventDeclaration.Identifier
+                                .ValueText,
                             _ => throw new NotSupportedException( $"Unsupported syntax for event override: {overrideMember.Syntax}." )
                         };
 
@@ -381,7 +385,8 @@ namespace Metalama.Framework.Engine.Linking
                         var raiseMethodName =
                             injectedMember.Syntax.Kind() switch
                             {
-                                SyntaxKind.MethodDeclaration when injectedMember.Syntax is MethodDeclarationSyntax methodDeclaration => methodDeclaration.Identifier.ValueText,
+                                SyntaxKind.MethodDeclaration when injectedMember.Syntax is MethodDeclarationSyntax methodDeclaration => methodDeclaration
+                                    .Identifier.ValueText,
                                 _ => throw new NotSupportedException( $"Unsupported syntax for event raise override: {injectedMember.Syntax}." )
                             };
 
@@ -416,7 +421,7 @@ namespace Metalama.Framework.Engine.Linking
                                 {
                                     var eventBrokerType =
                                         finalCompilationModel.Factory.GetNamedTypeByReflectionType( typeof(EventBroker<,,>) )
-                                        .WithTypeArguments( delegateType, argsType, stateType );
+                                            .WithTypeArguments( delegateType, argsType, stateType );
 
                                     var eventBrokerTypeSymbol =
                                         injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( eventBrokerType ).AssertNotNull();
@@ -431,7 +436,7 @@ namespace Metalama.Framework.Engine.Linking
 
                                 var brokerCallbacksType =
                                     finalCompilationModel.Factory.GetNamedTypeByReflectionType( typeof(DelegateEventAdapter<,,>) )
-                                    .WithTypeArguments( delegateType, argsType, stateType );
+                                        .WithTypeArguments( delegateType, argsType, stateType );
 
                                 var brokerCallbacksTypeSymbol =
                                     injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( brokerCallbacksType ).AssertNotNull();
@@ -589,7 +594,10 @@ namespace Metalama.Framework.Engine.Linking
                     SeparatedList<ArgumentSyntax>(
                     [
                         Argument( SyntaxFactoryEx.WellKnownIdentifierName( "handler" ) ),
-                        Argument( null, Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ), SyntaxFactoryEx.WellKnownIdentifierName( "args" ) )
+                        Argument(
+                            null,
+                            Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ),
+                            SyntaxFactoryEx.WellKnownIdentifierName( "args" ) )
                     ] ) ) );
 
             return
@@ -923,7 +931,8 @@ namespace Metalama.Framework.Engine.Linking
                 {
                     switch ( semantic.Symbol.Kind )
                     {
-                        case SymbolKind.Property when semantic.Symbol is IPropertySymbol property && property.IsAutoProperty() == true && property.HasInitializer() != true:
+                        case SymbolKind.Property when semantic.Symbol is IPropertySymbol property && property.IsAutoProperty() == true
+                                                                                                  && property.HasInitializer() != true:
                             forcefullyInitializedSymbols.Add( property );
 
                             break;
@@ -994,7 +1003,10 @@ namespace Metalama.Framework.Engine.Linking
 
             foreach ( var reference in allGetOnlyAutoPropertyReferences )
             {
-                if ( reference.ContainingSemantic.Symbol.Kind == SymbolKind.Method && reference.ContainingSemantic.Symbol is IMethodSymbol { MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor } )
+                if ( reference.ContainingSemantic.Symbol.Kind == SymbolKind.Method && reference.ContainingSemantic.Symbol is
+                    {
+                        MethodKind: MethodKind.Constructor or MethodKind.StaticConstructor
+                    } )
                 {
                     list.Add( reference );
                 }
@@ -1089,7 +1101,10 @@ namespace Metalama.Framework.Engine.Linking
                                     ]
                                 }
                                 => (getAccessor, setAccessor),
-                            SyntaxKind.PropertyDeclaration when declaration is PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
+                            SyntaxKind.PropertyDeclaration when declaration is PropertyDeclarationSyntax
+                                {
+                                    AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor]
+                                }
                                 => (getAccessor, null),
                             _ => throw new InvalidOperationException( "Auto property expected." )
                         };

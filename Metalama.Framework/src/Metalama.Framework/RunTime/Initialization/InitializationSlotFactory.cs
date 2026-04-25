@@ -11,7 +11,7 @@ namespace Metalama.Framework.RunTime.Initialization;
 /// Factory for allocating <see cref="InitializationSlot"/> instances. Each factory maintains
 /// its own counter, allowing tests to allocate slots independently without polluting global state.
 /// </summary>
-internal class InitializationSlotFactory
+internal sealed class InitializationSlotFactory
 {
     private int _nextBit;
 
@@ -26,8 +26,7 @@ internal class InitializationSlotFactory
 
         if ( bit >= 32 )
         {
-            throw new InvalidOperationException(
-                "Cannot allocate an InitializationSlot: the maximum of 32 slots has been exceeded." );
+            throw new InvalidOperationException( "Cannot allocate an InitializationSlot: the maximum of 32 slots has been exceeded." );
         }
 
         return new InitializationSlot( 1u << bit );

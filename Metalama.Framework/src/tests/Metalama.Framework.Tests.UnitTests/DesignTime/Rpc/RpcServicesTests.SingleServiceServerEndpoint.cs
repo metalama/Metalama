@@ -15,7 +15,6 @@ public sealed partial class RpcServicesTests
         public SingleServiceServerEndpoint( IServiceProvider serviceProvider, string pipeName )
             : base( serviceProvider, pipeName ) { }
 
-        protected override IEnumerable<RpcService> CreateServices()
-            => [new ServiceAService( this )];
+        protected override IEnumerable<RpcService> CreateServices() => [new ServiceAService( this )];
     }
 }

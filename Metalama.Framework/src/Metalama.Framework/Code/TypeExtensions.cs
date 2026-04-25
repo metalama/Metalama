@@ -125,7 +125,16 @@ namespace Metalama.Framework.Code
         /// Gets an <see cref="IExpression"/> representing 'typeof' expression for the given type.
         /// </summary>
         /// <param name="type">The type.</param>
+        /// <param name="preferConstructedType">
+        /// When <c>true</c> and <paramref name="type"/> is a generic type whose type arguments are its own type
+        /// parameters (e.g. <c>List&lt;T&gt;</c> where <c>T</c> is <c>List</c>'s type parameter), the generated
+        /// <c>typeof</c> expression keeps the constructed form (e.g. <c>typeof(List&lt;T&gt;)</c>) instead of
+        /// emitting the unbound generic type (e.g. <c>typeof(List&lt;&gt;)</c>). Use this only when the type
+        /// parameters are in scope at the emission site. The default is <c>false</c>, which emits the unbound
+        /// generic type for such inputs.
+        /// </param>
         /// <returns>An <see cref="IExpression"/> representing <c>typeof(type)</c>.</returns>
-        public static IExpression ToTypeOfExpression( this IType type ) => ((ICompilationInternal) type.Compilation).Helpers.ToTypeOfExpression( type );
+        public static IExpression ToTypeOfExpression( this IType type, bool preferConstructedType = false )
+            => ((ICompilationInternal) type.Compilation).Helpers.ToTypeOfExpression( type, preferConstructedType );
     }
 }

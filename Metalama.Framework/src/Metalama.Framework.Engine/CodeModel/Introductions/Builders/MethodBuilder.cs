@@ -31,6 +31,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     public IntroducedRef<IMethod> Ref { get; }
 
+    // ReSharper disable once ConvertToAutoPropertyWithPrivateSetter
     public override bool IsImplicitlyDeclared => this._isImplicitlyDeclared;
 
     public void SetImplicitlyDeclared()
@@ -83,8 +84,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
         {
             if ( this._operatorKind != OperatorKind.None && value != base.Name )
             {
-                throw new InvalidOperationException(
-                    "Cannot change the name of an operator method. The name is automatically set based on the OperatorKind." );
+                throw new InvalidOperationException( "Cannot change the name of an operator method. The name is automatically set based on the OperatorKind." );
             }
 
             base.Name = value;
@@ -192,6 +192,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     public bool IsCanonicalGenericInstance => true;
 
+    // ReSharper disable once ConvertToAutoPropertyWithPrivateSetter
     public MethodKind MethodKind => this._methodKind;
 
     public override MethodBase ToMethodBase() => this.ToMethodInfo();

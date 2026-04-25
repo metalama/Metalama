@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
-public class SymbolSignatureMatcherTests : UnitTestClass
+public sealed class SymbolSignatureMatcherTests : UnitTestClass
 {
     [Fact]
     public void NonParamsOverloadAdded()

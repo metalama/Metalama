@@ -4,6 +4,7 @@
 
 using Metalama.Patterns.Caching.Locking;
 using Metalama.Patterns.Caching.TestHelpers;
+using System.Diagnostics.CodeAnalysis;
 using Xunit;
 
 namespace Metalama.Patterns.Caching.Tests.Locking;
@@ -51,6 +52,7 @@ public sealed class LocalLockingStrategyTests
     }
 
     [Fact]
+    [SuppressMessage( "ReSharper", "MethodHasAsyncOverload" )]
     public async Task Acquire_SameKey_BlocksUntilReleased()
     {
         var strategy = new LocalLockingStrategy();
@@ -78,7 +80,8 @@ public sealed class LocalLockingStrategyTests
                 {
                     lockHandle.Release();
                 }
-            } );
+            },
+            CancellationToken.None );
 
         // Wait for first lock to be acquired
         await firstLockHeld.Task.WaitWithTimeoutAsync();
@@ -98,7 +101,8 @@ public sealed class LocalLockingStrategyTests
                 {
                     lockHandle.Release();
                 }
-            } );
+            },
+            CancellationToken.None );
 
         // Wait for second task to start waiting
         await secondTaskStartedWaiting.Task.WaitWithTimeoutAsync();
@@ -123,6 +127,7 @@ public sealed class LocalLockingStrategyTests
     #region Different Keys Tests
 
     [Fact]
+    [SuppressMessage( "ReSharper", "MethodHasAsyncOverload" )]
     public async Task GetLock_DifferentKeys_IndependentLocks()
     {
         var strategy = new LocalLockingStrategy();
@@ -178,6 +183,7 @@ public sealed class LocalLockingStrategyTests
     #region Timeout Tests
 
     [Fact]
+    [SuppressMessage( "ReSharper", "MethodHasAsyncOverload" )]
     public async Task Acquire_Timeout_ReturnsFalse()
     {
         var strategy = new LocalLockingStrategy();

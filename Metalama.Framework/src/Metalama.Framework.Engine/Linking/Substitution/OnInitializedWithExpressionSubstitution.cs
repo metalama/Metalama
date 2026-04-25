@@ -23,11 +23,9 @@ internal sealed class OnInitializedWithExpressionSubstitution : OnInitializedCal
         CompilationContext compilationContext,
         SyntaxNode replacedNode,
         InitializableTypeInfo typeInfo )
-        : base( compilationContext, replacedNode, typeInfo )
-    {
-    }
+        : base( compilationContext, replacedNode, typeInfo ) { }
 
-    public override SyntaxNode? Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
+    public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
         // Wrap in parentheses: (expr with { ... })
         var parenthesized = ParenthesizedExpression( (ExpressionSyntax) currentNode );

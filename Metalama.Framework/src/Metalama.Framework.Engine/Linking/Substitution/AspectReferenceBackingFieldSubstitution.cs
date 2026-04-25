@@ -37,7 +37,10 @@ internal sealed class AspectReferenceBackingFieldSubstitution : SyntaxNodeSubsti
 
             currentNode = this._aspectReference.RootNode.Kind() switch
             {
-                SyntaxKind.InvocationExpression when this._aspectReference.RootNode is InvocationExpressionSyntax { ArgumentList: { Arguments.Count: 1 } argumentList } =>
+                SyntaxKind.InvocationExpression when this._aspectReference.RootNode is InvocationExpressionSyntax
+                    {
+                        ArgumentList: { Arguments.Count: 1 } argumentList
+                    } =>
                     argumentList.Arguments[0].Expression,
                 _ => throw new AssertionFailedException( $"Unsupported form: {this._aspectReference.RootNode}" )
             };

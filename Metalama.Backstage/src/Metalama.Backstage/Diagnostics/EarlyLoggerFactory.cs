@@ -12,28 +12,28 @@ internal sealed class EarlyLoggerFactory : ILoggerFactory
 {
     private readonly ConcurrentDictionary<string, Logger> _loggers = new();
 
-    public ILoggerFactory LoggerFactory { get; private set; }
+    private ILoggerFactory _loggerFactory;
 
     public EarlyLoggerFactory( ILoggerFactory loggerFactory )
     {
-        this.LoggerFactory = loggerFactory;
+        this._loggerFactory = loggerFactory;
     }
 
     public EarlyLoggerFactory()
     {
-        this.LoggerFactory = new BufferingLoggerFactory();
+        this._loggerFactory = new BufferingLoggerFactory();
     }
 
     public void Replace( ILoggerFactory loggerFactory )
     {
-        if ( this.LoggerFactory is not BufferingLoggerFactory bufferingLoggerFactory )
+        if ( this._loggerFactory is not BufferingLoggerFactory bufferingLoggerFactory )
         {
             // It has already been replaced.
             return;
         }
 
         bufferingLoggerFactory.Replay( loggerFactory );
-        this.LoggerFactory = loggerFactory;
+        this._loggerFactory = loggerFactory;
 
         foreach ( var logger in this._loggers )
         {
@@ -41,7 +41,7 @@ internal sealed class EarlyLoggerFactory : ILoggerFactory
         }
     }
 
-    public ILogger GetLogger( string category ) => this._loggers.GetOrAdd( category, c => new Logger( this.LoggerFactory.GetLogger( c ) ) );
+    public ILogger GetLogger( string category ) => this._loggers.GetOrAdd( category, c => new Logger( this._loggerFactory.GetLogger( c ) ) );
 
     public void Flush() { }
 

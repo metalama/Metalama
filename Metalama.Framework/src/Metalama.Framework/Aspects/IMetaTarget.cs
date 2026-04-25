@@ -131,8 +131,8 @@ namespace Metalama.Framework.Aspects
         /// Programmatically add or remove handlers using <c>meta.Target.Event.Add(handler)</c> or
         /// <c>meta.Target.Event.Remove(handler)</c> in event override templates.
         /// </remarks>
-        /// <seealso cref="IEventInvoker.Add(dynamic?)"/>
-        /// <seealso cref="IEventInvoker.Remove(dynamic?)"/>
+        /// <seealso cref="IEventInvoker.Add(object?)"/>
+        /// <seealso cref="IEventInvoker.Remove(object?)"/>
         /// <seealso cref="Member"/>
         /// <seealso href="@overriding-events"/>
         IEvent Event { get; }

@@ -12,7 +12,7 @@ internal sealed class LoggingContext
 {
     private static readonly AsyncLocal<LoggingContext?> _current = new();
 
-    public LoggingContext( string scope )
+    private LoggingContext( string scope )
     {
         this.Scope = scope;
     }

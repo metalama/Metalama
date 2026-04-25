@@ -71,6 +71,7 @@ public sealed class CacheParameterClassification
     /// with a default error diagnostic.
     /// </summary>
     /// <returns>A classification that will cause a compile-time error with a standard diagnostic message.</returns>
+
     // ReSharper disable once RedundantSuppressNullableWarningExpression
     public static CacheParameterClassification Ineligible()
         => new(

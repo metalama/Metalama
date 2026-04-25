@@ -316,6 +316,7 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target is an extension block. Extension blocks can only be introduced into static classes.",
                 _category,
                 Error );
+
         // Sub-range 550-559: Initialization diagnostics.
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType TargetType)>
@@ -333,6 +334,5 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' targets type '{1}' whose base type '{2}' defines an 'OnConstructed(InitializationContext)' method but has no instance constructor accepting an 'InitializationContext' parameter. The base type must provide such a constructor (and call 'OnConstructed' from it, guarded by 'IsHandled(InitializationSlot.OnConstructed)') so that derived types can pass 'context.Descend(InitializationSlot.OnConstructed)' and skip the base's OnConstructed call.",
                 _category,
                 Error );
-
     }
 }

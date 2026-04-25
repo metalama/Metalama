@@ -18,7 +18,6 @@ public sealed partial class ConnectCoreAsyncTests
         public DynamicServerEndpoint( IServiceProvider serviceProvider, string pipeName )
             : base( serviceProvider, pipeName ) { }
 
-        protected override IEnumerable<RpcService> CreateServices()
-            => [new TestServiceImpl( this ), new TestService2Impl( this )];
+        protected override IEnumerable<RpcService> CreateServices() => [new TestServiceImpl( this ), new TestService2Impl( this )];
     }
 }

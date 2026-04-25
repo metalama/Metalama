@@ -88,7 +88,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 #if ROSLYN_4_12_0_OR_GREATER
                 this._typeParameterSymbol.AllowsRefLikeType;
 #else
-            false;
+                false;
 #endif
 
         public VarianceKind Variance

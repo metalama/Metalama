@@ -81,7 +81,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
     public async Task Dispose_CalledConcurrently_BothComplete()
     {
         var backend = this.CreateBackend();
-        backend.Initialize();
+        await backend.InitializeAsync();
 
         var startSignal = new SemaphoreSlim( 0, 2 );
         var thread1Ready = new TaskCompletionSource<bool>();
@@ -141,7 +141,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
     public async Task DisposeAsync_CalledConcurrently_AllCallersComplete()
     {
         var backend = this.CreateBackend();
-        backend.Initialize();
+        await backend.InitializeAsync();
 
         const int callerCount = 5;
         var barrier = new SemaphoreSlim( 0, callerCount );
@@ -211,12 +211,13 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         using var cts = new CancellationTokenSource();
 
         // Start initialization in background
-        var initTask = Task.Run( async () => await backend.InitializeAsync( CancellationToken.None ) );
+        var initTask = Task.Run( async () => await backend.InitializeAsync( CancellationToken.None ), CancellationToken.None );
 
         // Wait for initialization to start
         await initStarted.Task.WaitWithTimeoutAsync();
 
         // Now try to dispose with a cancelled token while initialization is in progress
+        // ReSharper disable once MethodHasAsyncOverload
         cts.Cancel();
 
         // The dispose should throw because we're waiting on the semaphore with cancelled token
@@ -235,9 +236,11 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         // disposal completes even with a cancelled token (the token is only checked
         // when waiting for the initialization semaphore or background tasks)
         var backend = this.CreateBackend();
-        backend.Initialize();
+        await backend.InitializeAsync();
 
         using var cts = new CancellationTokenSource();
+
+        // ReSharper disable once MethodHasAsyncOverload
         cts.Cancel();
 
         // This should complete without throwing because the backend has no background tasks
@@ -254,14 +257,14 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
     public async Task Dispose_ClearsEventHandlers_EventsNotRaisedAfterDisposal()
     {
         var backend = this.CreateBackend();
-        backend.Initialize();
+        await backend.InitializeAsync();
 
         var eventRaisedCount = 0;
 
         backend.ItemRemoved += ( _, _ ) => Interlocked.Increment( ref eventRaisedCount );
 
         // Set an item before disposal
-        backend.SetItem( "key", new CacheItem( "value" ) );
+        await backend.SetItemAsync( "key", new CacheItem( "value" ) );
 
         // Start disposal - this should clear event handlers
         await backend.DisposeAsync();
@@ -319,7 +322,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         var capturedStatuses = new List<CachingBackendStatus>();
         var backend = new StatusCapturingCachingBackend( this._serviceProvider, capturedStatuses );
 
-        backend.Initialize();
+        await backend.InitializeAsync();
 
         Assert.Equal( CachingBackendStatus.Initialized, backend.Status );
 
@@ -361,7 +364,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
     public async Task Dispose_MixedSyncAndAsync_BothComplete()
     {
         var backend = this.CreateBackend();
-        backend.Initialize();
+        await backend.InitializeAsync();
 
         var startSignal = new SemaphoreSlim( 0, 2 );
         var syncReady = new TaskCompletionSource<bool>();

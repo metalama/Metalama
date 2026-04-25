@@ -28,7 +28,8 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
 
             // Annotation takes priority over constraint.
             // E.g. in void M<T>(T? t) where T : notnull, the type of t is ITypeParameter with TypeKindConstraint of NotNull and NullableAnnotation.Annotated.
-            if ( typeParameter.GetSymbol() is { Kind: SymbolKind.TypeParameter } and ITypeSymbol { NullableAnnotation: var annotation } && annotation.ToIsAnnotated() == true )
+            if ( typeParameter.GetSymbol() is { Kind: SymbolKind.TypeParameter } and ITypeSymbol { NullableAnnotation: var annotation }
+                 && annotation.ToIsAnnotated() == true )
             {
                 return true;
             }

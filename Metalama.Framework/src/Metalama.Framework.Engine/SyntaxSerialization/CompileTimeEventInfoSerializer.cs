@@ -30,13 +30,13 @@ internal sealed class CompileTimeEventInfoSerializer : ObjectSerializer<CompileT
                 serializationContext );
 
         ExpressionSyntax result = InvocationExpression(
-                MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, typeCreation, IdentifierName( "GetEvent" ) ),
-                ArgumentList(
-                    SeparatedList(
-                    [
-                        Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( eventName ) ) ),
-                        Argument( SyntaxUtility.CreateBindingFlags( @event, serializationContext ) )
-                    ] ) ) );
+            MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, typeCreation, IdentifierName( "GetEvent" ) ),
+            ArgumentList(
+                SeparatedList(
+                [
+                    Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( eventName ) ) ),
+                    Argument( SyntaxUtility.CreateBindingFlags( @event, serializationContext ) )
+                ] ) ) );
 
         result = SyntaxUtility.CoalesceWithMissingMemberException(
             result,

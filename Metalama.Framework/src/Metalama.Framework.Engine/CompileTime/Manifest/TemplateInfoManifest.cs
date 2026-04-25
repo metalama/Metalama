@@ -4,7 +4,7 @@
 
 namespace Metalama.Framework.Engine.CompileTime.Manifest;
 
-internal class TemplateInfoManifest
+internal sealed class TemplateInfoManifest
 {
     public TemplateAttributeType AttributeType { get; }
 

@@ -88,7 +88,8 @@ public sealed class SerializableTypeIdResolverForIType : SerializableTypeIdResol
 
         var candidates = ns.DeclarationKind switch
         {
-            DeclarationKind.Namespace when ns is INamespace iNamespace => iNamespace.Types.OfName( name ).ConcatNotNull<INamespaceOrNamedType>( iNamespace.Namespaces.OfName( name ) ),
+            DeclarationKind.Namespace when ns is INamespace iNamespace => iNamespace.Types.OfName( name )
+                .ConcatNotNull<INamespaceOrNamedType>( iNamespace.Namespaces.OfName( name ) ),
             DeclarationKind.NamedType when ns is INamedType iNamedType => iNamedType.Types.OfName( name ),
             _ => throw new AssertionFailedException( $"Unexpected type {ns.GetType()}." )
         };

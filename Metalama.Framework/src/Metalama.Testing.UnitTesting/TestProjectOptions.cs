@@ -32,7 +32,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
     /// Initializes a new instance of the <see cref="TestProjectOptions"/> class from
     /// a prototype <see cref="UnitTesting.TestContextOptions"/>, allowing to override some properties.
     /// </summary>
-    public TestProjectOptions( TestProjectOptions prototype, CodeFormattingOptions? codeFormattingOptions = null )
+    public TestProjectOptions( TestProjectOptions prototype )
     {
         this._baseDirectory = prototype._baseDirectory;
         this._projectDirectory = prototype._projectDirectory;

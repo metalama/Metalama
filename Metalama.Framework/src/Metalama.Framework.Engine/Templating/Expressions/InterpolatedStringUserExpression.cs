@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.Templating.Expressions
 {
@@ -70,15 +71,16 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
                         // If the expression is of type 'dynamic', cast it to 'object' to avoid CS9230
                         // ("Cannot perform a dynamic invocation on an expression") when using interpolated string handlers (Roslyn 4.12+).
-                        if ( typedTokenExpression.ExpressionType?.TypeKind == Code.TypeKind.Dynamic )
+                        if ( typedTokenExpression.ExpressionType?.TypeKind == TypeKind.Dynamic )
                         {
                             tokenSyntax = SyntaxFactory.CastExpression(
                                 SyntaxFactory.PredefinedType( SyntaxFactory.Token( SyntaxKind.ObjectKeyword ) ),
                                 tokenSyntax );
                         }
 
-                        if ( tokenSyntax.Kind() == SyntaxKind.StringLiteralExpression && tokenSyntax is LiteralExpressionSyntax literal && literal.Token.IsKind( SyntaxKind.StringLiteralToken ) &&
-                             token.Alignment is null && token.Format is null )
+                        if ( tokenSyntax.Kind() == SyntaxKind.StringLiteralExpression && tokenSyntax is LiteralExpressionSyntax literal
+                                                                                      && literal.Token.IsKind( SyntaxKind.StringLiteralToken ) &&
+                                                                                      token.Alignment is null && token.Format is null )
                         {
                             textAccumulator.Append( literal.Token.Text.Substring( 1, literal.Token.Text.Length - 2 ) );
                         }

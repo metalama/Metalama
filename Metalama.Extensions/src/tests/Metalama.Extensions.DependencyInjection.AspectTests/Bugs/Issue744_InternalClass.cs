@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
-using Metalama.Extensions.DependencyInjection;
 
 // https://github.com/metalama/Metalama/issues/744
 // Variant: internal class with internal dependency type — should succeed.
@@ -23,7 +22,4 @@ public class MyAspect : TypeAspect
 
 // <target>
 [MyAspect]
-internal class TargetClass
-{
-    public TargetClass() { }
-}
+internal class TargetClass;

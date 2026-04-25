@@ -7,6 +7,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Microsoft.CodeAnalysis;
 using System.Linq;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.Aspects
 {
@@ -92,7 +93,7 @@ namespace Metalama.Framework.Engine.Aspects
             // - Members whose symbol requires generic context mapping.
             if ( declaration is IMember member )
             {
-                if ( member.DeclaringType.TypeKind == Code.TypeKind.Interface
+                if ( member.DeclaringType.TypeKind == TypeKind.Interface
                      || member.IsExplicitInterfaceImplementation )
                 {
                     return null;

@@ -70,8 +70,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                     ? new PseudoRaiser( this )
                     : null;
 
-        public IMethod GetRaiseMethodForAdvice()
-            => this.RaiseMethod ?? new PseudoRaiser( this );
+        public IMethod GetRaiseMethodForAdvice() => this.RaiseMethod ?? new PseudoRaiser( this );
 
         public IEvent? OverriddenEvent
         {

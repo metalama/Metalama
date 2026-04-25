@@ -52,6 +52,7 @@ internal partial class ManifestJsonContext : JsonSerializerContext
     /// <summary>
     /// Gets the context configured for compact output.
     /// </summary>
+
     public static ManifestJsonContext Compact => _compact ??= new ManifestJsonContext( CreateOptions( writeIndented: false ) );
 
     private static JsonSerializerOptions CreateOptions( bool writeIndented )

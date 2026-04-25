@@ -7,7 +7,7 @@ using Metalama.Backstage.Diagnostics;
 
 namespace Metalama.Backstage.Worker
 {
-    internal class BackstageWorkerApplicationInfo : ApplicationInfoBase
+    internal sealed class BackstageWorkerApplicationInfo : ApplicationInfoBase
     {
         public BackstageWorkerApplicationInfo()
             : base( typeof(BackstageWorkerApplicationInfo).Assembly ) { }

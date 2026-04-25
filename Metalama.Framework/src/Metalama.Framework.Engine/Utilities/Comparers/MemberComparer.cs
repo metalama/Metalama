@@ -45,7 +45,7 @@ namespace Metalama.Framework.Engine.Utilities.Comparers
             }
 
             if ( x.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor or DeclarationKind.Indexer
-                && x is IHasParameters xHasParameters )
+                 && x is IHasParameters xHasParameters )
             {
                 var yHasParameters = (IHasParameters) y;
 
@@ -80,7 +80,7 @@ namespace Metalama.Framework.Engine.Utilities.Comparers
             hashCode.Add( obj.Name );
 
             if ( obj.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor or DeclarationKind.Indexer
-                && obj is IHasParameters hasParameters )
+                 && obj is IHasParameters hasParameters )
             {
                 if ( obj is IMethod method )
                 {

@@ -8,6 +8,7 @@ using Metalama.Patterns.Caching.TestHelpers;
 using Metalama.Patterns.Caching.Tests.Mocks;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+
 // ReSharper disable MethodHasAsyncOverload
 
 namespace Metalama.Patterns.Caching.Tests.Backends;

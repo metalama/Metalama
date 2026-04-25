@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if NET5_0_OR_GREATER
+using JetBrains.Annotations;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +24,7 @@ namespace Metalama.Framework.RunTime
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
+        [PublicAPI]
         public AsyncEnumerator GetAsyncEnumerator( CancellationToken cancellationToken = default ) => new( this, cancellationToken );
 
         /// <summary>

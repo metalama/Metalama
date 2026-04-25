@@ -19,14 +19,14 @@ namespace Metalama.Framework.Code.Collections
     /// The order of items in this collection is undetermined and may change between versions.
     /// </para>
     /// <para>
-    /// To add attributes to existing declarations, use <see cref="O:Metalama.Framework.Advising.AdviserExtensions.IntroduceAttribute">IntroduceAttribute</see>.
+    /// To add attributes to existing declarations, use <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceAttribute"/>.
     /// To add attributes to introduced declarations, use <see cref="DeclarationBuilders.IDeclarationBuilder.AddAttribute"/>.
-    /// To remove attributes, use <see cref="O:Metalama.Framework.Advising.AdviserExtensions.RemoveAttributes">RemoveAttributes</see>.
+    /// To remove attributes, use <see cref="Metalama.Framework.Aspects.AdviserExtensions.RemoveAttributes(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.IDeclaration}, Metalama.Framework.Code.INamedType)">RemoveAttributes</see>.
     /// </para>
     /// </remarks>
     /// <seealso cref="IAttribute"/>
     /// <seealso cref="IDeclaration.Attributes"/>
-    /// <seealso cref="O:Metalama.Framework.Advising.AdviserExtensions.IntroduceAttribute">IntroduceAttribute</seealso>
+    /// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions"/>
     /// <seealso cref="DeclarationBuilders.IDeclarationBuilder.AddAttribute"/>
     /// <seealso href="@adding-attributes"/>
     public interface IAttributeCollection : IReadOnlyCollection<IAttribute>

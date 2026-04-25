@@ -59,7 +59,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
         new DotNetSolution( "Metalama.Framework/Metalama.Framework.sln" )
         {
-            SolutionFilterPathForInspectCode = "Metalama.Framework.LatestRoslyn.slnf",
+            SolutionFilterPathForInspectCode = "Metalama.Framework/Metalama.Framework.LatestRoslyn.slnf",
             SupportsTestCoverage = true,
             CanFormatCode = true,
 

@@ -252,7 +252,10 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                     Invariant.Assert( !hasNoBody );
 
                     if ( !targetDeclaration.Compilation.Comparers.Default.IsConvertibleTo(
-                             builder.ReturnType, existingMethod.ReturnType, ConversionKind.Reference, ConversionFlags.TypeParameterEquivalence ) )
+                            builder.ReturnType,
+                            existingMethod.ReturnType,
+                            ConversionKind.Reference,
+                            ConversionFlags.TypeParameterEquivalence ) )
                     {
                         return
                             this.CreateFailedResult(

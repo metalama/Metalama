@@ -51,7 +51,7 @@ public sealed class LocalWorkspaceProvider : WorkspaceProvider, IWorkspaceReceiv
 #if ROSLYN_5_0_0_OR_GREATER
         workspace.RegisterWorkspaceChangedHandler( this.OnWorkspaceChanged );
 #else
-        workspace.WorkspaceChanged += ( sender, args ) => this.OnWorkspaceChanged( args );
+        workspace.WorkspaceChanged += ( _, args ) => this.OnWorkspaceChanged( args );
 #endif
 
         this.OnProjectsDiscovered( workspace.CurrentSolution.Projects );

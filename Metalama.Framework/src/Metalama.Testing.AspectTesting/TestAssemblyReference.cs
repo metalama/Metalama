@@ -13,7 +13,7 @@ namespace Metalama.Testing.AspectTesting
 {
     internal static class ExtensionAssemblyReferenceExtensions
     {
-        internal static PortableExecutableReference? ToMetadataReference( this TargetedAssemblyReference reference )
+        internal static PortableExecutableReference ToMetadataReference( this TargetedAssemblyReference reference )
         {
             if ( reference.Path != null )
             {

@@ -38,7 +38,7 @@ public abstract class CacheSynchronizer : CachingBackendEnhancer
     {
         await base.RemoveItemAsyncCore( key, cancellationToken );
 
-        this._backgroundTaskScheduler.EnqueueBackgroundTask( ct => this.PublishInvalidationAsync( key, CacheKeyKind.Item, ct ) );
+        this._backgroundTaskScheduler.EnqueueBackgroundTask( ct => this.PublishInvalidationAsync( key, CacheKeyKind.Item, ct ), CancellationToken.None );
     }
 
     /// <inheritdoc />
@@ -54,7 +54,7 @@ public abstract class CacheSynchronizer : CachingBackendEnhancer
     {
         await base.InvalidateDependencyAsyncCore( key, cancellationToken );
 
-        this._backgroundTaskScheduler.EnqueueBackgroundTask( ct => this.PublishInvalidationAsync( key, CacheKeyKind.Dependency, ct ) );
+        this._backgroundTaskScheduler.EnqueueBackgroundTask( ct => this.PublishInvalidationAsync( key, CacheKeyKind.Dependency, ct ), CancellationToken.None );
     }
 
     /// <inheritdoc />

@@ -6,7 +6,7 @@ public class Target
     add
     {
       Console.WriteLine("Before");
-      this._foo?.Invoke(null, new EventArgs());
+      this._foo?.Invoke(null, EventArgs.Empty);
       Console.WriteLine("After");
     }
     remove

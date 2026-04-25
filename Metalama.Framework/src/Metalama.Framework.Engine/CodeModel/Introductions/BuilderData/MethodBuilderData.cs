@@ -42,6 +42,7 @@ internal sealed class MethodBuilderData : MemberBuilderData
     /// Gets a value indicating whether this method is an implicit implementation
     /// generated to support extension members.
     /// </summary>
+
     public bool IsImplicitlyDeclared { get; }
 
     public MethodBuilderData( IMethodBuilderImpl builder, IFullRef<IDeclaration> containingDeclaration ) : base(

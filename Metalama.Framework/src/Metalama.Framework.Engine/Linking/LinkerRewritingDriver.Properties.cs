@@ -382,16 +382,16 @@ namespace Metalama.Framework.Engine.Linking
             IPropertySymbol symbol,
             SyntaxGenerationContext context )
         {
-            var modifiers = new List<SyntaxToken> { SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) };
+            var modifiers = new List<SyntaxToken> { TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) };
 
             if ( symbol.SetMethod == null || symbol.SetMethod.IsInitOnly )
             {
-                modifiers.Add( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReadOnlyKeyword ) );
+                modifiers.Add( TokenWithTrailingSpace( SyntaxKind.ReadOnlyKeyword ) );
             }
 
             if ( symbol.IsStatic )
             {
-                modifiers.Add( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) );
+                modifiers.Add( TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) );
             }
 
             if ( initializer == null && symbol.Type is { IsValueType: false, NullableAnnotation: NullableAnnotation.NotAnnotated } )
@@ -425,7 +425,7 @@ namespace Metalama.Framework.Engine.Linking
         private BlockSyntax GetImplicitGetterBody( IMethodSymbol symbol, SyntaxGenerationContext generationContext )
             => generationContext.SyntaxGenerator.FormattedBlock(
                     ReturnStatement(
-                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                        TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
                         MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 symbol.IsStatic
@@ -606,9 +606,9 @@ namespace Metalama.Framework.Engine.Linking
                         attributes,
                         symbol.IsStatic
                             ? TokenList(
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ),
-                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
-                            : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
+                                TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ),
+                                TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
+                            : TokenList( TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
                         propertyType,
                         null,
                         WellKnownIdentifier( name ),
@@ -641,7 +641,7 @@ namespace Metalama.Framework.Engine.Linking
                                             SyntaxKind.GetAccessorDeclaration,
                                             context.SyntaxGenerator.FormattedBlock(
                                                 ReturnStatement(
-                                                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                                                    TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
                                                     GetInvocationTarget(),
                                                     Token( SyntaxKind.SemicolonToken ) ) ) )
                                         : null,
@@ -666,11 +666,11 @@ namespace Metalama.Framework.Engine.Linking
             {
                 if ( targetSymbol.Symbol.IsStatic )
                 {
-                    return SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Symbol.Name );
+                    return SafeIdentifierName( targetSymbol.Symbol.Name );
                 }
                 else
                 {
-                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Symbol.Name ) )
+                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SafeIdentifierName( targetSymbol.Symbol.Name ) )
                         .WithSimplifierAnnotationIfNecessary( context );
                 }
             }

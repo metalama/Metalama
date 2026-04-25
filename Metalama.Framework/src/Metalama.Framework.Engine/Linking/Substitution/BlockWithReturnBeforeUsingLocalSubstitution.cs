@@ -38,7 +38,9 @@ internal sealed class BlockWithReturnBeforeUsingLocalSubstitution : SyntaxNodeSu
 
                 var gotoStatements =
                     gotoStatementWalker.GotoStatements
-                        .Where( g => g.Expression != null && g.Expression.IsKind( SyntaxKind.IdentifierName ) && g.Expression is IdentifierNameSyntax identifierName && !containedLabels.Contains( identifierName.Identifier.Text ) )
+                        .Where(
+                            g => g.Expression != null && g.Expression.IsKind( SyntaxKind.IdentifierName ) && g.Expression is IdentifierNameSyntax identifierName
+                                 && !containedLabels.Contains( identifierName.Identifier.Text ) )
                         .ToArray();
 
                 var statementsContainingOutgoingGoto = GetStatementsContainingOutgoingGotoStatement( rootBlock, gotoStatements );
@@ -55,8 +57,8 @@ internal sealed class BlockWithReturnBeforeUsingLocalSubstitution : SyntaxNodeSu
                     }
 
                     if ( statement.IsKind( SyntaxKind.LocalDeclarationStatement ) && statement is LocalDeclarationStatementSyntax localDeclaration
-                         && localDeclaration.UsingKeyword != default
-                         && encounteredStatementContainingGotoStatement )
+                                                                                  && localDeclaration.UsingKeyword != default
+                                                                                  && encounteredStatementContainingGotoStatement )
                     {
                         segments.Add( (tailStatements, localDeclaration) );
                         tailStatements = new List<StatementSyntax>();

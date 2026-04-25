@@ -191,7 +191,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         [Memo]
         public IField Definition
-            => this.FieldSymbol == this.FieldSymbol.OriginalDefinition ? this : this.Compilation.Factory.GetField( this.FieldSymbol.OriginalDefinition );
+            => this.FieldSymbol.Equals( this.FieldSymbol.OriginalDefinition ) ? this : this.Compilation.Factory.GetField( this.FieldSymbol.OriginalDefinition );
 
         protected override IMemberOrNamedType GetDefinitionMemberOrNamedType() => this.Definition;
 

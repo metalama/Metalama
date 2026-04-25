@@ -15,6 +15,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using RoslynTypeKind = Microsoft.CodeAnalysis.TypeKind;
 using TypeKind = Metalama.Framework.Code.TypeKind;
+using TypeParameterKind = Metalama.Framework.Code.TypeParameterKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Comparers;
 
@@ -78,7 +79,8 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
     bool ITypeComparer.IsConvertibleTo( IType left, IType right, ConversionKind kind ) => this.IsConvertibleTo( left, right, kind );
 
-    bool ITypeComparer.IsConvertibleTo( IType left, IType right, ConversionKind kind, ConversionFlags flags ) => this.IsConvertibleTo( left, right, kind, flags );
+    bool ITypeComparer.IsConvertibleTo( IType left, IType right, ConversionKind kind, ConversionFlags flags )
+        => this.IsConvertibleTo( left, right, kind, flags );
 
     private bool IsConvertibleTo( IType left, IType right, ConversionKind kind ) => this.IsConvertibleTo( left, right, kind, bypassSymbols: false );
 
@@ -215,7 +217,8 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
         // Evaluate the current type.
 
-        if ( type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol namedType && SymbolEqualityComparer.Default.Equals( namedType.ConstructedFrom, typeDefinition ) )
+        if ( type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol namedType
+                                               && SymbolEqualityComparer.Default.Equals( namedType.ConstructedFrom, typeDefinition ) )
         {
             return true;
         }
@@ -248,8 +251,8 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
     /// </summary>
     private static bool AreTypesEquivalentByMethodTypeParameterOrdinal( IType left, IType right )
     {
-        if ( left is ITypeParameter { TypeParameterKind: Code.TypeParameterKind.Method } leftTp
-             && right is ITypeParameter { TypeParameterKind: Code.TypeParameterKind.Method } rightTp )
+        if ( left is ITypeParameter { TypeParameterKind: TypeParameterKind.Method } leftTp
+             && right is ITypeParameter { TypeParameterKind: TypeParameterKind.Method } rightTp )
         {
             return leftTp.Index == rightTp.Index;
         }
@@ -261,8 +264,8 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
         }
 
         if ( left is INamedType leftNamed && right is INamedType rightNamed
-                                           && leftNamed.TypeArguments.Count > 0
-                                           && leftNamed.TypeArguments.Count == rightNamed.TypeArguments.Count )
+                                          && leftNamed.TypeArguments.Count > 0
+                                          && leftNamed.TypeArguments.Count == rightNamed.TypeArguments.Count )
         {
             if ( !leftNamed.Definition.Equals( rightNamed.Definition ) )
             {

@@ -10,7 +10,7 @@ using System.Reflection.Emit;
 
 namespace Metalama.Framework.Engine.Utilities.AssemblyLoaders;
 
-internal class NetCoreAssemblyLoader : AssemblyLoader
+internal sealed class NetCoreAssemblyLoader : AssemblyLoader
 {
     private static readonly PropertyInfo _isCollectibleProperty = typeof(Assembly).GetProperty( "IsCollectible" )
                                                                   ?? throw new InvalidOperationException( "Cannot find the Assembly.IsCollectible property" );

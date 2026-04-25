@@ -130,6 +130,6 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
         public bool TryGetSyntaxTreeVersion( string path, out SyntaxTreeVersion syntaxTreeVersion )
             => this.SyntaxTrees.AssertNotNull().TryGetValue( path, out syntaxTreeVersion );
 
-        public override string ToString() => this.Compilation.AssemblyName ?? this.GetType().Name;
+        public override string ToString() => this.Compilation.AssemblyName ?? nameof(ProjectVersion);
     }
 }

@@ -21,9 +21,7 @@ namespace Metalama.Patterns.Contracts.AspectTests.Fabric_Project_Required_String
     {
         // [Required] on string parameter should NOT trigger LAMA5003 because [Required]
         // checks for empty/whitespace strings, which [NotNull] does not.
-        public void PrintString( [Required] string foo )
-        {
-        }
+        public void PrintString( [Required] string foo ) { }
 
         // [Required] on string property should also be silently skipped.
         [Required]

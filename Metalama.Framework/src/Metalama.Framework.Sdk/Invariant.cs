@@ -13,10 +13,6 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using NotNullAttribute = System.Diagnostics.CodeAnalysis.NotNullAttribute;
 
-#if DEBUG
-using System.Linq;
-#endif
-
 namespace Metalama.Framework.Engine
 {
     /// <summary>
@@ -272,6 +268,19 @@ namespace Metalama.Framework.Engine
 #endif
         }
 
+        // ReSharper disable once ReturnTypeCanBeNotNullable
+
+        /// <summary>
+        /// Checks that a nullable value is non-null and throws an <see cref="AssertionFailedException"/> if it is not.
+        /// </summary>
+#if !DEBUG
+        [MethodImpl( MethodImplOptions.AggressiveInlining )]
+#endif
+        [DebuggerStepThrough]
+        public static T? CanBeNull<T>( this T obj, string? description = null )
+            where T : class?
+            => obj;
+
 #if !DEBUG
         [MethodImpl( MethodImplOptions.AggressiveInlining )]
 #endif
@@ -431,7 +440,7 @@ namespace Metalama.Framework.Engine
             Comparison<TComparable> comparison )
         {
 #if DEBUG
-            var materialized = items.Materialize();
+            var materialized = new List<TItem>( items );
 
             for ( var i = 1; i < materialized.Count; i++ )
             {

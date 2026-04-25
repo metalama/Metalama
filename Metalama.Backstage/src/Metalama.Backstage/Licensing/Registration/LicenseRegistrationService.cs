@@ -28,7 +28,7 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
     public LicenseRegistrationService( IServiceProvider serviceProvider )
     {
         this._serviceProvider = serviceProvider;
-        this._logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
+        this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(LicenseRegistrationService) );
         this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._userDeviceDetectionService = serviceProvider.GetRequiredBackstageService<IUserDeviceDetectionService>();
         this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
@@ -110,11 +110,7 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
         var factory = new UnsignedLicenseFactory( this._serviceProvider );
         var communityLicense = factory.CreateLegacyFreeLicense();
 
-        this._configurationManager.Update<LicensingConfiguration>(
-            config =>
-            {
-                return config.SetLicense( communityLicense );
-            } );
+        this._configurationManager.Update<LicensingConfiguration>( config => config.SetLicense( communityLicense ) );
 
         return LicenseRegistrationResult.Success( communityLicense );
     }

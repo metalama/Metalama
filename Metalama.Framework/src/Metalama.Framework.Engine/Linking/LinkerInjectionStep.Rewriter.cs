@@ -25,6 +25,7 @@ using System.Linq;
 using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using MethodKind = Metalama.Framework.Code.MethodKind;
+using RefKind = Microsoft.CodeAnalysis.RefKind;
 
 namespace Metalama.Framework.Engine.Linking;
 
@@ -211,9 +212,9 @@ internal sealed partial class LinkerInjectionStep
                             targetList.Add( trivia );
                         }
                         else if ( !commentFound && trivia.Kind() is SyntaxKind.SingleLineCommentTrivia
-                            or SyntaxKind.MultiLineCommentTrivia
-                            or SyntaxKind.SingleLineDocumentationCommentTrivia
-                            or SyntaxKind.MultiLineDocumentationCommentTrivia )
+                                     or SyntaxKind.MultiLineCommentTrivia
+                                     or SyntaxKind.SingleLineDocumentationCommentTrivia
+                                     or SyntaxKind.MultiLineDocumentationCommentTrivia )
                         {
                             commentFound = true;
 
@@ -384,8 +385,7 @@ internal sealed partial class LinkerInjectionStep
                  && parameterList != originalParameterList
                  && !this.HasUserDefinedDeconstruct( node, originalParameterList.Parameters.Count ) )
             {
-                members.Add(
-                    RecordDeconstructSyntaxHelper.GenerateDeconstructMethod( originalParameterList, syntaxGenerationContext ) );
+                members.Add( RecordDeconstructSyntaxHelper.GenerateDeconstructMethod( originalParameterList, syntaxGenerationContext ) );
             }
 
             // Process the type members.
@@ -506,7 +506,8 @@ internal sealed partial class LinkerInjectionStep
 
                         break;
 
-                    case DeclarationKind.Property or DeclarationKind.Indexer when injectedMember.Declaration is IFullRef<IPropertyOrIndexer> propertyOrIndexerRef:
+                    case DeclarationKind.Property or DeclarationKind.Indexer
+                        when injectedMember.Declaration is IFullRef<IPropertyOrIndexer> propertyOrIndexerRef:
                         var propertyOrIndexer = propertyOrIndexerRef.Definition;
 
                         if ( propertyOrIndexer.GetMethod != null )
@@ -559,12 +560,16 @@ internal sealed partial class LinkerInjectionStep
                 // When a field is promoted to a property, transfer XML doc comments from the field to the property
                 // (the public semantic). Regular comments and directives stay with the backing field and are handled
                 // in LinkerRewritingDriver.Properties.cs when the backing field is generated.
-                if ( injectedMember is { Semantic: InjectedMemberSemantic.Introduction, Kind: DeclarationKind.Property }
-                     && injectedMember.Transformation is IReplaceMemberTransformation { ReplacedMember: ISymbolRef<IField> replacedFieldRef } )
+                if ( injectedMember is
+                    {
+                        Semantic: InjectedMemberSemantic.Introduction, Kind: DeclarationKind.Property,
+                        Transformation: IReplaceMemberTransformation { ReplacedMember: ISymbolRef<IField> replacedFieldRef }
+                    } )
                 {
                     var fieldSyntaxReference = replacedFieldRef.Symbol.GetPrimarySyntaxReference();
 
-                    if ( fieldSyntaxReference?.GetSyntax().Parent?.Parent is { RawKind: (int) SyntaxKind.FieldDeclaration } and FieldDeclarationSyntax fieldDeclaration )
+                    if ( fieldSyntaxReference?.GetSyntax().Parent?.Parent is { RawKind: (int) SyntaxKind.FieldDeclaration }
+                        and FieldDeclarationSyntax fieldDeclaration )
                     {
                         var docTrivia = TriviaHelper.GetDocumentationTrivia( fieldDeclaration );
 
@@ -637,7 +642,8 @@ internal sealed partial class LinkerInjectionStep
                         }
 #endif
 
-                    case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when injectedNode is TypeDeclarationSyntax typeDeclaration:
+                    case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
+                        or SyntaxKind.RecordStructDeclaration when injectedNode is TypeDeclarationSyntax typeDeclaration:
 
                         var typeBuilder = (NamedTypeBuilderData) injectedMember.BuilderData.AssertNotNull();
                         var injectedTypeMembers = new List<MemberDeclarationSyntax>();
@@ -751,7 +757,7 @@ internal sealed partial class LinkerInjectionStep
             switch ( currentNode.Kind() )
             {
                 case SyntaxKind.ConstructorDeclaration when currentNode is ConstructorDeclarationSyntax { Body: { } body } constructor:
-                    return constructor.WithBody( ReplaceBlock( contextDeclaration, entryStatements, exitStatements, body ) );
+                    return constructor.WithBody( ReplaceBlock( contextDeclaration, body ) );
 
                 case SyntaxKind.ConstructorDeclaration when currentNode is ConstructorDeclarationSyntax { ExpressionBody: { } expressionBody } constructor:
                     return
@@ -769,7 +775,7 @@ internal sealed partial class LinkerInjectionStep
 
                 // Static constructor overrides also go here.
                 case SyntaxKind.MethodDeclaration when currentNode is MethodDeclarationSyntax { Body: { } body } method:
-                    return method.WithBody( ReplaceBlock( contextDeclaration, entryStatements, exitStatements, body ) );
+                    return method.WithBody( ReplaceBlock( contextDeclaration, body ) );
 
                 case SyntaxKind.MethodDeclaration when currentNode is MethodDeclarationSyntax { ExpressionBody: { } expressionBody } method:
                     var returnsVoid =
@@ -794,7 +800,7 @@ internal sealed partial class LinkerInjectionStep
                         semicolonToken: default(SyntaxToken) );
 
                 case SyntaxKind.OperatorDeclaration when currentNode is OperatorDeclarationSyntax { Body: { } body } @operator:
-                    return @operator.WithBody( ReplaceBlock( contextDeclaration, entryStatements, exitStatements, body ) );
+                    return @operator.WithBody( ReplaceBlock( contextDeclaration, body ) );
 
                 case SyntaxKind.OperatorDeclaration when currentNode is OperatorDeclarationSyntax { ExpressionBody: { } expressionBody } @operator:
                     return
@@ -833,7 +839,10 @@ internal sealed partial class LinkerInjectionStep
                                             ReplaceExpression( entryStatements, exitStatements, expressionBody.Expression, false ) ) ) ) );
                     }
 
-                case SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration when currentNode is BasePropertyDeclarationSyntax { AccessorList: { } accessorList } propertyOrIndexer:
+                case SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration when currentNode is BasePropertyDeclarationSyntax
+                {
+                    AccessorList: { } accessorList
+                } propertyOrIndexer:
                     {
                         var methodRef = contextDeclaration.As<IMethod>();
                         var methodKind = methodRef.Definition.MethodKind;
@@ -851,8 +860,6 @@ internal sealed partial class LinkerInjectionStep
                                                         { Body: { } body } => a.WithBody(
                                                             ReplaceBlock(
                                                                 contextDeclaration,
-                                                                entryStatements,
-                                                                exitStatements,
                                                                 body ) ),
                                                         { ExpressionBody: { } expressionBody } =>
                                                             a.PartialUpdate(
@@ -883,11 +890,7 @@ internal sealed partial class LinkerInjectionStep
                     throw new AssertionFailedException( $"Not supported: {currentNode}" );
             }
 
-            BlockSyntax ReplaceBlock(
-                IFullRef<IMember> declaration,
-                IReadOnlyList<StatementSyntax> entryStatements,
-                IReadOnlyList<StatementSyntax> exitStatements,
-                BlockSyntax targetBlock )
+            BlockSyntax ReplaceBlock( IFullRef<IMember> declaration, BlockSyntax targetBlock )
             {
                 if ( exitStatements.Count > 0 )
                 {
@@ -1120,11 +1123,13 @@ internal sealed partial class LinkerInjectionStep
 
             return member.Kind() switch
             {
-                SyntaxKind.ConstructorDeclaration when member is ConstructorDeclarationSyntax constructor => Singleton( this.VisitConstructorDeclarationCore( constructor ) ),
+                SyntaxKind.ConstructorDeclaration when member is ConstructorDeclarationSyntax constructor => Singleton(
+                    this.VisitConstructorDeclarationCore( constructor ) ),
                 SyntaxKind.MethodDeclaration when member is MethodDeclarationSyntax method => Singleton( this.VisitMethodDeclarationCore( method ) ),
                 SyntaxKind.PropertyDeclaration when member is PropertyDeclarationSyntax property => Singleton( this.VisitPropertyDeclarationCore( property ) ),
                 SyntaxKind.IndexerDeclaration when member is IndexerDeclarationSyntax indexer => Singleton( this.VisitIndexerDeclarationCore( indexer ) ),
-                SyntaxKind.OperatorDeclaration when member is OperatorDeclarationSyntax @operator => Singleton( this.VisitOperatorDeclarationCore( @operator ) ),
+                SyntaxKind.OperatorDeclaration when member is OperatorDeclarationSyntax @operator =>
+                    Singleton( this.VisitOperatorDeclarationCore( @operator ) ),
                 SyntaxKind.EventDeclaration when member is EventDeclarationSyntax @event => Singleton( this.VisitEventDeclarationCore( @event ) ),
                 SyntaxKind.FieldDeclaration when member is FieldDeclarationSyntax field => this.VisitFieldDeclarationCore( field ),
                 SyntaxKind.EventFieldDeclaration when member is EventFieldDeclarationSyntax @eventField => this.VisitEventFieldDeclarationCore( @eventField ),
@@ -1245,12 +1250,9 @@ internal sealed partial class LinkerInjectionStep
             return typeSymbol.GetMembers( "Deconstruct" )
                 .OfType<IMethodSymbol>()
                 .Any(
-                    m => !m.IsImplicitlyDeclared
-                         && !m.IsStatic
-                         && m.ReturnsVoid
-                         && !m.IsGenericMethod
+                    m => m is { IsImplicitlyDeclared: false, IsStatic: false, ReturnsVoid: true, IsGenericMethod: false }
                          && m.Parameters.Length == parameterCount
-                         && m.Parameters.All( p => p.RefKind == Microsoft.CodeAnalysis.RefKind.Out ) );
+                         && m.Parameters.All( p => p.RefKind == RefKind.Out ) );
         }
 
         private ConstructorInitializerSyntax? AppendInitializerArguments(
@@ -1827,7 +1829,7 @@ internal sealed partial class LinkerInjectionStep
                     var eventDeclaration = EventFieldDeclaration(
                         default,
                         node.Modifiers,
-                        Token( TriviaList(), SyntaxKind.EventKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ),
+                        Token( TriviaList(), SyntaxKind.EventKeyword, ElasticSpaceTriviaList ),
                         declaration,
                         Token( default, SyntaxKind.SemicolonToken, context.TwoElasticEndOfLinesTriviaList ) );
 

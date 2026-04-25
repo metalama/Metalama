@@ -25,7 +25,8 @@ internal static partial class DocumentationIdHelper
 
         private void BuildDottedName( INamedType namedType )
         {
-            var success = namedType.ContainingDeclaration?.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock && namedType.ContainingDeclaration is INamedType containingType
+            var success = namedType.ContainingDeclaration?.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
+                          && namedType.ContainingDeclaration is INamedType containingType
                 ? this.Visit( containingType )
                 : this.Visit( namedType.ContainingNamespace );
 

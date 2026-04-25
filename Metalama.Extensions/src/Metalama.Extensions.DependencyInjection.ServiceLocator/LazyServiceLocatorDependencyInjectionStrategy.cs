@@ -10,7 +10,7 @@ using System;
 
 namespace Metalama.Extensions.DependencyInjection.ServiceLocator;
 
-internal class LazyServiceLocatorDependencyInjectionStrategy : DefaultDependencyInjectionStrategy, ITemplateProvider
+internal sealed class LazyServiceLocatorDependencyInjectionStrategy : DefaultDependencyInjectionStrategy, ITemplateProvider
 {
     public LazyServiceLocatorDependencyInjectionStrategy( DependencyProperties properties ) : base( properties ) { }
 
@@ -134,7 +134,7 @@ internal class LazyServiceLocatorDependencyInjectionStrategy : DefaultDependency
         }
     }
 
-    public class PropertyArgs
+    private sealed class PropertyArgs
     {
         public IField? CacheField { get; set; }
 

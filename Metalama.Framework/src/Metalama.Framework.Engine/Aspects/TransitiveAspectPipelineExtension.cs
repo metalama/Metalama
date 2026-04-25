@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Aspects;
 
-internal partial class TransitiveAspectPipelineExtension : PipelineExtension
+internal sealed partial class TransitiveAspectPipelineExtension : PipelineExtension
 {
     public override IEnumerable<ITransitiveAspectsManifestExtension> GetTransitiveManifestExtensions( IEnumerable<ITransitivePipelineContributor> contributors )
         => contributors.OfKind( ContributorKind.TransitiveAspectInstance ).Select( x => new SerializableTransitiveAspectInstance( x ) );

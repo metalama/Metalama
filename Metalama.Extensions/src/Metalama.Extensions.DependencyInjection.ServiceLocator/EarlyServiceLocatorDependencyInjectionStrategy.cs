@@ -9,7 +9,7 @@ using System;
 
 namespace Metalama.Extensions.DependencyInjection.ServiceLocator;
 
-internal class EarlyServiceLocatorDependencyInjectionStrategy : DefaultDependencyInjectionStrategy, ITemplateProvider
+internal sealed class EarlyServiceLocatorDependencyInjectionStrategy : DefaultDependencyInjectionStrategy, ITemplateProvider
 {
     public EarlyServiceLocatorDependencyInjectionStrategy( DependencyProperties properties ) : base( properties ) { }
 

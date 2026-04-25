@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Queries.Diagnostics;
@@ -9,6 +10,7 @@ using System;
 
 namespace Metalama.Framework.Engine.Extensibility;
 
+[PublicAPI]
 public abstract class ContributorKind
 {
     protected ContributorKind( string name )
@@ -41,7 +43,8 @@ public abstract class ContributorKind
 }
 
 #pragma warning disable SA1402
-public class ContributorKind<T> : ContributorKind
+[PublicAPI]
+public sealed class ContributorKind<T> : ContributorKind
 #pragma warning restore SA1402
     where T : IContributor
 {

@@ -48,8 +48,7 @@ internal sealed class OverrideMethodAdvice : OverrideMemberAdvice<IMethod, IMeth
         // emit a transformation to update the HasImplementation flag in the code model.
         if ( !targetMethod.HasImplementation )
         {
-            context.AddTransformation(
-                new SetHasImplementationTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef().As<IMember>() ) );
+            context.AddTransformation( new SetHasImplementationTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef().As<IMember>() ) );
         }
 
         return this.CreateSuccessResult( targetMethod );

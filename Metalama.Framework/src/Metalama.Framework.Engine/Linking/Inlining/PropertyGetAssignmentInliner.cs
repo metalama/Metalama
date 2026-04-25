@@ -20,9 +20,9 @@ internal sealed class PropertyGetAssignmentInliner : PropertyGetInliner
         // The syntax needs to be in form: <variable> = <annotated_property_expression>;
         if ( aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Property
              && (aspectReference.ResolvedSemantic.Symbol.Kind != SymbolKind.Method
-                 || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol
-                 || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol?.Kind != SymbolKind.Property
-                 || (aspectReference.ResolvedSemantic.Symbol as IMethodSymbol)?.AssociatedSymbol is not IPropertySymbol) )
+                 || aspectReference.ResolvedSemantic.Symbol is not IMethodSymbol methodSymbol
+                 || methodSymbol.AssociatedSymbol?.Kind != SymbolKind.Property
+                 || methodSymbol.AssociatedSymbol is not IPropertySymbol) )
         {
             // Coverage: ignore (hit only when the check in base class is incorrect).
             return false;
@@ -31,7 +31,8 @@ internal sealed class PropertyGetAssignmentInliner : PropertyGetInliner
         // The property access (possibly through parentheses or null-forgiving) should be the right side of an assignment.
         var expressionOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( aspectReference.RootExpression );
 
-        if ( !expressionOrWrapped.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) || expressionOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        if ( !expressionOrWrapped.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression )
+             || expressionOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }
@@ -51,7 +52,8 @@ internal sealed class PropertyGetAssignmentInliner : PropertyGetInliner
 
         // Assignment should have a local on the left (TODO: ref returns).
         if ( !assignmentExpression.Left.IsKind( SyntaxKind.IdentifierName ) || assignmentExpression.Left is not IdentifierNameSyntax
-             || semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol?.Kind != SymbolKind.Local )
+                                                                            || semanticModel.GetSymbolInfo( assignmentExpression.Left ).Symbol?.Kind
+                                                                            != SymbolKind.Local )
         {
             return false;
         }

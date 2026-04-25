@@ -13,6 +13,7 @@ using Xunit.Abstractions;
 
 namespace Metalama.Backstage.Testing;
 
+[PublicAPI]
 public class TestLoggerFactory : ILoggerFactory
 {
     private readonly ConcurrentDictionary<string, ILogger> _loggers = new();
@@ -46,7 +47,7 @@ public class TestLoggerFactory : ILoggerFactory
 
     public event Action<string>? MessageReported;
 
-    private class Logger : ILogger
+    private sealed class Logger : ILogger
     {
         private readonly string _category;
         private readonly TestLoggerFactory _parent;
@@ -61,18 +62,18 @@ public class TestLoggerFactory : ILoggerFactory
             this.Error = new LogWriter( this._category, Severity.Error, this._parent );
         }
 
-        public ILogWriter? Trace { get; set; }
+        public ILogWriter? Trace { get; }
 
-        public ILogWriter? Info { get; set; }
+        public ILogWriter? Info { get; }
 
-        public ILogWriter? Warning { get; set; }
+        public ILogWriter? Warning { get; }
 
-        public ILogWriter? Error { get; set; }
+        public ILogWriter? Error { get; }
 
         public ILogger WithPrefix( string prefix ) => this._parent.GetLogger( this._category + "." + prefix );
     }
 
-    private class LogWriter : ILogWriter
+    private sealed class LogWriter : ILogWriter
     {
         private readonly string _category;
         private readonly Severity _severity;

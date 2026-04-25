@@ -9,6 +9,7 @@ using Metalama.Patterns.Caching.TestHelpers;
 using Xunit;
 using Xunit.Abstractions;
 
+// ReSharper disable UnusedMethodReturnValue.Local
 // ReSharper disable MemberCanBeMadeStatic.Local
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedParameter.Global

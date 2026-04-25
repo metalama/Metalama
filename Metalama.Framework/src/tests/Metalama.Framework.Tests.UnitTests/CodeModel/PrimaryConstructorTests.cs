@@ -431,6 +431,7 @@ class A { public A(int x) {} }
             "class",
             "struct",
 #endif
+
             "record", "record class", "record struct"
         };
 

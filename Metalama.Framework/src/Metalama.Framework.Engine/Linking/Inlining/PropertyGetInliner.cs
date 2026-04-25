@@ -14,9 +14,9 @@ internal abstract class PropertyGetInliner : PropertyInliner
         var property =
             symbol.Kind == SymbolKind.Property && symbol is IPropertySymbol propertySymbol
                 ? propertySymbol
-                : (symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { AssociatedSymbol: IPropertySymbol associatedProperty }
+                : symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { AssociatedSymbol: IPropertySymbol associatedProperty }
                     ? associatedProperty
-                    : null);
+                    : null;
 
         return property is { GetMethod: not null }
                && !property.GetMethod.IsIteratorMethod();

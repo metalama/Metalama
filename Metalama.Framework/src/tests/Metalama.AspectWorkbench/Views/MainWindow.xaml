@@ -96,7 +96,7 @@
 
             <DockPanel Grid.Column="4" Visibility="{Binding Path=CompiledTemplateVisibility}">
                 <TextBlock DockPanel.Dock="Top">
-                        Compiled Template
+                    Compiled Template
                 </TextBlock>
                 <RichTextBox Name="compiledTemplateRichBox" IsReadOnly="True" HorizontalAlignment="Stretch"
                              VerticalAlignment="Stretch" HorizontalScrollBarVisibility="Auto"

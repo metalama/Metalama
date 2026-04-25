@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
+// ReSharper disable AccessToDisposedClosure
+
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
 /// <summary>
@@ -98,6 +100,7 @@ public sealed partial class ClientEndpointTests : RpcUnitTestClass
         var winnerTask = clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         // Wait for winner to complete.
+        // ReSharper disable once RedundantWithCancellation
         var winnerResult = await winnerTask.WithCancellation( testContext.CancellationToken );
         Assert.True( winnerResult );
 
@@ -109,6 +112,8 @@ public sealed partial class ClientEndpointTests : RpcUnitTestClass
 
         // Should complete immediately since initialization is already done.
         Assert.True( loserTask.IsCompleted );
+        
+        // ReSharper disable once RedundantWithCancellation
         var loserResult = await loserTask.WithCancellation( testContext.CancellationToken );
         Assert.False( loserResult );
     }

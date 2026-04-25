@@ -236,6 +236,7 @@ internal sealed class AspectDriver : IAspectDriver
                         adviceFactoryState.AspectBuilderState.GetTagsReader( null ) ) )
                 .ToReadOnlyList();
 
+            // ReSharper disable AccessToDisposedClosure
             if ( !userCodeInvoker
                     .TryInvoke(
                         () =>
@@ -270,6 +271,8 @@ internal sealed class AspectDriver : IAspectDriver
 
             // Dispose the aspect builder so that any attempt to use it from templates will throw.
             aspectBuilder.Dispose();
+
+            // ReSharper restore AccessToDisposedClosure
 
             var aspectResult = aspectBuilderState.ToResult();
 

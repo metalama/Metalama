@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
@@ -15,17 +16,19 @@ namespace Metalama.Backstage.UserInterface.Toasts;
 /// <summary>
 /// The production implementation of <see cref="IToastNotificationStatusService"/>. 
 /// </summary>
+[PublicAPI]
 public sealed class ToastNotificationStatusService : IToastNotificationStatusService
 {
     private readonly IConfigurationManager _configurationManager;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger _logger;
 
+    [PublicAPI]
     public ToastNotificationStatusService( IServiceProvider serviceProvider )
     {
         this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
         this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
-        this._logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
+        this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(ToastNotificationStatusService) );
     }
 
     private bool IsEnabled( ToastNotificationKind kind, ToastNotificationsConfiguration configuration )

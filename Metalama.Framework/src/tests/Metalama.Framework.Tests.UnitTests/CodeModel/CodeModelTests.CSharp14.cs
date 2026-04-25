@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.CodeModel.Source;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
+using Accessibility = Microsoft.CodeAnalysis.Accessibility;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
@@ -162,10 +163,10 @@ public sealed partial class CodeModelTests
         var roslynAccessibility = sourceExtensionBlock.Symbol.DeclaredAccessibility;
 
         // Roslyn reports Public accessibility for extension blocks.
-        Assert.Equal( Microsoft.CodeAnalysis.Accessibility.Public, roslynAccessibility );
+        Assert.Equal( Accessibility.Public, roslynAccessibility );
 
         // The code model maps this to Public.
-        Assert.Equal( Accessibility.Public, codeModelAccessibility );
+        Assert.Equal( Code.Accessibility.Public, codeModelAccessibility );
     }
 
     [Fact]
@@ -262,10 +263,10 @@ public sealed partial class CodeModelTests
 
         // Output the findings for analysis.
         // Extension method attributes:
-        Assert.NotNull( extensionMethodMyMethodAttr ); // Extension method has the attribute.
+        Assert.NotNull( extensionMethodMyMethodAttr );       // Extension method has the attribute.
         Assert.NotNull( extensionMethodReturnMyReturnAttr ); // Extension method return has the attribute.
-        Assert.NotNull( extensionMethodParamMyParamAttr ); // Extension method param has the attribute.
-        Assert.NotNull( extensionGetterMyMethodAttr ); // Extension getter has the attribute.
+        Assert.NotNull( extensionMethodParamMyParamAttr );   // Extension method param has the attribute.
+        Assert.NotNull( extensionGetterMyMethodAttr );       // Extension getter has the attribute.
 
         // Implementation method attributes - document what Roslyn does:
         // These assertions document the observed behavior. If they fail, Roslyn's behavior has changed.
@@ -304,8 +305,8 @@ public sealed partial class CodeModelTests
         Assert.True( getterAttrMirrored, "Roslyn mirrors accessor attributes to implementation" );
 
         // Verify the implementation method has the expected structure.
-        Assert.Equal( 2, implMethod!.Parameters.Count ); // receiver + x
-        Assert.Single( implGetter!.Parameters ); // receiver only
+        Assert.Equal( 2, implMethod.Parameters.Count ); // receiver + x
+        Assert.Single( implGetter.Parameters );         // receiver only
     }
 }
 

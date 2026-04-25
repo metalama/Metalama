@@ -71,17 +71,23 @@ public sealed partial class ContextualSyntaxGenerator
     internal TypeOfExpressionSyntax TypeOfExpression(
         ITypeSymbol type,
         IReadOnlyDictionary<string, TypeSyntax>? substitutions = null,
-        bool keepNullableAnnotations = false )
+        bool keepNullableAnnotations = false,
+        bool preferConstructedType = false )
     {
         var typeSyntax = this.TypeSyntax( type );
 
-        if ( type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol { IsGenericType: true } namedType )
+        // By default, a generic type whose type arguments are its own type parameters is emitted as the unbound generic type
+        // (e.g. 'List<>'). When preferConstructedType is true, we keep the constructed form (e.g. 'List<T>'), which is what
+        // callers want when the type parameters are in scope at the emission site (e.g. for a template's canonical self-instance).
+        var shouldRemoveTypeArguments = type.Kind == SymbolKind.NamedType
+                                        && type is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol
+                                        && namedTypeSymbol.IsGenericTypeDefinition()
+                                        && !preferConstructedType;
+
+        if ( shouldRemoveTypeArguments )
         {
-            if ( namedType.IsGenericTypeDefinition() )
-            {
-                // In generic definitions, we must remove type arguments.
-                typeSyntax = (TypeSyntax) new RemoveTypeArgumentsRewriter().Visit( typeSyntax ).AssertNotNull();
-            }
+            // In generic definitions, we must remove type arguments.
+            typeSyntax = (TypeSyntax) new RemoveTypeArgumentsRewriter().Visit( typeSyntax ).AssertNotNull();
         }
 
         if ( !keepNullableAnnotations )
@@ -95,13 +101,13 @@ public sealed partial class ContextualSyntaxGenerator
         // In any typeof, we must change dynamic to object.
         typeSyntax = (TypeSyntax) dynamicToVarRewriter.Visit( typeSyntax ).AssertNotNull();
 
-        SafeSyntaxRewriter rewriter = type.Kind switch
-        {
-            SymbolKind.NamedType when type is INamedTypeSymbol { IsGenericType: true } genericType && genericType.IsGenericTypeDefinition() =>
-                new RemoveTypeArgumentsRewriter(),
-            SymbolKind.NamedType when type is INamedTypeSymbol { IsGenericType: true } => new RemoveReferenceNullableAnnotationsRewriterForSymbol( type ),
-            _ => dynamicToVarRewriter
-        };
+        SafeSyntaxRewriter rewriter = shouldRemoveTypeArguments
+            ? new RemoveTypeArgumentsRewriter()
+            : type.Kind switch
+            {
+                SymbolKind.NamedType when type is INamedTypeSymbol { IsGenericType: true } => new RemoveReferenceNullableAnnotationsRewriterForSymbol( type ),
+                _ => dynamicToVarRewriter
+            };
 
         var rewrittenTypeSyntax = rewriter.Visit( typeSyntax ).AssertNotNull();
 
@@ -119,17 +125,25 @@ public sealed partial class ContextualSyntaxGenerator
         IType type,
         IReadOnlyDictionary<string, TypeSyntax>? substitutions = null,
         bool keepNullableAnnotations = false,
-        bool bypassSymbols = false )
+        bool bypassSymbols = false,
+        bool preferConstructedType = false )
     {
         if ( type.GetSymbol() is { } symbol && !bypassSymbols )
         {
-            return this.TypeOfExpression( symbol, substitutions, keepNullableAnnotations );
+            return this.TypeOfExpression( symbol, substitutions, keepNullableAnnotations, preferConstructedType );
         }
 
         var typeSyntax = this.TypeSyntax( type );
 
-        if ( type.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
-             && type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } )
+        // By default, a generic type whose type arguments are its own type parameters is emitted as the unbound generic type
+        // (e.g. 'List<>'). When preferConstructedType is true, we keep the constructed form (e.g. 'List<T>'), which is what
+        // callers want when the type parameters are in scope at the emission site (e.g. for a template's canonical self-instance).
+        var shouldRemoveTypeArguments =
+            type.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
+            && type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true }
+            && !preferConstructedType;
+
+        if ( shouldRemoveTypeArguments )
         {
             // In generic definitions, we must remove type arguments.
             typeSyntax = (TypeSyntax) new RemoveTypeArgumentsRewriter().Visit( typeSyntax ).AssertNotNull();
@@ -146,14 +160,14 @@ public sealed partial class ContextualSyntaxGenerator
         // In any typeof, we must change dynamic to object.
         typeSyntax = (TypeSyntax) dynamicToVarRewriter.Visit( typeSyntax ).AssertNotNull();
 
-        SafeSyntaxRewriter rewriter = type.TypeKind switch
-        {
-            TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
-                when type is INamedType { TypeParameters.Count: > 0, IsCanonicalGenericInstance: true } => new RemoveTypeArgumentsRewriter(),
-            TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
-                when type is INamedType { TypeParameters.Count: > 0 } => new RemoveReferenceNullableAnnotationsRewriter( type ),
-            _ => dynamicToVarRewriter
-        };
+        SafeSyntaxRewriter rewriter = shouldRemoveTypeArguments
+            ? new RemoveTypeArgumentsRewriter()
+            : type.TypeKind switch
+            {
+                TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Extension
+                    when type is INamedType { TypeParameters.Count: > 0 } => new RemoveReferenceNullableAnnotationsRewriter( type ),
+                _ => dynamicToVarRewriter
+            };
 
         var rewrittenTypeSyntax = rewriter.Visit( typeSyntax ).AssertNotNull();
 
@@ -599,8 +613,7 @@ public sealed partial class ContextualSyntaxGenerator
         }
     }
 
-    internal TypeSyntax TypeSyntax( System.Type type )
-        => this.TypeSyntax( this.SyntaxGenerationContext.ReflectionMapper.GetTypeSymbol( type ) );
+    internal TypeSyntax TypeSyntax( Type type ) => this.TypeSyntax( this.SyntaxGenerationContext.ReflectionMapper.GetTypeSymbol( type ) );
 
     private ExpressionSyntax TypeExpression( ITypeSymbol symbol )
     {

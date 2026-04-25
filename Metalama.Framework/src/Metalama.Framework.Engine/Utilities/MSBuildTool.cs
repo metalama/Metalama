@@ -69,6 +69,7 @@ public sealed class MSBuildTool
             }
         }
 
+        // ReSharper disable once UsingStatementResourceInitialization
         using var process = new Process { StartInfo = startInfo };
 
         var lines = new List<string>();

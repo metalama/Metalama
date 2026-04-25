@@ -12,6 +12,8 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
+// ReSharper disable AccessToDisposedClosure
+
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
 /// <summary>
@@ -150,6 +152,7 @@ public sealed partial class BaseEndpointTests : RpcUnitTestClass
             _ =>
             {
                 taskStarted.SetResult( true );
+
                 throw new InvalidOperationException( "Test exception" );
             },
             "ThrowingTask" );

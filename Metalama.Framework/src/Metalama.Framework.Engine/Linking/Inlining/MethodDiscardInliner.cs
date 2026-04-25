@@ -27,7 +27,8 @@ internal sealed class MethodDiscardInliner : MethodInliner
             return false;
         }
 
-        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression ) || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
+        if ( !aspectReference.RootExpression.AssertNotNull().Parent.IsKind( SyntaxKind.InvocationExpression )
+             || aspectReference.RootExpression.AssertNotNull().Parent is not InvocationExpressionSyntax invocationExpression )
         {
             return false;
         }
@@ -35,7 +36,8 @@ internal sealed class MethodDiscardInliner : MethodInliner
         // The invocation (possibly through parentheses or null-forgiving) should be the right side of an assignment.
         var invocationOrWrapped = InlinerHelper.SkipParenthesizedExpressionAncestors( invocationExpression );
 
-        if ( !invocationOrWrapped.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) || invocationOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
+        if ( !invocationOrWrapped.Parent.IsKind( SyntaxKind.SimpleAssignmentExpression )
+             || invocationOrWrapped.Parent is not AssignmentExpressionSyntax assignmentExpression )
         {
             return false;
         }

@@ -1635,13 +1635,14 @@ public class ReferencedClass
                 foreach ( var csFile in csFiles )
                 {
                     Assert.True(
-                        ( File.GetAttributes( csFile ) & FileAttributes.ReadOnly ) != 0,
+                        (File.GetAttributes( csFile ) & FileAttributes.ReadOnly) != 0,
                         $"File '{csFile}' should be read-only." );
                 }
 
                 // Record the cache sub-path (relative to test base directory) and .cs file names.
                 cacheSubPath = compileTimeProject1.Directory.Substring( testContext1.BaseDirectory.Length ).TrimStart( Path.DirectorySeparatorChar );
-                csFileNames = Array.ConvertAll( csFiles, Path.GetFileName )!;
+
+                csFileNames = Array.ConvertAll( csFiles, s => Path.GetFileName( s ).AssertNotNull() );
             }
 
             // Second context: pre-populate the cache directory with read-only .cs files
@@ -1937,8 +1938,8 @@ public class ReferencedClass
 
             // Verify that the two builds use different cache artifact paths even under a case-insensitive comparison.
             Assert.NotEqual(
-                project1!.CompiledAssemblyPath,
-                project2!.CompiledAssemblyPath,
+                project1.CompiledAssemblyPath,
+                project2.CompiledAssemblyPath,
                 StringComparer.OrdinalIgnoreCase );
         }
     }

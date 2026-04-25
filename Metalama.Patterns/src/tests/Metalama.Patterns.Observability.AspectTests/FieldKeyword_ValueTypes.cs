@@ -17,7 +17,7 @@ public class FieldKeyword_ValueTypes
     public int Age
     {
         get => field;
-        set => field = value >= 0 ? value : throw new ArgumentOutOfRangeException( nameof( value ) );
+        set => field = value >= 0 ? value : throw new ArgumentOutOfRangeException( nameof(value) );
     }
 
     // Semi-automatic property with value type and clamping.

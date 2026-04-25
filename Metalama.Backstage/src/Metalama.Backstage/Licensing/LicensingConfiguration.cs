@@ -89,6 +89,7 @@ internal sealed record LicensingConfiguration : ConfigurationFile
             return null;
         }
 
+        // ReSharper disable once RedundantSuppressNullableWarningExpression
         if ( !LicenseKeyData.TryDeserialize( licenseKey!, out var licenseKeyData, out var errorMessage ) )
         {
             reportMessage?.Invoke( new LicensingMessage( errorMessage ) );

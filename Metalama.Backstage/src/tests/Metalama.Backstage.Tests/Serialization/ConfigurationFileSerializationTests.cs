@@ -41,20 +41,20 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         };
 
         const string expectedJson = """
-            {
-              "ExceptionReportingAction": 1,
-              "PerformanceProblemReportingAction": 2,
-              "UsageReportingAction": 0,
-              "DeviceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-              "LastUploadTime": "2025-01-15T10:30:00Z",
-              "Salt": 1234567890,
-              "LastSaltChangeTime": "2025-01-01T00:00:00Z",
-              "Issues": {},
-              "Sessions": {},
-              "LastMatomoPostTime": "2025-01-10T12:00:00Z",
-              "version": 5
-            }
-            """;
+                                    {
+                                      "ExceptionReportingAction": 1,
+                                      "PerformanceProblemReportingAction": 2,
+                                      "UsageReportingAction": 0,
+                                      "DeviceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                                      "LastUploadTime": "2025-01-15T10:30:00Z",
+                                      "Salt": 1234567890,
+                                      "LastSaltChangeTime": "2025-01-01T00:00:00Z",
+                                      "Issues": {},
+                                      "Sessions": {},
+                                      "LastMatomoPostTime": "2025-01-10T12:00:00Z",
+                                      "version": 5
+                                    }
+                                    """;
 
         this.TestSerialization(
             input,
@@ -78,24 +78,24 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         };
 
         const string expectedJson = """
-            {
-              "ExceptionReportingAction": 0,
-              "PerformanceProblemReportingAction": 0,
-              "UsageReportingAction": 0,
-              "DeviceId": null,
-              "LastUploadTime": null,
-              "Salt": null,
-              "LastSaltChangeTime": null,
-              "Issues": {
-                "ISSUE001": 1
-              },
-              "Sessions": {
-                "session1": "2025-01-15T10:00:00Z"
-              },
-              "LastMatomoPostTime": null,
-              "version": null
-            }
-            """;
+                                    {
+                                      "ExceptionReportingAction": 0,
+                                      "PerformanceProblemReportingAction": 0,
+                                      "UsageReportingAction": 0,
+                                      "DeviceId": null,
+                                      "LastUploadTime": null,
+                                      "Salt": null,
+                                      "LastSaltChangeTime": null,
+                                      "Issues": {
+                                        "ISSUE001": 1
+                                      },
+                                      "Sessions": {
+                                        "session1": "2025-01-15T10:00:00Z"
+                                      },
+                                      "LastMatomoPostTime": null,
+                                      "version": null
+                                    }
+                                    """;
 
         this.TestSerialization(
             input,
@@ -136,16 +136,16 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         };
 
         const string expectedJson = """
-            {
-              "processes": {
-                "Compiler": true
-              },
-              "trace": {
-                "Pipeline": true
-              },
-              "stopLoggingAfterHours": 4.5
-            }
-            """;
+                                    {
+                                      "processes": {
+                                        "Compiler": true
+                                      },
+                                      "trace": {
+                                        "Pipeline": true
+                                      },
+                                      "stopLoggingAfterHours": 4.5
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
@@ -161,12 +161,12 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         };
 
         const string expectedJson = """
-            {
-              "processes": {
-                "Compiler": true
-              }
-            }
-            """;
+                                    {
+                                      "processes": {
+                                        "Compiler": true
+                                      }
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
@@ -182,16 +182,16 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         };
 
         const string expectedJson = """
-            {
-              "processes": {
-                "Compiler": true
-              },
-              "exceptionTypes": [
-                "*",
-                "System.InvalidOperationException"
-              ]
-            }
-            """;
+                                    {
+                                      "processes": {
+                                        "Compiler": true
+                                      },
+                                      "exceptionTypes": [
+                                        "*",
+                                        "System.InvalidOperationException"
+                                      ]
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
@@ -207,13 +207,13 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         };
 
         const string expectedJson = """
-            {
-              "kind": "performance",
-              "processes": {
-                "Compiler": true
-              }
-            }
-            """;
+                                    {
+                                      "kind": "performance",
+                                      "processes": {
+                                        "Compiler": true
+                                      }
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
@@ -221,18 +221,14 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
     [Fact]
     public void CleanUpConfiguration_Serialization()
     {
-        var input = new CleanUpConfiguration
-        {
-            LastCleanUpTime = new DateTime( 2025, 1, 15, 10, 30, 0, DateTimeKind.Utc ),
-            Version = 1
-        };
+        var input = new CleanUpConfiguration { LastCleanUpTime = new DateTime( 2025, 1, 15, 10, 30, 0, DateTimeKind.Utc ), Version = 1 };
 
         const string expectedJson = """
-            {
-              "LastCleanUpTime": "2025-01-15T10:30:00Z",
-              "version": 1
-            }
-            """;
+                                    {
+                                      "LastCleanUpTime": "2025-01-15T10:30:00Z",
+                                      "version": 1
+                                    }
+                                    """;
 
         this.TestSerialization(
             input,
@@ -244,22 +240,17 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
     [Fact]
     public void WelcomeConfiguration_Serialization()
     {
-        var input = new WelcomeConfiguration
-        {
-            IsFirstStart = false,
-            WelcomePageDisplayed = true,
-            Version = 2
-        };
+        var input = new WelcomeConfiguration { IsFirstStart = false, WelcomePageDisplayed = true, Version = 2 };
 
         const string expectedJson = """
-            {
-              "IsFirstStart": false,
-              "IsFirstTimeEvaluationLicenseRegistrationPending": true,
-              "WelcomePageDisplayed": true,
-              "IsWelcomePagePending": true,
-              "version": 2
-            }
-            """;
+                                    {
+                                      "IsFirstStart": false,
+                                      "IsFirstTimeEvaluationLicenseRegistrationPending": true,
+                                      "WelcomePageDisplayed": true,
+                                      "IsWelcomePagePending": true,
+                                      "version": 2
+                                    }
+                                    """;
 
         this.TestSerialization(
             input,
@@ -278,28 +269,24 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             Notifications = ImmutableDictionary<string, ToastNotificationConfiguration>.Empty
                 .Add(
                     "notification1",
-                    new ToastNotificationConfiguration
-                    {
-                        SnoozeUntil = new DateTime( 2025, 2, 1, 0, 0, 0, DateTimeKind.Utc ),
-                        Disabled = false
-                    } ),
+                    new ToastNotificationConfiguration { SnoozeUntil = new DateTime( 2025, 2, 1, 0, 0, 0, DateTimeKind.Utc ), Disabled = false } ),
             Version = 1
         };
 
         const string expectedJson = """
-            {
-              "pauses": {
-                "pause1": "2025-01-20T12:00:00Z"
-              },
-              "notifications": {
-                "notification1": {
-                  "snoozeUntil": "2025-02-01T00:00:00Z",
-                  "disabled": false
-                }
-              },
-              "version": 1
-            }
-            """;
+                                    {
+                                      "pauses": {
+                                        "pause1": "2025-01-20T12:00:00Z"
+                                      },
+                                      "notifications": {
+                                        "notification1": {
+                                          "snoozeUntil": "2025-02-01T00:00:00Z",
+                                          "disabled": false
+                                        }
+                                      },
+                                      "version": 1
+                                    }
+                                    """;
 
         this.TestSerialization(
             input,
@@ -311,18 +298,14 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
     [Fact]
     public void ToastNotificationConfiguration_Serialization()
     {
-        var input = new ToastNotificationConfiguration
-        {
-            SnoozeUntil = new DateTime( 2025, 2, 1, 0, 0, 0, DateTimeKind.Utc ),
-            Disabled = true
-        };
+        var input = new ToastNotificationConfiguration { SnoozeUntil = new DateTime( 2025, 2, 1, 0, 0, 0, DateTimeKind.Utc ), Disabled = true };
 
         const string expectedJson = """
-            {
-              "snoozeUntil": "2025-02-01T00:00:00Z",
-              "disabled": true
-            }
-            """;
+                                    {
+                                      "snoozeUntil": "2025-02-01T00:00:00Z",
+                                      "disabled": true
+                                    }
+                                    """;
 
         this.TestSerialization( input, expectedJson );
     }
@@ -340,17 +323,17 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         };
 
         const string expectedJson = """
-            {
-              "lastEvaluationStartDate": "2025-01-01T00:00:00Z",
-              "license": "LEGACY-LICENSE-KEY",
-              "licenses": [
-                "LICENSE-KEY-1",
-                "LICENSE-KEY-2"
-              ],
-              "CommunityLicenseReason": 3,
-              "version": 3
-            }
-            """;
+                                    {
+                                      "lastEvaluationStartDate": "2025-01-01T00:00:00Z",
+                                      "license": "LEGACY-LICENSE-KEY",
+                                      "licenses": [
+                                        "LICENSE-KEY-1",
+                                        "LICENSE-KEY-2"
+                                      ],
+                                      "CommunityLicenseReason": 3,
+                                      "version": 3
+                                    }
+                                    """;
 
         this.TestSerialization(
             input,
@@ -362,18 +345,14 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
     [Fact]
     public void IdeExtensionsStatusConfiguration_Serialization()
     {
-        var input = new IdeExtensionsStatusConfiguration
-        {
-            IsVisualStudioExtensionInstalled = true,
-            Version = 1
-        };
+        var input = new IdeExtensionsStatusConfiguration { IsVisualStudioExtensionInstalled = true, Version = 1 };
 
         const string expectedJson = """
-            {
-              "vs": true,
-              "version": 1
-            }
-            """;
+                                    {
+                                      "vs": true,
+                                      "version": 1
+                                    }
+                                    """;
 
         this.TestSerialization(
             input,
@@ -394,15 +373,15 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         };
 
         const string expectedJson = """
-            {
-              "LastAuditTimes": {
-                "12345": "2025-01-15T10:00:00Z"
-              },
-              "LastMatomoAuditTime": "2025-01-14T08:00:00Z",
-              "IsFirstMatomoAudit": true,
-              "version": 1
-            }
-            """;
+                                    {
+                                      "LastAuditTimes": {
+                                        "12345": "2025-01-15T10:00:00Z"
+                                      },
+                                      "LastMatomoAuditTime": "2025-01-14T08:00:00Z",
+                                      "IsFirstMatomoAudit": true,
+                                      "version": 1
+                                    }
+                                    """;
 
         this.TestSerialization(
             input,
@@ -415,18 +394,14 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
     public void RssClientConfiguration_Serialization()
     {
         // Note: LastFetchTime is internal so it won't be serialized by ToJson()
-        var input = new RssClientConfiguration
-        {
-            PreferredFeed = RssFeed.Posts,
-            Version = 1
-        };
+        var input = new RssClientConfiguration { PreferredFeed = RssFeed.Posts, Version = 1 };
 
         const string expectedJson = """
-            {
-              "PreferredFeed": 1,
-              "version": 1
-            }
-            """;
+                                    {
+                                      "PreferredFeed": 1,
+                                      "version": 1
+                                    }
+                                    """;
 
         this.TestSerialization(
             input,
@@ -438,18 +413,14 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
     [Fact]
     public void UserInfo_Serialization()
     {
-        var input = new UserInfo
-        {
-            EmailAddress = "test@example.com",
-            Version = 1
-        };
+        var input = new UserInfo { EmailAddress = "test@example.com", Version = 1 };
 
         const string expectedJson = """
-            {
-              "emailAddress": "test@example.com",
-              "version": 1
-            }
-            """;
+                                    {
+                                      "emailAddress": "test@example.com",
+                                      "version": 1
+                                    }
+                                    """;
 
         this.TestSerialization(
             input,
@@ -464,11 +435,11 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         var input = new UserInfo();
 
         const string expectedJson = """
-            {
-              "emailAddress": null,
-              "version": null
-            }
-            """;
+                                    {
+                                      "emailAddress": null,
+                                      "version": null
+                                    }
+                                    """;
 
         this.TestSerialization(
             input,

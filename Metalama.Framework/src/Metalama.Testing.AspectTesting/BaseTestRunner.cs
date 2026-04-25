@@ -256,7 +256,10 @@ internal abstract partial class BaseTestRunner
                             .Visit( await parsedSyntaxTree.GetRootAsync() )!
                         : await parsedSyntaxTree.GetRootAsync();
 
-                if ( !acceptFileWithoutMember && prunedSyntaxRoot.IsKind( SyntaxKind.CompilationUnit ) && prunedSyntaxRoot is CompilationUnitSyntax { Members.Count: 0, AttributeLists.Count: 0 } )
+                if ( !acceptFileWithoutMember && prunedSyntaxRoot.IsKind( SyntaxKind.CompilationUnit ) && prunedSyntaxRoot is CompilationUnitSyntax
+                    {
+                        Members.Count: 0, AttributeLists.Count: 0
+                    } )
                 {
                     return (project, null);
                 }
@@ -397,7 +400,9 @@ internal abstract partial class BaseTestRunner
             }
 #pragma warning restore CS1998
 
-            async Task<(bool Success, Project Project, ImmutableArray<MetadataReference> References)> AddDependencyProjectAsync( Project baseProject, string basePath = "" )
+            async Task<(bool Success, Project Project, ImmutableArray<MetadataReference> References)> AddDependencyProjectAsync(
+                Project baseProject,
+                string basePath = "" )
             {
                 var dependencyName = Path.GetFileNameWithoutExtension( basePath ) + ".Dependency.cs";
                 var dependencyPath = Path.GetFullPath( Path.Combine( testDirectory, dependencyName ) );

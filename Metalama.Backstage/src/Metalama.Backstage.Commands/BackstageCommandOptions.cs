@@ -50,9 +50,9 @@ public sealed class BackstageCommandOptions
 
     internal ICommandServiceProviderProvider ServiceProvider { get; }
 
-    public TextWriter StandardOutput { get; }
+    internal TextWriter StandardOutput { get; }
 
-    public TextWriter ErrorOutput { get; }
+    internal TextWriter ErrorOutput { get; }
 
     internal IReadOnlyDictionary<string, ConfigurationFileCommandAdapter> ConfigurationFileCommandAdapters => this._configurationFileCommandAdapters;
 

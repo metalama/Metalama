@@ -468,6 +468,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
 
                             void IntroduceMethod( bool isExplicit, bool isOverride )
                             {
+                                // ReSharper disable once ArrangeRedundantParentheses
                                 var isIteratorMethod = templateMethod?.IsIteratorMethod ?? (redirectionTargetMethod.AssertNotNull().IsIteratorMethod() == true);
                                 var isVirtual = templateAttributeProperties?.IsVirtual ?? templateMethodDeclaration is { IsVirtual: true };
 

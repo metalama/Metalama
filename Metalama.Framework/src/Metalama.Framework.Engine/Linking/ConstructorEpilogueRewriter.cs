@@ -64,11 +64,11 @@ internal sealed class ConstructorEpilogueRewriter : SafeSyntaxRewriter
     }
 
     // Nested code regions with their own `return` semantics must not be rewritten.
-    public override SyntaxNode? VisitSimpleLambdaExpression( SimpleLambdaExpressionSyntax node ) => node;
+    public override SyntaxNode VisitSimpleLambdaExpression( SimpleLambdaExpressionSyntax node ) => node;
 
-    public override SyntaxNode? VisitParenthesizedLambdaExpression( ParenthesizedLambdaExpressionSyntax node ) => node;
+    public override SyntaxNode VisitParenthesizedLambdaExpression( ParenthesizedLambdaExpressionSyntax node ) => node;
 
-    public override SyntaxNode? VisitAnonymousMethodExpression( AnonymousMethodExpressionSyntax node ) => node;
+    public override SyntaxNode VisitAnonymousMethodExpression( AnonymousMethodExpressionSyntax node ) => node;
 
-    public override SyntaxNode? VisitLocalFunctionStatement( LocalFunctionStatementSyntax node ) => node;
+    public override SyntaxNode VisitLocalFunctionStatement( LocalFunctionStatementSyntax node ) => node;
 }

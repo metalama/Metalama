@@ -20,8 +20,12 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
         {
             var memberExpression = parameter.DeclaringMember?.DeclarationKind switch
             {
-                DeclarationKind.Method when parameter.DeclaringMember is IMethod method => CompileTimeMethodInfoSerializer.SerializeMethodBase( method, serializationContext ),
-                DeclarationKind.Indexer when parameter.DeclaringMember is IIndexer indexer => CompileTimePropertyInfoSerializer.SerializeProperty( indexer, serializationContext ),
+                DeclarationKind.Method when parameter.DeclaringMember is IMethod method => CompileTimeMethodInfoSerializer.SerializeMethodBase(
+                    method,
+                    serializationContext ),
+                DeclarationKind.Indexer when parameter.DeclaringMember is IIndexer indexer => CompileTimePropertyInfoSerializer.SerializeProperty(
+                    indexer,
+                    serializationContext ),
                 _ => throw new AssertionFailedException( $"Unexpected declaration type for '{parameter.DeclaringMember}'." )
             };
 

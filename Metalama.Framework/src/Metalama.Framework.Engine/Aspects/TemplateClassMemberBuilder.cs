@@ -60,7 +60,8 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
 
             switch ( templateInfo.AttributeType )
             {
-                case TemplateAttributeType.DeclarativeAdvice when memberSymbol.Kind == SymbolKind.Method && memberSymbol is IMethodSymbol { AssociatedSymbol: not null }:
+                case TemplateAttributeType.DeclarativeAdvice
+                    when memberSymbol.Kind == SymbolKind.Method && memberSymbol is IMethodSymbol { AssociatedSymbol: not null }:
                     // This is an accessor of a template or event declarative advice. We don't index them.
                     continue;
 
@@ -227,7 +228,8 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
                     break;
             }
 
-            if ( memberSymbol.Kind == SymbolKind.Method && memberSymbol is IMethodSymbol { MethodKind: MethodKind.PropertySet } && templateParameters.Length != 1 )
+            if ( memberSymbol.Kind == SymbolKind.Method && memberSymbol is IMethodSymbol { MethodKind: MethodKind.PropertySet }
+                                                        && templateParameters.Length != 1 )
             {
                 throw new AssertionFailedException( $"'{memberSymbol}' is a property setter but there is {templateParameters.Length} template parameters." );
             }

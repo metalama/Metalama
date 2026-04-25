@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
@@ -14,7 +15,7 @@ namespace Metalama.Backstage.Configuration;
 /// An implementation of <see cref="IConfigurationManager"/> that does not store the files, but keeps them in
 /// memory. This implementation is useful to build tests.
 /// </summary>
-public class InMemoryConfigurationManager : IConfigurationManager
+public sealed class InMemoryConfigurationManager : IConfigurationManager
 {
     private readonly IDateTimeProvider _timeProvider;
 
@@ -39,6 +40,7 @@ public class InMemoryConfigurationManager : IConfigurationManager
 
     public string GetFilePath( Type type ) => throw new NotSupportedException();
 
+    [PublicAPI]
     public void Set( ConfigurationFile file ) => this._files[file.GetType()] = file;
 
     public ConfigurationFile Get( Type type, bool ignoreCache = false )

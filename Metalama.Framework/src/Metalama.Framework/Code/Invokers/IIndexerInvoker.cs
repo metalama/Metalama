@@ -18,7 +18,7 @@ namespace Metalama.Framework.Code.Invokers
     /// <see cref="IExpression.Value"/> property.
     /// </para>
     /// <para>
-    /// Use <see cref="WithObject(dynamic)"/> to specify the target instance and <see cref="WithOptions"/> to control nullability behavior
+    /// Use <see cref="WithObject(object)"/> to specify the target instance and <see cref="WithOptions"/> to control nullability behavior
     /// (such as using the <c>?.</c> operator) and which implementation layer (base, current, or final) to access.
     /// </para>
     /// <para>

@@ -287,7 +287,7 @@ namespace Metalama.Backstage.Telemetry
             return true;
         }
 
-        internal static string ComputeHash( string packageName )
+        private static string ComputeHash( string packageName )
         {
             // ReSharper disable once StringLiteralTypo
             const string salt = @"<27e\)$a<=b9&zyVwjzaJ`!WW`rwHh~;Z5QAC.J5TQ`.NY"")]~FGA);AKSSmbV$M";

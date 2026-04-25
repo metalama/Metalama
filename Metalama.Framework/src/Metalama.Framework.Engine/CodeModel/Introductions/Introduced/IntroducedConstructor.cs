@@ -54,8 +54,7 @@ internal sealed class IntroducedConstructor : IntroducedMember, IConstructorImpl
     protected override IFullRef<IMember> ToMemberFullRef() => this.Ref;
 
     [Memo]
-    private IFullRef<IConstructor> Ref
-        => this._builderData.ToRef().WithGenericContext( this.GenericContext );
+    private IFullRef<IConstructor> Ref => this._builderData.ToRef().WithGenericContext( this.GenericContext );
 
     public IRef<IConstructor> ToRef() => this.Ref;
 

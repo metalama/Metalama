@@ -142,6 +142,5 @@ internal sealed class ContractExtensionBlockTransformation : ContractBaseTransfo
         }
     }
 
-    public override FormattableString ToDisplayString()
-        => $"Add contract to receiver parameter of extension block '{this._targetExtensionBlock}'";
+    public override FormattableString ToDisplayString() => $"Add contract to receiver parameter of extension block '{this._targetExtensionBlock}'";
 }

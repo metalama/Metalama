@@ -77,6 +77,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
     /// <summary>
     /// Gets the raise method, or <c>null</c> for non-field-like events.
     /// </summary>
+
     public AccessorBuilder? RaiseMethod => this.IsEventField ? this.RaiseMethodBuilder : null;
 
     IMethodBuilder IEventBuilder.AddMethod => this.AddMethod;
