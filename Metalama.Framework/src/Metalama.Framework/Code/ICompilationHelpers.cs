@@ -22,7 +22,7 @@ namespace Metalama.Framework.Code
 
         SerializableTypeId GetSerializableId( IType type );
 
-        IExpression ToTypeOfExpression( IType type );
+        IExpression ToTypeOfExpression( IType type, bool preferConstructedType = false );
 
         bool DerivesFrom( INamedType left, INamedType right, DerivedTypesOptions options = DerivedTypesOptions.Default );
 
