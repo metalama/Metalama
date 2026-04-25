@@ -19,7 +19,7 @@ public class FieldKeyword_WithComputedProperty : INotifyPropertyChanged
       }
     }
   }
-  private string FirstName_Source { get => field; set => field = value?.Trim() ?? string.Empty; } = "";
+  private string FirstName_Source { get => field; set => field = value.Trim(); } = "";
   private string _lastName = "";
   // Semi-automatic property with validation.
   public string LastName
@@ -38,7 +38,7 @@ public class FieldKeyword_WithComputedProperty : INotifyPropertyChanged
       }
     }
   }
-  private string LastName_Source { get => field; set => field = value?.Trim() ?? string.Empty; } = "";
+  private string LastName_Source { get => field; set => field = value.Trim(); } = "";
   // Computed property that depends on semi-automatic properties.
   public string FullName => $"{this.FirstName} {this.LastName}";
   protected virtual void OnPropertyChanged(string propertyName)
