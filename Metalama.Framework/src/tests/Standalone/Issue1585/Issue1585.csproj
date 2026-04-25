@@ -1,28 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <!--
-        Reproduces https://github.com/metalama/Metalama/issues/1585.
+        Regression test for https://github.com/metalama/Metalama/issues/1588 (originally
+        reported as #1585).
 
         When a WPF project references aspect-introduced members from its XAML code-behind,
         WPF's MarkupCompilePass1 target generates a temporary target assembly used to
-        resolve types referenced in XAML. That temp compile does NOT include PackageReferences
-        when IncludePackageReferencesDuringMarkupCompilation is false (the default on
-        .NET Framework / legacy projects). Because Metalama is delivered as a PackageReference,
-        it does not run during the temp compile, aspect-introduced members do not exist,
-        and the temp compile fails with CS0117/CS1061 - which then cascades into MC3074
-        for types referenced from XAML.
+        resolve types referenced in XAML. That temp compile only includes PackageReferences
+        when IncludePackageReferencesDuringMarkupCompilation is true. If it is false,
+        Metalama (delivered as a PackageReference) does not run during the temp compile,
+        aspect-introduced members do not exist, and the temp compile fails with
+        CS0117/CS1061 - which then cascades into MC3074 for types referenced from XAML.
 
-        This test forces IncludePackageReferencesDuringMarkupCompilation=false on a
-        net8.0-windows target to reproduce the behavior seen on the user's net472 VSIX project.
+        Metalama.Framework.targets defaults IncludePackageReferencesDuringMarkupCompilation
+        to true when UseWPF is set, so the temp compile picks up the Metalama analyzer/targets
+        and the aspect-introduced members are seen by both the markup pre-pass and the real
+        compile. This project relies on that default (no explicit value).
     -->
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net8.0-windows</TargetFramework>
         <Nullable>enable</Nullable>
         <UseWPF>true</UseWPF>
-
-        <!-- Force the legacy WPF behavior that excludes PackageReferences from the temp assembly. -->
-        <IncludePackageReferencesDuringMarkupCompilation>false</IncludePackageReferencesDuringMarkupCompilation>
     </PropertyGroup>
 
     <ItemGroup>
