@@ -91,11 +91,7 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
             var projectServiceProvider = globalServices
                 .WithProjectScopedServices( projectOptions, context.Compilation );
 
-            using var pipeline = projectOptions.CompilationScenario switch
-            {
-                CompilationScenario.WpfPrecompile => (CompileTimeAspectPipeline) new WpfPrecompileAspectPipeline( projectServiceProvider ),
-                _ => new CompileTimeAspectPipeline( projectServiceProvider )
-            };
+            using var pipeline = CompileTimeAspectPipeline.Create( projectServiceProvider );
 
             var taskRunner = globalServices.GetRequiredService<ITaskRunner>();
 
