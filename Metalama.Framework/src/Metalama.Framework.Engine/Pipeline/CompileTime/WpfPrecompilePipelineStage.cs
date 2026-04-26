@@ -44,7 +44,22 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                 diagnosticSink,
                 cancellationToken );
 
-            var addTransformations = introducedSyntaxTrees.SelectAsArray( t => SyntaxTreeTransformation.AddTree( t.GeneratedSyntaxTree.WithFilePath( t.Name ) ) );
+            // Generated trees default to C# 1 parse options; copy the project's options so the new trees share the
+            // same LangVersion, preprocessor symbols and nullable context as the original sources.
+            var projectParseOptions = input.LastCompilation.SyntaxTrees.Values.FirstOrDefault()?.Options;
+
+            var addTransformations = introducedSyntaxTrees.SelectAsArray(
+                t =>
+                {
+                    var tree = t.GeneratedSyntaxTree.WithFilePath( t.Name );
+
+                    if ( projectParseOptions != null )
+                    {
+                        tree = tree.WithRootAndOptions( tree.GetRoot( cancellationToken ), projectParseOptions );
+                    }
+
+                    return SyntaxTreeTransformation.AddTree( tree );
+                } );
 
             var compilationWithStubs = input.LastCompilation.Update( addTransformations );
 

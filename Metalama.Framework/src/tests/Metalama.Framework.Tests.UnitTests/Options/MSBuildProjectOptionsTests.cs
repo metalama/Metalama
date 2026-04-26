@@ -54,6 +54,39 @@ public sealed class MSBuildProjectOptionsTests
         Assert.Equal( touchFilePath, options.SourceGeneratorTouchFile );
     }
 
+    [Fact]
+    public void CompilationScenario_Unset_ReturnsDefault()
+    {
+        var options = new TestableMSBuildProjectOptions( new DictionaryOptionsSource( new() ) );
+
+        Assert.Equal( CompilationScenario.Default, options.CompilationScenario );
+    }
+
+    [Theory]
+    [InlineData( "WpfPrecompile" )]
+    [InlineData( "wpfprecompile" )]
+    [InlineData( "WPFPRECOMPILE" )]
+    public void CompilationScenario_KnownValue_IsParsedCaseInsensitively( string value )
+    {
+        var source = new DictionaryOptionsSource( new() { [MSBuildPropertyNames.MetalamaCompilationScenario] = value } );
+        var options = new TestableMSBuildProjectOptions( source );
+
+        Assert.Equal( CompilationScenario.WpfPrecompile, options.CompilationScenario );
+    }
+
+    [Theory]
+    [InlineData( "" )]
+    [InlineData( "   " )]
+    [InlineData( "NotARealValue" )]
+    [InlineData( "999" )]
+    public void CompilationScenario_InvalidOrEmptyValue_FallsBackToDefault( string value )
+    {
+        var source = new DictionaryOptionsSource( new() { [MSBuildPropertyNames.MetalamaCompilationScenario] = value } );
+        var options = new TestableMSBuildProjectOptions( source );
+
+        Assert.Equal( CompilationScenario.Default, options.CompilationScenario );
+    }
+
     private sealed class TestableMSBuildProjectOptions : MSBuildProjectOptions
     {
         public TestableMSBuildProjectOptions( IProjectOptionsSource source ) : base( source ) { }

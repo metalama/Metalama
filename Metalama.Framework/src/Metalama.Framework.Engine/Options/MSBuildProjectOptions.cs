@@ -255,7 +255,10 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     private T GetEnumOption<T>( string name, T defaultValue = default )
         where T : struct, Enum
     {
-        if ( this._source.TryGetValue( name, out var s ) && Enum.TryParse<T>( s, ignoreCase: true, out var value ) )
+        if ( this._source.TryGetValue( name, out var s )
+             && !string.IsNullOrWhiteSpace( s )
+             && Enum.TryParse<T>( s, ignoreCase: true, out var value )
+             && Enum.IsDefined( typeof(T), value ) )
         {
             return value;
         }
