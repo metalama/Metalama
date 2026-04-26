@@ -2,20 +2,36 @@
 
     <!--
         Regression test for https://github.com/metalama/Metalama/issues/1588 (originally
-        reported as #1585).
+        reported as #1585) and for https://github.com/metalama/Metalama/issues/1590.
 
-        When a WPF project references aspect-introduced members from its XAML code-behind,
-        WPF's MarkupCompilePass1 target generates a temporary target assembly used to
-        resolve types referenced in XAML. That temp compile only includes PackageReferences
-        when IncludePackageReferencesDuringMarkupCompilation is true. If it is false,
-        Metalama (delivered as a PackageReference) does not run during the temp compile,
-        aspect-introduced members do not exist, and the temp compile fails with
-        CS0117/CS1061 - which then cascades into MC3074 for types referenced from XAML.
+        When a WPF project references aspect-introduced members from its XAML or its XAML
+        code-behind, WPF's MarkupCompilePass1 target generates a temporary target assembly
+        used to resolve types and members referenced in XAML. Two pieces of plumbing make
+        this work end-to-end:
 
-        Metalama.Framework.targets defaults IncludePackageReferencesDuringMarkupCompilation
-        to true when UseWPF is set, so the temp compile picks up the Metalama analyzer/targets
-        and the aspect-introduced members are seen by both the markup pre-pass and the real
-        compile. This project relies on that default (no explicit value).
+        1. IncludePackageReferencesDuringMarkupCompilation defaults to true so that Metalama
+           (delivered as a PackageReference) runs during the temp compile. Without this the
+           temp compile fails with CS0117/CS1061, cascading into MC3074. Tracked by #1588.
+
+        2. MetalamaCompilationScenario auto-defaults to WpfPrecompile when MSBuildProjectName
+           ends with _wpftmp (the WPF SDK's naming convention for the temp project). In that
+           mode Metalama runs the full front-end (aspect discovery, advice, template
+           expansion) but emits aspect-introduced member signatures only and skips the
+           linker, since the temp assembly is consumed only by the XAML compiler for type
+           resolution and then discarded. Tracked by #1590.
+
+        Both defaults are user-overridable. An explicit IncludePackageReferencesDuringMarkupCompilation=false
+        is rejected by MetalamaCheckMarkupCompilation since it is incompatible with Metalama
+        in a WPF project.
+
+        Coverage in this project:
+        - SelectSettingsWindowControl.xaml.cs references aspect-introduced *properties* and
+          *methods* on a referenced data type ([TrackChanges] on SwapTransformPackage).
+        - SelectSettingsWindowControl.xaml.cs has [WithButtonHandler] applied to the Window
+          itself, introducing an event handler method that is bound from XAML via Click=...,
+          which exercises XAML's compile-time event handler resolution.
+        - SelectSettingsWindowControl.xaml references a hand-written IValueConverter, which
+          fails with MC3074 if the temp compile fails for any reason.
     -->
     <PropertyGroup>
         <OutputType>WinExe</OutputType>

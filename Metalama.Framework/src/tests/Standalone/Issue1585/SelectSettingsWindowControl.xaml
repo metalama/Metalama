@@ -9,5 +9,8 @@
     </Window.Resources>
     <Grid>
         <TextBlock Text="{Binding Name, Converter={StaticResource EnumToStringConverter}}" />
+        <!-- Click="OnButtonClicked" binds to an aspect-introduced method on the code-behind class.
+             Resolved at MarkupCompilePass1, so the temp assembly must contain that signature. -->
+        <Button Content="OK" Click="OnButtonClicked" />
     </Grid>
 </Window>

@@ -41,6 +41,16 @@ public class CompileTimeAspectPipeline : AspectPipeline
         serviceProvider,
         executionScenario ?? ExecutionScenario.CompileTime ) { }
 
+    /// <summary>
+    /// Creates the right <see cref="CompileTimeAspectPipeline"/> for the project's <see cref="IProjectOptions.CompilationScenario"/>.
+    /// </summary>
+    public static CompileTimeAspectPipeline Create( ProjectServiceProvider serviceProvider )
+        => serviceProvider.GetRequiredService<IProjectOptions>().CompilationScenario switch
+        {
+            CompilationScenario.WpfPrecompile => new WpfPrecompileAspectPipeline( serviceProvider ),
+            _ => new CompileTimeAspectPipeline( serviceProvider )
+        };
+
     protected override SyntaxGenerationOptions GetSyntaxGenerationOptions()
     {
         var projectOptions = this.ServiceProvider.GetRequiredService<IProjectOptions>();

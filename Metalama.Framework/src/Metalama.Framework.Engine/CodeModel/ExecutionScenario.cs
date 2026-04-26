@@ -31,6 +31,10 @@ namespace Metalama.Framework.Engine.CodeModel
 
         public static ExecutionScenario CompileTime { get; } = new( nameof(CompileTime), false, true, false, false );
 
+        // Real batch compile, but emits design-time-style signature stubs instead of running the linker.
+        // Used by the WPF MarkupCompilePass1 temporary assembly, whose only consumer is the XAML type resolver.
+        public static ExecutionScenario WpfPrecompile { get; } = new( nameof(WpfPrecompile), false, false, false, false );
+
         public static ExecutionScenario CodeFix { get; } = new( nameof(CodeFix), true, false, true, true );
 
         public static ExecutionScenario Introspection { get; } = new( nameof(Introspection), false, true, true, false );

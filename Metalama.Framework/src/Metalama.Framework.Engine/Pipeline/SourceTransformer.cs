@@ -91,7 +91,7 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
             var projectServiceProvider = globalServices
                 .WithProjectScopedServices( projectOptions, context.Compilation );
 
-            using CompileTimeAspectPipeline pipeline = new( projectServiceProvider );
+            using var pipeline = CompileTimeAspectPipeline.Create( projectServiceProvider );
 
             var taskRunner = globalServices.GetRequiredService<ITaskRunner>();
 

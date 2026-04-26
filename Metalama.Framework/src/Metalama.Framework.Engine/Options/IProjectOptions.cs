@@ -249,4 +249,11 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// This helps detect issues like missing whitespace that can cause syntax errors.
     /// </summary>
     bool VerifyOutputCode { get; }
+
+    /// <summary>
+    /// Gets the kind of compilation Metalama is participating in. Defaults to <see cref="CompilationScenario.Default"/>.
+    /// Specific values trigger tailored pipelines (e.g. <see cref="CompilationScenario.WpfPrecompile"/> for the
+    /// WPF MarkupCompilePass1 temporary assembly).
+    /// </summary>
+    CompilationScenario CompilationScenario { get; }
 }

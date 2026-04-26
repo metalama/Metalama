@@ -118,6 +118,8 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual bool VerifyOutputCode => this.Wrapped.VerifyOutputCode;
 
+    public virtual CompilationScenario CompilationScenario => this.Wrapped.CompilationScenario;
+
     public sealed override int GetHashCode() => throw new NotImplementedException();
 
     public sealed override bool Equals( object? obj ) => this.Equals( obj as IProjectOptions );

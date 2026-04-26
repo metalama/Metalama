@@ -132,6 +132,8 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual bool VerifyOutputCode => false;
 
+    public virtual CompilationScenario CompilationScenario => CompilationScenario.Default;
+
     // IProjectOptions is currently not used as a dictionary key, so we can throw here.
     public sealed override int GetHashCode() => throw new NotImplementedException();
 
