@@ -87,21 +87,25 @@
         </PropertyGroup>
     </Target>
 
-    <Target Name="ExportMetalamaFrameworkProperties" BeforeTargets="PrepareForBuild">
-        <Error Text="The BaseIntermediateOutputPath property is not defined." Condition="'$(BaseIntermediateOutputPath)'==''"/>
+    <!-- Both touch files live under $(IntermediateOutputPath) so they are TFM-specific. Multi-targeted
+         projects build their TFMs in parallel; sharing a single file across TFMs (as we briefly did under
+         $(BaseIntermediateOutputPath) for the source-generator touch file) causes MSB3371 file-lock
+         collisions. See https://github.com/metalama/Metalama/issues/1597.
+         If $(IntermediateOutputPath) is undefined (e.g. when the .NET SDK has not yet resolved), the
+         path properties stay empty and CreateMetalamaTouchFiles is skipped — IProjectOptions
+         tolerates a null SourceGeneratorTouchFile/BuildTouchFile. -->
+    <Target Name="ExportMetalamaFrameworkProperties" BeforeTargets="PrepareForBuild" Condition="'$(IntermediateOutputPath)'!=''">
         <PropertyGroup>
             <MetalamaBuildTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(IntermediateOutputPath),'MetalamaBuild.touch'))</MetalamaBuildTouchFile>
-            <MetalamaSourceGeneratorTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(BaseIntermediateOutputPath),'MetalamaSourceGenerator.touch'))</MetalamaSourceGeneratorTouchFile>
+            <MetalamaSourceGeneratorTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(IntermediateOutputPath),'MetalamaSourceGenerator.touch'))</MetalamaSourceGeneratorTouchFile>
         </PropertyGroup>
     </Target>
 
-    <Target Name="CreateMetalamaTouchFiles" BeforeTargets="BeforeCompile">
+    <Target Name="CreateMetalamaTouchFiles" BeforeTargets="BeforeCompile" Condition="'$(MetalamaBuildTouchFile)'!='' AND '$(MetalamaSourceGeneratorTouchFile)'!=''">
         <!-- We create a touch file every time that the file is absent. This file is used to signal
              the design-time Metalama pipeline that a build has started. When the design-time pipeline needs this information again, it will
              delete the file. It should do that only when the source code has changed (even if it is not saved). We don't overwrite an existing
-             file because this would break incremental build.
-             We use Touch with AlwaysCreate=true which handles concurrent access gracefully when
-             multiple TFMs build in parallel since they share the same obj directory. -->
+             file because this would break incremental build. -->
         <Touch Files="$(MetalamaBuildTouchFile)" AlwaysCreate="true"/>
         <Touch Files="$(MetalamaSourceGeneratorTouchFile)" AlwaysCreate="true"/>
         <ItemGroup>

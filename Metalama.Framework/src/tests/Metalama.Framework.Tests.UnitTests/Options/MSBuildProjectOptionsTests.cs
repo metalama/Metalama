@@ -55,6 +55,19 @@ public sealed class MSBuildProjectOptionsTests
     }
 
     [Fact]
+    public void MissingSourceGeneratorTouchFile_ReturnsNull()
+    {
+        // When IntermediateOutputPath is undefined (e.g. SDK not yet resolved), the targets file skips
+        // ExportMetalamaFrameworkProperties and the property is never exposed to the compiler. See #1597.
+        var source = new DictionaryOptionsSource( new Dictionary<string, string>() );
+
+        var options = new TestableMSBuildProjectOptions( source );
+
+        Assert.Null( options.SourceGeneratorTouchFile );
+        Assert.Null( options.BuildTouchFile );
+    }
+
+    [Fact]
     public void CompilationScenario_Unset_ReturnsDefault()
     {
         var options = new TestableMSBuildProjectOptions( new DictionaryOptionsSource( new() ) );
