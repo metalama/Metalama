@@ -27,6 +27,8 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
 
     public ref readonly ProjectServiceProvider ServiceProvider => ref this._serviceProvider;
 
+    public ExecutionScenario ExecutionScenario { get; }
+
     public CompilationModel InitialCompilation => this.AspectLayerInstance.InitialCompilation;
 
     public IDiagnosticAdder Diagnostics { get; }
@@ -58,6 +60,7 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
         this.IntrospectionListener = serviceProvider.GetService<IntrospectionPipelineListener>();
         this.ExecutionContext = executionContext;
         this.AspectClassResolver = aspectClassResolver;
+        this.ExecutionScenario = serviceProvider.GetRequiredService<ExecutionScenario>();
     }
 
     public void AddTransformations( ImmutableArray<ITransformation> transformations )

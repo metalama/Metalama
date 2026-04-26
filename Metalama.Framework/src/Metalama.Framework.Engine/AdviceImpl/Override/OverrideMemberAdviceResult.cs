@@ -32,4 +32,7 @@ internal sealed class OverrideMemberAdviceResult<TMember> : AdviceResult, IOverr
     public TMember Declaration => this.Resolve( this._declaration );
 
     public OverrideAccessorAdviceResult<TMember> GetAccessor( Func<TMember, IMethod?> getAccessor ) => new( this, getAccessor );
+
+    public static OverrideMemberAdviceResult<TMember> Skipped( AdviceKind adviceKind, IAdviceFactoryImpl adviceFactory )
+        => new( adviceKind, AdviceOutcome.Skipped, adviceFactory );
 }

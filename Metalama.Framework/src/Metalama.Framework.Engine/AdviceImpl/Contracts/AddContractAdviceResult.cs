@@ -29,4 +29,6 @@ internal sealed class AddContractAdviceResult<T> : AdviceResult, IAddContractAdv
     public T Declaration => this.Resolve( this._declaration );
 
     public static AddContractAdviceResult<T> Ignored( IAdviceFactoryImpl adviceFactory ) => new( AdviceOutcome.Ignore, adviceFactory );
+
+    public static AddContractAdviceResult<T> Skipped( IAdviceFactoryImpl adviceFactory ) => new( AdviceOutcome.Skipped, adviceFactory );
 }

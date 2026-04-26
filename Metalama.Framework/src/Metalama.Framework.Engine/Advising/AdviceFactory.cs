@@ -97,6 +97,39 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
     private DisposeAction WithNonUserCode() => this._state.ExecutionContext.WithoutDependencyCollection();
 
+    // True when the current scenario doesn't capture non-observable transformations (DesignTime, CodeFix)
+    // and the advice produces only Observability.None transformations (no CompileTimeOnly side effect).
+    private bool CanSkipNonObservableAdvice() => !this._state.ExecutionScenario.CapturesNonObservableTransformations;
+
+    // For non-void members (constructors, properties, events, indexers), Override on a partial member without
+    // implementation also emits SetHasImplementationTransformation (CompileTimeOnly), and a subsequent aspect
+    // may read member.HasImplementation expecting the post-override value (see PartialConstructor_HasImplementationAfterOverride).
+    // For Method targets, the only HasImplementation==false case is old-style partial void, where the flag flip
+    // has no observable effect at design time, so the IMethod overload doesn't need this guard.
+    private bool CanSkipNonObservableAdvice( IMember member ) => this.CanSkipNonObservableAdvice() && member.HasImplementation;
+
+    private bool TrySkipMethodOverride( IMethod targetMethod, [NotNullWhen( true )] out IOverrideAdviceResult<IMethod>? result )
+    {
+        if ( !this.CanSkipNonObservableAdvice() || targetMethod.MethodKind == MethodKind.EventRaise )
+        {
+            result = null;
+
+            return false;
+        }
+
+        var resultKind = targetMethod.MethodKind switch
+        {
+            MethodKind.EventAdd or MethodKind.EventRemove => AdviceKind.OverrideEvent,
+            MethodKind.PropertyGet or MethodKind.PropertySet => AdviceKind.OverrideFieldOrPropertyOrIndexer,
+            MethodKind.Finalizer => AdviceKind.OverrideFinalizer,
+            _ => AdviceKind.OverrideMethod
+        };
+
+        result = OverrideMemberAdviceResult<IMethod>.Skipped( resultKind, this );
+
+        return true;
+    }
+
     private AdviceFactory<T> WithTemplateClassInstance( TemplateClassInstance templateClassInstance )
         => new( this.Target, this._state, templateClassInstance, this._layerName, this._explicitlyImplementedInterfaceType, this._diagnostics );
 
@@ -487,6 +520,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetMethod, AdviceKind.OverrideMethod );
 
+            if ( this.TrySkipMethodOverride( targetMethod, out var skipped ) )
+            {
+                return skipped;
+            }
+
             var tagsReader = this.GetTagsReader( tags );
 
             switch ( targetMethod.MethodKind )
@@ -835,6 +873,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.OverrideConstructor );
 
+            if ( this.CanSkipNonObservableAdvice( targetConstructor ) && !targetConstructor.IsImplicitInstanceConstructor() )
+            {
+                return OverrideMemberAdviceResult<IConstructor>.Skipped( AdviceKind.OverrideConstructor, this );
+            }
+
             var boundTemplate =
                 this.ValidateTemplateName( template, TemplateKind.Default, true )
                     ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
@@ -884,6 +927,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetFieldOrProperty, AdviceKind.OverrideFieldOrPropertyOrIndexer );
 
+            if ( this.CanSkipNonObservableAdvice( targetFieldOrProperty ) )
+            {
+                return OverrideMemberAdviceResult<IProperty>.Skipped( AdviceKind.OverrideFieldOrPropertyOrIndexer, this );
+            }
+
             // Set template represents both set and init accessors.
             var propertyTemplate = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IProperty>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
@@ -924,6 +972,21 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             }
 
             this.Validate( targetFieldOrPropertyOrIndexer, AdviceKind.OverrideFieldOrPropertyOrIndexer );
+
+            if ( this.CanSkipNonObservableAdvice( targetFieldOrPropertyOrIndexer ) )
+            {
+                // Return a result typed to the actual target (IProperty/IIndexer) so that the
+                // typed forwarder overloads can downcast via covariance.
+                return targetFieldOrPropertyOrIndexer.DeclarationKind switch
+                {
+                    DeclarationKind.Field or DeclarationKind.Property
+                        => OverrideMemberAdviceResult<IProperty>.Skipped( AdviceKind.OverrideFieldOrPropertyOrIndexer, this ),
+                    DeclarationKind.Indexer
+                        => OverrideMemberAdviceResult<IIndexer>.Skipped( AdviceKind.OverrideFieldOrPropertyOrIndexer, this ),
+                    _ => throw new AssertionFailedException( $"{targetFieldOrPropertyOrIndexer.GetType().Name} is not expected here." )
+                };
+            }
+
             var tagsReader = this.GetTagsReader( tags );
 
             // Set template represents both set and init accessors.
@@ -1589,6 +1652,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.AddInitializer );
 
+            if ( this.CanSkipNonObservableAdvice() )
+            {
+                return AddInitializerAdviceResult.Skipped( this );
+            }
+
             var templateMember = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
@@ -1608,6 +1676,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.AddInitializer );
 
+            if ( this.CanSkipNonObservableAdvice() )
+            {
+                return AddInitializerAdviceResult.Skipped( this );
+            }
+
             var advice = new SyntaxBasedConstructorInitializeAdvice(
                 this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetConstructor ),
                 statement,
@@ -1626,6 +1699,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            if ( this.CanSkipNonObservableAdvice() )
+            {
+                return AddContractAdviceResult<IParameter>.Skipped( this );
+            }
+
             switch ( kind )
             {
                 case ContractDirection.Output when targetParameter.RefKind is not (RefKind.Ref or RefKind.Out) && !targetParameter.IsReturnParameter:
@@ -1669,6 +1747,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            if ( this.CanSkipNonObservableAdvice() )
+            {
+                return AddContractAdviceResult<IFieldOrPropertyOrIndexer>.Skipped( this );
+            }
+
             if ( !this.TryPrepareContract( targetMember, template, ref direction, tags, out var boundTemplate ) )
             {
                 return AddContractAdviceResult<IFieldOrPropertyOrIndexer>.Ignored( this );

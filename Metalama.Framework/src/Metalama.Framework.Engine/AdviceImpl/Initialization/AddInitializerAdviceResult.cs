@@ -16,4 +16,6 @@ internal sealed class AddInitializerAdviceResult : AdviceResult, IAddInitializer
         outcome,
         adviceFactory,
         diagnostics ) { }
+
+    public static AddInitializerAdviceResult Skipped( IAdviceFactoryImpl adviceFactory ) => new( AdviceOutcome.Skipped, adviceFactory );
 }
