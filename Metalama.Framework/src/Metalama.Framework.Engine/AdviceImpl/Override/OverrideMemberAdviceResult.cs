@@ -33,6 +33,9 @@ internal sealed class OverrideMemberAdviceResult<TMember> : AdviceResult, IOverr
 
     public OverrideAccessorAdviceResult<TMember> GetAccessor( Func<TMember, IMethod?> getAccessor ) => new( this, getAccessor );
 
-    public static OverrideMemberAdviceResult<TMember> Skipped( AdviceKind adviceKind, IAdviceFactoryImpl adviceFactory )
-        => new( adviceKind, AdviceOutcome.Skipped, adviceFactory );
+    // Preserves the target declaration reference so that user code reading `result.Declaration` after a
+    // pipeline-driven skip continues to see the original member (matching the success path which sets
+    // Declaration to the override target).
+    public static OverrideMemberAdviceResult<TMember> Skipped( AdviceKind adviceKind, IAdviceFactoryImpl adviceFactory, IRef<TMember>? declaration = null )
+        => new( adviceKind, AdviceOutcome.Skipped, adviceFactory, declaration );
 }

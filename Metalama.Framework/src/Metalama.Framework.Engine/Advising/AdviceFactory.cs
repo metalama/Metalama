@@ -135,6 +135,12 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         IMember ownerMember;
         AdviceKind resultKind;
 
+        // The successful Implement() of the underlying advice classes only sets Declaration for the
+        // regular-method case (OverrideMethodAdvice) — finalizer / event / property-accessor advice all
+        // call CreateSuccessResult() with no argument, leaving Declaration null. Match that contract
+        // here so a skipped result has the same Declaration shape as a successful one.
+        IRef<IMethod>? declaration = null;
+
         switch ( targetMethod.MethodKind )
         {
             case MethodKind.EventAdd or MethodKind.EventRemove:
@@ -158,6 +164,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             default:
                 ownerMember = targetMethod;
                 resultKind = AdviceKind.OverrideMethod;
+                declaration = targetMethod.ToRef();
 
                 break;
         }
@@ -169,7 +176,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             return false;
         }
 
-        result = OverrideMemberAdviceResult<IMethod>.Skipped( resultKind, this );
+        result = OverrideMemberAdviceResult<IMethod>.Skipped( resultKind, this, declaration );
 
         return true;
     }
@@ -919,7 +926,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
             if ( this.CanSkipPureNonObservableAdvice( targetConstructor ) && !targetConstructor.IsImplicitInstanceConstructor() )
             {
-                return OverrideMemberAdviceResult<IConstructor>.Skipped( AdviceKind.OverrideConstructor, this );
+                return OverrideMemberAdviceResult<IConstructor>.Skipped( AdviceKind.OverrideConstructor, this, targetConstructor.ToRef() );
             }
 
             var boundTemplate =
@@ -973,7 +980,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
             if ( this.CanSkipPureNonObservableAdvice( targetFieldOrProperty ) )
             {
-                return OverrideMemberAdviceResult<IProperty>.Skipped( AdviceKind.OverrideFieldOrPropertyOrIndexer, this );
+                // CanSkipPureNonObservableAdvice excludes IField, so the target is always IProperty here.
+                return OverrideMemberAdviceResult<IProperty>.Skipped(
+                    AdviceKind.OverrideFieldOrPropertyOrIndexer,
+                    this,
+                    ((IProperty) targetFieldOrProperty).ToRef() );
             }
 
             // Set template represents both set and init accessors.
@@ -1019,14 +1030,21 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
             if ( this.CanSkipPureNonObservableAdvice( targetFieldOrPropertyOrIndexer ) )
             {
-                // Return a result typed to the actual target (IProperty/IIndexer) so that the
-                // typed forwarder overloads can downcast via covariance.
+                // Return a result typed to the actual target (IProperty/IIndexer) so that the typed
+                // forwarder overloads can downcast via covariance, and pass the original target
+                // reference so user code can still read result.Declaration.
                 return targetFieldOrPropertyOrIndexer.DeclarationKind switch
                 {
                     DeclarationKind.Field or DeclarationKind.Property
-                        => OverrideMemberAdviceResult<IProperty>.Skipped( AdviceKind.OverrideFieldOrPropertyOrIndexer, this ),
+                        => OverrideMemberAdviceResult<IProperty>.Skipped(
+                            AdviceKind.OverrideFieldOrPropertyOrIndexer,
+                            this,
+                            ((IProperty) targetFieldOrPropertyOrIndexer).ToRef() ),
                     DeclarationKind.Indexer
-                        => OverrideMemberAdviceResult<IIndexer>.Skipped( AdviceKind.OverrideFieldOrPropertyOrIndexer, this ),
+                        => OverrideMemberAdviceResult<IIndexer>.Skipped(
+                            AdviceKind.OverrideFieldOrPropertyOrIndexer,
+                            this,
+                            ((IIndexer) targetFieldOrPropertyOrIndexer).ToRef() ),
                     _ => throw new AssertionFailedException( $"{targetFieldOrPropertyOrIndexer.GetType().Name} is not expected here." )
                 };
             }
@@ -1696,7 +1714,10 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.AddInitializer );
 
-            if ( this.CanSkipPureNonObservableAdvice() )
+            // ConstructorInitializeAdvice introduces an explicit ctor when the target is implicit
+            // (ConstructorInitializeAdvice.cs:82-91). That introduction is observable and changes the
+            // model seen by subsequent aspects, so don't skip in that case.
+            if ( this.CanSkipPureNonObservableAdvice() && !targetConstructor.IsImplicitInstanceConstructor() )
             {
                 return AddInitializerAdviceResult.Skipped( this );
             }
@@ -1720,7 +1741,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.AddInitializer );
 
-            if ( this.CanSkipPureNonObservableAdvice() )
+            // See AddInitializer(IConstructor, string, ...) for why implicit ctors aren't skipped.
+            if ( this.CanSkipPureNonObservableAdvice() && !targetConstructor.IsImplicitInstanceConstructor() )
             {
                 return AddInitializerAdviceResult.Skipped( this );
             }
@@ -1745,7 +1767,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             if ( this.CanSkipPureNonObservableAdvice() )
             {
-                return AddContractAdviceResult<IParameter>.Skipped( this );
+                return AddContractAdviceResult<IParameter>.Skipped( this, targetParameter.ToRef() );
             }
 
             switch ( kind )
@@ -1793,7 +1815,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             if ( this.CanSkipPureNonObservableAdvice() )
             {
-                return AddContractAdviceResult<IFieldOrPropertyOrIndexer>.Skipped( this );
+                return AddContractAdviceResult<IFieldOrPropertyOrIndexer>.Skipped( this, targetMember.ToRef() );
             }
 
             if ( !this.TryPrepareContract( targetMember, template, ref direction, tags, out var boundTemplate ) )

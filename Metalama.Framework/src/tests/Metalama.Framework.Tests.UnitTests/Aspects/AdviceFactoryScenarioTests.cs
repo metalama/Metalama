@@ -290,6 +290,46 @@ public class C
         Assert.True( ContainsOutcome( diagnostics, "Skipped" ), "Expected Outcome=Skipped at design time." );
     }
 
+    private const string _addInitializerOnImplicitConstructorAspect = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
+using Metalama.Framework.Diagnostics;
+using System.Linq;
+
+public class TestAspect : TypeAspect
+{
+    private static readonly DiagnosticDefinition<AdviceOutcome> _diagnostic
+        = new(""TST001"", Severity.Warning, ""Outcome={0}"");
+
+    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    {
+        var ctor = builder.Target.Constructors.First();
+        var result = builder.Advice.AddInitializer(ctor, nameof(Template));
+        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome), ctor);
+    }
+
+    [Template]
+    public void Template() {}
+}
+
+[TestAspect]
+public class C
+{
+}
+";
+
+    [Fact]
+    public async Task AddInitializer_OnImplicitConstructor_NotSkippedAtDesignTime()
+    {
+        // ConstructorInitializeAdvice introduces an explicit constructor when the target is implicit
+        // (ConstructorInitializeAdvice.cs:82-91), which is observable. Skipping would diverge the
+        // model seen by subsequent aspects.
+        var diagnostics = await this.RunAsync( _addInitializerOnImplicitConstructorAspect, ExecutionScenario.DesignTime );
+
+        Assert.False( ContainsOutcome( diagnostics, "Skipped" ), "AddInitializer on an implicit constructor must run at design time." );
+    }
+
     private const string _introduceMethodAspect = @"
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;

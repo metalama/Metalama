@@ -4,12 +4,18 @@
 
 using JetBrains.Annotations;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Utilities;
 
 [PublicAPI]
 public static class EnumExtensions
 {
+    // Per-type cache of value-to-deterministic-name mappings. The diagnostic formatter is a hot path,
+    // so a lookup beats re-enumerating Enum.GetNames + Enum.Parse on every call.
+    private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<Enum, string>> _cache = new();
+
     /// <summary>
     /// Returns a deterministic string representation of an enum value. For enums with alias members
     /// (multiple names sharing the same underlying value, e.g. <c>Default = 0, Success = 0</c>), the
@@ -19,19 +25,25 @@ public static class EnumExtensions
     /// </summary>
     public static string ToStringSafe( this Enum value )
     {
-        var type = value.GetType();
-        string? bestName = null;
+        var map = _cache.GetOrAdd( value.GetType(), BuildMap );
+
+        return map.TryGetValue( value, out var name ) ? name : value.ToString();
+    }
+
+    private static IReadOnlyDictionary<Enum, string> BuildMap( Type type )
+    {
+        var result = new Dictionary<Enum, string>();
 
         foreach ( var name in Enum.GetNames( type ) )
         {
             var parsed = (Enum) Enum.Parse( type, name );
 
-            if ( parsed.Equals( value ) && (bestName == null || string.CompareOrdinal( name, bestName ) < 0) )
+            if ( !result.TryGetValue( parsed, out var existing ) || string.CompareOrdinal( name, existing ) < 0 )
             {
-                bestName = name;
+                result[parsed] = name;
             }
         }
 
-        return bestName ?? value.ToString();
+        return result;
     }
 }
