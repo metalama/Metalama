@@ -127,6 +127,11 @@ namespace Metalama.Framework.Engine.Diagnostics
                     case ReferenceKinds referenceKinds:
                         return referenceKinds.ToDisplayString();
 
+                    case Enum enumValue:
+                        // Use a deterministic name: built-in Enum.ToString picks an arbitrary name when
+                        // multiple aliases share the same underlying value (e.g. Default = Success).
+                        return enumValue.ToStringSafe();
+
                     case IFormattable formattable:
                         return formattable.ToString( format, this );
 

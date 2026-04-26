@@ -44,14 +44,14 @@ using System.Linq;
 
 public class TestAspect : TypeAspect
 {
-    private static readonly DiagnosticDefinition<string> _diagnostic
+    private static readonly DiagnosticDefinition<AdviceOutcome> _diagnostic
         = new(""TST001"", Severity.Warning, ""Outcome={0}"");
 
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {
         var method = builder.Target.Methods.First(m => m.Name == ""M"");
         var result = builder.Advice.Override(method, nameof(Template));
-        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome.ToString()), method);
+        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome), method);
     }
 
     [Template]
@@ -78,6 +78,8 @@ public class C
     {
         var diagnostics = await this.RunAsync( _overrideMethodAspect, ExecutionScenario.CompileTime );
 
+        // AdviceOutcome.Default and Success share value 0; ToStringSafe picks the alphabetically-first
+        // alias, which is "Default".
         Assert.False( ContainsOutcome( diagnostics, "Skipped" ), "Did not expect Outcome=Skipped at compile time." );
         Assert.True( ContainsOutcome( diagnostics, "Default" ), "Expected Outcome=Default at compile time." );
     }
@@ -91,14 +93,14 @@ using System.Linq;
 
 public class TestAspect : TypeAspect
 {
-    private static readonly DiagnosticDefinition<string> _diagnostic
+    private static readonly DiagnosticDefinition<AdviceOutcome> _diagnostic
         = new(""TST001"", Severity.Warning, ""Outcome={0}"");
 
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {
         var method = builder.Target.Methods.First(m => m.Name == ""M"");
         var result = builder.Advice.Override(method, nameof(Template));
-        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome.ToString()), method);
+        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome), method);
     }
 
     [Template]
@@ -133,14 +135,14 @@ using System.Linq;
 
 public class TestAspect : TypeAspect
 {
-    private static readonly DiagnosticDefinition<string> _diagnostic
+    private static readonly DiagnosticDefinition<AdviceOutcome> _diagnostic
         = new(""TST001"", Severity.Warning, ""Outcome={0}"");
 
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {
         var field = builder.Target.Fields.First(f => f.Name == ""_x"");
         var result = builder.Advice.Override(field, nameof(GetTemplate));
-        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome.ToString()), field);
+        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome), field);
     }
 
     [Template]
@@ -174,14 +176,14 @@ using System.Linq;
 
 public class TestAspect : TypeAspect
 {
-    private static readonly DiagnosticDefinition<string> _diagnostic
+    private static readonly DiagnosticDefinition<AdviceOutcome> _diagnostic
         = new(""TST001"", Severity.Warning, ""Outcome={0}"");
 
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {
         var ctor = builder.Target.Constructors.First();
         var result = builder.Advice.Override(ctor, nameof(Template));
-        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome.ToString()), ctor);
+        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome), ctor);
     }
 
     [Template]
@@ -212,7 +214,7 @@ using System.Linq;
 
 public class TestAspect : TypeAspect
 {
-    private static readonly DiagnosticDefinition<string> _diagnostic
+    private static readonly DiagnosticDefinition<AdviceOutcome> _diagnostic
         = new(""TST001"", Severity.Warning, ""Outcome={0}"");
 
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
@@ -220,7 +222,7 @@ public class TestAspect : TypeAspect
         var method = builder.Target.Methods.First(m => m.Name == ""M"");
         var parameter = method.Parameters[0];
         var result = builder.Advice.AddContract(parameter, nameof(Template));
-        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome.ToString()), parameter);
+        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome), parameter);
     }
 
     [Template]
@@ -259,14 +261,14 @@ using System.Linq;
 
 public class TestAspect : TypeAspect
 {
-    private static readonly DiagnosticDefinition<string> _diagnostic
+    private static readonly DiagnosticDefinition<AdviceOutcome> _diagnostic
         = new(""TST001"", Severity.Warning, ""Outcome={0}"");
 
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {
         var ctor = builder.Target.Constructors.First();
         var result = builder.Advice.AddInitializer(ctor, nameof(Template));
-        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome.ToString()), ctor);
+        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome), ctor);
     }
 
     [Template]
@@ -296,13 +298,13 @@ using Metalama.Framework.Diagnostics;
 
 public class TestAspect : TypeAspect
 {
-    private static readonly DiagnosticDefinition<string> _diagnostic
+    private static readonly DiagnosticDefinition<AdviceOutcome> _diagnostic
         = new(""TST001"", Severity.Warning, ""Outcome={0}"");
 
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {
         var result = builder.Advice.IntroduceMethod(builder.Target, nameof(Template));
-        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome.ToString()), builder.Target);
+        builder.Diagnostics.Report(_diagnostic.WithArguments(result.Outcome), builder.Target);
     }
 
     [Template]
