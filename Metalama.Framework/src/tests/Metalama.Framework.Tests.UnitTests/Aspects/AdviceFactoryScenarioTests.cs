@@ -113,13 +113,15 @@ public partial class C
 ";
 
     [Fact]
-    public async Task Override_OnPartialVoidMethodWithoutImplementation_SkippedAtDesignTime()
+    public async Task Override_OnPartialMethodWithoutImplementation_NotSkippedAtDesignTime()
     {
-        // For Method targets, the only HasImplementation==false case is old-style partial void, where the
-        // SetHasImplementationTransformation flag flip has no observable effect at design time.
+        // Override of a partial member without implementation also emits SetHasImplementationTransformation
+        // (CompileTimeOnly). It's filtered out of the design-time syntax tree, but it IS applied to
+        // MutableCompilation, and a subsequent aspect that reads HasImplementation observes the post-override
+        // value. Skipping here would diverge the model seen by the next aspect.
         var diagnostics = await this.RunAsync( _overridePartialMethodAspect, ExecutionScenario.DesignTime );
 
-        Assert.True( ContainsOutcome( diagnostics, "Skipped" ), "Expected Outcome=Skipped at design time for partial void." );
+        Assert.False( ContainsOutcome( diagnostics, "Skipped" ), "Override of a partial member without implementation must run at design time." );
     }
 
     private const string _overrideFieldAspect = @"
@@ -153,14 +155,14 @@ public class C
 ";
 
     [Fact]
-    public async Task Override_OnField_SkippedAtDesignTime()
+    public async Task Override_OnField_NotSkippedAtDesignTime()
     {
-        // Field-to-property promotion (PromoteFieldTransformation) is CompileTimeOnly, so it isn't emitted
-        // by the design-time syntax tree generator and the linker doesn't run at design time.
-        // Skipping is observably equivalent to running.
+        // Override of a field promotes it to a property via PromoteFieldTransformation (CompileTimeOnly).
+        // The promotion is filtered out of the design-time syntax tree, but it IS applied to MutableCompilation,
+        // so a subsequent aspect would see the property where there was a field. The advice must still run.
         var diagnostics = await this.RunAsync( _overrideFieldAspect, ExecutionScenario.DesignTime );
 
-        Assert.True( ContainsOutcome( diagnostics, "Skipped" ), "Expected Outcome=Skipped at design time for field." );
+        Assert.False( ContainsOutcome( diagnostics, "Skipped" ), "Override of a field must run at design time." );
     }
 
     private const string _overrideConstructorAspect = @"

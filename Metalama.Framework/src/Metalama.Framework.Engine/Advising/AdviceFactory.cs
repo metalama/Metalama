@@ -97,33 +97,77 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
     private DisposeAction WithNonUserCode() => this._state.ExecutionContext.WithoutDependencyCollection();
 
-    // True when the current scenario doesn't capture non-observable transformations (DesignTime, CodeFix)
-    // and the advice produces only Observability.None transformations (no CompileTimeOnly side effect).
-    private bool CanSkipNonObservableAdvice() => !this._state.ExecutionScenario.CapturesNonObservableTransformations;
+    // Returns true when the advice can be safely short-circuited because the current scenario does not capture
+    // non-observable transformations (DesignTime, CodeFix). The skip avoids template binding and advice
+    // construction for advice that would otherwise produce only Observability.None transformations.
+    //
+    // The skip is unsafe when the advice would also produce a CompileTimeOnly transformation as a side effect:
+    //
+    //   - Override(...) on a partial member without implementation emits SetHasImplementationTransformation
+    //     (CompileTimeOnly). The transformation is filtered out of the design-time syntax tree by
+    //     DesignTimeSyntaxTreeGenerator, but it IS applied to MutableCompilation. A subsequent aspect that
+    //     reads member.HasImplementation observes the post-override value (see the existing
+    //     PartialConstructor_HasImplementationAfterOverride aspect-chain test). Skipping here would diverge
+    //     the model seen by the next aspect.
+    //
+    //   - Override(IField) emits PromoteFieldTransformation (CompileTimeOnly), which replaces the field with
+    //     a property in MutableCompilation. Same intra-pipeline observability as above.
+    //
+    // Both side effects are gated by the per-member predicates below, not by the scenario alone.
+    private bool CanSkipPureNonObservableAdvice() => !this._state.ExecutionScenario.CapturesNonObservableTransformations;
 
-    // For non-void members (constructors, properties, events, indexers), Override on a partial member without
-    // implementation also emits SetHasImplementationTransformation (CompileTimeOnly), and a subsequent aspect
-    // may read member.HasImplementation expecting the post-override value (see PartialConstructor_HasImplementationAfterOverride).
-    // For Method targets, the only HasImplementation==false case is old-style partial void, where the flag flip
-    // has no observable effect at design time, so the IMethod overload doesn't need this guard.
-    private bool CanSkipNonObservableAdvice( IMember member ) => this.CanSkipNonObservableAdvice() && member.HasImplementation;
+    private bool CanSkipPureNonObservableAdvice( IMember member )
+        => this.CanSkipPureNonObservableAdvice()
+           && member.HasImplementation
+           && member is not IField;
 
+    // For Override(IMethod) the relevant member for the HasImplementation gate is the parent event/property
+    // when the target is an accessor — SetHasImplementationTransformation tracks the parent member's flag.
     private bool TrySkipMethodOverride( IMethod targetMethod, [NotNullWhen( true )] out IOverrideAdviceResult<IMethod>? result )
     {
-        if ( !this.CanSkipNonObservableAdvice() || targetMethod.MethodKind == MethodKind.EventRaise )
+        if ( !this.CanSkipPureNonObservableAdvice() || targetMethod.MethodKind == MethodKind.EventRaise )
         {
             result = null;
 
             return false;
         }
 
-        var resultKind = targetMethod.MethodKind switch
+        IMember ownerMember;
+        AdviceKind resultKind;
+
+        switch ( targetMethod.MethodKind )
         {
-            MethodKind.EventAdd or MethodKind.EventRemove => AdviceKind.OverrideEvent,
-            MethodKind.PropertyGet or MethodKind.PropertySet => AdviceKind.OverrideFieldOrPropertyOrIndexer,
-            MethodKind.Finalizer => AdviceKind.OverrideFinalizer,
-            _ => AdviceKind.OverrideMethod
-        };
+            case MethodKind.EventAdd or MethodKind.EventRemove:
+                ownerMember = (IMember) targetMethod.ContainingDeclaration.AssertNotNull();
+                resultKind = AdviceKind.OverrideEvent;
+
+                break;
+
+            case MethodKind.PropertyGet or MethodKind.PropertySet:
+                ownerMember = (IMember) targetMethod.ContainingDeclaration.AssertNotNull();
+                resultKind = AdviceKind.OverrideFieldOrPropertyOrIndexer;
+
+                break;
+
+            case MethodKind.Finalizer:
+                ownerMember = targetMethod;
+                resultKind = AdviceKind.OverrideFinalizer;
+
+                break;
+
+            default:
+                ownerMember = targetMethod;
+                resultKind = AdviceKind.OverrideMethod;
+
+                break;
+        }
+
+        if ( !this.CanSkipPureNonObservableAdvice( ownerMember ) )
+        {
+            result = null;
+
+            return false;
+        }
 
         result = OverrideMemberAdviceResult<IMethod>.Skipped( resultKind, this );
 
@@ -873,7 +917,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.OverrideConstructor );
 
-            if ( this.CanSkipNonObservableAdvice( targetConstructor ) && !targetConstructor.IsImplicitInstanceConstructor() )
+            if ( this.CanSkipPureNonObservableAdvice( targetConstructor ) && !targetConstructor.IsImplicitInstanceConstructor() )
             {
                 return OverrideMemberAdviceResult<IConstructor>.Skipped( AdviceKind.OverrideConstructor, this );
             }
@@ -927,7 +971,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetFieldOrProperty, AdviceKind.OverrideFieldOrPropertyOrIndexer );
 
-            if ( this.CanSkipNonObservableAdvice( targetFieldOrProperty ) )
+            if ( this.CanSkipPureNonObservableAdvice( targetFieldOrProperty ) )
             {
                 return OverrideMemberAdviceResult<IProperty>.Skipped( AdviceKind.OverrideFieldOrPropertyOrIndexer, this );
             }
@@ -973,7 +1017,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
             this.Validate( targetFieldOrPropertyOrIndexer, AdviceKind.OverrideFieldOrPropertyOrIndexer );
 
-            if ( this.CanSkipNonObservableAdvice( targetFieldOrPropertyOrIndexer ) )
+            if ( this.CanSkipPureNonObservableAdvice( targetFieldOrPropertyOrIndexer ) )
             {
                 // Return a result typed to the actual target (IProperty/IIndexer) so that the
                 // typed forwarder overloads can downcast via covariance.
@@ -1652,7 +1696,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.AddInitializer );
 
-            if ( this.CanSkipNonObservableAdvice() )
+            if ( this.CanSkipPureNonObservableAdvice() )
             {
                 return AddInitializerAdviceResult.Skipped( this );
             }
@@ -1676,7 +1720,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetConstructor, AdviceKind.AddInitializer );
 
-            if ( this.CanSkipNonObservableAdvice() )
+            if ( this.CanSkipPureNonObservableAdvice() )
             {
                 return AddInitializerAdviceResult.Skipped( this );
             }
@@ -1699,7 +1743,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
-            if ( this.CanSkipNonObservableAdvice() )
+            if ( this.CanSkipPureNonObservableAdvice() )
             {
                 return AddContractAdviceResult<IParameter>.Skipped( this );
             }
@@ -1747,7 +1791,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
-            if ( this.CanSkipNonObservableAdvice() )
+            if ( this.CanSkipPureNonObservableAdvice() )
             {
                 return AddContractAdviceResult<IFieldOrPropertyOrIndexer>.Skipped( this );
             }
