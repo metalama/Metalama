@@ -427,11 +427,6 @@ class A { public A(int x) {} }
 
         var kinds = new[]
         {
-#if ROSLYN_4_8_0
-            "class",
-            "struct",
-#endif
-
             "record", "record class", "record struct"
         };
 

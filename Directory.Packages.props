@@ -10,13 +10,15 @@
     <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.358</PostSharpEngineeringVersion>
 
 
-    <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.12. -->
+    <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.14. -->
     <NewtonsoftJsonMinVersion>13.0.3</NewtonsoftJsonMinVersion>
     <!-- This is the version used in the programs (not in libraries) and it should be the latest. -->
     <NewtonsoftJsonVersion>13.0.4</NewtonsoftJsonVersion>
 
-     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support (i.e. VS 17.12). -->
-    <RoslynApiMinVersion>4.8.0</RoslynApiMinVersion>
+     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support. The 4.8 build variant
+         was dropped for 2026.1: no in-MS-support design-time analyzer host below Roslyn 4.12 remains,
+         and Metalama.Compiler.exe replaces the SDK's Roslyn at build time. See Directory.Packages.md. -->
+    <RoslynApiMinVersion>4.12.0</RoslynApiMinVersion>
 
     <!-- RoslynApiMaxVersion is the maximum version of the Roslyn API we support. -->
     <RoslynApiMaxVersion>5.0.0</RoslynApiMaxVersion>
@@ -38,7 +40,10 @@
     <MicrosoftBclAsyncInterfacesLatestVersion>9.0.10</MicrosoftBclAsyncInterfacesLatestVersion>
 
     <!-- SystemTextJsonVersion depends on the Roslyn version; here is the fallback. -->
-    <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.0</SystemTextJsonVersion>
+    <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.6</SystemTextJsonVersion>
+    <!-- SystemTextJsonMinVersion is the API floor used by user-surfacing libraries (Metalama.Backstage etc.)
+         that need to remain on the .NET 8 line while we support .NET 8 SDK as a build target. -->
+    <SystemTextJsonMinVersion>8.0.6</SystemTextJsonMinVersion>
     <SystemNetHttpLatestVersion>4.3.4</SystemNetHttpLatestVersion>
     <SystemTextRegularExpressionsLatestVersion>4.3.1</SystemTextRegularExpressionsLatestVersion>
     <SystemFormatsAsn1LatestVersion>9.0.10</SystemFormatsAsn1LatestVersion>
@@ -69,7 +74,7 @@
     <PackageVersion Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
     <!-- Microsoft.Toolkit.Uwp.Notifications 7.1.3 references vulnerable System.Drawing.Common 4.7.0, so update it here. -->
     <!-- See also #35587 for updating the above package. -->
-    <PackageVersion Include="System.Drawing.Common" Version="8.0.21" />
+    <PackageVersion Include="System.Drawing.Common" Version="8.0.26" />
     <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.3595.46" />
     <PackageVersion Include="Newtonsoft.Json" Version="$(NewtonsoftJsonVersion)" />
     <PackageVersion Include="Spectre.Console" Version="0.53.0" />
@@ -79,10 +84,11 @@
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.0.16" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
-    <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
+    <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
-    <PackageVersion Include="System.Buffers" Version="4.5.1" /> <!-- Given by System.Memory -->
-    <PackageVersion Include="System.Memory" Version="4.6.0" />
+    <PackageVersion Include="System.Buffers" Version="4.6.1" /> <!-- Given by System.Memory; matches VS 17.14 _netfx binding-redirect target -->
+    <PackageVersion Include="System.Memory" Version="4.6.3" /> <!-- Matches VS 17.14 _netfx binding-redirect target; retains netstandard2.0 -->
+    <PackageVersion Include="System.Numerics.Vectors" Version="4.6.1" /> <!-- OOB lockstep with System.Memory; matches VS 17.14 _netfx binding-redirect target -->
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="$(SystemTextRegularExpressionsLatestVersion)" />
     <PackageVersion Include="System.Threading" Version="4.3.0" />
@@ -125,7 +131,7 @@
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="coverlet.msbuild" Version="6.0.4" />
 
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" /> <!-- Must be the lowest supported VS. -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" /> <!-- Must be the lowest supported VS, i.e. 17.14. -->
     
     <PackageVersion Include="ILRepack" Version="2.0.44" />
     <!-- The following package is ILMerged so we can take any version we want,
