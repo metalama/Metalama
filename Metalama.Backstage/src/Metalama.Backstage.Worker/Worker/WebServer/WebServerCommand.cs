@@ -21,7 +21,7 @@ namespace Metalama.Backstage.Worker.WebServer;
 [UsedImplicitly]
 internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
 {
-    public override async Task<int> ExecuteAsync( CommandContext context, WebServerCommandSettings settings, CancellationToken cancellationToken )
+    protected override async Task<int> ExecuteAsync( CommandContext context, WebServerCommandSettings settings, CancellationToken cancellationToken )
     {
         var appData = (AppData) context.Data!;
 

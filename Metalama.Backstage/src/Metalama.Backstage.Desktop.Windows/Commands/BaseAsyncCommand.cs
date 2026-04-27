@@ -17,7 +17,7 @@ namespace Metalama.Backstage.Desktop.Windows.Commands;
 public abstract class BaseAsyncCommand<T> : AsyncCommand<T>
     where T : BaseSettings
 {
-    public override async Task<int> ExecuteAsync( CommandContext context, T settings, CancellationToken cancellationToken )
+    protected override async Task<int> ExecuteAsync( CommandContext context, T settings, CancellationToken cancellationToken )
     {
         var serviceProvider = App.GetBackstageServices( settings );
         var loggerFactory = serviceProvider.GetLoggerFactory();
