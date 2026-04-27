@@ -101,13 +101,57 @@ Public Roslyn API surface didn't change between 4.8 and 4.11 for the API set we 
 
 ## Adding or upgrading a package
 
-If the package is loaded into a VS or third-party IDE design-time analyzer host, cap at the strictest version that host ships (consult `eng\vs-shipped-packages.json`; if not in the manifest, run the inventory script). If it's only in `Metalama.Compiler.exe`, tests, or end-user runtime, take the latest compatible with the relevant TFM. When a package serves multiple categories, apply the strictest cap. For transitive dependencies, run `dotnet list package --include-transitive` on the consuming project and re-apply.
+If the package is loaded into a VS or third-party IDE design-time analyzer host, derive the cap with the commands in *Verifying a package's VS-shipped version* below. If it's only in `Metalama.Compiler.exe`, tests, or end-user runtime, take the latest compatible with the relevant TFM (and per the user-surfacing rule, stay on the .NET 8 line for any package referenced by user-surfacing projects). When a package serves multiple categories, apply the strictest cap. For transitive dependencies, run `dotnet list package --include-transitive` on the consuming project and re-apply.
 
-## Workflow: refreshing the VS-shipped manifest
+## Verifying a package's VS-shipped version
 
-Run `eng\Inventory-VsAssemblies.ps1` against a clean VS install on the host (the dev container has no VS). Curate the raw inventory down to the packages we consume, into `eng\vs-shipped-packages.<vs-version>.json`. Refresh when the floor VS version changes, when MS releases a Current-Channel feature update that rotates shipped assemblies, or when a transitive dependency unexpectedly fails to load in VS.
+Run on the host (the dev container has no VS). The VS install carries the NuGet version data in two places; use both for reliable cap derivation, neither alone is sufficient.
 
-Before merging a `Directory.Packages.props` change that adds or upgrades a VS-loaded dependency: cross-reference each transitive against the manifest's cap, then smoke-test by loading the change in VS 17.14 latest patch and reproducing a representative design-time scenario.
+### 1. The VS package cache (NuGet versions for `_netfx`-bundled OOB packages)
+
+VS caches its .NET Framework binding-redirect target packages under `C:\ProgramData\Microsoft\VisualStudio\Packages` with directory names that embed the NuGet version directly:
+
+```powershell
+Get-ChildItem 'C:\ProgramData\Microsoft\VisualStudio\Packages' -Directory |
+    Where-Object { $_.Name -match '_netfx,version=' } |
+    ForEach-Object { $_.Name }
+# Example: newtonsoft.json_13.0.3_netfx,version=1.0.1.0,productarch=neutral
+# The NuGet version is between the first `_` and `_netfx`: here, 13.0.3
+```
+
+This covers `Newtonsoft.Json`, `System.Memory`, `System.Buffers`, `System.Numerics.Vectors`, `System.Runtime.CompilerServices.Unsafe` — packages VS ships standalone for .NET Framework binding. Other packages (StreamJsonRpc, MessagePack, MS.VS.Threading, System.Text.Json, etc.) are bundled inside extensions and don't appear here.
+
+### 2. `FileVersionInfo.ProductVersion` of bundled DLLs (NuGet versions for everything else)
+
+For packages bundled inside extensions, walk the VS install and read each DLL's `ProductVersion` (= `AssemblyInformationalVersion`), which embeds the NuGet version followed by `+commitsha`. Take the highest version across all bundled copies — that's what binding redirects route to:
+
+```powershell
+function NugetVersionOf($path) {
+    try {
+        $pv = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($path).ProductVersion
+        if ($pv -match '^([\d]+\.[\d]+\.[\d]+(?:\.[\d]+)?(?:-[\w\.\-]+)?)') { return $Matches[1] }
+        return $pv
+    } catch { return $null }
+}
+$vsRoot = 'C:\Program Files\Microsoft Visual Studio\2022\Professional'  # or the 18.x equivalent
+foreach ($name in 'StreamJsonRpc.dll','MessagePack.dll','Microsoft.VisualStudio.Threading.dll',
+                  'System.Text.Json.dll','System.Collections.Immutable.dll',
+                  'Microsoft.Bcl.AsyncInterfaces.dll','System.IO.Pipelines.dll',
+                  'System.Diagnostics.DiagnosticSource.dll','Microsoft.CodeAnalysis.CSharp.dll',
+                  'Microsoft.Build.dll') {
+    $found = Get-ChildItem -Path $vsRoot -Recurse -Filter $name -ErrorAction SilentlyContinue -Force
+    $highest = ($found | ForEach-Object { NugetVersionOf $_.FullName } | Where-Object { $_ } |
+        ForEach-Object { try { [pscustomobject]@{ v=$_; sortable=[version]($_ -split '-')[0] } } catch {$null} }) |
+        Where-Object { $_ } | Sort-Object sortable -Descending | Select-Object -First 1
+    "$name : $($highest.v)"
+}
+```
+
+### What NOT to use as the cap
+
+`AssemblyVersion` (the binding identity in the DLL header) is **not** the NuGet version. Many .NET libraries keep AsmVer frozen across NuGet patches for binding-redirect stability: `System.Memory` 4.5.x and 4.6.x both expose AsmVer 4.0.2.0; `Microsoft.Build` 17.x all expose AsmVer 15.1.0.0. Capping on AsmVer is meaningless.
+
+Refresh the cap derivation when the floor VS version changes, when MS releases a Current-Channel feature update that rotates shipped assemblies, or when a transitive dependency unexpectedly fails to load in VS. Before merging a `Directory.Packages.props` change that adds or upgrades a VS-loaded dependency, cross-reference each transitive's NuGet version against the values from the commands above, then smoke-test by loading the change in VS 17.14 latest patch and reproducing a representative design-time scenario.
 
 ## Iteration workflow when bumping versions
 
@@ -125,7 +169,9 @@ Before merging a `Directory.Packages.props` change that adds or upgrades a VS-lo
    - `NU1701` (target framework compat fallback) — investigate; may indicate a TFM issue
    - Any new transitive that exceeds a VS-shipped cap — re-pin transitively
 4. **Iterate steps 1–3** until restore is warning-free across every top-level `.sln`.
-5. **Then** run `Build.ps1 build` (the slow cross-solution rebuild). Catches anything restore couldn't.
+5. **Then** run `Build.ps1 build` (the slow cross-solution rebuild). Catches what restore can't:
+   - `CS0507` (cannot change access modifiers when overriding) — a transitive package's API changed access (Spectre.Console.Cli 0.55 made `Command<T>.Execute` `protected`); update our overrides to match
+   - `CS1705` (assembly with higher version than referenced) — a transitive's binding identity advanced past what we declare; bump the offending package to a NuGet version that ships the higher AsmVer (StreamJsonRpc 2.22.23 was built against `System.Threading.Tasks.Extensions` AsmVer 4.2.1.0, requiring the 4.6.x NuGet line)
 6. **Then** run targeted tests.
 
 ## Known caps and rationales
@@ -135,14 +181,23 @@ Documented inline in `Directory.Packages.props` / `eng\Versions.props`. Listed h
 - `Newtonsoft.Json` — VS-shipped. `NewtonsoftJsonMinVersion` tracks the VS floor.
 - `System.Memory`, `System.Buffers`, `System.Runtime.CompilerServices.Unsafe` — VS-shipped OOB family. Pinned in lockstep at the 4.6.x line so the `netstandard2.0` asset is retained for `net472` projects. The `8.x` DLLs in modern VS bundles are inbox copies from .NET 8 runtime, not a separate NuGet to track.
 - `Microsoft.CodeAnalysis.*` — `RoslynApiMinVersion` / `RoslynApiMaxVersion` define the API contract floor and ceiling. Runtime implementation comes from VS (design-time) or Metalama.Compiler.exe (build-time).
-- `Microsoft.Build.*` — `MicrosoftBuildVersion`, conditional per TFM.
+- `Microsoft.Build.*` — `MicrosoftBuildVersion`, conditional per TFM. Note: the FileVersion of the VS-shipped `Microsoft.Build.dll` (e.g., 17.14.40) is *not* the same as the NuGet version — the latest published `Microsoft.Build` 17.14.x NuGet on nuget.org is 17.14.28. Always verify the NuGet exists before pinning.
 - `Microsoft.NET.Test.Sdk` — pinned to the VS floor (currently `17.12.0`; bump to a 17.14-aligned version when refreshing for 2026.1).
 - `MessagePack`, `StreamJsonRpc` — both ILMerged into Metalama, so the chosen version doesn't create an external binding. The only constraint is their transitive impact on the OOB family above (`System.Memory`, `System.Buffers`, `System.Runtime.CompilerServices.Unsafe`): the picked MessagePack/StreamJsonRpc version must work against the OOB versions we ship.
 - `MetalamaTemplateLanguageVersion` — capped at C# 13 (in `Directory.Build.props`) so templates and build-time code remain compatible with VS 2022 (no C# 14 compiler).
 
+## Common gotchas (lessons from past version bumps)
+
+- **AsmVer ≠ NuGet version.** Cap on the NuGet version derived from the commands in *Verifying a package's VS-shipped version*, never on the binding-identity AsmVer in the DLL header.
+- **FileVersion ≠ NuGet version for `Microsoft.Build.*`.** The VS-shipped `Microsoft.Build.dll` may report a `FileVersion` higher than any published NuGet (e.g., `17.14.40` shipped vs `17.14.28` latest on nuget.org). Always verify the NuGet exists.
+- **Pre-1.0 packages can break in "minor" bumps.** `Spectre.Console.Cli` 0.53 → 0.55 changed `Command<T>.Execute` from `public` to `protected`, requiring CS0507 fixes in 6 files. Read changelogs before bumping any package whose major is `0`.
+- **ILMerged transitives still bind externally.** Even when `StreamJsonRpc` is ILMerged into Metalama, its non-merged transitive deps (`System.Threading.Tasks.Extensions`, `System.Diagnostics.DiagnosticSource`, etc.) still need their AsmVer to satisfy the merged code's binding. Bumping the ILMerged package may force bumps on its transitives.
+- **`netstandard2.0` is the OOB-family bright line.** `System.Memory` / `System.Buffers` / `System.Runtime.CompilerServices.Unsafe` / `System.Numerics.Vectors` retain `netstandard2.0` only through their 4.6.x line. The `8.x`+ DLLs in modern VS payloads are inbox copies from the .NET 8 runtime, not standalone NuGets.
+- **VS's "Current Channel" auto-updates feature bands.** What's "latest 17.14.x" on day N may be "latest 17.16.x" on day N+30 if Microsoft ships a feature update. Re-derive caps when refreshing for a new GA.
+
 ## Open work
 
-- [x] Run `eng\Inventory-VsAssemblies.ps1` against a clean VS 2022 17.14 latest-patch install and a clean VS 2026 latest-Stable install; commit raw inventory at `eng\vs-shipped-packages.vs2022.json` and `eng\vs-shipped-packages.vs2026.json`.
+- [x] VS 2022 17.14 + VS 2026 18.5 caps verified via the commands in *Verifying a package's VS-shipped version*; values reflected inline in `Directory.Packages.props` and committed under #1603.
 - [x] Bump `RoslynApiMinVersion` 4.8.0 → 4.12.0 and delete `eng\RoslynVersions\Roslyn.4.8.0.props`.
 - [x] Remove dead `#if ROSLYN_4_8_0` branches (one in `PrimaryConstructorTests.cs`). Always-true `#if ROSLYN_4_x_x_OR_GREATER` guards for versions ≤ 4.12 left for a separate cleanup pass — they don't affect correctness.
 - [ ] Drop the 4.8 build leg from CI (build infrastructure outside this repo).
