@@ -143,11 +143,14 @@ Documented inline in `Directory.Packages.props` / `eng\Versions.props`. Listed h
 ## Open work
 
 - [x] Run `eng\Inventory-VsAssemblies.ps1` against a clean VS 2022 17.14 latest-patch install and a clean VS 2026 latest-Stable install; commit raw inventory at `eng\vs-shipped-packages.vs2022.json` and `eng\vs-shipped-packages.vs2026.json`.
-- [ ] Bump `RoslynApiMinVersion` 4.8.0 → 4.12.0 and delete `eng\RoslynVersions\Roslyn.4.8.0.props`.
-- [ ] Remove dead `#if ROSLYN_4_8_0` branches and simplify always-true `#if ROSLYN_4_x_x_OR_GREATER` guards for versions ≤ 4.12.
-- [ ] Drop the 4.8 build leg from CI.
-- [ ] Bump `MicrosoftBuildVersion` (net9.0) 17.14.28 → 17.14.40, `Microsoft.NET.Test.Sdk` 17.12.0 → 17.14.x, and inline VS-floor comments in `Directory.Packages.props` from "17.12" → "17.14".
-- [ ] Bump the OOB-package lockstep set: `System.Memory` 4.6.0 → 4.6.3, `System.Buffers` 4.5.1 → 4.6.1, `System.Runtime.CompilerServices.Unsafe` 6.1.0 → 6.1.2; optionally pin `System.Numerics.Vectors = 4.6.1`.
+- [x] Bump `RoslynApiMinVersion` 4.8.0 → 4.12.0 and delete `eng\RoslynVersions\Roslyn.4.8.0.props`.
+- [x] Remove dead `#if ROSLYN_4_8_0` branches (one in `PrimaryConstructorTests.cs`). Always-true `#if ROSLYN_4_x_x_OR_GREATER` guards for versions ≤ 4.12 left for a separate cleanup pass — they don't affect correctness.
+- [ ] Drop the 4.8 build leg from CI (build infrastructure outside this repo).
+- [x] Inline VS-floor comments in `Directory.Packages.props` updated from "17.12" → "17.14"; `Microsoft.NET.Test.Sdk` 17.12.0 → 17.14.1. (`MicrosoftBuildVersion` net9.0 stays at 17.14.28: 17.14.40 is the FileVersion of the VS-shipped DLL, not the NuGet package version — the highest published `Microsoft.Build` 17.14.x NuGet is 17.14.28.)
+- [x] Bumped the OOB-package lockstep set: `System.Memory` 4.6.0 → 4.6.3, `System.Buffers` 4.5.1 → 4.6.1, `System.Runtime.CompilerServices.Unsafe` 6.1.0 → 6.1.2, plus explicit `System.Numerics.Vectors = 4.6.1` pin.
+- [x] Bumped within-8.0 line: `System.Drawing.Common` 8.0.21 → 8.0.26, `SystemTextJsonVersion` (fallback) 8.0.0 → 8.0.6, plus added the missing `SystemTextJsonMinVersion = 8.0.6` MSBuild property.
+- [x] ILMerge-unlocked: `StreamJsonRpc` 2.20.17 → 2.22.23, `System.Diagnostics.DiagnosticSource` 6.0.1 → 9.0.0.
+- [x] Section F freshness sweep: `JetBrains.*`, `DiffEngine`, `Xunit.SkippableFact`, `Microsoft.Web.WebView2`, `BenchmarkDotNet`, `Microsoft.Azure.Functions.Worker.Extensions.Http`, `Azure.Identity`, `Azure.Security.KeyVault.Secrets`, `Spectre.Console*`, `System.IO.Abstractions*`, `System.IO.Hashing` (9.0.0 → 9.0.15), `DiffPlex`, `LibGit2Sharp`, `CommunityToolkit.Mvvm`, `Roslynator.Analyzers`, `CompiledBindings.WPF`.
 - [ ] Audit transitive closure of VS-loaded projects against both manifests before 2026.1 GA.
 - [ ] Consider bumping `RoslynApiMaxVersion` 5.0.0 → 5.5.0 to match VS 2026 18.5's shipped Roslyn.
 - [ ] When 2026-LTSC ships (~2026-11-10), revisit whether to pin the VS 2026 floor to it for future Metalama LTS releases.
