@@ -65,15 +65,15 @@
 <span class='line-number' data-member='MyAspect'>8</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">{</span>
 <span class='line-number' data-member='MyAspect._warning'>9</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-keyword">private</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">static</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">readonly</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">DiagnosticDefinition</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-field-name cs-static-symbol">_warning</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span>
 <span class='line-number' data-member='MyAspect._warning'>10</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-keyword">new</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-string">"MY001"</span><span class="cr-CompileTime cs-punctuation">,</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-enum-name">Severity</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-enum-member-name">Warning</span><span class="cr-CompileTime cs-punctuation">,</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-string">"Warning on target type."</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">);</span>
-<span class='line-number' data-member='MyAspect._warning'>11</span>
 <span class='diff-Imaginary' data-height='3'> 
 
 
-</span><span class='line-number' data-member='MyAspect.BuildAspect'>12</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-keyword">public</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">override</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">void</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-method-name">BuildAspect</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-interface-name">IAspectBuilder</span><span class="cr-CompileTime cs-punctuation">&lt;</span><span class="cr-CompileTime cs-interface-name">INamedType</span><span class="cr-CompileTime cs-punctuation">&gt;</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)</span>
+</span><span class='line-number' data-member='MyAspect._warning'>11</span>
+<span class='line-number' data-member='MyAspect.BuildAspect'>12</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-keyword">public</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">override</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">void</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-method-name">BuildAspect</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-interface-name">IAspectBuilder</span><span class="cr-CompileTime cs-punctuation">&lt;</span><span class="cr-CompileTime cs-interface-name">INamedType</span><span class="cr-CompileTime cs-punctuation">&gt;</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)</span>
 <span class='line-number' data-member='MyAspect.BuildAspect'>13</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-punctuation">{</span>
 <span class='line-number' data-member='MyAspect.BuildAspect'>14</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Diagnostics</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-method-name">Report</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-field-name cs-static-symbol">_warning</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">);</span>
 <span class='line-number' data-member='MyAspect.BuildAspect'>15</span>
-<span class='line-number' data-member='MyAspect.BuildAspect'>16</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-extension-method-name">IntroduceMethod</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">nameof</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-method-name">IntroducedMethod</span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">);</span>
+<span class='line-number' data-member='MyAspect.BuildAspect'>16</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-extension-method-name">IntroduceMethod</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">nameof</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-keyword">this</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-method-name">IntroducedMethod</span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">);</span>
 <span class='line-number' data-member='MyAspect.BuildAspect'>17</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-punctuation">}</span>
 <span class='line-number' data-member='MyAspect.BuildAspect'>18</span>
 <span class='line-number' data-member='MyAspect.IntroducedMethod'>19</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-punctuation">[</span><span class="cr-CompileTime cs-class-name">Template</span><span class="cr-CompileTime cs-punctuation">]</span>
@@ -82,31 +82,30 @@
 <span class='line-number' data-member='MyAspect'>22</span>
 <span class='line-number' data-member='FirstClass'>23</span>    <span class="cs-comment">// &lt;target&gt;</span>
 <span class='line-number' data-member='FirstClass'>24</span>    <span class="cs-punctuation">[</span><span class="cs-class-name">MyAspect</span><span class="cs-punctuation">]</span>
-<span class="diagLines">    <span class="diagLine-Warning">Warning MY001: Warning on target type.</span>
+<span class='diff-Imaginary' data-height='1'> 
+</span><span class="diagLines">    <span class="diagLine-Warning">Warning MY001: Warning on target type.</span>
     
 </span><span class='line-number' data-member='FirstClass'>25</span>    <span class="cs-keyword">internal</span> <span class="cs-keyword">partial</span> <span class="cs-keyword">class</span> <span class="cs-class-name diag-Warning" title="Warning MY001: Warning on target type.">FirstClass</span>
-<span class='diff-Imaginary' data-height='1'> 
-</span><span class='line-number' data-member='FirstClass'>26</span>    <span class="cs-punctuation">{</span>
-<span class='line-number' data-member='FirstClass.a'>27</span>        <span class="cs-keyword">private</span> <span class="cs-keyword">int</span> <span class="cs-field-name">a</span><span class="cs-punctuation">;</span>
+<span class='line-number' data-member='FirstClass'>26</span>    <span class="cs-punctuation">{</span>
 <span class='diff-Imaginary' data-height='4'> 
 
 
 
-</span><span class='line-number' data-member='FirstClass'>28</span>    <span class="cs-punctuation">}</span>
+</span><span class='line-number' data-member='FirstClass.a'>27</span>        <span class="cs-keyword">private</span> <span class="cs-keyword">int</span> <span class="cs-field-name">a</span><span class="cs-punctuation">;</span>
+<span class='line-number' data-member='FirstClass'>28</span>    <span class="cs-punctuation">}</span>
 <span class='line-number' data-member='FirstClass'>29</span>
 <span class='line-number' data-member='SecondClass'>30</span>    <span class="cs-punctuation">[</span><span class="cs-class-name">MyAspect</span><span class="cs-punctuation">]</span>
 <span class="diagLines">    <span class="diagLine-Warning">Warning MY001: Warning on target type.</span>
     
 </span><span class='line-number' data-member='SecondClass'>31</span>    <span class="cs-keyword">internal</span> <span class="cs-keyword">partial</span> <span class="cs-keyword">class</span> <span class="cs-class-name diag-Warning" title="Warning MY001: Warning on target type.">SecondClass</span>
-<span class='line-number' data-member='SecondClass'>32</span>    <span class="cs-punctuation">{</span>
 <span class='diff-Imaginary' data-height='3'> 
 
 
-</span><span class='line-number' data-member='SecondClass.b'>33</span>        <span class="cs-keyword">private</span> <span class="cs-keyword">int</span> <span class="cs-field-name">b</span><span class="cs-punctuation">;</span>
+</span><span class='line-number' data-member='SecondClass'>32</span>    <span class="cs-punctuation">{</span>
 <span class='diff-Imaginary' data-height='1'> 
-</span><span class='line-number' data-member='SecondClass'>34</span>    <span class="cs-punctuation">}</span>
+</span><span class='line-number' data-member='SecondClass.b'>33</span>        <span class="cs-keyword">private</span> <span class="cs-keyword">int</span> <span class="cs-field-name">b</span><span class="cs-punctuation">;</span>
+<span class='line-number' data-member='SecondClass'>34</span>    <span class="cs-punctuation">}</span>
 <span class='line-number'>35</span><span class="cs-punctuation">}</span>
-<span class='line-number'>36</span>
 </code></pre>
        <p class='legend'>Legend:</p>
        <pre>
