@@ -55,6 +55,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
             var useNullability = partialCompilation.InitialCompilation.Options.NullableContextOptions != NullableContextOptions.Disable;
 
+            // Reuse the compilation's parse options so generated trees share LangVersion / preprocessor symbols with the
+            // existing sources; otherwise Roslyn rejects them with "Inconsistent language versions".
+            var parseOptions = partialCompilation.InitialCompilation.SyntaxTrees.FirstOrDefault()?.Options as CSharpParseOptions
+                               ?? CSharpParseOptions.Default;
+
             var lexicalScopeFactory = new LexicalScopeFactory( finalCompilationModel );
             var injectionHelperProvider = new LinkerInjectionHelperProvider( finalCompilationModel, useNullability );
             var injectionNameProvider = new LinkerInjectionNameProvider( finalCompilationModel, injectionHelperProvider );
@@ -249,7 +254,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var safeTypeName = GetUniqueFilenameForType( declaringTypeOrExtensionBlock );
                 var syntaxTreeName = safeTypeName + ".cs";
 
-                var generatedSyntaxTree = SyntaxTree( compilationUnit.NormalizeWhitespace(), encoding: Encoding.UTF8, path: syntaxTreeName );
+                var generatedSyntaxTree = CSharpSyntaxTree.Create(
+                    compilationUnit.NormalizeWhitespace(),
+                    parseOptions,
+                    syntaxTreeName,
+                    Encoding.UTF8 );
 
                 if ( !additionalSyntaxTreeDictionary.TryAdd(
                         syntaxTreeName,

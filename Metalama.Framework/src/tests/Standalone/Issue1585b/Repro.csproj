@@ -8,6 +8,9 @@
         <UseWPF>true</UseWPF>
         <RootNamespace>Repro</RootNamespace>
         <MetalamaWriteHtml>true</MetalamaWriteHtml>
+        <!-- Forces a non-default LangVersion so the consistency check between existing trees and the
+             design-time-generated tree is exercised (see DesignTimeSyntaxTreeGenerator). -->
+        <LangVersion>12.0</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
