@@ -78,10 +78,10 @@ public class C
     {
         var diagnostics = await this.RunAsync( _overrideMethodAspect, ExecutionScenario.CompileTime );
 
-        // AdviceOutcome.Default and Success share value 0; ToStringSafe picks the alphabetically-first
-        // alias, which is "Default".
+        // AdviceOutcome.Default and Success share value 0; ToStringSafe deprioritizes "Default", so
+        // the reported alias is "Success".
         Assert.False( ContainsOutcome( diagnostics, "Skipped" ), "Did not expect Outcome=Skipped at compile time." );
-        Assert.True( ContainsOutcome( diagnostics, "Default" ), "Expected Outcome=Default at compile time." );
+        Assert.True( ContainsOutcome( diagnostics, "Success" ), "Expected Outcome=Success at compile time." );
     }
 
     private const string _overridePartialMethodAspect = @"

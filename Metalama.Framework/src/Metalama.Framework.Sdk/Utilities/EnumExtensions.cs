@@ -20,8 +20,10 @@ public static class EnumExtensions
     /// Returns a deterministic string representation of an enum value. For enums with alias members
     /// (multiple names sharing the same underlying value, e.g. <c>Default = 0, Success = 0</c>), the
     /// built-in <see cref="object.ToString"/> picks one of the names in an implementation-defined way
-    /// that can vary across .NET runtimes. This method always returns the alphabetically-first name
-    /// among aliases, so diagnostic messages and log output stay stable.
+    /// that can vary across .NET runtimes. This method returns the alphabetically-first preferred
+    /// name among aliases — names marked <see cref="ObsoleteAttribute"/> and the literal name
+    /// <c>Default</c> are deprioritized and only used as a fallback when no preferred alias exists,
+    /// so diagnostic messages and log output stay stable.
     /// </summary>
     public static string ToStringSafe( this Enum value )
     {
@@ -32,13 +34,36 @@ public static class EnumExtensions
 
     private static IReadOnlyDictionary<Enum, string> BuildMap( Type type )
     {
+        var names = Enum.GetNames( type );
+        var entries = new (string Name, bool IsDeprioritized)[names.Length];
+
+        for ( var i = 0; i < names.Length; i++ )
+        {
+            var name = names[i];
+            var isObsolete = type.GetField( name )?.IsDefined( typeof(ObsoleteAttribute), inherit: false ) == true;
+            entries[i] = (name, isObsolete || name == "Default");
+        }
+
+        // Preferred names sort before deprioritized ones; ties broken by ordinal name comparison.
+        Array.Sort(
+            entries,
+            ( a, b ) =>
+            {
+                if ( a.IsDeprioritized != b.IsDeprioritized )
+                {
+                    return a.IsDeprioritized ? 1 : -1;
+                }
+
+                return string.CompareOrdinal( a.Name, b.Name );
+            } );
+
         var result = new Dictionary<Enum, string>();
 
-        foreach ( var name in Enum.GetNames( type ) )
+        foreach ( var (name, _) in entries )
         {
             var parsed = (Enum) Enum.Parse( type, name );
 
-            if ( !result.TryGetValue( parsed, out var existing ) || string.CompareOrdinal( name, existing ) < 0 )
+            if ( !result.ContainsKey( parsed ) )
             {
                 result[parsed] = name;
             }
