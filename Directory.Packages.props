@@ -134,15 +134,14 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" /> <!-- Must be the lowest supported VS, i.e. 17.14. -->
     
     <PackageVersion Include="ILRepack" Version="2.0.44" />
-    <!-- The following package is ILMerged so we can take any version we want,
-     however all dependencies must be lower or equal than the minimal we must suppport. -->
-
-    <PackageVersion Include="StreamJsonRpc" Version="2.20.17" />
-    <!-- The following packages are dependencies of StreamJsonRpc and we must match the version. 
-        We now target the .NET SDK 8 and equivalent VS.
-    -->
+    <!-- StreamJsonRpc and MessagePack are both ILMerged into Metalama.Framework.DesignTime.Rpc, so we
+         can pick any version that satisfies the OOB family caps above. 2.22.23 = VS 17.14 shipped version. -->
+    <PackageVersion Include="StreamJsonRpc" Version="2.22.23" />
+    <!-- These packages are transitive dependencies of StreamJsonRpc and are flowed (not ILMerged) to
+         consumers of Metalama.Framework.DesignTime.Rpc. Versions chosen to satisfy StreamJsonRpc 2.22.23's
+         minimum requirements while staying ≤ what VS 17.14 ships. -->
     <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
-    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="6.0.1" />
+    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
 
 
