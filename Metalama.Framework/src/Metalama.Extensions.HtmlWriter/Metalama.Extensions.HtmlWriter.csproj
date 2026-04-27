@@ -21,6 +21,8 @@
 
     <ItemGroup>
         <PackageReference Include="DiffPlex" PrivateAssets="all" />
+        <!-- Resolve conflict: DiffPlex 1.9.0 transitively pulls System.Memory 8.x; pin to our 4.6.x central version. -->
+        <PackageReference Include="System.Memory" />
     </ItemGroup>
 
     <ItemGroup>
