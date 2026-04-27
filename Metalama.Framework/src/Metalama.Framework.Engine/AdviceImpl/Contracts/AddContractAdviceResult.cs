@@ -29,4 +29,9 @@ internal sealed class AddContractAdviceResult<T> : AdviceResult, IAddContractAdv
     public T Declaration => this.Resolve( this._declaration );
 
     public static AddContractAdviceResult<T> Ignored( IAdviceFactoryImpl adviceFactory ) => new( AdviceOutcome.Ignore, adviceFactory );
+
+    // Preserves the target declaration reference so user code reading `result.Declaration` after a
+    // pipeline-driven skip continues to see the original target.
+    public static AddContractAdviceResult<T> Skipped( IAdviceFactoryImpl adviceFactory, IRef<T>? declaration = null )
+        => new( AdviceOutcome.Skipped, adviceFactory, declaration );
 }

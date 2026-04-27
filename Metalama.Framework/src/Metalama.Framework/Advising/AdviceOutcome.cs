@@ -56,5 +56,11 @@ public enum AdviceOutcome
     /// The <see cref="IAspect{T}.BuildAspect"/> method continues executing without throwing an exception; check <see cref="IAdviceResult.Outcome"/>
     /// to detect errors and handle them appropriately.
     /// </summary>
-    Error
+    Error,
+
+    /// <summary>
+    /// The advice was skipped by the pipeline because the current <see cref="Project.IExecutionScenario"/> does not capture the kind of
+    /// transformation it would have produced (typically non-observable transformations at design time). The skip is invisible to the design-time output.
+    /// </summary>
+    Skipped
 }
