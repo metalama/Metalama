@@ -245,11 +245,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var compilationUnit = CompilationUnit()
                     .WithMembers( SingletonList( AddHeader( topDeclaration ) ) );
 
-                var generatedSyntaxTree = SyntaxTree( compilationUnit.NormalizeWhitespace(), encoding: Encoding.UTF8 );
-
-                // Find a unique syntax tree name. 
+                // Find a unique syntax tree name.
                 var safeTypeName = GetUniqueFilenameForType( declaringTypeOrExtensionBlock );
                 var syntaxTreeName = safeTypeName + ".cs";
+
+                var generatedSyntaxTree = SyntaxTree( compilationUnit.NormalizeWhitespace(), encoding: Encoding.UTF8, path: syntaxTreeName );
 
                 if ( !additionalSyntaxTreeDictionary.TryAdd(
                         syntaxTreeName,
