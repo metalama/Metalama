@@ -53,11 +53,11 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="PostSharp.Engineering.BuildTools" Version="$(PostSharpEngineeringVersion)" />
-    <PackageVersion Include="Azure.Identity" Version="1.17.0" />
-    <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.8.0" />
-    <PackageVersion Include="JetBrains.Annotations" Version="2025.2.2" />
-    <PackageVersion Include="JetBrains.Profiler.SelfApi" Version="2.5.14" />
-    <PackageVersion Include="JetBrains.Profiler.Api" Version="1.4.10" />
+    <PackageVersion Include="Azure.Identity" Version="1.21.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.10.0" />
+    <PackageVersion Include="JetBrains.Annotations" Version="2025.2.4" />
+    <PackageVersion Include="JetBrains.Profiler.SelfApi" Version="2.5.17" />
+    <PackageVersion Include="JetBrains.Profiler.Api" Version="1.4.12" />
     <PackageVersion Include="System.Text.Json" Version="$(SystemTextJsonVersion)" /> 
     <!-- With K4os.Hash.xxHash, make sure that the dependency on System.Memory is not higher
          than the one required by the lowest version of Visual Studio supported by the VSX. -->
@@ -75,14 +75,14 @@
     <!-- Microsoft.Toolkit.Uwp.Notifications 7.1.3 references vulnerable System.Drawing.Common 4.7.0, so update it here. -->
     <!-- See also #35587 for updating the above package. -->
     <PackageVersion Include="System.Drawing.Common" Version="8.0.26" />
-    <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.3595.46" />
+    <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.3912.50" />
     <PackageVersion Include="Newtonsoft.Json" Version="$(NewtonsoftJsonVersion)" />
-    <PackageVersion Include="Spectre.Console" Version="0.53.0" />
-    <PackageVersion Include="Spectre.Console.Cli" Version="0.53.0" />
+    <PackageVersion Include="Spectre.Console" Version="0.55.2" />
+    <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
     <PackageVersion Include="System.DirectoryServices" Version="8.0.0" />
-    <PackageVersion Include="System.IO.Abstractions" Version="22.0.16" />
-    <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.0.16" />
-    <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
+    <PackageVersion Include="System.IO.Abstractions" Version="22.1.1" />
+    <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
+    <PackageVersion Include="System.IO.Hashing" Version="9.0.15" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
@@ -106,11 +106,11 @@
 
     <PackageVersion Include="Microsoft.Win32.Registry" Version="5.0.0" />
 
-    <PackageVersion Include="DiffEngine" Version="19.1.2" />
+    <PackageVersion Include="DiffEngine" Version="19.1.3" />
     <PackageVersion Include="Metalama.Extensions.DiffEngine" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.HtmlWriter" Version="$(MetalamaVersion)" />
-    <PackageVersion Include="DiffPlex" Version="1.7.2" />
-    <PackageVersion Include="LibGit2Sharp" Version="0.30.0" />
+    <PackageVersion Include="DiffPlex" Version="1.9.0" />
+    <PackageVersion Include="LibGit2Sharp" Version="0.31.0" />
     <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Framework" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MicrosoftBuildVersion)" />
@@ -127,7 +127,7 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'!='net472'" Version="2.2.0" />
     <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'=='net472'" Version="2.0.3" />
-    <PackageVersion Include="Xunit.SkippableFact" Version="1.5.23" />
+    <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="coverlet.msbuild" Version="6.0.4" />
 
@@ -163,7 +163,7 @@
     <PackageVersion Include="Metalama.Extensions.Multicast" Version="$(MetalamaVersion)" />
 
 
-    <PackageVersion Include="BenchmarkDotNet" Version="0.15.5" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="ComparerExtensions" Version="1.1.0" />
     <PackageVersion Include="FakeItEasy" Version="8.3.0" />
     <PackageVersion Include="FakeItEasy.Analyzer.CSharp" Version="6.1.1" />
@@ -185,14 +185,14 @@
     <!-- These are test-only dependencies for standalone projects. -->
     <PackageVersion Include="Catglobe.ResXFileCodeGenerator" Version="4.1.2" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="1.23.0" />
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.2.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.18.1" />
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" />
-    <PackageVersion Include="Roslynator.Analyzers" Version="4.12.8" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
     
-    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="AwesomeAssertions" Version="8.1.0" />
-    <PackageVersion Include="CompiledBindings.WPF" Version="1.0.18" />
+    <PackageVersion Include="CompiledBindings.WPF" Version="1.0.19.7" />
 
 
   </ItemGroup>
