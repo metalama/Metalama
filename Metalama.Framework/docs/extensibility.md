@@ -121,9 +121,9 @@ MyExtension.Engine.4.12.0/            # 4.12.0-specific build
 ```xml
 <Project>
     <PropertyGroup>
-        <ThisRoslynVersion>4.8.0</ThisRoslynVersion>
-        <ThisRoslynVersionProjectSuffix>.4.8.0</ThisRoslynVersionProjectSuffix>
-        <DefineConstants>$(DefineConstants);ROSLYN_4_8_0;ROSLYN_4_8_0_OR_GREATER</DefineConstants>
+        <ThisRoslynVersion>4.12.0</ThisRoslynVersion>
+        <ThisRoslynVersionProjectSuffix>.4.12.0</ThisRoslynVersionProjectSuffix>
+        <DefineConstants>$(DefineConstants);ROSLYN_4_12_0;ROSLYN_4_12_0_OR_EARLIER</DefineConstants>
     </PropertyGroup>
 </Project>
 ```
@@ -135,21 +135,21 @@ MyExtension.Engine.4.12.0/            # 4.12.0-specific build
     TargetFramework="net472"
     TargetRoslynVersion="5.0.0"/>
 <MetalamaExtensionAssembly
-    Include="...MyExtension.Engine.4.8.0.dll"
+    Include="...MyExtension.Engine.4.12.0.dll"
     TargetFramework="net472"
-    TargetRoslynVersion="4.8.0"/>
+    TargetRoslynVersion="4.12.0"/>
 ```
 
 **Conditional compilation in code:**
 ```csharp
-#if ROSLYN_4_12_0_OR_GREATER
-    // Use new API
+#if ROSLYN_5_0_0_OR_GREATER
+    // Use Roslyn 5.x-only API
 #else
-    // Use old API
+    // Fall back for Roslyn 4.12.x
 #endif
 ```
 
-**Example:** `Metalama.Extensions.Validation` in Metalama.Premium uses this pattern with builds for Roslyn 4.8.0, 4.12.0, and 5.0.0.
+**Example:** `Metalama.Extensions.Validation` in Metalama.Premium uses this pattern with builds for Roslyn 4.12.0 and 5.0.0. The Roslyn 4.8.0 build variant was retired with Metalama 2026.1; see `Directory.Packages.md`.
 
 ### Simple Extension Pattern (HtmlWriter)
 

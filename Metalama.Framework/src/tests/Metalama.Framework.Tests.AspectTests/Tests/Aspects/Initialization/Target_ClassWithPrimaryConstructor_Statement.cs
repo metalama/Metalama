@@ -2,16 +2,15 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
-// @RequiredConstant(NET7_0_OR_GREATER)
-#endif
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
 
-#if ROSLYN_4_8_0_OR_GREATER && NET7_0_OR_GREATER
+#if NET7_0_OR_GREATER
 #pragma warning disable CS0169
 
 using Metalama.Framework.Advising;
-using Metalama.Framework.Aspects; 
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using System;
@@ -22,9 +21,9 @@ public class Aspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        for (var i = 1; i <= 19; i++)
+        for ( var i = 1; i <= 19; i++ )
         {
-            builder.AddInitializer( StatementFactory.Parse($"x{i} = {i};"), InitializerKind.BeforeInstanceConstructor);
+            builder.AddInitializer( StatementFactory.Parse( $"x{i} = {i};" ), InitializerKind.BeforeInstanceConstructor );
         }
     }
 }
@@ -36,7 +35,9 @@ internal class Base
     public int x2;
 
     public virtual int x13 { get; }
+
     public virtual int x14 { get; }
+
     public int x15 { get; }
 }
 
@@ -50,21 +51,33 @@ internal abstract class TargetCode() : Base
     public new int x2;
     private readonly int x3;
     public required int x4;
+
     [MyAttribute]
     private protected int x5;
 
     private int x6 { get; }
+
     private int x7 { get; set; }
+
     public int x8 { get; private set; }
+
     public int x9 { get; protected set; }
+
     protected internal int x10 { get; init; }
+
     public required int x11 { get; init; }
+
     public virtual int x12 { get; }
+
     public override int x13 { get; }
+
     public sealed override int x14 { get; }
+
     private new int x15 { get; }
+
     [MyAttribute]
     private int x16 { get; }
+
     [field: MyAttribute]
     private int x17 { get; }
 

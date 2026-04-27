@@ -45,6 +45,7 @@ public static class DeclarationExtensions
             SymbolKind.NamedType when symbol is INamedTypeSymbol { IsExtension: true } => DeclarationKind.ExtensionBlock,
 #endif
             SymbolKind.NamedType => DeclarationKind.NamedType,
+
             SymbolKind.Method when symbol is IMethodSymbol method =>
                 method.MethodKind is MethodKind.Constructor or MethodKind.StaticConstructor
                     ? DeclarationKind.Constructor
@@ -298,14 +299,11 @@ public static class DeclarationExtensions
             return PropertyKind.Default;
         }
 
-#if ROSLYN_4_12_0_OR_GREATER
-
         // Partial property definitions can't be auto-properties.
         if ( symbol.IsPartialDefinition )
         {
             return PropertyKind.Default;
         }
-#endif
 
         // Check if the property has a compiler-generated backing field.
         var backingField = symbol.GetBackingField();

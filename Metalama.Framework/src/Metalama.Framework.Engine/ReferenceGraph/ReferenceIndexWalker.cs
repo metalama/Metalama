@@ -230,9 +230,7 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
             {
                 this.VisitMembers( node.Members );
 
-#if ROSLYN_4_8_0_OR_GREATER
                 this.Visit( node.ParameterList );
-#endif
             }
         }
     }
@@ -266,9 +264,7 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
             {
                 this.VisitMembers( node.Members );
 
-#if ROSLYN_4_8_0_OR_GREATER
                 this.Visit( node.ParameterList );
-#endif
             }
         }
     }
@@ -643,7 +639,6 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         this.Visit( node.Initializer );
     }
 
-#if ROSLYN_4_8_0_OR_GREATER
     public override void VisitCollectionExpression( CollectionExpressionSyntax node )
     {
         if ( this._options.MustIndexReferenceKind( ReferenceKinds.ArrayCreation | ReferenceKinds.ObjectCreation ) && this._currentDeclarationNode != null )
@@ -667,7 +662,6 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
             }
         }
     }
-#endif
 
     public override void VisitImplicitObjectCreationExpression( ImplicitObjectCreationExpressionSyntax node )
     {

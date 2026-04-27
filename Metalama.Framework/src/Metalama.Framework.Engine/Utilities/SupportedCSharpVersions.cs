@@ -31,12 +31,8 @@ public static class SupportedCSharpVersions
     public static LanguageVersion Latest
 #if ROSLYN_5_0_0_OR_GREATER
         => LanguageVersion.CSharp14;
-#elif ROSLYN_4_12_0_OR_GREATER
-        => LanguageVersion.CSharp13;
-#elif ROSLYN_4_8_0_OR_GREATER
-        => LanguageVersion.CSharp12;
 #else
-        #error Invalid Roslyn version;
+        => LanguageVersion.CSharp13;
 #endif
 
 #pragma warning disable SA1114 // Parameter list should follow declaration
@@ -47,12 +43,8 @@ public static class SupportedCSharpVersions
 #if ROSLYN_5_0_0_OR_GREATER
         LanguageVersion.CSharp14,
 #endif
-#if ROSLYN_4_12_0_OR_GREATER
         LanguageVersion.CSharp13,
-#endif
-#if ROSLYN_4_8_0_OR_GREATER
         LanguageVersion.CSharp12,
-#endif
         LanguageVersion.CSharp11,
         LanguageVersion.CSharp10 );
 

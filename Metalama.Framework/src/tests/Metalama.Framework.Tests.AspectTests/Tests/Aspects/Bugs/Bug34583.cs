@@ -2,19 +2,11 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
-#endif
-
-#if ROSLYN_4_8_0_OR_GREATER
-
 using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug34583;
 
-public class MyAttribute : Attribute
-{
-}
+public class MyAttribute : Attribute { }
 
 #pragma warning disable CS0067 // The event 'TestClass<T>.EventField' is never used
 
@@ -52,9 +44,9 @@ public class TestClass<[typevar: My] T>
         set { }
     }
 
-    [field:My]
-    [event:My]
-    [method:My]
+    [field: My]
+    [event: My]
+    [method: My]
     public event EventHandler? EventField;
 
     [event: My]
@@ -73,21 +65,15 @@ public class TestClass<[typevar: My] T>
 
     [method: My]
     [return: My]
-    public int Foo<[typevar: My] U>([param: My] int x) => 42;
+    public int Foo<[typevar: My] U>( [param: My] int x ) => 42;
 }
-
 
 // <target>
 [type: My]
 [method: My]
-public record class TestRecord(
-    [param: My][field: My][property: My] int X)
-{
-}
+public record class TestRecord( [param: My] [field: My] [property: My] int X ) { }
 
 // <target>
 [type: My]
 [return: My]
-public delegate void TestDelegate([param: My] int x);
-
-#endif
+public delegate void TestDelegate( [param: My] int x );

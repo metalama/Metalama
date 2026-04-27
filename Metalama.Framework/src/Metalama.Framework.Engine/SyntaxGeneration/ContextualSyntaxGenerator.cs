@@ -340,7 +340,6 @@ public sealed partial class ContextualSyntaxGenerator
                 constraints.Add( ConstructorConstraint() );
             }
 
-#if ROSLYN_4_12_0_OR_GREATER
             if ( genericParameter.AllowsRefStruct )
             {
                 constraints ??= [];
@@ -351,7 +350,6 @@ public sealed partial class ContextualSyntaxGenerator
                         SingletonSeparatedList<AllowsConstraintSyntax>(
                             RefStructConstraint( TokenWithTrailingSpace( SyntaxKind.RefKeyword ), Token( SyntaxKind.StructKeyword ) ) ) ) );
             }
-#endif
 
             if ( constraints != null )
             {
@@ -1051,9 +1049,7 @@ public sealed partial class ContextualSyntaxGenerator
             SyntaxKind.ArrayCreationExpression or SyntaxKind.ImplicitArrayCreationExpression => false,
             SyntaxKind.PostIncrementExpression or SyntaxKind.PostDecrementExpression or SyntaxKind.SuppressNullableWarningExpression => false,
 
-#if ROSLYN_4_8_0_OR_GREATER
             SyntaxKind.CollectionExpression => false,
-#endif
 
             // The syntax (T)-x is ambiguous and interpreted as binary minus, not cast of unary minus.
             SyntaxKind.UnaryPlusExpression or SyntaxKind.LogicalNotExpression or SyntaxKind.BitwiseNotExpression

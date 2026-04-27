@@ -15,9 +15,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
-#if ROSLYN_4_12_0_OR_GREATER
 using Microsoft.CodeAnalysis.CSharp;
-#endif
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -1829,7 +1827,6 @@ public class MyAspect
             Assert.Contains( allSourcePaths, path => path.Contains( "NewFileName", StringComparison.Ordinal ) );
         }
 
-#if ROSLYN_4_12_0_OR_GREATER
         [Fact]
         public void TemplateLanguageVersion()
         {
@@ -1884,7 +1881,6 @@ public class MyAspect
 
             Assert.Equal( templateLanguageVersion, loader.RootProject.Manifest!.LanguageVersion );
         }
-#endif
 
         /// <summary>
         /// Regression test for issue #700: Renaming a project with a case-only change (e.g., MetaLamaTest -> MetalamaTest)

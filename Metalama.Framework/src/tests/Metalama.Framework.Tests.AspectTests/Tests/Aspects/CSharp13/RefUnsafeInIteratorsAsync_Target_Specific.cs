@@ -2,10 +2,9 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_12_0_OR_GREATER)
-// @RequiredConstant(NET5_0_OR_GREATER)
-#endif
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
 using System;
@@ -23,19 +22,19 @@ internal class TheAspect : OverrideMethodAspect
 
     public override async Task<dynamic?> OverrideAsyncMethod()
     {
-        Console.WriteLine($"Entering {meta.Target.Method}.");
+        Console.WriteLine( $"Entering {meta.Target.Method}." );
 
         try
         {
             var result = await meta.ProceedAsync();
 
-            Console.WriteLine($"{meta.Target.Method} succeeded with result {result}.");
+            Console.WriteLine( $"{meta.Target.Method} succeeded with result {result}." );
 
             return result;
         }
-        catch (Exception ex)
+        catch ( Exception ex )
         {
-            Console.WriteLine($"{meta.Target.Method} failed with exception {ex}.");
+            Console.WriteLine( $"{meta.Target.Method} failed with exception {ex}." );
 
             throw;
         }
@@ -43,11 +42,12 @@ internal class TheAspect : OverrideMethodAspect
 
     public override IEnumerable<dynamic?> OverrideEnumerableMethod()
     {
-        Console.WriteLine($"Entering {meta.Target.Method}.");
+        Console.WriteLine( $"Entering {meta.Target.Method}." );
 
-        foreach (var item in meta.ProceedEnumerable())
+        foreach ( var item in meta.ProceedEnumerable() )
         {
-            Console.WriteLine($"{meta.Target.Method} yielded {item}.");
+            Console.WriteLine( $"{meta.Target.Method} yielded {item}." );
+
             yield return item;
         }
     }
@@ -55,19 +55,18 @@ internal class TheAspect : OverrideMethodAspect
 #if NET5_0_OR_GREATER
     public override async IAsyncEnumerable<dynamic?> OverrideAsyncEnumerableMethod()
     {
-        Console.WriteLine($"Entering {meta.Target.Method}.");
+        Console.WriteLine( $"Entering {meta.Target.Method}." );
 
-        await foreach (var item in meta.ProceedAsyncEnumerable())
+        await foreach ( var item in meta.ProceedAsyncEnumerable() )
         {
-            Console.WriteLine($"{meta.Target.Method} yielded {item}.");
+            Console.WriteLine( $"{meta.Target.Method} yielded {item}." );
+
             yield return item;
         }
     }
 
 #endif
 }
-
-#if ROSLYN_4_12_0_OR_GREATER
 
 // <target>
 internal class Target
@@ -80,9 +79,7 @@ internal class Target
         // unsafe
         unsafe
         {
-            fixed (int* p = new int[1])
-            {
-            }
+            fixed ( int* p = new int[1] ) { }
         }
 
         // ref
@@ -102,9 +99,7 @@ internal class Target
         // unsafe
         unsafe
         {
-            fixed (int* p = new int[1])
-            {
-            }
+            fixed ( int* p = new int[1] ) { }
         }
 
         // ref
@@ -120,14 +115,13 @@ internal class Target
     private async IAsyncEnumerable<int> AsyncIterator()
     {
         await Task.Yield();
+
         yield return 1;
 
         // unsafe
         unsafe
         {
-            fixed (int* p = new int[1])
-            {
-            }
+            fixed ( int* p = new int[1] ) { }
         }
 
         // ref
@@ -137,8 +131,7 @@ internal class Target
         Span<int> s = stackalloc int[1];
 
         await Task.Yield();
+
         yield return 2;
     }
 }
-
-#endif

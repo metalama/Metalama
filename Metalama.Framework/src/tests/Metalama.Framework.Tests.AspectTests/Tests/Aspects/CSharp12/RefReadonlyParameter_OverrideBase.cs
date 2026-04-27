@@ -2,12 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
-#endif
-
-#if ROSLYN_4_8_0_OR_GREATER
-
 using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
@@ -21,11 +15,11 @@ internal class TheAspect : TypeAspect
     {
         base.BuildAspect( builder );
 
-        builder.IntroduceMethod( nameof(M), whenExists: OverrideStrategy.Override );
+        builder.IntroduceMethod( nameof(this.M), whenExists: OverrideStrategy.Override );
 
         builder.IntroduceIndexer(
-            new[] { ( typeof(int), "i" ), ( typeof(int), "j" ) },
-            nameof(M),
+            new[] { (typeof(int), "i"), (typeof(int), "j") },
+            nameof(this.M),
             setTemplate: null,
             whenExists: OverrideStrategy.Override,
             buildIndexer: indexerBuilder =>
@@ -38,7 +32,7 @@ internal class TheAspect : TypeAspect
     [Template]
     protected int M( in int i, ref readonly int j )
     {
-        foreach (var parameter in meta.Target.Parameters)
+        foreach ( var parameter in meta.Target.Parameters )
         {
             Console.WriteLine( $"{parameter}: Kind={parameter.RefKind}, Value={parameter.Value}" );
         }
@@ -59,5 +53,3 @@ internal class B
 
 [TheAspect]
 internal class D : B { }
-
-#endif

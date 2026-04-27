@@ -321,7 +321,6 @@ class C
             Assert.Equal( new[] { type.Methods.ElementAt( 4 ), type.Methods.ElementAt( 6 ), type.Methods.ElementAt( 8 ) }, matchedMethods11 );
         }
 
-#if ROSLYN_4_12_0_OR_GREATER
         [Fact]
         public void Matches_ParamsCollections()
         {
@@ -384,7 +383,6 @@ class C
             var matchedMethods3 = type.Methods.OfCompatibleSignature( "Foo", [intType, intType] );
             Assert.Equal( [type.Methods.ElementAt( 2 ), .. paramsMethods], matchedMethods3 );
         }
-#endif
 
         [Fact]
         public void Matches_InheritanceHierarchy()

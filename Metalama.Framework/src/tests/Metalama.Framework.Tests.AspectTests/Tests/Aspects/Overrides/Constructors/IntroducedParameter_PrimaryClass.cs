@@ -2,12 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
-#endif
-
-#if ROSLYN_4_8_0_OR_GREATER
-
 using System;
 using System.Linq;
 using Metalama.Framework.Aspects;
@@ -23,7 +17,7 @@ public class OverrideAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.With( builder.Target.Constructors.Single( p => !p.IsImplicitlyDeclared ) ).Override( nameof(Template), args: new { i = 1 } );
+        builder.With( builder.Target.Constructors.Single( p => !p.IsImplicitlyDeclared ) ).Override( nameof(this.Template), args: new { i = 1 } );
 
         builder.With( builder.Target.Constructors.Single( p => !p.IsImplicitlyDeclared ) )
             .IntroduceParameter(
@@ -31,7 +25,7 @@ public class OverrideAttribute : TypeAspect
                 TypeFactory.GetType( SpecialType.Int32 ),
                 TypedConstant.Create( 42 ) );
 
-        builder.With( builder.Target.Constructors.Single( p => !p.IsImplicitlyDeclared ) ).Override( nameof(Template), args: new { i = 2 } );
+        builder.With( builder.Target.Constructors.Single( p => !p.IsImplicitlyDeclared ) ).Override( nameof(this.Template), args: new { i = 2 } );
     }
 
     [Template]
@@ -39,7 +33,7 @@ public class OverrideAttribute : TypeAspect
     {
         Console.WriteLine( $"This is the override {i}." );
 
-        foreach (var param in meta.Target.Parameters)
+        foreach ( var param in meta.Target.Parameters )
         {
             Console.WriteLine( $"Param {param.Name} = {param.Value}" );
         }
@@ -54,5 +48,3 @@ public class TargetClass( int x )
 {
     public int Z = x;
 }
-
-#endif

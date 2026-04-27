@@ -2,12 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_12_0_OR_GREATER)
-#endif
-
-#if ROSLYN_4_12_0_OR_GREATER
-
 using Metalama.Framework.Aspects;
 using System;
 
@@ -19,13 +13,13 @@ public class TheAspect : OverrideFieldOrPropertyAspect
     {
         get
         {
-            Console.WriteLine("This is aspect code.");
+            Console.WriteLine( "This is aspect code." );
 
             return meta.Proceed();
         }
         set
         {
-            Console.WriteLine("This is aspect code.");
+            Console.WriteLine( "This is aspect code." );
 
             meta.Proceed();
         }
@@ -43,5 +37,3 @@ internal partial class Target
     partial int P2 { get; }
 #endif
 }
-
-#endif

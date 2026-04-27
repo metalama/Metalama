@@ -54,9 +54,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 Microsoft.CodeAnalysis.RefKind.Ref => RefKind.Ref,
                 Microsoft.CodeAnalysis.RefKind.Out => RefKind.Out,
                 Microsoft.CodeAnalysis.RefKind.In => RefKind.In,
-#if ROSLYN_4_8_0_OR_GREATER
                 Microsoft.CodeAnalysis.RefKind.RefReadOnlyParameter => RefKind.RefReadOnly,
-#endif
                 _ => throw new InvalidOperationException( $"Roslyn RefKind {this._parameterSymbol.RefKind} not recognized." )
             };
 

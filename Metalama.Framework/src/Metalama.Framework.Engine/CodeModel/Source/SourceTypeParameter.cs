@@ -83,13 +83,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        public bool AllowsRefStruct
-            =>
-#if ROSLYN_4_12_0_OR_GREATER
-                this._typeParameterSymbol.AllowsRefLikeType;
-#else
-                false;
-#endif
+        public bool AllowsRefStruct => this._typeParameterSymbol.AllowsRefLikeType;
 
         public VarianceKind Variance
             => this._typeParameterSymbol.Variance switch

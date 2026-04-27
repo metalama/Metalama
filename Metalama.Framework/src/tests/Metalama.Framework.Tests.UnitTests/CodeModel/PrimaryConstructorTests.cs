@@ -184,7 +184,6 @@ record struct D { public D() {} public D(int x) {} }
         Assert.All( typeRecordStruct.Constructors, c => Assert.False( c.IsPrimary ) );
     }
 
-#if ROSLYN_4_8_0_OR_GREATER
     [Fact]
     public void ParameterlessPrimaryConstructor_Class()
     {
@@ -220,7 +219,6 @@ struct B() {}
         Assert.Single( typeStruct.Constructors );
         Assert.Equal( typeStruct.Constructors.Single(), typeStruct.PrimaryConstructor );
     }
-#endif
 
     [Fact]
     public void ParameterlessPrimaryConstructor_RecordClass()
@@ -261,7 +259,6 @@ record struct D() {}
         Assert.Equal( typeRecordStruct.Constructors.Single(), typeRecordStruct.PrimaryConstructor );
     }
 
-#if ROSLYN_4_8_0_OR_GREATER
     [Fact]
     public void PrimaryConstructor_Class()
     {
@@ -299,7 +296,6 @@ struct B(int x) {}
         Assert.Single( typeStruct.Constructors, c => c.Parameters is [] );
         Assert.Equal( typeStruct.Constructors.Single( c => c.Parameters is [{ Type.SpecialType: SpecialType.Int32 }] ), typeStruct.PrimaryConstructor );
     }
-#endif
 
     [Fact]
     public void PrimaryConstructor_RecordClass()
@@ -425,10 +421,7 @@ class A { public A(int x) {} }
     {
         using var testContext = this.CreateTestContext();
 
-        var kinds = new[]
-        {
-            "record", "record class", "record struct"
-        };
+        var kinds = new[] { "record", "record class", "record struct" };
 
         foreach ( var kind in kinds )
         {

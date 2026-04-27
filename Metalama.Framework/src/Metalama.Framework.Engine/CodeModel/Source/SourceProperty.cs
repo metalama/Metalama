@@ -18,12 +18,9 @@ using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
-
-#if ROSLYN_4_12_0_OR_GREATER
-using System.Collections.Immutable;
-#endif
 
 namespace Metalama.Framework.Engine.CodeModel.Source
 {
@@ -34,11 +31,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             compilation,
             genericContextForSymbolMapping )
         {
-#if ROSLYN_4_12_0_OR_GREATER
             Invariant.Assert(
                 symbol.PartialDefinitionPart == null,
                 "Cannot use partial implementation to instantiate the SourceProperty class." );
-#endif
         }
 
         public FieldOrPropertyInfo ToFieldOrPropertyInfo() => CompileTimeFieldOrPropertyInfo.Create( this );
@@ -73,9 +68,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 ? this
                 : this.Compilation.Factory.GetProperty( this.PropertySymbol.OriginalDefinition );
 
-#if ROSLYN_4_12_0_OR_GREATER
         public override bool IsPartial => this.PropertySymbol.IsPartialDefinition || this.PropertySymbol.PartialDefinitionPart != null;
-#endif
 
         IRef<IFieldOrProperty> IFieldOrProperty.ToRef() => this.Ref;
 
@@ -133,7 +126,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         bool IExpression.IsAssignable => this.Writeability != Writeability.None;
 
-#if ROSLYN_4_12_0_OR_GREATER
         [Memo]
         public override ImmutableArray<SourceReference> Sources => this.GetSourcesImpl();
 
@@ -156,7 +148,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 return base.Sources;
             }
         }
-#endif
 
         [Memo]
         private IFullRef<IProperty> Ref => this.RefFactory.FromSymbolBasedDeclaration<IProperty>( this );

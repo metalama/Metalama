@@ -3,11 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
 // @RequiredConstant(NETCOREAPP3_0_OR_GREATER)
 #endif
-
-#if ROSLYN_4_8_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
 
@@ -19,5 +16,3 @@ internal class TheAspect : TypeAspect;
 // <target>
 [TheAspect]
 internal class C { }
-
-#endif

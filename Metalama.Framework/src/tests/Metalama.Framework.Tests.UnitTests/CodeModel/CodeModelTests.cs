@@ -1832,7 +1832,6 @@ class C {}
         Assert.Same( compilation.Factory.GetMethod( partialDefinition ), compilation.Factory.GetMethod( partialImplementation ) );
     }
 
-#if ROSLYN_4_12_0_OR_GREATER
     [Fact]
     public void PartialProperties()
     {
@@ -1914,7 +1913,6 @@ class C {}
         // Ensure declarations of both parts are the same.
         Assert.Same( compilation.Factory.GetProperty( partialDefinition ), compilation.Factory.GetProperty( partialImplementation ) );
     }
-#endif
 
 #if ROSLYN_5_0_0_OR_GREATER
     [Fact]
@@ -2135,7 +2133,6 @@ public partial class B
         Assert.Single( partialMethod.Sources, s => s.IsImplementationPart );
     }
 
-#if ROSLYN_4_12_0_OR_GREATER
     [Fact]
     private void SourceReferencesToProperties()
     {
@@ -2159,7 +2156,6 @@ public partial class B
         Assert.True( partialProperty.HasImplementation );
         Assert.Single( partialProperty.Sources, s => s.IsImplementationPart );
     }
-#endif
 
 #if ROSLYN_5_0_0_OR_GREATER
     [Fact]

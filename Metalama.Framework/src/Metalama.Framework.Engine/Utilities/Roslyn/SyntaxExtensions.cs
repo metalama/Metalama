@@ -126,32 +126,9 @@ public static class SyntaxExtensions
                "nameof",
                StringComparison.Ordinal ));
 
-    internal static TypeSyntax GetNamespaceOrType( this UsingDirectiveSyntax usingDirective )
-#if ROSLYN_4_8_0_OR_GREATER
-        => usingDirective.NamespaceOrType;
-#else
-        => usingDirective.Name;
-#endif
+    internal static TypeSyntax GetNamespaceOrType( this UsingDirectiveSyntax usingDirective ) => usingDirective.NamespaceOrType;
 
-    internal static ParameterListSyntax? GetParameterList( this TypeDeclarationSyntax typeDeclaration )
-    {
-#if ROSLYN_4_8_0_OR_GREATER
-        return typeDeclaration.ParameterList;
-#else
-        return typeDeclaration.Kind() switch
-        {
-            { IsRecordDeclaration: true } when typeDeclaration is RecordDeclarationSyntax record => record.ParameterList,
-            _ => null
-        };
-#endif
-    }
-
-#if !ROSLYN_4_8_0_OR_GREATER
-    internal static TypeDeclarationSyntax WithParameterList( this TypeDeclarationSyntax typeDeclaration, ParameterListSyntax? parameterList )
-        => typeDeclaration.SyntaxKind.IsRecordDeclaration && typeDeclaration is RecordDeclarationSyntax record ? record.WithParameterList( parameterList ) :
-            parameterList == null ? typeDeclaration :
-            throw new InvalidOperationException( $"Can't add parameter list to a non-record type before C# 12." );
-#endif
+    internal static ParameterListSyntax? GetParameterList( this TypeDeclarationSyntax typeDeclaration ) => typeDeclaration.ParameterList;
 
     internal static TNode NormalizeWhitespaceIfNecessary<TNode>( this TNode node, SyntaxGenerationContext context )
         where TNode : SyntaxNode

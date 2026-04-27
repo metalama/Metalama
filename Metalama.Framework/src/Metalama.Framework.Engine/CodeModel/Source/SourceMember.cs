@@ -44,9 +44,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 var hasImplementationFromSymbol = this.Symbol.Kind switch
                 {
                     SymbolKind.Method when this.Symbol is IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
-#if ROSLYN_4_12_0_OR_GREATER
                     SymbolKind.Property when this.Symbol is IPropertySymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
-#endif
 #if ROSLYN_5_0_0_OR_GREATER
                     SymbolKind.Event when this.Symbol is IEventSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
 #endif

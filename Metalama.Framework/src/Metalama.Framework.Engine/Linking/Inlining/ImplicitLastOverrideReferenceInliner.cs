@@ -69,9 +69,7 @@ internal sealed class ImplicitLastOverrideReferenceInliner : Inliner
                 SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
                     when declarationSyntax is RecordDeclarationSyntax recordDeclaration
                     => recordDeclaration,
-#if ROSLYN_4_8_0_OR_GREATER
                 { IsTypeDeclaration: true } when declarationSyntax is TypeDeclarationSyntax { ParameterList: { } parameterList } => parameterList,
-#endif
                 _ => throw new AssertionFailedException( $"Declaration '{aspectReference.ContainingSemantic.Symbol}' has an unexpected declaration node." )
             };
 

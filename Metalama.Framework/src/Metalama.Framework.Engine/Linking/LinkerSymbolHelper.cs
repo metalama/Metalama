@@ -22,12 +22,10 @@ internal static class LinkerSymbolHelper
             symbol = methodPartialDefinition;
         }
 
-#if ROSLYN_4_12_0_OR_GREATER
         if ( symbol?.Kind == SymbolKind.Property && symbol is IPropertySymbol { PartialDefinitionPart: { } propertyPartialDefinition } )
         {
             symbol = propertyPartialDefinition;
         }
-#endif
 
 #if ROSLYN_5_0_0_OR_GREATER
         if ( symbol?.Kind == SymbolKind.Event && symbol is IEventSymbol { PartialDefinitionPart: { } eventPartialDefinition } )

@@ -72,12 +72,10 @@ internal static class SymbolNormalizer
         IPropertySymbol propertySymbol,
         GenericContext genericContext )
     {
-#if ROSLYN_4_12_0_OR_GREATER
         if ( propertySymbol.PartialImplementationPart != null )
         {
             propertySymbol = propertySymbol.PartialImplementationPart;
         }
-#endif
 
         return new CanonicalSymbolInfo( propertySymbol, genericContext );
     }

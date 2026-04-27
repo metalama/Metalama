@@ -395,7 +395,6 @@ namespace Metalama.Framework.Engine.Templating
                 this._observer?.OnSemanticModelUsed();
                 var symbol = this._semanticModel.GetDeclaredSymbol( node );
 
-#if ROSLYN_4_8_0_OR_GREATER
                 if ( symbol is not null
                      && this._currentScope is TemplatingScope.RunTimeOrCompileTime or TemplatingScope.CompileTimeOnly
                      && node.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration
@@ -407,7 +406,6 @@ namespace Metalama.Framework.Engine.Templating
                             node.Identifier.GetLocation(),
                             symbol ) );
                 }
-#endif
 
                 // Verify serialization conditions.
                 if ( symbol is not null
