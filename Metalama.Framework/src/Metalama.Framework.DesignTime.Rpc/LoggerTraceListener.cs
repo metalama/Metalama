@@ -29,31 +29,16 @@ internal sealed class LoggerTraceListener : TraceListener
 
     public override void TraceEvent( TraceEventCache? eventCache, string source, TraceEventType eventType, int id, string? message )
     {
-        var formatted = $"[{source}#{id}] {message}";
+        // Resolve the target writer first: when the corresponding ILogger writer is null (the level isn't
+        // enabled in the Metalama logger configuration), skip building the formatted string entirely.
+        var writer = this.GetWriter( eventType );
 
-        switch ( eventType )
+        if ( writer == null )
         {
-            case TraceEventType.Critical:
-            case TraceEventType.Error:
-                this._logger.Error?.Log( formatted );
-
-                break;
-
-            case TraceEventType.Warning:
-                this._logger.Warning?.Log( formatted );
-
-                break;
-
-            case TraceEventType.Information:
-                this._logger.Info?.Log( formatted );
-
-                break;
-
-            default:
-                this._logger.Trace?.Log( formatted );
-
-                break;
+            return;
         }
+
+        writer.Log( $"[{source}#{id}] {message}" );
     }
 
     public override void TraceEvent(
@@ -64,10 +49,29 @@ internal sealed class LoggerTraceListener : TraceListener
         string? format,
         params object?[]? args )
     {
+        // Same early-return discipline as the message overload — don't pay for string.Format when the writer
+        // is null. StreamJsonRpc emits some events (e.g., argument-payload dumps in Verbose mode) with format
+        // strings, so skipping the format call when nobody is listening matters.
+        var writer = this.GetWriter( eventType );
+
+        if ( writer == null )
+        {
+            return;
+        }
+
         var message = format != null
             ? string.Format( CultureInfo.InvariantCulture, format, args ?? Array.Empty<object?>() )
             : string.Empty;
 
-        this.TraceEvent( eventCache, source, eventType, id, message );
+        writer.Log( $"[{source}#{id}] {message}" );
     }
+
+    private ILogWriter? GetWriter( TraceEventType eventType )
+        => eventType switch
+        {
+            TraceEventType.Critical or TraceEventType.Error => this._logger.Error,
+            TraceEventType.Warning => this._logger.Warning,
+            TraceEventType.Information => this._logger.Info,
+            _ => this._logger.Trace
+        };
 }

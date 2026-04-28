@@ -111,9 +111,11 @@ public abstract class BaseEndpoint : IDisposable
         var rpc = new JsonRpc( handler );
 
         // Forward StreamJsonRpc internal trace events (request/response dispatch, argument-deserialization
-        // failures, connection lifecycle) to the endpoint's ILogger. Switch.Level=Information catches everything
-        // up to and including warnings; the underlying ILogWriter then filters by the Metalama logger
-        // configuration, so this is null-cost when verbose logging isn't enabled.
+        // failures, connection lifecycle) to the endpoint's ILogger. SourceLevels.Information enables
+        // Information AND all higher-severity events (Warning, Error, Critical); LoggerTraceListener routes
+        // each event to the matching ILogger writer and short-circuits formatting when the writer is null,
+        // so verbose StreamJsonRpc events cost nothing when the corresponding Metalama log levels aren't
+        // enabled. Always-on so Warning/Error events surface in production logs even when Trace is off.
         rpc.TraceSource.Switch.Level = SourceLevels.Information;
         rpc.TraceSource.Listeners.Add( new LoggerTraceListener( this.Logger ) );
 
