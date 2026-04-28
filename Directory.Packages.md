@@ -147,9 +147,38 @@ foreach ($name in 'StreamJsonRpc.dll','MessagePack.dll','Microsoft.VisualStudio.
 }
 ```
 
+### 3. `devenv.exe.config` binding-redirect upper bounds (the *real* cap on net472)
+
+For any OOB-family package that VS exposes to its `net472`-targeting analyzer host, the **actual** cap is the `oldVersion` upper bound in the matching `<bindingRedirect>` of `devenv.exe.config`. Anything we reference above that bound is *not* redirected; the CLR rejects the load with `System.IO.FileLoadException` because the located assembly's manifest doesn't match the assembly reference. This bound is often **lower** than the latest published NuGet version of the same package — and lower than the VS-shipped DLL's own `AssemblyVersion` in some cases.
+
+```powershell
+$cfg = 'C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\devenv.exe.config'
+[xml]$x = Get-Content $cfg
+$ns = New-Object System.Xml.XmlNamespaceManager $x.NameTable
+$ns.AddNamespace('a','urn:schemas-microsoft-com:asm.v1')
+$x.SelectNodes('//a:assemblyIdentity[@name="System.Memory" or @name="System.Buffers" or
+              @name="System.Numerics.Vectors" or @name="System.Runtime.CompilerServices.Unsafe" or
+              @name="System.Threading.Tasks.Extensions"]', $ns) | ForEach-Object {
+    $br = $_.ParentNode.SelectSingleNode('a:bindingRedirect', $ns)
+    "$($_.name) : oldVersion=$($br.oldVersion)  newVersion=$($br.newVersion)"
+}
+# Example output (VS 17.14 latest):
+# System.Memory                          : oldVersion=4.0.0.0-4.0.2.0  newVersion=4.0.2.0
+# System.Buffers                         : oldVersion=4.0.0.0-4.0.4.0  newVersion=4.0.4.0
+# System.Numerics.Vectors                : oldVersion=0.0.0.0-4.1.5.0  newVersion=4.1.5.0
+# System.Runtime.CompilerServices.Unsafe : oldVersion=0.0.0.0-6.0.1.0  newVersion=6.0.1.0
+# System.Threading.Tasks.Extensions      : oldVersion=0.0.0.0-4.2.1.0  newVersion=4.2.1.0
+```
+
+Cross-reference each `oldVersion` upper bound against the AsmVer of the NuGet version you're considering. For `System.Memory`: NuGet 4.5.5 → AsmVer 4.0.2.0 (matches BR upper bound, OK); NuGet 4.6.x → AsmVer **4.0.5.0** (above BR upper bound, **breaks** in devenv).
+
 ### What NOT to use as the cap
 
-`AssemblyVersion` (the binding identity in the DLL header) is **not** the NuGet version. Many .NET libraries keep AsmVer frozen across NuGet patches for binding-redirect stability: `System.Memory` 4.5.x and 4.6.x both expose AsmVer 4.0.2.0; `Microsoft.Build` 17.x all expose AsmVer 15.1.0.0. Capping on AsmVer is meaningless.
+`AssemblyVersion` (the binding identity in the DLL header) is **not** the NuGet version, but it **is** load-time-significant. Some .NET libraries keep AsmVer frozen across NuGet patches (e.g., `Microsoft.Build` 17.x all expose AsmVer 15.1.0.0); others don't (`System.Memory` 4.5.5 = AsmVer 4.0.2.0, but 4.6.x = AsmVer 4.0.5.0 — a real bump). So:
+
+- **Don't cap on AsmVer alone** — for many packages it's frozen and tells you nothing.
+- **Don't cap on the VS-shipped DLL version alone** — the `newVersion` in the binding redirect is the shipped DLL, but it's not the cap; the `oldVersion` *upper bound* is.
+- **Do cap on the BR `oldVersion` upper bound** for net472 / VS-loaded paths.
 
 Refresh the cap derivation when the floor VS version changes, when MS releases a Current-Channel feature update that rotates shipped assemblies, or when a transitive dependency unexpectedly fails to load in VS. Before merging a `Directory.Packages.props` change that adds or upgrades a VS-loaded dependency, cross-reference each transitive's NuGet version against the values from the commands above, then smoke-test by loading the change in VS 17.14 latest patch and reproducing a representative design-time scenario.
 
@@ -174,17 +203,9 @@ Refresh the cap derivation when the floor VS version changes, when MS releases a
    - `CS1705` (assembly with higher version than referenced) — a transitive's binding identity advanced past what we declare; bump the offending package to a NuGet version that ships the higher AsmVer (StreamJsonRpc 2.22.23 was built against `System.Threading.Tasks.Extensions` AsmVer 4.2.1.0, requiring the 4.6.x NuGet line)
 6. **Then** run targeted tests.
 
-## Known caps and rationales
+## Per-package rationales
 
-Documented inline in `Directory.Packages.props` / `eng\Versions.props`. Listed here for discoverability:
-
-- `Newtonsoft.Json` — VS-shipped. `NewtonsoftJsonMinVersion` tracks the VS floor.
-- `System.Memory`, `System.Buffers`, `System.Runtime.CompilerServices.Unsafe` — VS-shipped OOB family. Pinned in lockstep at the 4.6.x line so the `netstandard2.0` asset is retained for `net472` projects. The `8.x` DLLs in modern VS bundles are inbox copies from .NET 8 runtime, not a separate NuGet to track.
-- `Microsoft.CodeAnalysis.*` — `RoslynApiMinVersion` / `RoslynApiMaxVersion` define the API contract floor and ceiling. Runtime implementation comes from VS (design-time) or Metalama.Compiler.exe (build-time).
-- `Microsoft.Build.*` — `MicrosoftBuildVersion`, conditional per TFM. Note: the FileVersion of the VS-shipped `Microsoft.Build.dll` (e.g., 17.14.40) is *not* the same as the NuGet version — the latest published `Microsoft.Build` 17.14.x NuGet on nuget.org is 17.14.28. Always verify the NuGet exists before pinning.
-- `Microsoft.NET.Test.Sdk` — pinned to the VS floor (currently `17.14.1`).
-- `MessagePack`, `StreamJsonRpc` — both ILMerged into Metalama, so the chosen version doesn't create an external binding. The only constraint is their transitive impact on the OOB family above (`System.Memory`, `System.Buffers`, `System.Runtime.CompilerServices.Unsafe`): the picked MessagePack/StreamJsonRpc version must work against the OOB versions we ship.
-- `MetalamaTemplateLanguageVersion` — capped at C# 13 (in `Directory.Build.props`) so templates and build-time code remain compatible with VS 2022 (no C# 14 compiler).
+Per-package rationales (why a specific version is pinned, what host shipped it, why a bump is unsafe) belong in **inline comments next to the `<PackageVersion>` in `Directory.Packages.props` / `eng\Versions.props`**, not here. This document is the methodology and principles; the props files are the canonical source for individual choices and live next to what they describe. When you add or change a pin, write a one-line inline comment if the choice isn't self-evident from the package name.
 
 ## Common gotchas (lessons from past version bumps)
 
@@ -194,20 +215,26 @@ Documented inline in `Directory.Packages.props` / `eng\Versions.props`. Listed h
 - **ILMerged transitives still bind externally.** Even when `StreamJsonRpc` is ILMerged into Metalama, its non-merged transitive deps (`System.Threading.Tasks.Extensions`, `System.Diagnostics.DiagnosticSource`, etc.) still need their AsmVer to satisfy the merged code's binding. Bumping the ILMerged package may force bumps on its transitives.
 - **`netstandard2.0` is the OOB-family bright line.** `System.Memory` / `System.Buffers` / `System.Runtime.CompilerServices.Unsafe` / `System.Numerics.Vectors` retain `netstandard2.0` only through their 4.6.x line. The `8.x`+ DLLs in modern VS payloads are inbox copies from the .NET 8 runtime, not standalone NuGets.
 - **VS's "Current Channel" auto-updates feature bands.** What's "latest 17.14.x" on day N may be "latest 17.16.x" on day N+30 if Microsoft ships a feature update. Re-derive caps when refreshing for a new GA.
-- **MSB3277 conflicts in `net472` packs are resolved by an explicit `<PackageReference>` in the consuming csproj.** When a transitive (e.g. `DiffPlex` 1.9 → `System.Memory` 8.x; `K4os.Hash.xxHash` 1.0.8 → `System.Memory` 4.5.x) drags a different OOB-family version into a `net472` build, the central pin doesn't win unless something near the root has a direct `<PackageReference Include="System.Memory"/>`. The fix is a one-line pin in the project that triggers the warning, e.g. `Metalama.Framework.Engine.csproj` and `Metalama.Extensions.HtmlWriter.csproj` both add `<PackageReference Include="System.Memory"/>` (no version — central wins) under a `<!-- Resolve conflict -->` comment, alongside the existing `System.Text.Json` pin of the same shape.
+- **MSB3277 conflicts in `net472` packs are resolved by an explicit `<PackageReference>` in the consuming csproj.** When a transitive (e.g. `DiffPlex` 1.9 → `System.Memory` 8.x; `K4os.Hash.xxHash` 1.0.8 → `System.Memory` 4.5.x) drags a different OOB-family version into a `net472` build, the central pin doesn't win unless something near the root has a direct `<PackageReference Include="System.Memory"/>`. The fix is a one-line pin in the project that triggers the warning. For projects that *do* deploy into VS use `<PackageReference Include="System.Memory"/>` (no version — central 4.5.5 wins, fits the BR cap). For projects that *don't* deploy into VS but pull a higher transitive (e.g. `Metalama.Extensions.HtmlWriter` → `Microsoft.CodeAnalysis.CSharp` 5.0 → `System.Memory ≥ 4.6.0`), use `<PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryLatestVersion)" />` to pick the higher value. Both forms live under a `<!-- Resolve conflict -->` comment.
+- **Separately-deployed downstream consumers constrain shared OOB transitive deps.** `Metalama.Vsx` is shipped to users on its own cadence. A given installed VSX has bundled, frozen-at-build-time dependency closures. Worse, it has `<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>`, so transitives we declare in `Metalama.Framework.DesignTime.Rpc` (System.IO.Pipelines, DiagnosticSource, Microsoft.Bcl.AsyncInterfaces, Tasks.Extensions) get re-resolved at the VSX-installed user's machine to whatever VSX's central pins say — *not* what our package metadata requested. Bumping any of those flowed deps in Metalama can break already-deployed VSX even though our build is internally consistent. **Treat all flowed transitive deps of `Metalama.Framework.DesignTime.Rpc` as governed by the lowest currently-installed VSX version's CPM ceiling, not by what looks safe on our side.** The longer-term fix is to move VSX→Metalama traffic onto `Metalama.Framework.DesignTime.Contracts` (Guid-marked, COM type-equivalent — see `Metalama.Framework/docs/cross-process-communication.md` and metalama/Metalama#1605); until that lands, hold the line on flowed-dep versions.
 - **Why we don't enable `<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>`.** That NuGet flag would auto-pin every transitive that has a `<PackageVersion>` entry — which would eliminate the explicit `<PackageReference>` pins above. We deliberately keep it off because the flag is per-**project**, not per-**package**: enabling it pins all ~120 centrally-versioned packages in every project's transitive closure, with high blast radius (silent uplifts in user-surfacing NuGets, hidden NU1605 risks) for low gain (3-4 conflict cases). The current explicit-`PackageReference` approach IS the per-package control we want — verbose for those few cases, but explicit and audit-able. If the conflict-pin count grows past ~10, re-evaluate.
 
-## Open work
+## Variant + audience routing for split-version packages
 
-- [x] VS 2022 17.14 + VS 2026 18.5 caps verified via the commands in *Verifying a package's VS-shipped version*; values reflected inline in `Directory.Packages.props` and committed under #1603.
-- [x] Bump `RoslynApiMinVersion` 4.8.0 → 4.12.0 and delete `eng\RoslynVersions\Roslyn.4.8.0.props`.
-- [x] Remove dead `#if ROSLYN_4_8_0` branches (one in `PrimaryConstructorTests.cs`) and strip always-true `#if ROSLYN_4_(4|8|12)_0_OR_GREATER` guards across 134 source files (commit `e247425d69`). Composite conditions like `#if NET8_0_OR_GREATER && ROSLYN_4_8_0_OR_GREATER` simplified to `#if NET8_0_OR_GREATER`. `// @RequiredConstant(ROSLYN_4_X_0_OR_GREATER)` test annotations removed. `ROSLYN_4_12_0_OR_EARLIER` and `ROSLYN_5_*` guards preserved.
-- [ ] Drop the 4.8 build leg from CI (build infrastructure outside this repo).
-- [x] Inline VS-floor comments in `Directory.Packages.props` updated from "17.12" → "17.14"; `Microsoft.NET.Test.Sdk` 17.12.0 → 17.14.1. (`MicrosoftBuildVersion` net9.0 stays at 17.14.28: 17.14.40 is the FileVersion of the VS-shipped DLL, not the NuGet package version — the highest published `Microsoft.Build` 17.14.x NuGet is 17.14.28.)
-- [x] Bumped the OOB-package lockstep set: `System.Memory` 4.6.0 → 4.6.3, `System.Buffers` 4.5.1 → 4.6.1, `System.Runtime.CompilerServices.Unsafe` 6.1.0 → 6.1.2, plus explicit `System.Numerics.Vectors = 4.6.1` pin.
-- [x] Bumped within-8.0 line: `System.Drawing.Common` 8.0.21 → 8.0.26, `SystemTextJsonVersion` (fallback) 8.0.0 → 8.0.6, plus added the missing `SystemTextJsonMinVersion = 8.0.6` MSBuild property.
-- [x] ILMerge-unlocked: `StreamJsonRpc` 2.20.17 → 2.22.23, `System.Diagnostics.DiagnosticSource` 6.0.1 → 9.0.0.
-- [x] Section F freshness sweep: `JetBrains.*`, `DiffEngine`, `Xunit.SkippableFact`, `Microsoft.Web.WebView2`, `BenchmarkDotNet`, `Microsoft.Azure.Functions.Worker.Extensions.Http`, `Azure.Identity`, `Azure.Security.KeyVault.Secrets`, `Spectre.Console*`, `System.IO.Abstractions*`, `System.IO.Hashing` (9.0.0 → 9.0.15), `DiffPlex`, `LibGit2Sharp`, `CommunityToolkit.Mvvm`, `Roslynator.Analyzers`, `CompiledBindings.WPF`.
-- [ ] Audit transitive closure of VS-loaded projects against both manifests before 2026.1 GA.
-- [ ] Consider bumping `RoslynApiMaxVersion` 5.0.0 → 5.5.0 to match VS 2026 18.5's shipped Roslyn.
-- [ ] When 2026-LTSC ships (~2026-11-10), revisit whether to pin the VS 2026 floor to it for future Metalama LTS releases.
+A package has to be **split into multiple central values** when (a) one consumer in our build requires version ≥ X for restore correctness, and (b) another consumer would `FileLoadException`-fail at runtime in VS at any version ≥ X. If only one of those holds, a single central pin suffices.
+
+The standard shape:
+
+- `XxxVersion` — default. Used by VS-loaded paths (default = the safe ceiling for VS).
+- `XxxVersion` overridden in `eng\RoslynVersions\Roslyn.<v>.0.0.props` — variant-specific (e.g., the Roslyn 5.0 variant runs outside VS, so the BR ceiling doesn't apply).
+- `XxxLatestVersion` — used in csproj-level `VersionOverride` for projects that don't deploy into VS (tests, optional extensions like HtmlWriter, CLI tools).
+
+The current example is `SystemMemoryVersion` / `SystemMemoryLatestVersion`; the per-property values and the rationale live in inline comments on the property declarations in `Directory.Packages.props`. Document any new split package the same way (inline near the property, with a one-line summary; no per-package table here).
+
+## Forward-looking constraints to track
+
+Time-bounded policy items that affect future bumps. PR-specific work in flight is tracked in the corresponding PR / GitHub issues, not here.
+
+- VS 2022 17.14 Current Channel auto-updates feature bands; re-derive caps when MS ships a Current-Channel feature update that rotates VS-shipped assemblies.
+- VS 2026 floor is currently latest Stable patch. When 2026-LTSC ships (~2026-11-10), revisit whether to pin the VS 2026 floor to LTSC for future Metalama LTS releases.
+- The flowed-dep pins on `Metalama.Framework.DesignTime.Rpc` (`StreamJsonRpc`, `System.Diagnostics.DiagnosticSource`, `System.Threading.Tasks.Extensions`, `System.IO.Pipelines`, `Microsoft.Bcl.AsyncInterfaces`) are constrained by the lowest currently-installed Metalama.Vsx version's CPM ceiling. They become free to bump only after VSX migrates off direct `Metalama.Framework.DesignTime.Rpc` consumption (metalama/Metalama#1605, metalama/Metalama.Vsx.Public#18) AND the older VSX exits support.

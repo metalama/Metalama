@@ -28,6 +28,10 @@
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.9.3</xUnitApiVersion>
 
+    <!-- MicrosoftBuildVersion: pinned per TFM to match the lowest VS we support (17.14) for net9.0;
+         older 17.10 retained for net8.0. Note: FileVersion of VS-shipped Microsoft.Build.dll (e.g. 17.14.40)
+         is NOT the NuGet version — the highest published 17.14.x NuGet on nuget.org is 17.14.28. Always
+         verify the NuGet exists before pinning. -->
     <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net8.0'">17.10.46</MicrosoftBuildVersion>
     <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net9.0'">17.14.28</MicrosoftBuildVersion>
 
@@ -93,6 +97,8 @@
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.15" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
+    <!-- OOB family: capped by VS 17.14 devenv.exe.config binding redirect (oldVersion upper bound = 6.0.1.0).
+         NuGet 6.1.0 stays under the cap; 6.1.2+ may not. -->
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
     <!-- OOB family is capped by VS 17.14 devenv.exe.config binding redirects (System.Memory ≤ 4.0.2.0,
