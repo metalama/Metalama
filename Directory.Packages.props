@@ -35,12 +35,17 @@
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
     <!-- MessagePack 2.x is required for compatibility with StreamJsonRpc (3.x is incompatible). -->
     <MessagePackLatestVersion>2.5.198</MessagePackLatestVersion>
-    <StreamJsonRpcLatestVersion>2.22.23</StreamJsonRpcLatestVersion>
+    <StreamJsonRpcLatestVersion>2.20.17</StreamJsonRpcLatestVersion>
     <SystemTextJsonLatestVersion>9.0.10</SystemTextJsonLatestVersion>
     <MicrosoftBclAsyncInterfacesLatestVersion>9.0.10</MicrosoftBclAsyncInterfacesLatestVersion>
 
     <!-- SystemTextJsonVersion depends on the Roslyn version; here is the fallback. -->
     <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.6</SystemTextJsonVersion>
+    <!-- SystemMemoryVersion is variant-conditional. The Roslyn 4.12 variant runs in the VS analyzer host (devenv.exe),
+         where the binding-redirect ceiling caps System.Memory at AsmVer 4.0.2.0 (NuGet 4.5.5). The Roslyn 5.0 variant
+         runs only outside VS (CLI / MSBuild) where Microsoft.CodeAnalysis.CSharp 5.0 transitively requires
+         System.Memory ≥ 4.6.0. eng\RoslynVersions\Roslyn.5.0.0.props overrides this default. -->
+    <SystemMemoryVersion Condition="'$(SystemMemoryVersion)'==''">4.5.5</SystemMemoryVersion>
     <!-- SystemTextJsonMinVersion is the API floor used by user-surfacing libraries (Metalama.Backstage etc.)
          that need to remain on the .NET 8 line while we support .NET 8 SDK as a build target. -->
     <SystemTextJsonMinVersion>8.0.6</SystemTextJsonMinVersion>
@@ -49,6 +54,10 @@
     <SystemFormatsAsn1LatestVersion>9.0.10</SystemFormatsAsn1LatestVersion>
     <SystemIOPipelinesLatestVersion>9.0.10</SystemIOPipelinesLatestVersion>
     <SystemBuffersLatestVersion>4.6.1</SystemBuffersLatestVersion>
+    <!-- "Latest" OOB versions for projects that don't deploy into the VS analyzer host (tests, HtmlWriter,
+         CLI tools). Runtime-deployed assemblies use the central pin (SystemMemoryVersion = 4.5.5) which
+         fits the VS 17.14 devenv.exe.config binding-redirect ceiling. -->
+    <SystemMemoryLatestVersion>4.6.3</SystemMemoryLatestVersion>
 
   </PropertyGroup>
   <ItemGroup>
@@ -84,11 +93,12 @@
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.15" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
-    <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
+    <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
-    <PackageVersion Include="System.Buffers" Version="4.6.1" /> <!-- Given by System.Memory; matches VS 17.14 _netfx binding-redirect target -->
-    <PackageVersion Include="System.Memory" Version="4.6.3" /> <!-- Matches VS 17.14 _netfx binding-redirect target; retains netstandard2.0 -->
-    <PackageVersion Include="System.Numerics.Vectors" Version="4.6.1" /> <!-- OOB lockstep with System.Memory; matches VS 17.14 _netfx binding-redirect target -->
+    <!-- OOB family is capped by VS 17.14 devenv.exe.config binding redirects (System.Memory ≤ 4.0.2.0,
+         System.Buffers ≤ 4.0.4.0, System.Numerics.Vectors ≤ 4.1.5.0) for the Roslyn 4.12 variant
+         (loaded in devenv). The Roslyn 5.0 variant runs outside VS and uses 4.6.x via $(SystemMemoryVersion). -->
+    <PackageVersion Include="System.Memory" Version="$(SystemMemoryVersion)" />
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="$(SystemTextRegularExpressionsLatestVersion)" />
     <PackageVersion Include="System.Threading" Version="4.3.0" />
@@ -99,7 +109,7 @@
     <PackageVersion Include="System.Interactive.Async" Version="6.0.1" />
     <PackageVersion Include="System.Linq.Parallel" Version="4.3.0" />
     <PackageVersion Include="System.Reflection.Emit" Version="4.7.0" />
-    <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.3" /> <!-- 4.6.x retains netstandard2.0; needed for StreamJsonRpc 2.22.23 binding (AsmVer 4.2.1.0) -->
+    <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.5.4" /> <!-- Held at 4.5.4 (AsmVer 4.2.0.0) so the merged StreamJsonRpc binds to AsmVers that separately-deployed VSX 2026.0.x already provides (CPM transitive pinning would otherwise force 4.5.4 in VSX deployments and break runtime binding). -->
     <PackageVersion Include="System.Collections.Immutable" Version="8.0.0" />
     <PackageVersion Include="System.Reflection.Metadata" Version="8.0.0" /> 
 
@@ -134,14 +144,16 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" /> <!-- Must be the lowest supported VS, i.e. 17.14. -->
     
     <PackageVersion Include="ILRepack" Version="2.0.44" />
-    <!-- StreamJsonRpc and MessagePack are both ILMerged into Metalama.Framework.DesignTime.Rpc, so we
-         can pick any version that satisfies the OOB family caps above. 2.22.23 = VS 17.14 shipped version. -->
-    <PackageVersion Include="StreamJsonRpc" Version="2.22.23" />
-    <!-- These packages are transitive dependencies of StreamJsonRpc and are flowed (not ILMerged) to
-         consumers of Metalama.Framework.DesignTime.Rpc. Versions chosen to satisfy StreamJsonRpc 2.22.23's
-         minimum requirements while staying ≤ what VS 17.14 ships. -->
+    <!-- StreamJsonRpc and MessagePack are both ILMerged into Metalama.Framework.DesignTime.Rpc.
+         Despite the merge, the merged IL still binds externally to StreamJsonRpc's flowed transitive
+         deps (System.IO.Pipelines, System.Diagnostics.DiagnosticSource, Microsoft.Bcl.AsyncInterfaces,
+         System.Threading.Tasks.Extensions). Bumping StreamJsonRpc may shift those AsmVer requirements,
+         which can break separately-deployed consumers (e.g., Metalama.Vsx 2026.0.x with CPM transitive
+         pinning enabled) that pin those flowed deps to lower versions. So StreamJsonRpc must stay at the
+         version whose flowed-dep AsmVers match what shipped consumers already provide. -->
+    <PackageVersion Include="StreamJsonRpc" Version="2.20.17" />
     <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
-    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="9.0.0" />
+    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="6.0.1" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
 
 

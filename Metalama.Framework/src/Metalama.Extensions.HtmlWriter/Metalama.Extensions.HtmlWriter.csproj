@@ -21,8 +21,9 @@
 
     <ItemGroup>
         <PackageReference Include="DiffPlex" PrivateAssets="all" />
-        <!-- Resolve conflict: DiffPlex 1.9.0 transitively pulls System.Memory 8.x; pin to our 4.6.x central version. -->
-        <PackageReference Include="System.Memory" />
+        <!-- HtmlWriter doesn't deploy into the VS analyzer host, so it's free to use the "latest" OOB pin
+             (4.6.x) which is needed to satisfy DiffPlex 1.9.0 + the CSharp 5.0 transitive (≥ 4.6.0). -->
+        <PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryLatestVersion)" />
     </ItemGroup>
 
     <ItemGroup>
