@@ -2,12 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
-#endif
-
-#if ROSLYN_4_8_0_OR_GREATER
-
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -20,9 +14,9 @@ internal class TheAspect : TypeAspect
     {
         base.BuildAspect( builder );
 
-        var called = builder.IntroduceMethod( nameof(Called) ).Declaration;
+        var called = builder.IntroduceMethod( nameof(this.Called) ).Declaration;
 
-        builder.IntroduceMethod( nameof(Caller), args: new { called } );
+        builder.IntroduceMethod( nameof(this.Caller), args: new { called } );
     }
 
     [Template]
@@ -39,5 +33,3 @@ internal class TheAspect : TypeAspect
 
 [TheAspect]
 internal class C { }
-
-#endif

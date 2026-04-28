@@ -2,12 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_12_0_OR_GREATER)
-#endif
-
-#if ROSLYN_4_12_0_OR_GREATER
-
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
@@ -17,27 +11,25 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.PartialInd
 
 public class TheAspect : Aspect, IAspect<IIndexer>
 {
-    public void BuildEligibility(IEligibilityBuilder<IIndexer> builder)
-    {
-    }
+    public void BuildEligibility( IEligibilityBuilder<IIndexer> builder ) { }
 
-    public void BuildAspect(IAspectBuilder<IIndexer> builder)
+    public void BuildAspect( IAspectBuilder<IIndexer> builder )
     {
-        builder.OverrideAccessors(nameof(GetterTemplate), nameof(SetterTemplate));
+        builder.OverrideAccessors( nameof(this.GetterTemplate), nameof(this.SetterTemplate) );
     }
 
     [Template]
-    private dynamic? GetterTemplate(dynamic index)
+    private dynamic? GetterTemplate( dynamic index )
     {
-        Console.WriteLine("This is aspect code.");
+        Console.WriteLine( "This is aspect code." );
 
         return meta.Proceed();
     }
 
     [Template]
-    private void SetterTemplate(dynamic index, dynamic value)
+    private void SetterTemplate( dynamic index, dynamic value )
     {
-        Console.WriteLine("This is aspect code.");
+        Console.WriteLine( "This is aspect code." );
 
         meta.Proceed();
     }
@@ -54,5 +46,3 @@ internal partial class Target
     partial int this[long i] { get; }
 #endif
 }
-
-#endif

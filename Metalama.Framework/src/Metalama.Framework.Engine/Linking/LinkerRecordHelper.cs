@@ -101,7 +101,6 @@ internal sealed class LinkerRecordHelper
 
                         if ( p.RefKind != RefKind.None )
                         {
-#if ROSLYN_4_8_0_OR_GREATER
                             if ( p.RefKind == RefKind.RefReadOnlyParameter )
                             {
                                 parameterSyntax = parameterSyntax.WithModifiers(
@@ -110,7 +109,6 @@ internal sealed class LinkerRecordHelper
                                         Token( default, SyntaxKind.ReadOnlyKeyword, TriviaList( ElasticSpace ) ) ) );
                             }
                             else
-#endif
                             {
                                 var refKindKeyword = p.RefKind switch
                                 {

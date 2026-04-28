@@ -56,9 +56,7 @@ internal sealed class LanguageVersionProvider : ILanguageVersionProvider
 #if ROSLYN_5_0_0_OR_GREATER
             >= 10 => LanguageVersion.CSharp14,
 #endif
-#if ROSLYN_4_12_0_OR_GREATER
             >= 9 => LanguageVersion.CSharp13,
-#endif
             >= 8 => LanguageVersion.CSharp12,
             _ => throw new PlatformNotSupportedException( $"Unsupported .NET SDK version: {version}." )
         };

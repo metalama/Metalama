@@ -18,7 +18,7 @@ using Microsoft.CodeAnalysis.MSBuild;
 namespace Metalama.Framework.Tests.Benchmarks;
 
 [MemoryDiagnoser]
-public sealed class TemplatingCodeValidatorBenchmarks : IDisposable
+public class TemplatingCodeValidatorBenchmarks : IDisposable
 {
     private const string _nopCommerceSolutionEnvVar = "METALAMA_BENCHMARK_NOPCOMMERCE_SOLUTION";
 

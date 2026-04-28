@@ -2,12 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_12_0_OR_GREATER)
-#endif
-
-#if ROSLYN_4_12_0_OR_GREATER
-
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -18,40 +12,44 @@ namespace Metalama.Framework.Tests.Integration.Tests.Aspects.CSharp13.ParamsColl
 public class TheAspect : TypeAspect
 {
     [Introduce]
-    private void ParamsArray(params int[] ints) { }
+    private void ParamsArray( params int[] ints ) { }
 
     [Introduce]
-    private void ParamsSpan(params ReadOnlySpan<int> ints) { }
+    private void ParamsSpan( params ReadOnlySpan<int> ints ) { }
 
     [Introduce]
     private void Usage()
     {
-        ParamsArray(1, 2, 3);
-        ParamsSpan(1, 2, 3);
+        this.ParamsArray( 1, 2, 3 );
+        this.ParamsSpan( 1, 2, 3 );
 
         _ = meta.This[1, 2, 3];
     }
 
     [Template]
-    private int ArrayIndexerGetter(params int[] ints) => 0;
+    private int ArrayIndexerGetter( params int[] ints ) => 0;
 
     [Template]
-    private int SpanIndexerGetter(params ReadOnlySpan<int> ints) => 0;
+    private int SpanIndexerGetter( params ReadOnlySpan<int> ints ) => 0;
 
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        base.BuildAspect(builder);
+        base.BuildAspect( builder );
 
-        builder.IntroduceIndexer(typeof(int[]), nameof(ArrayIndexerGetter), setTemplate: null, buildIndexer: indexerBuilder => indexerBuilder.Parameters[0].IsParams = true);
+        builder.IntroduceIndexer(
+            typeof(int[]),
+            nameof(this.ArrayIndexerGetter),
+            setTemplate: null,
+            buildIndexer: indexerBuilder => indexerBuilder.Parameters[0].IsParams = true );
 
-        builder.IntroduceIndexer(typeof(ReadOnlySpan<int>), nameof(SpanIndexerGetter), setTemplate: null, buildIndexer: indexerBuilder => indexerBuilder.Parameters[0].IsParams = true);
+        builder.IntroduceIndexer(
+            typeof(ReadOnlySpan<int>),
+            nameof(this.SpanIndexerGetter),
+            setTemplate: null,
+            buildIndexer: indexerBuilder => indexerBuilder.Parameters[0].IsParams = true );
     }
 }
 
 // <target>
 [TheAspect]
-public class Target
-{
-}
-
-#endif
+public class Target { }

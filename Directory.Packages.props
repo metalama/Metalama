@@ -10,13 +10,15 @@
     <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.358</PostSharpEngineeringVersion>
 
 
-    <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.12. -->
+    <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.14. -->
     <NewtonsoftJsonMinVersion>13.0.3</NewtonsoftJsonMinVersion>
     <!-- This is the version used in the programs (not in libraries) and it should be the latest. -->
     <NewtonsoftJsonVersion>13.0.4</NewtonsoftJsonVersion>
 
-     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support (i.e. VS 17.12). -->
-    <RoslynApiMinVersion>4.8.0</RoslynApiMinVersion>
+     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support. The 4.8 build variant
+         was dropped for 2026.1: no in-MS-support design-time analyzer host below Roslyn 4.12 remains,
+         and Metalama.Compiler.exe replaces the SDK's Roslyn at build time. See Directory.Packages.md. -->
+    <RoslynApiMinVersion>4.12.0</RoslynApiMinVersion>
 
     <!-- RoslynApiMaxVersion is the maximum version of the Roslyn API we support. -->
     <RoslynApiMaxVersion>5.0.0</RoslynApiMaxVersion>
@@ -26,6 +28,10 @@
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.9.3</xUnitApiVersion>
 
+    <!-- MicrosoftBuildVersion: pinned per TFM to match the lowest VS we support (17.14) for net9.0;
+         older 17.10 retained for net8.0. Note: FileVersion of VS-shipped Microsoft.Build.dll (e.g. 17.14.40)
+         is NOT the NuGet version — the highest published 17.14.x NuGet on nuget.org is 17.14.28. Always
+         verify the NuGet exists before pinning. -->
     <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net8.0'">17.10.46</MicrosoftBuildVersion>
     <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net9.0'">17.14.28</MicrosoftBuildVersion>
 
@@ -33,26 +39,37 @@
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
     <!-- MessagePack 2.x is required for compatibility with StreamJsonRpc (3.x is incompatible). -->
     <MessagePackLatestVersion>2.5.198</MessagePackLatestVersion>
-    <StreamJsonRpcLatestVersion>2.22.23</StreamJsonRpcLatestVersion>
     <SystemTextJsonLatestVersion>9.0.10</SystemTextJsonLatestVersion>
     <MicrosoftBclAsyncInterfacesLatestVersion>9.0.10</MicrosoftBclAsyncInterfacesLatestVersion>
 
     <!-- SystemTextJsonVersion depends on the Roslyn version; here is the fallback. -->
-    <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.0</SystemTextJsonVersion>
+    <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.6</SystemTextJsonVersion>
+    <!-- SystemMemoryVersion is variant-conditional. The Roslyn 4.12 variant runs in the VS analyzer host (devenv.exe),
+         where the binding-redirect ceiling caps System.Memory at AsmVer 4.0.2.0 (NuGet 4.5.5). The Roslyn 5.0 variant
+         runs only outside VS (CLI / MSBuild) where Microsoft.CodeAnalysis.CSharp 5.0 transitively requires
+         System.Memory ≥ 4.6.0. eng\RoslynVersions\Roslyn.5.0.0.props overrides this default. -->
+    <SystemMemoryVersion Condition="'$(SystemMemoryVersion)'==''">4.5.5</SystemMemoryVersion>
+    <!-- SystemTextJsonMinVersion is the API floor used by user-surfacing libraries (Metalama.Backstage etc.)
+         that need to remain on the .NET 8 line while we support .NET 8 SDK as a build target. -->
+    <SystemTextJsonMinVersion>8.0.6</SystemTextJsonMinVersion>
     <SystemNetHttpLatestVersion>4.3.4</SystemNetHttpLatestVersion>
     <SystemTextRegularExpressionsLatestVersion>4.3.1</SystemTextRegularExpressionsLatestVersion>
     <SystemFormatsAsn1LatestVersion>9.0.10</SystemFormatsAsn1LatestVersion>
     <SystemIOPipelinesLatestVersion>9.0.10</SystemIOPipelinesLatestVersion>
     <SystemBuffersLatestVersion>4.6.1</SystemBuffersLatestVersion>
+    <!-- "Latest" Out-of-band versions for projects that don't deploy into the VS analyzer host (tests,
+         HtmlWriter, CLI tools). Runtime-deployed assemblies use the central pin (SystemMemoryVersion = 4.5.5)
+         which fits the VS 17.14 devenv.exe.config binding-redirect ceiling. -->
+    <SystemMemoryLatestVersion>4.6.3</SystemMemoryLatestVersion>
 
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="PostSharp.Engineering.BuildTools" Version="$(PostSharpEngineeringVersion)" />
-    <PackageVersion Include="Azure.Identity" Version="1.17.0" />
-    <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.8.0" />
-    <PackageVersion Include="JetBrains.Annotations" Version="2025.2.2" />
-    <PackageVersion Include="JetBrains.Profiler.SelfApi" Version="2.5.14" />
-    <PackageVersion Include="JetBrains.Profiler.Api" Version="1.4.10" />
+    <PackageVersion Include="Azure.Identity" Version="1.21.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.10.0" />
+    <PackageVersion Include="JetBrains.Annotations" Version="2025.2.4" />
+    <PackageVersion Include="JetBrains.Profiler.SelfApi" Version="2.5.17" />
+    <PackageVersion Include="JetBrains.Profiler.Api" Version="1.4.12" />
     <PackageVersion Include="System.Text.Json" Version="$(SystemTextJsonVersion)" /> 
     <!-- With K4os.Hash.xxHash, make sure that the dependency on System.Memory is not higher
          than the one required by the lowest version of Visual Studio supported by the VSX. -->
@@ -69,20 +86,24 @@
     <PackageVersion Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
     <!-- Microsoft.Toolkit.Uwp.Notifications 7.1.3 references vulnerable System.Drawing.Common 4.7.0, so update it here. -->
     <!-- See also #35587 for updating the above package. -->
-    <PackageVersion Include="System.Drawing.Common" Version="8.0.21" />
-    <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.3595.46" />
+    <PackageVersion Include="System.Drawing.Common" Version="8.0.26" />
+    <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.3912.50" />
     <PackageVersion Include="Newtonsoft.Json" Version="$(NewtonsoftJsonVersion)" />
-    <PackageVersion Include="Spectre.Console" Version="0.53.0" />
-    <PackageVersion Include="Spectre.Console.Cli" Version="0.53.0" />
+    <PackageVersion Include="Spectre.Console" Version="0.55.2" />
+    <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
     <PackageVersion Include="System.DirectoryServices" Version="8.0.0" />
-    <PackageVersion Include="System.IO.Abstractions" Version="22.0.16" />
-    <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.0.16" />
-    <PackageVersion Include="System.IO.Hashing" Version="9.0.0" />
+    <PackageVersion Include="System.IO.Abstractions" Version="22.1.1" />
+    <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
+    <PackageVersion Include="System.IO.Hashing" Version="9.0.15" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
+    <!-- Out-of-band family: capped by VS 17.14 devenv.exe.config binding redirect (oldVersion upper bound = 6.0.1.0).
+         NuGet 6.1.0 stays under the cap; 6.1.2+ may not. -->
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
-    <PackageVersion Include="System.Buffers" Version="4.5.1" /> <!-- Given by System.Memory -->
-    <PackageVersion Include="System.Memory" Version="4.6.0" />
+    <!-- Out-of-band family is capped by VS 17.14 devenv.exe.config binding redirects (System.Memory ≤ 4.0.2.0,
+         System.Buffers ≤ 4.0.4.0, System.Numerics.Vectors ≤ 4.1.5.0) for the Roslyn 4.12 variant
+         (loaded in devenv). The Roslyn 5.0 variant runs outside VS and uses 4.6.x via $(SystemMemoryVersion). -->
+    <PackageVersion Include="System.Memory" Version="$(SystemMemoryVersion)" />
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="$(SystemTextRegularExpressionsLatestVersion)" />
     <PackageVersion Include="System.Threading" Version="4.3.0" />
@@ -93,18 +114,18 @@
     <PackageVersion Include="System.Interactive.Async" Version="6.0.1" />
     <PackageVersion Include="System.Linq.Parallel" Version="4.3.0" />
     <PackageVersion Include="System.Reflection.Emit" Version="4.7.0" />
-    <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+    <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.5.4" /> <!-- Held at 4.5.4 (AsmVer 4.2.0.0) so the merged StreamJsonRpc binds to AsmVers that separately-deployed VSX 2026.0.x already provides (CPM transitive pinning would otherwise force 4.5.4 in VSX deployments and break runtime binding). -->
     <PackageVersion Include="System.Collections.Immutable" Version="8.0.0" />
     <PackageVersion Include="System.Reflection.Metadata" Version="8.0.0" /> 
 
 
     <PackageVersion Include="Microsoft.Win32.Registry" Version="5.0.0" />
 
-    <PackageVersion Include="DiffEngine" Version="19.1.2" />
+    <PackageVersion Include="DiffEngine" Version="19.1.3" />
     <PackageVersion Include="Metalama.Extensions.DiffEngine" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.HtmlWriter" Version="$(MetalamaVersion)" />
-    <PackageVersion Include="DiffPlex" Version="1.7.2" />
-    <PackageVersion Include="LibGit2Sharp" Version="0.30.0" />
+    <PackageVersion Include="DiffPlex" Version="1.9.0" />
+    <PackageVersion Include="LibGit2Sharp" Version="0.31.0" />
     <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Framework" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MicrosoftBuildVersion)" />
@@ -121,20 +142,21 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'!='net472'" Version="2.2.0" />
     <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'=='net472'" Version="2.0.3" />
-    <PackageVersion Include="Xunit.SkippableFact" Version="1.5.23" />
+    <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="coverlet.msbuild" Version="6.0.4" />
 
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" /> <!-- Must be the lowest supported VS. -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" /> <!-- Must be the lowest supported VS, i.e. 17.14. -->
     
     <PackageVersion Include="ILRepack" Version="2.0.44" />
-    <!-- The following package is ILMerged so we can take any version we want,
-     however all dependencies must be lower or equal than the minimal we must suppport. -->
-
+    <!-- StreamJsonRpc and MessagePack are both ILMerged into Metalama.Framework.DesignTime.Rpc.
+         Despite the merge, the merged IL still binds externally to StreamJsonRpc's flowed transitive
+         deps (System.IO.Pipelines, System.Diagnostics.DiagnosticSource, Microsoft.Bcl.AsyncInterfaces,
+         System.Threading.Tasks.Extensions). Bumping StreamJsonRpc may shift those AsmVer requirements,
+         which can break separately-deployed consumers (e.g., Metalama.Vsx 2026.0.x with CPM transitive
+         pinning enabled) that pin those flowed deps to lower versions. So StreamJsonRpc must stay at the
+         version whose flowed-dep AsmVers match what shipped consumers already provide. -->
     <PackageVersion Include="StreamJsonRpc" Version="2.20.17" />
-    <!-- The following packages are dependencies of StreamJsonRpc and we must match the version. 
-        We now target the .NET SDK 8 and equivalent VS.
-    -->
     <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="6.0.1" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
@@ -157,7 +179,7 @@
     <PackageVersion Include="Metalama.Extensions.Multicast" Version="$(MetalamaVersion)" />
 
 
-    <PackageVersion Include="BenchmarkDotNet" Version="0.15.5" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="ComparerExtensions" Version="1.1.0" />
     <PackageVersion Include="FakeItEasy" Version="8.3.0" />
     <PackageVersion Include="FakeItEasy.Analyzer.CSharp" Version="6.1.1" />
@@ -179,14 +201,14 @@
     <!-- These are test-only dependencies for standalone projects. -->
     <PackageVersion Include="Catglobe.ResXFileCodeGenerator" Version="4.1.2" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="1.23.0" />
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.2.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.18.1" />
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" />
-    <PackageVersion Include="Roslynator.Analyzers" Version="4.12.8" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
     
-    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="AwesomeAssertions" Version="8.1.0" />
-    <PackageVersion Include="CompiledBindings.WPF" Version="1.0.18" />
+    <PackageVersion Include="CompiledBindings.WPF" Version="1.0.19.7" />
 
 
   </ItemGroup>

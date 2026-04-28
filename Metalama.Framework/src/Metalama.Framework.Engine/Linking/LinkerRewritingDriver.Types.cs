@@ -22,7 +22,6 @@ internal sealed partial class LinkerRewritingDriver
     {
         if ( this.LateTransformationRegistry.HasRemovedPrimaryConstructor( symbol ) )
         {
-#if ROSLYN_4_8_0_OR_GREATER
             classDeclaration =
                 classDeclaration.PartialUpdate(
                     RewritePrimaryConstructorTypeAttributeLists( classDeclaration.AttributeLists ),
@@ -37,9 +36,6 @@ internal sealed partial class LinkerRewritingDriver
                                         SyntaxKind.PrimaryConstructorBaseType when b is PrimaryConstructorBaseTypeSyntax pc => SimpleBaseType( pc.Type ),
                                         _ => b
                                     } ) ) ) );
-#else
-            throw new AssertionFailedException( "This code should not run in this Roslyn version." );
-#endif
         }
 
         classDeclaration = classDeclaration.WithMembers( List( transformedMembers ) );
@@ -54,14 +50,10 @@ internal sealed partial class LinkerRewritingDriver
     {
         if ( this.LateTransformationRegistry.HasRemovedPrimaryConstructor( symbol ) )
         {
-#if ROSLYN_4_8_0_OR_GREATER
             structDeclaration =
                 structDeclaration.PartialUpdate(
                     RewritePrimaryConstructorTypeAttributeLists( structDeclaration.AttributeLists ),
                     parameterList: default(ParameterListSyntax) );
-#else
-            throw new AssertionFailedException( "This code should not run in this Roslyn version." );
-#endif
         }
 
         structDeclaration = structDeclaration.WithMembers( List( transformedMembers ) );

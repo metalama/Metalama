@@ -1673,9 +1673,7 @@ internal sealed partial class LinkerInjectionStep
 
             if ( symbol is
                 {
-#if ROSLYN_4_12_0_OR_GREATER
                     PartialImplementationPart: null
-#endif
                 } )
             {
                 // Handle getter entry statements (e.g., for extension block receiver contracts).
@@ -1734,9 +1732,7 @@ internal sealed partial class LinkerInjectionStep
 
             if ( symbol is
                 {
-#if ROSLYN_4_12_0_OR_GREATER
                     PartialImplementationPart: null
-#endif
                 } )
             {
                 var indexer = this.RefFactory.FromSymbol<IIndexer>( symbol );

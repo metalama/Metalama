@@ -64,7 +64,6 @@ public sealed class SymbolExtensionsTests : UnitTestClass
         Assert.Contains( "{ }", syntaxRef.GetSyntax().ToString(), StringComparison.Ordinal );
     }
 
-#if ROSLYN_4_12_0_OR_GREATER
     [Fact]
     public void GetPrimarySyntaxReference_PartialProperty_ReturnsImplementation()
     {
@@ -93,7 +92,6 @@ public sealed class SymbolExtensionsTests : UnitTestClass
         // The implementation part contains the expression body
         Assert.Contains( "=> 42", syntaxRef.GetSyntax().ToString(), StringComparison.Ordinal );
     }
-#endif
 
 #if ROSLYN_5_0_0_OR_GREATER
     [Fact]

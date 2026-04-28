@@ -4,10 +4,7 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
-// @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
 #endif
-
-#if ROSLYN_4_8_0_OR_GREATER
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
@@ -41,5 +38,3 @@ internal partial class ClassWithPrimaryConstructor()
 {
     private int x;
 }
-
-#endif

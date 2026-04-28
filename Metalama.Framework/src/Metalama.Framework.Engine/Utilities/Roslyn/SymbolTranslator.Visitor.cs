@@ -129,12 +129,12 @@ internal sealed partial class SymbolTranslator
 
             var translated = this.TranslateNonUniquelyNamedTypeMember( symbol );
 
-#if ROSLYN_5_0_0_OR_GREATER
             if ( translated == null )
             {
                 return null;
             }
 
+#if ROSLYN_5_0_0_OR_GREATER
             if ( symbol.PartialDefinitionPart != null )
             {
                 return ((IEventSymbol) translated).PartialImplementationPart;
@@ -358,18 +358,15 @@ internal sealed partial class SymbolTranslator
 
         public override ISymbol? VisitProperty( IPropertySymbol symbol )
         {
-#if ROSLYN_4_12_0_OR_GREATER
             if ( symbol.PartialImplementationPart != null )
             {
                 var partialImplementation = this.Translate( symbol.PartialImplementationPart );
 
                 return partialImplementation?.PartialDefinitionPart;
             }
-#endif
 
             var translated = this.TranslateNonUniquelyNamedTypeMember( symbol );
 
-#if ROSLYN_4_12_0_OR_GREATER
             if ( translated == null )
             {
                 return null;
@@ -379,7 +376,6 @@ internal sealed partial class SymbolTranslator
             {
                 return ((IPropertySymbol) translated).PartialImplementationPart;
             }
-#endif
 
             return translated;
         }

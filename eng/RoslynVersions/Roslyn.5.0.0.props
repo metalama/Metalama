@@ -7,5 +7,8 @@
 		<ThisRoslynVersionProjectSuffix></ThisRoslynVersionProjectSuffix>
 		<DefineConstants>$(DefineConstants);ROSLYN_5_0_0;ROSLYN_4_4_0_OR_GREATER;ROSLYN_4_8_0_OR_GREATER;ROSLYN_4_12_0_OR_GREATER;ROSLYN_5_0_0_OR_GREATER</DefineConstants>
 		<SystemTextJsonVersion>9.0.0</SystemTextJsonVersion>
+		<!-- Roslyn 5.0 transitively requires System.Memory ≥ 4.6.0; this variant runs outside VS, so the
+		     net472 BR cap doesn't apply. Track the highest patch in the 4.6.x line ($(SystemMemoryLatestVersion)). -->
+		<SystemMemoryVersion>$(SystemMemoryLatestVersion)</SystemMemoryVersion>
 	</PropertyGroup>
 </Project>

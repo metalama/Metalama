@@ -21,6 +21,11 @@
 
     <ItemGroup>
         <PackageReference Include="DiffPlex" PrivateAssets="all" />
+        <!-- HtmlWriter doesn't deploy into the VS analyzer host, so it's free to use the "latest" Out-of-band pin
+             (4.6.x) which is needed to satisfy DiffPlex 1.9.0 + the CSharp 5.0 transitive (≥ 4.6.0). PrivateAssets
+             prevents the 4.6.x dependency from flowing transitively to consumers of the HtmlWriter package
+             (which carries no lib/ assets and consumes its DLLs through the Metalama plugin loader). -->
+        <PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryLatestVersion)" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup>

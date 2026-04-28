@@ -78,7 +78,6 @@ public sealed class SourceReferenceImpl : ISourceReferenceImpl
                                                    && method.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 
-#if ROSLYN_4_12_0_OR_GREATER
             case SyntaxKind.PropertyDeclaration when sourceReference.NodeOrTokenInternal is SyntaxNode nodeInternal
                                                      && nodeInternal.IsKind( SyntaxKind.PropertyDeclaration )
                                                      && nodeInternal is PropertyDeclarationSyntax
@@ -88,7 +87,6 @@ public sealed class SourceReferenceImpl : ISourceReferenceImpl
                                                      && accessors.All( a => a is { Body: null, ExpressionBody: null } )
                                                      && property.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
-#endif
 
 #if ROSLYN_5_0_0_OR_GREATER
             case SyntaxKind.ConstructorDeclaration when sourceReference.NodeOrTokenInternal is SyntaxNode nodeInternal

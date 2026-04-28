@@ -18,14 +18,11 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 using RefKind = Metalama.Framework.Code.RefKind;
-
-#if ROSLYN_4_12_0_OR_GREATER
-using System.Collections.Immutable;
-#endif
 
 namespace Metalama.Framework.Engine.CodeModel.Source
 {
@@ -162,7 +159,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public override IMember? OverriddenMember => this.OverriddenEvent;
 
-#if ROSLYN_4_12_0_OR_GREATER
         [Memo]
         public override ImmutableArray<SourceReference> Sources => this.GetSourcesImpl();
 
@@ -185,7 +181,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
 #endif
         }
-#endif
 
         [Memo]
         private IFullRef<IEvent> Ref => this.RefFactory.FromSymbolBasedDeclaration<IEvent>( this );

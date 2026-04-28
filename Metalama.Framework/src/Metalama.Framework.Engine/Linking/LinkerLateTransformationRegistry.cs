@@ -143,7 +143,6 @@ internal sealed class LinkerLateTransformationRegistry
     public IReadOnlyList<IFieldSymbol> GetPrimaryConstructorFields( INamedTypeSymbol type )
 #pragma warning restore CA1822 // Mark members as static
     {
-#if ROSLYN_4_8_0_OR_GREATER
         var typeSyntax =
             (TypeDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )
                 .Single(
@@ -158,9 +157,6 @@ internal sealed class LinkerLateTransformationRegistry
         var parameterList = typeSyntax.ParameterList.AssertNotNull();
 
         return type.GetMembers().OfType<IFieldSymbol>().Where( f => f.Locations.Any( l => parameterList.Span.Contains( l.SourceSpan.Start ) ) ).ToArray();
-#else
-        return Array.Empty<IFieldSymbol>();
-#endif
     }
 
 #pragma warning disable CA1822 // Mark members as static
@@ -188,17 +184,11 @@ internal sealed class LinkerLateTransformationRegistry
 
         Invariant.Assert( this.HasRemovedPrimaryConstructor( type ) );
 
-#if ROSLYN_4_8_0_OR_GREATER
         var typeSyntax =
             (TypeDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )
                 .Single(
                     d => (d.IsKind( SyntaxKind.ClassDeclaration ) || d.IsKind( SyntaxKind.StructDeclaration ) || d.IsKind( SyntaxKind.RecordDeclaration )
                           || d.IsKind( SyntaxKind.RecordStructDeclaration )) && ((TypeDeclarationSyntax) d).ParameterList != null );
-#else
-        var typeSyntax =
-            (RecordDeclarationSyntax) type.DeclaringSyntaxReferences.Select( r => r.GetSyntax() )
-            .Single( d => (d.IsKind( SyntaxKind.RecordDeclaration ) || d.IsKind( SyntaxKind.RecordStructDeclaration )) && ((RecordDeclarationSyntax) d).ParameterList != null );
-#endif
 
         var primaryConstructorBase = typeSyntax.BaseList?.Types.OfType<PrimaryConstructorBaseTypeSyntax>().SingleOrDefault();
 

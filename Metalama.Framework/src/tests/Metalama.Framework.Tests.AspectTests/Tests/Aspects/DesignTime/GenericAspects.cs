@@ -4,10 +4,7 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
-// @RequiredConstant(ROSLYN_4_4_0_OR_GREATER)
 #endif
-
-#if ROSLYN_4_4_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
 
@@ -18,9 +15,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.DesignTime.GenericAspects;
 public class TestAspect : TypeAspect
 {
     [Introduce]
-    public void M1()
-    {
-    }
+    public void M1() { }
 }
 
 public class TestAspect<T> : TypeAspect
@@ -35,7 +30,7 @@ public class TestAspect<T> : TypeAspect
 public class TestAspect<T, U> : TypeAspect
 {
     [Introduce]
-    public T M3(U v)
+    public T M3( U v )
     {
         return default!;
     }
@@ -45,8 +40,4 @@ public class TestAspect<T, U> : TypeAspect
 [TestAspect]
 [TestAspect<int>]
 [TestAspect<int, int>]
-internal partial class TargetClass
-{
-}
-
-#endif
+internal partial class TargetClass { }

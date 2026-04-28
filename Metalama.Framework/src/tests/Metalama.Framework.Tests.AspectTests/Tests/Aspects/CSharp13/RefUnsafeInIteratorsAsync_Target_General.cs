@@ -2,12 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_12_0_OR_GREATER)
-#endif
-
-#if ROSLYN_4_12_0_OR_GREATER
-
 using Metalama.Framework.Aspects;
 using System;
 using System.Collections.Generic;
@@ -19,19 +13,19 @@ internal class TheAspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        Console.WriteLine($"Entering {meta.Target.Method}.");
+        Console.WriteLine( $"Entering {meta.Target.Method}." );
 
         try
         {
             var result = meta.Proceed();
 
-            Console.WriteLine($"{meta.Target.Method} succeeded with result {result}.");
+            Console.WriteLine( $"{meta.Target.Method} succeeded with result {result}." );
 
             return result;
         }
-        catch (Exception ex)
+        catch ( Exception ex )
         {
-            Console.WriteLine($"{meta.Target.Method} failed with exception {ex}.");
+            Console.WriteLine( $"{meta.Target.Method} failed with exception {ex}." );
 
             throw;
         }
@@ -49,9 +43,7 @@ internal class Target
         // unsafe
         unsafe
         {
-            fixed (int* p = new int[1])
-            {
-            }
+            fixed ( int* p = new int[1] ) { }
         }
 
         // ref
@@ -71,9 +63,7 @@ internal class Target
         // unsafe
         unsafe
         {
-            fixed (int* p = new int[1])
-            {
-            }
+            fixed ( int* p = new int[1] ) { }
         }
 
         // ref
@@ -87,5 +77,3 @@ internal class Target
 
     // async iterator would generate invalid code, see #31108
 }
-
-#endif

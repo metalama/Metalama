@@ -57,11 +57,7 @@ internal sealed partial class LinkerInjectionStep
 
         public ConstructorDeclarationSyntax GetAuxiliarySourceConstructor( IFullRef<IConstructor> constructor )
         {
-#if ROSLYN_4_8_0_OR_GREATER
             var syntax = (TypeDeclarationSyntax) constructor.GetPrimaryDeclarationSyntax().AssertNotNull();
-#else
-            var syntax = (RecordDeclarationSyntax) constructor.GetPrimaryDeclarationSyntax().AssertNotNull();
-#endif
 
             var syntaxGenerationContext = this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, syntax );
 

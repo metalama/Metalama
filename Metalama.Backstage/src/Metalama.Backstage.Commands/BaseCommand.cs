@@ -19,7 +19,7 @@ namespace Metalama.Backstage.Commands
         where T : BaseCommandSettings
     {
 #pragma warning disable CS8765
-        public sealed override int Execute( CommandContext context, [System.Diagnostics.CodeAnalysis.NotNull] T settings, CancellationToken cancellationToken )
+        protected sealed override int Execute( CommandContext context, [System.Diagnostics.CodeAnalysis.NotNull] T settings, CancellationToken cancellationToken )
 #pragma warning restore CS8765
         {
             if ( settings.Debug )

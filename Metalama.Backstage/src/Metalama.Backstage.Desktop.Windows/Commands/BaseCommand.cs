@@ -14,7 +14,7 @@ namespace Metalama.Backstage.Desktop.Windows.Commands;
 public abstract class BaseCommand<T> : Command<T>
     where T : BaseSettings
 {
-    public override int Execute( CommandContext context, T settings, CancellationToken cancellationToken )
+    protected override int Execute( CommandContext context, T settings, CancellationToken cancellationToken )
     {
         var serviceProvider = App.GetBackstageServices( settings );
         var loggerFactory = serviceProvider.GetLoggerFactory();

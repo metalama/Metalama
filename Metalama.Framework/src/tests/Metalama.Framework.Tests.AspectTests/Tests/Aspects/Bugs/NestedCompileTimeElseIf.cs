@@ -2,12 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
-#endif
-
-#if ROSLYN_4_8_0_OR_GREATER
-
 using Metalama.Framework.Aspects;
 using System;
 
@@ -20,15 +14,15 @@ internal class Aspect : TypeAspect
     [Introduce]
     private void M()
     {
-        Console.WriteLine( I );
+        Console.WriteLine( this.I );
 
-        if (I > 0)
+        if ( this.I > 0 )
         {
-            if (I > 10)
+            if ( this.I > 10 )
             {
                 Console.WriteLine( "I > 10" );
             }
-            else if (I > 100)
+            else if ( this.I > 100 )
             {
                 Console.WriteLine( "I > 100" );
             }
@@ -47,5 +41,3 @@ internal class TargetM1;
 // <target>
 [Aspect( I = 1 )]
 internal class Target1;
-
-#endif

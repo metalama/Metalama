@@ -65,7 +65,8 @@
 
 		<!-- Resolve conflict -->
     	<PackageReference Include="System.Text.Json" NoWarn="NU1903" />
-	
+    	<PackageReference Include="System.Memory" />
+
     </ItemGroup>
 
     <ItemGroup>

@@ -284,17 +284,10 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         {
             var declarationSyntax = constructorSymbol.GetPrimaryDeclarationSyntax();
 
-#if ROSLYN_4_8_0_OR_GREATER
             return
                 constructorSymbol is { MethodKind: MethodKind.Constructor }
                 && declarationSyntax?.SyntaxKind.IsTypeDeclaration == true
                 && declarationSyntax is TypeDeclarationSyntax { ParameterList: not null };
-#else
-            return
-                constructorSymbol is { MethodKind: MethodKind.Constructor }
-                && declarationSyntax?.SyntaxKind.IsRecordDeclaration == true
-                && declarationSyntax is RecordDeclarationSyntax { ParameterList: not null };
-#endif
         }
 
         internal static FrameworkName? GetTargetFramework( this Compilation compilation )
@@ -463,13 +456,11 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 case SymbolKind.Method when symbol is IMethodSymbol { AssociatedSymbol: { } associatedSymbol }:
                     return GetReferenceOfShortestPath( symbol ) ?? GetReferenceOfShortestPath( associatedSymbol );
 
-#if ROSLYN_4_12_0_OR_GREATER
                 case SymbolKind.Property when symbol is IPropertySymbol
                 {
                     IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol
                 }:
                     return GetReferenceOfShortestPath( partialImplementationSymbol );
-#endif
 
 #if ROSLYN_5_0_0_OR_GREATER
                 case SymbolKind.Event when symbol is IEventSymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:

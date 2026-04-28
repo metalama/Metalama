@@ -36,24 +36,20 @@ namespace Metalama.Framework.Engine.Linking
         {
             if ( this.InjectionRegistry.IsOverrideTarget( symbol ) )
             {
-#if ROSLYN_4_12_0_OR_GREATER
                 if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: { } } )
                 {
                     // This is a partial property declaration that is not to be transformed.
                     return [propertyDeclaration];
                 }
-#endif
 
                 var members = new List<MemberDeclarationSyntax>();
 
-#if ROSLYN_4_12_0_OR_GREATER
                 if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
                 {
                     // This is a partial property declaration that did not have any body.
                     // Keep it as is and add a new declaration that will contain the override.
                     members.Add( propertyDeclaration );
                 }
-#endif
 
                 var lastOverride = (IPropertySymbol) this.InjectionRegistry.GetLastOverride( symbol );
 
@@ -291,12 +287,10 @@ namespace Metalama.Framework.Engine.Linking
                     initializer: null,
                     semicolonToken: default(SyntaxToken) );
 
-#if ROSLYN_4_12_0_OR_GREATER
                 if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
                 {
                     result = RemoveAttributesForPartialImplementation( result );
                 }
-#endif
 
                 return result;
             }
@@ -363,7 +357,6 @@ namespace Metalama.Framework.Engine.Linking
             }
         }
 
-#if ROSLYN_4_12_0_OR_GREATER
         private static PropertyDeclarationSyntax RemoveAttributesForPartialImplementation( PropertyDeclarationSyntax declaration )
         {
             return
@@ -373,7 +366,6 @@ namespace Metalama.Framework.Engine.Linking
                         accessors: List(
                             declaration.AccessorList.Accessors.SelectAsArray( a => a.PartialUpdate( attributeLists: List<AttributeListSyntax>() ) ) ) ) );
         }
-#endif
 
         private FieldDeclarationSyntax GetPropertyBackingField(
             TypeSyntax type,

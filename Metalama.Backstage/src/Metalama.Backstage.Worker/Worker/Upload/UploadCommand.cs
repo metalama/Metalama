@@ -17,7 +17,7 @@ namespace Metalama.Backstage.Worker.Upload
     [UsedImplicitly]
     internal class UploadCommand : AsyncCommand<UploadCommandSettings>
     {
-        public override async Task<int> ExecuteAsync( CommandContext context, UploadCommandSettings settings, CancellationToken cancellationToken )
+        protected override async Task<int> ExecuteAsync( CommandContext context, UploadCommandSettings settings, CancellationToken cancellationToken )
         {
             var appData = (AppData) context.Data!;
             var serviceProvider = appData.ServiceProvider;

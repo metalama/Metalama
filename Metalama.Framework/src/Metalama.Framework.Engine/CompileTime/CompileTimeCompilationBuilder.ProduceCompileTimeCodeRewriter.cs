@@ -1561,12 +1561,10 @@ namespace Metalama.Framework.Engine.CompileTime
 
             public override SyntaxNode? VisitUsingDirective( UsingDirectiveSyntax node )
             {
-#if ROSLYN_4_8_0_OR_GREATER
                 if ( !node.UnsafeKeyword.IsKind( SyntaxKind.None ) )
                 {
                     return null;
                 }
-#endif
 
                 if ( node.GlobalKeyword.IsKind( SyntaxKind.GlobalKeyword ) && node.Alias != null )
                 {

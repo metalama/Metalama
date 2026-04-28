@@ -2,12 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_4_8_0_OR_GREATER)
-#endif
-
-#if ROSLYN_4_8_0_OR_GREATER
-
 using System;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -25,9 +19,9 @@ public class Override1Attribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        foreach (var constructor in builder.Target.Constructors)
+        foreach ( var constructor in builder.Target.Constructors )
         {
-            builder.With( constructor ).Override( nameof(Template), args: new { i = 1 } );
+            builder.With( constructor ).Override( nameof(this.Template), args: new { i = 1 } );
             builder.With( constructor ).IntroduceParameter( "introduced", TypeFactory.GetType( SpecialType.Int32 ), TypedConstant.Create( 42 ) );
         }
     }
@@ -37,7 +31,7 @@ public class Override1Attribute : TypeAspect
     {
         Console.WriteLine( $"This is the override {i}." );
 
-        foreach (var param in meta.Target.Parameters)
+        foreach ( var param in meta.Target.Parameters )
         {
             Console.WriteLine( $"Param {param.Name} = {param.Value}" );
         }
@@ -50,9 +44,9 @@ public class Override2Attribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        foreach (var constructor in builder.Target.Constructors)
+        foreach ( var constructor in builder.Target.Constructors )
         {
-            builder.With( constructor ).Override( nameof(Template), args: new { i = 2 } );
+            builder.With( constructor ).Override( nameof(this.Template), args: new { i = 2 } );
         }
     }
 
@@ -61,7 +55,7 @@ public class Override2Attribute : TypeAspect
     {
         Console.WriteLine( $"This is the override {i}." );
 
-        foreach (var param in meta.Target.Parameters)
+        foreach ( var param in meta.Target.Parameters )
         {
             Console.WriteLine( $"Param {param.Name} = {param.Value}" );
         }
@@ -85,5 +79,3 @@ public class TargetClass
         Console.WriteLine( $"This is the original constructor." );
     }
 }
-
-#endif

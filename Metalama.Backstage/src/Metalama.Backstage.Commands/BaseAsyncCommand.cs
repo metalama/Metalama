@@ -20,7 +20,7 @@ public abstract class BaseAsyncCommand<T> : AsyncCommand<T>
     where T : BaseCommandSettings
 {
 #pragma warning disable CS8765
-    public override async Task<int> ExecuteAsync( CommandContext context, T settings, CancellationToken cancellationToken )
+    protected override async Task<int> ExecuteAsync( CommandContext context, T settings, CancellationToken cancellationToken )
 #pragma warning restore CS8765
     {
         if ( settings.Debug )

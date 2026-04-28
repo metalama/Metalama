@@ -91,7 +91,6 @@ For extensions that use Roslyn internals which differ between versions, you need
 **Project structure:**
 ```
 MyExtension.Engine/                    # Main engine project (latest Roslyn)
-MyExtension.Engine.4.8.0/             # 4.8.0-specific build
 MyExtension.Engine.4.12.0/            # 4.12.0-specific build
 ```
 
@@ -110,20 +109,20 @@ MyExtension.Engine.4.12.0/            # 4.12.0-specific build
     </ItemGroup>
 
     <!-- Import Roslyn version configuration -->
-    <Import Project="../../eng/RoslynVersions/Roslyn.4.8.0.props" />
+    <Import Project="../../eng/RoslynVersions/Roslyn.4.12.0.props" />
 
     <!-- Import main project for other settings -->
     <Import Project="../MyExtension.Engine/MyExtension.Engine.csproj" />
 </Project>
 ```
 
-**Roslyn version props file** (`eng/RoslynVersions/Roslyn.X.X.X.props`):
+**Roslyn version props file** (`eng/RoslynVersions/Roslyn.X.X.X.props`): the `_OR_GREATER` symbols form a stack — each variant defines every `_OR_GREATER` symbol up to and including its own version, plus `_OR_EARLIER` only for the latest version it can be the latest one of. Match the existing `eng/RoslynVersions/Roslyn.<v>.props` files for the exact set:
 ```xml
 <Project>
     <PropertyGroup>
-        <ThisRoslynVersion>4.8.0</ThisRoslynVersion>
-        <ThisRoslynVersionProjectSuffix>.4.8.0</ThisRoslynVersionProjectSuffix>
-        <DefineConstants>$(DefineConstants);ROSLYN_4_8_0;ROSLYN_4_8_0_OR_GREATER</DefineConstants>
+        <ThisRoslynVersion>4.12.0</ThisRoslynVersion>
+        <ThisRoslynVersionProjectSuffix>.4.12.0</ThisRoslynVersionProjectSuffix>
+        <DefineConstants>$(DefineConstants);ROSLYN_4_12_0;ROSLYN_4_4_0_OR_GREATER;ROSLYN_4_8_0_OR_GREATER;ROSLYN_4_12_0_OR_GREATER;ROSLYN_4_12_0_OR_EARLIER</DefineConstants>
     </PropertyGroup>
 </Project>
 ```
@@ -135,21 +134,21 @@ MyExtension.Engine.4.12.0/            # 4.12.0-specific build
     TargetFramework="net472"
     TargetRoslynVersion="5.0.0"/>
 <MetalamaExtensionAssembly
-    Include="...MyExtension.Engine.4.8.0.dll"
+    Include="...MyExtension.Engine.4.12.0.dll"
     TargetFramework="net472"
-    TargetRoslynVersion="4.8.0"/>
+    TargetRoslynVersion="4.12.0"/>
 ```
 
 **Conditional compilation in code:**
 ```csharp
-#if ROSLYN_4_12_0_OR_GREATER
-    // Use new API
+#if ROSLYN_5_0_0_OR_GREATER
+    // Use Roslyn 5.x-only API
 #else
-    // Use old API
+    // Fall back for Roslyn 4.12.x
 #endif
 ```
 
-**Example:** `Metalama.Extensions.Validation` in Metalama.Premium uses this pattern with builds for Roslyn 4.8.0, 4.12.0, and 5.0.0.
+**Example:** `Metalama.Extensions.Validation` in Metalama.Premium uses this pattern with builds for Roslyn 4.12.0 and 5.0.0. The Roslyn 4.8.0 build variant was retired with Metalama 2026.1 (see `Directory.Packages.md`); historical references to `Roslyn.4.8.0.props` in extension repos should be migrated to `Roslyn.4.12.0.props`.
 
 ### Simple Extension Pattern (HtmlWriter)
 

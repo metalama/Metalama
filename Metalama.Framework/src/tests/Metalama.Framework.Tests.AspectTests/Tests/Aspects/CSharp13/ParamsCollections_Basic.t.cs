@@ -9,8 +9,8 @@ public class Target
   }
   private void Usage()
   {
-    ParamsArray(1, 2, 3);
-    ParamsSpan(1, 2, 3);
+    this.ParamsArray(1, 2, 3);
+    this.ParamsSpan(1, 2, 3);
     _ = this[1, 2, 3];
   }
   private global::System.Int32 this[params global::System.Int32[] index]

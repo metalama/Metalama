@@ -21,7 +21,7 @@ public static class EnumExtensions
     /// (multiple names sharing the same underlying value, e.g. <c>Default = 0, Success = 0</c>), the
     /// built-in <see cref="object.ToString"/> picks one of the names in an implementation-defined way
     /// that can vary across .NET runtimes. This method returns the alphabetically-first preferred
-    /// name among aliases — names marked <see cref="ObsoleteAttribute"/> and the literal name
+    /// name among aliases — names marked <c>[Obsolete]</c> and the literal name
     /// <c>Default</c> are deprioritized and only used as a fallback when no preferred alias exists,
     /// so diagnostic messages and log output stay stable.
     /// </summary>

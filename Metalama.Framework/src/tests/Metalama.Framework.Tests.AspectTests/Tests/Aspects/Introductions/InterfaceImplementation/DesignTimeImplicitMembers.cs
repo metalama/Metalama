@@ -5,7 +5,6 @@
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
 // The warning message is different on older compilers.
-// @RequiredConstant(ROSLYN_4_12_0_OR_GREATER)
 #endif
 
 using System;
