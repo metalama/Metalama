@@ -39,7 +39,6 @@
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
     <!-- MessagePack 2.x is required for compatibility with StreamJsonRpc (3.x is incompatible). -->
     <MessagePackLatestVersion>2.5.198</MessagePackLatestVersion>
-    <StreamJsonRpcLatestVersion>2.20.17</StreamJsonRpcLatestVersion>
     <SystemTextJsonLatestVersion>9.0.10</SystemTextJsonLatestVersion>
     <MicrosoftBclAsyncInterfacesLatestVersion>9.0.10</MicrosoftBclAsyncInterfacesLatestVersion>
 

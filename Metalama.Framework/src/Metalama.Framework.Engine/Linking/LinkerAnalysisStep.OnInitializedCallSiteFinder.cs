@@ -123,8 +123,6 @@ internal sealed partial class LinkerAnalysisStep
 
             public override void VisitLocalFunctionStatement( LocalFunctionStatementSyntax node )
             {
-                // Roslyn 4.8's GetDeclaredSymbol( LocalFunctionStatementSyntax ) returns ISymbol; the typed
-                // IMethodSymbol overload was added later. Cast only on the older API to avoid IDE0004 on newer.
                 var localFunctionSymbol = this._semanticModel.GetDeclaredSymbol( node );
                 this.VisitWithContainingSymbol( node, localFunctionSymbol, base.VisitLocalFunctionStatement );
             }
