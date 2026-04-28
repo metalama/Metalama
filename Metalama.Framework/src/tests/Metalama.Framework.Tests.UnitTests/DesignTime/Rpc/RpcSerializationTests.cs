@@ -5,8 +5,6 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using MessagePack;
-using MessagePack.Resolvers;
 using Metalama.Framework.DesignTime.AspectExplorer;
 using Metalama.Framework.DesignTime.CodeLens;
 using Metalama.Framework.DesignTime.Diagnostics;
@@ -26,17 +24,13 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
 /// <summary>
-/// Roundtrip serialization tests for MessagePack serialization of RPC contract types.
-/// These tests verify that all types used in RPC communication can be correctly serialized
-/// and deserialized using a composite resolver with TypelessObjectResolver and StandardResolver.
+/// Roundtrip serialization tests for the RPC contract types — uses <see cref="MessagePackHelper"/>, which
+/// goes through the same <c>MessagePackSerializerOptions</c> as <c>BaseEndpoint.CreateRpc</c> so these tests
+/// validate the real wire path end-to-end.
 /// </summary>
-public sealed class MessagePackSerializationTests
+public sealed class RpcSerializationTests
 {
-    private static readonly MessagePackSerializerOptions _options =
-        MessagePackSerializerOptions.Standard.WithResolver(
-            CompositeResolver.Create(
-                TypelessObjectResolver.Instance,
-                StandardResolver.Instance ) );
+    private static readonly MessagePackHelper _helper = new MessagePackHelper();
 
     private static T Roundtrip<T>( T value )
     {
@@ -45,9 +39,29 @@ public sealed class MessagePackSerializationTests
         var attribute = type.GetCustomAttribute<RpcContractAttribute>();
         Assert.True( attribute != null, $"Type {type.FullName} is missing the [RpcContract] attribute." );
 
-        var bytes = MessagePackSerializer.Serialize( value, _options );
+        return _helper.Deserialize<T>( _helper.Serialize( value ) );
+    }
 
-        return MessagePackSerializer.Deserialize<T>( bytes, _options );
+    [Fact]
+    public void NonGeneric_Roundtrip_MatchesGeneric()
+    {
+        // Pins that MessagePackHelper's non-generic Serialize(object, Type) / Deserialize(byte[], Type) overloads
+        // produce wire bytes byte-equivalent to the generic ones for the same options + same concrete type.
+        // Premium relies on this: its CodeActionDescriptor.ToDescriptor passes the runtime type of a leaf model
+        // to the non-generic overload (the type discriminator rides out-of-band in the descriptor).
+        var input = new RpcServiceInfo( "pipe-name", "FactoryType", "ExtensionName" );
+
+        var bytesGeneric = _helper.Serialize( input );
+        var bytesNonGeneric = _helper.Serialize( input, typeof(RpcServiceInfo) );
+
+        Assert.Equal( bytesGeneric, bytesNonGeneric );
+
+        var fromGeneric = _helper.Deserialize<RpcServiceInfo>( bytesNonGeneric );
+        var fromNonGeneric = (RpcServiceInfo) _helper.Deserialize( bytesGeneric, typeof(RpcServiceInfo) )!;
+
+        Assert.Equal( fromGeneric.PipeName, fromNonGeneric.PipeName );
+        Assert.Equal( fromGeneric.FactoryTypeName, fromNonGeneric.FactoryTypeName );
+        Assert.Equal( fromGeneric.ExtensionName, fromNonGeneric.ExtensionName );
     }
 
     [Fact]
