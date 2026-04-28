@@ -58,9 +58,9 @@
     <SystemFormatsAsn1LatestVersion>9.0.10</SystemFormatsAsn1LatestVersion>
     <SystemIOPipelinesLatestVersion>9.0.10</SystemIOPipelinesLatestVersion>
     <SystemBuffersLatestVersion>4.6.1</SystemBuffersLatestVersion>
-    <!-- "Latest" OOB versions for projects that don't deploy into the VS analyzer host (tests, HtmlWriter,
-         CLI tools). Runtime-deployed assemblies use the central pin (SystemMemoryVersion = 4.5.5) which
-         fits the VS 17.14 devenv.exe.config binding-redirect ceiling. -->
+    <!-- "Latest" Out-of-band versions for projects that don't deploy into the VS analyzer host (tests,
+         HtmlWriter, CLI tools). Runtime-deployed assemblies use the central pin (SystemMemoryVersion = 4.5.5)
+         which fits the VS 17.14 devenv.exe.config binding-redirect ceiling. -->
     <SystemMemoryLatestVersion>4.6.3</SystemMemoryLatestVersion>
 
   </PropertyGroup>
@@ -97,11 +97,11 @@
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.15" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
-    <!-- OOB family: capped by VS 17.14 devenv.exe.config binding redirect (oldVersion upper bound = 6.0.1.0).
+    <!-- Out-of-band family: capped by VS 17.14 devenv.exe.config binding redirect (oldVersion upper bound = 6.0.1.0).
          NuGet 6.1.0 stays under the cap; 6.1.2+ may not. -->
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
-    <!-- OOB family is capped by VS 17.14 devenv.exe.config binding redirects (System.Memory ≤ 4.0.2.0,
+    <!-- Out-of-band family is capped by VS 17.14 devenv.exe.config binding redirects (System.Memory ≤ 4.0.2.0,
          System.Buffers ≤ 4.0.4.0, System.Numerics.Vectors ≤ 4.1.5.0) for the Roslyn 4.12 variant
          (loaded in devenv). The Roslyn 5.0 variant runs outside VS and uses 4.6.x via $(SystemMemoryVersion). -->
     <PackageVersion Include="System.Memory" Version="$(SystemMemoryVersion)" />
