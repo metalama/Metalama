@@ -213,6 +213,32 @@ Refresh the cap derivation when the floor VS version changes, when MS releases a
    - `CS1705` (assembly with higher version than referenced) — a transitive's binding identity advanced past what we declare; bump the offending package to a NuGet version that ships the higher AsmVer (StreamJsonRpc 2.22.23 was built against `System.Threading.Tasks.Extensions` AsmVer 4.2.1.0, requiring the 4.6.x NuGet line)
 6. **Then** run targeted tests.
 
+## Manual interactive verification after a version change
+
+`dotnet restore`, `Build.ps1 build`, and automated test runs catch package-graph correctness and library-level behavior, but they don't exercise the design-time path inside `devenv.exe`. The VS analyzer host loads its own copies of `Microsoft.VisualStudio.Threading`, `MessagePack`, `StreamJsonRpc`, the Out-of-band family, etc., subject to `devenv.exe.config` binding redirects — a `FileLoadException` from an Out-of-band cap violation, or a CodeLens RPC handshake failure from a flowed-dep AsmVer mismatch, only surfaces when the payload is actually loaded into `devenv`. Run this protocol in **every supported VS version** (see *Current floors*) before merging a `Directory.Packages.props` change that touches a VS-loaded dependency.
+
+### Step 1 — Metalama core repo
+
+1. Delete `%metalama%\crashdumps` (it's append-only; old runs would mask anything new).
+2. Open `Metalama.Framework\src\tests\Metalama.Framework.TestApp\` in VS.
+3. Exercise the design-time path: scroll/type in aspect-decorated code, hover symbols, navigate, trigger CodeLens, run a code fix, edit a file that triggers a validator.
+4. Check `%metalama%\crashdumps` for new entries. Any new file is a regression — capture the dump and the troubleshooting log under `%temp%\Metalama\CompileTimeTroubleshooting\` and reproduce. Also scan the VS Activity Log for `FileLoadException`, `MissingMethodException`, `TypeLoadException`, and `StreamJsonRpc.ConnectionLostException`.
+
+### Step 2 — Mirror version changes into Metalama.Premium
+
+Premium has its own `..\Metalama.Premium\Directory.Packages.props` (and its own `eng\RoslynVersions\Roslyn.*.props`). Any change to Metalama's central pins — especially `RoslynApiMinVersion` / `RoslynApiMaxVersion`, the variant-conditional `SystemMemoryVersion`, the Out-of-band family, the `*LatestVersion` properties, and anything pinned for VS-shipped compatibility — must be mirrored into Premium **before** testing Premium. Otherwise restore mismatches will mask the actual scenario you're trying to verify, or worse, the Premium analyzer payload deployed into `devenv` will diverge from the Metalama analyzer payload alongside it.
+
+Workflow: edit Premium's props files to match, run `dotnet restore` on each top-level Premium `.sln`, then proceed to step 3.
+
+### Step 3 — Metalama.Premium standalone tests in VS
+
+1. Delete `%metalama%\crashdumps` again.
+2. Open `Metalama.Premium\src\tests\Standalone\CodeFixes\CodeFixes.csproj` in VS. Trigger a Metalama-provided code fix interactively (light bulb → apply) and verify it applies without errors and the resulting code compiles.
+3. Open `Metalama.Premium\src\tests\Standalone\Validation\` in VS. Verify validation diagnostics appear at the expected locations and disappear when the violation is fixed.
+4. Re-check `%metalama%\crashdumps` after each project. Same triage as step 1.
+
+If any step in this protocol fails for a VS version that's still in our supported set, the version-bump PR is blocked until either the underlying issue is fixed or the bump is reverted to the version that works.
+
 ## Per-package rationales
 
 Per-package rationales (why a specific version is pinned, what host shipped it, why a bump is unsafe) belong in **inline comments next to the `<PackageVersion>` in `Directory.Packages.props` / `eng\Versions.props`**, not here. This document is the methodology and principles; the props files are the canonical source for individual choices and live next to what they describe. When you add or change a pin, write a one-line inline comment if the choice isn't self-evident from the package name.
