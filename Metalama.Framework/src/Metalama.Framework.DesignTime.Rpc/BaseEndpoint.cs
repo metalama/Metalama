@@ -91,22 +91,33 @@ public abstract class BaseEndpoint : IDisposable
         }
     }
 
-    protected static JsonRpc CreateRpc( Stream stream )
+    // Use TypelessObjectResolver with CompositeResolver to handle both polymorphic types
+    // (abstract-typed properties such as RpcEventEnvelope.Data: RpcEventData) and immutable collections.
+    // StandardResolver includes formatters for ImmutableArray<T>, etc. Exposed as `internal` so MessagePackHelper
+    // can use the exact same options when serialising RPC contract types from production code paths or tests.
+    internal static MessagePackSerializerOptions MessagePackOptions { get; } =
+        MessagePackSerializerOptions.Standard.WithResolver(
+            CompositeResolver.Create(
+                TypelessObjectResolver.Instance,
+                StandardResolver.Instance ) );
+
+    protected JsonRpc CreateRpc( Stream stream )
     {
         var formatter = new MessagePackFormatter();
-
-        // Use TypelessObjectResolver with CompositeResolver to handle both polymorphic types
-        // and immutable collections. StandardResolver includes formatters for ImmutableArray<T>, etc.
-        var resolver = CompositeResolver.Create(
-            TypelessObjectResolver.Instance,
-            StandardResolver.Instance );
-
-        var options = MessagePackSerializerOptions.Standard.WithResolver( resolver );
-        formatter.SetMessagePackSerializerOptions( options );
+        formatter.SetMessagePackSerializerOptions( MessagePackOptions );
 
         var handler = new LengthHeaderMessageHandler( stream, stream, formatter );
 
-        return new JsonRpc( handler );
+        var rpc = new JsonRpc( handler );
+
+        // Forward StreamJsonRpc internal trace events (request/response dispatch, argument-deserialization
+        // failures, connection lifecycle) to the endpoint's ILogger. Switch.Level=Information catches everything
+        // up to and including warnings; the underlying ILogWriter then filters by the Metalama logger
+        // configuration, so this is null-cost when verbose logging isn't enabled.
+        rpc.TraceSource.Switch.Level = SourceLevels.Information;
+        rpc.TraceSource.Listeners.Add( new LoggerTraceListener( this.Logger ) );
+
+        return rpc;
     }
 
     public override string ToString() => $"{this.GetType().Name}({this.PipeName})";
