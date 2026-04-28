@@ -216,4 +216,5 @@ Located in `Notifications/` folder:
 
 ## Related Documentation
 
+- **Scope and version-compatibility rules**: `Metalama.Framework/docs/cross-process-communication.md`. **Read this before extending the Rpc layer or before considering exposing it to a non-Metalama consumer.** This layer is *same-version, cross-process only*; cross-version surfaces belong in `Metalama.Framework.DesignTime.Contracts`.
 - Test patterns: `tests/Metalama.Framework.Tests.UnitTests/DesignTime/Rpc/CLAUDE.md`
