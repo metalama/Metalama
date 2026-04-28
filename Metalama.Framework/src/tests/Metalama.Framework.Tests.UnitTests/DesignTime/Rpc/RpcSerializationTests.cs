@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Metalama.Framework.DesignTime.AspectExplorer;
+using Metalama.Framework.DesignTime.CodeFixes;
 using Metalama.Framework.DesignTime.CodeLens;
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.DesignTime.Preview;
@@ -408,5 +409,54 @@ public sealed class RpcSerializationTests
         Assert.Equal( original.TargetDeclarationId, result.TargetDeclarationId );
         Assert.Equal( original.Transformations.Length, result.Transformations.Length );
         Assert.Equal( original.Transformations[0].Description, result.Transformations[0].Description );
+    }
+
+    [Fact]
+    public void CodeActionDescriptor_Leaf_Roundtrip()
+    {
+        var payload = new byte[] { 1, 2, 3, 4 };
+
+        var original = new CodeActionDescriptor
+        {
+            Title = "Apply aspect", PayloadTypeName = "UserCodeActionModel", Payload = payload
+        };
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( original.Title, result.Title );
+        Assert.Equal( original.PayloadTypeName, result.PayloadTypeName );
+        Assert.Equal( payload, result.Payload );
+        Assert.False( result.IsMenu );
+        Assert.True( result.NestedItems.IsDefaultOrEmpty );
+    }
+
+    [Fact]
+    public void CodeActionDescriptor_Menu_Roundtrip()
+    {
+        var original = new CodeActionDescriptor
+        {
+            Title = "Refactor",
+            NestedItems = ImmutableArray.Create(
+                new CodeActionDescriptor
+                {
+                    Title = "Apply X", PayloadTypeName = "UserCodeActionModel", Payload = new byte[] { 1, 2 }
+                },
+                new CodeActionDescriptor
+                {
+                    Title = "Apply Y", PayloadTypeName = "ApplyLiveTemplateCodeActionModel", Payload = new byte[] { 3, 4 }
+                } )
+        };
+
+        var result = Roundtrip( original );
+
+        Assert.Equal( "Refactor", result.Title );
+        Assert.True( result.IsMenu );
+        Assert.Null( result.PayloadTypeName );
+        Assert.Null( result.Payload );
+        Assert.Equal( 2, result.NestedItems.Length );
+        Assert.Equal( "Apply X", result.NestedItems[0].Title );
+        Assert.Equal( "UserCodeActionModel", result.NestedItems[0].PayloadTypeName );
+        Assert.Equal( new byte[] { 1, 2 }, result.NestedItems[0].Payload );
+        Assert.Equal( "Apply Y", result.NestedItems[1].Title );
     }
 }
