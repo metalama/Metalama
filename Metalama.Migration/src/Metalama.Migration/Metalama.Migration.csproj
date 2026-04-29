@@ -17,6 +17,11 @@
         <PackageReference Include="JetBrains.Annotations" />
         <PackageReference Include="Metalama.Framework.Redist" />
         <PackageReference Include="Metalama.Extensions.Multicast" />
+        <!-- Force Metalama.Compiler to the pinned version. Without this, the package
+             resolves transitively and NuGet can pick a stale cached version on build agents,
+             causing CS8032 when the analyzer references a different Metalama.Compiler.Interface
+             version. See https://github.com/metalama/Metalama.Compiler/issues/179. -->
+        <PackageReference Include="Metalama.Compiler" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup>
