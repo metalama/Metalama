@@ -35,7 +35,18 @@ public sealed class ServiceHubServerEndpoint : ServerEndpoint, IServiceHubRpcSer
     {
         // TODO: Exception handling.
         _ = this.EventHub.ForwardEventAsync( eventData, this._applicationExitingToken );
+
+        // In-process delivery for cross-version consumers (see IDesignTimeNotificationService and
+        // Metalama.Framework/docs/cross-process-communication.md).
+        this.InProcessEventReceived?.Invoke( eventData );
     }
+
+    /// <summary>
+    /// Raised when an event is received from any analysis-process client connected to this endpoint, in addition
+    /// to the existing pipe-based delivery via <see cref="EventHubRpcService"/>. This event is for in-process,
+    /// cross-version-safe consumers that subscribe through <see cref="Metalama.Framework.DesignTime.Contracts.Notifications.IDesignTimeNotificationService"/>.
+    /// </summary>
+    internal event Action<RpcEventData>? InProcessEventReceived;
 
     public ServiceHubRpcService ServiceHub { get; }
 

@@ -80,14 +80,18 @@ The supported route for any cross-version need that *appears* to be cross-proces
 The CodeLens notification path traverses both boundaries:
 
 1. **Cross-version, same-process** (VSX ↔ Metalama in `devenv`):
-   - VSX (any version) calls a `[Guid]`-marked interface defined in `Metalama.Framework.DesignTime.Contracts`.
-   - The Metalama-side implementation lives in the Metalama-NuGet-deployed assemblies extracted into `devenv`.
-   - Both copies of `Metalama.Framework.DesignTime.Contracts.dll` (VSX-bundled and Metalama-deployed) coexist in the same CLR; type equivalence makes the call resolve.
-2. **Same-version, cross-process** (Metalama ↔ Metalama helper):
-   - Inside the Metalama implementation, if a notification needs to cross to another Metalama process (e.g., a CodeLens helper), the call hops to `Metalama.Framework.DesignTime.Rpc` over a named pipe.
-   - Both ends are the same Metalama version, so MessagePack framing and `[RpcContract]` types are safe.
+   - VSX (any version) resolves `IDesignTimeNotificationService` (in `Metalama.Framework.DesignTime.Contracts.Notifications`, GUID frozen) from `ICompilerServiceProvider.GetService(typeof(IDesignTimeNotificationService))`, then calls `Subscribe(IDesignTimeNotificationObserver, string[] eventTypeNames)` to register an observer.
+   - The Metalama-side implementation (`DesignTimeNotificationService` in `Metalama.Framework.DesignTime.VisualStudio.Notifications`) is hosted in the Metalama-NuGet-deployed assemblies extracted into `devenv`. It listens to the in-process `ServiceHubServerEndpoint.InProcessEventReceived` event, translates incoming `RpcEventData` instances to `[Guid]`-marked Contracts DTOs (`ICompilationResultChangedEvent`, `IEndpointChangedEvent`), and invokes the observer.
+   - Both copies of `Metalama.Framework.DesignTime.Contracts.dll` (VSX-bundled and Metalama-deployed) coexist in the same CLR; type equivalence makes `Subscribe` and `OnEvent` resolve correctly.
+   - **VSX never opens a pipe across a Metalama-version boundary.** All cross-version traffic is in-process and goes through type-equivalent Contracts interfaces.
+2. **Same-version, cross-process** (Metalama analyzer ↔ Metalama user-process):
+   - The Metalama analyzer process raises `RpcEventData` (e.g., `CompilationResultChangedEventData`) and forwards it to the user process over `Metalama.Framework.DesignTime.Rpc` (StreamJsonRpc + MessagePack).
+   - Both ends are the same Metalama version, so the framing and `[RpcContract]` types are safe.
+   - In the user process, `ServiceHubServerEndpoint` receives the event and:
+     - publishes it to its internal `EventHubRpcService` (legacy pipe-based delivery, retained so older VSX builds that still consume `Metalama.Framework.DesignTime.Rpc` keep working);
+     - raises `InProcessEventReceived`, which is what `DesignTimeNotificationService` from step 1 listens to.
 
-VSX never calls into `Metalama.Framework.DesignTime.Rpc` directly — that would be a cross-process *and* cross-version path, which Rule 3 forbids.
+VSX never calls into `Metalama.Framework.DesignTime.Rpc` directly on the new path — that would be a cross-process *and* cross-version path, which Rule 3 forbids.
 
 ## Symptoms of violating the rules
 
