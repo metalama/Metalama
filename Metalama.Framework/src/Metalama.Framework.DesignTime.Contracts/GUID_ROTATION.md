@@ -65,6 +65,10 @@ Future contract evolution must go through a new interface (`IFooN`) with its own
 v1 uses `Metalama.Framework.DesignTime.Contracts.DesignTimeEntryPointManager`.
 v2 uses `Metalama.Framework.DesignTime.Contracts.v2.DesignTimeEntryPointManager`.
 
-The named mutex shares the same string. Both managers can coexist in the same AppDomain on independent slots.
+`DesignTimeEntryPointManager` builds the named mutex as `Local\{_appDomainDataName}`,
+where `_appDomainDataName` is the same constant string used for the AppDomain slot.
+Because v2 includes `.v2` in that constant, the mutex name and the AppDomain slot
+are both distinct from v1's. The v1 and v2 managers therefore initialise independently
+in the same AppDomain — they do not contend on a shared mutex.
 
 Total: 42 GUIDs rotated across 36 files.

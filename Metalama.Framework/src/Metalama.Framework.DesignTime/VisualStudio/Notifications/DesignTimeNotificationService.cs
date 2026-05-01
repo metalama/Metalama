@@ -50,9 +50,14 @@ internal sealed partial class DesignTimeNotificationService : IDesignTimeNotific
             throw new ArgumentNullException( nameof(eventTypeNames) );
         }
 
+        // Defensive copy + dedupe: callers may pass duplicates (which would register the same observer
+        // multiple times) and may mutate the array after subscribing (which would break Dispose). We
+        // own the snapshot used for both the registration loop and the Subscription's unsubscribe set.
+        var distinctNames = new HashSet<string>( eventTypeNames, StringComparer.Ordinal ).ToArray();
+
         lock ( this._sync )
         {
-            foreach ( var name in eventTypeNames )
+            foreach ( var name in distinctNames )
             {
                 if ( !this._observersByEventType.TryGetValue( name, out var list ) )
                 {
@@ -64,9 +69,9 @@ internal sealed partial class DesignTimeNotificationService : IDesignTimeNotific
             }
         }
 
-        this._logger.Trace?.Log( $"Subscribed observer to [{string.Join( ", ", eventTypeNames )}]." );
+        this._logger.Trace?.Log( $"Subscribed observer to [{string.Join( ", ", distinctNames )}]." );
 
-        return new Subscription( this, observer, eventTypeNames );
+        return new Subscription( this, observer, distinctNames );
     }
 
     private void OnRpcEventReceived( RpcEventData eventData )

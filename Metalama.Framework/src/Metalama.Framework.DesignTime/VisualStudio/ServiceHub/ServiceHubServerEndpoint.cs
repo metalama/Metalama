@@ -37,8 +37,25 @@ public sealed class ServiceHubServerEndpoint : ServerEndpoint, IServiceHubRpcSer
         _ = this.EventHub.ForwardEventAsync( eventData, this._applicationExitingToken );
 
         // In-process delivery for cross-version consumers (see IDesignTimeNotificationService and
-        // Metalama.Framework/docs/cross-process-communication.md).
-        this.InProcessEventReceived?.Invoke( eventData );
+        // Metalama.Framework/docs/cross-process-communication.md). Iterate the invocation list so a
+        // throwing subscriber cannot escape this method and disrupt the ServiceHub event loop or
+        // the user process.
+        var handlers = this.InProcessEventReceived;
+
+        if ( handlers != null )
+        {
+            foreach ( var handler in handlers.GetInvocationList() )
+            {
+                try
+                {
+                    ((Action<RpcEventData>) handler).Invoke( eventData );
+                }
+                catch ( Exception e )
+                {
+                    this.Logger.Error?.Log( $"In-process event subscriber threw on {eventData.GetType().Name}: {e}" );
+                }
+            }
+        }
     }
 
     /// <summary>
