@@ -6,7 +6,9 @@ using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Serialization;
+using System;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Aspects;
@@ -51,6 +53,32 @@ internal sealed class SerializableTransitiveAspectInstance : ICompileTimeSeriali
             // The aspect class may not be found when the referenced assembly was compiled with a different
             // version of Metalama that had a different set of aspect classes.
             return null;
+        }
+
+        // Early diagnostic for the cross-binding scenario described in issue #1611. The deserialised aspect's
+        // runtime type must be assignable to the resolved AspectClass's Type. If not, two distinct compile-time-
+        // projection assemblies for the same logical upstream are loaded simultaneously; pairing them would
+        // later produce a TargetException at template-expansion time (the same diagnostic exists in
+        // TemplateDriver.InvokeTemplate as a final-line safety net). Surface both assembly identities and
+        // locations here so the load-context split can be diagnosed at the construction site rather than three
+        // layers downstream. This is a diagnostic, not a fix: the root cause (two CT projections coexisting)
+        // is not addressed here.
+        var aspectType = this.Aspect.GetType();
+
+        if ( !aspectClass.Type.IsInstanceOfType( this.Aspect ) )
+        {
+            throw new InvalidOperationException(
+                $"The compile-time aspect '{this.AspectClassName}' cannot be paired with its resolved aspect "
+                + "class because the aspect's runtime type is not assignable to the aspect class's type. This "
+                + "usually means two distinct copies of the same logical assembly are loaded into the process."
+                + Environment.NewLine
+                + $"  Aspect class name:    {this.AspectClassName}" + Environment.NewLine
+                + $"  Resolved type:        {aspectClass.Type.AssemblyQualifiedName}" + Environment.NewLine
+                + $"  Resolved assembly:    {aspectClass.Type.Assembly.FullName}" + Environment.NewLine
+                + $"  Resolved location:    {aspectClass.Type.Assembly.GetLocationSafe()}" + Environment.NewLine
+                + $"  Aspect runtime type:  {aspectType.AssemblyQualifiedName}" + Environment.NewLine
+                + $"  Aspect assembly:      {aspectType.Assembly.FullName}" + Environment.NewLine
+                + $"  Aspect location:      {aspectType.Assembly.GetLocationSafe()}" );
         }
 
         return new AspectInstance(

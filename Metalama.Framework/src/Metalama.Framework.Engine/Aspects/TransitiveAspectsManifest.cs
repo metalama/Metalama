@@ -110,6 +110,27 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         in ProjectServiceProvider serviceProvider,
         CompilationContext compilationContext,
         string? assemblyName )
+        => DeserializeCore( stream, serviceProvider, compilationContext, assemblyName, null );
+
+    /// <summary>
+    /// Anchored deserialisation: pass the upstream's <see cref="CompileTimeProject"/> so the binder
+    /// resolves types through the upstream's closure rather than the current root project's closure.
+    /// This is the architectural fix for the cross-binding scenario in issue #1611.
+    /// </summary>
+    internal static TransitiveAspectsManifest Deserialize(
+        Stream stream,
+        in ProjectServiceProvider serviceProvider,
+        CompilationContext compilationContext,
+        string? assemblyName,
+        CompileTimeProject? upstreamProject )
+        => DeserializeCore( stream, serviceProvider, compilationContext, assemblyName, upstreamProject );
+
+    private static TransitiveAspectsManifest DeserializeCore(
+        Stream stream,
+        in ProjectServiceProvider serviceProvider,
+        CompilationContext compilationContext,
+        string? assemblyName,
+        CompileTimeProject? upstreamProject )
     {
         var description = assemblyName != null
             ? $"Deserializing transitive aspects from '{assemblyName}'."
@@ -120,7 +141,12 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         {
             using var deflate = new DeflateStream( stream, CompressionMode.Decompress );
 
-            var formatter = CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext );
+            // When the upstream's CompileTimeProject is known, anchor the serializer to it so the binder
+            // resolves types through the upstream's closure (issue #1611). Otherwise fall back to the
+            // service-provider-resolved CompileTimeProject.
+            var formatter = upstreamProject != null
+                ? CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext, upstreamProject )
+                : CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext );
 
             return (TransitiveAspectsManifest) formatter.Deserialize( deflate, assemblyName ).AssertNotNull();
         }

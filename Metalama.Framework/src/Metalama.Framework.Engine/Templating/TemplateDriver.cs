@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Utilities;
@@ -60,7 +61,7 @@ namespace Metalama.Framework.Engine.Templating
             CopyTemplateArguments( templateArguments, allArguments, 1, templateExpansionContext.SyntaxGenerationContext );
 
             if ( !this._userCodeInvoker.TryInvoke(
-                    () => (SyntaxNode) this._templateMethod.Invoke( templateExpansionContext.TemplateProvider.Object, allArguments ).AssertNotNull(),
+                    () => (SyntaxNode) this.InvokeTemplate( templateExpansionContext.TemplateProvider.Object, allArguments ).AssertNotNull(),
                     templateExpansionContext,
                     out var output ) )
             {
@@ -93,6 +94,35 @@ namespace Metalama.Framework.Engine.Templating
             block = block.WithGeneratedCodeAnnotation( aspectClass?.GeneratedCodeAnnotation ?? FormattingAnnotations.SystemGeneratedCodeAnnotation );
 
             return errorCountAfter == errorCountBefore;
+        }
+
+        internal object? InvokeTemplate( object? target, object?[] arguments )
+        {
+            // Pre-flight: if the target instance isn't assignable to the method's declaring type, the upcoming
+            // MethodBase.Invoke will throw "Object does not match target type" with no diagnostic detail. That
+            // almost always means two physically distinct copies of the same logical assembly are loaded — the
+            // declaring type and the runtime type carry the same name but different assembly identity. Surface
+            // the assembly identity and location of both sides so the load-context conflict can be diagnosed.
+            var declaringType = this._templateMethod.DeclaringType;
+
+            if ( target != null && declaringType != null && !declaringType.IsInstanceOfType( target ) )
+            {
+                var actualType = target.GetType();
+
+                throw new InvalidOperationException(
+                    $"Cannot invoke template method '{this._templateMethod.Name}' on the supplied target: the object's type is not assignable to the method's declaring type. "
+                    + "This usually means two distinct copies of the same logical assembly are loaded into the process."
+                    + Environment.NewLine
+                    + $"  Method:             {this._templateMethod}" + Environment.NewLine
+                    + $"  Declaring type:     {declaringType.AssemblyQualifiedName}" + Environment.NewLine
+                    + $"  Declaring assembly: {declaringType.Assembly.FullName}" + Environment.NewLine
+                    + $"  Declaring location: {declaringType.Assembly.GetLocationSafe()}" + Environment.NewLine
+                    + $"  Actual type:        {actualType.AssemblyQualifiedName}" + Environment.NewLine
+                    + $"  Actual assembly:    {actualType.Assembly.FullName}" + Environment.NewLine
+                    + $"  Actual location:    {actualType.Assembly.GetLocationSafe()}" );
+            }
+
+            return this._templateMethod.Invoke( target, arguments );
         }
     }
 }
