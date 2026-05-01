@@ -15,7 +15,7 @@ namespace Metalama.Framework.DesignTime.Contracts.Notifications;
 /// and member signatures are frozen forever. Future evolution must go through new interfaces with new GUIDs.
 /// </remarks>
 [ComImport]
-[Guid( "89D91698-1380-430C-A42B-FE3BDC945961" )]
+[Guid( "9BAB53DF-7FED-4757-B589-54E79EEE5A20" )]
 public interface IDesignTimeNotificationEvent
 {
     /// <summary>

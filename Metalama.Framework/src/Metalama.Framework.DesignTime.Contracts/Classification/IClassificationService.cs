@@ -15,7 +15,7 @@ namespace Metalama.Framework.DesignTime.Contracts.Classification
     /// saying how a <see cref="SyntaxTree"/> must be colored in the editor.
     /// </summary>
     [ComImport]
-    [Guid( "4BBF0FC6-7D08-4761-8C81-5AEDC838C6E7" )]
+    [Guid( "B127AA55-6A16-40B7-94F3-DEDCCE90F9E1" )]
     public interface IClassificationService : ICompilerService
     {
         /// <summary>

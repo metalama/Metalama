@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 namespace Metalama.Framework.DesignTime.Contracts.Diagnostics;
 
 [ComImport]
-[Guid( "B3195FB8-73FF-47B9-9519-A50E2464A7F5" )]
+[Guid( "AA73EC87-55AD-4135-8728-AEC30F3E9BB4" )]
 public interface ICompileTimeErrorStatusService : ICompilerService
 {
     IDiagnosticData[] CompileTimeErrors { get; }

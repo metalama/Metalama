@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFrameworks>net472;net8.0</TargetFrameworks>
+        <AssemblyName>Metalama.Framework.DesignTime.Contracts.v2</AssemblyName>
         <RootNamespace>Metalama.Framework.DesignTime.Contracts</RootNamespace>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 

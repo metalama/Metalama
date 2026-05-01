@@ -19,7 +19,7 @@ namespace Metalama.Framework.DesignTime.Contracts.Notifications;
 /// </para>
 /// </remarks>
 [ComImport]
-[Guid( "BD40B92D-7D10-4B54-8446-9756E9ECAC72" )]
+[Guid( "3CAE9F74-193F-4502-BD81-B0ABBEC44559" )]
 public interface IDesignTimeNotificationObserver
 {
     /// <summary>

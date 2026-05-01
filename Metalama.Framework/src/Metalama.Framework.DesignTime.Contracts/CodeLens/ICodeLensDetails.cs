@@ -11,5 +11,5 @@ namespace Metalama.Framework.DesignTime.Contracts.CodeLens;
 /// </summary>
 /// <seealso cref="ICodeLensDetailsTable"/>
 [ComImport]
-[Guid( "FFFB9B14-7D4A-4BC4-AD83-2495A9DC5AC0" )]
+[Guid( "C4E5917E-12CA-4589-88AE-65382A4BD7AC" )]
 public interface ICodeLensDetails;

@@ -10,7 +10,7 @@ namespace Metalama.Framework.DesignTime.Contracts.CodeLens;
 /// Represents a field (or cell) in a <see cref="ICodeLensDetailsTable"/>.
 /// </summary>
 [ComImport]
-[Guid( "AD813C57-3CB5-40D9-A553-D46A4790FCD5" )]
+[Guid( "4F3B7496-9B7E-4D96-93CA-6FB9EBA2A05C" )]
 public interface ICodeLensDetailsField
 {
     string Text { get; }

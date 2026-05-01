@@ -11,7 +11,7 @@ namespace Metalama.Framework.DesignTime.Contracts.Classification
     /// <summary>
     /// Represents a <see cref="TextSpan"/> assigned to a classification.
     /// </summary>
-    [Guid( "114cc8b6-7363-438c-8742-f3076bd8afce" )]
+    [Guid( "909FF874-5D3D-4405-B9AA-69781307BA28" )]
     [PublicAPI]
     public struct DesignTimeClassifiedTextSpan
     {

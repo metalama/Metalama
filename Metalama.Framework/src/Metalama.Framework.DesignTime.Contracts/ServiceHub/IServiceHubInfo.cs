@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace Metalama.Framework.DesignTime.Contracts.ServiceHub;
 
 [ComImport]
-[Guid( "A3F04A92-6ECA-4861-956A-57AD6309C095" )]
+[Guid( "DF409271-4E82-439D-9BF9-7D8C93D43B31" )]
 public interface IServiceHubInfo
 {
     string PipeName { get; }

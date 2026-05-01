@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace Metalama.Framework.DesignTime.Contracts.Pipeline;
 
 [ComImport]
-[Guid( "63D30200-2953-4967-BF65-8A693B26ED7E" )]
+[Guid( "6D9D7FF5-864A-492E-BE39-54112FB35BF5" )]
 public interface ITransitiveCompilationService : ICompilerService
 {
     ValueTask GetTransitiveAspectManifestAsync(

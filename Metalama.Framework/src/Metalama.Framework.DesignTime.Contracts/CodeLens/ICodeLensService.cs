@@ -14,7 +14,7 @@ namespace Metalama.Framework.DesignTime.Contracts.CodeLens;
 /// Exposes the methods that implement the code lens editor feature.
 /// </summary>
 [ComImport]
-[Guid( "9E3E6194-302E-4F36-8612-FD2CA0190F21" )]
+[Guid( "35A231CD-EA5E-40CB-8CEF-5832C65C66B9" )]
 public interface ICodeLensService : ICompilerService
 {
     /// <summary>

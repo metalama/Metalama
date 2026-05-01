@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Metalama.Framework.DesignTime.Contracts.CodeLens;
 
 [ComImport]
-[Guid( "1516E7C1-8076-4226-9999-C1C961E08E0A" )]
+[Guid( "9046938A-AF29-4AC2-AF46-20EF5818238A" )]
 public interface ICodeLensDetailsTable : ICodeLensDetails
 {
     ICodeLensDetailsHeader[] Headers { get; }

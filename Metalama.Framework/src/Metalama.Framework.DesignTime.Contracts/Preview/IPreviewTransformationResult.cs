@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace Metalama.Framework.DesignTime.Contracts.Preview
 {
     [ComImport]
-    [Guid( "56DF8D75-6AA9-4669-976A-1BB79D5D783C" )]
+    [Guid( "8608B071-D405-42F4-816F-49042E3321A7" )]
     public interface IPreviewTransformationResult
     {
         bool IsSuccessful { get; set; }

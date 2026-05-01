@@ -13,7 +13,7 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
     /// will be represented as different instances of this interface.
     /// </summary>
     [ComImport]
-    [Guid( "C5D68E3C-F7A7-428E-91FC-090AE7EBA023" )]
+    [Guid( "06E79E6F-DD3E-4528-94FA-E776405377D0" )]
     public interface ICompilerServiceProvider
     {
         /// <summary>

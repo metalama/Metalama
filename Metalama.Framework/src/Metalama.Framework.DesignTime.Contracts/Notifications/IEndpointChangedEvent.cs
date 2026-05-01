@@ -15,7 +15,7 @@ namespace Metalama.Framework.DesignTime.Contracts.Notifications;
 /// Cross-version contract. <see cref="GuidAttribute"/>, type name, and member signatures are frozen forever.
 /// </remarks>
 [ComImport]
-[Guid( "FB32D6B7-5D68-479D-966A-34070B38B1B6" )]
+[Guid( "A1F5F4CD-F810-4EDB-B2B8-7CADB82429BE" )]
 public interface IEndpointChangedEvent : IDesignTimeNotificationEvent
 {
     /// <summary>

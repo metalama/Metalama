@@ -6,5 +6,5 @@ using System.Runtime.InteropServices;
 
 namespace Metalama.Framework.DesignTime.Contracts.EntryPoint;
 
-[Guid( "A774931E-EF64-44D0-BD02-957BD60B3CCF" )]
+[Guid( "73840882-EFA8-4EC8-93A3-5673567C204D" )]
 public delegate void ServiceProviderEventHandler( ICompilerServiceProvider serviceProvider );

@@ -21,7 +21,7 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
     /// </summary>
     public sealed partial class DesignTimeEntryPointManager : IDesignTimeEntryPointManager
     {
-        private const string _appDomainDataName = "Metalama.Framework.DesignTime.Contracts.DesignTimeEntryPointManager";
+        private const string _appDomainDataName = "Metalama.Framework.DesignTime.Contracts.v2.DesignTimeEntryPointManager";
         private static readonly object _openOrCreateMutexSync = new();
 
         [ExcludeFromCodeCoverage]

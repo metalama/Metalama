@@ -11,7 +11,7 @@ namespace Metalama.Framework.DesignTime.Contracts.Classification
     /// A read-only collection of <see cref="DesignTimeClassifiedTextSpan"/> with additional methods.
     /// </summary>
     [ComImport]
-    [Guid( "D498C406-2F33-4EFC-85FC-0B09CFD160F8" )]
+    [Guid( "04715C22-4D7C-42B2-AC93-17CEC26B4397" )]
     public interface IDesignTimeClassifiedTextCollection
     {
         DesignTimeClassifiedTextSpan[] GetClassifiedTextSpans();

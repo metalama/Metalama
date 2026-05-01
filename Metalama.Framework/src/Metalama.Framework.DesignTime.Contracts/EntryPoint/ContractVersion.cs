@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace Metalama.Framework.DesignTime.Contracts.EntryPoint;
 
-[Guid( "8A5841E3-5D21-495C-99D8-280558B3A7BD" )]
+[Guid( "A05522EE-D059-43C8-A073-50EAB6C8E1C6" )]
 [PublicAPI]
 public struct ContractVersion
 {

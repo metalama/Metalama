@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace Metalama.Framework.DesignTime.Contracts.AspectExplorer;
 
 [ComImport]
-[Guid( "C0BDC548-BC2D-40C6-B9A8-96FEB4CCEEBA" )]
+[Guid( "F9D7E67E-3AA9-4783-9682-5EA3672DC399" )]
 public interface IAspectDatabaseService : ICompilerService
 {
     Task<IEnumerable<INamedTypeSymbol>> GetAspectClassesAsync( Compilation compilation, CancellationToken cancellationToken );
@@ -31,7 +31,7 @@ public interface IAspectDatabaseService : ICompilerService
 }
 
 [ComImport]
-[Guid( "99E80D57-0C81-4461-B956-ECB1A7C3AA18" )]
+[Guid( "AD1C0745-4D95-4338-8565-090A69D0A306" )]
 public interface IAspectDatabaseService2 : IAspectDatabaseService
 {
     Task GetAspectInstancesAsync(

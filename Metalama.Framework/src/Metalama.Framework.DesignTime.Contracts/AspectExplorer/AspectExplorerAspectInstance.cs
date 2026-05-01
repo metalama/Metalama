@@ -11,7 +11,7 @@ namespace Metalama.Framework.DesignTime.Contracts.AspectExplorer;
 
 [Obsolete]
 [PublicAPI]
-[Guid( "AF977B33-AA8C-4481-9B7E-B14A67200429" )]
+[Guid( "22139B0D-3397-4210-8F85-374A2D543DB0" )]
 public struct AspectExplorerAspectInstance
 {
     public ISymbol TargetDeclaration;
@@ -21,7 +21,7 @@ public struct AspectExplorerAspectInstance
 
 [PublicAPI]
 [ComImport]
-[Guid( "415F68C2-FFAD-4176-9062-53C3658E5F18" )]
+[Guid( "8A11CA4E-B57C-4A3F-861D-5BA93209D55A" )]
 public interface IAspectExplorerAspectInstance
 {
     ISymbol TargetDeclaration { get; }
@@ -33,7 +33,7 @@ public interface IAspectExplorerAspectInstance
 
 [Obsolete]
 [PublicAPI]
-[Guid( "E758C91B-E335-4D53-AA30-82BBCCBF428A" )]
+[Guid( "C35DF59E-9359-4D8B-AF8A-6DA4F5540F00" )]
 public struct AspectExplorerAspectTransformation
 {
     public ISymbol TargetDeclaration;
@@ -43,7 +43,7 @@ public struct AspectExplorerAspectTransformation
 
 [PublicAPI]
 [ComImport]
-[Guid( "E0C881D8-C8FF-4988-B73D-CDEB6561CEBD" )]
+[Guid( "AFB6A223-4B40-4F75-B88D-01F1228A5187" )]
 public interface IAspectExplorerAspectTransformation
 {
     ISymbol TargetDeclaration { get; }
@@ -58,7 +58,7 @@ public interface IAspectExplorerAspectTransformation
 }
 
 [PublicAPI]
-[Guid( "1E91F9F1-FD0E-4668-B4D1-6D445C7BE1FD" )]
+[Guid( "96F4689F-0FBA-4732-B7C3-069F608F79C2" )]
 public enum AspectExplorerDeclarationKind
 {
     Default,

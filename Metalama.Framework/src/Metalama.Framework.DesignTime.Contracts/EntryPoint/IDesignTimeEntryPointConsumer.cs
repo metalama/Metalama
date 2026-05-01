@@ -13,7 +13,7 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint;
 /// Allows to retrieve instances of <see cref="ICompilerServiceProvider"/> from the <see cref="IDesignTimeEntryPointManager"/>.
 /// </summary>
 [ComImport]
-[Guid( "B6EAF9AE-2A70-4BBB-93A1-C877E2758462" )]
+[Guid( "3964BD63-E712-4146-BF17-0A6FA6B8E668" )]
 public interface IDesignTimeEntryPointConsumer
 {
     /// <summary>

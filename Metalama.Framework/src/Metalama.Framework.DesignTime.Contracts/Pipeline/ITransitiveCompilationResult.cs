@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace Metalama.Framework.DesignTime.Contracts.Pipeline;
 
 [ComImport]
-[Guid( "CDA98261-4BAD-4117-8054-49390BCBF4E6" )]
+[Guid( "2C0990E9-CDA8-453F-8614-7FA3F76EE1EE" )]
 public interface ITransitiveCompilationResult
 {
     bool IsSuccessful { get; }

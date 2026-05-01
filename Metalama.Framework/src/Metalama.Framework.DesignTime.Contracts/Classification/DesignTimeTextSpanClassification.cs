@@ -12,7 +12,7 @@ namespace Metalama.Framework.DesignTime.Contracts.Classification
     /// An enumeration of classifications of text spans, which typically
     /// map to different colors in the view layer.
     /// </summary>
-    [Guid( "5780f7d7-ee83-41c9-9568-c49d42171c93" )]
+    [Guid( "7DA04C5D-73B4-4774-9316-27CCAB521B81" )]
     public enum DesignTimeTextSpanClassification
     {
         /// <summary>

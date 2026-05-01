@@ -11,6 +11,6 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
     /// can be returned synchronously.
     /// </summary>
     [ComImport]
-    [Guid( "D174F35D-ABA7-4CDC-8B47-44E979019B3E" )]
+    [Guid( "576D9B19-26B1-440C-AC58-51BBE980DD65" )]
     public interface ICompilerService;
 }
