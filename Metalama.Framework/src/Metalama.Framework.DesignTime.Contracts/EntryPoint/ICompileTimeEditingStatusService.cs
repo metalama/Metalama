@@ -16,7 +16,7 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint;
 /// The interface exposes an event and a property to observe the status, and methods to change the status.
 /// </summary>
 [ComImport]
-[Guid( "8BA9557E-2E58-4933-86D0-58C2043C4AE4" )]
+[Guid( "5AE7F683-A552-4436-93F6-D750E66F0F0A" )]
 public interface ICompileTimeEditingStatusService : ICompilerService
 {
     /// <summary>

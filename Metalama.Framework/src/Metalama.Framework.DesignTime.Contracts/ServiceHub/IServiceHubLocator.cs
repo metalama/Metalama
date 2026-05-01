@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace Metalama.Framework.DesignTime.Contracts.ServiceHub;
 
 [ComImport]
-[Guid( "B8DAD9AE-CF7F-4E70-863C-E434272023DD" )]
+[Guid( "B31B898F-3018-4F73-A1C6-87AE7EE44A02" )]
 public interface IServiceHubLocator : ICompilerService
 {
     IServiceHubInfo ServiceHubInfo { get; }

@@ -7,6 +7,7 @@ using Metalama.Backstage.Utilities;
 using Metalama.Framework.DesignTime.AspectExplorer;
 using Metalama.Framework.DesignTime.Contracts.EntryPoint;
 using Metalama.Framework.DesignTime.Pipeline;
+using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
 
@@ -64,6 +65,15 @@ internal class DesignTimeAnalysisProcessServiceProviderFactory : DesignTimeServi
 
         // Add the pipeline factory.
         serviceProvider = serviceProvider.WithService( sp => new DesignTimeAspectPipelineFactory( sp ) );
+
+        // Override the engine's null IUpstreamCompileTimeProjectProvider with a design-time implementation
+        // that lets a downstream pipeline's CompileTimeProjectRepository.Builder reuse an upstream pipeline's
+        // already-built CompileTimeProject when the upstream is referenced as a CompilationReference. This
+        // eliminates the cross-binding scenario in issue #1611.
+        serviceProvider = serviceProvider
+            .WithService<IUpstreamCompileTimeProjectProvider>(
+                sp => new DesignTimeUpstreamCompileTimeProjectProvider( sp ),
+                allowOverride: true );
 
         // Add services that depend on the pipeline factory.
         serviceProvider = serviceProvider.WithService( sp => new AspectDatabase( sp ) );

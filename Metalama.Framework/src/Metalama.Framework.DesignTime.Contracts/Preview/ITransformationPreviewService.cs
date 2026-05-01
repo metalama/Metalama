@@ -15,7 +15,7 @@ namespace Metalama.Framework.DesignTime.Contracts.Preview
     /// is used to produce the diff view between original code and transform code.
     /// </summary>
     [ComImport]
-    [Guid( "982B62AD-5BB5-4B44-A7B2-2E3BEB19DE9E" )]
+    [Guid( "7A873458-5842-4FA5-B67F-D056DB2F245C" )]
     public interface ITransformationPreviewService : ICompilerService
     {
         /// <summary>
@@ -32,7 +32,7 @@ namespace Metalama.Framework.DesignTime.Contracts.Preview
     /// This service is used to produce the generated code for introduced types.
     /// </summary>
     [ComImport]
-    [Guid( "2D800D48-3BF1-4EF8-98F5-62FA4417F3F7" )]
+    [Guid( "1053A716-1A04-4B5E-AC27-3C2D6F3BBC9C" )]
     public interface ITransformationPreviewService2 : ITransformationPreviewService
     {
         /// <summary>

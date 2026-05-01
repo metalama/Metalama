@@ -6,5 +6,5 @@ using System.Runtime.InteropServices;
 
 namespace Metalama.Framework.DesignTime.Contracts.EntryPoint;
 
-[Guid( "6B2FA7C5-65E9-4182-B8AA-96381CBBFF76" )]
+[Guid( "41C1BF88-393F-4A88-9655-F63DD2E14A20" )]
 public delegate void LogAction( string message );

@@ -37,6 +37,21 @@ internal sealed class CompileTimeSerializer
         => new( serviceProvider.GetService<CompileTimeProject>(), serviceProvider, compilationContext );
 
     /// <summary>
+    /// Creates a <see cref="CompileTimeSerializer"/> anchored to a specific <see cref="CompileTimeProject"/>.
+    /// Used when deserialising the transitive manifest of a referenced upstream project, to ensure the
+    /// binder resolves types through that upstream's project (and its closure) rather than the current
+    /// root project's closure. This avoids the pairing bug in issue #1611 where two physically distinct
+    /// <see cref="CompileTimeProject"/> instances for the same logical upstream could be reachable
+    /// through the root project's closure, and the deserialiser and the aspect-class loader could each
+    /// pick a different one.
+    /// </summary>
+    public static CompileTimeSerializer CreateInstance(
+        in ProjectServiceProvider serviceProvider,
+        CompilationContext compilationContext,
+        CompileTimeProject? upstreamProject )
+        => new( upstreamProject, serviceProvider, compilationContext );
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="CompileTimeSerializer"/> class.
     /// </summary>
     /// <param name="serviceProvider"></param>

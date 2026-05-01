@@ -13,7 +13,7 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
     /// on the <see cref="AppDomain"/> using <see cref="AppDomain.GetData"/> and <see cref="AppDomain.SetData(string,object)"/>.
     /// </summary>
     [ComImport]
-    [Guid( "A0C85506-DB96-4C14-86E8-5F199731534B" )]
+    [Guid( "EA86D690-6249-43BC-9F1B-FE8E7AFDC375" )]
     public interface IDesignTimeEntryPointManager
     {
         /// <summary>

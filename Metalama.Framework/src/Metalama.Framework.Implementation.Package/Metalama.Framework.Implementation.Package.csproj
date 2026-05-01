@@ -97,11 +97,11 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
                 PackagePath="lib/$(TargetFramework)" />
 
             <TfmSpecificPackageFile 
-                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.dll" 
+                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.v2.dll" 
                 PackagePath="lib/$(TargetFramework)" />
             <TfmSpecificPackageFile
-                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.pdb"
-                Condition="Exists('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.pdb')"
+                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.v2.pdb"
+                Condition="Exists('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.v2.pdb')"
                 PackagePath="lib/$(TargetFramework)" />
 
             <TfmSpecificPackageFile 

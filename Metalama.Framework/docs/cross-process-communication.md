@@ -7,7 +7,7 @@ This document describes the principles governing communication between Metalama-
 Communication in Metalama crosses one of two boundaries (or sometimes both):
 
 - **Cross-process**: two operating-system processes exchange data. Each process has its own CLR, its own AppDomain, its own loaded assemblies. They can only exchange *bytes* (over a named pipe, file, or similar). Examples: the analyzer process inside `devenv` talking to a Metalama-spawned helper process; the VS CodeLens host (`ServiceHub.Host.AnyCPU`) talking to the analyzer.
-- **Cross-version**: code compiled against one version of a Metalama assembly runs in the same CLR as code compiled against a different version of the same assembly. Examples: the user's project references Metalama 2026.1.x while the installed VS extension (`Metalama.Vsx`) was built against Metalama 2026.0.x; both copies of `Metalama.Framework.DesignTime.Contracts.dll` get loaded into `devenv`.
+- **Cross-version**: code compiled against one version of a Metalama assembly runs in the same CLR as code compiled against a different version of the same assembly. Examples: the user's project references Metalama 2026.1.x while the installed VS extension (`Metalama.Vsx`) was built against Metalama 2026.0.x. The 2026.0 line ships `Metalama.Framework.DesignTime.Contracts.dll` (v1); the 2026.1+ line ships `Metalama.Framework.DesignTime.Contracts.v2.dll` (v2, with a fresh GUID set so the assemblies can coexist in the same `devenv` process without interfering).
 
 The two boundaries demand different mechanisms. Mixing them is forbidden.
 
@@ -49,12 +49,9 @@ ServerEndpoint (in Metalama process A)  ←── named pipe ──→  ClientEn
 
 `Metalama.Framework.DesignTime.Contracts` is the only assembly designed to be loaded in multiple physical copies (one per Metalama version) into the same CLR and have those copies behave as one logical type.
 
-**Mechanism**: every public interface and DTO is annotated with a fixed `[Guid("…")]`. The CLR's COM type-equivalence rules treat two types as identical when they share that GUID, full type name, and method signatures, regardless of the declaring assembly's identity. So when `devenv` loads:
+**Mechanism**: every public interface and DTO is annotated with a fixed `[Guid("…")]`. The CLR's COM type-equivalence rules treat two types as identical when they share that GUID, full type name, and method signatures, regardless of the declaring assembly's identity. So when `devenv` loads two same-version copies of the contracts assembly into one process — for example, `Metalama.Framework.DesignTime.Contracts.v2.dll` from the VSX install side-by-side with the same-named copy deployed from a Metalama-2026.1.x user project — a value flowing from one to the other satisfies the type-identity check on both sides without explicit conversion. The two physical copies are *the same type* to the CLR.
 
-- `Metalama.Framework.DesignTime.Contracts.dll` from the VSX install (e.g. compiled against Metalama 2026.0.12), and
-- `Metalama.Framework.DesignTime.Contracts.dll` from the user-project NuGet (e.g. compiled against Metalama 2026.1.x),
-
-a value flowing from one to the other satisfies the type-identity check on both sides without explicit conversion. The two physical copies are *the same type* to the CLR.
+GUIDs are rotated when the assembly is bumped to a new physical name (v1 → v2). Within one major-line range (e.g. all 2026.1.x releases ship the v2 assembly with the v2 GUID set), GUIDs are frozen so CLR type-equivalence holds across all that line's deployments. Cross-line scenarios (e.g. the VSX shipping v1 against a user project on v2) fall back to the per-line entry-point manager: each line has its own AppDomain slot and named mutex.
 
 **Guarantees**:
 - GUIDs on every contract type are **frozen forever** once published. Renaming a type, adding a method to an interface, changing a parameter type, or reordering members **breaks** the equivalence and must be done as an additive new contract with its own GUID.
@@ -80,14 +77,18 @@ The supported route for any cross-version need that *appears* to be cross-proces
 The CodeLens notification path traverses both boundaries:
 
 1. **Cross-version, same-process** (VSX ↔ Metalama in `devenv`):
-   - VSX (any version) calls a `[Guid]`-marked interface defined in `Metalama.Framework.DesignTime.Contracts`.
-   - The Metalama-side implementation lives in the Metalama-NuGet-deployed assemblies extracted into `devenv`.
-   - Both copies of `Metalama.Framework.DesignTime.Contracts.dll` (VSX-bundled and Metalama-deployed) coexist in the same CLR; type equivalence makes the call resolve.
-2. **Same-version, cross-process** (Metalama ↔ Metalama helper):
-   - Inside the Metalama implementation, if a notification needs to cross to another Metalama process (e.g., a CodeLens helper), the call hops to `Metalama.Framework.DesignTime.Rpc` over a named pipe.
-   - Both ends are the same Metalama version, so MessagePack framing and `[RpcContract]` types are safe.
+   - VSX (any version) resolves `IDesignTimeNotificationService` (in `Metalama.Framework.DesignTime.Contracts.Notifications`, GUID frozen) from `ICompilerServiceProvider.GetService(typeof(IDesignTimeNotificationService))`, then calls `Subscribe(IDesignTimeNotificationObserver, string[] eventTypeNames)` to register an observer.
+   - The Metalama-side implementation (`DesignTimeNotificationService` in `Metalama.Framework.DesignTime.VisualStudio.Notifications`) is hosted in the Metalama-NuGet-deployed assemblies extracted into `devenv`. It listens to the in-process `ServiceHubServerEndpoint.InProcessEventReceived` event, translates incoming `RpcEventData` instances to `[Guid]`-marked Contracts DTOs (`ICompilationResultChangedEvent`, `IEndpointChangedEvent`), and invokes the observer.
+   - Both copies of the contracts assembly (VSX-bundled and Metalama-deployed; both are `Metalama.Framework.DesignTime.Contracts.v2.dll` on the 2026.1 line, both `Metalama.Framework.DesignTime.Contracts.dll` on the 2026.0 line) coexist in the same CLR; type equivalence makes `Subscribe` and `OnEvent` resolve correctly.
+   - **VSX never opens a pipe across a Metalama-version boundary.** All cross-version traffic is in-process and goes through type-equivalent Contracts interfaces.
+2. **Same-version, cross-process** (Metalama analyzer ↔ Metalama user-process):
+   - The Metalama analyzer process raises `RpcEventData` (e.g., `CompilationResultChangedEventData`) and forwards it to the user process over `Metalama.Framework.DesignTime.Rpc` (StreamJsonRpc + MessagePack).
+   - Both ends are the same Metalama version, so the framing and `[RpcContract]` types are safe.
+   - In the user process, `ServiceHubServerEndpoint` receives the event and:
+     - publishes it to its internal `EventHubRpcService` (legacy pipe-based delivery, retained so older VSX builds that still consume `Metalama.Framework.DesignTime.Rpc` keep working);
+     - raises `InProcessEventReceived`, which is what `DesignTimeNotificationService` from step 1 listens to.
 
-VSX never calls into `Metalama.Framework.DesignTime.Rpc` directly — that would be a cross-process *and* cross-version path, which Rule 3 forbids.
+VSX never calls into `Metalama.Framework.DesignTime.Rpc` directly on the new path — that would be a cross-process *and* cross-version path, which Rule 3 forbids.
 
 ## Symptoms of violating the rules
 

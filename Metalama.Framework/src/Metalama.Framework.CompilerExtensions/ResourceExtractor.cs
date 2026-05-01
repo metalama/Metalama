@@ -28,7 +28,7 @@ namespace Metalama.Framework.CompilerExtensions;
 /// </summary>
 public static class ResourceExtractor
 {
-    private const string _designTimeContractsAssemblyName = "Metalama.Framework.DesignTime.Contracts";
+    private const string _designTimeContractsAssemblyName = "Metalama.Framework.DesignTime.Contracts.v2";
 
     private static readonly object _initializeLock = new();
     private static readonly string[] _assembliesShippedWithMetalamaCompiler = ["Metalama.Backstage", "Metalama.Compiler.Interfaces"];

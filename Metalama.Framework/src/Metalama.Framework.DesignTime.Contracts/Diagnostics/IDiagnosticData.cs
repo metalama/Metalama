@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace Metalama.Framework.DesignTime.Contracts.Diagnostics;
 
 [ComImport]
-[Guid( "2D5AD05C-ED86-45CC-A9F2-5F6E8186AF7C" )]
+[Guid( "24F86F3F-E0A4-418B-A658-580DC7546409" )]
 public interface IDiagnosticData
 {
     DiagnosticSeverity Severity { get; }

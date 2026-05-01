@@ -4,5 +4,5 @@
 
 using System.Runtime.InteropServices;
 
-[assembly: Guid( "de388915-dcfd-4fe2-aaa3-930247837f16" )]
+[assembly: Guid( "234D9C3E-29CA-4ACC-8DB5-3F0D5C931D41" )]
 [assembly: PrimaryInteropAssembly( 1, 0 )]

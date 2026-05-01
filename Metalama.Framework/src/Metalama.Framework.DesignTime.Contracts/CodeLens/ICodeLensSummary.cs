@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Metalama.Framework.DesignTime.Contracts.CodeLens;
 
 [ComImport]
-[Guid( "90EE87E4-68CD-43FA-996F-FD0AE6691610" )]
+[Guid( "BC44DEB1-319B-45DA-9079-F7FF96E64353" )]
 public interface ICodeLensSummary
 {
     string Description { get; }

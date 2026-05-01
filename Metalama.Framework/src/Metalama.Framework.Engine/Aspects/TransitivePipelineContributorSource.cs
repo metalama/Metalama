@@ -53,6 +53,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         var pipelineExtensions = serviceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
 
         var inheritableAspectProvider = serviceProvider.GetService<ITransitiveAspectManifestProvider>();
+        var compileTimeProjectRepository = serviceProvider.GetService<CompileTimeProjectRepository>();
 
         var inheritedAspectsBuilder = ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance>.CreateBuilder();
         var contributorsBuilder = ImmutableArray.CreateBuilder<IPipelineContributor>();
@@ -73,13 +74,22 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                     {
                         if ( metadataInfo.Resources.TryGetValue( CompileTimeConstants.InheritableAspectManifestResourceName, out var bytes ) )
                         {
+                            assemblyIdentity = metadataInfo.AssemblyIdentity;
+
+                            // Look up the upstream's CompileTimeProject by AssemblyIdentity so the deserialiser is
+                            // anchored to the canonical project for this identity (issue #1611). This is the
+                            // architectural fix that prevents two physically distinct CompileTimeProject instances
+                            // for the same logical upstream from being chosen by the deserialiser and the aspect-
+                            // class loader independently.
+                            CompileTimeProject? upstreamProject = null;
+                            compileTimeProjectRepository?.TryGetCompileTimeProject( assemblyIdentity, out upstreamProject );
+
                             manifest = TransitiveAspectsManifest.Deserialize(
                                 new MemoryStream( bytes ),
                                 serviceProvider,
                                 compilationContext,
-                                filePath );
-
-                            assemblyIdentity = metadataInfo.AssemblyIdentity;
+                                filePath,
+                                upstreamProject );
                         }
                     }
 

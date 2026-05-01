@@ -7,6 +7,7 @@ using Metalama.Framework.DesignTime.Contracts.Classification;
 using Metalama.Framework.DesignTime.Contracts.CodeLens;
 using Metalama.Framework.DesignTime.Contracts.Diagnostics;
 using Metalama.Framework.DesignTime.Contracts.EntryPoint;
+using Metalama.Framework.DesignTime.Contracts.Notifications;
 using Metalama.Framework.DesignTime.Contracts.Preview;
 using Metalama.Framework.DesignTime.Contracts.ServiceHub;
 using Metalama.Framework.DesignTime.VersionNeutral;
@@ -14,6 +15,7 @@ using Metalama.Framework.DesignTime.VisualStudio.AspectExplorer;
 using Metalama.Framework.DesignTime.VisualStudio.Classification;
 using Metalama.Framework.DesignTime.VisualStudio.CodeLens;
 using Metalama.Framework.DesignTime.VisualStudio.CompileTimeCodeEditingStatus;
+using Metalama.Framework.DesignTime.VisualStudio.Notifications;
 using Metalama.Framework.DesignTime.VisualStudio.Preview;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.Services
@@ -30,6 +32,7 @@ namespace Metalama.Framework.DesignTime.VisualStudio.Services
                 nameof(ITransformationPreviewService) => new UserProcessTransformationPreviewService( this.ServiceProvider ),
                 nameof(ICompileTimeEditingStatusService) => new CompileTimeEditingStatusService( this.ServiceProvider ),
                 nameof(ICodeLensService) => new CodeLensService( this.ServiceProvider ),
+                nameof(IDesignTimeNotificationService) => new DesignTimeNotificationService( this.ServiceProvider ),
                 nameof(IServiceHubLocator) => new ServiceHubLocator( this.ServiceProvider ),
                 nameof(IAspectDatabaseService) => new AspectDatabaseService( this.ServiceProvider ),
 
