@@ -266,6 +266,18 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         }
     }
 
+    // The configuration of an already-configured pipeline, exposed so that a downstream pipeline's
+    // CompileTimeProjectRepository.Builder can reuse this pipeline's CompileTimeProject (issue #1611)
+    // instead of recursively building a second physical projection of the same logical upstream.
+    // Returns null if the pipeline has not been configured yet or configuration was unsuccessful.
+    // Atomic single-read of _currentState.Configuration: SetStateAsync may reassign _currentState
+    // concurrently with this getter, so we must not read the field twice (a "successful" check on
+    // the first read could be invalidated by a reassignment before the second read).
+    internal AspectPipelineConfiguration? CurrentConfiguration
+        => this._currentState.Configuration is { IsSuccessful: true } configuration
+            ? configuration.Value
+            : null;
+
 #pragma warning disable VSTHRD100
     private async void OnTouchFileChanged( object sender, FileSystemEventArgs e )
     {

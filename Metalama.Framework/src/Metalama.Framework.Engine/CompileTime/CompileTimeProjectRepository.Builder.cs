@@ -252,6 +252,25 @@ internal sealed partial class CompileTimeProjectRepository
                         out referencedProject );
 
                 case CompilationReference compilationReference:
+                    // Issue #1611: at design time, when the upstream's pipeline is already running and has a built
+                    // CompileTimeProject, reuse it rather than recursively building a fresh projection. This ensures
+                    // both pipelines share the same physical loaded assembly for the upstream and prevents the
+                    // welding-site mismatch where IAspectClass.Type and the live IAspect come from two different
+                    // physical projections of the same logical upstream.
+                    if ( this._serviceProvider.Global.GetService<IUpstreamCompileTimeProjectProvider>() is { } upstreamProvider
+                         && upstreamProvider.TryGetUpstreamConfiguration( compilationReference.Compilation, out var upstreamConfig )
+                         && upstreamConfig.CompileTimeProject is { } upstreamProject )
+                    {
+                        // Cache by AssemblyIdentity so subsequent identity-keyed lookups within this Builder
+                        // hit the same instance.
+                        this._projects[upstreamProject.RunTimeIdentity] = upstreamProject;
+                        referencedProject = upstreamProject;
+                        this._logger.Trace?.Log(
+                            $"Reusing upstream pipeline's CompileTimeProject for '{compilationReference.Compilation.AssemblyName}' (issue #1611)." );
+
+                        return true;
+                    }
+
                     return this.TryGetCompileTimeProjectFromCompilation(
                         compilationReference.Compilation,
                         null,

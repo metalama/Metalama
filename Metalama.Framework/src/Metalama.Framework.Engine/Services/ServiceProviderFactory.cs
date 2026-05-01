@@ -86,6 +86,7 @@ public static class ServiceProviderFactory
             .WithServiceConditional<ICompileTimeAssemblyLocatorProvider>(
                 sp => new CompileTimeAssemblyLocatorProvider( sp.GetRequiredBackstageService<ITempFileManager>() ) )
             .WithServiceConditional( _ => new FrameworkCompileTimeProjectFactory() )
+            .WithServiceConditional<IUpstreamCompileTimeProjectProvider>( _ => NullUpstreamCompileTimeProjectProvider.Instance )
             .WithServiceConditional( _ => new AttributeClassificationService() )
             .WithServiceConditional<IProjectOptionsFactory>( _ => new MSBuildProjectOptionsFactory() )
             .WithServiceConditional( _ => new ObjectReaderFactory() )
