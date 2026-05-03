@@ -223,7 +223,15 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     typeDepth++;
                 }
 
-                var memberIndentLevel = typeDepth + 1;
+#if ROSLYN_5_0_0_OR_GREATER
+                var hasExtensionBlock = extensionBlock != null;
+#else
+                const bool hasExtensionBlock = false;
+#endif
+
+                // When an extension block wraps the members, they are children of the extension block,
+                // which is itself a member of declaringType. Members therefore need an extra indent level.
+                var memberIndentLevel = typeDepth + ( hasExtensionBlock ? 2 : 1 );
 
                 var formattedMembers = new MemberDeclarationSyntax[members.Count];
 
@@ -236,10 +244,20 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
 #if ROSLYN_5_0_0_OR_GREATER
 
-                // Create the extension block.
+                // Create the extension block. The block's own indent level matches the depth at which
+                // it appears (i.e., as a member of declaringType): typeDepth + 1.
                 if ( extensionBlock != null )
                 {
-                    var extensionBlockSyntax = CreateExtensionBlock( extensionBlock, members, syntaxGenerationContext, memberIndentLevel );
+                    var extensionBlockDepth = typeDepth + 1;
+
+                    var extensionBlockSyntax = CreateExtensionBlock( extensionBlock, members, syntaxGenerationContext, extensionBlockDepth );
+
+                    // Indent the extension block declaration so it lines up with declaringType's body.
+                    extensionBlockSyntax = (ExtensionBlockDeclarationSyntax) AddLeadingNewLineAndIndent(
+                        extensionBlockSyntax,
+                        syntaxGenerationContext,
+                        extensionBlockDepth );
+
                     members = List<MemberDeclarationSyntax>( [extensionBlockSyntax] );
                 }
 #endif
@@ -735,6 +753,10 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             SyntaxGenerationContext syntaxGenerationContext,
             int blockDepth )
         {
+            // Both braces use the same "newline + blockDepth*4 spaces" leading trivia so they line up
+            // with the extension keyword's column once that line has its own leading indent applied.
+            var blockLineLeading = GetNewLineAndIndentTriviaList( syntaxGenerationContext, blockDepth );
+
             return ExtensionBlockDeclaration(
                 attributeLists: default,
                 modifiers: default,
@@ -742,9 +764,9 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 CreateTypeParameters( extensionBlock ),
                 CreateExtensionBlockParameterList( extensionBlock, syntaxGenerationContext ),
                 CreateConstraintList( extensionBlock, syntaxGenerationContext ),
-                Token( syntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.OpenBraceToken, default ),
+                Token( blockLineLeading, SyntaxKind.OpenBraceToken, default ),
                 members,
-                Token( GetNewLineAndIndentTriviaList( syntaxGenerationContext, blockDepth ), SyntaxKind.CloseBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
+                Token( blockLineLeading, SyntaxKind.CloseBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
                 default );
         }
 
