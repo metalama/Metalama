@@ -218,8 +218,10 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 }
 #endif
 
-                // Create a type.
-                var typeDeclaration = CreatePartialType( declaringType, baseList, members );
+                // Create a type. The wrapper tokens (keywords, braces) are constructed with explicit elastic
+                // trivia so the resulting tree's ToFullString is parseable C# without a per-type
+                // NormalizeWhitespace pass. See LAMA0830.
+                var typeDeclaration = CreatePartialType( declaringType, baseList, members, syntaxGenerationContext );
 
                 // Add the type to its nesting type.
                 var topDeclaration = (MemberDeclarationSyntax) typeDeclaration;
@@ -229,17 +231,22 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     topDeclaration = CreatePartialType(
                         containingType,
                         null,
-                        SingletonList( topDeclaration ) );
+                        SingletonList( topDeclaration ),
+                        syntaxGenerationContext );
                 }
 
                 // Add the class to a namespace.
                 if ( !declaringType.ContainingNamespace.IsGlobalNamespace )
                 {
                     topDeclaration = NamespaceDeclaration(
+                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.NamespaceKeyword ),
                         ParseName( declaringType.ContainingNamespace.FullName ),
-                        default,
-                        default,
-                        SingletonList( topDeclaration ) );
+                        Token( syntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.OpenBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
+                        externs: default,
+                        usings: default,
+                        SingletonList( topDeclaration ),
+                        Token( syntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
+                        semicolonToken: default );
                 }
 
                 // Choose the best syntax tree
@@ -255,7 +262,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var syntaxTreeName = safeTypeName + ".cs";
 
                 var generatedSyntaxTree = CSharpSyntaxTree.Create(
-                    compilationUnit.NormalizeWhitespace(),
+                    compilationUnit,
                     parseOptions,
                     syntaxTreeName,
                     Encoding.UTF8 );
@@ -340,7 +347,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                      && !typeDeclaration.Modifiers.Any( SyntaxKind.PartialKeyword ) )
                 {
                     yield return
-                        member.WithModifiers( member.Modifiers.Add( Token( TriviaList( ElasticSpace ), SyntaxKind.PartialKeyword, TriviaList() ) ) );
+                        member.WithModifiers( member.Modifiers.Add( Token( TriviaList( ElasticSpace ), SyntaxKind.PartialKeyword, TriviaList( ElasticSpace ) ) ) );
                 }
                 else
                 {
@@ -381,6 +388,13 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     introducedConstructor.Parameters
                         .SelectAsArray( p => (p.Type, p.RefKind) ) );
             }
+
+            // Empty body with proper trivia so the constructor renders on its own line without a per-tree
+            // NormalizeWhitespace pass.
+            var emptyBody = Block(
+                Token( syntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.OpenBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
+                default,
+                Token( syntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) );
 
             foreach ( var constructor in type.Constructors )
             {
@@ -430,7 +444,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                                                         : null,
                                                     GetArgumentRefToken( p ),
                                                     SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) ),
-                        Block() ) );
+                        emptyBody ) );
 
                 if ( initialConstructor.Parameters.Any( p => p.DefaultValue != null ) )
                 {
@@ -461,7 +475,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                                                             NameColon( p.Name ),
                                                             GetArgumentRefToken( p ),
                                                             DefaultExpression( syntaxGenerationContext.SyntaxGenerator.TypeSyntax( p.Type ) ) ) ) ) ) ),
-                                Block() ) );
+                                emptyBody ) );
                     }
                 }
             }
@@ -473,8 +487,8 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 return p.RefKind switch
                 {
                     RefKind.None or RefKind.In => default,
-                    RefKind.Ref or RefKind.RefReadOnly => Token( SyntaxKind.RefKeyword ),
-                    RefKind.Out => Token( SyntaxKind.OutKeyword ),
+                    RefKind.Ref or RefKind.RefReadOnly => SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RefKeyword ),
+                    RefKind.Out => SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.OutKeyword ),
                     _ => throw new AssertionFailedException( $"Unsupported: {p.RefKind}" )
                 };
             }
@@ -489,13 +503,13 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             return ExtensionBlockDeclaration(
                 attributeLists: default,
                 modifiers: default,
-                Token( SyntaxKind.ExtensionKeyword ),
+                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ExtensionKeyword ),
                 CreateTypeParameters( extensionBlock ),
                 CreateExtensionBlockParameterList( extensionBlock, syntaxGenerationContext ),
                 CreateConstraintList( extensionBlock, syntaxGenerationContext ),
-                Token( SyntaxKind.OpenBraceToken ),
+                Token( syntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.OpenBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
                 members,
-                Token( SyntaxKind.CloseBraceToken ),
+                Token( syntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
                 default );
         }
 
@@ -513,69 +527,96 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
 #endif
 
-        private static TypeDeclarationSyntax CreatePartialType( INamedType type, BaseListSyntax? baseList, SyntaxList<MemberDeclarationSyntax> members )
-            => type.TypeKind switch
+        private static TypeDeclarationSyntax CreatePartialType(
+            INamedType type,
+            BaseListSyntax? baseList,
+            SyntaxList<MemberDeclarationSyntax> members,
+            SyntaxGenerationContext syntaxGenerationContext )
+        {
+            // The wrapping tokens (modifiers, type keyword, braces) are constructed with explicit trivia so
+            // ToFullString produces parseable C# without a NormalizeWhitespace pass. Modifiers carry trailing
+            // elastic spaces; the open brace carries a trailing newline; the close brace carries a leading
+            // newline (so it lands on its own line) and a trailing newline (so the next member starts fresh).
+            var modifiers = type.IsStatic
+                ? TokenList(
+                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ),
+                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PartialKeyword ) )
+                : SyntaxTokenList.Create( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PartialKeyword ) );
+
+            var openBrace = Token( syntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.OpenBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList );
+            var closeBrace = Token( syntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList );
+
+            return type.TypeKind switch
             {
                 TypeKind.Class when !type.IsRecord => ClassDeclaration(
                     attributeLists: default,
-                    type.IsStatic
-                        ? TokenList(
-                            Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( ElasticSpace ) ),
-                            Token( SyntaxKind.PartialKeyword ) )
-                        : SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
+                    modifiers,
+                    keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ClassKeyword ),
                     SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     baseList,
                     constraintClauses: default,
-                    members ),
+                    openBraceToken: openBrace,
+                    members,
+                    closeBraceToken: closeBrace,
+                    semicolonToken: default ),
                 TypeKind.Class when type.IsRecord => RecordDeclaration(
                     SyntaxKind.RecordDeclaration,
                     attributeLists: default,
-                    SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
-                    keyword: Token( SyntaxKind.RecordKeyword ),
-                    classOrStructKeyword: Token( SyntaxKind.ClassKeyword ),
+                    modifiers,
+                    keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RecordKeyword ),
+                    classOrStructKeyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ClassKeyword ),
                     SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     parameterList: null,
                     baseList,
                     constraintClauses: default,
-                    openBraceToken: Token( SyntaxKind.OpenBraceToken ),
+                    openBraceToken: openBrace,
                     members,
-                    closeBraceToken: Token( SyntaxKind.CloseBraceToken ),
+                    closeBraceToken: closeBrace,
                     semicolonToken: default ),
                 TypeKind.Struct when !type.IsRecord => StructDeclaration(
                     attributeLists: default,
-                    SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
+                    modifiers,
+                    keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StructKeyword ),
                     SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     baseList,
                     constraintClauses: default,
-                    members ),
+                    openBraceToken: openBrace,
+                    members,
+                    closeBraceToken: closeBrace,
+                    semicolonToken: default ),
                 TypeKind.Struct when type.IsRecord => RecordDeclaration(
                     SyntaxKind.RecordStructDeclaration,
                     attributeLists: default,
-                    SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
-                    keyword: Token( SyntaxKind.RecordKeyword ),
-                    classOrStructKeyword: Token( SyntaxKind.StructKeyword ),
+                    modifiers,
+                    keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RecordKeyword ),
+                    classOrStructKeyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StructKeyword ),
                     SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     parameterList: null,
                     baseList,
                     constraintClauses: default,
-                    openBraceToken: Token( SyntaxKind.OpenBraceToken ),
+                    openBraceToken: openBrace,
                     members,
-                    closeBraceToken: Token( SyntaxKind.CloseBraceToken ),
+                    closeBraceToken: closeBrace,
                     semicolonToken: default ),
                 TypeKind.Interface => InterfaceDeclaration(
                     attributeLists: default,
-                    SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
+                    modifiers,
+                    keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.InterfaceKeyword ),
                     SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     baseList,
                     constraintClauses: default,
-                    members ),
+                    openBraceToken: openBrace,
+                    members,
+                    closeBraceToken: closeBrace,
+                    semicolonToken: default ),
                 _ => throw new AssertionFailedException( $"Unknown type kind: {type.TypeKind}." )
             };
+        }
 
         private static TypeParameterListSyntax? CreateTypeParameters( INamedType type )
         {
