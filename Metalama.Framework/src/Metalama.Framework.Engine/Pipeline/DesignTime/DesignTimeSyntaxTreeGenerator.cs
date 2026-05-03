@@ -20,6 +20,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.CodeModel.Comparers;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -261,8 +262,14 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var safeTypeName = GetUniqueFilenameForType( declaringTypeOrExtensionBlock );
                 var syntaxTreeName = safeTypeName + ".cs";
 
+                // We still call NormalizeWhitespace here because the syntax produced by the various
+                // IInjectMemberTransformation implementations carries only the elastic trivia that the
+                // production-time CodeFormatter would later reflow — without normalization, generated property
+                // accessors and SeparatedList commas would render with no whitespace (e.g. `Id{get;set ;}` or
+                // `Repository<T1,T2>`). Using the elasticTrivia: true variant via NormalizeWhitespaceIfNecessary
+                // (per LAMA0830 codebase convention) is significantly cheaper than the elasticTrivia: false default.
                 var generatedSyntaxTree = CSharpSyntaxTree.Create(
-                    compilationUnit,
+                    compilationUnit.NormalizeWhitespaceIfNecessary( syntaxGenerationContext ),
                     parseOptions,
                     syntaxTreeName,
                     Encoding.UTF8 );
