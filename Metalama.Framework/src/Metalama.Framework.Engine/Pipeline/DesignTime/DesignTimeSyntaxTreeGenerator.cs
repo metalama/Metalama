@@ -20,7 +20,6 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.CodeModel.Comparers;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -221,7 +220,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                 // Create a type. The wrapper tokens (keywords, braces) are constructed with explicit elastic
                 // trivia so the resulting tree's ToFullString is parseable C# without a per-type
-                // NormalizeWhitespace pass. See LAMA0830.
+                // NormalizeWhitespace pass.
                 var typeDeclaration = CreatePartialType( declaringType, baseList, members, syntaxGenerationContext );
 
                 // Add the type to its nesting type.
@@ -262,14 +261,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var safeTypeName = GetUniqueFilenameForType( declaringTypeOrExtensionBlock );
                 var syntaxTreeName = safeTypeName + ".cs";
 
-                // We still call NormalizeWhitespace here because the syntax produced by the various
-                // IInjectMemberTransformation implementations carries only the elastic trivia that the
-                // production-time CodeFormatter would later reflow — without normalization, generated property
-                // accessors and SeparatedList commas would render with no whitespace (e.g. `Id{get;set ;}` or
-                // `Repository<T1,T2>`). Using the elasticTrivia: true variant via NormalizeWhitespaceIfNecessary
-                // (per LAMA0830 codebase convention) is significantly cheaper than the elasticTrivia: false default.
+                // No NormalizeWhitespace pass: the wrappers above and the IInjectMemberTransformation outputs
+                // already carry the elastic trivia they need to render as parseable C#. Avoiding the per-type
+                // pass is the whole point of this generator's perf improvement (issue #1601).
                 var generatedSyntaxTree = CSharpSyntaxTree.Create(
-                    compilationUnit.NormalizeWhitespaceIfNecessary( syntaxGenerationContext ),
+                    compilationUnit,
                     parseOptions,
                     syntaxTreeName,
                     Encoding.UTF8 );
@@ -632,20 +628,22 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 return null;
             }
 
-            static SyntaxKind GetVariance( VarianceKind variance )
+            static SyntaxToken GetVarianceToken( VarianceKind variance )
             {
+                // Variance keywords need a trailing space, otherwise `in`/`out` joins with the following
+                // type-parameter identifier (e.g. `IRepository<inT>`) and produces invalid C#.
                 return variance switch
                 {
-                    VarianceKind.None => SyntaxKind.None,
-                    VarianceKind.In => SyntaxKind.InKeyword,
-                    VarianceKind.Out => SyntaxKind.OutKeyword,
+                    VarianceKind.None => default,
+                    VarianceKind.In => SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.InKeyword ),
+                    VarianceKind.Out => SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.OutKeyword ),
                     _ => throw new AssertionFailedException( $"Unknown variance: {variance}." )
                 };
             }
 
             return TypeParameterList(
                 SeparatedList(
-                    type.TypeParameters.SelectAsReadOnlyList( tp => TypeParameter( tp.Name ).WithVarianceKeyword( Token( GetVariance( tp.Variance ) ) ) ) ) );
+                    type.TypeParameters.SelectAsReadOnlyList( tp => TypeParameter( tp.Name ).WithVarianceKeyword( GetVarianceToken( tp.Variance ) ) ) ) );
         }
 
         private static MemberDeclarationSyntax AddHeader( MemberDeclarationSyntax node )
