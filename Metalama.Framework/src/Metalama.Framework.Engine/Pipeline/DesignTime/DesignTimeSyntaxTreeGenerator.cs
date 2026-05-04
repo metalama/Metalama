@@ -234,14 +234,16 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var memberIndentLevel = typeDepth + ( hasExtensionBlock ? 2 : 1 );
 
                 // Each member's leading trivia receives a newline + indent so the member sits on its own
-                // line at the right column. The members themselves are constructed with the rest of their
-                // trivia (accessor list spacing, body brace placement) by the IInjectMemberTransformation
-                // implementations and the FormattedBlock helper, so no further rewriting is needed here.
+                // line at the right column. For methods/constructors/etc. that also have a body, the
+                // body braces are aligned to the same column. Both operations happen in a single pass
+                // here because the indent depth (computed from the type's nesting) is only known at
+                // this scope - the IInjectMemberTransformation implementations have no way to emit
+                // indent-aware trivia themselves.
                 var indentedMembers = new MemberDeclarationSyntax[members.Count];
 
                 for ( var i = 0; i < members.Count; i++ )
                 {
-                    indentedMembers[i] = AddLeadingNewLineAndIndent( members[i], syntaxGenerationContext, memberIndentLevel );
+                    indentedMembers[i] = IndentMember( members[i], syntaxGenerationContext, memberIndentLevel );
                 }
 
                 members = List( indentedMembers );
@@ -432,6 +434,61 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             }
 
             return member.WithLeadingTrivia( newLeading.AddRange( member.GetLeadingTrivia() ) );
+        }
+
+        // Indents an injected member at memberIndentLevel: prepends the leading trivia, and (for members
+        // with a Block body) sets the body braces' leading trivia to the same indent so the member reads
+        // Allman-style at the right column. This runs in a single per-member O(1) pass because the
+        // indent depth is computed from the type's nesting at the design-time generator level and cannot
+        // be known by the IInjectMemberTransformation implementations that produce these members.
+        private static MemberDeclarationSyntax IndentMember(
+            MemberDeclarationSyntax member,
+            SyntaxGenerationContext context,
+            int memberIndentLevel )
+        {
+            var newLeading = GetNewLineAndIndentTriviaList( context, memberIndentLevel );
+
+            if ( newLeading.Count == 0 )
+            {
+                return member;
+            }
+
+            // Kind checks are pre-pended to pattern matches per LAMA0860 (avoids the runtime cost of
+            // type-test casts when the kind is the cheap discriminator).
+            switch ( member.Kind() )
+            {
+                case SyntaxKind.MethodDeclaration when member is MethodDeclarationSyntax method && method.Body is { } methodBody:
+                    member = method.WithBody( WithBraceIndent( methodBody, newLeading ) );
+
+                    break;
+
+                case SyntaxKind.ConstructorDeclaration when member is ConstructorDeclarationSyntax ctor && ctor.Body is { } ctorBody:
+                    member = ctor.WithBody( WithBraceIndent( ctorBody, newLeading ) );
+
+                    break;
+
+                case SyntaxKind.DestructorDeclaration when member is DestructorDeclarationSyntax dtor && dtor.Body is { } dtorBody:
+                    member = dtor.WithBody( WithBraceIndent( dtorBody, newLeading ) );
+
+                    break;
+
+                case SyntaxKind.OperatorDeclaration when member is OperatorDeclarationSyntax op && op.Body is { } opBody:
+                    member = op.WithBody( WithBraceIndent( opBody, newLeading ) );
+
+                    break;
+
+                case SyntaxKind.ConversionOperatorDeclaration when member is ConversionOperatorDeclarationSyntax convOp && convOp.Body is { } convOpBody:
+                    member = convOp.WithBody( WithBraceIndent( convOpBody, newLeading ) );
+
+                    break;
+            }
+
+            return member.WithLeadingTrivia( newLeading.AddRange( member.GetLeadingTrivia() ) );
+
+            static BlockSyntax WithBraceIndent( BlockSyntax body, SyntaxTriviaList lineLeading )
+                => body
+                    .WithOpenBraceToken( body.OpenBraceToken.WithLeadingTrivia( lineLeading ) )
+                    .WithCloseBraceToken( body.CloseBraceToken.WithLeadingTrivia( lineLeading ) );
         }
 
         private static IEnumerable<MemberDeclarationSyntax> AddPartialModifierToTypes( IEnumerable<MemberDeclarationSyntax> injectedMembers )
