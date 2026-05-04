@@ -199,4 +199,65 @@ public sealed class CodeLensTests : DesignTimeTestBase
 
         Assert.Empty( details2.Entries );
     }
+
+    [Fact]
+    public async Task TooltipText_AspectClassAndTemplateMembers()
+    {
+        // Regression test for https://github.com/metalama/Metalama/issues/1615:
+        // CodeLensSummary instances for aspect classes and template/compile-time/both-time members
+        // were created without a TooltipText, leaving the CodeLens hover empty in Visual Studio.
+        using var testContext = this.CreateTestContext();
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+
+        const string code = """
+                            using Metalama.Framework.Advising;
+                            using Metalama.Framework.Aspects;
+                            using Metalama.Framework.Code;
+
+                            public class MyAspect : TypeAspect
+                            {
+                                [Template]
+                                public void TemplateMethod() { }
+
+                                [CompileTime]
+                                public void CompileTimeMethod() { }
+                            }
+
+                            [RunTimeOrCompileTime]
+                            public class MyBothTimeClass
+                            {
+                                public void BothTimeMethod() { }
+                            }
+                            """;
+
+        var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
+        var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
+
+        var compilation = (await workspaceProvider.GetCompilationAsync( projectKey ))!;
+
+        // We need to run the pipeline because code lens does not run it on its own.
+        var pipeline = factory.CreatePipeline( compilation );
+        await pipeline.ExecuteAsync( compilation, AsyncExecutionContext.Get() );
+
+        var codeLensService = new CodeLensServiceImpl( factory.ServiceProvider );
+
+        var aspectClassSymbol = compilation.GetTypeByMetadataName( "MyAspect" )!;
+        var bothTimeClassSymbol = compilation.GetTypeByMetadataName( "MyBothTimeClass" )!;
+        var aspectClassId = aspectClassSymbol.GetSerializableId();
+        var templateMethodId = aspectClassSymbol.GetMembers( "TemplateMethod" ).Single().GetSerializableId();
+        var compileTimeMethodId = aspectClassSymbol.GetMembers( "CompileTimeMethod" ).Single().GetSerializableId();
+        var bothTimeMethodId = bothTimeClassSymbol.GetMembers( "BothTimeMethod" ).Single().GetSerializableId();
+
+        var aspectClassSummary = await codeLensService.GetCodeLensSummaryAsync( projectKey, aspectClassId, default );
+        Assert.False( string.IsNullOrEmpty( aspectClassSummary.TooltipText ), "Aspect class CodeLens summary must have a non-empty TooltipText." );
+
+        var templateMethodSummary = await codeLensService.GetCodeLensSummaryAsync( projectKey, templateMethodId, default );
+        Assert.False( string.IsNullOrEmpty( templateMethodSummary.TooltipText ), "Template member CodeLens summary must have a non-empty TooltipText." );
+
+        var compileTimeMethodSummary = await codeLensService.GetCodeLensSummaryAsync( projectKey, compileTimeMethodId, default );
+        Assert.False( string.IsNullOrEmpty( compileTimeMethodSummary.TooltipText ), "Compile-time member CodeLens summary must have a non-empty TooltipText." );
+
+        var bothTimeMethodSummary = await codeLensService.GetCodeLensSummaryAsync( projectKey, bothTimeMethodId, default );
+        Assert.False( string.IsNullOrEmpty( bothTimeMethodSummary.TooltipText ), "Both-time member CodeLens summary must have a non-empty TooltipText." );
+    }
 }
