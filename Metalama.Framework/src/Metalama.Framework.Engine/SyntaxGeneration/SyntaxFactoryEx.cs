@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Simplification;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using RefKind = Metalama.Framework.Code.RefKind;
 
@@ -39,6 +40,47 @@ public static partial class SyntaxFactoryEx
     [PublicAPI]
     public static SyntaxToken TokenWithTrailingSpace( SyntaxKind kind )
         => _tokensWithTrailingSpace.GetOrAdd( kind, static k => SyntaxFactory.Token( default, k, ElasticSpaceTriviaList ) );
+
+    // Builds an accessor list with elastic spaces around the braces so the surface text reads
+    // "{ get; set; }" without a NormalizeWhitespace pass. Each non-last bodyless semicolon also gets
+    // trailing elastic space so accessors are separated. When the syntax-generation context will not
+    // textualize the tree (production pipeline, where a formatter runs later), the bare AccessorList
+    // is returned without trivia decoration.
+    internal static AccessorListSyntax FormattedAccessorList(
+        IReadOnlyList<AccessorDeclarationSyntax> accessors,
+        SyntaxGenerationContext context )
+    {
+        if ( !context.Options.WillBeTextualized )
+        {
+            return SyntaxFactory.AccessorList( SyntaxFactory.List( accessors ) );
+        }
+
+        var openBrace = SyntaxFactory.Token( ElasticSpaceTriviaList, SyntaxKind.OpenBraceToken, ElasticSpaceTriviaList );
+        var closeBrace = SyntaxFactory.Token( ElasticSpaceTriviaList, SyntaxKind.CloseBraceToken, default );
+
+        var separated = new AccessorDeclarationSyntax[accessors.Count];
+
+        for ( var i = 0; i < accessors.Count; i++ )
+        {
+            var accessor = accessors[i];
+            var isLast = i == accessors.Count - 1;
+
+            // Non-last bodyless accessors need a trailing space after the semicolon so the next
+            // accessor doesn't bump into it: "get; set;" rather than "get;set;".
+            if ( !isLast
+                 && accessor.Body == null
+                 && accessor.ExpressionBody == null
+                 && accessor.SemicolonToken.IsKind( SyntaxKind.SemicolonToken ) )
+            {
+                accessor = accessor.WithSemicolonToken(
+                    SyntaxFactory.Token( default, SyntaxKind.SemicolonToken, ElasticSpaceTriviaList ) );
+            }
+
+            separated[i] = accessor;
+        }
+
+        return SyntaxFactory.AccessorList( openBrace, SyntaxFactory.List( separated ), closeBrace );
+    }
 
     internal static SyntaxToken InvocationRefKindToken( this RefKind refKind )
         => refKind switch

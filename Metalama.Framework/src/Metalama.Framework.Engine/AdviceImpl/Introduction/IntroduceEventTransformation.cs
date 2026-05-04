@@ -139,18 +139,22 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
             switch (Adder: finalEvent.AddMethod, Remover: finalEvent.RemoveMethod)
             {
                 case (not null, not null):
-                    return AccessorList(
-                        List(
+                    return SyntaxFactoryEx.FormattedAccessorList(
                         [
                             GenerateAccessor( finalEvent.AddMethod, SyntaxKind.AddAccessorDeclaration ),
                             GenerateAccessor( finalEvent.RemoveMethod, SyntaxKind.RemoveAccessorDeclaration )
-                        ] ) );
+                        ],
+                        context.SyntaxGenerationContext );
 
                 case (not null, null):
-                    return AccessorList( List( [GenerateAccessor( finalEvent.AddMethod, SyntaxKind.AddAccessorDeclaration )] ) );
+                    return SyntaxFactoryEx.FormattedAccessorList(
+                        [GenerateAccessor( finalEvent.AddMethod, SyntaxKind.AddAccessorDeclaration )],
+                        context.SyntaxGenerationContext );
 
                 case (null, not null):
-                    return AccessorList( List( [GenerateAccessor( finalEvent.RemoveMethod, SyntaxKind.RemoveAccessorDeclaration )] ) );
+                    return SyntaxFactoryEx.FormattedAccessorList(
+                        [GenerateAccessor( finalEvent.RemoveMethod, SyntaxKind.RemoveAccessorDeclaration )],
+                        context.SyntaxGenerationContext );
 
                 default:
                     throw new AssertionFailedException( "Both accessors are null." );
