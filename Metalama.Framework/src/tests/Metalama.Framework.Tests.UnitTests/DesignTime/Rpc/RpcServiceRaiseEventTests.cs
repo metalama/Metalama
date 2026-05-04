@@ -168,6 +168,70 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     }
 
     /// <summary>
+    /// Regression test for issue #1617 (and similar #1237). Reproduces the race where a new client is being
+    /// registered on the server (between <c>RpcService&lt;TApi&gt;.ConfigureRpc</c> and
+    /// <c>JsonRpc.StartListening</c>) while a concurrent <c>RaiseEventAsync</c> broadcasts an event.
+    /// The bug: the new rpc was added to <c>_clients</c> in <c>ConfigureRpc</c> before <c>StartListening</c>,
+    /// so the broadcast would invoke a callback proxy on a non-listening rpc and throw
+    /// <c>"This operation is not allowed before listening for messages has started."</c>.
+    /// Fix: registration into <c>_clients</c> is deferred to <c>OnRpcStarted</c>, called after <c>StartListening</c>.
+    /// </summary>
+    [Fact]
+    public async Task RaiseEventAsync_DuringSecondClientRegistration_DoesNotInvokeOnNonListeningRpc()
+    {
+        using var testContext = this.CreateRpcTestContext();
+
+        var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
+
+        using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
+
+        var firstClientConnectedTcs = new TaskCompletionSource<bool>();
+
+        serverEndpoint.ClientConnected += () => firstClientConnectedTcs.TrySetResult( true );
+
+        serverEndpoint.Start();
+
+        // Connect first client and wait until it is fully registered on the server.
+        using var client1 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+        await client1.ConnectAsync( testContext.CancellationToken );
+        await firstClientConnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        var eventClient1 = client1.GetRequiredClient<EventTestClient>();
+        var eventReceivedByClient1Tcs = new TaskCompletionSource<string>();
+
+        eventClient1.EventReceived += e =>
+        {
+            if ( e is TestEventData testEvent )
+            {
+                eventReceivedByClient1Tcs.TrySetResult( testEvent.Message );
+            }
+        };
+
+        // Pause the server right after ConfigureRpc but before StartListening for the second connection.
+        // This is exactly the bug window: the buggy code would have already added the new rpc to _clients here,
+        // so a concurrent RaiseEventAsync would attempt to invoke on a non-listening rpc.
+        var syncPointName = $"ServerEndpoint.AfterConfiguresRpc:{pipeName}";
+        testContext.SyncProvider.EnableSyncPoint( syncPointName );
+
+        using var client2 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+        var client2ConnectTask = client2.ConnectAsync( testContext.CancellationToken );
+
+        // Wait until the server reaches the sync point for the second connection.
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync( syncPointName, testContext.CancellationToken );
+
+        // Broadcast while the second rpc is configured but not yet listening. With the fix the broadcast
+        // sees only client1 in _clients and succeeds; without the fix it would throw "MustBeListening".
+        var service = await serverEndpoint.GetRequiredServiceAsync<EventTestService>( testContext.CancellationToken );
+        await service.BroadcastEventAsync( "DuringRegistration", testContext.CancellationToken );
+
+        Assert.Equal( "DuringRegistration", await eventReceivedByClient1Tcs.Task.WithCancellation( testContext.CancellationToken ) );
+
+        // Release the second connection.
+        testContext.SyncProvider.ReleaseSyncPoint( syncPointName );
+        await client2ConnectTask.WithCancellation( testContext.CancellationToken );
+    }
+
+    /// <summary>
     /// Tests that RaiseEventAsync handles client disconnection gracefully.
     /// When a client disconnects during event broadcast, other clients should still receive the event.
     /// </summary>

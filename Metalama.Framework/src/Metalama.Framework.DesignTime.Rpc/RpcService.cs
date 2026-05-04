@@ -31,6 +31,14 @@ public abstract class RpcService
 
     internal abstract void ConfigureRpc( JsonRpc rpc );
 
+    /// <summary>
+    /// Called by the server endpoint after <see cref="JsonRpc.StartListening"/> has been called on the rpc.
+    /// Subclasses register the rpc with their callback bookkeeping at this point so that event broadcasting
+    /// (such as <c>RaiseEventAsync</c>) never targets a rpc whose <c>StartListening</c> has not yet been
+    /// called, which would throw <c>"This operation is not allowed before listening for messages has started."</c>
+    /// </summary>
+    internal virtual void OnRpcStarted( JsonRpc rpc ) { }
+
     protected internal void OnRpcConnected()
     {
         this.Logger.Trace?.Log( nameof(this.OnRpcConnected) );
@@ -53,6 +61,11 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
     private readonly ConcurrentDictionary<JsonRpc, IRpcCallback> _clients = new();
     private readonly ConcurrentDictionary<JsonRpc, TApi> _apis = new();
 
+    // Holds (callback proxy, local API) pairs created in ConfigureRpc until OnRpcStarted promotes them
+    // to _clients/_apis. Promoting only after rpc.StartListening() prevents RaiseEventAsync from
+    // invoking the callback proxy on a rpc that is not yet listening.
+    private readonly ConcurrentDictionary<JsonRpc, PendingClient> _pendingClients = new();
+
     protected RpcService( ServerEndpoint serverEndpoint ) : base( serverEndpoint ) { }
 
     public virtual void Dispose() { }
@@ -62,12 +75,22 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
         var client = rpc.Attach<IRpcCallback>();
         var implementation = this.CreateApi( new EventSender( client ) );
         rpc.AddLocalRpcTarget( implementation, null );
-        this._clients.TryAdd( rpc, client );
-        this._apis.TryAdd( rpc, implementation );
+        this._pendingClients.TryAdd( rpc, new PendingClient( client, implementation ) );
+    }
+
+    internal override void OnRpcStarted( JsonRpc rpc )
+    {
+        if ( this._pendingClients.TryRemove( rpc, out var pending ) )
+        {
+            this._clients.TryAdd( rpc, pending.Callback );
+            this._apis.TryAdd( rpc, pending.Api );
+        }
     }
 
     internal override void OnRpcDisconnected( JsonRpc rpc )
     {
+        // Cover disposal between ConfigureRpc and OnRpcStarted as well as the normal post-Started path.
+        this._pendingClients.TryRemove( rpc, out _ );
         this._clients.TryRemove( rpc, out _ );
     }
 
@@ -111,4 +134,6 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
         public Task RaiseEventAsync( RpcEventData eventData, CancellationToken cancellationToken )
             => this._client.RaiseEventAsync( new RpcEventEnvelope( typeof(TApi).Name, eventData ), cancellationToken );
     }
+
+    private readonly record struct PendingClient( IRpcCallback Callback, TApi Api );
 }
