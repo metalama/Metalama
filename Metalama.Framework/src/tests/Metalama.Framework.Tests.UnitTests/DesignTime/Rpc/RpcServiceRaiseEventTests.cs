@@ -8,6 +8,7 @@ using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -522,11 +523,34 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
 
     private static Exception CreateException( string typeName, string? message )
     {
-        // Look first in the merged Metalama.Framework.DesignTime.Rpc assembly (for StreamJsonRpc.* types),
-        // then fall back to mscorlib for System.* types.
-        var type = typeof(RpcService).Assembly.GetType( typeName )
-                   ?? Type.GetType( typeName )
-                   ?? throw new InvalidOperationException( $"Type not found: {typeName}" );
+        // StreamJsonRpc.* types are not directly referenced by the test assembly. In dev builds they live in
+        // a separate StreamJsonRpc.dll deployed alongside the test; in release/CI builds they are ILMerged
+        // into Metalama.Framework.DesignTime.Rpc.dll. Try both sources before giving up.
+        Type? type = null;
+
+        if ( typeName.StartsWith( "StreamJsonRpc.", StringComparison.Ordinal ) )
+        {
+            type = typeof(RpcService).Assembly.GetType( typeName )
+                   ?? Type.GetType( $"{typeName}, StreamJsonRpc" )
+                   ?? System.Reflection.Assembly.Load( new System.Reflection.AssemblyName( "StreamJsonRpc" ) ).GetType( typeName );
+        }
+        else
+        {
+            type = Type.GetType( typeName );
+        }
+
+        if ( type == null )
+        {
+            throw new InvalidOperationException( $"Type not found: {typeName}" );
+        }
+
+        // RemoteInvocationException's only public constructors take (message, errorCode, errorData) or
+        // similar — there is no plain (string) overload. Pass a non-null errorData object to disambiguate
+        // from the (message, errorCode, Exception innerException) overload which would NRE on null.
+        if ( typeName == "StreamJsonRpc.RemoteInvocationException" )
+        {
+            return (Exception) Activator.CreateInstance( type, message, 0, new object() )!;
+        }
 
         return message is null
             ? (Exception) Activator.CreateInstance( type )!
