@@ -167,10 +167,12 @@ internal sealed class CodeLensServiceImpl : PreviewPipelineBasedService, ICodeLe
         var symbol = codePointData.Symbol;
 
         string? executionScopeString = null;
+        FormattableString? tooltipText = null;
 
         if ( symbolClassificationService.IsTemplate( symbol ) )
         {
             executionScopeString = "template";
+            tooltipText = $"This is a Metalama template.";
         }
         else
         {
@@ -181,29 +183,31 @@ internal sealed class CodeLensServiceImpl : PreviewPipelineBasedService, ICodeLe
                 if ( executionScope == ExecutionScope.CompileTime )
                 {
                     executionScopeString = "compile-time";
+                    tooltipText = $"This {symbol.Kind} runs at compile time.";
                 }
                 else if ( symbol is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.AllInterfaces.Any( t => t.Name == nameof(IAspect) ) )
                 {
-                    {
-                        summary = new CodeLensSummary( MetalamaStringFormatter.Format( $"aspect class" ) );
+                    summary = new CodeLensSummary(
+                        MetalamaStringFormatter.Format( $"aspect class" ),
+                        MetalamaStringFormatter.Format( $"This class defines a Metalama aspect." ) );
 
-                        return true;
-                    }
+                    return true;
                 }
                 else
                 {
                     executionScopeString = "both run-time and compile-time";
+                    tooltipText = $"This {symbol.Kind} runs at both run time and compile time.";
                 }
             }
         }
 
         if ( executionScopeString != null )
         {
-            {
-                summary = new CodeLensSummary( MetalamaStringFormatter.Format( $"{executionScopeString} {symbol.Kind}" ) );
+            summary = new CodeLensSummary(
+                MetalamaStringFormatter.Format( $"{executionScopeString} {symbol.Kind}" ),
+                MetalamaStringFormatter.Format( tooltipText! ) );
 
-                return true;
-            }
+            return true;
         }
 
         summary = null;
