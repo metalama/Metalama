@@ -1083,14 +1083,7 @@ public sealed partial class ContextualSyntaxGenerator
 
     internal BlockSyntax FormattedBlock( IEnumerable<StatementSyntax> statements )
         => Block(
-            // The open brace carries elastic newlines on both sides. The leading newline puts the brace
-            // on its own line (Allman style) without requiring a NormalizeWhitespace pass downstream;
-            // the formatter collapses redundant elastic trivia in the production pipeline so this does
-            // not change formatted output.
-            Token(
-                this.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList,
-                SyntaxKind.OpenBraceToken,
-                this.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
+            Token( default, SyntaxKind.OpenBraceToken, this.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
             List(
                 statements.Select(
                     s => NeedsLineFeed( s )
