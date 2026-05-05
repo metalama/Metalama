@@ -61,14 +61,11 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
     private readonly ConcurrentDictionary<JsonRpc, IRpcCallback> _clients = new();
     private readonly ConcurrentDictionary<JsonRpc, TApi> _apis = new();
 
-    // Holds (callback proxy, local API) pairs created in ConfigureRpc until OnRpcStarted promotes them
-    // to _clients/_apis. Promoting only after rpc.StartListening() prevents RaiseEventAsync from
-    // invoking the callback proxy on a rpc that is not yet listening.
-    private readonly ConcurrentDictionary<JsonRpc, PendingClient> _pendingClients = new();
-
-    // Serializes OnRpcStarted (pending → live promotion) and OnRpcDisconnected (cleanup) so that a
-    // disconnect arriving in the middle of a promotion cannot leave a dead rpc in _clients/_apis.
-    private readonly object _registrationLock = new();
+    // Per-rpc registration entries. Created in ConfigureRpc, removed in OnRpcDisconnected. Each entry
+    // owns its own lock so that OnRpcStarted (promotion to _clients/_apis) and OnRpcDisconnected (cleanup)
+    // are serialized for the same rpc only. Operations on different rpcs do not contend, so a disconnect
+    // on one client cannot be blocked behind another client's in-flight promotion.
+    private readonly ConcurrentDictionary<JsonRpc, RegistrationEntry> _registrations = new();
 
     protected RpcService( ServerEndpoint serverEndpoint ) : base( serverEndpoint ) { }
 
@@ -79,34 +76,46 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
         var client = rpc.Attach<IRpcCallback>();
         var implementation = this.CreateApi( new EventSender( client ) );
         rpc.AddLocalRpcTarget( implementation, null );
-        this._pendingClients.TryAdd( rpc, new PendingClient( client, implementation ) );
+        this._registrations.TryAdd( rpc, new RegistrationEntry( client, implementation ) );
     }
 
     internal override void OnRpcStarted( JsonRpc rpc )
     {
-        lock ( this._registrationLock )
+        if ( !this._registrations.TryGetValue( rpc, out var entry ) )
         {
-            if ( this._pendingClients.TryRemove( rpc, out var pending ) )
+            // OnRpcDisconnected already removed the entry — nothing to promote.
+            return;
+        }
+
+        lock ( entry.Lock )
+        {
+            this.OnPendingClientPromoting();
+
+            if ( entry.IsDisconnected )
             {
-                this.OnPendingClientPromoting();
-                this._clients.TryAdd( rpc, pending.Callback );
-                this._apis.TryAdd( rpc, pending.Api );
+                // OnRpcDisconnected ran and removed the entry from _registrations. The promotion has
+                // nothing to do: leaving _clients/_apis untouched keeps them free of the dead rpc.
+                return;
             }
+
+            this._clients.TryAdd( rpc, entry.Callback );
+            this._apis.TryAdd( rpc, entry.Api );
         }
     }
 
     /// <summary>
-    /// Test extension point invoked between removing the pending entry and adding it to the live
-    /// <c>_clients</c>/<c>_apis</c> dictionaries. Production code does nothing; tests override this
-    /// to deterministically inject a concurrent disconnect during the promotion window.
+    /// Test extension point invoked inside <see cref="OnRpcStarted"/> while holding the per-rpc
+    /// registration lock, before promotion to the live <c>_clients</c>/<c>_apis</c> dictionaries.
+    /// Production code does nothing; tests override this to deterministically inject a concurrent
+    /// disconnect during the promotion window.
     /// </summary>
     protected virtual void OnPendingClientPromoting() { }
 
     /// <summary>
     /// Test extension point invoked at the very entry of <see cref="OnRpcDisconnected"/>, before
-    /// the registration lock is acquired. Production code does nothing; tests use it to observe
-    /// that a disconnect is being processed even when the lock is currently held by a paused
-    /// <see cref="OnRpcStarted"/>.
+    /// the per-rpc registration lock is acquired. Production code does nothing; tests use it to
+    /// observe that a disconnect is being processed even when its per-rpc lock is currently held
+    /// by a paused <see cref="OnRpcStarted"/>.
     /// </summary>
     protected virtual void OnRpcDisconnecting() { }
 
@@ -114,12 +123,22 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
     {
         this.OnRpcDisconnecting();
 
-        lock ( this._registrationLock )
+        if ( !this._registrations.TryRemove( rpc, out var entry ) )
         {
-            // Cover disposal between ConfigureRpc and OnRpcStarted as well as the normal post-Started path.
-            // _apis must be cleaned up too so that subscribers iterating Apis (e.g. EventHubRpcService.ForwardEventAsync)
-            // do not invoke a stored IRpcEventSender over a dead JsonRpc.
-            this._pendingClients.TryRemove( rpc, out _ );
+            // Either ConfigureRpc never ran for this rpc on this service, or OnRpcDisconnected ran
+            // twice (StreamJsonRpc raises Disconnected at most once, but be defensive).
+            return;
+        }
+
+        lock ( entry.Lock )
+        {
+            // Setting IsDisconnected ensures any concurrent OnRpcStarted that already looked up the
+            // entry but is still waiting for this lock will skip promotion when it resumes.
+            entry.IsDisconnected = true;
+
+            // _apis must be cleaned up alongside _clients so that subscribers iterating Apis
+            // (e.g. EventHubRpcService.ForwardEventAsync) do not invoke a stored IRpcEventSender
+            // over a dead JsonRpc.
             this._clients.TryRemove( rpc, out _ );
             this._apis.TryRemove( rpc, out _ );
         }
@@ -166,5 +185,20 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
             => this._client.RaiseEventAsync( new RpcEventEnvelope( typeof(TApi).Name, eventData ), cancellationToken );
     }
 
-    private readonly record struct PendingClient( IRpcCallback Callback, TApi Api );
+    private sealed class RegistrationEntry
+    {
+        public RegistrationEntry( IRpcCallback callback, TApi api )
+        {
+            this.Callback = callback;
+            this.Api = api;
+        }
+
+        public IRpcCallback Callback { get; }
+
+        public TApi Api { get; }
+
+        public object Lock { get; } = new();
+
+        public bool IsDisconnected { get; set; }
+    }
 }

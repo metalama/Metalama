@@ -399,6 +399,83 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     }
 
     /// <summary>
+    /// Regression test for Copilot review feedback on PR #1618 (commit 7bfeece). With a single per-service
+    /// <c>_registrationLock</c>, a disconnect on client A serializes behind an unrelated client B's
+    /// <c>OnRpcStarted</c> — so A cannot be removed from <c>_clients</c>/<c>_apis</c> until B finishes
+    /// promotion. Concurrent broadcasts (which do not take the lock) can still pick up A's already-dead
+    /// callback. The fix replaces the per-service lock with a per-rpc lock on a <c>RegistrationEntry</c>,
+    /// so disconnect cleanup of unrelated rpcs is no longer serialized with any in-flight promotion.
+    /// </summary>
+    [Fact]
+    public async Task OnRpcDisconnected_OfClientA_NotBlockedByOnRpcStartedOfUnrelatedClientB()
+    {
+        using var testContext = this.CreateRpcTestContext();
+
+        var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
+
+        using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
+
+        var clientAConnectedTcs = new TaskCompletionSource<bool>();
+        var clientDisconnectedTcs = new TaskCompletionSource<bool>();
+
+        serverEndpoint.ClientConnected += () => clientAConnectedTcs.TrySetResult( true );
+        serverEndpoint.ClientDisconnected += () => clientDisconnectedTcs.TrySetResult( true );
+
+        serverEndpoint.Start();
+
+        // Connect client A and wait until it is fully promoted into _clients/_apis on the server.
+        var clientA = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+        await clientA.ConnectAsync( testContext.CancellationToken );
+        await clientAConnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        var service = await serverEndpoint.GetRequiredServiceAsync<EventTestService>( testContext.CancellationToken );
+
+        // Pause client B's OnRpcStarted inside the per-rpc registration lock. With the buggy per-service
+        // lock, this would block ANY other rpc's OnRpcDisconnected from running. With the per-rpc lock fix,
+        // only client B's own disconnect would be blocked — client A's cleanup is unaffected.
+        var bPromotingReachedTcs = new TaskCompletionSource<bool>();
+        var bPromotingReleaseTcs = new TaskCompletionSource<bool>();
+
+        service.OnPendingClientPromotingHook = () =>
+        {
+            bPromotingReachedTcs.TrySetResult( true );
+            bPromotingReleaseTcs.Task.GetAwaiter().GetResult();
+        };
+
+        using var clientB = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+        var clientBConnectTask = clientB.ConnectAsync( testContext.CancellationToken );
+
+        // Wait until client B's OnRpcStarted has acquired its per-rpc lock and is paused inside the hook.
+        await bPromotingReachedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        // Disconnect client A while B's promotion is paused. The fix lets A's OnRpcDisconnected run
+        // immediately (different per-rpc lock); the bug would block it behind the per-service lock.
+        clientA.Dispose();
+
+        // With the fix, ClientDisconnected fires promptly. Without the fix, this wait hangs until the
+        // test's CancellationToken cancels — which is the symptom of the regression.
+        await clientDisconnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        // Sanity check: with A removed from both _clients and _apis, broadcasting picks up no live
+        // clients and must not throw. (B is still paused mid-promotion so it is also not in the
+        // live dictionaries.)
+        await service.BroadcastEventAsync( "AfterARemoved", testContext.CancellationToken );
+        await service.BroadcastViaApisAsync( "AfterARemoved", testContext.CancellationToken );
+
+        // Release client B's promotion so the connect task can complete and the test exits cleanly.
+        bPromotingReleaseTcs.TrySetResult( true );
+
+        try
+        {
+            await clientBConnectTask.WithCancellation( testContext.CancellationToken );
+        }
+        catch
+        {
+            // The connect task may complete or fail — either is acceptable for this test.
+        }
+    }
+
+    /// <summary>
     /// Tests that RaiseEventAsync handles client disconnection gracefully.
     /// When a client disconnects during event broadcast, other clients should still receive the event.
     /// </summary>
