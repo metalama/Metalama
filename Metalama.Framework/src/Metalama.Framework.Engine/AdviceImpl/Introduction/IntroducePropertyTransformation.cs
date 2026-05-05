@@ -123,21 +123,25 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                 case (true, Writeability.All, { IsImplicitlyDeclared: true }, { IsImplicitlyDeclared: true }):
                 // Auto-properties with both accessors.
                 case (true, Writeability.All or Writeability.InitOnly, { IsImplicitlyDeclared: false }, { IsImplicitlyDeclared: _ }):
-                    return AccessorList( List( [GenerateGetAccessor(), GenerateSetAccessor()] ) );
+                    return SyntaxFactoryEx.FormattedAccessorList(
+                        [GenerateGetAccessor(), GenerateSetAccessor()],
+                        context.SyntaxGenerationContext );
 
                 // Init only fields.
                 case (true, Writeability.InitOnly, { IsImplicitlyDeclared: true }, { IsImplicitlyDeclared: true }):
-                    return AccessorList( List( [GenerateGetAccessor(), GenerateSetAccessor()] ) );
+                    return SyntaxFactoryEx.FormattedAccessorList(
+                        [GenerateGetAccessor(), GenerateSetAccessor()],
+                        context.SyntaxGenerationContext );
 
                 // Properties with only get accessor.
                 case (false, _, not null, null):
                 // Read only fields or get-only auto properties.
                 case (true, Writeability.ConstructorOnly, not null, { IsImplicitlyDeclared: true }):
-                    return AccessorList( List( [GenerateGetAccessor()] ) );
+                    return SyntaxFactoryEx.FormattedAccessorList( [GenerateGetAccessor()], context.SyntaxGenerationContext );
 
                 // Properties with only set accessor.
                 case (_, _, null, not null):
-                    return AccessorList( List( [GenerateSetAccessor()] ) );
+                    return SyntaxFactoryEx.FormattedAccessorList( [GenerateSetAccessor()], context.SyntaxGenerationContext );
 
                 default:
                     throw new AssertionFailedException( "Both the getter and the setter are undefined." );
@@ -184,14 +188,19 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                 finalProperty.SetMethod.Accessibility.AddTokens( tokens );
             }
 
+            // The keyword needs a trailing space only when followed by a body block ("set { ... }").
+            // For bodyless accessors ("set;"), no trailing trivia is emitted, so we don't get "set ;".
+            var keywordKind = this.BuilderData.HasInitOnlySetter ? SyntaxKind.InitKeyword : SyntaxKind.SetKeyword;
+            var keyword = hasNoBody
+                ? Token( keywordKind )
+                : Token( default, keywordKind, TriviaList( ElasticSpace ) );
+
             return
                 AccessorDeclaration(
                     this.BuilderData.HasInitOnlySetter ? SyntaxKind.InitAccessorDeclaration : SyntaxKind.SetAccessorDeclaration,
                     AdviceSyntaxGenerator.GetAttributeLists( finalProperty.SetMethod, context ),
                     TokenList( tokens ),
-                    this.BuilderData.HasInitOnlySetter
-                        ? Token( TriviaList(), SyntaxKind.InitKeyword, TriviaList( ElasticSpace ) )
-                        : Token( TriviaList(), SyntaxKind.SetKeyword, TriviaList( ElasticSpace ) ),
+                    keyword,
                     hasNoBody ? null : syntaxGenerator.FormattedBlock(),
                     null,
                     hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );

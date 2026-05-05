@@ -55,7 +55,7 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                         TokenList(),
                         ((TypeDeclarationSyntax) finalMethod.DeclaringType.GetPrimaryDeclarationSyntax().AssertNotNull()).Identifier,
                         ParameterList(),
-                        Block().WithGeneratedCodeAnnotation( this.AspectInstance.AspectClass.GeneratedCodeAnnotation ),
+                        syntaxGenerator.FormattedBlock().WithGeneratedCodeAnnotation( this.AspectInstance.AspectClass.GeneratedCodeAnnotation ),
                         null );
 
                     return [new InjectedMember( this, syntax, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.BuilderData.ToRef() )];
