@@ -232,14 +232,16 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     }
 
     /// <summary>
-    /// Regression test for Copilot review feedback on PR #1618. After the original fix, the disconnect handler
-    /// could still race with <c>OnRpcStarted</c>: if the disconnect arrived after <c>_pendingClients.TryRemove</c>
-    /// succeeded but before <c>_clients</c>/<c>_apis</c> were populated, <c>OnRpcDisconnected</c> would remove
-    /// nothing and <c>OnRpcStarted</c> would re-insert a dead RPC into the live dictionaries. Subsequent
-    /// broadcasts would then target a torn-down connection and throw.
-    /// The fix serializes <c>OnRpcStarted</c> and <c>OnRpcDisconnected</c> with a per-service lock so this race
-    /// cannot occur. The test forces the race window via the <c>OnPendingClientPromoting</c> hook and asserts
-    /// that broadcasting after the dust settles only reaches the still-connected client.
+    /// Regression test for Copilot review feedback on PR #1618. The disconnect handler could race with
+    /// <c>OnRpcStarted</c>: if the disconnect arrived during the promotion window,
+    /// <c>OnRpcDisconnected</c> would find no entry to remove and <c>OnRpcStarted</c> would proceed to
+    /// insert a dead RPC into <c>_clients</c>/<c>_apis</c>. Subsequent broadcasts would then target a
+    /// torn-down connection and throw.
+    /// The fix records each rpc in <c>_registrations</c> with its own per-rpc lock; <c>OnRpcStarted</c>
+    /// and <c>OnRpcDisconnected</c> contend on that lock for the same rpc, and the latter sets
+    /// <c>IsDisconnected</c> so a paused promotion knows to skip. The test forces the race via the
+    /// <c>OnPendingClientPromoting</c> hook and asserts that broadcasting after the dust settles only
+    /// reaches the still-connected client.
     /// </summary>
     [Fact]
     public async Task OnRpcStarted_DisconnectInMiddleOfPromotion_DoesNotLeaveDeadRpcInDictionaries()
@@ -335,11 +337,12 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     }
 
     /// <summary>
-    /// Regression test for Copilot review feedback on PR #1618. The original fix cleaned <c>_clients</c> on
-    /// disconnect but left <c>_apis</c> populated. <c>EventHubRpcService.ForwardEventAsync</c> iterates the
-    /// <c>Apis</c> property, so a disconnected subscriber would remain eligible for future notifications and
-    /// its stored <c>IRpcEventSender</c> would attempt to raise events over a dead <c>JsonRpc</c> instance.
-    /// The fix removes the entry from <c>_apis</c> as well as <c>_clients</c>/<c>_pendingClients</c>.
+    /// Regression test for Copilot review feedback on PR #1618. <c>OnRpcDisconnected</c> originally cleaned
+    /// only <c>_clients</c> and left <c>_apis</c> populated. <c>EventHubRpcService.ForwardEventAsync</c>
+    /// iterates the <see cref="RpcService{TApi}.Apis"/> property, so a disconnected subscriber would remain
+    /// eligible for future notifications and its stored <c>IRpcEventSender</c> would attempt to raise events
+    /// over a dead <c>JsonRpc</c> instance. The fix removes the entry from <c>_apis</c> alongside
+    /// <c>_clients</c> when its <c>_registrations</c> entry is removed.
     /// </summary>
     [Fact]
     public async Task OnRpcDisconnected_RemovesEntryFromApisCollection()
@@ -472,6 +475,113 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
         catch
         {
             // The connect task may complete or fail — either is acceptable for this test.
+        }
+    }
+
+    /// <summary>
+    /// Regression test for Copilot review feedback on PR #1618 (round 4). The per-rpc lock added in
+    /// <c>OnRpcStarted</c>/<c>OnRpcDisconnected</c> only narrows the race between broadcast and disconnect —
+    /// it cannot eliminate it because <see cref="RpcService{TApi}.RaiseEventAsync"/> and
+    /// <see cref="RpcService{TApi}.Apis"/> iteration are unlocked by design (taking the lock at broadcast
+    /// time would block disconnect cleanup behind a network call). A snapshot of <c>_clients</c>/<c>_apis</c>
+    /// taken just before or during cleanup can still observe a stale callback whose underlying <c>JsonRpc</c>
+    /// is dead, and invoking it would throw <c>ConnectionLostException</c> / <c>ObjectDisposedException</c> /
+    /// <c>"...listening for messages has started"</c> out of <see cref="Task.WhenAll(IEnumerable{Task})"/>.
+    /// The fix wraps each per-client invocation in <c>SafeBroadcastInvokeAsync</c>, which swallows those
+    /// lifecycle exceptions so a single transitioning client cannot fail the broadcast for the others.
+    /// The test pauses <c>OnRpcDisconnected</c> for client 2 right at entry — keeping it in
+    /// <c>_clients</c>/<c>_apis</c> while its underlying pipe is gone — then broadcasts via both
+    /// <see cref="RpcService{TApi}.RaiseEventAsync"/> and the <see cref="RpcService{TApi}.Apis"/>
+    /// iteration path used by <c>EventHubRpcService.ForwardEventAsync</c>, and asserts that client 1
+    /// still receives both events.
+    /// </summary>
+    [Fact]
+    public async Task RaiseEventAsync_ClientDeadInDictionariesDuringBroadcast_DoesNotThrow()
+    {
+        using var testContext = this.CreateRpcTestContext();
+
+        var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
+
+        using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
+
+        var clientConnectedCount = 0;
+        var bothClientsConnectedTcs = new TaskCompletionSource<bool>();
+        var disconnectingReachedTcs = new TaskCompletionSource<bool>();
+        var disconnectingReleaseTcs = new TaskCompletionSource<bool>();
+
+        serverEndpoint.ClientConnected += () =>
+        {
+            if ( Interlocked.Increment( ref clientConnectedCount ) == 2 )
+            {
+                bothClientsConnectedTcs.TrySetResult( true );
+            }
+        };
+
+        serverEndpoint.Start();
+
+        using var client1 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+        var client2 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+
+        await client1.ConnectAsync( testContext.CancellationToken );
+        await client2.ConnectAsync( testContext.CancellationToken );
+
+        await bothClientsConnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        var eventClient1 = client1.GetRequiredClient<EventTestClient>();
+        var firstEventTcs = new TaskCompletionSource<string>();
+        var secondEventTcs = new TaskCompletionSource<string>();
+
+        eventClient1.EventReceived += e =>
+        {
+            if ( e is not TestEventData testEvent )
+            {
+                return;
+            }
+
+            switch ( testEvent.Message )
+            {
+                case "RaiseDuringDeadEntry":
+                    firstEventTcs.TrySetResult( testEvent.Message );
+
+                    break;
+
+                case "ApisDuringDeadEntry":
+                    secondEventTcs.TrySetResult( testEvent.Message );
+
+                    break;
+            }
+        };
+
+        var service = await serverEndpoint.GetRequiredServiceAsync<EventTestService>( testContext.CancellationToken );
+
+        // Pause OnRpcDisconnected at entry so client2's _registrations/_clients/_apis entries are not
+        // cleaned up while we broadcast. The underlying pipe has been closed by client2.Dispose(), so any
+        // invocation on client2's IRpcCallback or stored IRpcEventSender will fail.
+        service.OnRpcDisconnectingHook = () =>
+        {
+            disconnectingReachedTcs.TrySetResult( true );
+            disconnectingReleaseTcs.Task.GetAwaiter().GetResult();
+        };
+
+        client2.Dispose();
+        await disconnectingReachedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        try
+        {
+            // Path 1: RpcService<TApi>.RaiseEventAsync iterates _clients. Without the fix, invoking
+            // client2's now-dead IRpcCallback throws out of Task.WhenAll and the broadcast fails.
+            await service.BroadcastEventAsync( "RaiseDuringDeadEntry", testContext.CancellationToken );
+            Assert.Equal( "RaiseDuringDeadEntry", await firstEventTcs.Task.WithCancellation( testContext.CancellationToken ) );
+
+            // Path 2: EventHubRpcService.ForwardEventAsync-style iteration over Apis. Without the fix,
+            // invoking client2's stored IRpcEventSender throws and the broadcast fails.
+            await service.BroadcastViaApisAsync( "ApisDuringDeadEntry", testContext.CancellationToken );
+            Assert.Equal( "ApisDuringDeadEntry", await secondEventTcs.Task.WithCancellation( testContext.CancellationToken ) );
+        }
+        finally
+        {
+            // Always release the disconnect handler so the test can exit cleanly.
+            disconnectingReleaseTcs.TrySetResult( true );
         }
     }
 

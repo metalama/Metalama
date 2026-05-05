@@ -20,15 +20,18 @@ public sealed partial class RpcServiceRaiseEventTests
         public EventTestService( ServerEndpoint serverEndpoint ) : base( serverEndpoint ) { }
 
         /// <summary>
-        /// Test hook invoked inside <see cref="RpcService{TApi}.OnRpcStarted"/> between removing the pending entry
-        /// and adding it to the live <c>_clients</c>/<c>_apis</c> dictionaries. Used to deterministically inject
-        /// a concurrent disconnect during the promotion window.
+        /// Test hook invoked inside <see cref="RpcService{TApi}.OnRpcStarted"/> while holding the per-rpc
+        /// registration lock, before promotion to the live <c>_clients</c>/<c>_apis</c> dictionaries. Used to
+        /// deterministically pause inside the promotion window — e.g. to inject a concurrent disconnect of
+        /// the same rpc, or to verify that a disconnect of an unrelated rpc is not blocked behind this lock.
         /// </summary>
         public Action? OnPendingClientPromotingHook { get; set; }
 
         /// <summary>
-        /// Test hook invoked at the entry of <c>OnRpcDisconnected</c>, before any dictionary cleanup. Used
-        /// to observe that a disconnect is being processed even when the registration lock is currently held.
+        /// Test hook invoked at the entry of <c>OnRpcDisconnected</c>, before the per-rpc registration lock
+        /// is acquired and before any cleanup runs. Used to observe that a disconnect is being processed,
+        /// or to pause cleanup so the rpc remains in <c>_clients</c>/<c>_apis</c> while a broadcast snapshot
+        /// is taken.
         /// </summary>
         public Action? OnRpcDisconnectingHook { get; set; }
 

@@ -50,6 +50,49 @@ public abstract class RpcService
         this.Logger.Trace?.Log( nameof(this.OnRpcDisconnected) );
     }
 
+    /// <summary>
+    /// Helper for broadcasting an event to one client. Swallows the lifecycle exceptions that arise
+    /// when a client disconnects between the broadcast snapshot and the per-client invocation, so a
+    /// single transitioning client cannot fail the broadcast for the others. Used by both
+    /// <see cref="RpcService{TApi}.RaiseEventAsync"/> (which iterates <c>_clients</c>) and
+    /// <c>EventHubRpcService.ForwardEventAsync</c> (which iterates <see cref="RpcService{TApi}.Apis"/>).
+    /// The per-rpc lock in <see cref="RpcService{TApi}.OnRpcDisconnected"/> only narrows the race
+    /// window — it cannot eliminate it because broadcast iteration is unlocked by design (taking
+    /// a lock at broadcast time would block disconnect cleanup behind a network call).
+    /// </summary>
+    private protected async Task SafeBroadcastInvokeAsync( Func<CancellationToken, Task> invoke, CancellationToken cancellationToken )
+    {
+        try
+        {
+            await invoke( cancellationToken );
+        }
+        catch ( OperationCanceledException ) when ( cancellationToken.IsCancellationRequested )
+        {
+            throw;
+        }
+        catch ( ConnectionLostException ex )
+        {
+            this.Logger.Trace?.Log( $"Broadcast: connection lost (client disconnected during broadcast); skipping. {ex.Message}" );
+        }
+        catch ( ObjectDisposedException ex )
+        {
+            this.Logger.Trace?.Log( $"Broadcast: rpc disposed (client disconnected during broadcast); skipping. {ex.Message}" );
+        }
+        catch ( InvalidOperationException ex ) when ( ex.Message.Contains( "listening" ) )
+        {
+            this.Logger.Trace?.Log( $"Broadcast: rpc not listening (race during connect/disconnect); skipping. {ex.Message}" );
+        }
+        catch ( RemoteInvocationException ex ) when ( ex.Message.Contains( "listening" ) )
+        {
+            this.Logger.Trace?.Log( $"Broadcast: rpc not listening (race during connect/disconnect); skipping. {ex.Message}" );
+        }
+        catch ( Exception ex )
+        {
+            // A per-client failure must not poison other clients in the broadcast. Log loudly and continue.
+            this.Logger.Warning?.Log( $"Broadcast: unexpected exception; skipping to keep broadcast intact. {ex}" );
+        }
+    }
+
     public override string ToString() => $"{{{this.GetType().Name}, Id={this._id}}}";
 }
 
@@ -163,7 +206,9 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
 
         var envelope = new RpcEventEnvelope( typeof(TApi).Name, eventData );
 
-        await Task.WhenAll( this._clients.Values.Select( c => c.RaiseEventAsync( envelope, cancellationToken ) ) ).WithCancellation( cancellationToken );
+        await Task.WhenAll(
+                this._clients.Values.Select( c => this.SafeBroadcastInvokeAsync( ct => c.RaiseEventAsync( envelope, ct ), cancellationToken ) ) )
+            .WithCancellation( cancellationToken );
     }
 
     protected void RaiseEvent( RpcEventData eventData, CancellationToken cancellationToken = default )
