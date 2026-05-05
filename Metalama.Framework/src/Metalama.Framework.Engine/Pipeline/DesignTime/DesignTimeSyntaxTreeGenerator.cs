@@ -208,38 +208,105 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 members = members.AddRange(
                     CreateInjectedConstructors( initialCompilationModel, finalCompilationModel, syntaxGenerationContext, declaringType ) );
 
+                // Compute the indent level of the innermost type's members, so injected members can be
+                // indented and brace placement can match the surrounding nesting depth without a
+                // NormalizeWhitespace pass.
+                var typeDepth = 0;
+
+                for ( var t = declaringType.DeclaringType; t != null; t = t.DeclaringType )
+                {
+                    typeDepth++;
+                }
+
+                if ( !declaringType.ContainingNamespace.IsGlobalNamespace )
+                {
+                    typeDepth++;
+                }
+
+#if ROSLYN_5_0_0_OR_GREATER
+                var hasExtensionBlock = extensionBlock != null;
+#else
+                const bool hasExtensionBlock = false;
+#endif
+
+                // When an extension block wraps the members, they are children of the extension block,
+                // which is itself a member of declaringType. Members therefore need an extra indent level.
+                var memberIndentLevel = typeDepth + ( hasExtensionBlock ? 2 : 1 );
+
+                // Each member's leading trivia receives a newline + indent so the member sits on its own
+                // line at the right column. For methods/constructors/etc. that also have a body, the
+                // body braces are aligned to the same column. Both operations happen in a single pass
+                // here because the indent depth (computed from the type's nesting) is only known at
+                // this scope - the IInjectMemberTransformation implementations have no way to emit
+                // indent-aware trivia themselves.
+                var indentedMembers = new MemberDeclarationSyntax[members.Count];
+
+                for ( var i = 0; i < members.Count; i++ )
+                {
+                    indentedMembers[i] = IndentMember( members[i], syntaxGenerationContext, memberIndentLevel );
+                }
+
+                members = List( indentedMembers );
+
 #if ROSLYN_5_0_0_OR_GREATER
 
-                // Create the extension block.
+                // Create the extension block. The block's own indent level matches the depth at which
+                // it appears (i.e., as a member of declaringType): typeDepth + 1.
                 if ( extensionBlock != null )
                 {
-                    var extensionBlockSyntax = CreateExtensionBlock( extensionBlock, members, syntaxGenerationContext );
+                    var extensionBlockDepth = typeDepth + 1;
+
+                    var extensionBlockSyntax = CreateExtensionBlock( extensionBlock, members, syntaxGenerationContext, extensionBlockDepth );
+
+                    // Indent the extension block declaration so it lines up with declaringType's body.
+                    extensionBlockSyntax = (ExtensionBlockDeclarationSyntax) AddLeadingNewLineAndIndent(
+                        extensionBlockSyntax,
+                        syntaxGenerationContext,
+                        extensionBlockDepth );
+
                     members = List<MemberDeclarationSyntax>( [extensionBlockSyntax] );
                 }
 #endif
 
-                // Create a type.
-                var typeDeclaration = CreatePartialType( declaringType, baseList, members );
+                // Create a type. The wrapper tokens (keywords, braces) are constructed with explicit elastic
+                // trivia so the resulting tree's ToFullString is parseable C# without a per-type
+                // NormalizeWhitespace pass.
+                var typeDeclaration = CreatePartialType( declaringType, baseList, members, syntaxGenerationContext, typeDepth );
 
                 // Add the type to its nesting type.
                 var topDeclaration = (MemberDeclarationSyntax) typeDeclaration;
+                var currentDepth = typeDepth;
 
                 for ( var containingType = declaringType.DeclaringType; containingType != null; containingType = containingType.DeclaringType )
                 {
+                    // The current top declaration becomes a member of containingType, so it sits at
+                    // the indent level matching the containing type's body.
+                    topDeclaration = AddLeadingNewLineAndIndent( topDeclaration, syntaxGenerationContext, currentDepth );
+                    currentDepth--;
+
                     topDeclaration = CreatePartialType(
                         containingType,
                         null,
-                        SingletonList( topDeclaration ) );
+                        SingletonList( topDeclaration ),
+                        syntaxGenerationContext,
+                        currentDepth );
                 }
 
                 // Add the class to a namespace.
                 if ( !declaringType.ContainingNamespace.IsGlobalNamespace )
                 {
+                    // Indent the type as a member of the namespace (depth 1 below the namespace keyword).
+                    topDeclaration = AddLeadingNewLineAndIndent( topDeclaration, syntaxGenerationContext, 1 );
+
                     topDeclaration = NamespaceDeclaration(
+                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.NamespaceKeyword ),
                         ParseName( declaringType.ContainingNamespace.FullName ),
-                        default,
-                        default,
-                        SingletonList( topDeclaration ) );
+                        Token( syntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.OpenBraceToken, default ),
+                        externs: default,
+                        usings: default,
+                        SingletonList( topDeclaration ),
+                        Token( syntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
+                        semicolonToken: default );
                 }
 
                 // Choose the best syntax tree
@@ -254,8 +321,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var safeTypeName = GetUniqueFilenameForType( declaringTypeOrExtensionBlock );
                 var syntaxTreeName = safeTypeName + ".cs";
 
+                // No NormalizeWhitespace pass: the wrappers above and the IInjectMemberTransformation outputs
+                // already carry the elastic trivia they need to render as parseable C#. Avoiding the per-type
+                // pass is the whole point of this generator's perf improvement (issue #1601).
                 var generatedSyntaxTree = CSharpSyntaxTree.Create(
-                    compilationUnit.NormalizeWhitespace(),
+                    compilationUnit,
                     parseOptions,
                     syntaxTreeName,
                     Encoding.UTF8 );
@@ -330,6 +400,97 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             }
         }
 
+        // Returns "<newline><indent>" trivia for the requested indent level, using elastic newline so the
+        // tree remains compatible with later formatting if it ever runs again, and explicit whitespace for
+        // the indentation columns. When the syntax-generation context will not textualize the tree,
+        // returns an empty trivia list (matching OptionalElasticEndOfLineTriviaList semantics).
+        private static SyntaxTriviaList GetNewLineAndIndentTriviaList( SyntaxGenerationContext context, int level )
+        {
+            if ( context.OptionalElasticEndOfLineTriviaList.Count == 0 )
+            {
+                return default;
+            }
+
+            if ( level <= 0 )
+            {
+                return context.OptionalElasticEndOfLineTriviaList;
+            }
+
+            return TriviaList( ElasticEndOfLine( context.EndOfLine ), Whitespace( new string( ' ', level * 4 ) ) );
+        }
+
+        // Adds "<newline><indent>" before the existing leading trivia of the member, so the member sits on
+        // its own line at the requested indent column.
+        private static MemberDeclarationSyntax AddLeadingNewLineAndIndent(
+            MemberDeclarationSyntax member,
+            SyntaxGenerationContext context,
+            int level )
+        {
+            var newLeading = GetNewLineAndIndentTriviaList( context, level );
+
+            if ( newLeading.Count == 0 )
+            {
+                return member;
+            }
+
+            return member.WithLeadingTrivia( newLeading.AddRange( member.GetLeadingTrivia() ) );
+        }
+
+        // Indents an injected member at memberIndentLevel: prepends the leading trivia, and (for members
+        // with a Block body) sets the body braces' leading trivia to the same indent so the member reads
+        // Allman-style at the right column. This runs in a single per-member O(1) pass because the
+        // indent depth is computed from the type's nesting at the design-time generator level and cannot
+        // be known by the IInjectMemberTransformation implementations that produce these members.
+        private static MemberDeclarationSyntax IndentMember(
+            MemberDeclarationSyntax member,
+            SyntaxGenerationContext context,
+            int memberIndentLevel )
+        {
+            var newLeading = GetNewLineAndIndentTriviaList( context, memberIndentLevel );
+
+            if ( newLeading.Count == 0 )
+            {
+                return member;
+            }
+
+            // Kind checks are pre-pended to pattern matches per LAMA0860 (avoids the runtime cost of
+            // type-test casts when the kind is the cheap discriminator).
+            switch ( member.Kind() )
+            {
+                case SyntaxKind.MethodDeclaration when member is MethodDeclarationSyntax method && method.Body is { } methodBody:
+                    member = method.WithBody( WithBraceIndent( methodBody, newLeading ) );
+
+                    break;
+
+                case SyntaxKind.ConstructorDeclaration when member is ConstructorDeclarationSyntax ctor && ctor.Body is { } ctorBody:
+                    member = ctor.WithBody( WithBraceIndent( ctorBody, newLeading ) );
+
+                    break;
+
+                case SyntaxKind.DestructorDeclaration when member is DestructorDeclarationSyntax dtor && dtor.Body is { } dtorBody:
+                    member = dtor.WithBody( WithBraceIndent( dtorBody, newLeading ) );
+
+                    break;
+
+                case SyntaxKind.OperatorDeclaration when member is OperatorDeclarationSyntax op && op.Body is { } opBody:
+                    member = op.WithBody( WithBraceIndent( opBody, newLeading ) );
+
+                    break;
+
+                case SyntaxKind.ConversionOperatorDeclaration when member is ConversionOperatorDeclarationSyntax convOp && convOp.Body is { } convOpBody:
+                    member = convOp.WithBody( WithBraceIndent( convOpBody, newLeading ) );
+
+                    break;
+            }
+
+            return member.WithLeadingTrivia( newLeading.AddRange( member.GetLeadingTrivia() ) );
+
+            static BlockSyntax WithBraceIndent( BlockSyntax body, SyntaxTriviaList lineLeading )
+                => body
+                    .WithOpenBraceToken( body.OpenBraceToken.WithLeadingTrivia( lineLeading ) )
+                    .WithCloseBraceToken( body.CloseBraceToken.WithLeadingTrivia( lineLeading ) );
+        }
+
         private static IEnumerable<MemberDeclarationSyntax> AddPartialModifierToTypes( IEnumerable<MemberDeclarationSyntax> injectedMembers )
         {
             foreach ( var member in injectedMembers )
@@ -340,7 +501,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                      && !typeDeclaration.Modifiers.Any( SyntaxKind.PartialKeyword ) )
                 {
                     yield return
-                        member.WithModifiers( member.Modifiers.Add( Token( TriviaList( ElasticSpace ), SyntaxKind.PartialKeyword, TriviaList() ) ) );
+                        member.WithModifiers( member.Modifiers.Add( Token( TriviaList( ElasticSpace ), SyntaxKind.PartialKeyword, TriviaList( ElasticSpace ) ) ) );
                 }
                 else
                 {
@@ -381,6 +542,12 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     introducedConstructor.Parameters
                         .SelectAsArray( p => (p.Type, p.RefKind) ) );
             }
+
+            // Empty body with proper trivia so the constructor renders on its own line: FormattedBlock
+            // emits an open brace with elastic newlines on both sides and a close brace with a leading
+            // elastic newline, which is enough to render Allman-style "()\n{\n\n}" without any
+            // NormalizeWhitespace pass downstream.
+            var emptyBody = syntaxGenerationContext.SyntaxGenerator.FormattedBlock();
 
             foreach ( var constructor in type.Constructors )
             {
@@ -430,7 +597,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                                                         : null,
                                                     GetArgumentRefToken( p ),
                                                     SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) ),
-                        Block() ) );
+                        emptyBody ) );
 
                 if ( initialConstructor.Parameters.Any( p => p.DefaultValue != null ) )
                 {
@@ -461,7 +628,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                                                             NameColon( p.Name ),
                                                             GetArgumentRefToken( p ),
                                                             DefaultExpression( syntaxGenerationContext.SyntaxGenerator.TypeSyntax( p.Type ) ) ) ) ) ) ),
-                                Block() ) );
+                                emptyBody ) );
                     }
                 }
             }
@@ -473,8 +640,8 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 return p.RefKind switch
                 {
                     RefKind.None or RefKind.In => default,
-                    RefKind.Ref or RefKind.RefReadOnly => Token( SyntaxKind.RefKeyword ),
-                    RefKind.Out => Token( SyntaxKind.OutKeyword ),
+                    RefKind.Ref or RefKind.RefReadOnly => SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RefKeyword ),
+                    RefKind.Out => SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.OutKeyword ),
                     _ => throw new AssertionFailedException( $"Unsupported: {p.RefKind}" )
                 };
             }
@@ -484,18 +651,23 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         private static ExtensionBlockDeclarationSyntax CreateExtensionBlock(
             IExtensionBlock extensionBlock,
             SyntaxList<MemberDeclarationSyntax> members,
-            SyntaxGenerationContext syntaxGenerationContext )
+            SyntaxGenerationContext syntaxGenerationContext,
+            int blockDepth )
         {
+            // Both braces use the same "newline + blockDepth*4 spaces" leading trivia so they line up
+            // with the extension keyword's column once that line has its own leading indent applied.
+            var blockLineLeading = GetNewLineAndIndentTriviaList( syntaxGenerationContext, blockDepth );
+
             return ExtensionBlockDeclaration(
                 attributeLists: default,
                 modifiers: default,
-                Token( SyntaxKind.ExtensionKeyword ),
+                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ExtensionKeyword ),
                 CreateTypeParameters( extensionBlock ),
                 CreateExtensionBlockParameterList( extensionBlock, syntaxGenerationContext ),
                 CreateConstraintList( extensionBlock, syntaxGenerationContext ),
-                Token( SyntaxKind.OpenBraceToken ),
+                Token( blockLineLeading, SyntaxKind.OpenBraceToken, default ),
                 members,
-                Token( SyntaxKind.CloseBraceToken ),
+                Token( blockLineLeading, SyntaxKind.CloseBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
                 default );
         }
 
@@ -513,69 +685,100 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
 #endif
 
-        private static TypeDeclarationSyntax CreatePartialType( INamedType type, BaseListSyntax? baseList, SyntaxList<MemberDeclarationSyntax> members )
-            => type.TypeKind switch
+        private static TypeDeclarationSyntax CreatePartialType(
+            INamedType type,
+            BaseListSyntax? baseList,
+            SyntaxList<MemberDeclarationSyntax> members,
+            SyntaxGenerationContext syntaxGenerationContext,
+            int typeDepth )
+        {
+            // The wrapping tokens (modifiers, type keyword, braces) are constructed with explicit trivia so
+            // ToFullString produces parseable C# without a NormalizeWhitespace pass. Modifiers carry trailing
+            // elastic spaces; the open brace carries a trailing newline; the close brace's leading trivia is
+            // a newline followed by the indentation that matches typeDepth so the brace lines up with the
+            // type's own indentation column. Members are expected to provide their own leading newline and
+            // indentation (see FormatInjectedMember), so the open brace does not need to spray newlines.
+            var modifiers = type.IsStatic
+                ? TokenList(
+                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ),
+                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PartialKeyword ) )
+                : SyntaxTokenList.Create( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PartialKeyword ) );
+
+            var typeLineLeading = GetNewLineAndIndentTriviaList( syntaxGenerationContext, typeDepth );
+            var openBrace = Token( typeLineLeading, SyntaxKind.OpenBraceToken, default );
+            var closeBrace = Token( typeLineLeading, SyntaxKind.CloseBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList );
+
+            return type.TypeKind switch
             {
                 TypeKind.Class when !type.IsRecord => ClassDeclaration(
                     attributeLists: default,
-                    type.IsStatic
-                        ? TokenList(
-                            Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( ElasticSpace ) ),
-                            Token( SyntaxKind.PartialKeyword ) )
-                        : SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
+                    modifiers,
+                    keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ClassKeyword ),
                     SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     baseList,
                     constraintClauses: default,
-                    members ),
+                    openBraceToken: openBrace,
+                    members,
+                    closeBraceToken: closeBrace,
+                    semicolonToken: default ),
                 TypeKind.Class when type.IsRecord => RecordDeclaration(
                     SyntaxKind.RecordDeclaration,
                     attributeLists: default,
-                    SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
-                    keyword: Token( SyntaxKind.RecordKeyword ),
-                    classOrStructKeyword: Token( SyntaxKind.ClassKeyword ),
+                    modifiers,
+                    keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RecordKeyword ),
+                    classOrStructKeyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ClassKeyword ),
                     SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     parameterList: null,
                     baseList,
                     constraintClauses: default,
-                    openBraceToken: Token( SyntaxKind.OpenBraceToken ),
+                    openBraceToken: openBrace,
                     members,
-                    closeBraceToken: Token( SyntaxKind.CloseBraceToken ),
+                    closeBraceToken: closeBrace,
                     semicolonToken: default ),
                 TypeKind.Struct when !type.IsRecord => StructDeclaration(
                     attributeLists: default,
-                    SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
+                    modifiers,
+                    keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StructKeyword ),
                     SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     baseList,
                     constraintClauses: default,
-                    members ),
+                    openBraceToken: openBrace,
+                    members,
+                    closeBraceToken: closeBrace,
+                    semicolonToken: default ),
                 TypeKind.Struct when type.IsRecord => RecordDeclaration(
                     SyntaxKind.RecordStructDeclaration,
                     attributeLists: default,
-                    SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
-                    keyword: Token( SyntaxKind.RecordKeyword ),
-                    classOrStructKeyword: Token( SyntaxKind.StructKeyword ),
+                    modifiers,
+                    keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RecordKeyword ),
+                    classOrStructKeyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StructKeyword ),
                     SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     parameterList: null,
                     baseList,
                     constraintClauses: default,
-                    openBraceToken: Token( SyntaxKind.OpenBraceToken ),
+                    openBraceToken: openBrace,
                     members,
-                    closeBraceToken: Token( SyntaxKind.CloseBraceToken ),
+                    closeBraceToken: closeBrace,
                     semicolonToken: default ),
                 TypeKind.Interface => InterfaceDeclaration(
                     attributeLists: default,
-                    SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
+                    modifiers,
+                    keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.InterfaceKeyword ),
                     SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     baseList,
                     constraintClauses: default,
-                    members ),
+                    openBraceToken: openBrace,
+                    members,
+                    closeBraceToken: closeBrace,
+                    semicolonToken: default ),
                 _ => throw new AssertionFailedException( $"Unknown type kind: {type.TypeKind}." )
             };
+        }
 
         private static TypeParameterListSyntax? CreateTypeParameters( INamedType type )
         {
@@ -584,20 +787,22 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 return null;
             }
 
-            static SyntaxKind GetVariance( VarianceKind variance )
+            static SyntaxToken GetVarianceToken( VarianceKind variance )
             {
+                // Variance keywords need a trailing space, otherwise `in`/`out` joins with the following
+                // type-parameter identifier (e.g. `IRepository<inT>`) and produces invalid C#.
                 return variance switch
                 {
-                    VarianceKind.None => SyntaxKind.None,
-                    VarianceKind.In => SyntaxKind.InKeyword,
-                    VarianceKind.Out => SyntaxKind.OutKeyword,
+                    VarianceKind.None => default,
+                    VarianceKind.In => SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.InKeyword ),
+                    VarianceKind.Out => SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.OutKeyword ),
                     _ => throw new AssertionFailedException( $"Unknown variance: {variance}." )
                 };
             }
 
             return TypeParameterList(
                 SeparatedList(
-                    type.TypeParameters.SelectAsReadOnlyList( tp => TypeParameter( tp.Name ).WithVarianceKeyword( Token( GetVariance( tp.Variance ) ) ) ) ) );
+                    type.TypeParameters.SelectAsReadOnlyList( tp => TypeParameter( tp.Name ).WithVarianceKeyword( GetVarianceToken( tp.Variance ) ) ) ) );
         }
 
         private static MemberDeclarationSyntax AddHeader( MemberDeclarationSyntax node )

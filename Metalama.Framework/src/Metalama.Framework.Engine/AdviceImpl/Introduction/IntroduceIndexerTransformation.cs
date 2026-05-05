@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Helpers;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -60,15 +61,17 @@ internal sealed class IntroduceIndexerTransformation : IntroduceMemberTransforma
             {
                 // Indexers with both accessors.
                 case (_, not null, not null):
-                    return AccessorList( List( [GenerateGetAccessor(), GenerateSetAccessor()] ) );
+                    return SyntaxFactoryEx.FormattedAccessorList(
+                        [GenerateGetAccessor(), GenerateSetAccessor()],
+                        context.SyntaxGenerationContext );
 
                 // Indexers with only get accessor.
                 case (_, not null, null):
-                    return AccessorList( List( [GenerateGetAccessor()] ) );
+                    return SyntaxFactoryEx.FormattedAccessorList( [GenerateGetAccessor()], context.SyntaxGenerationContext );
 
                 // Indexers with only set accessor.
                 case (_, null, not null):
-                    return AccessorList( List( [GenerateSetAccessor()] ) );
+                    return SyntaxFactoryEx.FormattedAccessorList( [GenerateSetAccessor()], context.SyntaxGenerationContext );
 
                 default:
                     throw new AssertionFailedException( "Both the getter and the setter are undefined." );
@@ -114,14 +117,19 @@ internal sealed class IntroduceIndexerTransformation : IntroduceMemberTransforma
 
             var hasNoBody = finalIndexer.IsAbstract;
 
+            // The keyword needs a trailing space only when followed by a body block ("set { ... }").
+            // For bodyless accessors ("set;"), no trailing trivia is emitted, so we don't get "set ;".
+            var keywordKind = this.BuilderData.HasInitOnlySetter ? SyntaxKind.InitKeyword : SyntaxKind.SetKeyword;
+            var keyword = hasNoBody
+                ? Token( keywordKind )
+                : Token( default, keywordKind, TriviaList( ElasticSpace ) );
+
             return
                 AccessorDeclaration(
                     this.BuilderData.HasInitOnlySetter ? SyntaxKind.InitAccessorDeclaration : SyntaxKind.SetAccessorDeclaration,
                     AdviceSyntaxGenerator.GetAttributeLists( finalIndexer.SetMethod, context ),
                     TokenList( tokens ),
-                    this.BuilderData.HasInitOnlySetter
-                        ? Token( TriviaList(), SyntaxKind.InitKeyword, TriviaList( ElasticSpace ) )
-                        : Token( TriviaList(), SyntaxKind.SetKeyword, TriviaList( ElasticSpace ) ),
+                    keyword,
                     hasNoBody
                         ? null
                         : context.SyntaxGenerator.FormattedBlock(),
