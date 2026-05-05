@@ -60,7 +60,7 @@ public abstract class RpcService
     /// window — it cannot eliminate it because broadcast iteration is unlocked by design (taking
     /// a lock at broadcast time would block disconnect cleanup behind a network call).
     /// </summary>
-    private protected async Task SafeBroadcastInvokeAsync( Func<CancellationToken, Task> invoke, CancellationToken cancellationToken )
+    protected async Task SafeBroadcastInvokeAsync( Func<CancellationToken, Task> invoke, CancellationToken cancellationToken )
     {
         try
         {

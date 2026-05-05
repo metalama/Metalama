@@ -38,6 +38,14 @@ public sealed partial class RpcServiceRaiseEventTests
         protected override IEventTestApi CreateApi( IRpcEventSender eventSender ) => new Api( eventSender );
 
         /// <summary>
+        /// Test wrapper that exposes <c>RpcService.SafeBroadcastInvokeAsync</c> so tests can verify, without
+        /// any RPC plumbing, that the helper swallows the lifecycle exceptions that arise when a per-client
+        /// callback is invoked on a torn-down rpc.
+        /// </summary>
+        public Task TestSafeBroadcastInvokeAsync( Func<CancellationToken, Task> invoke, CancellationToken cancellationToken )
+            => this.SafeBroadcastInvokeAsync( invoke, cancellationToken );
+
+        /// <summary>
         /// Broadcasts an event to all connected clients.
         /// This calls the protected RaiseEventAsync method.
         /// </summary>

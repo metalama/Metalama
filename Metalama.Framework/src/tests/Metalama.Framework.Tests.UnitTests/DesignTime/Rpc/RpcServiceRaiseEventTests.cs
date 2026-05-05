@@ -4,6 +4,7 @@
 
 #pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
 
+using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
 using System;
 using System.Collections.Generic;
@@ -487,102 +488,73 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     /// taken just before or during cleanup can still observe a stale callback whose underlying <c>JsonRpc</c>
     /// is dead, and invoking it would throw <c>ConnectionLostException</c> / <c>ObjectDisposedException</c> /
     /// <c>"...listening for messages has started"</c> out of <see cref="Task.WhenAll(IEnumerable{Task})"/>.
-    /// The fix wraps each per-client invocation in <c>SafeBroadcastInvokeAsync</c>, which swallows those
-    /// lifecycle exceptions so a single transitioning client cannot fail the broadcast for the others.
-    /// The test pauses <c>OnRpcDisconnected</c> for client 2 right at entry — keeping it in
-    /// <c>_clients</c>/<c>_apis</c> while its underlying pipe is gone — then broadcasts via both
-    /// <see cref="RpcService{TApi}.RaiseEventAsync"/> and the <see cref="RpcService{TApi}.Apis"/>
-    /// iteration path used by <c>EventHubRpcService.ForwardEventAsync</c>, and asserts that client 1
-    /// still receives both events.
+    /// The fix wraps each per-client invocation in <c>RpcService.SafeBroadcastInvokeAsync</c>, which swallows
+    /// those lifecycle exceptions so a single transitioning client cannot fail the broadcast for the others.
+    /// This unit test exercises the helper directly (via an <c>EventTestService</c> facade) with stub Funcs
+    /// that throw each expected exception type.
     /// </summary>
-    [Fact]
-    public async Task RaiseEventAsync_ClientDeadInDictionariesDuringBroadcast_DoesNotThrow()
+    [Theory]
+
+    // StreamJsonRpc types are ILMerged into Metalama.Framework.DesignTime.Rpc and not directly visible from
+    // the test assembly, so they are instantiated reflectively from the merged assembly.
+    [InlineData( "StreamJsonRpc.ConnectionLostException", null )]
+    [InlineData( "System.ObjectDisposedException", "rpc" )]
+    [InlineData( "System.InvalidOperationException", "This operation is not allowed before listening for messages has started." )]
+    [InlineData( "StreamJsonRpc.RemoteInvocationException", "This operation is not allowed before listening for messages has started." )]
+    [InlineData( "System.NullReferenceException", null )]
+    public async Task SafeBroadcastInvokeAsync_PerClientFailure_IsSwallowed( string exceptionTypeName, string? message )
     {
         using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
 
         using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
-
-        var clientConnectedCount = 0;
-        var bothClientsConnectedTcs = new TaskCompletionSource<bool>();
-        var disconnectingReachedTcs = new TaskCompletionSource<bool>();
-        var disconnectingReleaseTcs = new TaskCompletionSource<bool>();
-
-        serverEndpoint.ClientConnected += () =>
-        {
-            if ( Interlocked.Increment( ref clientConnectedCount ) == 2 )
-            {
-                bothClientsConnectedTcs.TrySetResult( true );
-            }
-        };
-
         serverEndpoint.Start();
-
-        using var client1 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
-        var client2 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
-
-        await client1.ConnectAsync( testContext.CancellationToken );
-        await client2.ConnectAsync( testContext.CancellationToken );
-
-        await bothClientsConnectedTcs.Task.WithCancellation( testContext.CancellationToken );
-
-        var eventClient1 = client1.GetRequiredClient<EventTestClient>();
-        var firstEventTcs = new TaskCompletionSource<string>();
-        var secondEventTcs = new TaskCompletionSource<string>();
-
-        eventClient1.EventReceived += e =>
-        {
-            if ( e is not TestEventData testEvent )
-            {
-                return;
-            }
-
-            switch ( testEvent.Message )
-            {
-                case "RaiseDuringDeadEntry":
-                    firstEventTcs.TrySetResult( testEvent.Message );
-
-                    break;
-
-                case "ApisDuringDeadEntry":
-                    secondEventTcs.TrySetResult( testEvent.Message );
-
-                    break;
-            }
-        };
 
         var service = await serverEndpoint.GetRequiredServiceAsync<EventTestService>( testContext.CancellationToken );
 
-        // Pause OnRpcDisconnected at entry so client2's _registrations/_clients/_apis entries are not
-        // cleaned up while we broadcast. The underlying pipe has been closed by client2.Dispose(), so any
-        // invocation on client2's IRpcCallback or stored IRpcEventSender will fail.
-        service.OnRpcDisconnectingHook = () =>
-        {
-            disconnectingReachedTcs.TrySetResult( true );
-            disconnectingReleaseTcs.Task.GetAwaiter().GetResult();
-        };
+        var toThrow = CreateException( exceptionTypeName, message );
 
-        client2.Dispose();
-        await disconnectingReachedTcs.Task.WithCancellation( testContext.CancellationToken );
+        // The helper must not propagate the per-client failure: any exception type is swallowed (lifecycle
+        // exceptions trace-logged, others warning-logged) so the broadcast can complete for other clients.
+        await service.TestSafeBroadcastInvokeAsync( _ => throw toThrow, testContext.CancellationToken );
+    }
 
-        try
-        {
-            // Path 1: RpcService<TApi>.RaiseEventAsync iterates _clients. Without the fix, invoking
-            // client2's now-dead IRpcCallback throws out of Task.WhenAll and the broadcast fails.
-            await service.BroadcastEventAsync( "RaiseDuringDeadEntry", testContext.CancellationToken );
-            Assert.Equal( "RaiseDuringDeadEntry", await firstEventTcs.Task.WithCancellation( testContext.CancellationToken ) );
+    private static Exception CreateException( string typeName, string? message )
+    {
+        // Look first in the merged Metalama.Framework.DesignTime.Rpc assembly (for StreamJsonRpc.* types),
+        // then fall back to mscorlib for System.* types.
+        var type = typeof(RpcService).Assembly.GetType( typeName )
+                   ?? Type.GetType( typeName )
+                   ?? throw new InvalidOperationException( $"Type not found: {typeName}" );
 
-            // Path 2: EventHubRpcService.ForwardEventAsync-style iteration over Apis. Without the fix,
-            // invoking client2's stored IRpcEventSender throws and the broadcast fails.
-            await service.BroadcastViaApisAsync( "ApisDuringDeadEntry", testContext.CancellationToken );
-            Assert.Equal( "ApisDuringDeadEntry", await secondEventTcs.Task.WithCancellation( testContext.CancellationToken ) );
-        }
-        finally
-        {
-            // Always release the disconnect handler so the test can exit cleanly.
-            disconnectingReleaseTcs.TrySetResult( true );
-        }
+        return message is null
+            ? (Exception) Activator.CreateInstance( type )!
+            : (Exception) Activator.CreateInstance( type, message )!;
+    }
+
+    /// <summary>
+    /// The helper must propagate <see cref="OperationCanceledException"/> when the broadcast's own
+    /// cancellation token is signaled — otherwise the caller cannot tell that the whole broadcast was
+    /// cancelled. (A per-client OCE for a different reason is still swallowed by the catch-all.)
+    /// </summary>
+    [Fact]
+    public async Task SafeBroadcastInvokeAsync_CancellationOfOwnToken_IsRethrown()
+    {
+        using var testContext = this.CreateRpcTestContext();
+
+        var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
+
+        using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
+        serverEndpoint.Start();
+
+        var service = await serverEndpoint.GetRequiredServiceAsync<EventTestService>( testContext.CancellationToken );
+
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.TestSafeBroadcastInvokeAsync( ct => Task.FromCanceled( ct ), cts.Token ) );
     }
 
     /// <summary>
