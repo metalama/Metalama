@@ -66,6 +66,10 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
     // invoking the callback proxy on a rpc that is not yet listening.
     private readonly ConcurrentDictionary<JsonRpc, PendingClient> _pendingClients = new();
 
+    // Serializes OnRpcStarted (pending → live promotion) and OnRpcDisconnected (cleanup) so that a
+    // disconnect arriving in the middle of a promotion cannot leave a dead rpc in _clients/_apis.
+    private readonly object _registrationLock = new();
+
     protected RpcService( ServerEndpoint serverEndpoint ) : base( serverEndpoint ) { }
 
     public virtual void Dispose() { }
@@ -80,18 +84,45 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
 
     internal override void OnRpcStarted( JsonRpc rpc )
     {
-        if ( this._pendingClients.TryRemove( rpc, out var pending ) )
+        lock ( this._registrationLock )
         {
-            this._clients.TryAdd( rpc, pending.Callback );
-            this._apis.TryAdd( rpc, pending.Api );
+            if ( this._pendingClients.TryRemove( rpc, out var pending ) )
+            {
+                this.OnPendingClientPromoting();
+                this._clients.TryAdd( rpc, pending.Callback );
+                this._apis.TryAdd( rpc, pending.Api );
+            }
         }
     }
 
+    /// <summary>
+    /// Test extension point invoked between removing the pending entry and adding it to the live
+    /// <c>_clients</c>/<c>_apis</c> dictionaries. Production code does nothing; tests override this
+    /// to deterministically inject a concurrent disconnect during the promotion window.
+    /// </summary>
+    protected virtual void OnPendingClientPromoting() { }
+
+    /// <summary>
+    /// Test extension point invoked at the very entry of <see cref="OnRpcDisconnected"/>, before
+    /// the registration lock is acquired. Production code does nothing; tests use it to observe
+    /// that a disconnect is being processed even when the lock is currently held by a paused
+    /// <see cref="OnRpcStarted"/>.
+    /// </summary>
+    protected virtual void OnRpcDisconnecting() { }
+
     internal override void OnRpcDisconnected( JsonRpc rpc )
     {
-        // Cover disposal between ConfigureRpc and OnRpcStarted as well as the normal post-Started path.
-        this._pendingClients.TryRemove( rpc, out _ );
-        this._clients.TryRemove( rpc, out _ );
+        this.OnRpcDisconnecting();
+
+        lock ( this._registrationLock )
+        {
+            // Cover disposal between ConfigureRpc and OnRpcStarted as well as the normal post-Started path.
+            // _apis must be cleaned up too so that subscribers iterating Apis (e.g. EventHubRpcService.ForwardEventAsync)
+            // do not invoke a stored IRpcEventSender over a dead JsonRpc.
+            this._pendingClients.TryRemove( rpc, out _ );
+            this._clients.TryRemove( rpc, out _ );
+            this._apis.TryRemove( rpc, out _ );
+        }
     }
 
     protected IEnumerable<TApi> Apis => this._apis.Values;

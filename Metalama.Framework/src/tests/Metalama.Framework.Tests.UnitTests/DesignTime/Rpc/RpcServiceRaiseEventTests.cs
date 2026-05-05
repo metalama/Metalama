@@ -232,6 +232,173 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     }
 
     /// <summary>
+    /// Regression test for Copilot review feedback on PR #1618. After the original fix, the disconnect handler
+    /// could still race with <c>OnRpcStarted</c>: if the disconnect arrived after <c>_pendingClients.TryRemove</c>
+    /// succeeded but before <c>_clients</c>/<c>_apis</c> were populated, <c>OnRpcDisconnected</c> would remove
+    /// nothing and <c>OnRpcStarted</c> would re-insert a dead RPC into the live dictionaries. Subsequent
+    /// broadcasts would then target a torn-down connection and throw.
+    /// The fix serializes <c>OnRpcStarted</c> and <c>OnRpcDisconnected</c> with a per-service lock so this race
+    /// cannot occur. The test forces the race window via the <c>OnPendingClientPromoting</c> hook and asserts
+    /// that broadcasting after the dust settles only reaches the still-connected client.
+    /// </summary>
+    [Fact]
+    public async Task OnRpcStarted_DisconnectInMiddleOfPromotion_DoesNotLeaveDeadRpcInDictionaries()
+    {
+        using var testContext = this.CreateRpcTestContext();
+
+        var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
+
+        using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
+
+        var firstClientConnectedTcs = new TaskCompletionSource<bool>();
+        var clientDisconnectedTcs = new TaskCompletionSource<bool>();
+
+        serverEndpoint.ClientConnected += () => firstClientConnectedTcs.TrySetResult( true );
+        serverEndpoint.ClientDisconnected += () => clientDisconnectedTcs.TrySetResult( true );
+
+        serverEndpoint.Start();
+
+        // Connect first client and wait for it to be fully registered on the server.
+        using var client1 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+        await client1.ConnectAsync( testContext.CancellationToken );
+        await firstClientConnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        var eventClient1 = client1.GetRequiredClient<EventTestClient>();
+        var eventReceivedByClient1Tcs = new TaskCompletionSource<string>();
+
+        eventClient1.EventReceived += e =>
+        {
+            if ( e is TestEventData testEvent )
+            {
+                eventReceivedByClient1Tcs.TrySetResult( testEvent.Message );
+            }
+        };
+
+        // Install hooks on the service for the second connection's promotion.
+        var service = await serverEndpoint.GetRequiredServiceAsync<EventTestService>( testContext.CancellationToken );
+
+        var promotingReachedTcs = new TaskCompletionSource<bool>();
+        var promotingReleaseTcs = new TaskCompletionSource<bool>();
+        var disconnectAttemptedTcs = new TaskCompletionSource<bool>();
+
+        service.OnPendingClientPromotingHook = () =>
+        {
+            promotingReachedTcs.TrySetResult( true );
+
+            // Block until the test releases us. This simulates the in-method race window.
+            promotingReleaseTcs.Task.GetAwaiter().GetResult();
+        };
+
+        service.OnRpcDisconnectingHook = () =>
+        {
+            // Signal that a disconnect is being processed (fires before any dictionary cleanup).
+            disconnectAttemptedTcs.TrySetResult( true );
+        };
+
+        // Start connecting the second client. Server enters OnRpcStarted, removes pending entry, hits hook.
+        var client2 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+        var client2ConnectTask = client2.ConnectAsync( testContext.CancellationToken );
+
+        // Wait until the server's OnRpcStarted is paused mid-promotion.
+        await promotingReachedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        // Trigger disconnection of client2 while server is paused. With the fix in place, the server's
+        // OnRpcDisconnected will block on the registration lock. Without the fix, it would run concurrently
+        // and find nothing to remove (since pending was already taken), leaving the dead rpc to be added by
+        // the resuming OnRpcStarted.
+        client2.Dispose();
+
+        // Wait until OnRpcDisconnected has been entered for client2's rpc.
+        await disconnectAttemptedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        // Release OnRpcStarted so it can finish promoting (and, with the fix, immediately yield the lock to
+        // the waiting OnRpcDisconnected which will clean up).
+        promotingReleaseTcs.TrySetResult( true );
+
+        // Wait for the server-side disconnect handler to finish (so dictionaries are in their final state).
+        await clientDisconnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        // Allow the connect task to complete or fail — either is acceptable, the disconnect happens client-side.
+        try
+        {
+            await client2ConnectTask.WithCancellation( testContext.CancellationToken );
+        }
+        catch
+        {
+            // Connection may fault because we disposed it during connect. Ignore.
+        }
+
+        // Broadcasting should only reach client1. Without the fix, the dead rpc would still be in _clients
+        // and the broadcast would throw because invoking the IRpcCallback proxy on a disposed JsonRpc fails.
+        await service.BroadcastEventAsync( "AfterRace", testContext.CancellationToken );
+        Assert.Equal( "AfterRace", await eventReceivedByClient1Tcs.Task.WithCancellation( testContext.CancellationToken ) );
+    }
+
+    /// <summary>
+    /// Regression test for Copilot review feedback on PR #1618. The original fix cleaned <c>_clients</c> on
+    /// disconnect but left <c>_apis</c> populated. <c>EventHubRpcService.ForwardEventAsync</c> iterates the
+    /// <c>Apis</c> property, so a disconnected subscriber would remain eligible for future notifications and
+    /// its stored <c>IRpcEventSender</c> would attempt to raise events over a dead <c>JsonRpc</c> instance.
+    /// The fix removes the entry from <c>_apis</c> as well as <c>_clients</c>/<c>_pendingClients</c>.
+    /// </summary>
+    [Fact]
+    public async Task OnRpcDisconnected_RemovesEntryFromApisCollection()
+    {
+        using var testContext = this.CreateRpcTestContext();
+
+        var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
+
+        using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
+
+        var clientConnectedCount = 0;
+        var bothClientsConnectedTcs = new TaskCompletionSource<bool>();
+        var clientDisconnectedTcs = new TaskCompletionSource<bool>();
+
+        serverEndpoint.ClientConnected += () =>
+        {
+            if ( Interlocked.Increment( ref clientConnectedCount ) == 2 )
+            {
+                bothClientsConnectedTcs.TrySetResult( true );
+            }
+        };
+
+        serverEndpoint.ClientDisconnected += () => clientDisconnectedTcs.TrySetResult( true );
+
+        serverEndpoint.Start();
+
+        using var client1 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+        var client2 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+
+        await client1.ConnectAsync( testContext.CancellationToken );
+        await client2.ConnectAsync( testContext.CancellationToken );
+
+        await bothClientsConnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        var eventClient1 = client1.GetRequiredClient<EventTestClient>();
+        var eventReceivedByClient1Tcs = new TaskCompletionSource<string>();
+
+        eventClient1.EventReceived += e =>
+        {
+            if ( e is TestEventData testEvent )
+            {
+                eventReceivedByClient1Tcs.TrySetResult( testEvent.Message );
+            }
+        };
+
+        // Disconnect client2. The server's OnRpcDisconnected must remove the entry from _apis.
+        client2.Dispose();
+        await clientDisconnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        // Forward a notification through the Apis collection (mirrors EventHubRpcService.ForwardEventAsync).
+        // Without the fix, client2's Api remains in _apis and its stored IRpcEventSender throws when invoked
+        // on the dead JsonRpc. With the fix, only client1's Api is iterated and the broadcast succeeds.
+        var service = await serverEndpoint.GetRequiredServiceAsync<EventTestService>( testContext.CancellationToken );
+        await service.BroadcastViaApisAsync( "AfterDisconnect", testContext.CancellationToken );
+
+        Assert.Equal( "AfterDisconnect", await eventReceivedByClient1Tcs.Task.WithCancellation( testContext.CancellationToken ) );
+    }
+
+    /// <summary>
     /// Tests that RaiseEventAsync handles client disconnection gracefully.
     /// When a client disconnects during event broadcast, other clients should still receive the event.
     /// </summary>
