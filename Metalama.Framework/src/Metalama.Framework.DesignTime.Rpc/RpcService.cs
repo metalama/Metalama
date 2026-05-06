@@ -51,9 +51,8 @@ public abstract class RpcService
     }
 
     /// <summary>
-    /// Helper for broadcasting an event to one client. Swallows the lifecycle exceptions that arise
-    /// when a client disconnects between the broadcast snapshot and the per-client invocation, so a
-    /// single transitioning client cannot fail the broadcast for the others. Used by both
+    /// Helper for broadcasting an event to one client. Swallows any per-client failure so a single
+    /// transitioning client cannot fail the broadcast for the others. Used by both
     /// <see cref="RpcService{TApi}.RaiseEventAsync"/> (which iterates <c>_clients</c>) and
     /// <c>EventHubRpcService.ForwardEventAsync</c> (which iterates <see cref="RpcService{TApi}.Apis"/>).
     /// The per-rpc lock in <see cref="RpcService{TApi}.OnRpcDisconnected"/> only narrows the race
@@ -70,26 +69,9 @@ public abstract class RpcService
         {
             throw;
         }
-        catch ( ConnectionLostException ex )
-        {
-            this.Logger.Trace?.Log( $"Broadcast: connection lost (client disconnected during broadcast); skipping. {ex.Message}" );
-        }
-        catch ( ObjectDisposedException ex )
-        {
-            this.Logger.Trace?.Log( $"Broadcast: rpc disposed (client disconnected during broadcast); skipping. {ex.Message}" );
-        }
-        catch ( InvalidOperationException ex ) when ( ex.Message.Contains( "listening" ) )
-        {
-            this.Logger.Trace?.Log( $"Broadcast: rpc not listening (race during connect/disconnect); skipping. {ex.Message}" );
-        }
-        catch ( RemoteInvocationException ex ) when ( ex.Message.Contains( "listening" ) )
-        {
-            this.Logger.Trace?.Log( $"Broadcast: rpc not listening (race during connect/disconnect); skipping. {ex.Message}" );
-        }
         catch ( Exception ex )
         {
-            // A per-client failure must not poison other clients in the broadcast. Log loudly and continue.
-            this.Logger.Warning?.Log( $"Broadcast: unexpected exception; skipping to keep broadcast intact. {ex}" );
+            this.Logger.Warning?.Log( $"Broadcast: per-client failure; skipping to keep broadcast intact. {ex}" );
         }
     }
 

@@ -487,12 +487,12 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     /// <see cref="RpcService{TApi}.Apis"/> iteration are unlocked by design (taking the lock at broadcast
     /// time would block disconnect cleanup behind a network call). A snapshot of <c>_clients</c>/<c>_apis</c>
     /// taken just before or during cleanup can still observe a stale callback whose underlying <c>JsonRpc</c>
-    /// is dead, and invoking it would throw <c>ConnectionLostException</c> / <c>ObjectDisposedException</c> /
-    /// <c>"...listening for messages has started"</c> out of <see cref="Task.WhenAll(IEnumerable{Task})"/>.
+    /// is dead, and invoking it would throw out of <see cref="Task.WhenAll(IEnumerable{Task})"/>.
     /// The fix wraps each per-client invocation in <c>RpcService.SafeBroadcastInvokeAsync</c>, which swallows
-    /// those lifecycle exceptions so a single transitioning client cannot fail the broadcast for the others.
-    /// This unit test exercises the helper directly (via an <c>EventTestService</c> facade) with stub Funcs
-    /// that throw each expected exception type.
+    /// any per-client failure (logged as a warning) so a single transitioning client cannot fail the broadcast
+    /// for the others. This unit test exercises the helper directly (via an <c>EventTestService</c> facade)
+    /// with stub Funcs that throw a representative range of exception types — both lifecycle exceptions known
+    /// to arise during the broadcast/disconnect race and an unrelated exception, all of which must be swallowed.
     /// </summary>
     [Theory]
 
@@ -516,8 +516,8 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
 
         var toThrow = CreateException( exceptionTypeName, message );
 
-        // The helper must not propagate the per-client failure: any exception type is swallowed (lifecycle
-        // exceptions trace-logged, others warning-logged) so the broadcast can complete for other clients.
+        // The helper must not propagate the per-client failure: any exception type is swallowed (logged as
+        // a warning) so the broadcast can complete for other clients.
         await service.TestSafeBroadcastInvokeAsync( _ => throw toThrow, testContext.CancellationToken );
     }
 
