@@ -8,7 +8,7 @@ using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -325,6 +325,7 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
         // Allow the connect task to complete or fail — either is acceptable, the disconnect happens client-side.
         try
         {
+            // ReSharper disable once RedundantWithCancellation
             await client2ConnectTask.WithCancellation( testContext.CancellationToken );
         }
         catch
@@ -472,6 +473,7 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
 
         try
         {
+            // ReSharper disable once RedundantWithCancellation
             await clientBConnectTask.WithCancellation( testContext.CancellationToken );
         }
         catch
@@ -526,13 +528,13 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
         // StreamJsonRpc.* types are not directly referenced by the test assembly. In dev builds they live in
         // a separate StreamJsonRpc.dll deployed alongside the test; in release/CI builds they are ILMerged
         // into Metalama.Framework.DesignTime.Rpc.dll. Try both sources before giving up.
-        Type? type = null;
+        Type? type;
 
         if ( typeName.StartsWith( "StreamJsonRpc.", StringComparison.Ordinal ) )
         {
             type = typeof(RpcService).Assembly.GetType( typeName )
                    ?? Type.GetType( $"{typeName}, StreamJsonRpc" )
-                   ?? System.Reflection.Assembly.Load( new System.Reflection.AssemblyName( "StreamJsonRpc" ) ).GetType( typeName );
+                   ?? Assembly.Load( new AssemblyName( "StreamJsonRpc" ) ).GetType( typeName );
         }
         else
         {
@@ -575,10 +577,12 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
         var service = await serverEndpoint.GetRequiredServiceAsync<EventTestService>( testContext.CancellationToken );
 
         using var cts = new CancellationTokenSource();
-        await cts.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => service.TestSafeBroadcastInvokeAsync( ct => Task.FromCanceled( ct ), cts.Token ) );
+#pragma warning disable VSTHRD103
+        cts.Cancel();
+#pragma warning restore VSTHRD103
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>( () => service.TestSafeBroadcastInvokeAsync( Task.FromCanceled, cts.Token ) );
     }
 
     /// <summary>

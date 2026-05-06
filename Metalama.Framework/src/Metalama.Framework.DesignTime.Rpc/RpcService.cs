@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using System.Collections.Concurrent;
 
+// ReSharper disable InconsistentlySynchronizedField
+
 namespace Metalama.Framework.DesignTime.Rpc;
 
 /// <summary>
@@ -188,8 +190,7 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
 
         var envelope = new RpcEventEnvelope( typeof(TApi).Name, eventData );
 
-        await Task.WhenAll(
-                this._clients.Values.Select( c => this.SafeBroadcastInvokeAsync( ct => c.RaiseEventAsync( envelope, ct ), cancellationToken ) ) )
+        await Task.WhenAll( this._clients.Values.Select( c => this.SafeBroadcastInvokeAsync( ct => c.RaiseEventAsync( envelope, ct ), cancellationToken ) ) )
             .WithCancellation( cancellationToken );
     }
 
