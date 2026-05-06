@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using System.Collections.Concurrent;
 
+// ReSharper disable InconsistentlySynchronizedField
+
 namespace Metalama.Framework.DesignTime.Rpc;
 
 /// <summary>
@@ -31,6 +33,14 @@ public abstract class RpcService
 
     internal abstract void ConfigureRpc( JsonRpc rpc );
 
+    /// <summary>
+    /// Called by the server endpoint after <see cref="JsonRpc.StartListening"/> has been called on the rpc.
+    /// Subclasses register the rpc with their callback bookkeeping at this point so that event broadcasting
+    /// (such as <c>RaiseEventAsync</c>) never targets a rpc whose <c>StartListening</c> has not yet been
+    /// called, which would throw <c>"This operation is not allowed before listening for messages has started."</c>
+    /// </summary>
+    internal virtual void OnRpcStarted( JsonRpc rpc ) { }
+
     protected internal void OnRpcConnected()
     {
         this.Logger.Trace?.Log( nameof(this.OnRpcConnected) );
@@ -40,6 +50,31 @@ public abstract class RpcService
     internal virtual void OnRpcDisconnected( JsonRpc rpc )
     {
         this.Logger.Trace?.Log( nameof(this.OnRpcDisconnected) );
+    }
+
+    /// <summary>
+    /// Helper for broadcasting an event to one client. Swallows any per-client failure so a single
+    /// transitioning client cannot fail the broadcast for the others. Used by both
+    /// <see cref="RpcService{TApi}.RaiseEventAsync"/> (which iterates <c>_clients</c>) and
+    /// <c>EventHubRpcService.ForwardEventAsync</c> (which iterates <see cref="RpcService{TApi}.Apis"/>).
+    /// The per-rpc lock in <see cref="RpcService{TApi}.OnRpcDisconnected"/> only narrows the race
+    /// window — it cannot eliminate it because broadcast iteration is unlocked by design (taking
+    /// a lock at broadcast time would block disconnect cleanup behind a network call).
+    /// </summary>
+    protected async Task SafeBroadcastInvokeAsync( Func<CancellationToken, Task> invoke, CancellationToken cancellationToken )
+    {
+        try
+        {
+            await invoke( cancellationToken );
+        }
+        catch ( OperationCanceledException ) when ( cancellationToken.IsCancellationRequested )
+        {
+            throw;
+        }
+        catch ( Exception ex )
+        {
+            this.Logger.Warning?.Log( $"Broadcast: per-client failure; skipping to keep broadcast intact. {ex}" );
+        }
     }
 
     public override string ToString() => $"{{{this.GetType().Name}, Id={this._id}}}";
@@ -53,6 +88,12 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
     private readonly ConcurrentDictionary<JsonRpc, IRpcCallback> _clients = new();
     private readonly ConcurrentDictionary<JsonRpc, TApi> _apis = new();
 
+    // Per-rpc registration entries. Created in ConfigureRpc, removed in OnRpcDisconnected. Each entry
+    // owns its own lock so that OnRpcStarted (promotion to _clients/_apis) and OnRpcDisconnected (cleanup)
+    // are serialized for the same rpc only. Operations on different rpcs do not contend, so a disconnect
+    // on one client cannot be blocked behind another client's in-flight promotion.
+    private readonly ConcurrentDictionary<JsonRpc, RegistrationEntry> _registrations = new();
+
     protected RpcService( ServerEndpoint serverEndpoint ) : base( serverEndpoint ) { }
 
     public virtual void Dispose() { }
@@ -62,13 +103,72 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
         var client = rpc.Attach<IRpcCallback>();
         var implementation = this.CreateApi( new EventSender( client ) );
         rpc.AddLocalRpcTarget( implementation, null );
-        this._clients.TryAdd( rpc, client );
-        this._apis.TryAdd( rpc, implementation );
+        this._registrations.TryAdd( rpc, new RegistrationEntry( client, implementation ) );
     }
+
+    internal override void OnRpcStarted( JsonRpc rpc )
+    {
+        if ( !this._registrations.TryGetValue( rpc, out var entry ) )
+        {
+            // OnRpcDisconnected already removed the entry — nothing to promote.
+            return;
+        }
+
+        lock ( entry.Lock )
+        {
+            this.OnPendingClientPromoting();
+
+            if ( entry.IsDisconnected )
+            {
+                // OnRpcDisconnected ran and removed the entry from _registrations. The promotion has
+                // nothing to do: leaving _clients/_apis untouched keeps them free of the dead rpc.
+                return;
+            }
+
+            this._clients.TryAdd( rpc, entry.Callback );
+            this._apis.TryAdd( rpc, entry.Api );
+        }
+    }
+
+    /// <summary>
+    /// Test extension point invoked inside <see cref="OnRpcStarted"/> while holding the per-rpc
+    /// registration lock, before promotion to the live <c>_clients</c>/<c>_apis</c> dictionaries.
+    /// Production code does nothing; tests override this to deterministically inject a concurrent
+    /// disconnect during the promotion window.
+    /// </summary>
+    protected virtual void OnPendingClientPromoting() { }
+
+    /// <summary>
+    /// Test extension point invoked at the very entry of <see cref="OnRpcDisconnected"/>, before
+    /// the per-rpc registration lock is acquired. Production code does nothing; tests use it to
+    /// observe that a disconnect is being processed even when its per-rpc lock is currently held
+    /// by a paused <see cref="OnRpcStarted"/>.
+    /// </summary>
+    protected virtual void OnRpcDisconnecting() { }
 
     internal override void OnRpcDisconnected( JsonRpc rpc )
     {
-        this._clients.TryRemove( rpc, out _ );
+        this.OnRpcDisconnecting();
+
+        if ( !this._registrations.TryRemove( rpc, out var entry ) )
+        {
+            // Either ConfigureRpc never ran for this rpc on this service, or OnRpcDisconnected ran
+            // twice (StreamJsonRpc raises Disconnected at most once, but be defensive).
+            return;
+        }
+
+        lock ( entry.Lock )
+        {
+            // Setting IsDisconnected ensures any concurrent OnRpcStarted that already looked up the
+            // entry but is still waiting for this lock will skip promotion when it resumes.
+            entry.IsDisconnected = true;
+
+            // _apis must be cleaned up alongside _clients so that subscribers iterating Apis
+            // (e.g. EventHubRpcService.ForwardEventAsync) do not invoke a stored IRpcEventSender
+            // over a dead JsonRpc.
+            this._clients.TryRemove( rpc, out _ );
+            this._apis.TryRemove( rpc, out _ );
+        }
     }
 
     protected IEnumerable<TApi> Apis => this._apis.Values;
@@ -90,7 +190,8 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
 
         var envelope = new RpcEventEnvelope( typeof(TApi).Name, eventData );
 
-        await Task.WhenAll( this._clients.Values.Select( c => c.RaiseEventAsync( envelope, cancellationToken ) ) ).WithCancellation( cancellationToken );
+        await Task.WhenAll( this._clients.Values.Select( c => this.SafeBroadcastInvokeAsync( ct => c.RaiseEventAsync( envelope, ct ), cancellationToken ) ) )
+            .WithCancellation( cancellationToken );
     }
 
     protected void RaiseEvent( RpcEventData eventData, CancellationToken cancellationToken = default )
@@ -110,5 +211,22 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
 
         public Task RaiseEventAsync( RpcEventData eventData, CancellationToken cancellationToken )
             => this._client.RaiseEventAsync( new RpcEventEnvelope( typeof(TApi).Name, eventData ), cancellationToken );
+    }
+
+    private sealed class RegistrationEntry
+    {
+        public RegistrationEntry( IRpcCallback callback, TApi api )
+        {
+            this.Callback = callback;
+            this.Api = api;
+        }
+
+        public IRpcCallback Callback { get; }
+
+        public TApi Api { get; }
+
+        public object Lock { get; } = new();
+
+        public bool IsDisconnected { get; set; }
     }
 }

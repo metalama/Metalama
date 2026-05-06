@@ -190,8 +190,26 @@ public abstract class ServerEndpoint : BaseEndpoint
         rpc.Disconnected += this.OnRpcDisconnected;
         this._pipes.TryAdd( rpc, pipe );
 
+        if ( this.TestSyncProvider != null )
+        {
+            await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.AfterConfiguresRpc:{pipeName}", cancellationToken );
+        }
+
         this.Logger.Trace?.Log( $"Endpoint '{pipeName}': start listening." );
         rpc.StartListening();
+
+        if ( this.TestSyncProvider != null )
+        {
+            await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.AfterStartsListening:{pipeName}", cancellationToken );
+        }
+
+        // Promote the rpc into each service's callback bookkeeping AFTER StartListening so that any
+        // concurrent broadcast (RaiseEventAsync) cannot pick up a rpc that would throw
+        // "This operation is not allowed before listening for messages has started."
+        foreach ( var i in services )
+        {
+            i.OnRpcStarted( rpc );
+        }
 
         this.Logger.Trace?.Log( $"The server endpoint '{pipeName}' is ready." );
 

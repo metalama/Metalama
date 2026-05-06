@@ -29,5 +29,7 @@ public sealed partial class EventHubRpcService : RpcService<IEventHubRpcApi>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public Task ForwardEventAsync( RpcEventData eventData, CancellationToken cancellationToken )
-        => Task.WhenAll( this.Apis.Select( api => ((Api) api).RaiseEventAsync( eventData, cancellationToken ) ) );
+        => Task.WhenAll(
+            this.Apis.Select(
+                api => this.SafeBroadcastInvokeAsync( ct => ((Api) api).RaiseEventAsync( eventData, ct ), cancellationToken ) ) );
 }
