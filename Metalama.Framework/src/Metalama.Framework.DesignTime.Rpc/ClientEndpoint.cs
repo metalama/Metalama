@@ -40,6 +40,16 @@ public abstract partial class ClientEndpoint : BaseEndpoint
     private readonly ConcurrentDictionary<Type, TaskCompletionSource<RpcClient>> _clientAwaiters = new();
     private readonly object _addClientLock = new();
 
+    // Tracks resources created during ConnectCoreAsync that have not yet been published to
+    // _connectionByStream. Without this, calling Dispose while a ConnectCoreAsync has not yet
+    // reached the publication point would leak the underlying NamedPipeClientStream (and its
+    // JsonRpc), because Dispose only iterates _connectionByStream — and the pipe is added there
+    // only after rpc.StartListening succeeds. A leaked client pipe means the server-side JsonRpc
+    // never sees a disconnect, which can hang any code waiting for OnRpcDisconnected to fire.
+    private readonly object _pendingLock = new();
+    private readonly List<IDisposable> _pendingDisposables = new();
+    private bool _disposed;
+
     protected ClientEndpoint(
         IServiceProvider serviceProvider,
         string pipeName ) :
@@ -251,6 +261,14 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             this.Logger.Trace?.Log( $"Connecting to the named pipe '{pipeName}'." );
 
             var pipeStream = new NamedPipeClientStream( ".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous );
+
+            // Register the pipe as pending BEFORE awaiting the connect. If Dispose runs between
+            // now and the point where we publish to _connectionByStream, this entry ensures the
+            // pipe is closed — which is what causes the server to observe a disconnect. Without
+            // this, disposing a ClientEndpoint mid-connect leaks the pipe and the server hangs
+            // forever waiting for OnRpcDisconnected.
+            this.RegisterPending( pipeStream );
+
             await pipeStream.ConnectAsync( cancellationToken ).WarnIfLongAsync( this.Logger, "Connect to pipe stream.", cancellationToken );
 
             if ( this.TestSyncProvider != null )
@@ -262,6 +280,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
             // Create the callback channel.
             var rpc = CreateRpc( pipeStream );
+            this.RegisterPending( rpc );
             rpc.Disconnected += this.OnRpcDisconnected;
 
             if ( firstConnection )
@@ -289,8 +308,12 @@ public abstract partial class ClientEndpoint : BaseEndpoint
                 await this.TestSyncProvider.SyncPointAsync( $"ClientEndpoint.AfterStartsListening:{pipeName}", cancellationToken );
             }
 
-            // Update collections.
+            // Update collections. Ownership of pipeStream and rpc transfers to _connectionByStream
+            // here; un-register them from pending tracking so Dispose disposes them exactly once
+            // via the normal _connectionByStream path.
             InterlockedHelper.Update( ref this._connectionByStream, x => x.Add( rpc, new Connection( pipeStream, rpc, newClients ) ) );
+            this.UnregisterPending( rpc );
+            this.UnregisterPending( pipeStream );
 
             if ( this.TestSyncProvider != null )
             {
@@ -351,17 +374,73 @@ public abstract partial class ClientEndpoint : BaseEndpoint
         }
     }
 
+    private void RegisterPending( IDisposable disposable )
+    {
+        lock ( this._pendingLock )
+        {
+            if ( this._disposed )
+            {
+                // Dispose already ran. Dispose this resource directly so the caller doesn't leak it,
+                // and surface the situation as an exception so ConnectCoreAsync's catch block runs
+                // its normal cleanup (SetFailure on pending clients, etc.).
+                disposable.Dispose();
+
+                throw new ObjectDisposedException( this.GetType().FullName );
+            }
+
+            this._pendingDisposables.Add( disposable );
+        }
+    }
+
+    private void UnregisterPending( IDisposable disposable )
+    {
+        lock ( this._pendingLock )
+        {
+            this._pendingDisposables.Remove( disposable );
+        }
+    }
+
     protected override void Dispose( bool disposing )
     {
-        if ( disposing )
+        if ( !disposing )
         {
-            lock ( this._connectionByStream )
+            return;
+        }
+
+        // Take a snapshot of pending resources under the lock, then mark disposed so any concurrent
+        // ConnectCoreAsync attempting to RegisterPending after this point disposes its own resources
+        // and bails out.
+        IDisposable[] pending;
+
+        lock ( this._pendingLock )
+        {
+            this._disposed = true;
+            pending = this._pendingDisposables.ToArray();
+            this._pendingDisposables.Clear();
+        }
+
+        // Dispose pending resources OUTSIDE the lock (their Dispose may run user code or take
+        // other locks). Order: rpc objects first (they hold references to the stream), then streams.
+        // We just iterate; any IDisposable will get disposed — for our two types the order doesn't
+        // matter because both will tolerate the other being already disposed.
+        foreach ( var d in pending )
+        {
+            try
             {
-                foreach ( var rpc in this._connectionByStream.Values )
-                {
-                    rpc.Rpc.Dispose();
-                    rpc.Stream.Dispose();
-                }
+                d.Dispose();
+            }
+            catch ( Exception ex )
+            {
+                this.Logger.Warning?.Log( $"Disposing pending resource threw: {ex}" );
+            }
+        }
+
+        lock ( this._connectionByStream )
+        {
+            foreach ( var rpc in this._connectionByStream.Values )
+            {
+                rpc.Rpc.Dispose();
+                rpc.Stream.Dispose();
             }
         }
     }
