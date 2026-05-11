@@ -16,7 +16,6 @@ using Metalama.Framework.Project;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using AnalyzerConfigOptions = Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigOptions;
 
@@ -75,8 +74,7 @@ namespace Metalama.Framework.DesignTime.SourceGeneration
                                 return (AnalyzerOptions: x.GlobalOptions, PipelineOptions: projectOptions);
                             } )
                         .Combine( context.CompilationProvider )
-                        .Combine( context.AdditionalTextsProvider.Select( ( text, _ ) => text ).Collect() )
-                        .Select( ( x, _ ) => (Compilation: x.Left.Right, x.Left.Left.AnalyzerOptions, x.Left.Left.PipelineOptions, AdditionalTexts: x.Right) )
+                        .Select( ( x, _ ) => (Compilation: x.Right, x.Left.AnalyzerOptions, x.Left.PipelineOptions) )
                         .Select( this.OnGeneratedSourceRequested )
                         .WithComparer( this._touchIdComparer )
                         .Select(
@@ -100,8 +98,7 @@ namespace Metalama.Framework.DesignTime.SourceGeneration
         }
 
         private (IProjectOptions? Options, Compilation Compilation, string? TouchId) OnGeneratedSourceRequested(
-            (Compilation Compilation, AnalyzerConfigOptions AnalyzerOptions, IProjectOptions PipelineOptions, ImmutableArray<AdditionalText>
-                AdditionalTexts) args,
+            (Compilation Compilation, AnalyzerConfigOptions AnalyzerOptions, IProjectOptions PipelineOptions) args,
             CancellationToken cancellationToken )
         {
             this._logger.Trace?.Log( $"OnGeneratedSourceRequested('{args.Compilation.AssemblyName}')" );
@@ -116,18 +113,13 @@ namespace Metalama.Framework.DesignTime.SourceGeneration
 
             var projectKey = args.Compilation.GetProjectKey();
 
-            // Read the touch ID from the handler instead of the touch file in AdditionalTexts, when possible.
-            //
-            // This is done this way for two reasons:
-            // 1. Roslyn in VS has a bug (https://github.com/dotnet/roslyn/issues/74716) where the touch file is not correctly watched for changes.
-            // 2. Rider does not currently watch the touch file for changes (https://youtrack.jetbrains.com/issue/RIDER-75959).
-            // In both cases, the touch file in AdditionalTexts does not change when the touch file on disk is updated.
-            //
-            // Note that this approach can't trigger running the generator, which means that changes will become visible only once the user types something in some C# file in the project.
+            // The in-process handler is the authoritative source of the latest GUID the pipeline has produced;
+            // reading it skips the symbol lookup against the compilation. The compilation lookup is the fallback
+            // for cases where the handler hasn't run yet (e.g., first generator invocation after process start).
 
             if ( !this._projectHandlers.TryGetValue( projectKey, out var handler ) || handler?.LastTouchId is not { } touchId )
             {
-                touchId = GetTouchId( args.AnalyzerOptions, args.AdditionalTexts, cancellationToken );
+                touchId = GetTouchId( args.Compilation );
             }
 
             this._logger.Trace?.Log( $"OnGeneratedSourceRequested('{args.Compilation.AssemblyName}'): touchId = '{touchId}'" );
@@ -233,28 +225,20 @@ namespace Metalama.Framework.DesignTime.SourceGeneration
             public int GetHashCode( (IProjectOptions? Options, Compilation Compilation, string? TouchId) obj ) => obj.TouchId?.GetHashCodeOrdinal() ?? 0;
         }
 
-        private static string GetTouchId(
-            AnalyzerConfigOptions options,
-            ImmutableArray<AdditionalText> additionalTexts,
-            CancellationToken cancellationToken )
+        private static string GetTouchId( Compilation compilation )
         {
-            if ( !options.TryGetValue( $"build_property.{MSBuildPropertyNames.MetalamaSourceGeneratorTouchFile}", out var touchFilePath )
-                 || string.IsNullOrWhiteSpace( touchFilePath ) )
+            // Look up the marker in the current assembly only so an upstream project's marker (visible through
+            // [InternalsVisibleTo]) is ignored.
+            var type = compilation.Assembly.GetTypeByMetadataName( TouchFileHelper.MarkerFullTypeName );
+
+            if ( type == null )
             {
                 return "";
             }
 
-            var normalizedTouchFilePath = Path.GetFullPath( touchFilePath );
-            var touchText = additionalTexts.FirstOrDefault( x => x.Path.Equals( normalizedTouchFilePath, StringComparison.OrdinalIgnoreCase ) );
+            var field = type.GetMembers( TouchFileHelper.MarkerFieldName ).OfType<IFieldSymbol>().FirstOrDefault();
 
-            if ( touchText == null )
-            {
-                return "";
-            }
-
-            var content = touchText.GetText( cancellationToken )?.ToString() ?? "";
-
-            return TouchFileHelper.GetTouchId( content, normalizedTouchFilePath );
+            return field?.ConstantValue as string ?? "";
         }
     }
 }

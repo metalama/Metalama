@@ -269,16 +269,16 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
 
         this.Logger.Trace?.Log( $"Touching '{touchFile}' with value '{newGuid}'." );
 
+        var content = TouchFileRenderer.Render( newGuid );
+
         using ( MutexHelper.WithGlobalLock( touchFile, this.Logger ) )
         {
-            RetryHelper.Retry( () => File.WriteAllText( touchFile, newGuid ) );
+            RetryHelper.Retry( () => File.WriteAllText( touchFile, content ) );
         }
 
-        var touchId = TouchFileHelper.GetTouchId( newGuid, touchFile );
+        this.LastTouchId = newGuid;
 
-        this.LastTouchId = touchId;
-
-        this._observer?.OnTouchFileWritten( this.ProjectKey, touchId );
+        this._observer?.OnTouchFileWritten( this.ProjectKey, newGuid );
     }
 
     private bool TryGetTouchFilePath( [NotNullWhen( true )] out string? path )

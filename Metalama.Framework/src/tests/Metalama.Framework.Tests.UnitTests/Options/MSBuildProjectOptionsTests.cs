@@ -45,7 +45,7 @@ public sealed class MSBuildProjectOptionsTests
     [Fact]
     public void NonEmptySourceGeneratorTouchFile_ReturnsValue()
     {
-        const string touchFilePath = @"C:\project\obj\MetalamaSourceGenerator.touch";
+        const string touchFilePath = @"C:\project\obj\MetalamaSourceGenerator.g.cs";
 
         var source = new DictionaryOptionsSource( new Dictionary<string, string> { [MSBuildPropertyNames.MetalamaSourceGeneratorTouchFile] = touchFilePath } );
 
