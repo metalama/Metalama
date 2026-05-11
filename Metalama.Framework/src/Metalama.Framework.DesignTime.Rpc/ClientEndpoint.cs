@@ -308,12 +308,26 @@ public abstract partial class ClientEndpoint : BaseEndpoint
                 await this.TestSyncProvider.SyncPointAsync( $"ClientEndpoint.AfterStartsListening:{pipeName}", cancellationToken );
             }
 
-            // Update collections. Ownership of pipeStream and rpc transfers to _connectionByStream
-            // here; un-register them from pending tracking so Dispose disposes them exactly once
-            // via the normal _connectionByStream path.
-            InterlockedHelper.Update( ref this._connectionByStream, x => x.Add( rpc, new Connection( pipeStream, rpc, newClients ) ) );
-            this.UnregisterPending( rpc );
-            this.UnregisterPending( pipeStream );
+            // Atomically transfer ownership of pipeStream and rpc from the pending list to
+            // _connectionByStream. Both steps under _pendingLock so a concurrent Dispose either
+            // sees the resources in pending (and disposes them there) or in _connectionByStream
+            // (and disposes them there) — never both. If we removed from pending OUTSIDE this lock,
+            // a Dispose that snapshotted pending after publish but before unregister would dispose
+            // the resources and the _connectionByStream loop would dispose them a second time.
+            lock ( this._pendingLock )
+            {
+                if ( this._disposed )
+                {
+                    // Dispose ran between our last RegisterPending and now. It already disposed
+                    // pipeStream and rpc (they were in its snapshot). Just bail; ConnectCoreAsync's
+                    // catch block will run SetFailure on the clients.
+                    throw new ObjectDisposedException( this.GetType().FullName );
+                }
+
+                InterlockedHelper.Update( ref this._connectionByStream, x => x.Add( rpc, new Connection( pipeStream, rpc, newClients ) ) );
+                this._pendingDisposables.Remove( rpc );
+                this._pendingDisposables.Remove( pipeStream );
+            }
 
             if ( this.TestSyncProvider != null )
             {
@@ -402,6 +416,10 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
     protected override void Dispose( bool disposing )
     {
+        // Always run the base class disposal: BaseEndpoint cancels DisposeCancellationToken and
+        // calls GC.SuppressFinalize, both of which we want even on the finalizer path.
+        base.Dispose( disposing );
+
         if ( !disposing )
         {
             return;
@@ -409,7 +427,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
         // Take a snapshot of pending resources under the lock, then mark disposed so any concurrent
         // ConnectCoreAsync attempting to RegisterPending after this point disposes its own resources
-        // and bails out.
+        // and bails out, and so the publish-handoff in ConnectCoreAsync sees _disposed and bails.
         IDisposable[] pending;
 
         lock ( this._pendingLock )
@@ -420,14 +438,15 @@ public abstract partial class ClientEndpoint : BaseEndpoint
         }
 
         // Dispose pending resources OUTSIDE the lock (their Dispose may run user code or take
-        // other locks). Order: rpc objects first (they hold references to the stream), then streams.
-        // We just iterate; any IDisposable will get disposed — for our two types the order doesn't
-        // matter because both will tolerate the other being already disposed.
-        foreach ( var d in pending )
+        // other locks). Iterate in reverse-insertion order so the JsonRpc is disposed before its
+        // underlying NamedPipeClientStream — the JsonRpc holds the stream and may want to write
+        // a shutdown message before the stream goes away. (RegisterPending is called for the
+        // pipe stream first, then for the rpc; iterating backwards inverts that.)
+        for ( var i = pending.Length - 1; i >= 0; i-- )
         {
             try
             {
-                d.Dispose();
+                pending[i].Dispose();
             }
             catch ( Exception ex )
             {
