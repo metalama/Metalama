@@ -21,11 +21,16 @@ public sealed class TouchFileRendererTests
     }
 
     [Fact]
-    public void Render_ContainsMarkerTypeName()
+    public void Render_ContainsMarkerNamespaceTypeAndField()
     {
+        // Guards against template/regex drift if the marker namespace, type or field constants are renamed:
+        // Render must always emit each of them so the source-generator's symbol lookup and TryReadGuid's
+        // regex (both keyed off TouchFileHelper.* constants) keep finding the marker.
         var content = TouchFileRenderer.Render( "G" );
 
+        Assert.Contains( TouchFileHelper.MarkerNamespace, content );
         Assert.Contains( TouchFileHelper.MarkerTypeName, content );
+        Assert.Contains( TouchFileHelper.MarkerFieldName, content );
     }
 
     [Fact]

@@ -31,7 +31,7 @@ internal static class TouchFileRenderer
             [global::System.Obsolete("Design-time only. Do not reference.", true)]
             internal static class {{TouchFileHelper.MarkerTypeName}}
             {
-                public const string {{TouchFileHelper.MarkerFieldName}} = "__GUID__";
+                public const string {{TouchFileHelper.MarkerFieldName}} = "{{_guidPlaceholder}}";
             }
         }
 
