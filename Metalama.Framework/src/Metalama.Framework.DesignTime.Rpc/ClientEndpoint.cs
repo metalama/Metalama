@@ -233,7 +233,13 @@ public abstract partial class ClientEndpoint : BaseEndpoint
         bool firstConnection,
         CancellationToken cancellationToken = default )
     {
-        ImmutableArray<RpcClient> newClients;
+        ImmutableArray<RpcClient> newClients = ImmutableArray<RpcClient>.Empty;
+
+        // Tracked outside the try so the catch can dispose them on any failure between
+        // RegisterPending and the publish handoff to _connectionByStream.
+        NamedPipeClientStream? pipeStream = null;
+        JsonRpc? rpc = null;
+        var handoffCompleted = false;
 
         try
         {
@@ -260,7 +266,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
             this.Logger.Trace?.Log( $"Connecting to the named pipe '{pipeName}'." );
 
-            var pipeStream = new NamedPipeClientStream( ".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous );
+            pipeStream = new NamedPipeClientStream( ".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous );
 
             // Register the pipe as pending BEFORE awaiting the connect. If Dispose runs between
             // now and the point where we publish to _connectionByStream, this entry ensures the
@@ -279,7 +285,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             this.Logger.Trace?.Log( $"Connected to the named pipe '{pipeName}'." );
 
             // Create the callback channel.
-            var rpc = CreateRpc( pipeStream );
+            rpc = CreateRpc( pipeStream );
             this.RegisterPending( rpc );
             rpc.Disconnected += this.OnRpcDisconnected;
 
@@ -329,6 +335,8 @@ public abstract partial class ClientEndpoint : BaseEndpoint
                 this._pendingDisposables.Remove( pipeStream );
             }
 
+            handoffCompleted = true;
+
             if ( this.TestSyncProvider != null )
             {
                 await this.TestSyncProvider.SyncPointAsync( $"ClientEndpoint.BeforeSignalingAwaiters:{pipeName}", cancellationToken );
@@ -356,6 +364,42 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             this.Logger.LogException( e, $"Cannot connect to the endpoint '{pipeName}'" );
 
             this.ExceptionHandler?.OnException( e, this.Logger, this.DisposeCancellationToken.IsCancellationRequested );
+
+            // Clean up resources registered as pending before the handoff. If the handoff completed,
+            // ownership transferred to _connectionByStream and Dispose will handle them; if not (the
+            // common failure path: ConnectAsync threw, AddLocalRpcTarget threw, etc.) the pending
+            // list would accumulate them until the endpoint itself is disposed. Dispose in LIFO
+            // order for the same reason as in Dispose.
+            if ( !handoffCompleted )
+            {
+                if ( rpc != null )
+                {
+                    this.UnregisterPending( rpc );
+
+                    try
+                    {
+                        rpc.Dispose();
+                    }
+                    catch ( Exception disposeEx )
+                    {
+                        this.Logger.Warning?.Log( $"Disposing pending rpc on connect failure threw: {disposeEx}" );
+                    }
+                }
+
+                if ( pipeStream != null )
+                {
+                    this.UnregisterPending( pipeStream );
+
+                    try
+                    {
+                        pipeStream.Dispose();
+                    }
+                    catch ( Exception disposeEx )
+                    {
+                        this.Logger.Warning?.Log( $"Disposing pending pipe stream on connect failure threw: {disposeEx}" );
+                    }
+                }
+            }
 
             foreach ( var client in newClients )
             {
@@ -454,12 +498,31 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             }
         }
 
-        lock ( this._connectionByStream )
+        // _connectionByStream is an ImmutableDictionary swapped via InterlockedHelper.Update (and via
+        // a non-locked field write in OnRpcDisconnected). No other code locks on it, so a lock here
+        // would be misleading — it grants no synchronization. Read the field once into a local
+        // (atomic for a reference) and iterate the snapshot. Wrap each Dispose so that a thrown
+        // exception from one connection doesn't prevent the others from being released.
+        var connections = this._connectionByStream;
+
+        foreach ( var connection in connections.Values )
         {
-            foreach ( var rpc in this._connectionByStream.Values )
+            try
             {
-                rpc.Rpc.Dispose();
-                rpc.Stream.Dispose();
+                connection.Rpc.Dispose();
+            }
+            catch ( Exception ex )
+            {
+                this.Logger.Warning?.Log( $"Disposing connection rpc threw: {ex}" );
+            }
+
+            try
+            {
+                connection.Stream.Dispose();
+            }
+            catch ( Exception ex )
+            {
+                this.Logger.Warning?.Log( $"Disposing connection stream threw: {ex}" );
             }
         }
     }
