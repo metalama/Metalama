@@ -91,7 +91,7 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
     // Per-rpc registration entries. Created in ConfigureRpc, removed in OnRpcDisconnected. Each entry
     // owns its own lock so that OnRpcStarted (promotion to _clients/_apis) and OnRpcDisconnected (cleanup)
     // are serialized for the same rpc only. Operations on different rpcs do not contend, so a disconnect
-    // on one client cannot be blocked behind another client's in-flight promotion.
+    // on one client cannot be blocked behind another client's ongoing promotion.
     private readonly ConcurrentDictionary<JsonRpc, RegistrationEntry> _registrations = new();
 
     protected RpcService( ServerEndpoint serverEndpoint ) : base( serverEndpoint ) { }
@@ -157,17 +157,49 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
             return;
         }
 
-        lock ( entry.Lock )
+        // Mark IsDisconnected BEFORE acquiring entry.Lock. A concurrent OnRpcStarted that is past
+        // its _registrations lookup but still waiting on the lock will observe this flag (volatile
+        // read inside the lock) when it resumes and skip the _clients/_apis TryAdd. Setting the
+        // flag outside the lock means we never need to actually hold the lock for correctness —
+        // the in-lock TryRemove below is only an optimization for the case where the entry was
+        // already promoted.
+        entry.IsDisconnected = true;
+
+        // Use TryEnter, not Monitor.Enter: OnRpcDisconnected can run on a disposal/cancellation
+        // thread that is itself blocking the lock holder. Example seen in CI: a test cancellation
+        // token fires, the CTS.Cancel cascade runs async continuations inline on the timer thread,
+        // disposal of the endpoint triggers JsonRpc.Disconnected synchronously, and OnRpcDisconnected
+        // ends up needing entry.Lock — which is held by an OnRpcStarted whose user callback is
+        // synchronously waiting for a signal that the very same thread is supposed to deliver after
+        // disposal returns. A blocking Enter deadlocks; TryEnter degrades to best-effort cleanup
+        // and lets the cancellation cascade complete.
+        var lockTaken = false;
+
+        try
         {
-            // Setting IsDisconnected ensures any concurrent OnRpcStarted that already looked up the
-            // entry but is still waiting for this lock will skip promotion when it resumes.
-            entry.IsDisconnected = true;
+            Monitor.TryEnter( entry.Lock, TimeSpan.FromSeconds( 5 ), ref lockTaken );
 
             // _apis must be cleaned up alongside _clients so that subscribers iterating Apis
             // (e.g. EventHubRpcService.ForwardEventAsync) do not invoke a stored IRpcEventSender
-            // over a dead JsonRpc.
+            // over a dead JsonRpc. The IsDisconnected flag set above prevents a concurrent
+            // OnRpcStarted from re-adding to either dictionary, so removing outside the lock
+            // (lockTaken == false) is also safe: any TryAdd that already happened is undone here,
+            // and any TryAdd still pending is skipped by the IsDisconnected check.
             this._clients.TryRemove( rpc, out _ );
             this._apis.TryRemove( rpc, out _ );
+
+            if ( !lockTaken )
+            {
+                this.Logger.Warning?.Log(
+                    $"OnRpcDisconnected: could not acquire registration lock for rpc within timeout; cleanup proceeded without the lock." );
+            }
+        }
+        finally
+        {
+            if ( lockTaken )
+            {
+                Monitor.Exit( entry.Lock );
+            }
         }
     }
 
@@ -215,6 +247,12 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
 
     private sealed class RegistrationEntry
     {
+        // Volatile because OnRpcDisconnected writes it outside entry.Lock to avoid blocking on the
+        // lock (see OnRpcDisconnected comments). OnRpcStarted reads it inside the lock, but the
+        // lock acquire only fences the reader's own operations — without volatile, the unlocked
+        // write may not be visible.
+        private volatile bool _isDisconnected;
+
         public RegistrationEntry( IRpcCallback callback, TApi api )
         {
             this.Callback = callback;
@@ -227,6 +265,10 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
 
         public object Lock { get; } = new();
 
-        public bool IsDisconnected { get; set; }
+        public bool IsDisconnected
+        {
+            get => this._isDisconnected;
+            set => this._isDisconnected = value;
+        }
     }
 }

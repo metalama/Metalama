@@ -81,7 +81,15 @@ public static class TaskExtensions
 
     private static async Task WithCancellationSlow( this Task task, bool continueOnCapturedContext, CancellationToken cancellationToken )
     {
-        var taskCompletionSource = new TaskCompletionSource<bool>();
+        // RunContinuationsAsynchronously is critical: the cancellation callback below fires
+        // synchronously on the thread that calls CancellationTokenSource.Cancel (e.g. a Timer
+        // thread for a CancelAfter token). Without this option, TrySetResult would invoke our
+        // awaiter's continuation inline on that thread, and via async-method chaining the entire
+        // user continuation graph would execute on the cancelling thread. Locks held elsewhere by
+        // that very thread (or that it is supposed to release) become impossible to acquire,
+        // producing hard-to-diagnose deadlocks. Queuing continuations to the thread pool instead
+        // breaks the cascade at its root.
+        var taskCompletionSource = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
 
         var registration = cancellationToken.Register(
             s => ((TaskCompletionSource<bool>) s!).TrySetResult( true ),
@@ -105,7 +113,8 @@ public static class TaskExtensions
 
     private static async Task<T> WithCancellationSlow<T>( this Task<T> task, bool continueOnCapturedContext, CancellationToken cancellationToken )
     {
-        var taskCompletionSource = new TaskCompletionSource<bool>();
+        // See the non-generic overload for why RunContinuationsAsynchronously is required.
+        var taskCompletionSource = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
 
         var registration = cancellationToken.Register(
             s => ((TaskCompletionSource<bool>) s!).TrySetResult( true ),
