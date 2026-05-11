@@ -245,6 +245,13 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     /// <c>OnPendingClientPromoting</c> hook and asserts that broadcasting after the dust settles only
     /// reaches the still-connected client.
     /// </summary>
+    /// <remarks>
+    /// This test also covers issue #1624 (mid-connect dispose): it pauses client2 at
+    /// <c>ClientEndpoint.AfterGetsServer</c> so client2 is provably mid-connect (pipe accepted, no rpc
+    /// yet) when <c>Dispose</c> is called. The test relies on <c>ClientEndpoint.Dispose</c> closing the
+    /// pending pipe stream so the server can observe the disconnect — without that fix
+    /// <c>client2.Dispose()</c> is a no-op in this state and the test hangs.
+    /// </remarks>
     [Fact]
     public async Task OnRpcStarted_DisconnectInMiddleOfPromotion_DoesNotLeaveDeadRpcInDictionaries()
     {
@@ -282,7 +289,11 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
         var service = await serverEndpoint.GetRequiredServiceAsync<EventTestService>( testContext.CancellationToken );
 
         var promotingReachedTcs = new TaskCompletionSource<bool>();
-        var promotingReleaseTcs = new TaskCompletionSource<bool>();
+
+        // RunContinuationsAsynchronously: when we TrySetResult below, we don't want the OnRpcStarted
+        // thread's continuation (the rest of the hook + the rest of OnRpcStarted) to run inline on the
+        // test thread.
+        var promotingReleaseTcs = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
         var disconnectAttemptedTcs = new TaskCompletionSource<bool>();
 
         service.OnPendingClientPromotingHook = () =>
@@ -299,17 +310,28 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
             disconnectAttemptedTcs.TrySetResult( true );
         };
 
+        // Pin client2 at AfterGetsServer: the pipe stream is created and OS-connected to the server,
+        // but client2 has not yet created its rpc or added itself to _connectionByStream. This is
+        // the pending state where ClientEndpoint.Dispose must still close the pipe (issue #1624).
+        // The server's accept side runs independently from this sync point and will reach
+        // OnRpcStarted's hook on its own.
+        var clientPausedSyncPoint = $"ClientEndpoint.AfterGetsServer:{pipeName}";
+        testContext.SyncProvider.EnableSyncPoint( clientPausedSyncPoint );
+
         // Start connecting the second client. Server enters OnRpcStarted, removes pending entry, hits hook.
         var client2 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
         var client2ConnectTask = client2.ConnectAsync( testContext.CancellationToken );
 
-        // Wait until the server's OnRpcStarted is paused mid-promotion.
+        // Wait until both: the server's OnRpcStarted is paused mid-promotion AND client2 is paused
+        // at AfterGetsServer (so we know Dispose will exercise the pending-resource cleanup path).
         await promotingReachedTcs.Task.WithCancellation( testContext.CancellationToken );
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync( clientPausedSyncPoint, testContext.CancellationToken );
 
         // Trigger disconnection of client2 while server is paused. With the fix in place, the server's
         // OnRpcDisconnected will block on the registration lock. Without the fix, it would run concurrently
         // and find nothing to remove (since pending was already taken), leaving the dead rpc to be added by
-        // the resuming OnRpcStarted.
+        // the resuming OnRpcStarted. Disposing here also exercises ClientEndpoint.Dispose's pending-resource
+        // cleanup: client2's pipe is registered as pending but not yet in _connectionByStream.
         client2.Dispose();
 
         // Wait until OnRpcDisconnected has been entered for client2's rpc.
@@ -321,6 +343,10 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
 
         // Wait for the server-side disconnect handler to finish (so dictionaries are in their final state).
         await clientDisconnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        // Release client2's sync point so its connect task can unwind (it will fault because the pipe
+        // is disposed; that's acceptable, see the catch below).
+        testContext.SyncProvider.ReleaseSyncPoint( clientPausedSyncPoint );
 
         // Allow the connect task to complete or fail — either is acceptable, the disconnect happens client-side.
         try
@@ -410,7 +436,7 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     /// <c>OnRpcStarted</c> — so A cannot be removed from <c>_clients</c>/<c>_apis</c> until B finishes
     /// promotion. Concurrent broadcasts (which do not take the lock) can still pick up A's already-dead
     /// callback. The fix replaces the per-service lock with a per-rpc lock on a <c>RegistrationEntry</c>,
-    /// so disconnect cleanup of unrelated rpcs is no longer serialized with any in-flight promotion.
+    /// so disconnect cleanup of unrelated rpcs is no longer serialized with any ongoing promotion.
     /// </summary>
     [Fact]
     public async Task OnRpcDisconnected_OfClientA_NotBlockedByOnRpcStartedOfUnrelatedClientB()
@@ -583,6 +609,62 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
 #pragma warning restore VSTHRD103
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>( () => service.TestSafeBroadcastInvokeAsync( Task.FromCanceled, cts.Token ) );
+    }
+
+    /// <summary>
+    /// Regression test for issue #1624 (Fix 2B). Before the fix, <c>ClientEndpoint.Dispose</c> only
+    /// closed connections that had already been published to <c>_connectionByStream</c> — which
+    /// happens only after <c>rpc.StartListening</c>. Disposing while <c>ConnectCoreAsync</c> was
+    /// still in flight was a silent no-op: the OS pipe stayed open, the server's <c>JsonRpc</c>
+    /// never raised <c>Disconnected</c>, and any code waiting for <c>OnRpcDisconnected</c> hung
+    /// forever. This test pauses client2 at <c>ClientEndpoint.AfterGetsServer</c> (pipe accepted,
+    /// rpc not yet created), disposes the endpoint, and asserts that the server observes the
+    /// disconnect.
+    /// </summary>
+    [Fact]
+    public async Task ClientEndpointDispose_MidConnect_ClosesPendingPipe_ServerSeesDisconnect()
+    {
+        using var testContext = this.CreateRpcTestContext();
+
+        var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
+
+        using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
+
+        var clientDisconnectedTcs = new TaskCompletionSource<bool>();
+        serverEndpoint.ClientDisconnected += () => clientDisconnectedTcs.TrySetResult( true );
+
+        serverEndpoint.Start();
+
+        // Pause the client right after the OS pipe handshake but before rpc is constructed: only
+        // the NamedPipeClientStream exists and it has not yet been added to _connectionByStream.
+        var syncPointName = $"ClientEndpoint.AfterGetsServer:{pipeName}";
+        testContext.SyncProvider.EnableSyncPoint( syncPointName );
+
+        var clientEndpoint = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+
+        // Fire-and-forget connect: the test disposes before the connect can finish.
+        var connectTask = clientEndpoint.ConnectAsync( testContext.CancellationToken );
+
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync( syncPointName, testContext.CancellationToken );
+
+        // Dispose mid-connect. With the fix, the pending pipe is closed and the server's JsonRpc
+        // detects EOF and raises Disconnected (which fires ClientDisconnected).
+        clientEndpoint.Dispose();
+
+        testContext.SyncProvider.ReleaseSyncPoint( syncPointName );
+
+        try
+        {
+            // ReSharper disable once RedundantWithCancellation
+            await connectTask.WithCancellation( testContext.CancellationToken );
+        }
+        catch
+        {
+            // Expected: connection task faults because the pipe was disposed mid-connect.
+        }
+
+        // The real assertion: without the fix, this hangs until the test cancellation token cancels.
+        await clientDisconnectedTcs.Task.WithCancellation( testContext.CancellationToken );
     }
 
     /// <summary>
