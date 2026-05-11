@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Utilities.Threading;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -22,8 +23,15 @@ public sealed class TaskExtensionsTests
     /// <see cref="TaskCreationOptions.RunContinuationsAsynchronously"/> to the internal
     /// <see cref="TaskCompletionSource{T}"/> used by <c>WithCancellationSlow</c>.
     /// </summary>
+    /// <remarks>
+    /// The cancellation runs on a dedicated non-thread-pool <see cref="Thread"/> rather than the
+    /// xUnit test thread. Otherwise the test thread, after yielding at the post-Cancel await, can
+    /// itself be reused by the thread pool to dispatch the queued continuation — producing a
+    /// false match between "cancelling thread" and "continuation thread" even when the invariant
+    /// holds. A dedicated thread is never a thread-pool worker, so its identity is distinct.
+    /// </remarks>
     [Fact]
-    public async Task WithCancellation_OnCancel_DoesNotRunContinuationsInline()
+    public void WithCancellation_OnCancel_DoesNotRunContinuationsInline()
     {
         // A task that never completes on its own: the only way out of WithCancellation is the token.
         var hangingTask = new TaskCompletionSource<int>().Task;
@@ -31,30 +39,43 @@ public sealed class TaskExtensionsTests
         using var cts = new CancellationTokenSource();
         var wrapped = hangingTask.WithCancellation( cts.Token );
 
-        var cancellingThreadId = Thread.CurrentThread.ManagedThreadId;
-        var continuationThreadId = 0;
-        var continuationFinishedTcs = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+        Thread? continuationThread = null;
+        using var continuationDone = new ManualResetEventSlim( false );
 
-        // Request inline continuation: this is the strongest possible "run on the cancelling
-        // thread" hint a consumer could give. With RunContinuationsAsynchronously on the internal
-        // TCS, the runtime is required to honor asynchronous scheduling regardless.
+        // Request synchronous continuation: this is the strongest possible "run on the completing
+        // thread" hint a consumer can give. With RunContinuationsAsynchronously on the internal
+        // TCS, the runtime must still honor asynchronous scheduling and not run the chain inline
+        // on the thread that called Cancel.
         _ = wrapped.ContinueWith(
             _ =>
             {
-                continuationThreadId = Thread.CurrentThread.ManagedThreadId;
-                continuationFinishedTcs.TrySetResult( true );
+                continuationThread = Thread.CurrentThread;
+                continuationDone.Set();
             },
             CancellationToken.None,
             TaskContinuationOptions.ExecuteSynchronously,
             TaskScheduler.Default );
 
+        Thread? cancellingThread = null;
+        var cancelThread = new Thread(
+            () =>
+            {
+                cancellingThread = Thread.CurrentThread;
 #pragma warning disable VSTHRD103 // Synchronous Cancel is exactly what this test measures.
-        cts.Cancel();
+                cts.Cancel();
 #pragma warning restore VSTHRD103
+            } ) { IsBackground = true, Name = "WithCancellation-cancel-thread" };
 
-        await continuationFinishedTcs.Task;
+        cancelThread.Start();
+        Assert.True( cancelThread.Join( TimeSpan.FromSeconds( 10 ) ), "Cancel thread should complete promptly." );
+        Assert.True( continuationDone.Wait( TimeSpan.FromSeconds( 10 ) ), "Continuation should run." );
 
-        Assert.NotEqual( 0, continuationThreadId );
-        Assert.NotEqual( cancellingThreadId, continuationThreadId );
+        Assert.NotNull( cancellingThread );
+        Assert.NotNull( continuationThread );
+
+        // The continuation must not have run on the dedicated cancelling thread. With Fix 1B's
+        // RunContinuationsAsynchronously the chain dispatches to a thread-pool worker; without it
+        // the entire async cascade runs inline on the cancelling thread and these references match.
+        Assert.NotSame( cancellingThread, continuationThread );
     }
 }
