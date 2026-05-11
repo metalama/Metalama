@@ -36,7 +36,7 @@ public sealed class TaskExtensionsTests
     /// schedule it however it wants, complicating the timing semantics).
     /// </remarks>
     [Fact]
-    public void WithCancellation_OnCancel_DoesNotBlockOnSlowContinuations()
+    public async Task WithCancellation_OnCancel_DoesNotBlockOnSlowContinuations()
     {
         // A task that never completes on its own: the only way out of WithCancellation is the token.
         var hangingTask = new TaskCompletionSource<int>().Task;
@@ -77,6 +77,9 @@ public sealed class TaskExtensionsTests
         continuationCanProceed.Set();
 
         Assert.True( cancelReturned, "Cancel must return without waiting on the continuation; got blocked instead." );
-        Assert.True( continued.Wait( TimeSpan.FromSeconds( 5 ) ), "Continuation should complete after being released." );
+
+        // Await the continuation with a timeout so a badly broken implementation can't hang the test.
+        var raceWinner = await Task.WhenAny( continued, Task.Delay( TimeSpan.FromSeconds( 5 ) ) );
+        Assert.Same( continued, raceWinner );
     }
 }
