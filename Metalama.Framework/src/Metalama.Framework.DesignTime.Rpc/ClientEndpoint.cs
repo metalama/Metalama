@@ -434,20 +434,38 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
     private void RegisterPending( IDisposable disposable )
     {
+        bool alreadyDisposed;
+
         lock ( this._pendingLock )
         {
-            if ( this._disposed )
+            alreadyDisposed = this._disposed;
+
+            if ( !alreadyDisposed )
             {
-                // Dispose already ran. Dispose this resource directly so the caller doesn't leak it,
-                // and surface the situation as an exception so ConnectCoreAsync's catch block runs
-                // its normal cleanup (SetFailure on pending clients, etc.).
-                disposable.Dispose();
-
-                throw new ObjectDisposedException( this.GetType().FullName );
+                this._pendingDisposables.Add( disposable );
             }
-
-            this._pendingDisposables.Add( disposable );
         }
+
+        if ( !alreadyDisposed )
+        {
+            return;
+        }
+
+        // Dispose already ran. Dispose the resource OUTSIDE _pendingLock so user code that
+        // JsonRpc.Dispose (or other IDisposables) may invoke — Disconnected handlers, etc. — cannot
+        // contend with the lock or block other RegisterPending callers. Then surface
+        // ObjectDisposedException so ConnectCoreAsync's catch block runs its normal cleanup
+        // (SetFailure on pending clients) and the caller does not leak the resource.
+        try
+        {
+            disposable.Dispose();
+        }
+        catch ( Exception ex )
+        {
+            this.Logger.Warning?.Log( $"Disposing pending resource registered after Dispose threw: {ex}" );
+        }
+
+        throw new ObjectDisposedException( this.GetType().FullName );
     }
 
     private void UnregisterPending( IDisposable disposable )
