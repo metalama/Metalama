@@ -115,7 +115,8 @@ internal sealed class IntroduceConstructorTransformation
     public override InsertPosition InsertPosition => this.ReplacedMember?.ToInsertPosition() ?? this.BuilderData.InsertPosition;
 
     public override TransformationObservability Observability
-        => this.ReplacedMember == null && this.BuilderData is { IsImplicitlyDeclared: false, IsDesignTimeObservable: true }
+        => (this.ReplacedMember is null or IIntroducedRef)
+           && this.BuilderData is { IsImplicitlyDeclared: false, IsDesignTimeObservable: true }
             ? TransformationObservability.Always
             : TransformationObservability.CompileTimeOnly;
 
