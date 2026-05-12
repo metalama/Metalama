@@ -176,9 +176,7 @@ public sealed class PipelineCancellationTests : UnitTestClass
                 return "";
             }
 
-            var content = RetryHelper.Retry( () => File.ReadAllText( touchFile ) );
-
-            return TouchFileHelper.GetTouchId( content, touchFile );
+            return RetryHelper.Retry( () => TouchFileRenderer.TryReadGuid( touchFile, out var guid ) ? guid : "" );
         }
 
         bool ExecutePipeline( int version )

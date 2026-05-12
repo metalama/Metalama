@@ -71,7 +71,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
         if ( testContextOptions.HasSourceGeneratorTouchFile )
         {
-            this.SourceGeneratorTouchFile = Path.Combine( baseDirectory, "SourceGeneratorTouchFile.txt" );
+            this.SourceGeneratorTouchFile = Path.Combine( baseDirectory, "MetalamaSourceGenerator.test.g.cs" );
         }
 
         if ( testContextOptions.HasBuildTouchFile )

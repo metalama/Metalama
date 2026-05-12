@@ -98,7 +98,7 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
         this.AspectInstancesHashCode = aspectInstancesHashCode;
 
         Logger.DesignTime.Trace?.Log(
-            $"CompilationPipelineResult {this._id} created with {this.SyntaxTreeResults.Count} syntax trees and {this._invalidSyntaxTreeResults.Count} introduced syntax trees." );
+            $"CompilationPipelineResult {this._id} created with {this.SyntaxTreeResults.Count} syntax trees and {this.IntroducedSyntaxTrees.Count} introduced syntax trees." );
 
         if ( !this.IsEmpty && configuration == null )
         {

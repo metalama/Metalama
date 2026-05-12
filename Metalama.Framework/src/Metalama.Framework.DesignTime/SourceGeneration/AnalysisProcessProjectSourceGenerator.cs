@@ -269,16 +269,47 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
 
         this.Logger.Trace?.Log( $"Touching '{touchFile}' with value '{newGuid}'." );
 
+        var content = TouchFileRenderer.Render( newGuid );
+
+        // Write atomically so Rider/Roslyn, which parse this <Compile> file on every change, never observe a
+        // truncated half-written buffer: write to a sibling temp file, then File.Replace/Move into place
+        // (atomic on NTFS). The cross-process MutexHelper still orders concurrent writers from racing on the
+        // same path. Same write pattern as Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.cs.
         using ( MutexHelper.WithGlobalLock( touchFile, this.Logger ) )
         {
-            RetryHelper.Retry( () => File.WriteAllText( touchFile, newGuid ) );
+            RetryHelper.Retry(
+                () =>
+                {
+                    var tempFile = Path.Combine(
+                        Path.GetDirectoryName( touchFile )!,
+                        $".{Path.GetFileName( touchFile )}.{Guid.NewGuid():N}.tmp" );
+
+                    try
+                    {
+                        File.WriteAllText( tempFile, content );
+
+                        if ( File.Exists( touchFile ) )
+                        {
+                            File.Replace( tempFile, touchFile, destinationBackupFileName: null );
+                        }
+                        else
+                        {
+                            File.Move( tempFile, touchFile );
+                        }
+                    }
+                    finally
+                    {
+                        if ( File.Exists( tempFile ) )
+                        {
+                            File.Delete( tempFile );
+                        }
+                    }
+                } );
         }
 
-        var touchId = TouchFileHelper.GetTouchId( newGuid, touchFile );
+        this.LastTouchId = newGuid;
 
-        this.LastTouchId = touchId;
-
-        this._observer?.OnTouchFileWritten( this.ProjectKey, touchId );
+        this._observer?.OnTouchFileWritten( this.ProjectKey, newGuid );
     }
 
     private bool TryGetTouchFilePath( [NotNullWhen( true )] out string? path )
