@@ -39,11 +39,24 @@ public sealed class DotNetTool
         };
 
         // We must avoid passing the following environment variables to the child process, otherwise there can be a mismatch
-        // between SDK versions and the build will fail.
+        // between SDK versions and the build will fail. These variables can be set by IDE hosts (Visual Studio, Rider)
+        // to pin their worker process to a bundled .NET; we want our spawned dotnet to use the system installation
+        // discovered by PlatformInfo, free of the host's runtime/SDK redirection.
         startInfo.Environment.Remove( "DOTNET_HOST_PATH" );
+        startInfo.Environment.Remove( "DOTNET_ROOT" );
         startInfo.Environment.Remove( "DOTNET_ROOT_X64" );
+        startInfo.Environment.Remove( "DOTNET_ROOT_X86" );
+        startInfo.Environment.Remove( "DOTNET_ROOT_ARM64" );
+        startInfo.Environment.Remove( "DOTNET_ROOT(x86)" );
+        startInfo.Environment.Remove( "DOTNET_MULTILEVEL_LOOKUP" );
         startInfo.Environment.Remove( "MSBUILD_EXE_PATH" );
         startInfo.Environment.Remove( "MSBuildSDKsPath" );
+
+        // Rider also sets host-tuning knobs on its worker (GC mode, R2R/NGen disabled). They're appropriate for a
+        // long-running IDE host but slow down our short-lived `dotnet build`, so don't inherit them either.
+        startInfo.Environment.Remove( "DOTNET_GCConserveMemory" );
+        startInfo.Environment.Remove( "DOTNET_ReadyToRun" );
+        startInfo.Environment.Remove( "DOTNET_ZapDisable" );
 
         if ( environmentVariableFilter != null )
         {
