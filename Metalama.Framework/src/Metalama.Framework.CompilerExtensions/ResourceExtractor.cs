@@ -478,14 +478,16 @@ public static class ResourceExtractor
                 log?.AppendLine( $"Loading the embedded assembly '{embeddedAssembly.Path}'." );
 
                 // It seems assemblies loaded into an ALC don't participate in COM type equivalence.
-                // Since we need that for the DesignTime.Contracts assembly in devenv.exe, load it without using ALC.
+                // Since we need that for the DesignTime.Contracts assembly in devenv.exe and in Rider
+                // (where every Roslyn extension is loaded into its own ALC and shares the singleton
+                // DesignTimeEntryPointManager via AppDomain.SetData, see #1626), load it without using ALC.
                 // However, in other processes (DevHub, ServiceHub, compiler), COM type equivalence is not needed
                 // and Assembly.LoadFile causes Microsoft.CodeAnalysis to resolve from the wrong ALC in DevHub,
                 // leading to MissingMethodException/TypeLoadException (#1461).
 
                 // ReSharper disable once StringStartsWithIsCultureSpecific
                 if ( name.StartsWith( $"{_designTimeContractsAssemblyName}," )
-                     && ProcessKindHelper.CurrentProcessKind == ProcessKind.DevEnv )
+                     && ProcessKindHelper.CurrentProcessKind is ProcessKind.DevEnv or ProcessKind.Rider )
                 {
                     return Assembly.LoadFile( embeddedAssembly.Path );
                 }
