@@ -4,7 +4,6 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -63,10 +62,10 @@ namespace Metalama.Backstage.Infrastructure
             logger?.Trace?.Log( $"Looking for {dotnetFileName} path." );
 
             // Under Rider, DOTNET_HOST_PATH and DOTNET_ROOT* in the worker process refer to Rider's
-            // bundled .NET installation, which only ships the SDKs Rider itself needs (see #1626).
+            // bundled .NET installation, which only ships the SDKs Rider itself needs (see #1627).
             // Skip those hints so we fall through to the system installation, which has the SDKs
             // Rider actually used to evaluate the user's project.
-            var skipEnvVarHints = ProcessUtilities.ProcessKind == ProcessKind.Rider;
+            var skipEnvVarHints = this._runtimeInformation.ProcessKind == ProcessKind.Rider;
 
             if ( skipEnvVarHints )
             {
