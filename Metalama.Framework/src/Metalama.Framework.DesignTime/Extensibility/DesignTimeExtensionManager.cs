@@ -76,7 +76,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
                 // resolve to different Type objects when DefaultCompileTimeDomainFactory hands us different
                 // CompileTimeDomains for different projects, each with its own MetalamaAssemblyLoadContext.
                 // Without this, the per-project extension list accumulates duplicates and aspect-emitted code
-                // actions appear multiple times in the IDE menu (#1626).
+                // actions appear multiple times in the IDE menu (#1628).
                 var existing = this._extensions.Keys.FirstOrDefault( t => t.FullName == extensionType.ExtensionType.FullName );
 
                 if ( existing != null )
