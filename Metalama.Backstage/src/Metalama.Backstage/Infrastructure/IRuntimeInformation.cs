@@ -5,7 +5,6 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Utilities;
 using System.Runtime.InteropServices;
 
 // ReSharper disable InconsistentNaming
@@ -16,7 +15,6 @@ namespace Metalama.Backstage.Infrastructure;
 /// Provides runtime information about the current platform and process.
 /// </summary>
 [PublicAPI]
-[InternalImplement]
 public interface IRuntimeInformation : IBackstageService
 {
     /// <summary>
