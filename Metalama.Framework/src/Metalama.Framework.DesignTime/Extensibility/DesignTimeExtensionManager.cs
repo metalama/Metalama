@@ -72,9 +72,25 @@ public sealed class DesignTimeExtensionManager : IGlobalService
 
             foreach ( var extensionType in extensions )
             {
-                if ( this._extensions.ContainsKey( extensionType.ExtensionType ) )
+                // Dedup by Type.FullName rather than Type reference identity: the same logical extension can
+                // resolve to different Type objects when DefaultCompileTimeDomainFactory hands us different
+                // CompileTimeDomains for different projects, each with its own MetalamaAssemblyLoadContext.
+                // Without this, the per-project extension list accumulates duplicates and aspect-emitted code
+                // actions appear multiple times in the IDE menu (#1628).
+                var existing = this._extensions.Keys.FirstOrDefault( t => t.FullName == extensionType.ExtensionType.FullName );
+
+                if ( existing != null )
                 {
-                    this._logger.Trace?.Log( $"The extension '{extensionType}' was already loaded." );
+                    if ( !ReferenceEquals( existing.Assembly, extensionType.ExtensionType.Assembly ) )
+                    {
+                        this._logger.Trace?.Log(
+                            $"Extension '{extensionType.ExtensionType.FullName}' already loaded from a different Assembly "
+                            + $"('{existing.Assembly.FullName}' vs '{extensionType.ExtensionType.Assembly.FullName}'); skipping." );
+                    }
+                    else
+                    {
+                        this._logger.Trace?.Log( $"The extension '{extensionType}' was already loaded." );
+                    }
 
                     continue;
                 }

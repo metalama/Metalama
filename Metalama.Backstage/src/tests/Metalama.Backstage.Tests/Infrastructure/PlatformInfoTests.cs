@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Testing;
@@ -38,6 +39,37 @@ public sealed class PlatformInfoTests : TestsBase
     {
         this.FileSystem.CreateDirectory( Path.GetDirectoryName( dotnetExePath )! );
         this.FileSystem.WriteAllText( dotnetExePath, string.Empty );
+    }
+
+    [Fact]
+    public void Rider_IgnoresDOTNET_HOST_PATH_AndDOTNET_ROOT_EvenWhenTheyHaveAnSdk()
+    {
+        // Arrange: simulate Rider's worker env, where DOTNET_HOST_PATH and DOTNET_ROOT point at
+        // Rider's bundled dotnet (which has an SDK directory but only ships the SDK Rider itself
+        // uses). Under Rider we must skip those hints and fall through to the system installation.
+        this.RuntimeInformation.TestProcessArchitecture = Architecture.X64;
+        this.RuntimeInformation.Platform = OSPlatform.Windows;
+        this.RuntimeInformation.TestProcessKind = ProcessKind.Rider;
+
+        const string riderDotnet = "C:\\Rider\\dotnet\\dotnet.exe";
+        const string riderRoot = "C:\\Rider\\dotnet";
+        const string programFiles = "C:\\Program Files";
+        var systemDotnet = Path.Combine( programFiles, "dotnet", "dotnet.exe" );
+
+        this.EnvironmentVariableProvider.Environment["DOTNET_HOST_PATH"] = riderDotnet;
+        this.EnvironmentVariableProvider.Environment["DOTNET_ROOT"] = riderRoot;
+        this.EnvironmentVariableProvider.Environment["ProgramFiles"] = programFiles;
+
+        // Both Rider's bundled dotnet and the system dotnet have an SDK directory next to them.
+        this.CreateDotNetWithSdk( riderDotnet );
+        this.CreateDotNetWithSdk( systemDotnet );
+
+        // Act
+        var result = this._platformInfo.DotNetExePath;
+
+        // Assert: under Rider, the env-var hints are skipped, so we land on the system install
+        // rather than Rider's bundled dotnet — regardless of whether the bundled one has an SDK.
+        Assert.Equal( systemDotnet, result );
     }
 
     [Fact]

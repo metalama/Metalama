@@ -61,9 +61,20 @@ namespace Metalama.Backstage.Infrastructure
 
             logger?.Trace?.Log( $"Looking for {dotnetFileName} path." );
 
-            // 1. Check DOTNET_HOST_PATH first (highest priority).
-            // This is the absolute path to the dotnet host executable.
+            // Under Rider, DOTNET_HOST_PATH and DOTNET_ROOT* in the worker process refer to Rider's
+            // bundled .NET installation, which only ships the SDKs Rider itself needs (see #1627).
+            // Skip those hints so we fall through to the system installation, which has the SDKs
+            // Rider actually used to evaluate the user's project.
+            var skipEnvVarHints = this._runtimeInformation.ProcessKind == ProcessKind.Rider;
+
+            if ( skipEnvVarHints )
             {
+                logger?.Trace?.Log( "Running under Rider: ignoring DOTNET_HOST_PATH and DOTNET_ROOT* for dotnet discovery." );
+            }
+            else
+            {
+                // 1. Check DOTNET_HOST_PATH first (highest priority).
+                // This is the absolute path to the dotnet host executable.
                 var dotnetHostPath = this._environmentVariableProvider.GetEnvironmentVariable( "DOTNET_HOST_PATH" );
 
                 if ( !string.IsNullOrEmpty( dotnetHostPath ) )
@@ -82,7 +93,7 @@ namespace Metalama.Backstage.Infrastructure
             }
 
             // 2. Search in installation locations (DOTNET_ROOT env vars, then default locations).
-            foreach ( var directory in this.GetDotNetDirectories() )
+            foreach ( var directory in this.GetDotNetDirectories( skipEnvVarHints ) )
             {
                 var dotnetPath = Path.Combine( directory, dotnetFileName );
 
@@ -134,17 +145,22 @@ namespace Metalama.Backstage.Infrastructure
         /// Note: DOTNET_HOST_PATH is checked separately before this method, as it specifies the full path to the executable.
         /// Reference: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables
         /// </summary>
+        /// <param name="skipEnvVarHints">When <c>true</c>, the DOTNET_ROOT environment variables are not consulted
+        /// (used under Rider, where they refer to its bundled .NET, not the user's system install).</param>
         /// <returns>A list of directory paths to check for .NET installations.</returns>
-        private IEnumerable<string> GetDotNetDirectories()
+        private IEnumerable<string> GetDotNetDirectories( bool skipEnvVarHints )
         {
-            foreach ( var environmentVariableName in this.GetDotNetRootEnvironmentVariables() )
+            if ( !skipEnvVarHints )
             {
-                var environmentVariableValue = this._environmentVariableProvider.GetEnvironmentVariable( environmentVariableName );
-
-                if ( !string.IsNullOrWhiteSpace( environmentVariableValue ) )
+                foreach ( var environmentVariableName in this.GetDotNetRootEnvironmentVariables() )
                 {
-                    // ReSharper disable once RedundantSuppressNullableWarningExpression
-                    yield return environmentVariableValue!;
+                    var environmentVariableValue = this._environmentVariableProvider.GetEnvironmentVariable( environmentVariableName );
+
+                    if ( !string.IsNullOrWhiteSpace( environmentVariableValue ) )
+                    {
+                        // ReSharper disable once RedundantSuppressNullableWarningExpression
+                        yield return environmentVariableValue!;
+                    }
                 }
             }
 

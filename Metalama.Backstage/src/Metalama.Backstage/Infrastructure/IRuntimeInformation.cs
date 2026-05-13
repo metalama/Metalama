@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using System.Runtime.InteropServices;
 
@@ -33,4 +34,10 @@ public interface IRuntimeInformation : IBackstageService
     /// </summary>
 
     Architecture OSArchitecture { get; }
+
+    /// <summary>
+    /// Gets the kind of the current process (e.g. <see cref="Diagnostics.ProcessKind.Rider"/>),
+    /// abstracted so test doubles can simulate hosts without depending on the real process name.
+    /// </summary>
+    ProcessKind ProcessKind { get; }
 }
