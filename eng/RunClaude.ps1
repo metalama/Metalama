@@ -210,8 +210,20 @@ if ($Prompt)
     # Stream JSON output for human-readable real-time monitoring
     $processArgs = "-p --output-format stream-json --verbose --model $Model --dangerously-skip-permissions $mcpConfigArg"
 
+    # Resolve the Claude CLI launcher: npm ships claude.cmd on Windows, the native installer ships
+    # claude.exe, and on Linux/macOS the binary is plain "claude". Get-Command honors PATHEXT so
+    # asking for "claude" without an extension finds whichever variant is on PATH.
+    $claudeCommand = Get-Command claude.cmd -ErrorAction SilentlyContinue
+    if (-not $claudeCommand) { $claudeCommand = Get-Command claude.exe -ErrorAction SilentlyContinue }
+    if (-not $claudeCommand) { $claudeCommand = Get-Command claude -ErrorAction SilentlyContinue }
+    if (-not $claudeCommand) {
+        Write-Error "Claude CLI not found on PATH. Install it via 'npm i -g @anthropic-ai/claude-code' or the native installer."
+        exit 1
+    }
+    Write-Host "Using Claude executable: $($claudeCommand.Source)" -ForegroundColor Cyan
+
     $psi = [System.Diagnostics.ProcessStartInfo]::new()
-    $psi.FileName = "claude.cmd"
+    $psi.FileName = $claudeCommand.Source
     $psi.Arguments = $processArgs
     $psi.RedirectStandardInput = $true
     $psi.RedirectStandardOutput = $true
