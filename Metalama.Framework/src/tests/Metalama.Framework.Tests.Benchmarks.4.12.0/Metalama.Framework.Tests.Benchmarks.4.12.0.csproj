@@ -1,7 +1,7 @@
 <Project ToolsVersion="Current">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <RoslynVersion>4.14.0</RoslynVersion>
+    <BenchmarkRoslynVersion>4.14.0</BenchmarkRoslynVersion>
     <EngineProjectSuffix>.4.12.0</EngineProjectSuffix>
   </PropertyGroup>
   <ItemGroup>
