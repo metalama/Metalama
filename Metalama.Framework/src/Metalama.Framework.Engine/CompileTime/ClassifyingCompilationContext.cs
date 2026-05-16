@@ -31,5 +31,7 @@ internal sealed class ClassifyingCompilationContext
 
     public Compilation SourceCompilation => this.CompilationContext.Compilation;
 
+    public bool ReferencesMetalamaFramework => this.CompilationContext.ReferencesMetalamaFramework;
+
     public SafeSymbolComparer SymbolComparer => this.CompilationContext.SymbolComparer;
 }
