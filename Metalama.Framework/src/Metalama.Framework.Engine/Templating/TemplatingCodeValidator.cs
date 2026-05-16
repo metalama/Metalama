@@ -217,6 +217,15 @@ namespace Metalama.Framework.Engine.Templating
             bool? hasCompileTimeCodeFast,
             CancellationToken cancellationToken )
         {
+            if ( !compilationContext.ReferencesMetalamaFramework )
+            {
+                // There is nothing to validate when the compilation does not reference Metalama. This situation can
+                // happen transiently when the IDE analyzes a project whose references are momentarily incomplete,
+                // e.g. during a 'git clean' (https://github.com/metalama/Metalama/issues/1630). Proceeding would
+                // throw when resolving Metalama symbols.
+                return true;
+            }
+
             Visitor visitor = new(
                 serviceProvider,
                 semanticModel,

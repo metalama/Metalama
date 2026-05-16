@@ -83,6 +83,14 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
     internal ImmutableDictionary<AssemblyIdentity, IAssemblySymbol> Assemblies
         => this.Compilation.SourceModule.ReferencedAssemblySymbols.Concat( this.Compilation.Assembly ).ToImmutableDictionary( x => x.Identity, x => x );
 
+    /// <summary>
+    /// Gets a value indicating whether the compilation references the <c>Metalama.Framework</c> assembly. This can be
+    /// <c>false</c> transiently when the IDE analyzes a project whose references are momentarily incomplete.
+    /// </summary>
+    [Memo]
+    internal bool ReferencesMetalamaFramework
+        => this.Compilation.SourceModule.ReferencedAssemblySymbols.Any( a => a.Name == "Metalama.Framework" );
+
     [Memo]
     internal IEqualityComparer<IEvent> EventComparer => new MemberComparer<IEvent>( this.Comparers.Default );
 

@@ -451,6 +451,38 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         }
 
         [Fact]
+        public void NoMetalamaReference_DoesNotThrow()
+        {
+            // Regression test for https://github.com/metalama/Metalama/issues/1630.
+            // While the IDE is open, a 'git clean' can momentarily leave a compilation that still has the
+            // Metalama analyzer loaded but no metadata reference to Metalama.Framework. The validator must
+            // degrade to a no-op instead of crashing.
+            using var testContext = this.CreateTestContext();
+
+            var compilation = testContext.CreateCSharpCompilation(
+                """
+                class X { void M() {} }
+                """,
+                addMetalamaReferences: false );
+
+            List<Diagnostic> diagnostics = new();
+            var syntaxTree = compilation.SyntaxTrees[0];
+            var semanticModel = compilation.GetSemanticModel( syntaxTree );
+
+            // This should not throw.
+            TemplatingCodeValidator.Validate(
+                testContext.ServiceProvider,
+                semanticModel,
+                diagnostics.Add,
+                null,
+                false,
+                false,
+                testContext.CancellationToken );
+
+            Assert.Empty( diagnostics );
+        }
+
+        [Fact]
         public void WellKnownTypesNotReported()
         {
             using var testContext = this.CreateTestContext();
