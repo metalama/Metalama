@@ -60,6 +60,17 @@ namespace Metalama.Framework.Engine.Templating
             Action<ScopedSuppression>? reportSuppression,
             CancellationToken cancellationToken )
         {
+            if ( !compilationContext.ReferencesMetalamaFramework )
+            {
+                // There is nothing to validate when the compilation does not reference Metalama. Short-circuit
+                // before walking syntax trees and requesting semantic models. See the comment in ValidateCore
+                // and https://github.com/metalama/Metalama/issues/1630.
+                return new TwoPhaseValidationResult(
+                    Task.FromResult( true ),
+                    Task.FromResult( true ),
+                    CancellationTokenSource.CreateLinkedTokenSource( cancellationToken ) );
+            }
+
             var taskScheduler = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
             var observer = serviceProvider.Global.GetService<ITemplatingCodeValidatorObserver>();
             var semanticModelProvider = compilationContext.SemanticModelProvider;
