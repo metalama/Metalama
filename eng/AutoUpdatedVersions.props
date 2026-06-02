@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
-    <MetalamaCompilerVersion Condition="'$(MetalamaCompilerVersion)' == ''">2026.1.9-rc</MetalamaCompilerVersion>
-    <MetalamaReleaseVersion>2026.1.15-rc</MetalamaReleaseVersion>
-    <MetalamaReleaseMainVersion>2026.1.15</MetalamaReleaseMainVersion>
+    <MetalamaCompilerVersion Condition="'$(MetalamaCompilerVersion)' == ''">2026.1.10</MetalamaCompilerVersion>
+    <MetalamaReleaseVersion>2026.1.16</MetalamaReleaseVersion>
+    <MetalamaReleaseMainVersion>2026.1.16</MetalamaReleaseMainVersion>
   </PropertyGroup>
 </Project>
