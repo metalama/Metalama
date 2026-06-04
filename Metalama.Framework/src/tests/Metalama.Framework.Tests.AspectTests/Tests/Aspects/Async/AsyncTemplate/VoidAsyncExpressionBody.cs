@@ -34,6 +34,9 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Async.AsyncTemplate
         private async Task DoVoidAsync() => await Task.Delay( 1 );
 
         [Aspect]
+        private async ValueTask DoVoidValueTaskAsync() => await new ValueTask( Task.Delay( 1 ) );
+
+        [Aspect]
         private async Task<int> GetValueAsync() => await Task.FromResult( 42 );
     }
 }
