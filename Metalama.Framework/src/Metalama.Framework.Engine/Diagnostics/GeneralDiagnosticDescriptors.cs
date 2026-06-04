@@ -121,6 +121,16 @@ namespace Metalama.Framework.Engine.Diagnostics
             Error,
             "Two layers are not strongly ordered." );
 
+        internal static readonly DiagnosticDefinition<(string AspectType, string WeaverAspectType)> AspectLayersSeparatedByWeaver = new(
+            "LAMA0042",
+            _category,
+            "The aspect '{0}' has several layers, but the low-level aspect '{1}' is ordered between two of these layers. "
+            + "A low-level aspect (i.e. one based on IAspectWeaver) cannot be ordered between two layers of another aspect, "
+            + "because it would split that aspect across two pipeline stages. Add an [assembly: " + nameof(AspectOrderAttribute)
+            + "(...)] attribute to order '{1}' before or after all layers of '{0}'.",
+            Error,
+            "A low-level aspect weaver is ordered between two layers of another aspect." );
+
         internal static readonly DiagnosticDefinition<(string TemplateName, string ClassName, string BaseClassName)>
             TemplateWithSameNameAlreadyDefinedInBaseClass = new(
                 "LAMA0036",

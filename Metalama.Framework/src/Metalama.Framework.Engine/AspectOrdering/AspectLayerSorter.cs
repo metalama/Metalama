@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code.Collections;
-using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Diagnostics;
@@ -234,8 +233,6 @@ internal static class AspectLayerSorter
             sortedIndexes[i] = i;
         }
 
-        bool IsWeaver( int index ) => unsortedAspectLayers[index].AspectClass.AspectDriver is IAspectWeaver;
-
         Array.Sort(
             sortedIndexes,
             ( i, j ) =>
@@ -250,23 +247,6 @@ internal static class AspectLayerSorter
                 if ( compareDistance != 0 )
                 {
                     return compareDistance;
-                }
-
-                // When two layers are not explicitly ordered relative to each other (i.e. they have the same
-                // topological distance), process layers backed by an IAspectWeaver (low-level aspects) first.
-                // A weaver always forms its own pipeline stage, so if it were ordered between two layers of the
-                // same high-level aspect (e.g. the default and the secondary "Build" layer of a ContractAspect)
-                // it would split that aspect across two high-level stages, which the pipeline does not support
-                // and which crashes with a KeyNotFoundException in PipelineStepIdComparer (issue #1636). The
-                // layers of a high-level aspect always belong to consecutive distance bands, so moving unordered
-                // weavers to the front of their band keeps every high-level aspect's layers within a single stage.
-                // This only affects layers that are unordered relative to each other; explicit ordering produces
-                // different distances and is therefore unaffected.
-                var compareWeaver = IsWeaver( j ).CompareTo( IsWeaver( i ) );
-
-                if ( compareWeaver != 0 )
-                {
-                    return compareWeaver;
                 }
 
                 // If two aspects are not explicitly ordered, we order them alphabetically.

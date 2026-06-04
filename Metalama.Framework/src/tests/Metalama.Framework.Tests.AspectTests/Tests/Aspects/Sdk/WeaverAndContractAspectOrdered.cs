@@ -8,31 +8,24 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Sdk.WeaverAndContractAspectOrdered;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 #pragma warning disable CS8602
 
-// This test covers issue #1636: a weaver-based aspect (IAspectWeaver) used together with a
-// ContractAspect-based aspect in the same compilation, with NO explicit [assembly: AspectOrder]
-// tying them together. It used to crash with a KeyNotFoundException in PipelineStepIdComparer.Compare
-// (reported as LAMA0601). It now fails loud with the clear LAMA0042 diagnostic instead.
-//
-// A ContractAspect has two layers: the default layer and a secondary "Build" layer, ordered
-// (default -> Build). A weaver-based aspect has no ordering relationship with the contract, so it
-// is sorted only by its (descending) name. The aspect names here are chosen so that the weaver
-// aspect sorts BETWEEN the contract's default and "Build" layers (i.e. ordered list is
-// [NotNullAttribute, MakeVirtualAttribute, NotNullAttribute:Build]) — exactly as happens with the
-// real Metalama.Patterns.Contracts / Metalama.Community.Virtuosity package names. The weaver always
-// forms its own pipeline stage, so it would split the contract across two high-level stages, which
-// is not supported. Because a weaver cannot be ordered between two layers of the same aspect, the
-// pipeline reports LAMA0042 and asks the user to add an explicit [assembly: AspectOrder]. See
-// WeaverAndContractAspectOrdered for the working, explicitly-ordered variant.
+// This is the working, explicitly-ordered counterpart of WeaverAndContractAspect (issue #1636).
+// The aspect names are still chosen so that, without ordering, the weaver would sort between the
+// contract's default and "Build" layers. The [assembly: AspectOrder] below orders the weaver before
+// all layers of the contract, so the contract's two layers stay in a single high-level stage and no
+// LAMA0042 is reported. Both the weaver transformation and the contract are applied.
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Sdk.WeaverAndContractAspect
+[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof( MakeVirtualAttribute ), typeof( NotNullAttribute ) )]
+
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Sdk.WeaverAndContractAspectOrdered
 {
-    [RequireAspectWeaver( "Metalama.Framework.Tests.AspectTests.Tests.Aspects.Sdk.WeaverAndContractAspect.AspectWeaver" )]
+    [RequireAspectWeaver( "Metalama.Framework.Tests.AspectTests.Tests.Aspects.Sdk.WeaverAndContractAspectOrdered.AspectWeaver" )]
     internal class MakeVirtualAttribute : TypeAspect { }
 
     [MetalamaPlugIn]
