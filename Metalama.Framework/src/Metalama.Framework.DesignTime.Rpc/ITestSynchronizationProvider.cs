@@ -17,4 +17,13 @@ public interface ITestSynchronizationProvider
     /// <param name="syncPointName">A unique name identifying this sync point, typically in format <c>{ClassName}.{Location}:{Context}</c>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task SyncPointAsync( string syncPointName, CancellationToken cancellationToken );
+
+    /// <summary>
+    /// Synchronous variant of <see cref="SyncPointAsync"/>, for sync points that must block while a lock is held
+    /// (where awaiting is not possible). Signals that the sync point was reached and blocks the current thread
+    /// until release.
+    /// </summary>
+    /// <param name="syncPointName">A unique name identifying this sync point, typically in format <c>{ClassName}.{Location}:{Context}</c>.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    void SyncPoint( string syncPointName, CancellationToken cancellationToken );
 }
