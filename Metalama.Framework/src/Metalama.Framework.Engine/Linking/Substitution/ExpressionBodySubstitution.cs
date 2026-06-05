@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Comparers;
@@ -139,8 +140,30 @@ namespace Metalama.Framework.Engine.Linking.Substitution
 
                         BlockSyntax DiscardBlock()
                         {
+                            // For async methods (with the async modifier), use the result type (the inner type
+                            // of Task<T>/ValueTask<T>) instead of the full return type, because when inlining
+                            // with await, the expression-bodied expression has the awaited type.
+                            // For non-async methods that return Task<T>/ValueTask<T>, we must use the full
+                            // return type since their expressions are of type Task<T>.
+                            var returnType = this._originalContainingSymbol.ReturnType;
+
+                            if ( this._originalContainingSymbol.IsAsyncSafe() &&
+                                 AsyncHelper.TryGetAsyncInfo( returnType, out var resultType, out _ ) )
+                            {
+                                returnType = resultType;
+                            }
+
+                            // For void-returning methods (including void-like async methods like Task/ValueTask),
+                            // we can't discard a void value, so just use the expression as a statement.
+                            if ( returnType.SpecialType == SpecialType.System_Void )
+                            {
+                                return
+                                    syntaxGenerator.FormattedBlock( ExpressionStatement( arrowExpressionClause.Expression ) )
+                                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+                            }
+
                             var returnTypeSyntax =
-                                substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( this._originalContainingSymbol.ReturnType );
+                                substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( returnType );
 
                             return syntaxGenerator.FormattedBlock(
                                     SyntaxFactoryEx.DiscardStatement(
