@@ -120,7 +120,19 @@ public abstract partial class ClientEndpoint : BaseEndpoint
                 return client;
             }
 
-            awaiter = this._clientAwaiters.GetOrAdd( typeof(TClient), _ => new TaskCompletionSource<RpcClient>() );
+            // Test-only sync point that pins a waiter in the exact gap this lock protects: after GetClient()
+            // returned null but before the awaiter is registered. No-op in production (TestSyncProvider is null).
+            // Synchronous because we must stay inside _addClientLock; awaiting here is not possible.
+#pragma warning disable VSTHRD103 // SyncPoint synchronously blocks - intentional: it must block while holding _addClientLock.
+            this.TestSyncProvider?.SyncPoint( $"ClientEndpoint.BeforeRegisterAwaiter:{this.PipeName}", cancellationToken );
+#pragma warning restore VSTHRD103
+
+            // RunContinuationsAsynchronously: the awaiter is completed by ConnectCoreAsync while it holds
+            // _addClientLock (see the signaling loop there). Without this flag, SetResult would run this
+            // method's continuation inline under that lock.
+            awaiter = this._clientAwaiters.GetOrAdd(
+                typeof(TClient),
+                _ => new TaskCompletionSource<RpcClient>( TaskCreationOptions.RunContinuationsAsynchronously ) );
         }
 
         await this.EnsureInitialServicesRetrievedAsync( cancellationToken );
@@ -343,12 +355,24 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             }
 
             // Signal waiters.
-            // We must do this _after_ updating the client collections.
-            foreach ( var client in newClients )
+            // We must do this _after_ updating the client collections, and under _addClientLock to close a
+            // lost-wakeup race with GetOrWaitForClientAsync. That method, under _addClientLock, calls
+            // GetClient() (which reads _connectionByStream) and, if it returns null, registers an awaiter.
+            // Since the publish to _connectionByStream (above) and this signaling are otherwise lock-free, a
+            // waiter could observe a null client, then — before it registers its awaiter — this loop could run
+            // and find no awaiter to signal. The waiter would then register and wait forever. Holding the lock
+            // here makes "check-then-register" and "publish-then-signal" mutually exclusive: a waiter that saw
+            // null has already registered its awaiter before we get the lock, or it gets the lock after us and
+            // sees the published client via GetClient(). SetResult does not run continuations inline because the
+            // awaiters are created with RunContinuationsAsynchronously.
+            lock ( this._addClientLock )
             {
-                if ( this._clientAwaiters.TryGetValue( client.GetType(), out var awaiter ) )
+                foreach ( var client in newClients )
                 {
-                    awaiter.SetResult( client );
+                    if ( this._clientAwaiters.TryGetValue( client.GetType(), out var awaiter ) )
+                    {
+                        awaiter.SetResult( client );
+                    }
                 }
             }
 

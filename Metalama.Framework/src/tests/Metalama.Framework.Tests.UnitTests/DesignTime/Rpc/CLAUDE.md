@@ -88,7 +88,9 @@ public async Task TestWithSyncPoint()
 
 Available sync points:
 - `ServerEndpoint.AfterGetsClient:{pipeName}` - After server accepts client but before configuring RPC
+- `ClientEndpoint.AfterStartsListening:{pipeName}` - After the client starts listening but before publishing the connection (client not yet visible to `GetClient()`)
 - `ClientEndpoint.BeforeSignalingAwaiters:{pipeName}` - After client updates collections but before signaling awaiters
+- `ClientEndpoint.BeforeRegisterAwaiter:{pipeName}` - **Synchronous** sync point inside `_addClientLock` in `GetOrWaitForClientAsync`, after `GetClient()` returned null and before the awaiter is registered. Use `SyncProvider` as usual; it blocks the calling thread (the lock is held), so the code under test must be on a background task. Used by the #1640 lost-wakeup regression test.
 
 ## Waiting for Server-Side Connection/Disconnection
 

@@ -82,6 +82,25 @@ public sealed class TestSynchronizationProvider : ITestSynchronizationProvider, 
     }
 
     /// <summary>
+    /// Synchronous variant of <see cref="ITestSynchronizationProvider.SyncPointAsync"/>. Used for sync points
+    /// that must block while a lock is held, where awaiting is not possible.
+    /// </summary>
+    void ITestSynchronizationProvider.SyncPoint( string syncPointName, CancellationToken cancellationToken )
+    {
+        if ( !this._syncPoints.TryGetValue( syncPointName, out var sp ) )
+        {
+            this.Log( $"SyncPoint '{syncPointName}': not enabled, skipping." );
+
+            return;
+        }
+
+        this.Log( $"SyncPoint '{syncPointName}': reached, signaling and waiting for release." );
+        sp.ReachedSignal.Release();
+        sp.ReleaseSignal.Wait( cancellationToken );
+        this.Log( $"SyncPoint '{syncPointName}': released, continuing." );
+    }
+
+    /// <summary>
     /// Called by test code. Enables a sync point so that code under test will block when reaching it.
     /// This must be called BEFORE starting the operation that will hit the sync point.
     /// </summary>
