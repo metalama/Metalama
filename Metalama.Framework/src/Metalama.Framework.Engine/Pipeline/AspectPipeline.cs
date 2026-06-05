@@ -288,6 +288,52 @@ public abstract class AspectPipeline : IDisposable
                         : new PipelineStageConfiguration( PipelineStageKind.LowLevel, g.ToImmutableArray(), (IAspectWeaver) g.Key ) )
             .ToImmutableArray();
 
+        // Validate that no aspect has its layers split across several stages. A low-level weaver always forms its own
+        // stage, and the layers of a high-level aspect must all be processed within a single high-level stage (the
+        // aspect source is evaluated once, in the stage owning the default layer, and all layers are processed there).
+        // Ordering a weaver between two layers of the same aspect splits it across stages, which is not supported and
+        // would otherwise crash with a KeyNotFoundException in PipelineStepIdComparer (issue #1636).
+        {
+            var firstStageByAspect = new Dictionary<string, int>();
+
+            for ( var stageIndex = 0; stageIndex < stages.Length; stageIndex++ )
+            {
+                foreach ( var layer in stages[stageIndex].AspectLayers )
+                {
+                    var aspectName = layer.AspectClass.FullName;
+
+                    if ( firstStageByAspect.TryGetValue( aspectName, out var firstStageIndex ) )
+                    {
+                        if ( firstStageIndex != stageIndex )
+                        {
+                            // The aspect reappears in a later stage: its layers are separated by an intervening stage.
+                            // Report against the first low-level (weaver) stage that sits between the two layers.
+                            var separatingWeaverStage = stages
+                                .Skip( firstStageIndex + 1 )
+                                .Take( stageIndex - firstStageIndex - 1 )
+                                .First( s => s.Kind == PipelineStageKind.LowLevel );
+
+                            diagnosticAdder.Report(
+                                GeneralDiagnosticDescriptors.AspectLayersSeparatedByWeaver.CreateRoslynDiagnostic(
+                                    layer.AspectClass.GetDiagnosticLocation( compilationModel.RoslynCompilation ),
+                                    (layer.AspectClass.ShortName, separatingWeaverStage.AspectLayers[0].AspectClass.ShortName) ) );
+
+                            this.Logger.Warning?.Log(
+                                $"TryInitialize('{this.ProjectOptions.AssemblyName}') failed: the layers of aspect '{aspectName}' are split across stages." );
+
+                            configuration = null;
+
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        firstStageByAspect[aspectName] = stageIndex;
+                    }
+                }
+            }
+        }
+
         var eligibilityService = new EligibilityService( allAspectClasses );
         var diagnosticManifest = compileTimeProject.ClosureDiagnosticManifest.Union( extensionInitializationContext.DiagnosticManifest );
 

@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0042 on `NotNullAttribute`: `The aspect 'NotNull' has several layers, but the low-level aspect 'MakeVirtual' is ordered between two of these layers. A low-level aspect (i.e. one based on IAspectWeaver) cannot be ordered between two layers of another aspect, because it would split that aspect across two pipeline stages. Add an [assembly: AspectOrderAttribute(...)] attribute to order 'MakeVirtual' before or after all layers of 'NotNull'.`
