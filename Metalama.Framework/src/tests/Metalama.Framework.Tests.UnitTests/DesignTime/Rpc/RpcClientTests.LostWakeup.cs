@@ -32,6 +32,9 @@ public sealed partial class RpcClientTests
         // Pins the connection after StartListening but BEFORE it publishes the client to _connectionByStream.
         var afterStartsListening = $"ClientEndpoint.AfterStartsListening:{pipeName}";
 
+        // Pins the connection after it has published the client but right before it signals awaiters.
+        var beforeSignalingAwaiters = $"ClientEndpoint.BeforeSignalingAwaiters:{pipeName}";
+
         // Pins the waiter inside _addClientLock, after GetClient() returned null but before it registers its awaiter.
         var beforeRegisterAwaiter = $"ClientEndpoint.BeforeRegisterAwaiter:{pipeName}";
 
@@ -53,16 +56,24 @@ public sealed partial class RpcClientTests
         var getApiTask = Task.Run( () => clientEndpoint.GetOrWaitForClientAsync<TestClient>( ct ).AsTask(), ct );
         await testContext.SyncProvider.WaitForSyncPointReachedAsync( beforeRegisterAwaiter, ct );
 
-        // (3) Let the connection proceed. It publishes the client and then signals awaiters.
-        //   - Before the fix, signaling is lock-free: it runs now (no awaiter registered yet → wakeup lost) and
-        //     ConnectAsync completes while the waiter is still suspended.
-        //   - After the fix, signaling takes _addClientLock, so ConnectAsync blocks until the waiter releases it.
+        // (3) Let the connection publish the client and advance to right before it signals awaiters. Gating here
+        // (rather than probing immediately after publish) guarantees the connection is *poised to signal* before
+        // step (5), so the buggy, lock-free signal fires promptly and deterministically — it does not depend on
+        // ConnectAsync reaching the signaling section within some time window.
+        testContext.SyncProvider.EnableSyncPoint( beforeSignalingAwaiters );
         testContext.SyncProvider.ReleaseSyncPoint( afterStartsListening );
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync( beforeSignalingAwaiters, ct );
 
-        // (4) Distinguish the two states without a race: ConnectAsync completing while the waiter still holds the
-        // lock proves signaling already ran without the lock (the bug). The bounded wait is a state probe, not a
-        // timing hack — after the fix ConnectAsync is *designed* to stay blocked here until step (5), so we cannot
-        // wait for it unconditionally.
+        // (4) Release the connection into the signaling section.
+        //   - Before the fix, signaling is lock-free: it runs now (no awaiter registered yet → wakeup lost) and
+        //     ConnectAsync completes while the waiter is still suspended holding _addClientLock.
+        //   - After the fix, signaling takes _addClientLock, so ConnectAsync blocks until the waiter releases it.
+        testContext.SyncProvider.ReleaseSyncPoint( beforeSignalingAwaiters );
+
+        // (5) Distinguish the two states without a race: ConnectAsync completing while the waiter still holds the
+        // lock proves signaling already ran without the lock (the bug). The connection is poised to signal, so the
+        // buggy path completes promptly; the bounded wait only bounds the fixed path, where ConnectAsync is
+        // *designed* to stay blocked here until step (6), so we cannot wait for it unconditionally.
         using var probeCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource( ct );
         probeCts.CancelAfter( TimeSpan.FromSeconds( 2 ) );
 
@@ -82,7 +93,7 @@ public sealed partial class RpcClientTests
             connectCompletedEarly,
             "ConnectAsync signaled awaiters without holding _addClientLock while a waiter was registering — the lost-wakeup race is present." );
 
-        // (5) Release the waiter so it registers its awaiter and awaits it. With the fix, ConnectAsync's signaling
+        // (6) Release the waiter so it registers its awaiter and awaits it. With the fix, ConnectAsync's signaling
         // (blocked on the lock) now runs and completes the just-registered awaiter.
         testContext.SyncProvider.ReleaseSyncPoint( beforeRegisterAwaiter );
 
