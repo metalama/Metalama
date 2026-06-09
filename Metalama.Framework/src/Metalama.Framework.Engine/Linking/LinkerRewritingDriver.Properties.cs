@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Linking.Substitution;
@@ -53,8 +54,21 @@ namespace Metalama.Framework.Engine.Linking
 
                 var lastOverride = (IPropertySymbol) this.InjectionRegistry.GetLastOverride( symbol );
 
+                // Whether the original implementation is emitted as a separate "_Source" member (i.e. the default
+                // semantic is not inlined into the override).
+                var generatesSourceMember =
+                    !propertyDeclaration.IsAutoPropertyDeclaration()
+                    && this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
+                    && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
+                    && this.ShouldGenerateSourceMember( symbol );
+
+                // For a semi-automatic property (C# 14 'field' keyword + explicit accessor body) whose original
+                // implementation is emitted as a separate "_Source" member, that member owns the backing storage
+                // (via its own 'field'), so promoting a separate backing field here would leave it unused (issue #1644).
+                // When the default semantic is inlined instead, the backing field is still required.
                 if ( (propertyDeclaration.IsAutoPropertyDeclaration() || symbol.GetBackingField() != null)
-                     && this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
+                     && this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
+                     && !(symbol.GetPropertyKind() == PropertyKind.SemiAuto && generatesSourceMember) )
                 {
                     // Backing field for auto property.
                     // When primary-constructor removal moves this member's initialization into the synthesized constructor body,
@@ -113,10 +127,7 @@ namespace Metalama.Framework.Engine.Linking
                             generationContext ) );
                 }
 
-                if ( !propertyDeclaration.IsAutoPropertyDeclaration()
-                     && this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
-                     && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
-                     && this.ShouldGenerateSourceMember( symbol ) )
+                if ( generatesSourceMember )
                 {
                     members.Add(
                         this.GetOriginalImplProperty(
