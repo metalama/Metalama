@@ -1,0 +1,3 @@
+Value=42 (expected 42)
+SideEffect=1 (expected 1)
+Execution OK.
