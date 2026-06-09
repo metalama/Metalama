@@ -1,0 +1,6 @@
+Setting to 42
+Getting
+Value=42 (expected 42)
+SetterCallCount=1 (expected 1)
+Getting
+Execution OK.
