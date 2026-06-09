@@ -1,38 +1,36 @@
 [Observable]
 public class FieldKeyword_ValueTypes : INotifyPropertyChanged
 {
-  private int _age;
   // Semi-automatic property with value type and validation.
   public int Age
   {
     get
     {
-      return _age;
+      return Age_Source;
     }
     set
     {
-      if (_age != value)
+      if (Age_Source != value)
       {
-        _age = value;
+        Age_Source = value;
         OnPropertyChanged("Summary");
         OnPropertyChanged("Age");
       }
     }
   }
   private int Age_Source { get => field; set => field = value >= 0 ? value : throw new ArgumentOutOfRangeException(nameof(value)); }
-  private double _score;
   // Semi-automatic property with value type and clamping.
   public double Score
   {
     get
     {
-      return _score;
+      return Score_Source;
     }
     set
     {
-      if (_score != value)
+      if (Score_Source != value)
       {
-        _score = value;
+        Score_Source = value;
         OnPropertyChanged("Summary");
         OnPropertyChanged("Score");
       }

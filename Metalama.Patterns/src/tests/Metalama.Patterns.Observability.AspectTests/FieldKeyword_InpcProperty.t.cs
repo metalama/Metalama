@@ -1,24 +1,23 @@
 [Observable]
 public class FieldKeyword_InpcProperty : INotifyPropertyChanged
 {
-  private SimpleInpcByHand? _child;
   // Semi-automatic property with INPC type.
   public SimpleInpcByHand? Child
   {
     get
     {
-      return _child;
+      return Child_Source;
     }
     set
     {
-      if (!object.ReferenceEquals(value, _child))
+      if (!object.ReferenceEquals(value, Child_Source))
       {
-        var oldValue = _child;
+        var oldValue = Child_Source;
         if (oldValue != null)
         {
           oldValue.PropertyChanged -= _handleChildPropertyChanged;
         }
-        _child = value;
+        Child_Source = value;
         OnObservablePropertyChanged("Child", oldValue, value);
         OnPropertyChanged("ChildValue");
         OnPropertyChanged("Child");
