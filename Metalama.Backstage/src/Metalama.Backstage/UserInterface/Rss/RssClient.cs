@@ -221,8 +221,20 @@ internal sealed class RssClient : IRssClient
             return false;
         }
 
+        // Validate that the link is an absolute http/https URI. A hijacked or MITM'd feed could otherwise supply a dangerous
+        // scheme (e.g. 'ms-msdt:', 'search-ms:', 'file://') that would be passed to Windows protocol activation when the user
+        // clicks the toast. See issue #1647.
+        if ( !Uri.TryCreate( url, UriKind.Absolute, out var linkUri )
+             || (linkUri.Scheme != Uri.UriSchemeHttp && linkUri.Scheme != Uri.UriSchemeHttps) )
+        {
+            this._logger.Warning?.Log( $"RSS item link '{url}' does not use the http or https scheme. Skipping." );
+            pubDate = null;
+
+            return false;
+        }
+
         // Append tracking query string parameters using UriBuilder for robustness.
-        var uriBuilder = new UriBuilder( url );
+        var uriBuilder = new UriBuilder( linkUri );
 
         if ( string.IsNullOrEmpty( uriBuilder.Query ) )
         {
