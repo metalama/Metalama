@@ -29,6 +29,13 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
     /// </summary>
     internal static IReadOnlyList<string> AllowedHosts { get; } = new[] { "localhost", "127.0.0.1", "[::1]" };
 
+    /// <summary>
+    /// The UTC tick count at which the server should shut down. It is written from the <c>ping</c> request-handler thread
+    /// (via the keep-alive callback) and read from the command loop, so all accesses must go through <see cref="Volatile"/>
+    /// to avoid a data race and torn reads.
+    /// </summary>
+    private long _shutDownTimeTicks;
+
     protected override async Task<int> ExecuteAsync( CommandContext context, WebServerCommandSettings settings, CancellationToken cancellationToken )
     {
         var appData = (AppData) context.Data!;
@@ -37,14 +44,22 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
 
         builder.WebHost.ConfigureKestrel( serverOptions => serverOptions.ListenLocalhost( settings.Port ) );
 
-        var shutDownTime = DateTime.UtcNow.AddMinutes( 1 );
+        this.ExtendShutDownTime();
 
-        var app = BuildWebApplication( builder, appData, () => shutDownTime = DateTime.UtcNow.AddMinutes( 1 ) );
+        var app = BuildWebApplication( builder, appData, this.ExtendShutDownTime );
 
         var serverTask = app.RunAsync();
 
-        while ( shutDownTime > DateTime.UtcNow )
+        while ( true )
         {
+            var shutDownTime = new DateTime( Volatile.Read( ref this._shutDownTimeTicks ), DateTimeKind.Utc );
+            var now = DateTime.UtcNow;
+
+            if ( shutDownTime <= now )
+            {
+                break;
+            }
+
             if ( serverTask.IsCompleted )
             {
                 // This would happen if the server cannot start.
@@ -53,18 +68,18 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
                 break;
             }
 
-            var delay = shutDownTime - DateTime.UtcNow;
-
-            if ( delay > TimeSpan.Zero )
-            {
-                await Task.Delay( delay, cancellationToken );
-            }
+            await Task.Delay( shutDownTime - now, cancellationToken );
         }
 
         await app.StopAsync( cancellationToken );
 
         return 0;
     }
+
+    /// <summary>
+    /// Extends the server lifetime by one minute. Invoked when the <c>ping</c> endpoint is hit.
+    /// </summary>
+    private void ExtendShutDownTime() => Volatile.Write( ref this._shutDownTimeTicks, DateTime.UtcNow.AddMinutes( 1 ).Ticks );
 
     /// <summary>
     /// Configures the services and the request pipeline of the local setup web server and returns the built

@@ -66,9 +66,10 @@ public sealed class WebServerHostFilteringTests : TestsBase
             {
                 Directory.Delete( contentRoot, recursive: true );
             }
-            catch ( IOException )
+            catch ( Exception e ) when ( e is IOException or UnauthorizedAccessException )
             {
-                // Best-effort cleanup.
+                // Best-effort cleanup: the temp directory may still hold a handle (e.g. on Windows), in which case
+                // deletion can fail with either IOException or UnauthorizedAccessException. Neither should fail the test.
             }
         }
     }
@@ -78,6 +79,8 @@ public sealed class WebServerHostFilteringTests : TestsBase
     [InlineData( "localhost:5000" )]
     [InlineData( "127.0.0.1" )]
     [InlineData( "127.0.0.1:5000" )]
+    [InlineData( "[::1]" )]
+    [InlineData( "[::1]:5000" )]
     public async Task LoopbackHostIsAllowed( string hostHeader )
     {
         using var response = await this.SendPingWithHostAsync( hostHeader );
