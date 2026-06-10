@@ -68,6 +68,25 @@ public sealed class MetalamaPathSecurityTests
         }
     }
 
+    [Fact]
+    public void DirectoryReadableButNotWritableByOtherUsersIsNotFlagged()
+    {
+        var directory = CreateTempDirectory();
+
+        try
+        {
+            GrantReadOnlyToOtherUsers( directory );
+
+            Assert.False(
+                MetalamaPathUtilities.IsDirectoryWritableByOtherUsers( directory ),
+                "A directory that other users can only read must not be reported as writable by them." );
+        }
+        finally
+        {
+            this.TryDeleteDirectory( directory );
+        }
+    }
+
     private static string CreateTempDirectory()
     {
         var directory = Path.Combine( Path.GetTempPath(), "Metalama_Test_1650_" + Guid.NewGuid().ToString( "N" ) );
@@ -100,17 +119,46 @@ public sealed class MetalamaPathSecurityTests
         }
     }
 
+    private static void GrantReadOnlyToOtherUsers( string directory )
+    {
+        if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+        {
+            GrantReadAndExecuteToEveryone( directory );
+        }
+        else
+        {
+            SetUnixMode( directory, otherWritable: false, otherReadable: true );
+        }
+    }
+
 #if NET
     [SupportedOSPlatform( "windows" )]
 #endif
-    private static void RestrictToCurrentWindowsUser( string directory )
+    private static void RestrictToCurrentWindowsUser( string directory ) => SetWindowsAcl( directory, everyoneRights: null );
+
+#if NET
+    [SupportedOSPlatform( "windows" )]
+#endif
+    private static void GrantWriteToEveryone( string directory ) => SetWindowsAcl( directory, FileSystemRights.Modify );
+
+#if NET
+    [SupportedOSPlatform( "windows" )]
+#endif
+    private static void GrantReadAndExecuteToEveryone( string directory ) => SetWindowsAcl( directory, FileSystemRights.ReadAndExecute );
+
+    // Sets a deterministic, non-inherited ACL: full control to the current user, plus an optional rule for 'Everyone'.
+    // Starting from a protected ACL ensures the only non-trivial entry is the one we add, regardless of what the parent
+    // (e.g. %TEMP%) grants.
+#if NET
+    [SupportedOSPlatform( "windows" )]
+#endif
+    private static void SetWindowsAcl( string directory, FileSystemRights? everyoneRights )
     {
         var directoryInfo = new DirectoryInfo( directory );
         var security = new DirectorySecurity();
         var currentUser = WindowsIdentity.GetCurrent().User!;
 
-        // Disable inheritance (drop inherited rules) and grant full control to the current user only.
-        security.SetAccessRuleProtection( true, false );
+        security.SetAccessRuleProtection( isProtected: true, preserveInheritance: false );
         security.SetOwner( currentUser );
 
         security.AddAccessRule(
@@ -121,30 +169,24 @@ public sealed class MetalamaPathSecurityTests
                 PropagationFlags.None,
                 AccessControlType.Allow ) );
 
+        if ( everyoneRights != null )
+        {
+            security.AddAccessRule(
+                new FileSystemAccessRule(
+                    new SecurityIdentifier( WellKnownSidType.WorldSid, null ),
+                    everyoneRights.Value,
+                    InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                    PropagationFlags.None,
+                    AccessControlType.Allow ) );
+        }
+
         directoryInfo.SetAccessControl( security );
     }
 
 #if NET
-    [SupportedOSPlatform( "windows" )]
+    [UnsupportedOSPlatform( "windows" )]
 #endif
-    private static void GrantWriteToEveryone( string directory )
-    {
-        var directoryInfo = new DirectoryInfo( directory );
-        var security = directoryInfo.GetAccessControl();
-        var everyone = new SecurityIdentifier( WellKnownSidType.WorldSid, null );
-
-        security.AddAccessRule(
-            new FileSystemAccessRule(
-                everyone,
-                FileSystemRights.Modify,
-                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
-                PropagationFlags.None,
-                AccessControlType.Allow ) );
-
-        directoryInfo.SetAccessControl( security );
-    }
-
-    private static void SetUnixMode( string directory, bool otherWritable )
+    private static void SetUnixMode( string directory, bool otherWritable, bool otherReadable = false )
     {
 #if NET
         var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
@@ -154,11 +196,17 @@ public sealed class MetalamaPathSecurityTests
             mode |= UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute
                     | UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
         }
+        else if ( otherReadable )
+        {
+            mode |= UnixFileMode.GroupRead | UnixFileMode.GroupExecute
+                    | UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
+        }
 
         File.SetUnixFileMode( directory, mode );
 #else
         _ = directory;
         _ = otherWritable;
+        _ = otherReadable;
 
         throw new PlatformNotSupportedException();
 #endif
