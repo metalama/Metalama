@@ -8,7 +8,6 @@ using Metalama.Backstage.UserInterface.Toasts;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -27,6 +26,10 @@ public sealed class WindowsUserInterfaceServiceTests : TestsBase
 {
     private const string _injectedUri = "evil://attacker-controlled";
     private const string _legitimateUri = "https://metalama.net/legitimate";
+
+    // This service and the CommandLineToArgvW helper are Windows-only. Fully qualified to avoid binding to the
+    // TestRuntimeInformation member of the base class.
+    private static bool IsWindows => System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform( OSPlatform.Windows );
 
     public WindowsUserInterfaceServiceTests( ITestOutputHelper logger ) : base( logger ) { }
 
@@ -50,6 +53,11 @@ public sealed class WindowsUserInterfaceServiceTests : TestsBase
     [MemberData( nameof(MaliciousTitles) )]
     public async Task ToastTitleCannotInjectCommandLineArguments( string maliciousTitle )
     {
+        if ( !IsWindows )
+        {
+            return;
+        }
+
         var args = await this.ShowNotificationAndGetArgumentsAsync( new ToastNotification( ToastNotificationKinds.News, maliciousTitle, null, _legitimateUri ) );
 
         // The malicious title must reach the child process as a single, verbatim argument.
@@ -66,6 +74,11 @@ public sealed class WindowsUserInterfaceServiceTests : TestsBase
     [Fact]
     public async Task ToastTextCannotInjectCommandLineArguments()
     {
+        if ( !IsWindows )
+        {
+            return;
+        }
+
         var maliciousText = "Body\" --uri \"" + _injectedUri;
 
         var args = await this.ShowNotificationAndGetArgumentsAsync(
@@ -82,6 +95,11 @@ public sealed class WindowsUserInterfaceServiceTests : TestsBase
     [Fact]
     public async Task BenignToastNotificationPassesArgumentsCorrectly()
     {
+        if ( !IsWindows )
+        {
+            return;
+        }
+
         const string title = "Metalama 2026.1 released";
 
         var args = await this.ShowNotificationAndGetArgumentsAsync(
@@ -94,9 +112,6 @@ public sealed class WindowsUserInterfaceServiceTests : TestsBase
 
     private async Task<IReadOnlyList<string>> ShowNotificationAndGetArgumentsAsync( ToastNotification notification )
     {
-        // This service and the CommandLineToArgvW helper are Windows-only.
-        Assert.True( OperatingSystem.IsWindows() );
-
         this.UserDeviceDetection.IsInteractiveDevice = true;
 
         var service = new WindowsUserInterfaceService( this.ServiceProvider );
@@ -106,7 +121,9 @@ public sealed class WindowsUserInterfaceServiceTests : TestsBase
 
         var startInfo = Assert.Single( this.ProcessExecutor.StartedProcesses );
 
-        return GetEffectiveArguments( startInfo );
+        // The executor builds a single, escaped command-line string (ProcessStartInfo.ArgumentList is not available
+        // on all target frameworks). We re-parse it the way Windows would to recover the effective argument vector.
+        return ParseCommandLine( startInfo.Arguments );
     }
 
     /// <summary>
@@ -120,16 +137,6 @@ public sealed class WindowsUserInterfaceServiceTests : TestsBase
         Assert.True( positions[0] + 1 < args.Count, $"'{switchName}' has no value." );
         Assert.Equal( expectedValue, args[positions[0] + 1] );
     }
-
-    /// <summary>
-    /// Returns the argument vector that the child process would actually receive, independently of whether the
-    /// arguments were passed via <c>ProcessStartInfo.ArgumentList</c> (the safe form) or via the
-    /// <see cref="ProcessStartInfo.Arguments"/> string (which is then parsed the way Windows would parse it).
-    /// </summary>
-    private static IReadOnlyList<string> GetEffectiveArguments( ProcessStartInfo startInfo )
-        => startInfo.ArgumentList.Count > 0
-            ? startInfo.ArgumentList
-            : ParseCommandLine( startInfo.Arguments );
 
     [DllImport( "shell32.dll", SetLastError = true, CharSet = CharSet.Unicode )]
     private static extern IntPtr CommandLineToArgvW( [MarshalAs( UnmanagedType.LPWStr )] string lpCmdLine, out int pNumArgs );
