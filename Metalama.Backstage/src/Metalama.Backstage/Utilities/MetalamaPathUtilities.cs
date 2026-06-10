@@ -37,7 +37,7 @@ public static class MetalamaPathUtilities
     {
         var tempPath = _overriddenTempPath ?? Path.GetTempPath();
 
-        VerifyTempPathIsSecure( tempPath );
+        EnsureTempPathIsSecure( tempPath );
 
         return tempPath;
     }
@@ -70,11 +70,15 @@ public static class MetalamaPathUtilities
     }
 
     /// <summary>
-    /// Verifies, only once per process, that the Metalama temporary directory is not writable by other users of the machine.
+    /// Ensures, only once per process, that the Metalama temporary directory is not writable by other users of the machine.
     /// Metalama loads and executes assemblies from this directory (compile-time assemblies, extracted tools, bootstrap dependencies),
     /// so a directory writable by lower-privilege users would let them plant code that Metalama then runs. See issue #1650.
+    /// The directory is created (if necessary) and, when it is found to be writable by other users — typically because it was
+    /// created under a world-writable root such as <c>/tmp</c> or <c>C:\Temp</c> and inherited permissive permissions —
+    /// its permissions are tightened to the current user. A <see cref="SecurityException" /> is thrown only if the directory
+    /// remains writable by other users after that attempt, e.g. because it is owned by another user.
     /// </summary>
-    private static void VerifyTempPathIsSecure( string tempPath )
+    private static void EnsureTempPathIsSecure( string tempPath )
     {
         if ( _tempPathVerified )
         {
@@ -90,30 +94,135 @@ public static class MetalamaPathUtilities
 
             var metalamaTempDirectory = Path.Combine( tempPath, "Metalama" );
 
-            bool writableByOtherUsers;
-
             try
             {
-                // If the directory does not exist yet, there is nothing to plant: it will be created by the current user.
-                writableByOtherUsers = Directory.Exists( metalamaTempDirectory ) && IsDirectoryWritableByOtherUsers( metalamaTempDirectory );
+                if ( !Directory.Exists( metalamaTempDirectory ) )
+                {
+                    Directory.CreateDirectory( metalamaTempDirectory );
+                }
+
+                // Several Metalama processes (e.g. concurrent compiler invocations) may secure the directory at the same time,
+                // so we retry a few times before giving up, to tolerate a transient failure caused by such a race.
+                const int maxAttempts = 4;
+
+                for ( var attempt = 0; IsDirectoryWritableByOtherUsers( metalamaTempDirectory ); attempt++ )
+                {
+                    if ( attempt >= maxAttempts )
+                    {
+                        throw new SecurityException(
+                            $"The Metalama temporary directory '{metalamaTempDirectory}' is writable by other users of this machine "
+                            + "and its permissions could not be tightened automatically. "
+                            + "This would allow them to plant assemblies that Metalama loads and executes. "
+                            + "Restrict the permissions of this directory to the current user, or set the METALAMA_TEMP environment variable "
+                            + "to a directory that only the current user can write to." );
+                    }
+
+                    TryRestrictDirectoryToCurrentUser( metalamaTempDirectory );
+                }
+            }
+            catch ( SecurityException )
+            {
+                throw;
             }
             catch ( Exception )
             {
-                // If we cannot determine the permissions (e.g. an unexpected platform or API failure), do not block the build.
-                writableByOtherUsers = false;
-            }
-
-            if ( writableByOtherUsers )
-            {
-                throw new SecurityException(
-                    $"The Metalama temporary directory '{metalamaTempDirectory}' is writable by other users of this machine. "
-                    + "This would allow them to plant assemblies that Metalama loads and executes. "
-                    + "Restrict the permissions of this directory to the current user, or set the METALAMA_TEMP environment variable "
-                    + "to a directory that only the current user can write to." );
+                // If we cannot determine or set the permissions (e.g. an unexpected platform or API failure), do not block the build.
             }
 
             _tempPathVerified = true;
         }
+    }
+
+    /// <summary>
+    /// Best-effort tightening of the permissions of a directory so that only the current user (plus SYSTEM and Administrators on
+    /// Windows) can write to it. Any failure is swallowed; the caller re-checks the result.
+    /// </summary>
+    private static void TryRestrictDirectoryToCurrentUser( string directory )
+    {
+        try
+        {
+            if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+            {
+                RestrictDirectoryToCurrentUserOnWindows( directory );
+            }
+            else
+            {
+                RestrictDirectoryToOwnerOnUnix( directory );
+            }
+        }
+        catch ( Exception )
+        {
+            // Best effort.
+        }
+    }
+
+#if NET
+    [SupportedOSPlatform( "windows" )]
+#endif
+    private static void RestrictDirectoryToCurrentUserOnWindows( string directory )
+    {
+        // Replace the whole ACL by a protected (non-inherited) one that grants full control only to the current user,
+        // SYSTEM and the Administrators group.
+        var security = new DirectorySecurity();
+        security.SetAccessRuleProtection( isProtected: true, preserveInheritance: false );
+
+        const InheritanceFlags inheritanceFlags = InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit;
+
+        using ( var identity = WindowsIdentity.GetCurrent() )
+        {
+            if ( identity.User != null )
+            {
+                security.AddAccessRule(
+                    new FileSystemAccessRule( identity.User, FileSystemRights.FullControl, inheritanceFlags, PropagationFlags.None, AccessControlType.Allow ) );
+            }
+        }
+
+        security.AddAccessRule(
+            new FileSystemAccessRule(
+                new SecurityIdentifier( WellKnownSidType.LocalSystemSid, null ),
+                FileSystemRights.FullControl,
+                inheritanceFlags,
+                PropagationFlags.None,
+                AccessControlType.Allow ) );
+
+        security.AddAccessRule(
+            new FileSystemAccessRule(
+                new SecurityIdentifier( WellKnownSidType.BuiltinAdministratorsSid, null ),
+                FileSystemRights.FullControl,
+                inheritanceFlags,
+                PropagationFlags.None,
+                AccessControlType.Allow ) );
+
+        new DirectoryInfo( directory ).SetAccessControl( security );
+    }
+
+#if NET
+    [UnsupportedOSPlatform( "windows" )]
+#endif
+    private static void RestrictDirectoryToOwnerOnUnix( string directory )
+    {
+        // 0700: read/write/execute for the owner only.
+#if NET
+        File.SetUnixFileMode( directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute );
+#else
+        var setUnixFileMode = Array.Find(
+            typeof(File).GetMethods(),
+            m => m.Name == "SetUnixFileMode"
+                 && m.GetParameters().Length == 2
+                 && m.GetParameters()[0].ParameterType == typeof(string) );
+
+        if ( setUnixFileMode == null )
+        {
+            return;
+        }
+
+        var unixFileModeType = setUnixFileMode.GetParameters()[1].ParameterType;
+
+        // UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute == 0x100 | 0x80 | 0x40.
+        var mode = Enum.ToObject( unixFileModeType, 0x100 | 0x80 | 0x40 );
+
+        setUnixFileMode.Invoke( null, new[] { directory, mode } );
+#endif
     }
 
     /// <summary>
