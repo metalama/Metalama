@@ -704,7 +704,7 @@ internal sealed partial class LinkerAnalysisStep
                         break;
 
                     case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol.Kind: SymbolKind.Property } }
-                        when nonInlinedReference.ResolvedSemantic.Symbol is IPropertySymbol property && property.IsAutoProperty() == true
+                        when nonInlinedReference.ResolvedSemantic.Symbol is IPropertySymbol property && property.GetPropertyKind() == PropertyKind.Auto
                                                                                                      && this._injectionRegistry.IsOverrideTarget( property ):
                     case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol.Kind: SymbolKind.Event } }
                         when nonInlinedReference.ResolvedSemantic.Symbol is IEventSymbol @event && @event.IsEventFieldIntroduction()

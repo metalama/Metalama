@@ -26,10 +26,12 @@ internal sealed class AspectReferenceSourceSubstitution : AspectReferenceRenamin
             || aspectReference.ResolvedSemantic is
                 { Symbol: { IsOverride: true, IsSealed: false } or { IsVirtual: true }, Kind: IntermediateSymbolSemanticKind.Base } );
 
-        // Auto properties and event field default semantics should not get here.
+        // Pure auto properties and event field default semantics should not get here. Semi-automatic properties
+        // (C# 14 'field' keyword with an explicit accessor body) DO get here, because their default semantic is the
+        // explicit accessor body, which must be invoked from the override (see issue #1644).
         Invariant.AssertNot(
             aspectReference.ResolvedSemantic is { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IPropertySymbol property }
-            && property.IsAutoProperty() == true );
+            && property.GetPropertyKind() == PropertyKind.Auto );
 
         Invariant.AssertNot(
             aspectReference.ResolvedSemantic is { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event }

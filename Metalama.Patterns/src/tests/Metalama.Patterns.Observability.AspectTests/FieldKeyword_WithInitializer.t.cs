@@ -1,38 +1,36 @@
 [Observable]
 public class FieldKeyword_WithInitializer : INotifyPropertyChanged
 {
-  private string _name = "Default";
   // Semi-automatic property with field keyword and initializer.
   public string Name
   {
     get
     {
-      return _name;
+      return Name_Source;
     }
     set
     {
-      if (!object.ReferenceEquals(value, _name))
+      if (!object.ReferenceEquals(value, Name_Source))
       {
-        _name = value;
+        Name_Source = value;
         OnPropertyChanged("Display");
         OnPropertyChanged("Name");
       }
     }
   }
   private string Name_Source { get => field; set => field = value.Trim(); } = "Default";
-  private int _count = 10;
   // Semi-automatic property with value type, validation, and initializer.
   public int Count
   {
     get
     {
-      return _count;
+      return Count_Source;
     }
     set
     {
-      if (_count != value)
+      if (Count_Source != value)
       {
-        _count = value;
+        Count_Source = value;
         OnPropertyChanged("Display");
         OnPropertyChanged("Count");
       }

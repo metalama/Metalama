@@ -1,38 +1,36 @@
 [Observable]
 public class FieldKeyword_WithComputedProperty : INotifyPropertyChanged
 {
-  private string _firstName = "";
   // Semi-automatic property with validation.
   public string FirstName
   {
     get
     {
-      return _firstName;
+      return FirstName_Source;
     }
     set
     {
-      if (!object.ReferenceEquals(value, _firstName))
+      if (!object.ReferenceEquals(value, FirstName_Source))
       {
-        _firstName = value;
+        FirstName_Source = value;
         OnPropertyChanged("FullName");
         OnPropertyChanged("FirstName");
       }
     }
   }
   private string FirstName_Source { get => field; set => field = value.Trim(); } = "";
-  private string _lastName = "";
   // Semi-automatic property with validation.
   public string LastName
   {
     get
     {
-      return _lastName;
+      return LastName_Source;
     }
     set
     {
-      if (!object.ReferenceEquals(value, _lastName))
+      if (!object.ReferenceEquals(value, LastName_Source))
       {
-        _lastName = value;
+        LastName_Source = value;
         OnPropertyChanged("FullName");
         OnPropertyChanged("LastName");
       }
