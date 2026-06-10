@@ -25,53 +25,106 @@ namespace Metalama.Backstage.Tests.UserInterface;
 /// </summary>
 public sealed class WindowsUserInterfaceServiceTests : TestsBase
 {
+    private const string _injectedUri = "evil://attacker-controlled";
+    private const string _legitimateUri = "https://metalama.net/legitimate";
+
     public WindowsUserInterfaceServiceTests( ITestOutputHelper logger ) : base( logger ) { }
 
+    public static IEnumerable<object[]> MaliciousTitles()
+    {
+        // Break out of the quoted argument and inject a second --uri.
+        yield return ["Pwned\" --uri \"" + _injectedUri];
+
+        // A trailing backslash before the closing quote must not let the quote be escaped away.
+        yield return ["Pwned\\\" --uri \"" + _injectedUri];
+
+        // Multiple backslashes followed by a quote.
+        yield return ["Pwned\\\\\" --uri \"" + _injectedUri];
+    }
+
     /// <summary>
-    /// Verifies that a toast notification whose title contains a quote followed by extra switches cannot inject
-    /// additional arguments (such as an attacker-controlled <c>--uri</c>) into the desktop tool's argv.
+    /// Verifies that a toast notification whose title contains quotes/backslashes followed by extra switches cannot
+    /// inject additional arguments (such as an attacker-controlled <c>--uri</c>) into the desktop tool's argv.
+    /// </summary>
+    [Theory]
+    [MemberData( nameof(MaliciousTitles) )]
+    public async Task ToastTitleCannotInjectCommandLineArguments( string maliciousTitle )
+    {
+        var args = await this.ShowNotificationAndGetArgumentsAsync( new ToastNotification( ToastNotificationKinds.News, maliciousTitle, null, _legitimateUri ) );
+
+        // The malicious title must reach the child process as a single, verbatim argument.
+        AssertSwitchValue( args, "--title", maliciousTitle );
+
+        // The attacker must not be able to inject a second --uri argument: exactly one --uri, with the legitimate value.
+        AssertSwitchValue( args, "--uri", _legitimateUri );
+        Assert.DoesNotContain( _injectedUri, args );
+    }
+
+    /// <summary>
+    /// Verifies that the notification text (also potentially untrusted) cannot inject additional arguments.
     /// </summary>
     [Fact]
-    public async Task ToastTitleCannotInjectCommandLineArguments()
+    public async Task ToastTextCannotInjectCommandLineArguments()
+    {
+        var maliciousText = "Body\" --uri \"" + _injectedUri;
+
+        var args = await this.ShowNotificationAndGetArgumentsAsync(
+            new ToastNotification( ToastNotificationKinds.News, "Title", maliciousText, _legitimateUri ) );
+
+        AssertSwitchValue( args, "--text", maliciousText );
+        AssertSwitchValue( args, "--uri", _legitimateUri );
+        Assert.DoesNotContain( _injectedUri, args );
+    }
+
+    /// <summary>
+    /// Verifies that a benign notification still passes its title and URI through to the child process unchanged.
+    /// </summary>
+    [Fact]
+    public async Task BenignToastNotificationPassesArgumentsCorrectly()
+    {
+        const string title = "Metalama 2026.1 released";
+
+        var args = await this.ShowNotificationAndGetArgumentsAsync(
+            new ToastNotification( ToastNotificationKinds.News, title, null, _legitimateUri ) );
+
+        Assert.Contains( "notify", args );
+        AssertSwitchValue( args, "--title", title );
+        AssertSwitchValue( args, "--uri", _legitimateUri );
+    }
+
+    private async Task<IReadOnlyList<string>> ShowNotificationAndGetArgumentsAsync( ToastNotification notification )
     {
         // This service and the CommandLineToArgvW helper are Windows-only.
-        if ( !OperatingSystem.IsWindows() )
-        {
-            return;
-        }
+        Assert.True( OperatingSystem.IsWindows() );
 
         this.UserDeviceDetection.IsInteractiveDevice = true;
 
-        const string injectedUri = "evil://attacker-controlled";
-        const string legitimateUri = "https://metalama.net/legitimate";
-
-        // A title that breaks out of the quoted --title argument and injects its own --uri.
-        var maliciousTitle = $"Pwned\" --uri \"{injectedUri}";
-
         var service = new WindowsUserInterfaceService( this.ServiceProvider );
-        service.ShowToastNotification( new ToastNotification( ToastNotificationKinds.News, maliciousTitle, null, legitimateUri ) );
+        service.ShowToastNotification( notification );
 
         await this.BackgroundTasks.WhenNoPendingTaskAsync();
 
         var startInfo = Assert.Single( this.ProcessExecutor.StartedProcesses );
-        var args = GetEffectiveArguments( startInfo );
 
-        // The malicious title must reach the child process as a single, verbatim argument.
-        Assert.Contains( maliciousTitle, args );
+        return GetEffectiveArguments( startInfo );
+    }
 
-        // The attacker must not be able to inject a second --uri argument.
-        var uriPositions = args.Select( ( a, i ) => (Value: a, Index: i) ).Where( t => t.Value == "--uri" ).Select( t => t.Index ).ToList();
-        Assert.Single( uriPositions );
-
-        // The single --uri value must be the legitimate URI, never the injected one.
-        Assert.Equal( legitimateUri, args[uriPositions[0] + 1] );
-        Assert.DoesNotContain( injectedUri, args );
+    /// <summary>
+    /// Asserts that <paramref name="switchName"/> appears exactly once in <paramref name="args"/> and that the token
+    /// immediately following it equals <paramref name="expectedValue"/>.
+    /// </summary>
+    private static void AssertSwitchValue( IReadOnlyList<string> args, string switchName, string expectedValue )
+    {
+        var positions = args.Select( ( a, i ) => (Value: a, Index: i) ).Where( t => t.Value == switchName ).Select( t => t.Index ).ToList();
+        Assert.Single( positions );
+        Assert.True( positions[0] + 1 < args.Count, $"'{switchName}' has no value." );
+        Assert.Equal( expectedValue, args[positions[0] + 1] );
     }
 
     /// <summary>
     /// Returns the argument vector that the child process would actually receive, independently of whether the
-    /// arguments were passed via <see cref="ProcessStartInfo.ArgumentList"/> (the safe form) or via the legacy
-    /// <see cref="ProcessStartInfo.Arguments"/> string (which must then be parsed the way Windows would parse it).
+    /// arguments were passed via <c>ProcessStartInfo.ArgumentList</c> (the safe form) or via the
+    /// <see cref="ProcessStartInfo.Arguments"/> string (which is then parsed the way Windows would parse it).
     /// </summary>
     private static IReadOnlyList<string> GetEffectiveArguments( ProcessStartInfo startInfo )
         => startInfo.ArgumentList.Count > 0
