@@ -17,7 +17,7 @@ public static class UrlHelper
     public static bool IsSafe( [NotNullWhen( true )] string? url, [NotNullWhen( true )] out Uri? uri )
     {
         if ( !Uri.TryCreate( url, UriKind.Absolute, out uri )
-             || uri.Scheme is not ("http" or "https") )
+             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) )
         {
             uri = null;
 

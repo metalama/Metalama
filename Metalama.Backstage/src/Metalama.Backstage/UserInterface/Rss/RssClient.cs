@@ -227,7 +227,7 @@ internal sealed class RssClient : IRssClient
         // clicks the toast. See issue #1647.
         if ( !UrlHelper.IsSafe( url, out var linkUri ) )
         {
-            this._logger.Warning?.Log( $"RSS item link '{url}' does not use the http or https scheme. Skipping." );
+            this._logger.Warning?.Log( $"RSS item link '{url}' is not a valid absolute http or https URL. Skipping." );
             pubDate = null;
 
             return false;
