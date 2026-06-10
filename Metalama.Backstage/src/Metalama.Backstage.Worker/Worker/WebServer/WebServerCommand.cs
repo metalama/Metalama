@@ -12,7 +12,9 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using Spectre.Console.Cli;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,6 +23,12 @@ namespace Metalama.Backstage.Worker.WebServer;
 [UsedImplicitly]
 internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
 {
+    /// <summary>
+    /// The set of <c>Host</c> header values accepted by the local setup server. The server only binds to the loopback
+    /// interface, so only loopback host names and addresses are allowed.
+    /// </summary>
+    internal static IReadOnlyList<string> AllowedHosts { get; } = new[] { "localhost", "127.0.0.1", "[::1]" };
+
     protected override async Task<int> ExecuteAsync( CommandContext context, WebServerCommandSettings settings, CancellationToken cancellationToken )
     {
         var appData = (AppData) context.Data!;
@@ -66,9 +74,12 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
     /// <param name="onKeepAlive">Action invoked when the <c>ping</c> endpoint is hit, used to extend the server lifetime.</param>
     internal static WebApplication BuildWebApplication( WebApplicationBuilder builder, AppData appData, Action onKeepAlive )
     {
-        builder.Services.AddCors();
         builder.Services.AddControllers();
         builder.Services.AddRazorPages();
+
+        // Restrict the 'Host' header to the loopback interface. The server only ever binds to localhost, so any request
+        // carrying a different 'Host' header is either a misconfiguration or a DNS-rebinding attempt from a local website.
+        builder.Services.AddHostFiltering( options => options.AllowedHosts = AllowedHosts.ToList() );
 
         builder.Services.Add(
             new ServiceDescriptor( typeof(ILoggerProvider), serviceProvider => new DotNetLoggerProvider( serviceProvider ), ServiceLifetime.Singleton ) );
@@ -86,7 +97,9 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
 
         app.Services.GetRequiredService<RecaptchaService>().Initialize();
 
-        app.UseCors();
+        // Reject requests whose 'Host' header does not target the loopback interface. This must run before any other
+        // middleware so that rejected requests never reach the application.
+        app.UseHostFiltering();
 
         // If the program was started from the wrong directory, fix the path of static files.
         var contentRootPath = builder.Environment.ContentRootPath;

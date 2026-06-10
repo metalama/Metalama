@@ -96,11 +96,8 @@ public abstract class UserInterfaceService : IUserInterfaceService
         // Wait until the server has started.
         var baseAddress = new Uri( $"http://localhost:{port}/" );
 
-        var handler = new HttpClientHandler();
-        handler.ServerCertificateCustomValidationCallback = ( _, _, _, _ ) => true;
-
         // ReSharper disable once ShortLivedHttpClient
-        var httpClient = new HttpClient( handler ) { Timeout = TimeSpan.FromSeconds( 1 ) };
+        var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds( 1 ) };
 
         var stopwatch = Stopwatch.StartNew();
 
