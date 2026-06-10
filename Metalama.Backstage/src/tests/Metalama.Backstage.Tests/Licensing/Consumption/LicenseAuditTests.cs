@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Licensing.Consumption;
@@ -23,6 +24,11 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
 {
     private static readonly string _auditedLicenseKey = LicenseKeyProvider.MetalamaProfessionalBusiness;
 
+    // The salt is generated from a CSPRNG (see #1654), so it can no longer be derived from the deterministically-seeded
+    // test RNG. We pin the device id and salt so that the device hash sent to Matomo stays deterministic.
+    private static readonly Guid _testDeviceId = new( "d8e7f6a5-b4c3-2d1e-0f9a-8b7c6d5e4f3a" );
+    private const long _testSalt = 0x0123456789ABCDEF;
+
     public LicenseAuditTests( ITestOutputHelper logger ) : base( logger, isTelemetryEnabled: true ) { }
 
     protected override void ConfigureServices( ServiceProviderBuilder services )
@@ -36,6 +42,19 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
             .AddSingleton<ILicenseAuditManager>( serviceProvider => new LicenseAuditManager( serviceProvider ) )
             .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )
             .AddSingleton( serviceProvider => new MatomoUploader( serviceProvider ) );
+    }
+
+    protected override void OnAfterServicesCreated( Services services )
+    {
+        base.OnAfterServicesCreated( services );
+
+        services.ConfigurationManager!.Update<TelemetryConfiguration>(
+            c => c with
+            {
+                DeviceId = _testDeviceId,
+                Salt = _testSalt,
+                LastSaltChangeTime = this.Time.UtcNow
+            } );
     }
 
     private InstrumentedLicenseWrapper CreateAndConsumeLicense( string licenseKey )
@@ -84,7 +103,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
             Assert.Equal( HttpMethod.Get, matomoRequest.Method );
 
             Assert.Equal(
-                $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=license&_id=412522694e2c0786&uid=412522694e2c0786&dimension1={expectedProductName}&dimension2={expectedLicenseType}&dimension3=Metalama&dimension4=1.0&dimension5=LessThan1&new_visit=0&rand=56addf3428448b3b",
+                $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=license&_id=633a82166c05736f&uid=633a82166c05736f&dimension1={expectedProductName}&dimension2={expectedLicenseType}&dimension3=Metalama&dimension4=1.0&dimension5=LessThan1&new_visit=0&rand=6e62252b7f67887c",
                 matomoRequestUri );
 
             // Second time in the same day.
@@ -114,7 +133,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
             Assert.Equal( HttpMethod.Get, thirdMatomoRequest.Method );
 
             Assert.Equal(
-                $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=license&_id=412522694e2c0786&uid=412522694e2c0786&dimension1={expectedProductName}&dimension2={expectedLicenseType}&dimension3=Metalama&dimension4=1.0&dimension5=From1To30&new_visit=0&rand=689070376c8cf5f8",
+                $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=license&_id=633a82166c05736f&uid=633a82166c05736f&dimension1={expectedProductName}&dimension2={expectedLicenseType}&dimension3=Metalama&dimension4=1.0&dimension5=From1To30&new_visit=0&rand=56addf3428448b3b",
                 thirdMatomoRequestUri );
         }
         else

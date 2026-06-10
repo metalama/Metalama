@@ -21,6 +21,11 @@ namespace Metalama.Backstage.Tests.Telemetry;
 
 public sealed class UsageReporterTests : TestsBase
 {
+    // The salt is generated from a CSPRNG (see #1654), so it can no longer be derived from the deterministically-seeded
+    // test RNG. We pin the device id and salt so that the device hash sent to Matomo stays deterministic.
+    private static readonly Guid _testDeviceId = new( "d8e7f6a5-b4c3-2d1e-0f9a-8b7c6d5e4f3a" );
+    private const long _testSalt = 0x0123456789ABCDEF;
+
     // This field can be modified by tests before the first use of the service provider.
     private TestApplicationInfo _applicationInfo = new() { IsTelemetryEnabled = true };
 
@@ -29,7 +34,15 @@ public sealed class UsageReporterTests : TestsBase
     protected override void OnAfterServicesCreated( Services services )
     {
         base.OnAfterServicesCreated( services );
-        services.ConfigurationManager!.Update<TelemetryConfiguration>( c => c with { UsageReportingAction = ReportingAction.Yes } );
+
+        services.ConfigurationManager!.Update<TelemetryConfiguration>(
+            c => c with
+            {
+                UsageReportingAction = ReportingAction.Yes,
+                DeviceId = _testDeviceId,
+                Salt = _testSalt,
+                LastSaltChangeTime = this.Time.UtcNow
+            } );
     }
 
     protected override void ConfigureServices( ServiceProviderBuilder services )
@@ -236,7 +249,7 @@ public sealed class UsageReporterTests : TestsBase
                 this.Logger.WriteLine( matomoRequestUri );
 
                 Assert.Equal(
-                    $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=usage&_id=412522694e2c0786&uid=412522694e2c0786&dimension3=Metalama&dimension4=0.0&dimension5={expectedDeviceAge}&new_visit=1&rand={random}",
+                    $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=usage&_id=633a82166c05736f&uid=633a82166c05736f&dimension3=Metalama&dimension4=0.0&dimension5={expectedDeviceAge}&new_visit=1&rand={random}",
                     matomoRequestUri );
             }
             else
@@ -246,7 +259,7 @@ public sealed class UsageReporterTests : TestsBase
         }
 
         // First session must cause audit.
-        await StartSessionAndAssert( "Project1", true, "56addf3428448b3b", DeviceAgeBucket.LessThan1 );
+        await StartSessionAndAssert( "Project1", true, "6e62252b7f67887c", DeviceAgeBucket.LessThan1 );
 
         // Second session (even with different project) must not cause audit.
         await StartSessionAndAssert( "Project1", false, null, DeviceAgeBucket.LessThan1 );
@@ -254,7 +267,7 @@ public sealed class UsageReporterTests : TestsBase
 
         // Third session the next day must cause audit.
         this.Time.AddTime( TimeSpan.FromDays( 1.1 ) );
-        await StartSessionAndAssert( "Project1", true, "689070376c8cf5f8", DeviceAgeBucket.From1To30 );
+        await StartSessionAndAssert( "Project1", true, "56addf3428448b3b", DeviceAgeBucket.From1To30 );
         await StartSessionAndAssert( "Project2", false, null, DeviceAgeBucket.From1To30 );
     }
 }

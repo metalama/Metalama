@@ -87,9 +87,9 @@ namespace Metalama.Backstage.Telemetry
 
         private CryptoStream GetCryptoStream( Stream outputStream )
         {
-            // Create a symmetric random key.
+            // Create a symmetric random key. This is a security-sensitive value, so it must come from a CSPRNG.
             var symmetricKey = new byte[256 / 8];
-            this._randomNumberGenerator.NextBytes( symmetricKey );
+            this._randomNumberGenerator.NextCryptographicBytes( symmetricKey );
 
             // Retrieve the public key.
             byte[] publicKey;
