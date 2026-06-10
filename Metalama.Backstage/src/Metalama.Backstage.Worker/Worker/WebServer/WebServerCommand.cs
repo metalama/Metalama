@@ -27,53 +27,13 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
 
         var builder = WebApplication.CreateBuilder( new WebApplicationOptions() { ApplicationName = "Metalama.Backstage.Worker" } );
 
-        builder.Services.AddCors();
-        builder.Services.AddControllers();
-        builder.Services.AddRazorPages();
-
-        builder.Services.Add(
-            new ServiceDescriptor( typeof(ILoggerProvider), serviceProvider => new DotNetLoggerProvider( serviceProvider ), ServiceLifetime.Singleton ) );
-
-        // Inject backstage services into the ASP.NET service collection.
-        foreach ( var service in appData.ServiceCollection )
-        {
-            builder.Services.Add( service );
-        }
-
-        builder.Services.AddSingleton<RecaptchaService>();
-
         builder.WebHost.ConfigureKestrel( serverOptions => serverOptions.ListenLocalhost( settings.Port ) );
 
-        // Add services to the container.
-        var app = builder.Build();
+        var shutDownTime = DateTime.UtcNow.AddMinutes( 1 );
 
-        app.Services.GetRequiredService<RecaptchaService>().Initialize();
-
-        app.UseCors();
-
-        // If the program was started from the wrong directory, fix the path of static files.
-        var contentRootPath = builder.Environment.ContentRootPath;
-
-        if ( !Directory.Exists( Path.Combine( contentRootPath, "wwwroot" ) ) )
-        {
-            var binaryDirectory = Path.GetDirectoryName( this.GetType().Assembly.Location )!;
-            contentRootPath = Path.Combine( binaryDirectory, "wwwroot" );
-            app.UseStaticFiles( new StaticFileOptions() { FileProvider = new PhysicalFileProvider( contentRootPath ) } );
-        }
-        else
-        {
-            app.UseStaticFiles();
-        }
-
-        app.UseDeveloperExceptionPage();
-
-        app.UseRouting();
-        app.UseAuthorization();
-        app.MapRazorPages();
-        app.MapGet( "ping", KeepAlive );
+        var app = BuildWebApplication( builder, appData, () => shutDownTime = DateTime.UtcNow.AddMinutes( 1 ) );
 
         var serverTask = app.RunAsync();
-        var shutDownTime = DateTime.UtcNow.AddMinutes( 1 );
 
         while ( shutDownTime > DateTime.UtcNow )
         {
@@ -96,10 +56,59 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
         await app.StopAsync( cancellationToken );
 
         return 0;
+    }
 
-        void KeepAlive()
+    /// <summary>
+    /// Configures the services and the request pipeline of the local setup web server and returns the built
+    /// <see cref="WebApplication"/>. The caller is responsible for configuring the web host (e.g. Kestrel or a test
+    /// server) before calling this method, and for running the returned application.
+    /// </summary>
+    /// <param name="onKeepAlive">Action invoked when the <c>ping</c> endpoint is hit, used to extend the server lifetime.</param>
+    internal static WebApplication BuildWebApplication( WebApplicationBuilder builder, AppData appData, Action onKeepAlive )
+    {
+        builder.Services.AddCors();
+        builder.Services.AddControllers();
+        builder.Services.AddRazorPages();
+
+        builder.Services.Add(
+            new ServiceDescriptor( typeof(ILoggerProvider), serviceProvider => new DotNetLoggerProvider( serviceProvider ), ServiceLifetime.Singleton ) );
+
+        // Inject backstage services into the ASP.NET service collection.
+        foreach ( var service in appData.ServiceCollection )
         {
-            shutDownTime = DateTime.UtcNow.AddMinutes( 1 );
+            builder.Services.Add( service );
         }
+
+        builder.Services.AddSingleton<RecaptchaService>();
+
+        // Add services to the container.
+        var app = builder.Build();
+
+        app.Services.GetRequiredService<RecaptchaService>().Initialize();
+
+        app.UseCors();
+
+        // If the program was started from the wrong directory, fix the path of static files.
+        var contentRootPath = builder.Environment.ContentRootPath;
+
+        if ( !Directory.Exists( Path.Combine( contentRootPath, "wwwroot" ) ) )
+        {
+            var binaryDirectory = Path.GetDirectoryName( typeof(WebServerCommand).Assembly.Location )!;
+            contentRootPath = Path.Combine( binaryDirectory, "wwwroot" );
+            app.UseStaticFiles( new StaticFileOptions() { FileProvider = new PhysicalFileProvider( contentRootPath ) } );
+        }
+        else
+        {
+            app.UseStaticFiles();
+        }
+
+        app.UseDeveloperExceptionPage();
+
+        app.UseRouting();
+        app.UseAuthorization();
+        app.MapRazorPages();
+        app.MapGet( "ping", onKeepAlive );
+
+        return app;
     }
 }

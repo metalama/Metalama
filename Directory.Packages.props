@@ -147,6 +147,7 @@
     <PackageVersion Include="coverlet.msbuild" Version="6.0.4" />
 
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" /> <!-- Must be the lowest supported VS, i.e. 17.14. -->
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="8.0.20" />
     
     <PackageVersion Include="ILRepack" Version="2.0.44" />
     <!-- StreamJsonRpc and MessagePack are both ILMerged into Metalama.Framework.DesignTime.Rpc.
