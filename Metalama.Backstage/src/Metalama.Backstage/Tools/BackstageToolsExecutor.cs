@@ -22,6 +22,8 @@ internal sealed class BackstageToolsExecutor : IBackstageToolsExecutor
     private readonly IBackstageToolsLocator _locator;
     private readonly IFileSystem _fileSystem;
 
+    private static readonly char[] _charactersRequiringQuoting = { ' ', '\t', '\n', '\v', '"' };
+
     public BackstageToolsExecutor( IServiceProvider serviceProvider )
     {
         this._serviceProvider = serviceProvider;
@@ -105,7 +107,7 @@ internal sealed class BackstageToolsExecutor : IBackstageToolsExecutor
         }
 
         // An argument with no whitespace or quote can be appended verbatim.
-        if ( argument.Length != 0 && argument.IndexOfAny( new[] { ' ', '\t', '\n', '\v', '"' } ) < 0 )
+        if ( argument.Length != 0 && argument.IndexOfAny( _charactersRequiringQuoting ) < 0 )
         {
             builder.Append( argument );
 
