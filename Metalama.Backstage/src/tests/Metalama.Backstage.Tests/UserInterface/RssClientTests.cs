@@ -210,6 +210,48 @@ public sealed class RssClientTests : TestsBase
     }
 
     /// <summary>
+    /// Verifies that RssClient does not display a toast notification when the newest item's link uses a non-http(s) URI scheme.
+    /// A hijacked or MITM'd feed could otherwise supply a dangerous scheme (e.g. <c>ms-msdt:</c>, <c>search-ms:</c>, <c>file://</c>)
+    /// that would be passed to Windows protocol activation when the user clicks the toast. See issue #1647.
+    /// </summary>
+    [Theory]
+    [InlineData( "file:///C:/Windows/System32/calc.exe" )]
+    [InlineData( "ms-msdt:/id PCWDiagnostic" )]
+    [InlineData( "search-ms:query=foo&crumb=location:\\\\attacker.example.com\\share" )]
+    [InlineData( "javascript:alert(1)" )]
+    [InlineData( "ftp://attacker.example.com/payload" )]
+    [InlineData( "\\\\attacker.example.com\\share\\payload" )]
+    public async Task RssClientRejectsNonHttpLinkScheme( string maliciousLink )
+    {
+        var rssXml = $"""
+                      <?xml version="1.0" encoding="UTF-8"?>
+                      <rss version="2.0">
+                        <channel>
+                          <title>Test Feed</title>
+                          <link>https://metalama.net/</link>
+                          <description>Test Description</description>
+                          <item>
+                            <title>Malicious News Article</title>
+                            <link>{System.Security.SecurityElement.Escape( maliciousLink )}</link>
+                            <pubDate>Mon, 01 Nov 2025 12:00:00 GMT</pubDate>
+                            <description>This article has a dangerous link</description>
+                          </item>
+                        </channel>
+                      </rss>
+                      """;
+
+        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
+        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
+        this.EnsureNewsWillBeChecked();
+
+        var rssClient = new RssClient( this.ServiceProvider );
+        await rssClient.DisplayUnreadNewsAsync();
+
+        // No toast notification should be shown for a link with a non-http(s) scheme.
+        Assert.Empty( this.UserInterface.Notifications );
+    }
+
+    /// <summary>
     /// Verifies that RssClient logs a warning and returns false when the RSS feed XML does not contain a channel element.
     /// </summary>
     [Fact]
