@@ -7,7 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Backstage.Utilities;
 
-internal static class UrlHelper
+public static class UrlHelper
 {
     /// <summary>
     /// Determines whether the given <paramref name="url"/> is a safe absolute URL, i.e. one that uses the <c>http</c> or
