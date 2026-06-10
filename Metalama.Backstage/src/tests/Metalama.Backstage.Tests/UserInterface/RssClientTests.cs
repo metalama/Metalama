@@ -210,18 +210,25 @@ public sealed class RssClientTests : TestsBase
     }
 
     /// <summary>
-    /// Verifies that RssClient does not display a toast notification when the newest item's link uses a non-http(s) URI scheme.
+    /// Verifies that RssClient only displays a toast notification when the newest item's link uses an http(s) URI scheme.
     /// A hijacked or MITM'd feed could otherwise supply a dangerous scheme (e.g. <c>ms-msdt:</c>, <c>search-ms:</c>, <c>file://</c>)
-    /// that would be passed to Windows protocol activation when the user clicks the toast. See issue #1647.
+    /// that would be passed to Windows protocol activation when the user clicks the toast. See issue #1647. Valid http(s)
+    /// links must still produce a notification.
     /// </summary>
     [Theory]
-    [InlineData( "file:///C:/Windows/System32/calc.exe" )]
-    [InlineData( "ms-msdt:/id PCWDiagnostic" )]
-    [InlineData( "search-ms:query=foo&crumb=location:\\\\attacker.example.com\\share" )]
-    [InlineData( "javascript:alert(1)" )]
-    [InlineData( "ftp://attacker.example.com/payload" )]
-    [InlineData( "\\\\attacker.example.com\\share\\payload" )]
-    public async Task RssClientRejectsNonHttpLinkScheme( string maliciousLink )
+
+    // Safe http(s) links must still produce a notification.
+    [InlineData( "https://metalama.net/latest-news", false )]
+    [InlineData( "http://metalama.net/latest-news", false )]
+
+    // Dangerous schemes must be rejected.
+    [InlineData( "file:///C:/Windows/System32/calc.exe", true )]
+    [InlineData( "ms-msdt:/id PCWDiagnostic", true )]
+    [InlineData( "search-ms:query=foo&crumb=location:\\\\attacker.example.com\\share", true )]
+    [InlineData( "javascript:alert(1)", true )]
+    [InlineData( "ftp://attacker.example.com/payload", true )]
+    [InlineData( "\\\\attacker.example.com\\share\\payload", true )]
+    public async Task RssClientValidatesLinkScheme( string link, bool shouldBeRejected )
     {
         var rssXml = $"""
                       <?xml version="1.0" encoding="UTF-8"?>
@@ -231,10 +238,10 @@ public sealed class RssClientTests : TestsBase
                           <link>https://metalama.net/</link>
                           <description>Test Description</description>
                           <item>
-                            <title>Malicious News Article</title>
-                            <link>{System.Security.SecurityElement.Escape( maliciousLink )}</link>
+                            <title>News Article</title>
+                            <link>{System.Security.SecurityElement.Escape( link )}</link>
                             <pubDate>Mon, 01 Nov 2025 12:00:00 GMT</pubDate>
-                            <description>This article has a dangerous link</description>
+                            <description>This article's link is under test</description>
                           </item>
                         </channel>
                       </rss>
@@ -247,8 +254,18 @@ public sealed class RssClientTests : TestsBase
         var rssClient = new RssClient( this.ServiceProvider );
         await rssClient.DisplayUnreadNewsAsync();
 
-        // No toast notification should be shown for a link with a non-http(s) scheme.
-        Assert.Empty( this.UserInterface.Notifications );
+        if ( shouldBeRejected )
+        {
+            // No toast notification should be shown for a link with a non-http(s) scheme.
+            Assert.Empty( this.UserInterface.Notifications );
+        }
+        else
+        {
+            // A safe http(s) link produces a notification with the tracking query string appended.
+            var notification = Assert.Single( this.UserInterface.Notifications );
+            Assert.Equal( "News Article", notification.Title );
+            Assert.Equal( link + "?" + WebLinks.TrackingQueryString, notification.Uri );
+        }
     }
 
     /// <summary>

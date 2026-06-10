@@ -6,6 +6,7 @@ using Metalama.Backstage.Desktop.Windows.Commands;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Toasts;
+using Metalama.Backstage.Utilities;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
@@ -90,8 +91,7 @@ internal static class ViewModelBuilder
             // Defense in depth: ensure the URI uses a safe (http/https) scheme before it reaches Windows protocol
             // activation. The primary validation is in RssClient, but the URI is server-controlled, so we re-check here.
             // See issue #1647.
-            if ( !Uri.TryCreate( settings.Uri, UriKind.Absolute, out var newsUri )
-                 || (newsUri.Scheme != Uri.UriSchemeHttp && newsUri.Scheme != Uri.UriSchemeHttps) )
+            if ( !UrlHelper.IsSafe( settings.Uri, out var newsUri ) )
             {
                 viewModel = null;
 
