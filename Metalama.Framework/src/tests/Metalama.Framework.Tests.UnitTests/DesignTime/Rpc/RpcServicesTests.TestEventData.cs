@@ -10,6 +10,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 public sealed partial class RpcServicesTests
 {
     [JsonObject]
+    [RpcContract]
     private sealed class TestEventData : RpcEventData
     {
         public override string Category => "Test";

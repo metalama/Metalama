@@ -449,6 +449,30 @@ public sealed class RpcSerializationTests
         var projectKey = Assert.IsType<ProjectKey>( result );
         Assert.Equal( "MyAssembly", projectKey.AssemblyName );
     }
+
+    [Fact]
+    public void OffContractEventData_RejectedInEnvelope()
+    {
+        // Exercises the actual protocol surface: RpcEventEnvelope.Data is typed as the abstract RpcEventData,
+        // so the concrete type name is written on the wire and resolved on deserialization (the typeless path).
+        // An attacker could name a malicious event type here. An RpcEventData subclass that is not an approved
+        // [RpcContract] must be rejected on deserialization.
+        var envelope = new RpcEventEnvelope( "TestApi", new OffContractEventData() );
+
+        var bytes = _helper.Serialize( envelope );
+
+        Assert.ThrowsAny<Exception>( () => _helper.Deserialize<RpcEventEnvelope>( bytes ) );
+    }
+}
+
+/// <summary>
+/// An <see cref="RpcEventData"/> subclass deliberately NOT marked with <c>[RpcContract]</c>, modeling a malicious
+/// event type that an attacker could name in the abstract <see cref="RpcEventEnvelope.Data"/> slot. The security
+/// fix for #1651 must reject it on deserialization.
+/// </summary>
+internal sealed class OffContractEventData : RpcEventData
+{
+    public override string Category => nameof(OffContractEventData);
 }
 
 /// <summary>

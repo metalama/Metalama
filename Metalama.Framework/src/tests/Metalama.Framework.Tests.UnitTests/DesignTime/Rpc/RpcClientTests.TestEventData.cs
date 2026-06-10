@@ -12,6 +12,7 @@ public sealed partial class RpcClientTests
     /// Simple event data for testing RpcClient event handling.
     /// Must be internal because it's used by the internal TestService class.
     /// </summary>
+    [RpcContract]
     internal sealed class TestEventData : RpcEventData
     {
         public int Value { get; }
