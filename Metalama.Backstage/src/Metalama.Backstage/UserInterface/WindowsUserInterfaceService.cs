@@ -6,6 +6,7 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Tools;
 using Metalama.Backstage.UserInterface.Toasts;
 using System;
+using System.Collections.Generic;
 
 #if NETFRAMEWORK || NETCOREAPP
 using Metalama.Backstage.Diagnostics;
@@ -30,28 +31,33 @@ internal sealed class WindowsUserInterfaceService : UserInterfaceService
 
     public override void ShowToastNotification( ToastNotification notification )
     {
-        // Build arguments.
-        var arguments = $"notify {notification.Kind.Name}";
+        // Build the argument vector. Title/Text/Uri can come from an untrusted RSS feed, so they MUST be passed as
+        // separate vector elements (quoted by the executor) and never concatenated into the command line, otherwise
+        // a value containing a quote could inject extra arguments. See issue #1648.
+        var arguments = new List<string> { "notify", notification.Kind.Name };
 
         if ( !string.IsNullOrEmpty( notification.Title ) )
         {
-            arguments += $" --title \"{notification.Title}\"";
+            arguments.Add( "--title" );
+            arguments.Add( notification.Title! );
         }
 
         if ( !string.IsNullOrEmpty( notification.Text ) )
         {
-            arguments += $" --text \"{notification.Text}\"";
+            arguments.Add( "--text" );
+            arguments.Add( notification.Text! );
         }
 
         if ( !string.IsNullOrEmpty( notification.Uri ) )
         {
-            arguments += $" --uri \"{notification.Uri}\"";
+            arguments.Add( "--uri" );
+            arguments.Add( notification.Uri! );
         }
 
         try
         {
             // Start the UI process.
-            this._toolsExecutor.Start( BackstageTool.DesktopWindows, arguments );
+            this._toolsExecutor.Start( BackstageTool.DesktopWindows, arguments.ToArray() );
             this.OnToastNotificationShown();
         }
         catch ( Exception e )
