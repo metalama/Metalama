@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Testing;
+using Metalama.Backstage.Worker.WebServer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
