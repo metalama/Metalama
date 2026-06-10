@@ -11,6 +11,11 @@ internal sealed class RandomNumberGenerator : IBackstageService
 {
     private readonly Random _random;
 
+    // A cryptographically-secure RNG, used for security-sensitive values. It is thread-safe, so unlike _random it
+    // does not need locking. It is never seeded, so security-sensitive values are never predictable.
+    private readonly System.Security.Cryptography.RandomNumberGenerator _cryptographicRandom =
+        System.Security.Cryptography.RandomNumberGenerator.Create();
+
     public RandomNumberGenerator( int? seed = null )
     {
         this._random = seed != null ? new Random( seed.Value ) : new Random();
@@ -59,8 +64,7 @@ internal sealed class RandomNumberGenerator : IBackstageService
     /// </summary>
     public void NextCryptographicBytes( byte[] buffer )
     {
-        using var cryptographicRandom = System.Security.Cryptography.RandomNumberGenerator.Create();
-        cryptographicRandom.GetBytes( buffer );
+        this._cryptographicRandom.GetBytes( buffer );
     }
 
     /// <summary>
