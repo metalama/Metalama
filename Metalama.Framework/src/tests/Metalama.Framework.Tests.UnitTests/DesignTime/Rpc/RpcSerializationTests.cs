@@ -409,4 +409,54 @@ public sealed class RpcSerializationTests
         Assert.Equal( original.Transformations.Length, result.Transformations.Length );
         Assert.Equal( original.Transformations[0].Description, result.Transformations[0].Description );
     }
+
+    [Fact]
+    public void OffContractType_RejectedOnDeserialize()
+    {
+        // Regression test for #1651. The RPC wire path historically used the typeless MessagePack resolver,
+        // which embeds an arbitrary CLR type name on the wire and reconstructs it via Type.GetType on
+        // deserialization — before any application logic runs (an unsafe-deserialization / gadget-chain RCE
+        // primitive, the MessagePack analogue of BinaryFormatter). An attacker who can write to the design-time
+        // pipe could name any type. The fix must reject any type that is not an approved [RpcContract].
+        byte[] bytes;
+
+        try
+        {
+            // Serialize through the 'object' static type, exactly as the abstract-typed RpcEventEnvelope.Data
+            // field does on the real protocol — this forces the typeless code path.
+            bytes = _helper.Serialize<object>( new OffContractGadget() );
+        }
+        catch
+        {
+            // Rejecting the off-contract type already on the serialization side is an acceptable defense.
+            return;
+        }
+
+        // The untrusted boundary is deserialization, so rejection here is the security-relevant guarantee.
+        Assert.ThrowsAny<Exception>( () => _helper.Deserialize<object>( bytes ) );
+    }
+
+    [Fact]
+    public void OnContractType_AllowedThroughObjectPath()
+    {
+        // Ensures the allow-list does not break legitimate polymorphism: an approved [RpcContract] type must
+        // still round-trip through the typeless ('object'-typed) code path.
+        object original = new ProjectKey( "MyAssembly", 12345UL, true );
+
+        var bytes = _helper.Serialize( original );
+        var result = _helper.Deserialize<object>( bytes );
+
+        var projectKey = Assert.IsType<ProjectKey>( result );
+        Assert.Equal( "MyAssembly", projectKey.AssemblyName );
+    }
+}
+
+/// <summary>
+/// A type deliberately NOT marked with <c>[RpcContract]</c>, standing in for an attacker-chosen gadget type.
+/// The unsafe typeless resolver would happily reconstruct it from the wire; the security fix for #1651 must
+/// reject any type that is not an approved RPC contract.
+/// </summary>
+internal sealed class OffContractGadget
+{
+    public string Payload { get; set; } = "pwned";
 }
