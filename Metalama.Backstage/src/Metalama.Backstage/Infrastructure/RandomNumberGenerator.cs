@@ -7,7 +7,7 @@ using System;
 
 namespace Metalama.Backstage.Infrastructure;
 
-internal sealed class RandomNumberGenerator : IBackstageService
+internal sealed class RandomNumberGenerator : IBackstageService, IDisposable
 {
     private readonly Random _random;
 
@@ -79,4 +79,6 @@ internal sealed class RandomNumberGenerator : IBackstageService
 
         return BitConverter.ToInt64( bytes, 0 );
     }
+
+    public void Dispose() => this._cryptographicRandom.Dispose();
 }
