@@ -10,6 +10,7 @@ using Metalama.Backstage.Tools;
 using Metalama.Backstage.UserInterface.Toasts;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -91,16 +92,14 @@ public abstract class UserInterfaceService : IUserInterfaceService
     {
         var port = GetFreePort();
 
-        using var webServerProcess = this._backstageToolExecutor.Start( BackstageTool.Worker, $"web --port {port} " );
+        using var webServerProcess =
+            this._backstageToolExecutor.Start( BackstageTool.Worker, "web", "--port", port.ToString( CultureInfo.InvariantCulture ) );
 
         // Wait until the server has started.
         var baseAddress = new Uri( $"http://localhost:{port}/" );
 
-        var handler = new HttpClientHandler();
-        handler.ServerCertificateCustomValidationCallback = ( _, _, _, _ ) => true;
-
         // ReSharper disable once ShortLivedHttpClient
-        var httpClient = new HttpClient( handler ) { Timeout = TimeSpan.FromSeconds( 1 ) };
+        var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds( 1 ) };
 
         var stopwatch = Stopwatch.StartNew();
 

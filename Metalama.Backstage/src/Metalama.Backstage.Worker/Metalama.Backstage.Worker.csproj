@@ -66,6 +66,10 @@
     </ItemGroup>
 
     <ItemGroup>
+      <InternalsVisibleTo Include="Metalama.Backstage.Worker.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
       <None Remove="Properties\launchSettings.json" />
     </ItemGroup>
 

@@ -9,5 +9,8 @@ namespace Metalama.Backstage.Tools;
 
 internal interface IBackstageToolsExecutor : IBackstageService
 {
-    IProcess Start( BackstageTool tool, string arguments );
+    // The arguments are passed as a vector (not a single string) and are quoted by the implementation, so that
+    // untrusted values (e.g. an RSS feed title flowing into a toast notification) cannot inject extra arguments
+    // into the child process. See https://github.com/metalama/Metalama/issues/1648.
+    IProcess Start( BackstageTool tool, params string[] arguments );
 }
