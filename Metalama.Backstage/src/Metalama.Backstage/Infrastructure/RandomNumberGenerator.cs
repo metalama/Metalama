@@ -7,9 +7,14 @@ using System;
 
 namespace Metalama.Backstage.Infrastructure;
 
-internal sealed class RandomNumberGenerator : IBackstageService
+internal sealed class RandomNumberGenerator : IBackstageService, IDisposable
 {
     private readonly Random _random;
+
+    // A cryptographically-secure RNG, used for security-sensitive values. It is thread-safe, so unlike _random it
+    // does not need locking. It is never seeded, so security-sensitive values are never predictable.
+    private readonly System.Security.Cryptography.RandomNumberGenerator _cryptographicRandom =
+        System.Security.Cryptography.RandomNumberGenerator.Create();
 
     public RandomNumberGenerator( int? seed = null )
     {
@@ -51,4 +56,29 @@ internal sealed class RandomNumberGenerator : IBackstageService
             this._random.NextBytes( buffer );
         }
     }
+
+    /// <summary>
+    /// Fills <paramref name="buffer"/> with cryptographically-secure random bytes. Unlike <see cref="NextBytes"/>,
+    /// this method is not backed by <see cref="Random"/> and must be used for security-sensitive values such as
+    /// encryption keys and salts. The value is independent of the seed passed to the constructor.
+    /// </summary>
+    public void NextCryptographicBytes( byte[] buffer )
+    {
+        this._cryptographicRandom.GetBytes( buffer );
+    }
+
+    /// <summary>
+    /// Returns a cryptographically-secure random <see cref="long"/>. Unlike <see cref="NextInt64"/>, this method is
+    /// not backed by <see cref="Random"/> and must be used for security-sensitive values. The value is independent
+    /// of the seed passed to the constructor.
+    /// </summary>
+    public long NextCryptographicInt64()
+    {
+        var bytes = new byte[sizeof(long)];
+        this.NextCryptographicBytes( bytes );
+
+        return BitConverter.ToInt64( bytes, 0 );
+    }
+
+    public void Dispose() => this._cryptographicRandom.Dispose();
 }
