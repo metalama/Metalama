@@ -131,7 +131,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 // Since first-time users are likely not to use the software for more than a few minutes, 
                 // configure so that we will upload data in 15 minutes.
                 LastUploadTime = this._dateTimeProvider.UtcNow.AddDays( -1 ).AddMinutes( 15 ),
-                Salt = this._randomNumberGenerator.NextInt64(),
+                Salt = this._randomNumberGenerator.NextCryptographicInt64(),
                 LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
 
@@ -143,7 +143,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             c => c.Salt == null || c.LastSaltChangeTime == null || (this._dateTimeProvider.UtcNow >= firstOfMonth && c.LastSaltChangeTime.Value < firstOfMonth),
             c => c with
             {
-                Salt = this._randomNumberGenerator.NextInt64(),
+                Salt = this._randomNumberGenerator.NextCryptographicInt64(),
                 DeviceId = this._randomNumberGenerator.NextGuid(),
                 LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
@@ -202,7 +202,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             c => c with
             {
                 DeviceId = this._randomNumberGenerator.NextGuid(),
-                Salt = this._randomNumberGenerator.NextInt64(),
+                Salt = this._randomNumberGenerator.NextCryptographicInt64(),
                 LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
     }

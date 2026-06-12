@@ -210,6 +210,65 @@ public sealed class RssClientTests : TestsBase
     }
 
     /// <summary>
+    /// Verifies that RssClient only displays a toast notification when the newest item's link uses an http(s) URI scheme.
+    /// A hijacked or MITM'd feed could otherwise supply a dangerous scheme (e.g. <c>ms-msdt:</c>, <c>search-ms:</c>, <c>file://</c>)
+    /// that would be passed to Windows protocol activation when the user clicks the toast. See issue #1647. Valid http(s)
+    /// links must still produce a notification.
+    /// </summary>
+    [Theory]
+
+    // Safe http(s) links must still produce a notification.
+    [InlineData( "https://metalama.net/latest-news", false )]
+    [InlineData( "http://metalama.net/latest-news", false )]
+
+    // Dangerous schemes must be rejected.
+    [InlineData( "file:///C:/Windows/System32/calc.exe", true )]
+    [InlineData( "ms-msdt:/id PCWDiagnostic", true )]
+    [InlineData( "search-ms:query=foo&crumb=location:\\\\attacker.example.com\\share", true )]
+    [InlineData( "javascript:alert(1)", true )]
+    [InlineData( "ftp://attacker.example.com/payload", true )]
+    [InlineData( "\\\\attacker.example.com\\share\\payload", true )]
+    public async Task RssClientValidatesLinkScheme( string link, bool shouldBeRejected )
+    {
+        var rssXml = $"""
+                      <?xml version="1.0" encoding="UTF-8"?>
+                      <rss version="2.0">
+                        <channel>
+                          <title>Test Feed</title>
+                          <link>https://metalama.net/</link>
+                          <description>Test Description</description>
+                          <item>
+                            <title>News Article</title>
+                            <link>{System.Security.SecurityElement.Escape( link )}</link>
+                            <pubDate>Mon, 01 Nov 2025 12:00:00 GMT</pubDate>
+                            <description>This article's link is under test</description>
+                          </item>
+                        </channel>
+                      </rss>
+                      """;
+
+        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
+        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
+        this.EnsureNewsWillBeChecked();
+
+        var rssClient = new RssClient( this.ServiceProvider );
+        await rssClient.DisplayUnreadNewsAsync();
+
+        if ( shouldBeRejected )
+        {
+            // No toast notification should be shown for a link with a non-http(s) scheme.
+            Assert.Empty( this.UserInterface.Notifications );
+        }
+        else
+        {
+            // A safe http(s) link produces a notification with the tracking query string appended.
+            var notification = Assert.Single( this.UserInterface.Notifications );
+            Assert.Equal( "News Article", notification.Title );
+            Assert.Equal( link + "?" + WebLinks.TrackingQueryString, notification.Uri );
+        }
+    }
+
+    /// <summary>
     /// Verifies that RssClient logs a warning and returns false when the RSS feed XML does not contain a channel element.
     /// </summary>
     [Fact]

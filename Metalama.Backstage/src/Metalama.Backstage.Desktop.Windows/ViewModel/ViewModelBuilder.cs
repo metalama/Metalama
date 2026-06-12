@@ -6,6 +6,7 @@ using Metalama.Backstage.Desktop.Windows.Commands;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Toasts;
+using Metalama.Backstage.Utilities;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
@@ -87,11 +88,21 @@ internal static class ViewModelBuilder
         }
         else if ( settings.Kind == ToastNotificationKinds.News.Name )
         {
+            // Defense in depth: ensure the URI uses a safe (http/https) scheme before it reaches Windows protocol
+            // activation. The primary validation is in RssClient, but the URI is server-controlled, so we re-check here.
+            // See issue #1647.
+            if ( !UrlHelper.IsSafe( settings.Uri, out var newsUri ) )
+            {
+                viewModel = null;
+
+                return false;
+            }
+
             viewModel = new NotificationViewModel(
                 settings.Kind,
                 "Metalama Blog Update",
                 settings.Title,
-                new UriActionViewModel( "Read", settings.Uri! ),
+                new UriActionViewModel( "Read", newsUri ),
                 new CommandActionViewModel( "Options", activationArguments.OpenRssOptions ) ) { CanMute = false, CanSnooze = false };
 
             return true;

@@ -21,6 +21,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Tests", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Commands.Tests", "src\tests\Metalama.Backstage.Commands.Tests\Metalama.Backstage.Commands.Tests.csproj", "{EDF195AE-53FD-4FD1-B560-688EB0AC548B}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Worker.Tests", "src\tests\Metalama.Backstage.Worker.Tests\Metalama.Backstage.Worker.Tests.csproj", "{6F7962CD-A567-4427-8828-64406E0012F7}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Worker", "src\Metalama.Backstage.Worker\Metalama.Backstage.Worker.csproj", "{B1D5955D-CB60-4233-8C95-D0CC456C6939}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.DotNetTool", "src\Metalama.Backstage.DotNetTool\Metalama.Backstage.DotNetTool.csproj", "{34D564FB-8BDB-4187-8FCD-249C99E70FDA}"
@@ -63,6 +65,10 @@ Global
 		{EDF195AE-53FD-4FD1-B560-688EB0AC548B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EDF195AE-53FD-4FD1-B560-688EB0AC548B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EDF195AE-53FD-4FD1-B560-688EB0AC548B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F7962CD-A567-4427-8828-64406E0012F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F7962CD-A567-4427-8828-64406E0012F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F7962CD-A567-4427-8828-64406E0012F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F7962CD-A567-4427-8828-64406E0012F7}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B1D5955D-CB60-4233-8C95-D0CC456C6939}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B1D5955D-CB60-4233-8C95-D0CC456C6939}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B1D5955D-CB60-4233-8C95-D0CC456C6939}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -89,6 +95,7 @@ Global
 		{35D4322C-116D-461A-9006-B9C838631CAE} = {9D6FD712-60EF-4B8A-95EE-0143DF7E4B97}
 		{223E7228-F193-4FAD-A993-76FC800E18E4} = {9D6FD712-60EF-4B8A-95EE-0143DF7E4B97}
 		{EDF195AE-53FD-4FD1-B560-688EB0AC548B} = {9D6FD712-60EF-4B8A-95EE-0143DF7E4B97}
+		{6F7962CD-A567-4427-8828-64406E0012F7} = {9D6FD712-60EF-4B8A-95EE-0143DF7E4B97}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8AA8827C-CABA-4539-ABED-306BD5240FE1}

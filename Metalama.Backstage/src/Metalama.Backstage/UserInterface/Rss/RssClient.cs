@@ -8,6 +8,7 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.UserInterface.Toasts;
+using Metalama.Backstage.Utilities;
 using System;
 using System.IO;
 using System.Linq;
@@ -221,8 +222,19 @@ internal sealed class RssClient : IRssClient
             return false;
         }
 
+        // Validate that the link is an absolute http/https URI. A hijacked or MITM'd feed could otherwise supply a dangerous
+        // scheme (e.g. 'ms-msdt:', 'search-ms:', 'file://') that would be passed to Windows protocol activation when the user
+        // clicks the toast. See issue #1647.
+        if ( !UrlHelper.IsSafe( url, out var linkUri ) )
+        {
+            this._logger.Warning?.Log( $"RSS item link '{url}' is not a valid absolute http or https URL. Skipping." );
+            pubDate = null;
+
+            return false;
+        }
+
         // Append tracking query string parameters using UriBuilder for robustness.
-        var uriBuilder = new UriBuilder( url );
+        var uriBuilder = new UriBuilder( linkUri );
 
         if ( string.IsNullOrEmpty( uriBuilder.Query ) )
         {
