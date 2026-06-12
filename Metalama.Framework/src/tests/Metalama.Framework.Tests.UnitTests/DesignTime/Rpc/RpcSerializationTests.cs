@@ -418,22 +418,15 @@ public sealed class RpcSerializationTests
         // deserialization — before any application logic runs (an unsafe-deserialization / gadget-chain RCE
         // primitive, the MessagePack analogue of BinaryFormatter). An attacker who can write to the design-time
         // pipe could name any type. The fix must reject any type that is not an approved [RpcContract].
-        byte[] bytes;
 
-        try
-        {
-            // Serialize through the 'object' static type, exactly as the abstract-typed RpcEventEnvelope.Data
-            // field does on the real protocol — this forces the typeless code path.
-            bytes = _helper.Serialize<object>( new OffContractGadget() );
-        }
-        catch
-        {
-            // Rejecting the off-contract type already on the serialization side is an acceptable defense.
-            return;
-        }
+        // Serialize through the 'object' static type, exactly as the abstract-typed RpcEventEnvelope.Data field
+        // does on the real protocol — this forces the typeless code path. Serialization itself is unguarded (the
+        // allow-list is enforced on the deserialization side, which is the untrusted boundary), so this models an
+        // attacker who can craft arbitrary wire bytes and must always succeed for the test to exercise the guard.
+        var bytes = _helper.Serialize<object>( new OffContractGadget() );
 
         // The untrusted boundary is deserialization, so rejection here is the security-relevant guarantee.
-        Assert.ThrowsAny<Exception>( () => _helper.Deserialize<object>( bytes ) );
+        AssertRejectedByContractGuard( () => _helper.Deserialize<object>( bytes ) );
     }
 
     [Fact]
@@ -461,7 +454,24 @@ public sealed class RpcSerializationTests
 
         var bytes = _helper.Serialize( envelope );
 
-        Assert.ThrowsAny<Exception>( () => _helper.Deserialize<RpcEventEnvelope>( bytes ) );
+        AssertRejectedByContractGuard( () => _helper.Deserialize<RpcEventEnvelope>( bytes ) );
+    }
+
+    /// <summary>
+    /// Asserts that <paramref name="deserialize"/> is rejected specifically by the <c>[RpcContract]</c> allow-list in
+    /// <see cref="RpcContractMessagePackOptions.LoadType"/>, rather than failing for some incidental reason. The guard
+    /// surfaces as a <c>MessagePackSerializationException</c>, matched here by type <em>name</em> rather than identity:
+    /// MessagePack is ILMerged and internalized into the RPC assembly, so the runtime exception type has a different
+    /// CLR identity than the test project's MessagePack reference and an exact-type <c>Assert.Throws</c> can never
+    /// match. Asserting the name plus the rejection reason keeps the regression focused on the guard.
+    /// </summary>
+    private static void AssertRejectedByContractGuard( Action deserialize )
+    {
+        var exception = Record.Exception( deserialize );
+
+        Assert.NotNull( exception );
+        Assert.Equal( "MessagePackSerializationException", exception.GetType().Name );
+        Assert.Contains( nameof(RpcContractAttribute), exception.ToString() );
     }
 }
 
