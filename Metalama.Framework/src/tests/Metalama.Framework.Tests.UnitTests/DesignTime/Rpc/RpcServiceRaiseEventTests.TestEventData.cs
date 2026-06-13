@@ -11,6 +11,7 @@ public sealed partial class RpcServiceRaiseEventTests
     /// <summary>
     /// Simple event data class for testing event broadcasting.
     /// </summary>
+    [RpcContract]
     private sealed class TestEventData : RpcEventData
     {
         public string Message { get; }
