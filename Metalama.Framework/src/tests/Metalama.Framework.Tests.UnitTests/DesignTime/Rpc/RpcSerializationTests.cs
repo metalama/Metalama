@@ -409,4 +409,88 @@ public sealed class RpcSerializationTests
         Assert.Equal( original.Transformations.Length, result.Transformations.Length );
         Assert.Equal( original.Transformations[0].Description, result.Transformations[0].Description );
     }
+
+    [Fact]
+    public void OffContractType_RejectedOnDeserialize()
+    {
+        // Regression test for #1651. The RPC wire path historically used the typeless MessagePack resolver,
+        // which embeds an arbitrary CLR type name on the wire and reconstructs it via Type.GetType on
+        // deserialization — before any application logic runs (an unsafe-deserialization / gadget-chain RCE
+        // primitive, the MessagePack analogue of BinaryFormatter). An attacker who can write to the design-time
+        // pipe could name any type. The fix must reject any type that is not an approved [RpcContract].
+
+        // Serialize through the 'object' static type, exactly as the abstract-typed RpcEventEnvelope.Data field
+        // does on the real protocol — this forces the typeless code path. Serialization itself is unguarded (the
+        // allow-list is enforced on the deserialization side, which is the untrusted boundary), so this models an
+        // attacker who can craft arbitrary wire bytes and must always succeed for the test to exercise the guard.
+        var bytes = _helper.Serialize<object>( new OffContractGadget() );
+
+        // The untrusted boundary is deserialization, so rejection here is the security-relevant guarantee.
+        AssertRejectedByContractGuard( () => _helper.Deserialize<object>( bytes ) );
+    }
+
+    [Fact]
+    public void OnContractType_AllowedThroughObjectPath()
+    {
+        // Ensures the allow-list does not break legitimate polymorphism: an approved [RpcContract] type must
+        // still round-trip through the typeless ('object'-typed) code path.
+        object original = new ProjectKey( "MyAssembly", 12345UL, true );
+
+        var bytes = _helper.Serialize( original );
+        var result = _helper.Deserialize<object>( bytes );
+
+        var projectKey = Assert.IsType<ProjectKey>( result );
+        Assert.Equal( "MyAssembly", projectKey.AssemblyName );
+    }
+
+    [Fact]
+    public void OffContractEventData_RejectedInEnvelope()
+    {
+        // Exercises the actual protocol surface: RpcEventEnvelope.Data is typed as the abstract RpcEventData,
+        // so the concrete type name is written on the wire and resolved on deserialization (the typeless path).
+        // An attacker could name a malicious event type here. An RpcEventData subclass that is not an approved
+        // [RpcContract] must be rejected on deserialization.
+        var envelope = new RpcEventEnvelope( "TestApi", new OffContractEventData() );
+
+        var bytes = _helper.Serialize( envelope );
+
+        AssertRejectedByContractGuard( () => _helper.Deserialize<RpcEventEnvelope>( bytes ) );
+    }
+
+    /// <summary>
+    /// Asserts that <paramref name="deserialize"/> is rejected specifically by the <c>[RpcContract]</c> allow-list in
+    /// <see cref="RpcContractMessagePackOptions.LoadType"/>, rather than failing for some incidental reason. The guard
+    /// surfaces as a <c>MessagePackSerializationException</c>, matched here by type <em>name</em> rather than identity:
+    /// MessagePack is ILMerged and internalized into the RPC assembly, so the runtime exception type has a different
+    /// CLR identity than the test project's MessagePack reference and an exact-type <c>Assert.Throws</c> can never
+    /// match. Asserting the name plus the rejection reason keeps the regression focused on the guard.
+    /// </summary>
+    private static void AssertRejectedByContractGuard( Action deserialize )
+    {
+        var exception = Record.Exception( deserialize );
+
+        Assert.NotNull( exception );
+        Assert.Equal( "MessagePackSerializationException", exception.GetType().Name );
+        Assert.Contains( nameof(RpcContractAttribute), exception.ToString() );
+    }
+}
+
+/// <summary>
+/// An <see cref="RpcEventData"/> subclass deliberately NOT marked with <c>[RpcContract]</c>, modeling a malicious
+/// event type that an attacker could name in the abstract <see cref="RpcEventEnvelope.Data"/> slot. The security
+/// fix for #1651 must reject it on deserialization.
+/// </summary>
+internal sealed class OffContractEventData : RpcEventData
+{
+    public override string Category => nameof(OffContractEventData);
+}
+
+/// <summary>
+/// A type deliberately NOT marked with <c>[RpcContract]</c>, standing in for an attacker-chosen gadget type.
+/// The unsafe typeless resolver would happily reconstruct it from the wire; the security fix for #1651 must
+/// reject any type that is not an approved RPC contract.
+/// </summary>
+internal sealed class OffContractGadget
+{
+    public string Payload { get; set; } = "pwned";
 }

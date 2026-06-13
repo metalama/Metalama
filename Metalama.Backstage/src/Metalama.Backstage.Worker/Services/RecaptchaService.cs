@@ -19,8 +19,12 @@ internal sealed class RecaptchaService( IHttpClientFactory httpClientFactory, We
                 try
                 {
                     using var httpClient = httpClientFactory.Create();
-                    var recaptchaSiteKey = await httpClient.GetStringAsync( webLinks.NewsletterGetCaptchaSiteKeyApi );
-                    this._recaptchaSiteKeyTcs.SetResult( recaptchaSiteKey );
+                    var recaptchaSiteKey = (await httpClient.GetStringAsync( webLinks.NewsletterGetCaptchaSiteKeyApi ))?.Trim();
+
+                    // The site key comes from the backend server, which is outside our trust boundary. It is reflected
+                    // into the setup page, so we validate its format before using it and treat a malformed key the same
+                    // as a missing one (i.e. the device is considered offline and no reCAPTCHA is rendered). See #1649.
+                    this._recaptchaSiteKeyTcs.SetResult( RecaptchaSiteKeyValidator.IsValid( recaptchaSiteKey ) ? recaptchaSiteKey : null );
                 }
                 catch
                 {
