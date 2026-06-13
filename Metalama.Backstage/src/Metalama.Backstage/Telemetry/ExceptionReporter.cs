@@ -11,6 +11,7 @@ using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -30,13 +31,13 @@ internal sealed class ExceptionReporter : IExceptionReporter
     private readonly IFileSystem _fileSystem;
     private readonly bool _canIgnoreRecoverableExceptions;
     private readonly LocalExceptionReporter? _localExceptionReporter;
-    private readonly ITelemetryConfigurationService _telemetryConfigurationService;
+    private readonly IInternalTelemetryConfigurationService _telemetryConfigurationService;
 
     public ExceptionReporter( TelemetryQueue uploadManager, IServiceProvider serviceProvider )
     {
         this._uploadManager = uploadManager;
         this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
-        this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
+        this._telemetryConfigurationService = (IInternalTelemetryConfigurationService) serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
         this._time = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._applicationInfoProvider = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>();
         this._directories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
@@ -247,7 +248,13 @@ internal sealed class ExceptionReporter : IExceptionReporter
             xmlWriter.WriteStartElement( "ErrorReport" );
             xmlWriter.WriteElementString( "InvariantHash", hash );
             xmlWriter.WriteElementString( "Time", XmlConvert.ToString( this._time.UtcNow, XmlDateTimeSerializationMode.RoundtripKind ) );
-            xmlWriter.WriteElementString( "ClientId", this._telemetryConfigurationService.DeviceId.ToString() );
+            // Emit an anonymized device hash keyed by the first-party-only DiagnosticSalt, never the raw
+            // DeviceId GUID (the rotation seed from which the Matomo hash is derivable). See #1668.
+            var internalDeviceHash = HashUtilities.ComputeInt64Hmac(
+                this._telemetryConfigurationService.DeviceId.ToString(),
+                this._telemetryConfigurationService.DiagnosticSalt );
+
+            xmlWriter.WriteElementString( "ClientId", internalDeviceHash.ToString( "x", CultureInfo.InvariantCulture ) );
             xmlWriter.WriteStartElement( "Application" );
             xmlWriter.WriteElementString( "Name", applicationInfo.Name );
             xmlWriter.WriteElementString( "Version", applicationInfo.PackageVersion );

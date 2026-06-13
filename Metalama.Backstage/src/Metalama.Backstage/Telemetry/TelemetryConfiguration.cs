@@ -35,12 +35,19 @@ public sealed record TelemetryConfiguration : ConfigurationFile
     public DateTime? LastUploadTime { get; init; }
 
     /// <summary>
-    /// Gets the value with PIIs should be salted.
+    /// Gets the value with which PIIs sent to the third-party analytics platform (Matomo) should be salted.
     /// </summary>
     public long? Salt { get; init; }
 
     /// <summary>
-    /// Gets the last time the <see cref="Salt"/> and <see cref="DeviceId"/> properties was rotated. This should be done monthly.
+    /// Gets the value with which PIIs sent only to the first-party diagnostic store (bits) should be salted.
+    /// This is distinct from <see cref="Salt"/> so that the Matomo pseudonym cannot be correlated with our
+    /// diagnostic data. See issue #1668.
+    /// </summary>
+    public long? DiagnosticSalt { get; init; }
+
+    /// <summary>
+    /// Gets the last time the <see cref="Salt"/>, <see cref="DiagnosticSalt"/> and <see cref="DeviceId"/> properties were rotated. This should be done monthly.
     /// </summary>
     public DateTime? LastSaltChangeTime { get; init; }
 

@@ -12,7 +12,7 @@ using System;
 
 namespace Metalama.Backstage.Telemetry;
 
-internal sealed class TelemetryConfigurationService : ITelemetryConfigurationService
+internal sealed class TelemetryConfigurationService : IInternalTelemetryConfigurationService
 {
     public const string OptOutEnvironmentVariable = "METALAMA_TELEMETRY_OPT_OUT";
     private readonly IConfigurationManager _configurationManager;
@@ -46,6 +46,8 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     }
 
     public long Salt { get; private set; }
+
+    public long DiagnosticSalt { get; private set; }
 
     private void OnConfigurationChanged( ConfigurationFile configuration )
     {
@@ -113,6 +115,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
 
         // We should not have null values here because Initialize sets it.
         this.Salt = configuration.Salt ?? 0;
+        this.DiagnosticSalt = configuration.DiagnosticSalt ?? 0;
         this.DeviceId = configuration.DeviceId ?? Guid.Empty;
     }
 
@@ -132,6 +135,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 // configure so that we will upload data in 15 minutes.
                 LastUploadTime = this._dateTimeProvider.UtcNow.AddDays( -1 ).AddMinutes( 15 ),
                 Salt = this._randomNumberGenerator.NextCryptographicInt64(),
+                DiagnosticSalt = this._randomNumberGenerator.NextCryptographicInt64(),
                 LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
 
@@ -144,6 +148,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             c => c with
             {
                 Salt = this._randomNumberGenerator.NextCryptographicInt64(),
+                DiagnosticSalt = this._randomNumberGenerator.NextCryptographicInt64(),
                 DeviceId = this._randomNumberGenerator.NextGuid(),
                 LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
@@ -152,6 +157,12 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         {
             this._logger.Trace?.Log( "Telemetry IDs and salt were rotated." );
         }
+
+        // Back-fill the DiagnosticSalt for configurations created before it was introduced, without
+        // rotating the Matomo Salt or the DeviceId (which would reset Matomo visitor continuity). See #1668.
+        this._configurationManager.UpdateIf<TelemetryConfiguration>(
+            c => c.DeviceId != null && c.DiagnosticSalt == null,
+            c => c with { DiagnosticSalt = this._randomNumberGenerator.NextCryptographicInt64() } );
 
         this._isGloballyEnabled = this.IsGloballyEnabled();
         this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
@@ -203,6 +214,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             {
                 DeviceId = this._randomNumberGenerator.NextGuid(),
                 Salt = this._randomNumberGenerator.NextCryptographicInt64(),
+                DiagnosticSalt = this._randomNumberGenerator.NextCryptographicInt64(),
                 LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
     }
