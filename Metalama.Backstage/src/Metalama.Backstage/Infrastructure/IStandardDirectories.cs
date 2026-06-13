@@ -18,9 +18,9 @@ namespace Metalama.Backstage.Infrastructure
         string ApplicationDataDirectory { get; }
 
         /// <summary>
-        /// Gets the path of the current user's application temporary folder. On Unix this is located under
-        /// <see cref="ApplicationDataDirectory"/> (and not under the world-writable <c>/tmp</c>) because Metalama
-        /// loads and executes assemblies from this directory.
+        /// Gets the path of the current user's application temporary folder. Unless overridden by the <c>METALAMA_TEMP</c>
+        /// environment variable, on Unix this is located under <see cref="ApplicationDataDirectory"/> (and not under the
+        /// world-writable <c>/tmp</c>) because Metalama loads and executes assemblies from this directory.
         /// </summary>
         string TempDirectory { get; }
 

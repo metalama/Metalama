@@ -148,9 +148,9 @@ public sealed class CleanUpTests : TestsBase
     [Fact]
     public void Clean_LegacyDirectory()
     {
-        // Regression test for #1650: after relocating the Unix temp directory off the world-writable /tmp,
-        // the clean-up must also remove the legacy location used by previous versions. We simulate Unix (we don't
-        // run tests on Linux) so the legacy '/tmp/Metalama' location applies.
+        // Regression test for #1650: after relocating the Unix temp directory off the world-writable temp root,
+        // the clean-up must also remove the legacy location used by previous versions (Path.GetTempPath()/Metalama).
+        // We simulate Unix by forcing TestRuntimeInformation.Platform to Linux so LegacyTempDirectories is populated.
         this.RuntimeInformation.Platform = OSPlatform.Linux;
 
         var legacyDirectory = Assert.Single( this._standardDirectories.LegacyTempDirectories );
