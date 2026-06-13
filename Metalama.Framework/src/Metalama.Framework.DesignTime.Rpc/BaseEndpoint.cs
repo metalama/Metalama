@@ -95,11 +95,17 @@ public abstract class BaseEndpoint : IDisposable
     // (abstract-typed properties such as RpcEventEnvelope.Data: RpcEventData) and immutable collections.
     // StandardResolver includes formatters for ImmutableArray<T>, etc. Exposed as `internal` so MessagePackHelper
     // can use the exact same options when serialising RPC contract types from production code paths or tests.
+    //
+    // The options are wrapped in RpcContractMessagePackOptions, which enforces a type allow-list on the typeless
+    // deserialization path: only [RpcContract] types can be resolved from a type name on the wire. This removes the
+    // unsafe-deserialization (gadget-chain) primitive inherent to TypelessObjectResolver without losing the
+    // polymorphism the protocol relies on. See issue #1651.
     internal static MessagePackSerializerOptions MessagePackOptions { get; } =
-        MessagePackSerializerOptions.Standard.WithResolver(
-            CompositeResolver.Create(
-                TypelessObjectResolver.Instance,
-                StandardResolver.Instance ) );
+        new RpcContractMessagePackOptions(
+            MessagePackSerializerOptions.Standard.WithResolver(
+                CompositeResolver.Create(
+                    TypelessObjectResolver.Instance,
+                    StandardResolver.Instance ) ) );
 
     protected JsonRpc CreateRpc( Stream stream )
     {
