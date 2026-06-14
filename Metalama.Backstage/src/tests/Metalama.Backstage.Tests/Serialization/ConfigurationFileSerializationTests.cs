@@ -33,7 +33,9 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             UsageReportingAction = ReportingAction.Default,
             DeviceId = Guid.Parse( "a1b2c3d4-e5f6-7890-abcd-ef1234567890" ),
             LastUploadTime = new DateTime( 2025, 1, 15, 10, 30, 0, DateTimeKind.Utc ),
-            Salt = 1234567890L,
+            MatomoSalt = 1234567890L,
+            UsageTrackingSalt = 9876543210L,
+            ExceptionReportingSalt = 1357924680L,
             LastSaltChangeTime = new DateTime( 2025, 1, 1, 0, 0, 0, DateTimeKind.Utc ),
             LastMatomoPostTime = new DateTime( 2025, 1, 10, 12, 0, 0, DateTimeKind.Utc ),
             Version = 5
@@ -47,6 +49,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                       "DeviceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                                       "LastUploadTime": "2025-01-15T10:30:00Z",
                                       "Salt": 1234567890,
+                                      "UsageTrackingSalt": 9876543210,
+                                      "ExceptionReportingSalt": 1357924680,
                                       "LastSaltChangeTime": "2025-01-01T00:00:00Z",
                                       "Issues": {},
                                       "Sessions": {},
@@ -84,6 +88,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                       "DeviceId": null,
                                       "LastUploadTime": null,
                                       "Salt": null,
+                                      "UsageTrackingSalt": null,
+                                      "ExceptionReportingSalt": null,
                                       "LastSaltChangeTime": null,
                                       "Issues": {
                                         "ISSUE001": 1

@@ -53,8 +53,10 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
         AddToMetricsAndHashCode( new StringMetric( "Version", this.ReportedComponent.PackageVersion ) );
         AddToMetricsAndHashCode( new LicenseAuditDateMetric( "BuildDate", buildDate ) );
         AddToMetricsAndHashCode( new StringMetric( "License", this.License.LicenseString ) );
+        // This is a first-party (bits) usage-tracking report, so identifiers are keyed by UsageTrackingSalt and
+        // cannot be correlated with the Matomo dataset nor with the exception-reporting data. See #1668.
         AddToMetricsAndHashCode( new LicenseAuditHashMetric( "User", this.UserHash ) );
-        AddToMetricsAndHashCode( new LicenseAuditHashMetric( "Machine", this.DeviceHash ) );
+        AddToMetricsAndHashCode( new LicenseAuditHashMetric( "Machine", this.UsageTrackingDeviceHash ) );
         AddToMetricsAndHashCode( new BoolMetric( "CEIP", this.IsUsageReportingEnabled ) );
         AddToMetricsAndHashCode( new StringMetric( "ApplicationName", this.ApplicationName ) );
 

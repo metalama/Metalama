@@ -35,12 +35,31 @@ public sealed record TelemetryConfiguration : ConfigurationFile
     public DateTime? LastUploadTime { get; init; }
 
     /// <summary>
-    /// Gets the value with PIIs should be salted.
+    /// Gets the value with which PIIs sent to the third-party analytics platform (Matomo) should be salted.
+    /// The persisted JSON key is intentionally kept as <c>Salt</c> to preserve Matomo visitor continuity. See issue #1668.
     /// </summary>
-    public long? Salt { get; init; }
+    [JsonPropertyName( "Salt" )]
+    public long? MatomoSalt { get; init; }
 
     /// <summary>
-    /// Gets the last time the <see cref="Salt"/> and <see cref="DeviceId"/> properties was rotated. This should be done monthly.
+    /// Gets the value with which identifiers sent only to the first-party diagnostic store (bits) by the
+    /// usage-tracking channel (the license-audit report) should be salted. This is distinct from
+    /// <see cref="MatomoSalt"/> and <see cref="ExceptionReportingSalt"/> so that the usage-tracking pseudonym
+    /// cannot be correlated with the Matomo dataset nor with the exception-reporting data. See issue #1668.
+    /// </summary>
+    public long? UsageTrackingSalt { get; init; }
+
+    /// <summary>
+    /// Gets the value with which identifiers sent only to the first-party diagnostic store (bits) by the
+    /// exception-reporting channel should be salted. This is distinct from <see cref="MatomoSalt"/> and
+    /// <see cref="UsageTrackingSalt"/> so that the exception-reporting pseudonym cannot be correlated with the
+    /// Matomo dataset nor with the usage-tracking data. See issue #1668.
+    /// </summary>
+    public long? ExceptionReportingSalt { get; init; }
+
+    /// <summary>
+    /// Gets the last time the <see cref="MatomoSalt"/>, <see cref="UsageTrackingSalt"/>, <see cref="ExceptionReportingSalt"/>
+    /// and <see cref="DeviceId"/> properties were rotated. This should be done monthly.
     /// </summary>
     public DateTime? LastSaltChangeTime { get; init; }
 
