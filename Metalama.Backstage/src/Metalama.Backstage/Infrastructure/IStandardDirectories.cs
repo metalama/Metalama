@@ -22,9 +22,20 @@ namespace Metalama.Backstage.Infrastructure
         string TempDirectory { get; }
 
         /// <summary>
+        /// Gets the root directory of the local telemetry data tree. Its content is subject to the
+        /// telemetry retention policy enforced by the maintenance pass.
+        /// </summary>
+        string TelemetryDirectory { get; }
+
+        /// <summary>
         /// Gets the directory where telemetry logs are written.
         /// </summary>
         string TelemetryLogsDirectory { get; }
+
+        /// <summary>
+        /// Gets the directory where the per-day license-audit dedup ledger files are stored.
+        /// </summary>
+        string TelemetryAuditLedgerDirectory { get; }
 
         /// <summary>
         /// Gets the directory where the exception reports should be stored just after they are captured.

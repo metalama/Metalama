@@ -8,6 +8,7 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing;
+using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Utilities;
 using System;
 using System.Text.Json;
@@ -91,6 +92,10 @@ public sealed class TempFileManager : ITempFileManager
 
             // Go through all cache directories in temp directory (i.e. CrashReports, ExtractExceptions, Logs etc.)
             this.CleanUpDirectory( this._standardDirectories.TempDirectory, all );
+
+            // Enforce the telemetry data retention policy on the ApplicationDataDirectory\Telemetry tree,
+            // which the generic temp-directory sweep above never touches.
+            this.CleanTelemetryDirectories();
         }
         finally
         {
@@ -340,7 +345,7 @@ public sealed class TempFileManager : ITempFileManager
         return false;
     }
 
-    private void DeleteIndividualFiles( string directory, TimeSpan age )
+    private void DeleteIndividualFiles( string directory, TimeSpan age, bool deleteDirectoryIfEmpty = true )
     {
         var threshold = this._time.UtcNow.Add( -age );
 
@@ -387,7 +392,7 @@ public sealed class TempFileManager : ITempFileManager
             }
         }
 
-        if ( preventDirectoryDeletion )
+        if ( preventDirectoryDeletion || !deleteDirectoryIfEmpty )
         {
             this._logger.Trace?.Log( $"The directory '{directory}' will not be deleted." );
         }
@@ -397,6 +402,54 @@ public sealed class TempFileManager : ITempFileManager
 
             this.DeleteDirectory( directory, true );
         }
+    }
+
+    /// <summary>
+    /// Enforces the telemetry data retention policy, reading the retention period live from <c>telemetry.json</c>.
+    /// </summary>
+    private void CleanTelemetryDirectories()
+    {
+        // The retention period is read live (not frozen into a per-directory cleanup.json), so changing
+        // TelemetryConfiguration.RetentionPeriodInDays takes effect on the next sweep.
+        var retentionInDays = this._configurationManager.Get<TelemetryConfiguration>().RetentionPeriodInDays;
+
+        this.CleanTelemetryDirectories( TimeSpan.FromDays( Math.Max( 0, retentionInDays ) ) );
+    }
+
+    /// <summary>
+    /// Deletes every file in the <c>ApplicationDataDirectory\Telemetry</c> tree that is older than the
+    /// given <paramref name="retention"/> period, then deletes directories that became empty. This single
+    /// file-age purge covers undelivered exception reports, orphaned packages, the audit log and the
+    /// per-day license-audit dedup ledger uniformly.
+    /// </summary>
+    public void CleanTelemetryDirectories( TimeSpan retention )
+    {
+        var telemetryDirectory = this._standardDirectories.TelemetryDirectory;
+
+        if ( !this._fileSystem.DirectoryExists( telemetryDirectory ) )
+        {
+            return;
+        }
+
+        this._logger.Trace?.Log( $"Cleaning up the telemetry directory '{telemetryDirectory}' with a retention period of {retention}." );
+
+        this.CleanTelemetryDirectory( telemetryDirectory, retention, isRoot: true );
+    }
+
+    private void CleanTelemetryDirectory( string directory, TimeSpan retention, bool isRoot )
+    {
+        // Sweep subdirectories first (depth-first), so that a directory can be deleted once all its files and
+        // subdirectories are gone.
+        foreach ( var subdirectory in this._fileSystem.GetDirectories( directory ) )
+        {
+            this.CleanTelemetryDirectory( subdirectory, retention, isRoot: false );
+        }
+
+        // Never delete the telemetry root, and never delete a directory that still contains subdirectories
+        // (which still hold retained files).
+        var deleteDirectoryIfEmpty = !isRoot && !this._fileSystem.GetDirectories( directory ).Any();
+
+        this.DeleteIndividualFiles( directory, retention, deleteDirectoryIfEmpty );
     }
 
     public string GetTempDirectory(

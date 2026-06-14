@@ -129,16 +129,22 @@ namespace Metalama.Backstage.Infrastructure
         public string TempDirectory { get; } = Path.Combine( MetalamaPathUtilities.GetTempPath(), "Metalama" );
 
         /// <inheritdoc />
-        public string TelemetryLogsDirectory => Path.Combine( this.ApplicationDataDirectory, "Telemetry", "Logs" );
+        public string TelemetryDirectory => Path.Combine( this.ApplicationDataDirectory, "Telemetry" );
 
         /// <inheritdoc />
-        public string TelemetryExceptionsDirectory => Path.Combine( this.ApplicationDataDirectory, "Telemetry", "Exceptions" );
+        public string TelemetryLogsDirectory => Path.Combine( this.TelemetryDirectory, "Logs" );
 
         /// <inheritdoc />
-        public string TelemetryUploadQueueDirectory => Path.Combine( this.ApplicationDataDirectory, "Telemetry", "UploadQueue" );
+        public string TelemetryAuditLedgerDirectory => Path.Combine( this.TelemetryDirectory, "AuditLedger" );
 
         /// <inheritdoc />
-        public string TelemetryUploadPackagesDirectory => Path.Combine( this.ApplicationDataDirectory, "Telemetry", "Packages" );
+        public string TelemetryExceptionsDirectory => Path.Combine( this.TelemetryDirectory, "Exceptions" );
+
+        /// <inheritdoc />
+        public string TelemetryUploadQueueDirectory => Path.Combine( this.TelemetryDirectory, "UploadQueue" );
+
+        /// <inheritdoc />
+        public string TelemetryUploadPackagesDirectory => Path.Combine( this.TelemetryDirectory, "Packages" );
 
         public string CrashReportsDirectory
             => this._serviceProvider.GetRequiredBackstageService<ITempFileManager>()

@@ -24,6 +24,7 @@ internal sealed class LicenseAuditManager : ILicenseAuditManager
     private readonly TelemetryReportUploader _telemetryReportUploader;
     private readonly MatomoUploader? _matomoAuditUploader;
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
+    private readonly LicenseAuditLedger _ledger;
 
     public LicenseAuditManager( IServiceProvider serviceProvider )
     {
@@ -36,6 +37,7 @@ internal sealed class LicenseAuditManager : ILicenseAuditManager
         this._telemetryReportUploader = serviceProvider.GetRequiredBackstageService<TelemetryReportUploader>();
         this._matomoAuditUploader = serviceProvider.GetBackstageService<MatomoUploader>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
+        this._ledger = new LicenseAuditLedger( serviceProvider );
     }
 
     public void ReportLicense( LicenseConsumptionProperties license )
@@ -68,11 +70,9 @@ internal sealed class LicenseAuditManager : ILicenseAuditManager
             throw new InvalidOperationException( $"Version of '{report.ReportedComponent.Name}' application is unknown." );
         }
 
-        // Perform detailed audit.
-        var mustPerformAudit = this._configurationManager.UpdateIf<LicenseAuditConfiguration>(
-            c => !c.LastAuditTimes.TryGetValue( report.AuditHashCode, out var lastReportTime )
-                 || lastReportTime <= this._time.UtcNow.AddDays( -1 ),
-            c => c with { LastAuditTimes = c.LastAuditTimes.SetItem( report.AuditHashCode, this._time.UtcNow ) } );
+        // Perform detailed audit. The dedup state is stored as per-day files (see LicenseAuditLedger) so that it
+        // is purged by the telemetry retention sweep instead of growing unbounded.
+        var mustPerformAudit = this._ledger.TryRegisterAudit( report.AuditHashCode );
 
         if ( !mustPerformAudit )
         {

@@ -66,6 +66,16 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
         return license;
     }
 
+    private void DeleteReportFiles()
+    {
+        foreach ( var file in this.FileSystem.Mock.AllFiles
+                     .Where( path => Path.GetFileName( path ).StartsWith( "LicenseAudit-", StringComparison.Ordinal ) )
+                     .ToList() )
+        {
+            this.FileSystem.DeleteFile( file );
+        }
+    }
+
     private string[] GetReports()
     {
         this.BackgroundTasks.WhenNoPendingTaskAsync().Wait();
@@ -106,8 +116,9 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
                 $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=license&_id=633a82166c05736f&uid=633a82166c05736f&dimension1={expectedProductName}&dimension2={expectedLicenseType}&dimension3=Metalama&dimension4=1.0&dimension5=LessThan1&new_visit=0&rand=6e62252b7f67887c",
                 matomoRequestUri );
 
-            // Second time in the same day.
-            this.FileSystem.Reset();
+            // Second time in the same day. We only delete the previously written report files (not the whole
+            // file system), so that the per-day dedup ledger — now stored as files — is preserved.
+            this.DeleteReportFiles();
 
             Consume();
             var secondReports = this.GetReports();
