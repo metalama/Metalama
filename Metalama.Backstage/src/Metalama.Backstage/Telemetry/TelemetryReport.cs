@@ -15,7 +15,7 @@ internal abstract class TelemetryReport
 {
     public IComponentInfo ReportedComponent { get; }
 
-    private readonly IInternalTelemetryConfigurationService _telemetryConfigurationService;
+    private readonly ITelemetryConfigurationService _telemetryConfigurationService;
 
     public abstract string Kind { get; }
 
@@ -24,7 +24,7 @@ internal abstract class TelemetryReport
     protected TelemetryReport( IServiceProvider serviceProvider, MetricCollection metrics )
     {
         this.Metrics = metrics;
-        this._telemetryConfigurationService = (IInternalTelemetryConfigurationService) serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
+        this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
 
         // Note that we are intentionally and "randomly" reporting the version of the first component that
         // triggered audit, to prioritize having just one hit per day over having accurate version reporting
@@ -59,7 +59,7 @@ internal abstract class TelemetryReport
 
     // The user hash is only ever sent to the first-party diagnostic store (bits), never to Matomo, so it is
     // keyed by DiagnosticSalt to keep it unjoinable to the Matomo dataset. See #1668.
-    public long UserHash => HashUtilities.ComputeInt64Hmac( Environment.UserName, this._telemetryConfigurationService.DiagnosticSalt );
+    public long UserHash => HashUtilities.ComputeInt64Hmac( Environment.UserName, this._telemetryConfigurationService.InternalDiagnosticSalt );
 #pragma warning restore CA1822
 
     // The device hash sent to the third-party analytics platform (Matomo). Keyed by Salt.
@@ -70,5 +70,5 @@ internal abstract class TelemetryReport
     // The device hash sent only to the first-party diagnostic store (bits). Keyed by DiagnosticSalt so that it
     // cannot be correlated with the Matomo DeviceHash. See #1668.
     public long InternalDeviceHash
-        => HashUtilities.ComputeInt64Hmac( this._telemetryConfigurationService.DeviceId.ToString(), this._telemetryConfigurationService.DiagnosticSalt );
+        => HashUtilities.ComputeInt64Hmac( this._telemetryConfigurationService.DeviceId.ToString(), this._telemetryConfigurationService.InternalDiagnosticSalt );
 }

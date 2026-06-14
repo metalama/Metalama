@@ -22,6 +22,14 @@ public interface ITelemetryConfigurationService : IBackstageService
     void ResetDeviceId();
 
     long Salt { get; }
+
+    /// <summary>
+    /// Gets the salt used to hash identifiers that are sent only to the first-party diagnostic store (bits),
+    /// never to the third-party analytics platform (Matomo). Keying diagnostic identifiers with this salt
+    /// instead of <see cref="Salt"/> makes the Matomo pseudonym mathematically unjoinable to our diagnostic
+    /// data. It is rotated together with <see cref="Salt"/> and <see cref="DeviceId"/>. See issue #1668.
+    /// </summary>
+    long InternalDiagnosticSalt { get; }
 }
 
 public enum TelemetryScenario

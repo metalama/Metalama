@@ -17,9 +17,6 @@ public sealed class TelemetryConfigurationTests : TestsBase
 {
     public TelemetryConfigurationTests( ITestOutputHelper logger ) : base( logger, new TestApplicationInfo() { IsTelemetryEnabled = true } ) { }
 
-    private IInternalTelemetryConfigurationService InternalTelemetryConfigurationService
-        => (IInternalTelemetryConfigurationService) this.TelemetryConfigurationService;
-
     [Theory]
     [InlineData( true, true )]
     [InlineData( false, false )]
@@ -80,18 +77,18 @@ public sealed class TelemetryConfigurationTests : TestsBase
         // The first-party-only DiagnosticSalt (#1668) must rotate on the same monthly cadence as Salt/DeviceId.
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
         this.TelemetryConfigurationService.Initialize();
-        var initialDiagnosticSalt = this.InternalTelemetryConfigurationService.DiagnosticSalt;
+        var initialDiagnosticSalt = this.TelemetryConfigurationService.InternalDiagnosticSalt;
 
         // No rotation before the first Monday of May (the 5th).
         this.Time.Set( new DateTime( 2025, 4, 30, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.Equal( initialDiagnosticSalt, this.InternalTelemetryConfigurationService.DiagnosticSalt );
+        Assert.Equal( initialDiagnosticSalt, this.TelemetryConfigurationService.InternalDiagnosticSalt );
 
         this.Time.Set( new DateTime( 2025, 5, 4, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.Equal( initialDiagnosticSalt, this.InternalTelemetryConfigurationService.DiagnosticSalt );
+        Assert.Equal( initialDiagnosticSalt, this.TelemetryConfigurationService.InternalDiagnosticSalt );
 
         // Now there should be a change, in lockstep with Salt.
         this.Time.Set( new DateTime( 2025, 5, 5, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.NotEqual( initialDiagnosticSalt, this.InternalTelemetryConfigurationService.DiagnosticSalt );
+        Assert.NotEqual( initialDiagnosticSalt, this.TelemetryConfigurationService.InternalDiagnosticSalt );
     }
 
     [Fact]
@@ -103,7 +100,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
         this.TelemetryConfigurationService.Initialize();
 
         var salt = this.TelemetryConfigurationService.Salt;
-        var diagnosticSalt = this.InternalTelemetryConfigurationService.DiagnosticSalt;
+        var diagnosticSalt = this.TelemetryConfigurationService.InternalDiagnosticSalt;
 
         Assert.NotEqual( 0, diagnosticSalt );
         Assert.NotEqual( salt, diagnosticSalt );
@@ -119,7 +116,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
 
         var deviceId = this.TelemetryConfigurationService.DeviceId.ToString();
         var matomoHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.Salt );
-        var diagnosticHash = HashUtilities.ComputeInt64Hmac( deviceId, this.InternalTelemetryConfigurationService.DiagnosticSalt );
+        var diagnosticHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.InternalDiagnosticSalt );
 
         Assert.NotEqual( matomoHash, diagnosticHash );
     }
@@ -132,11 +129,10 @@ public sealed class TelemetryConfigurationTests : TestsBase
         long GenerateDiagnosticSalt()
         {
             var serviceProvider = this.CloneServiceCollection().BuildServiceProvider();
-            var telemetryConfigurationService =
-                (IInternalTelemetryConfigurationService) serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
+            var telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
             telemetryConfigurationService.Initialize();
 
-            return telemetryConfigurationService.DiagnosticSalt;
+            return telemetryConfigurationService.InternalDiagnosticSalt;
         }
 
         var salt1 = GenerateDiagnosticSalt();

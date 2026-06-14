@@ -12,7 +12,7 @@ using System;
 
 namespace Metalama.Backstage.Telemetry;
 
-internal sealed class TelemetryConfigurationService : IInternalTelemetryConfigurationService
+internal sealed class TelemetryConfigurationService : ITelemetryConfigurationService
 {
     public const string OptOutEnvironmentVariable = "METALAMA_TELEMETRY_OPT_OUT";
     private readonly IConfigurationManager _configurationManager;
@@ -47,7 +47,7 @@ internal sealed class TelemetryConfigurationService : IInternalTelemetryConfigur
 
     public long Salt { get; private set; }
 
-    public long DiagnosticSalt { get; private set; }
+    public long InternalDiagnosticSalt { get; private set; }
 
     private void OnConfigurationChanged( ConfigurationFile configuration )
     {
@@ -115,7 +115,7 @@ internal sealed class TelemetryConfigurationService : IInternalTelemetryConfigur
 
         // We should not have null values here because Initialize sets it.
         this.Salt = configuration.Salt ?? 0;
-        this.DiagnosticSalt = configuration.DiagnosticSalt ?? 0;
+        this.InternalDiagnosticSalt = configuration.DiagnosticSalt ?? 0;
         this.DeviceId = configuration.DeviceId ?? Guid.Empty;
     }
 

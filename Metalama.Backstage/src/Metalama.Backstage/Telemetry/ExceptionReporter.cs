@@ -31,13 +31,13 @@ internal sealed class ExceptionReporter : IExceptionReporter
     private readonly IFileSystem _fileSystem;
     private readonly bool _canIgnoreRecoverableExceptions;
     private readonly LocalExceptionReporter? _localExceptionReporter;
-    private readonly IInternalTelemetryConfigurationService _telemetryConfigurationService;
+    private readonly ITelemetryConfigurationService _telemetryConfigurationService;
 
     public ExceptionReporter( TelemetryQueue uploadManager, IServiceProvider serviceProvider )
     {
         this._uploadManager = uploadManager;
         this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
-        this._telemetryConfigurationService = (IInternalTelemetryConfigurationService) serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
+        this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
         this._time = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._applicationInfoProvider = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>();
         this._directories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
@@ -252,7 +252,7 @@ internal sealed class ExceptionReporter : IExceptionReporter
             // DeviceId GUID (the rotation seed from which the Matomo hash is derivable). See #1668.
             var internalDeviceHash = HashUtilities.ComputeInt64Hmac(
                 this._telemetryConfigurationService.DeviceId.ToString(),
-                this._telemetryConfigurationService.DiagnosticSalt );
+                this._telemetryConfigurationService.InternalDiagnosticSalt );
 
             xmlWriter.WriteElementString( "ClientId", internalDeviceHash.ToString( "x", CultureInfo.InvariantCulture ) );
             xmlWriter.WriteStartElement( "Application" );
