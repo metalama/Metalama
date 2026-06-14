@@ -21,12 +21,14 @@ public sealed class PrivacyPageTests : TestsBase
     {
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Usage, enabled );
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, enabled );
+        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Performance, enabled );
 
         var model = new PrivacyPageModel( this.TelemetryConfigurationService );
         model.OnGet();
 
         Assert.Equal( enabled, model.IsUsageReportingEnabled );
         Assert.Equal( enabled, model.IsExceptionReportingEnabled );
+        Assert.Equal( enabled, model.IsPerformanceReportingEnabled );
     }
 
     [Theory]
@@ -53,12 +55,45 @@ public sealed class PrivacyPageTests : TestsBase
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, !enabled );
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Performance, !enabled );
 
-        var model = new PrivacyPageModel( this.TelemetryConfigurationService ) { IsUsageReportingEnabled = true, IsExceptionReportingEnabled = enabled };
+        var model = new PrivacyPageModel( this.TelemetryConfigurationService )
+        {
+            IsUsageReportingEnabled = true, IsExceptionReportingEnabled = enabled, IsPerformanceReportingEnabled = !enabled
+        };
+
         model.OnPost();
 
-        // The exception checkbox drives both exception and performance reporting.
+        // The exception checkbox drives only exception reporting.
         Assert.Equal( enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Exception ) );
+
+        // Performance reporting follows its own checkbox and must be unaffected by the exception one.
+        Assert.Equal( !enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Performance ) );
+
+        // Usage reporting must be unaffected.
+        Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+        Assert.True( model.IsSaved );
+    }
+
+    [Theory]
+    [InlineData( true )]
+    [InlineData( false )]
+    public void OnPostUpdatesPerformanceReportingIndependently( bool enabled )
+    {
+        // Start from the opposite state to make sure the post actually changes it.
+        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, !enabled );
+        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Performance, !enabled );
+
+        var model = new PrivacyPageModel( this.TelemetryConfigurationService )
+        {
+            IsUsageReportingEnabled = true, IsExceptionReportingEnabled = !enabled, IsPerformanceReportingEnabled = enabled
+        };
+
+        model.OnPost();
+
+        // The performance checkbox drives only performance reporting.
         Assert.Equal( enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Performance ) );
+
+        // Exception reporting follows its own checkbox and must be unaffected by the performance one.
+        Assert.Equal( !enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Exception ) );
 
         // Usage reporting must be unaffected.
         Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );

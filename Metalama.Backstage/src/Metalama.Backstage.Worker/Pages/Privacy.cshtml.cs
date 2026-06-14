@@ -25,8 +25,12 @@ internal class PrivacyPageModel : PageModel
     public bool IsUsageReportingEnabled { get; set; }
 
     [BindProperty]
-    [DisplayName( "Send exception and performance reports" )]
+    [DisplayName( "Send exception reports" )]
     public bool IsExceptionReportingEnabled { get; set; }
+
+    [BindProperty]
+    [DisplayName( "Send performance reports" )]
+    public bool IsPerformanceReportingEnabled { get; set; }
 
     public bool IsSaved { get; private set; }
 
@@ -37,12 +41,11 @@ internal class PrivacyPageModel : PageModel
 
     public IActionResult OnPost()
     {
-        // Usage reporting is opt-out; exception and performance-problem reporting are opt-in. They are configured
-        // independently. Performance-problem reports are sent through the same channel as exception reports, so they
-        // follow the same toggle.
+        // Usage reporting is opt-out; exception and performance-problem reporting are opt-in. Each scenario is
+        // configured independently.
         this._telemetryConfigurationService.SetStatus( TelemetryScenario.Usage, this.IsUsageReportingEnabled );
         this._telemetryConfigurationService.SetStatus( TelemetryScenario.Exception, this.IsExceptionReportingEnabled );
-        this._telemetryConfigurationService.SetStatus( TelemetryScenario.Performance, this.IsExceptionReportingEnabled );
+        this._telemetryConfigurationService.SetStatus( TelemetryScenario.Performance, this.IsPerformanceReportingEnabled );
 
         // Reflect the effective state (it may differ from the request, e.g. when the opt-out environment variable is set).
         this.ReadStatus();
@@ -55,5 +58,6 @@ internal class PrivacyPageModel : PageModel
     {
         this.IsUsageReportingEnabled = this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage );
         this.IsExceptionReportingEnabled = this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Exception );
+        this.IsPerformanceReportingEnabled = this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Performance );
     }
 }

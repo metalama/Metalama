@@ -7,7 +7,7 @@
     <script>
         $(document).ready(function () {
             // Auto-save when any checkbox selection changes.
-            $('#isUsageReportingEnabledCheckbox, #isExceptionReportingEnabledCheckbox').change(function () {
+            $('#isUsageReportingEnabledCheckbox, #isExceptionReportingEnabledCheckbox, #isPerformanceReportingEnabledCheckbox').change(function () {
                 $('form').submit();
             });
         });
@@ -36,9 +36,19 @@
         <input id="isExceptionReportingEnabledCheckbox" type="checkbox" asp-for="IsExceptionReportingEnabled">
         <div class="label">
             <label asp-for="IsExceptionReportingEnabled">
-                Send exception and performance reports.
+                Send exception reports.
             </label>
-            <small>Reports of unhandled exceptions and performance problems, which may include code-related diagnostic details. Disabled by default.</small>
+            <small>Reports of unhandled exceptions, which may include code-related diagnostic details. Disabled by default.</small>
+        </div>
+    </div>
+
+    <div class="checkbox">
+        <input id="isPerformanceReportingEnabledCheckbox" type="checkbox" asp-for="IsPerformanceReportingEnabled">
+        <div class="label">
+            <label asp-for="IsPerformanceReportingEnabled">
+                Send performance reports.
+            </label>
+            <small>Reports of performance problems, which may include code-related diagnostic details. Disabled by default.</small>
         </div>
     </div>
 
