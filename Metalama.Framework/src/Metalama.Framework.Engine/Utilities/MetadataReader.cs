@@ -97,6 +97,16 @@ namespace Metalama.Framework.Engine.Utilities
                 if ( attribute.Constructor.Kind == HandleKind.MemberReference )
                 {
                     var constructor = metadataReader.GetMemberReference( (MemberReferenceHandle) (Handle) attribute.Constructor );
+
+                    // CompileTimeAttribute is non-generic, so its constructor is always referenced through a
+                    // TypeReference. Any other parent kind (e.g. a TypeSpecification for a constructed generic
+                    // attribute like [assembly: SomeAttribute<int>]) cannot be CompileTimeAttribute and would
+                    // make the cast below throw InvalidCastException, so we can safely skip it (#1664).
+                    if ( constructor.Parent.Kind != HandleKind.TypeReference )
+                    {
+                        continue;
+                    }
+
                     var type = metadataReader.GetTypeReference( (TypeReferenceHandle) constructor.Parent );
                     var typeName = metadataReader.GetString( type.Name );
 
