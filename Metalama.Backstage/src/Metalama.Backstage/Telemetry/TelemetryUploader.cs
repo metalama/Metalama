@@ -307,6 +307,11 @@ namespace Metalama.Backstage.Telemetry
         /// <inheritdoc />
         public async Task UploadAsync()
         {
+            // The uploader is a singleton, so the per-upload failure list must be reset at the start of each upload.
+            // Otherwise a single pack failure would persist and, in DEBUG, keep throwing from the finally block,
+            // making the post-upload deletion of sent files below unreachable on every subsequent upload.
+            this._failedFiles.Clear();
+
             if ( !this._fileSystem.DirectoryExists( this._directories.TelemetryUploadQueueDirectory ) )
             {
                 this._logger.Trace?.Log(

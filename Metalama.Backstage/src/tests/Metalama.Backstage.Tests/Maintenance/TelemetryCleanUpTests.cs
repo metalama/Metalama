@@ -3,9 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Application;
+using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Maintenance;
+using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using System;
 using System.IO;
@@ -65,5 +67,59 @@ public sealed class TelemetryCleanUpTests : TestsBase
         // The old file (45 days) must be deleted; the recent file (5 days) must be kept.
         Assert.False( this.FileSystem.FileExists( oldFile ), "The telemetry file older than the retention period should have been deleted." );
         Assert.True( this.FileSystem.FileExists( newFile ), "The telemetry file newer than the retention period should have been kept." );
+    }
+
+    /// <summary>
+    /// Regression test for #1679: the retention period is read live from <c>telemetry.json</c> at each run and is
+    /// not frozen, so changing <see cref="TelemetryConfiguration.RetentionPeriodInDays"/> changes the behavior on
+    /// the next maintenance run.
+    /// </summary>
+    [Fact]
+    public void ChangingRetentionPeriodChangesBehaviorOnNextRun()
+    {
+        var exceptionsDirectory = this.GetTelemetryDirectory( "Exceptions" );
+        this.FileSystem.CreateDirectory( exceptionsDirectory );
+
+        var file = Path.Combine( exceptionsDirectory, "report.xml" );
+        this.FileSystem.WriteAllText( file, "data" );
+
+        // Make the file 15 days old.
+        this.Time.AddTime( TimeSpan.FromDays( 15 ) );
+
+        var tempFileManager = new TempFileManager( this.ServiceProvider );
+
+        // With the default 30-day retention, a 15-day-old file is kept.
+        tempFileManager.CleanTempDirectories( true );
+        Assert.True( this.FileSystem.FileExists( file ), "With the default 30-day retention, the 15-day-old file should be kept." );
+
+        // Lower the retention period to 10 days. The very same file must now be deleted on the next run, proving the
+        // period is read live and not frozen into a per-directory cleanup.json.
+        var configurationManager = this.ServiceProvider.GetRequiredBackstageService<IConfigurationManager>();
+        configurationManager.Update<TelemetryConfiguration>( c => c with { RetentionPeriodInDays = 10 } );
+
+        tempFileManager.CleanTempDirectories( true );
+        Assert.False( this.FileSystem.FileExists( file ), "After lowering the retention to 10 days, the 15-day-old file should be deleted." );
+    }
+
+    /// <summary>
+    /// Regression test for #1679: the per-day license-audit dedup ledger files live in the telemetry tree and are
+    /// purged by the same age sweep as the rest of the tree.
+    /// </summary>
+    [Fact]
+    public void TelemetryAuditLedgerFilesArePurgedByRetention()
+    {
+        var ledgerDirectory = this._standardDirectories.TelemetryAuditLedgerDirectory;
+        this.FileSystem.CreateDirectory( ledgerDirectory );
+
+        var oldLedgerFile = Path.Combine( ledgerDirectory, "audit-20250101.json" );
+        this.FileSystem.WriteAllText( oldLedgerFile, "{}" );
+
+        // Advance well past the default retention period.
+        this.Time.AddTime( TimeSpan.FromDays( 40 ) );
+
+        var tempFileManager = new TempFileManager( this.ServiceProvider );
+        tempFileManager.CleanTempDirectories( true );
+
+        Assert.False( this.FileSystem.FileExists( oldLedgerFile ), "The old audit-ledger day-file should have been purged by the retention sweep." );
     }
 }
