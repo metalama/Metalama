@@ -69,8 +69,8 @@ internal abstract class TelemetryReport
         => HashUtilities.ComputeInt64Hmac( this._telemetryConfigurationService.DeviceId.ToString(), this._telemetryConfigurationService.MatomoSalt );
 
     // The device hash sent only to the first-party diagnostic store (bits) by the usage-tracking channel (the
-    // license-audit report). Keyed by UsageTrackingSalt so that it cannot be correlated with the Matomo
-    // MatomoDeviceHash nor with the exception-reporting device hash. See #1668.
+    // license-audit report). Keyed by UsageTrackingSalt so that it cannot be correlated with the Matomo dataset
+    // (the MatomoDeviceHash) nor with the exception-reporting device hash. See #1668.
     public long UsageTrackingDeviceHash
         => HashUtilities.ComputeInt64Hmac( this._telemetryConfigurationService.DeviceId.ToString(), this._telemetryConfigurationService.UsageTrackingSalt );
 }
