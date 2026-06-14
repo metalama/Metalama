@@ -201,15 +201,16 @@ internal sealed class ExceptionReporter : IExceptionReporter
                 this._localExceptionReporter?.ReportException( classifiedException.Exception, localReportPath );
             }
 
-            if ( !this._telemetryConfigurationService.IsEnabled(
-                    exceptionReportingKind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance ) )
+            var scenario = exceptionReportingKind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance;
+
+            if ( !this._telemetryConfigurationService.IsEnabled( scenario ) )
             {
-                this._logger.Trace?.Log( $"The exception will not be reported remotely because the telemetry is disabled." );
+                this._logger.Trace?.Log( $"The exception will not be captured because the telemetry is disabled." );
 
                 return;
             }
 
-            this._logger.Trace?.Log( $"Reporting the exception remotely." );
+            this._logger.Trace?.Log( $"Capturing the exception report." );
 
             adapter ??= DefaultExceptionAdapter.Instance;
             var applicationInfo = this._applicationInfoProvider.CurrentApplication;
@@ -328,7 +329,23 @@ internal sealed class ExceptionReporter : IExceptionReporter
 
             this._fileSystem.WriteAllText( fileName, stringWriter.ToString() );
 
-            this._uploadManager.EnqueueFile( fileName );
+            // Capture is decoupled from sending (#1674). The scrubbed report has now been captured locally under the
+            // Telemetry\Exceptions directory. We only auto-send it (move it to the upload queue) when the user has
+            // explicitly opted the category in (ReportingAction.Yes). For a review-first category (ReportingAction.Default)
+            // the report stays local until the user reviews and sends it from the worker page / CLI.
+            var reportingAction = this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( scenario );
+
+            if ( reportingAction == ReportingAction.Yes )
+            {
+                this._logger.Trace?.Log( $"Auto-sending the exception report because the category is set to '{ReportingAction.Yes}'." );
+
+                this._uploadManager.EnqueueFile( fileName );
+            }
+            else
+            {
+                this._logger.Trace?.Log(
+                    $"The exception report was captured locally for review but not enqueued for upload because the category is review-first ('{reportingAction}')." );
+            }
         }
         catch ( Exception e )
         {

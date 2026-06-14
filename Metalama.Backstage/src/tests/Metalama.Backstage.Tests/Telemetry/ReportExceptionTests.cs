@@ -149,6 +149,40 @@ public sealed class ReportExceptionTests : TestsBase
         }
     }
 
+    [Theory]
+    [InlineData( ExceptionReportingKind.Exception )]
+    [InlineData( ExceptionReportingKind.PerformanceProblem )]
+    public void AutoSendCategoryEnqueuesReportForUpload( ExceptionReportingKind exceptionReportingKind )
+    {
+        // #1674: When the category is explicitly opted in (ReportingAction.Yes), the captured report is auto-sent,
+        // i.e. moved to the telemetry upload queue.
+        this.ReportException(
+            exceptionReportingAction: exceptionReportingKind == ExceptionReportingKind.Exception ? ReportingAction.Yes : ReportingAction.No,
+            performanceReportingAction: exceptionReportingKind == ExceptionReportingKind.PerformanceProblem ? ReportingAction.Yes : ReportingAction.No,
+            exceptionReportingKind: exceptionReportingKind );
+
+        var file = Assert.Single( this.FileSystem.Mock.AllFiles );
+        Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), file, StringComparison.Ordinal );
+    }
+
+    [Theory]
+    [InlineData( ExceptionReportingKind.Exception )]
+    [InlineData( ExceptionReportingKind.PerformanceProblem )]
+    public void ReviewFirstCategoryCapturesReportLocallyWithoutEnqueuing( ExceptionReportingKind exceptionReportingKind )
+    {
+        // #1674: Capture is decoupled from sending. When the category is review-first (ReportingAction.Default), the
+        // scrubbed report is captured locally under Telemetry\Exceptions but NOT enqueued for upload, so it stays
+        // under the user's control until they review and send it from the worker page / CLI.
+        this.ReportException(
+            exceptionReportingAction: ReportingAction.Default,
+            performanceReportingAction: ReportingAction.Default,
+            exceptionReportingKind: exceptionReportingKind );
+
+        var file = Assert.Single( this.FileSystem.Mock.AllFiles );
+        Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), file, StringComparison.Ordinal );
+        Assert.DoesNotContain( Path.Combine( "Telemetry", "UploadQueue" ), file, StringComparison.Ordinal );
+    }
+
     private void AssertReportingDisabled()
     {
         this.ReportException();

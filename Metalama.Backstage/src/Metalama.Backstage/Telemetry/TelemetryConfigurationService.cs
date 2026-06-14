@@ -135,8 +135,13 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 {
                     DeviceId = this._randomNumberGenerator.NextGuid(),
                     UsageReportingAction = ReportingAction.Yes,
-                    PerformanceProblemReportingAction = ReportingAction.Yes,
-                    ExceptionReportingAction = ReportingAction.Yes,
+
+                    // The exception/performance channel defaults to review-first (Default) rather than auto-send (Yes):
+                    // the most sensitive telemetry (stack traces, paths, Exception.Data) is captured locally but only
+                    // uploaded when the user explicitly opts in (sets the category to Yes). Usage telemetry stays
+                    // opt-out (Yes). See #1674.
+                    PerformanceProblemReportingAction = ReportingAction.Default,
+                    ExceptionReportingAction = ReportingAction.Default,
 
                     // Make sure we don't upload telemetry data on the first second of use.
                     // Since first-time users are likely not to use the software for more than a few minutes,
