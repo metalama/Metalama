@@ -28,9 +28,12 @@ public static class ToastNotificationKinds
     // Auto-snooze for RSS news is redundant because we are checking once per day anyway. Setting this to zero eases testing through the `rss notify` CLI command.
     public static ToastNotificationKind News { get; } = new( nameof(News) ) { AutoSnoozePeriod = TimeSpan.Zero };
 
+    // First-run telemetry notice. Shown only once (tracked in WelcomeConfiguration), so the snooze periods are not relevant.
+    public static ToastNotificationKind TelemetryNotice { get; } = new( nameof(TelemetryNotice) ) { AutoSnoozePeriod = TimeSpan.Zero };
+
     // Must be last.
     public static ImmutableDictionary<string, ToastNotificationKind> All { get; } =
-        new[] { RequiresLicense, VsxNotInstalled, SubscriptionExpiring, TrialExpiring, LicenseExpiring, Exception, News }.ToImmutableDictionary(
+        new[] { RequiresLicense, VsxNotInstalled, SubscriptionExpiring, TrialExpiring, LicenseExpiring, Exception, News, TelemetryNotice }.ToImmutableDictionary(
             i => i.Name,
             i => i );
 }
