@@ -72,14 +72,14 @@ When starting work on a GitHub issue:
 1. **Check troubleshooting files**: Look at `%TEMP%\Metalama\CompileTimeTroubleshooting\...\errors.txt` for actual errors
 2. **File locks**: After failed builds, run `Build.ps1 tools kill` before retrying
 3. **Trace data flow**: For MSBuild issues, trace from `.csproj` → `.targets` → Engine code
-4. **Cross-solution changes**: Ask user to run `Build.ps1 build` early rather than discovering issues incrementally
+4. **Cross-solution changes**: Run `Build.ps1 build` early rather than discovering issues incrementally. Claude may run `Build.ps1 build` itself in this environment (this overrides the general `eng` skill guidance that says to ask the user). Because it is long-running, start it in the background (`run_in_background`) with a high timeout and continue with other work until it completes.
 - When working on an issue creat a file called <Isse-number>-TODO.md to track progress.
 - don't include *-TODO.md in commits
-- After the user does a full build sing `Build.ps1 build`, the msbuild binlogs are under artifacts/logs
+- After a full build with `Build.ps1 build` (Claude may run it, preferably in the background), the msbuild binlogs are under artifacts/logs
 - when you start working on an issue, mark the status as In Progress and make sure it is assigned to me
 - in tests never use hardcoded delays, always use other sync mechanims such as barriers, taskcompletionsource, sync points
 - Never await without cancellation token - ever
-- Github comments and issues and PRs must be signed by CLaude - not commits. No ad link, just signature.
+- Github comments and issues and PRs must be signed by Claude - not commits. No ad link, just the signature `— Claude for @gfraiteur`.
 - don't loose time solving cosmetic warnings (such as redundant usings) until the finalizing stage of a commit
 - `Build.ps1 build` does not build test projects, only packable projects.
 - `Build.ps1 test` implicitly does a clean rebuild (not incremental), so do NOT chain it after `Build.ps1 build` — they overlap. After `Build.ps1 build`, run individual test projects with `dotnet test <project> --no-build`. Only re-run `Build.ps1 build` when you need a cross-solution rebuild.

@@ -41,7 +41,7 @@ public static class MemoryDumpHelper
         {
             DotMemory.Init();
             var dotMemoryConfig = new DotMemory.Config();
-            var path = Path.Combine( MetalamaPathUtilities.GetTempPath(), "Metalama", "MemoryDumps" );
+            var path = Path.Combine( MetalamaPathUtilities.GetTempDirectory(), "MemoryDumps" );
             dotMemoryConfig.SaveToDir( path );
 
             DotMemory.GetSnapshotOnce( dotMemoryConfig );
