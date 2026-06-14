@@ -2,11 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Registration;
+using Metalama.Backstage.Welcome;
 using System;
 
 namespace Metalama.Backstage.UserInterface.Toasts;
@@ -20,6 +22,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
     private readonly ILicenseRegistrationService? _licenseRegistrationService;
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
     private readonly WebLinks _webLinks;
+    private readonly IConfigurationManager _configurationManager;
     private readonly object _initializationSync = new();
     private readonly ILogger _logger;
 
@@ -34,6 +37,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         this._toastNotificationService = serviceProvider.GetRequiredBackstageService<IToastNotificationService>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
         this._webLinks = serviceProvider.GetRequiredBackstageService<WebLinks>();
+        this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(ToastNotificationDetectionService) );
     }
 
@@ -134,6 +138,20 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         }
 
         this._logger.Trace?.Log( "Detecting relevant toast notifications." );
+
+        // Show the first-run telemetry notice exactly once. This is shown regardless of whether telemetry is currently
+        // enabled, because the point is to inform the user that telemetry exists and how to opt out. We reuse the
+        // WelcomeConfiguration.WelcomePageDisplayed flag so that this toast and the legacy welcome web page
+        // (WelcomeService.OpenWelcomePageIfRequired) never both fire.
+        if ( this._configurationManager.UpdateIf<WelcomeConfiguration>(
+                c => !c.WelcomePageDisplayed,
+                c => c with { WelcomePageDisplayed = true } ) )
+        {
+            this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.TelemetryNotice ) );
+
+            // Avoid stacking a second notification (e.g. VSX recommendation) on top of the first-run notice.
+            notificationReported = true;
+        }
 
         // Validate registered licenses, but do not complain about the lack of licenses.
         if ( this._licenseRegistrationService != null )

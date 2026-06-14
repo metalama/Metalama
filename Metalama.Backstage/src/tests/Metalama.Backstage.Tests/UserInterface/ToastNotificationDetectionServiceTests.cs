@@ -184,7 +184,9 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
 
         // The notice must not be shown again on subsequent runs (tracked in WelcomeConfiguration).
+        // Move the clock past the detection throttle so that detection actually runs again.
         this.UserInterface.Notifications.Clear();
+        this.Time.AddTime( TimeSpan.FromMinutes( 1 ) );
         await this.DetectToastNotificationsAsync();
         Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
     }
