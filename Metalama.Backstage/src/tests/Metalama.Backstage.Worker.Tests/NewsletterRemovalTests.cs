@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Pages;
-using Metalama.Backstage.Telemetry.User;
 using Metalama.Backstage.UserInterface;
 using System;
 using System.Linq;
@@ -48,23 +47,18 @@ public sealed class NewsletterRemovalTests
     }
 
     [Fact]
-    public void UserInfoDoesNotStoreEmailAddress()
+    public void EmailCollectingTypesAreRemoved()
     {
-        var offending = GetMemberNames( typeof( UserInfo ) )
-            .Where( name => name.Contains( "Email", StringComparison.OrdinalIgnoreCase ) )
-            .ToArray();
+        // The 'UserInfo' configuration record (which stored the e-mail address) and the 'IUserInfoService' /
+        // 'UserInfoService' that read it from various sources existed solely to collect the user's e-mail address
+        // for the newsletter opt-in. They must be gone, along with the per-source providers.
+        var backstageAssembly = typeof( WebLinks ).Assembly;
 
-        Assert.Empty( offending );
-    }
-
-    [Fact]
-    public void UserInfoServiceDoesNotCollectEmailAddress()
-    {
-        var offending = GetMemberNames( typeof( IUserInfoService ) )
-            .Where( name => name.Contains( "Email", StringComparison.OrdinalIgnoreCase ) )
-            .ToArray();
-
-        Assert.Empty( offending );
+        Assert.Null( backstageAssembly.GetType( "Metalama.Backstage.Telemetry.User.UserInfo" ) );
+        Assert.Null( backstageAssembly.GetType( "Metalama.Backstage.Telemetry.User.IUserInfoService" ) );
+        Assert.Null( backstageAssembly.GetType( "Metalama.Backstage.Telemetry.User.UserInfoService" ) );
+        Assert.Null( backstageAssembly.GetType( "Metalama.Backstage.Telemetry.User.UserInfoSource" ) );
+        Assert.Null( backstageAssembly.GetType( "Metalama.Backstage.Telemetry.User.ConfigurationUserInfoSource" ) );
     }
 
     [Fact]

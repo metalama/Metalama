@@ -7,7 +7,6 @@ using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Telemetry;
-using Metalama.Backstage.Telemetry.User;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Rss;
 using Metalama.Backstage.UserInterface.Toasts;
@@ -408,44 +407,6 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             expectedJson,
             obj => this.JsonService.Serialize( obj, typeof(RssClientConfiguration) ),
             json => JsonSerializer.Deserialize<RssClientConfiguration>( json, this.JsonOptions ) );
-    }
-
-    [Fact]
-    public void UserInfo_Serialization()
-    {
-        var input = new UserInfo { EmailAddress = "test@example.com", Version = 1 };
-
-        const string expectedJson = """
-                                    {
-                                      "emailAddress": "test@example.com",
-                                      "version": 1
-                                    }
-                                    """;
-
-        this.TestSerialization(
-            input,
-            expectedJson,
-            obj => this.JsonService.Serialize( obj, typeof(UserInfo) ),
-            json => JsonSerializer.Deserialize<UserInfo>( json, this.JsonOptions ) );
-    }
-
-    [Fact]
-    public void UserInfo_Empty_Serialization()
-    {
-        var input = new UserInfo();
-
-        const string expectedJson = """
-                                    {
-                                      "emailAddress": null,
-                                      "version": null
-                                    }
-                                    """;
-
-        this.TestSerialization(
-            input,
-            expectedJson,
-            obj => this.JsonService.Serialize( obj, typeof(UserInfo) ),
-            json => JsonSerializer.Deserialize<UserInfo>( json, this.JsonOptions ) );
     }
 
     [Fact]
