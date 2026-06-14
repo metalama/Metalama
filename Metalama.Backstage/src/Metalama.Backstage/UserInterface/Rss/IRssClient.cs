@@ -16,9 +16,10 @@ public interface IRssClient : IBackstageService
     void Disable();
 
     /// <summary>
-    /// Enables the news feed by setting the preferred feed to <see cref="RssFeed.Briefs"/>, unless telemetry is disabled,
-    /// in which case the news feed cannot be enabled (because it would otherwise contact <c>metalama.net</c>). See issue #1670.
+    /// Enables the news feed by setting the preferred feed to <see cref="RssFeed.Briefs"/>, unless telemetry is disabled.
+    /// When telemetry is disabled, the feed is not enabled, because the daily fetch from <c>metalama.net</c> is gated on the
+    /// telemetry setting and would never run, so enabling the feed would have no effect. See issue #1670.
     /// </summary>
-    /// <returns><c>true</c> if the news feed was enabled, or <c>false</c> if it could not be enabled because telemetry is disabled.</returns>
+    /// <returns><c>true</c> if the news feed was enabled, or <c>false</c> if it was not enabled because telemetry is disabled.</returns>
     bool TryEnable();
 }
