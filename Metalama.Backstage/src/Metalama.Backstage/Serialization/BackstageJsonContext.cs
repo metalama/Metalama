@@ -7,7 +7,6 @@ using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Telemetry;
-using Metalama.Backstage.Telemetry.User;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Rss;
 using Metalama.Backstage.UserInterface.Toasts;
@@ -36,7 +35,6 @@ namespace Metalama.Backstage.Serialization;
 [JsonSerializable( typeof(IdeExtensionsStatusConfiguration) )]
 [JsonSerializable( typeof(RssClientConfiguration) )]
 [JsonSerializable( typeof(LicenseAuditConfiguration) )]
-[JsonSerializable( typeof(UserInfo) )]
 [JsonSerializable( typeof(ReportingAction) )]
 [JsonSerializable( typeof(ReportingStatus) )]
 [JsonSerializable( typeof(RssFeed) )]
