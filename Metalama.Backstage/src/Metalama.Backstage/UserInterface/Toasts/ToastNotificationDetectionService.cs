@@ -140,17 +140,14 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         this._logger.Trace?.Log( "Detecting relevant toast notifications." );
 
         // Show the first-run telemetry notice exactly once. This is shown regardless of whether telemetry is currently
-        // enabled, because the point is to inform the user that telemetry exists and how to opt out. We reuse the
-        // WelcomeConfiguration.WelcomePageDisplayed flag so that this toast and the legacy welcome web page
-        // (WelcomeService.OpenWelcomePageIfRequired) never both fire.
+        // enabled, because the point is to inform the user that telemetry exists and how to opt out. It is tracked by
+        // its own WelcomeConfiguration.TelemetryNoticeDisplayed flag (independent of WelcomePageDisplayed, which also
+        // serves as an installation tracker), so the toast and the legacy welcome web page are displayed independently.
         if ( this._configurationManager.UpdateIf<WelcomeConfiguration>(
-                c => !c.WelcomePageDisplayed,
-                c => c with { WelcomePageDisplayed = true } ) )
+                c => !c.TelemetryNoticeDisplayed,
+                c => c with { TelemetryNoticeDisplayed = true } ) )
         {
             this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.TelemetryNotice ) );
-
-            // Avoid stacking a second notification (e.g. VSX recommendation) on top of the first-run notice.
-            notificationReported = true;
         }
 
         // Validate registered licenses, but do not complain about the lack of licenses.

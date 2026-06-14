@@ -6,8 +6,8 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Auto-save when the checkbox selection changes.
-            $('#isTelemetryEnabledCheckbox').change(function () {
+            // Auto-save when any checkbox selection changes.
+            $('#isUsageReportingEnabledCheckbox, #isExceptionReportingEnabledCheckbox').change(function () {
                 $('form').submit();
             });
         });
@@ -17,18 +17,28 @@
 <form method="post">
     <h3>Privacy</h3>
     <p>
-        To improve the product, Metalama collects anonymous usage and quality data. You can change your choice at any time.
+        To improve the product, Metalama can collect anonymous data. You can change your choices at any time.
         Read more in our <a href="@WebLinks.PrivacyPolicy" target="_blank">Privacy Policy</a> and the
         <a href="@WebLinks.DisableTelemetryInstructions" target="_blank">telemetry documentation</a>.
     </p>
 
     <div class="checkbox">
-        <input id="isTelemetryEnabledCheckbox" type="checkbox" asp-for="IsTelemetryEnabled">
+        <input id="isUsageReportingEnabledCheckbox" type="checkbox" asp-for="IsUsageReportingEnabled">
         <div class="label">
-            <label asp-for="IsTelemetryEnabled">
+            <label asp-for="IsUsageReportingEnabled">
                 Send anonymous usage data to help improve Metalama.
             </label>
-            <small>Reports are anonymous and include a randomly generated device ID that you can reset at any time.</small>
+            <small>Anonymous statistics about which features are used. Reports include a randomly generated device ID that you can reset at any time.</small>
+        </div>
+    </div>
+
+    <div class="checkbox">
+        <input id="isExceptionReportingEnabledCheckbox" type="checkbox" asp-for="IsExceptionReportingEnabled">
+        <div class="label">
+            <label asp-for="IsExceptionReportingEnabled">
+                Send exception and performance reports.
+            </label>
+            <small>Reports of unhandled exceptions and performance problems, which may include code-related diagnostic details. Disabled by default.</small>
         </div>
     </div>
 

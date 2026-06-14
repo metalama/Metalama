@@ -15,6 +15,8 @@ public interface ITelemetryConfigurationService : IBackstageService
 
     void SetStatus( bool enabled );
 
+    void SetStatus( TelemetryScenario scenario, bool enabled );
+
     Guid DeviceId { get; }
 
     bool IsEnabled( TelemetryScenario scenario );

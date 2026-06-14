@@ -22,23 +22,38 @@ internal class PrivacyPageModel : PageModel
 
     [BindProperty]
     [DisplayName( "Send anonymous usage data" )]
-    public bool IsTelemetryEnabled { get; set; }
+    public bool IsUsageReportingEnabled { get; set; }
+
+    [BindProperty]
+    [DisplayName( "Send exception and performance reports" )]
+    public bool IsExceptionReportingEnabled { get; set; }
 
     public bool IsSaved { get; private set; }
 
     public void OnGet()
     {
-        this.IsTelemetryEnabled = this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage );
+        this.ReadStatus();
     }
 
     public IActionResult OnPost()
     {
-        this._telemetryConfigurationService.SetStatus( this.IsTelemetryEnabled );
+        // Usage reporting is opt-out; exception and performance-problem reporting are opt-in. They are configured
+        // independently. Performance-problem reports are sent through the same channel as exception reports, so they
+        // follow the same toggle.
+        this._telemetryConfigurationService.SetStatus( TelemetryScenario.Usage, this.IsUsageReportingEnabled );
+        this._telemetryConfigurationService.SetStatus( TelemetryScenario.Exception, this.IsExceptionReportingEnabled );
+        this._telemetryConfigurationService.SetStatus( TelemetryScenario.Performance, this.IsExceptionReportingEnabled );
 
         // Reflect the effective state (it may differ from the request, e.g. when the opt-out environment variable is set).
-        this.IsTelemetryEnabled = this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage );
+        this.ReadStatus();
         this.IsSaved = true;
 
         return this.Page();
+    }
+
+    private void ReadStatus()
+    {
+        this.IsUsageReportingEnabled = this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage );
+        this.IsExceptionReportingEnabled = this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Exception );
     }
 }
