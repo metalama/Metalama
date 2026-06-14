@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
@@ -30,6 +31,21 @@ public sealed class TelemetryConfigurationTests : TestsBase
     public void EnabledByDefault()
     {
         Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+    }
+
+    [Fact]
+    public void FirstRunDefaultsExceptionAndPerformanceChannelsToReviewFirst()
+    {
+        // #1674: Capture and notification are decoupled from sending. On first run, the exception/performance
+        // channel must default to review-first (ReportingAction.Default) rather than auto-send (ReportingAction.Yes),
+        // so the most sensitive telemetry (stack traces, paths, Exception.Data) stays under explicit user control
+        // until the user clicks Report. Usage telemetry remains opt-out and is unchanged.
+        this.TelemetryConfigurationService.Initialize();
+
+        var configuration = this.ConfigurationManager!.Get<TelemetryConfiguration>();
+
+        Assert.Equal( ReportingAction.Default, configuration.ExceptionReportingAction );
+        Assert.Equal( ReportingAction.Default, configuration.PerformanceProblemReportingAction );
     }
 
     [Theory]
