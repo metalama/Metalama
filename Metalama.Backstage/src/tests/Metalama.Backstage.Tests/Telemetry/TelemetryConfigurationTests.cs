@@ -27,9 +27,31 @@ public sealed class TelemetryConfigurationTests : TestsBase
     }
 
     [Fact]
-    public void EnabledByDefault()
+    public void UsageReportingEnabledByDefault()
     {
+        // Usage reporting is opt-out: enabled by default.
         Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+    }
+
+    [Fact]
+    public void ExceptionReportingDisabledByDefault()
+    {
+        // Exception and performance-problem reporting are opt-in: disabled until the user explicitly enables them.
+        Assert.False( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Exception ) );
+        Assert.False( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Performance ) );
+    }
+
+    [Theory]
+    [InlineData( true )]
+    [InlineData( false )]
+    public void SetStatusPerScenarioIsIndependent( bool enabled )
+    {
+        // Start from a known opposite state.
+        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Usage, !enabled );
+        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, enabled );
+
+        Assert.Equal( !enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal( enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Exception ) );
     }
 
     [Theory]

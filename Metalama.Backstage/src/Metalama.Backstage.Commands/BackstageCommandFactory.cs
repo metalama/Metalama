@@ -103,8 +103,13 @@ public static class BackstageCommandFactory
                     {
                         telemetry.SetDescription( "Manages telemetry settings and upload queued data." );
 
-                        telemetry.AddCommand<EnableTelemetryCommand>( "enable" ).WithData( options ).WithDescription( "Enables anonymous usage telemetry." );
-                        telemetry.AddCommand<DisableTelemetryCommand>( "disable" ).WithData( options ).WithDescription( "Disables anonymous usage telemetry." );
+                        telemetry.AddCommand<EnableTelemetryCommand>( "enable" )
+                            .WithData( options )
+                            .WithDescription( "Enables telemetry for a scenario (usage, exception, performance or all)." );
+
+                        telemetry.AddCommand<DisableTelemetryCommand>( "disable" )
+                            .WithData( options )
+                            .WithDescription( "Disables telemetry for a scenario (usage, exception, performance or all)." );
 
                         telemetry.AddCommand<ResetDeviceIdCommand>( "reset-device-id" )
                             .WithDescription( "Generates a new anonymous device identifier for telemetry." );

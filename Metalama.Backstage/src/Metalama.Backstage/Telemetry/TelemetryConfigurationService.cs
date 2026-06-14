@@ -134,9 +134,12 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 return c with
                 {
                     DeviceId = this._randomNumberGenerator.NextGuid(),
+
+                    // Usage reporting is opt-out (enabled by default), but exception and performance-problem reporting
+                    // are opt-in (disabled by default) because those reports may contain more sensitive diagnostic data.
                     UsageReportingAction = ReportingAction.Yes,
-                    PerformanceProblemReportingAction = ReportingAction.Yes,
-                    ExceptionReportingAction = ReportingAction.Yes,
+                    PerformanceProblemReportingAction = ReportingAction.No,
+                    ExceptionReportingAction = ReportingAction.No,
 
                     // Make sure we don't upload telemetry data on the first second of use.
                     // Since first-time users are likely not to use the software for more than a few minutes,
@@ -226,6 +229,41 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             this._isExceptionTelemetryEnabled = enabled;
             this._isUsageTelemetryEnabled = enabled;
             this._isPerformanceTelemetryEnabled = enabled;
+        }
+    }
+
+    public void SetStatus( TelemetryScenario scenario, bool enabled )
+    {
+        var reportAction = enabled ? ReportingAction.Yes : ReportingAction.No;
+
+        this._configurationManager.Update<TelemetryConfiguration>(
+            c => scenario switch
+            {
+                TelemetryScenario.Usage => c with { UsageReportingAction = reportAction },
+                TelemetryScenario.Exception => c with { ExceptionReportingAction = reportAction },
+                TelemetryScenario.Performance => c with { PerformanceProblemReportingAction = reportAction },
+                _ => throw new ArgumentOutOfRangeException( nameof(scenario), scenario, "This telemetry scenario cannot be configured." )
+            } );
+
+        if ( this._isGloballyEnabled )
+        {
+            switch ( scenario )
+            {
+                case TelemetryScenario.Usage:
+                    this._isUsageTelemetryEnabled = enabled;
+
+                    break;
+
+                case TelemetryScenario.Exception:
+                    this._isExceptionTelemetryEnabled = enabled;
+
+                    break;
+
+                case TelemetryScenario.Performance:
+                    this._isPerformanceTelemetryEnabled = enabled;
+
+                    break;
+            }
         }
     }
 
