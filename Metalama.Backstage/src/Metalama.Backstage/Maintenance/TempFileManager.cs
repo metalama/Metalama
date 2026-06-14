@@ -419,8 +419,7 @@ public sealed class TempFileManager : ITempFileManager
     /// <summary>
     /// Deletes every file in the <c>ApplicationDataDirectory\Telemetry</c> tree that is older than the
     /// given <paramref name="retention"/> period, then deletes directories that became empty. This single
-    /// file-age purge covers undelivered exception reports, orphaned packages, the audit log and the
-    /// per-day license-audit dedup ledger uniformly.
+    /// file-age purge covers undelivered exception reports, orphaned packages and the audit log uniformly.
     /// </summary>
     public void CleanTelemetryDirectories( TimeSpan retention )
     {

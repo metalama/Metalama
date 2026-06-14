@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Configuration;
 using System;
+using System.Collections.Immutable;
 
 namespace Metalama.Backstage.Licensing.Audit;
 
@@ -12,8 +13,8 @@ namespace Metalama.Backstage.Licensing.Audit;
 [PublicAPI]
 public record LicenseAuditConfiguration : ConfigurationFile
 {
-    // The per-license dedup state was moved out of this growing dictionary into per-day ledger files; see
-    // LicenseAuditLedger. Only the single-valued aggregate-audit timestamp remains here.
+    public ImmutableDictionary<long, DateTime> LastAuditTimes { get; init; } =
+        ImmutableDictionary<long, DateTime>.Empty;
 
     public DateTime? LastMatomoAuditTime { get; init; }
 

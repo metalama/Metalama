@@ -368,12 +368,17 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
     {
         var input = new LicenseAuditConfiguration
         {
+            LastAuditTimes = ImmutableDictionary<long, DateTime>.Empty
+                .Add( 12345L, new DateTime( 2025, 1, 15, 10, 0, 0, DateTimeKind.Utc ) ),
             LastMatomoAuditTime = new DateTime( 2025, 1, 14, 8, 0, 0, DateTimeKind.Utc ),
             Version = 1
         };
 
         const string expectedJson = """
                                     {
+                                      "LastAuditTimes": {
+                                        "12345": "2025-01-15T10:00:00Z"
+                                      },
                                       "LastMatomoAuditTime": "2025-01-14T08:00:00Z",
                                       "IsFirstMatomoAudit": true,
                                       "version": 1

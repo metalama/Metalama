@@ -135,9 +135,6 @@ namespace Metalama.Backstage.Infrastructure
         public string TelemetryLogsDirectory => Path.Combine( this.TelemetryDirectory, "Logs" );
 
         /// <inheritdoc />
-        public string TelemetryAuditLedgerDirectory => Path.Combine( this.TelemetryDirectory, "AuditLedger" );
-
-        /// <inheritdoc />
         public string TelemetryExceptionsDirectory => Path.Combine( this.TelemetryDirectory, "Exceptions" );
 
         /// <inheritdoc />

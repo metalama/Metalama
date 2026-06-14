@@ -102,17 +102,17 @@ public sealed class TelemetryCleanUpTests : TestsBase
     }
 
     /// <summary>
-    /// Regression test for #1679: the per-day license-audit dedup ledger files live in the telemetry tree and are
-    /// purged by the same age sweep as the rest of the tree.
+    /// Regression test for #1679: the retention sweep is the safety net for orphaned <c>.psf</c> packages left
+    /// behind by a crash. Old package files anywhere in the telemetry tree are purged by the same age sweep.
     /// </summary>
     [Fact]
-    public void TelemetryAuditLedgerFilesArePurgedByRetention()
+    public void OrphanedPackagesArePurgedByRetention()
     {
-        var ledgerDirectory = this._standardDirectories.TelemetryAuditLedgerDirectory;
-        this.FileSystem.CreateDirectory( ledgerDirectory );
+        var packagesDirectory = this.GetTelemetryDirectory( "Packages" );
+        this.FileSystem.CreateDirectory( packagesDirectory );
 
-        var oldLedgerFile = Path.Combine( ledgerDirectory, "audit-20250101.json" );
-        this.FileSystem.WriteAllText( oldLedgerFile, "{}" );
+        var oldPackage = Path.Combine( packagesDirectory, "orphan.psf" );
+        this.FileSystem.WriteAllText( oldPackage, "data" );
 
         // Advance well past the default retention period.
         this.Time.AddTime( TimeSpan.FromDays( 40 ) );
@@ -120,6 +120,6 @@ public sealed class TelemetryCleanUpTests : TestsBase
         var tempFileManager = new TempFileManager( this.ServiceProvider );
         tempFileManager.CleanTempDirectories( true );
 
-        Assert.False( this.FileSystem.FileExists( oldLedgerFile ), "The old audit-ledger day-file should have been purged by the retention sweep." );
+        Assert.False( this.FileSystem.FileExists( oldPackage ), "The orphaned package older than the retention period should have been purged by the retention sweep." );
     }
 }

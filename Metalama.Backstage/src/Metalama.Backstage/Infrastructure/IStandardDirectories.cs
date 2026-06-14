@@ -33,11 +33,6 @@ namespace Metalama.Backstage.Infrastructure
         string TelemetryLogsDirectory { get; }
 
         /// <summary>
-        /// Gets the directory where the per-day license-audit dedup ledger files are stored.
-        /// </summary>
-        string TelemetryAuditLedgerDirectory { get; }
-
-        /// <summary>
         /// Gets the directory where the exception reports should be stored just after they are captured.
         /// </summary>
         string TelemetryExceptionsDirectory { get; }
