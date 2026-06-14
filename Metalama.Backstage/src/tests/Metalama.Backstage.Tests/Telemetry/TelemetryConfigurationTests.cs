@@ -57,105 +57,111 @@ public sealed class TelemetryConfigurationTests : TestsBase
     {
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
         this.TelemetryConfigurationService.Initialize();
-        var initialSalt = this.TelemetryConfigurationService.Salt;
+        var initialSalt = this.TelemetryConfigurationService.MatomoSalt;
 
         // There should be no change on April 30th or even on May the 4th because the first Monday is the 5th.
         this.Time.Set( new DateTime( 2025, 4, 30, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.Equal( initialSalt, this.TelemetryConfigurationService.Salt );
+        Assert.Equal( initialSalt, this.TelemetryConfigurationService.MatomoSalt );
 
         this.Time.Set( new DateTime( 2025, 5, 4, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.Equal( initialSalt, this.TelemetryConfigurationService.Salt );
+        Assert.Equal( initialSalt, this.TelemetryConfigurationService.MatomoSalt );
 
         // Now there should be a change.
         this.Time.Set( new DateTime( 2025, 5, 5, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.NotEqual( initialSalt, this.TelemetryConfigurationService.Salt );
+        Assert.NotEqual( initialSalt, this.TelemetryConfigurationService.MatomoSalt );
     }
 
-    [Fact]
-    public void DiagnosticSaltRotation()
+    [Theory]
+    [InlineData( false )]
+    [InlineData( true )]
+    public void DiagnosticSaltRotation( bool exceptionReporting )
     {
-        // The first-party-only DiagnosticSalt (#1668) must rotate on the same monthly cadence as Salt/DeviceId.
+        // The first-party-only diagnostic salts (#1668) must rotate on the same monthly cadence as MatomoSalt/DeviceId.
+        long GetSalt()
+            => exceptionReporting
+                ? this.TelemetryConfigurationService.ExceptionReportingSalt
+                : this.TelemetryConfigurationService.UsageTrackingSalt;
+
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
         this.TelemetryConfigurationService.Initialize();
-        var initialDiagnosticSalt = this.TelemetryConfigurationService.InternalDiagnosticSalt;
+        var initialDiagnosticSalt = GetSalt();
 
         // No rotation before the first Monday of May (the 5th).
         this.Time.Set( new DateTime( 2025, 4, 30, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.Equal( initialDiagnosticSalt, this.TelemetryConfigurationService.InternalDiagnosticSalt );
+        Assert.Equal( initialDiagnosticSalt, GetSalt() );
 
         this.Time.Set( new DateTime( 2025, 5, 4, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.Equal( initialDiagnosticSalt, this.TelemetryConfigurationService.InternalDiagnosticSalt );
+        Assert.Equal( initialDiagnosticSalt, GetSalt() );
 
-        // Now there should be a change, in lockstep with Salt.
+        // Now there should be a change, in lockstep with MatomoSalt.
         this.Time.Set( new DateTime( 2025, 5, 5, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.NotEqual( initialDiagnosticSalt, this.TelemetryConfigurationService.InternalDiagnosticSalt );
+        Assert.NotEqual( initialDiagnosticSalt, GetSalt() );
     }
 
     [Fact]
-    public void DiagnosticSaltIsGeneratedAndDistinctFromSalt()
+    public void SaltsAreGeneratedAndMutuallyDistinct()
     {
-        // The DiagnosticSalt must be a non-zero value, distinct from the Matomo Salt, so that identifiers
-        // sent to the first-party diagnostic store cannot be correlated with the Matomo dataset (#1668).
+        // Each salt must be a non-zero value, and the three salts must be mutually distinct, so that the Matomo,
+        // usage-tracking and exception-reporting pseudonyms cannot be correlated with one another (#1668).
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
         this.TelemetryConfigurationService.Initialize();
 
-        var salt = this.TelemetryConfigurationService.Salt;
-        var diagnosticSalt = this.TelemetryConfigurationService.InternalDiagnosticSalt;
+        var matomoSalt = this.TelemetryConfigurationService.MatomoSalt;
+        var usageTrackingSalt = this.TelemetryConfigurationService.UsageTrackingSalt;
+        var exceptionReportingSalt = this.TelemetryConfigurationService.ExceptionReportingSalt;
 
-        Assert.NotEqual( 0, diagnosticSalt );
-        Assert.NotEqual( salt, diagnosticSalt );
+        Assert.NotEqual( 0, matomoSalt );
+        Assert.NotEqual( 0, usageTrackingSalt );
+        Assert.NotEqual( 0, exceptionReportingSalt );
+
+        Assert.NotEqual( matomoSalt, usageTrackingSalt );
+        Assert.NotEqual( matomoSalt, exceptionReportingSalt );
+        Assert.NotEqual( usageTrackingSalt, exceptionReportingSalt );
     }
 
     [Fact]
-    public void MatomoIdAndDiagnosticHashAreUncorrelatable()
+    public void DeviceHashesAreMutuallyUncorrelatable()
     {
-        // For one device, the hash sent to Matomo (DeviceHash, keyed by Salt) must differ from the hash sent
-        // to the first-party diagnostic store (InternalDeviceHash / <ClientId>, keyed by DiagnosticSalt). #1668.
+        // For one device, the hash sent to Matomo (keyed by MatomoSalt) and the two first-party hashes — the
+        // usage-tracking <Machine> (keyed by UsageTrackingSalt) and the exception-reporting <ClientId> (keyed by
+        // ExceptionReportingSalt) — must all differ, so none of the three datasets shares a join key. #1668.
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
         this.TelemetryConfigurationService.Initialize();
 
         var deviceId = this.TelemetryConfigurationService.DeviceId.ToString();
-        var matomoHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.Salt );
-        var diagnosticHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.InternalDiagnosticSalt );
+        var matomoHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.MatomoSalt );
+        var usageTrackingHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.UsageTrackingSalt );
+        var exceptionReportingHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.ExceptionReportingSalt );
 
-        Assert.NotEqual( matomoHash, diagnosticHash );
+        Assert.NotEqual( matomoHash, usageTrackingHash );
+        Assert.NotEqual( matomoHash, exceptionReportingHash );
+        Assert.NotEqual( usageTrackingHash, exceptionReportingHash );
     }
 
-    [Fact]
-    public void DiagnosticSaltDoesNotDependOnSeededRandomNumberGenerator()
-    {
-        // Like Salt, DiagnosticSalt is a security-sensitive HMAC key and must be generated by a CSPRNG (#1654),
-        // so it must NOT be reproducible from the deterministically-seeded test RNG service.
-        long GenerateDiagnosticSalt()
-        {
-            var serviceProvider = this.CloneServiceCollection().BuildServiceProvider();
-            var telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
-            telemetryConfigurationService.Initialize();
-
-            return telemetryConfigurationService.InternalDiagnosticSalt;
-        }
-
-        var salt1 = GenerateDiagnosticSalt();
-        var salt2 = GenerateDiagnosticSalt();
-
-        Assert.NotEqual( salt1, salt2 );
-    }
-
-    [Fact]
-    public void SaltDoesNotDependOnSeededRandomNumberGenerator()
+    [Theory]
+    [InlineData( "matomo" )]
+    [InlineData( "usage" )]
+    [InlineData( "exception" )]
+    public void SaltDoesNotDependOnSeededRandomNumberGenerator( string saltKind )
     {
         // The test RNG service (Metalama.Backstage.Infrastructure.RandomNumberGenerator) is seeded
-        // deterministically (seed 0, see TestsBase). The anonymization salt is a security-sensitive
-        // value (the HMAC-SHA256 key for the device/licensee hashes) and must be generated by a
-        // CSPRNG, so it must NOT be reproducible from the seeded RNG service. Two independent service
-        // providers sharing the same RNG seed must therefore produce different salts.
+        // deterministically (seed 0, see TestsBase). Each anonymization salt is a security-sensitive value
+        // (the HMAC-SHA256 key for the device/licensee hashes) and must be generated by a CSPRNG (#1654), so it
+        // must NOT be reproducible from the seeded RNG service. Two independent service providers sharing the
+        // same RNG seed must therefore produce different salts.
         long GenerateSalt()
         {
             var serviceProvider = this.CloneServiceCollection().BuildServiceProvider();
             var telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
             telemetryConfigurationService.Initialize();
 
-            return telemetryConfigurationService.Salt;
+            return saltKind switch
+            {
+                "matomo" => telemetryConfigurationService.MatomoSalt,
+                "usage" => telemetryConfigurationService.UsageTrackingSalt,
+                "exception" => telemetryConfigurationService.ExceptionReportingSalt,
+                _ => throw new ArgumentOutOfRangeException( nameof(saltKind) )
+            };
         }
 
         var salt1 = GenerateSalt();

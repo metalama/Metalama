@@ -45,9 +45,11 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         this.Initialize();
     }
 
-    public long Salt { get; private set; }
+    public long MatomoSalt { get; private set; }
 
-    public long InternalDiagnosticSalt { get; private set; }
+    public long UsageTrackingSalt { get; private set; }
+
+    public long ExceptionReportingSalt { get; private set; }
 
     private void OnConfigurationChanged( ConfigurationFile configuration )
     {
@@ -114,8 +116,9 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         }
 
         // We should not have null values here because Initialize sets it.
-        this.Salt = configuration.Salt ?? 0;
-        this.InternalDiagnosticSalt = configuration.DiagnosticSalt ?? 0;
+        this.MatomoSalt = configuration.MatomoSalt ?? 0;
+        this.UsageTrackingSalt = configuration.UsageTrackingSalt ?? 0;
+        this.ExceptionReportingSalt = configuration.ExceptionReportingSalt ?? 0;
         this.DeviceId = configuration.DeviceId ?? Guid.Empty;
     }
 
@@ -134,8 +137,9 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 // Since first-time users are likely not to use the software for more than a few minutes, 
                 // configure so that we will upload data in 15 minutes.
                 LastUploadTime = this._dateTimeProvider.UtcNow.AddDays( -1 ).AddMinutes( 15 ),
-                Salt = this._randomNumberGenerator.NextCryptographicInt64(),
-                DiagnosticSalt = this._randomNumberGenerator.NextCryptographicInt64(),
+                MatomoSalt = this._randomNumberGenerator.NextCryptographicInt64(),
+                UsageTrackingSalt = this._randomNumberGenerator.NextCryptographicInt64(),
+                ExceptionReportingSalt = this._randomNumberGenerator.NextCryptographicInt64(),
                 LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
 
@@ -144,11 +148,12 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         var firstOfMonth = this._dateTimeProvider.UtcNow.Date.GetFirstMondayOfMonth();
 
         var rotated = this._configurationManager.UpdateIf<TelemetryConfiguration>(
-            c => c.Salt == null || c.LastSaltChangeTime == null || (this._dateTimeProvider.UtcNow >= firstOfMonth && c.LastSaltChangeTime.Value < firstOfMonth),
+            c => c.MatomoSalt == null || c.LastSaltChangeTime == null || (this._dateTimeProvider.UtcNow >= firstOfMonth && c.LastSaltChangeTime.Value < firstOfMonth),
             c => c with
             {
-                Salt = this._randomNumberGenerator.NextCryptographicInt64(),
-                DiagnosticSalt = this._randomNumberGenerator.NextCryptographicInt64(),
+                MatomoSalt = this._randomNumberGenerator.NextCryptographicInt64(),
+                UsageTrackingSalt = this._randomNumberGenerator.NextCryptographicInt64(),
+                ExceptionReportingSalt = this._randomNumberGenerator.NextCryptographicInt64(),
                 DeviceId = this._randomNumberGenerator.NextGuid(),
                 LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
@@ -158,11 +163,15 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             this._logger.Trace?.Log( "Telemetry IDs and salt were rotated." );
         }
 
-        // Back-fill the DiagnosticSalt for configurations created before it was introduced, without
-        // rotating the Matomo Salt or the DeviceId (which would reset Matomo visitor continuity). See #1668.
+        // Back-fill the first-party diagnostic salts for configurations created before they were introduced,
+        // without rotating the Matomo Salt or the DeviceId (which would reset Matomo visitor continuity). See #1668.
         this._configurationManager.UpdateIf<TelemetryConfiguration>(
-            c => c.DeviceId != null && c.DiagnosticSalt == null,
-            c => c with { DiagnosticSalt = this._randomNumberGenerator.NextCryptographicInt64() } );
+            c => c.DeviceId != null && (c.UsageTrackingSalt == null || c.ExceptionReportingSalt == null),
+            c => c with
+            {
+                UsageTrackingSalt = c.UsageTrackingSalt ?? this._randomNumberGenerator.NextCryptographicInt64(),
+                ExceptionReportingSalt = c.ExceptionReportingSalt ?? this._randomNumberGenerator.NextCryptographicInt64()
+            } );
 
         this._isGloballyEnabled = this.IsGloballyEnabled();
         this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
@@ -213,8 +222,9 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             c => c with
             {
                 DeviceId = this._randomNumberGenerator.NextGuid(),
-                Salt = this._randomNumberGenerator.NextCryptographicInt64(),
-                DiagnosticSalt = this._randomNumberGenerator.NextCryptographicInt64(),
+                MatomoSalt = this._randomNumberGenerator.NextCryptographicInt64(),
+                UsageTrackingSalt = this._randomNumberGenerator.NextCryptographicInt64(),
+                ExceptionReportingSalt = this._randomNumberGenerator.NextCryptographicInt64(),
                 LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
     }

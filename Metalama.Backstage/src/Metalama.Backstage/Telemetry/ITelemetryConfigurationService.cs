@@ -21,15 +21,30 @@ public interface ITelemetryConfigurationService : IBackstageService
 
     void ResetDeviceId();
 
-    long Salt { get; }
+    /// <summary>
+    /// Gets the salt used to hash identifiers sent to the third-party analytics platform (Matomo).
+    /// </summary>
+    long MatomoSalt { get; }
 
     /// <summary>
-    /// Gets the salt used to hash identifiers that are sent only to the first-party diagnostic store (bits),
-    /// never to the third-party analytics platform (Matomo). Keying diagnostic identifiers with this salt
-    /// instead of <see cref="Salt"/> makes the Matomo pseudonym mathematically unjoinable to our diagnostic
-    /// data. It is rotated together with <see cref="Salt"/> and <see cref="DeviceId"/>. See issue #1668.
+    /// Gets the salt used to hash identifiers sent only to the first-party diagnostic store (bits) by the
+    /// usage-tracking channel (the license-audit report), never to the third-party analytics platform (Matomo).
+    /// Keying usage-tracking identifiers with this salt instead of <see cref="MatomoSalt"/> makes the Matomo
+    /// pseudonym mathematically unjoinable to our usage-tracking data, and keeping it distinct from
+    /// <see cref="ExceptionReportingSalt"/> keeps the two first-party channels mutually unjoinable too.
+    /// It is rotated together with <see cref="MatomoSalt"/> and <see cref="DeviceId"/>. See issue #1668.
     /// </summary>
-    long InternalDiagnosticSalt { get; }
+    long UsageTrackingSalt { get; }
+
+    /// <summary>
+    /// Gets the salt used to hash identifiers sent only to the first-party diagnostic store (bits) by the
+    /// exception-reporting channel, never to the third-party analytics platform (Matomo). Keying exception
+    /// identifiers with this salt instead of <see cref="MatomoSalt"/> makes the Matomo pseudonym mathematically
+    /// unjoinable to our exception data, and keeping it distinct from <see cref="UsageTrackingSalt"/> keeps the
+    /// two first-party channels mutually unjoinable too. It is rotated together with <see cref="MatomoSalt"/>
+    /// and <see cref="DeviceId"/>. See issue #1668.
+    /// </summary>
+    long ExceptionReportingSalt { get; }
 }
 
 public enum TelemetryScenario

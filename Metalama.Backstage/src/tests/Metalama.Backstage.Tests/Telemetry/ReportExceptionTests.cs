@@ -337,7 +337,7 @@ public sealed class ReportExceptionTests : TestsBase
     {
         // Regression test for #1668: the exception report (a first-party / bits-bound channel) must NOT
         // transmit the raw DeviceId GUID. The <ClientId> element must carry an anonymized hash
-        // (InternalDeviceHash, keyed by the first-party-only DiagnosticSalt), not a parseable GUID.
+        // (keyed by the first-party-only ExceptionReportingSalt), not a parseable GUID.
         this.ReportException();
         this.AssertFilesCount( 1 );
 
