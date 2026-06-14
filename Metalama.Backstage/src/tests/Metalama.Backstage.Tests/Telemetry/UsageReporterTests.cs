@@ -40,7 +40,7 @@ public sealed class UsageReporterTests : TestsBase
             {
                 UsageReportingAction = ReportingAction.Yes,
                 DeviceId = _testDeviceId,
-                Salt = _testSalt,
+                MatomoSalt = _testSalt,
                 LastSaltChangeTime = this.Time.UtcNow
             } );
     }

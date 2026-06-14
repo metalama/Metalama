@@ -333,6 +333,31 @@ public sealed class ReportExceptionTests : TestsBase
     }
 
     [Fact]
+    public void ClientIdIsNotRawDeviceGuid()
+    {
+        // Regression test for #1668: the exception report (a first-party / bits-bound channel) must NOT
+        // transmit the raw DeviceId GUID. The <ClientId> element must carry an anonymized hash
+        // (keyed by the first-party-only ExceptionReportingSalt), not a parseable GUID.
+        this.ReportException();
+        this.AssertFilesCount( 1 );
+
+        var xml = this.FileSystem.ReadAllText( this.FileSystem.Mock.AllFiles.Single() );
+        this.Logger.WriteLine( "XML report:" );
+        this.Logger.WriteLine( xml );
+
+        var doc = XDocument.Parse( xml );
+        var clientId = doc.Descendants( "ClientId" ).FirstOrDefault();
+        Assert.NotNull( clientId );
+        Assert.NotEmpty( clientId.Value );
+
+        // The raw DeviceId GUID (the rotation seed from which the Matomo hash is derivable) must never
+        // leave the machine. A valid GUID format here means the raw identifier is being transmitted.
+        Assert.False(
+            Guid.TryParse( clientId.Value, out _ ),
+            $"ClientId '{clientId.Value}' is a raw GUID; it must be an anonymized hash (#1668)." );
+    }
+
+    [Fact]
     public void ExceptionReportContainsReportingCallStack()
     {
         // The crash report should include the call stack at the point where the exception

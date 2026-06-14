@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -142,6 +143,34 @@ public sealed class CleanUpTests : TestsBase
 
         // Assert every cache directory is deleted.
         Assert.False( this.FileSystem.DirectoryExists( this._standardDirectories.TempDirectory ) );
+    }
+
+    [Fact]
+    public void Clean_LegacyDirectory()
+    {
+        // Regression test for #1650: after relocating the Unix temp directory off the world-writable temp root,
+        // the clean-up must also remove the legacy location used by previous versions (Path.GetTempPath()/Metalama).
+        // We simulate Unix by forcing TestRuntimeInformation.Platform to Linux so LegacyTempDirectories is populated.
+        this.RuntimeInformation.Platform = OSPlatform.Linux;
+
+        var legacyDirectory = Assert.Single( this._standardDirectories.LegacyTempDirectories );
+
+        // The legacy directory differs from the current temp directory.
+        Assert.NotEqual( this._standardDirectories.TempDirectory, legacyDirectory );
+
+        // Populate the legacy directory in the (mock) file system.
+        var subdirectory = Path.Combine( legacyDirectory, "Logs", "0.1.42-test" );
+        this.FileSystem.CreateDirectory( subdirectory );
+        var cleanUpFile = JsonConvert.SerializeObject( new CleanUpFile { Strategy = CleanUpStrategy.Always } );
+        this.FileSystem.WriteAllText( Path.Combine( subdirectory, "cleanup.json" ), cleanUpFile );
+
+        Assert.True( this.FileSystem.DirectoryExists( legacyDirectory ) );
+
+        // Clean everything.
+        var tempFileManager = new TempFileManager( this.ServiceProvider );
+        tempFileManager.CleanTempDirectories( force: true, all: true );
+
+        Assert.False( this.FileSystem.DirectoryExists( legacyDirectory ) );
     }
 
     [Fact]

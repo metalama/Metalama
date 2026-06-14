@@ -57,10 +57,20 @@ internal abstract class TelemetryReport
 
 #pragma warning disable CA1822
 
-    public long UserHash => HashUtilities.ComputeInt64Hmac( Environment.UserName, this._telemetryConfigurationService.Salt );
+    // The user hash is only ever sent to the first-party diagnostic store (bits) by the usage-tracking
+    // channel (the license-audit report), never to Matomo, so it is keyed by UsageTrackingSalt to keep it
+    // unjoinable to both the Matomo dataset and the exception-reporting data. See #1668.
+    public long UserHash => HashUtilities.ComputeInt64Hmac( Environment.UserName, this._telemetryConfigurationService.UsageTrackingSalt );
 #pragma warning restore CA1822
 
-    // DeviceId is already rotated monthly, so there is no need to salt it.
-    public long DeviceHash
-        => HashUtilities.ComputeInt64Hmac( this._telemetryConfigurationService.DeviceId.ToString(), this._telemetryConfigurationService.Salt );
+    // The device hash sent to the third-party analytics platform (Matomo). Keyed by MatomoSalt.
+    // DeviceId is already rotated monthly, so there is no need to salt it further.
+    public long MatomoDeviceHash
+        => HashUtilities.ComputeInt64Hmac( this._telemetryConfigurationService.DeviceId.ToString(), this._telemetryConfigurationService.MatomoSalt );
+
+    // The device hash sent only to the first-party diagnostic store (bits) by the usage-tracking channel (the
+    // license-audit report). Keyed by UsageTrackingSalt so that it cannot be correlated with the Matomo dataset
+    // (the MatomoDeviceHash) nor with the exception-reporting device hash. See #1668.
+    public long UsageTrackingDeviceHash
+        => HashUtilities.ComputeInt64Hmac( this._telemetryConfigurationService.DeviceId.ToString(), this._telemetryConfigurationService.UsageTrackingSalt );
 }

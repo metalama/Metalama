@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Extensibility;
+using System.Collections.Generic;
 
 namespace Metalama.Backstage.Infrastructure
 {
@@ -17,7 +18,9 @@ namespace Metalama.Backstage.Infrastructure
         string ApplicationDataDirectory { get; }
 
         /// <summary>
-        /// Gets the path of the current user's application temporary folder.
+        /// Gets the path of the current user's application temporary folder. Unless overridden by the <c>METALAMA_TEMP</c>
+        /// environment variable, on Unix this is located under <see cref="ApplicationDataDirectory"/> (and not under the
+        /// world-writable <c>/tmp</c>) because Metalama loads and executes assemblies from this directory.
         /// </summary>
         string TempDirectory { get; }
 
@@ -26,6 +29,12 @@ namespace Metalama.Backstage.Infrastructure
         /// telemetry retention policy enforced by the maintenance pass.
         /// </summary>
         string TelemetryDirectory { get; }
+
+        /// <summary>
+        /// Gets the temporary directories used by previous versions of Metalama but no longer used by the current
+        /// version, so that the cache clean-up can remove them. Empty unless the location has changed across versions.
+        /// </summary>
+        IReadOnlyList<string> LegacyTempDirectories { get; }
 
         /// <summary>
         /// Gets the directory where telemetry logs are written.

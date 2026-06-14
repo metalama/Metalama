@@ -52,7 +52,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
             c => c with
             {
                 DeviceId = _testDeviceId,
-                Salt = _testSalt,
+                MatomoSalt = _testSalt,
                 LastSaltChangeTime = this.Time.UtcNow
             } );
     }
