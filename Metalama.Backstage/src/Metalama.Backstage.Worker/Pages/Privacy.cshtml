@@ -1,0 +1,47 @@
+@page
+@using Metalama.Backstage.UserInterface
+@model PrivacyPageModel
+@inject WebLinks WebLinks;
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Auto-save when the checkbox selection changes.
+            $('#isTelemetryEnabledCheckbox').change(function () {
+                $('form').submit();
+            });
+        });
+    </script>
+}
+
+<form method="post">
+    <h3>Privacy</h3>
+    <p>
+        To improve the product, Metalama collects anonymous usage and quality data. You can change your choice at any time.
+        Read more in our <a href="@WebLinks.PrivacyPolicy" target="_blank">Privacy Policy</a> and the
+        <a href="@WebLinks.DisableTelemetryInstructions" target="_blank">telemetry documentation</a>.
+    </p>
+
+    <div class="checkbox">
+        <input id="isTelemetryEnabledCheckbox" type="checkbox" asp-for="IsTelemetryEnabled">
+        <div class="label">
+            <label asp-for="IsTelemetryEnabled">
+                Send anonymous usage data to help improve Metalama.
+            </label>
+            <small>Reports are anonymous and include a randomly generated device ID that you can reset at any time.</small>
+        </div>
+    </div>
+
+    @if (Model.IsSaved)
+    {
+        <p class="text-success">Your preference has been saved.</p>
+    }
+
+    <div class="navigation-buttons" style="justify-content: flex-start;">
+        <div class="back-button">
+            <a href="/">&larr; Back</a>
+        </div>
+    </div>
+</form>
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>

@@ -24,4 +24,6 @@ internal sealed class ActivationArguments
     public string Setup => $"{SetupWizardCommand.Name} {this._options}";
 
     public string OpenRssOptions => $"{OpenWorkerRssOptionsCommand.Name} {this._options}";
+
+    public string OpenPrivacyOptions => $"{OpenWorkerPrivacyOptionsCommand.Name} {this._options}";
 }

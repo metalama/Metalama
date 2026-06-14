@@ -2,11 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing.Registration;
 using Metalama.Backstage.Tests.Licensing;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Toasts;
+using Metalama.Backstage.Welcome;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -32,12 +34,19 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         await this.BackgroundTasks.WhenNoPendingTaskAsync();
     }
 
+    // Marks the first-run telemetry notice as already displayed so that tests focusing on other notifications
+    // are not disturbed by it.
+    private void SuppressFirstRunTelemetryNotice()
+        => this.ServiceProvider.GetRequiredBackstageService<IConfigurationManager>()
+            .Update<WelcomeConfiguration>( c => c with { WelcomePageDisplayed = true } );
+
     [Theory]
     [InlineData( true, false )]
     [InlineData( false, false )]
     public async Task IsActivationSuggestedOnFirstRunAsync( bool isUserInteractive, bool shouldBeOpened )
     {
         this.UserDeviceDetection.IsInteractiveDevice = isUserInteractive;
+        this.SuppressFirstRunTelemetryNotice();
 
         this._backstageServicesInitializer.Initialize();
         await this.DetectToastNotificationsAsync();
@@ -82,6 +91,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
     public async Task IsUserNotifiedOfTrialExpirationAsync( int daysBeforeExpiration, string? expectedTitleSubstring )
     {
         this.UserDeviceDetection.IsInteractiveDevice = true;
+        this.SuppressFirstRunTelemetryNotice();
 
         // Register a trial version.
         Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
@@ -117,6 +127,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
     public async Task IsUserNotifiedOfSubscriptionExpirationAsync( int daysBeforeExpiration, string? expectedTitleSubstring )
     {
         this.UserDeviceDetection.IsInteractiveDevice = true;
+        this.SuppressFirstRunTelemetryNotice();
 
         // Register a license key.
         Assert.True( this.LicenseRegistrationService.RegisterLicense( LicenseKeyProvider.MetalamaProfessionalBusiness ).IsSuccess );
@@ -148,6 +159,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
     public async Task IsVsxInstallationSuggestedAsync( bool extensionInstalled )
     {
         this.UserDeviceDetection.IsInteractiveDevice = true;
+        this.SuppressFirstRunTelemetryNotice();
         this.UserDeviceDetection.IsVisualStudioInstalled = true;
         this.ServiceProvider.GetRequiredBackstageService<IIdeExtensionStatusService>().IsVisualStudioExtensionInstalled = extensionInstalled;
 
@@ -206,6 +218,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
     public async Task VsxNotInstalledNotificationHasUri()
     {
         this.UserDeviceDetection.IsInteractiveDevice = true;
+        this.SuppressFirstRunTelemetryNotice();
         this.UserDeviceDetection.IsVisualStudioInstalled = true;
         this.ServiceProvider.GetRequiredBackstageService<IIdeExtensionStatusService>().IsVisualStudioExtensionInstalled = false;
 

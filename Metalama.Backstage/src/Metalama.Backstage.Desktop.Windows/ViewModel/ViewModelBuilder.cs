@@ -86,6 +86,19 @@ internal static class ViewModelBuilder
 
             return true;
         }
+        else if ( settings.Kind == ToastNotificationKinds.TelemetryNotice.Name )
+        {
+            viewModel = new NotificationViewModel(
+                settings.Kind,
+                "Welcome to Metalama",
+                """
+                To improve the product, Metalama collects anonymous usage data. Click to learn more or opt out.
+                """,
+                new CommandActionViewModel( "Privacy options", activationArguments.OpenPrivacyOptions ),
+                new UriActionViewModel( "Learn more", webLinks.DisableTelemetryInstructions ) ) { CanMute = false, CanSnooze = false };
+
+            return true;
+        }
         else if ( settings.Kind == ToastNotificationKinds.News.Name )
         {
             // Defense in depth: ensure the URI uses a safe (http/https) scheme before it reaches Windows protocol

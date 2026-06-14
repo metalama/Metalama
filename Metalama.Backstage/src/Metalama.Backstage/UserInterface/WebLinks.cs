@@ -16,7 +16,7 @@ public sealed class WebLinks : IBackstageService
     public const string TrackingQueryString = "utm_source=app&utm_medium=app&utm_campaign=backstage";
 
     // We don't add campaign tracking query string parameters so we do not override the attribution to the original campaign.
-    public string Welcome => GetLink( "metalama-oss-welcome", false ); // TODO - Implement
+    public string Welcome => GetLink( "metalama-oss-welcome", false );
 
     public string GetTeamTeamTrial => GetLink( "metalama-team-evaluation" );
 
@@ -38,7 +38,7 @@ public sealed class WebLinks : IBackstageService
 
     public string NewsletterSubscribeApi => "https://licensing.postsharp.net/MetalamaNewsletter.ashx";
 
-    public string DisableTelemetryInstructions => GetLink( "metalama-disable-telemetry" ); // TODO - Implement
+    public string DisableTelemetryInstructions => GetLink( "metalama-disable-telemetry" );
 
     private static string GetLink( string alias, bool trackCampaign = true, string? queryString = null )
     {
