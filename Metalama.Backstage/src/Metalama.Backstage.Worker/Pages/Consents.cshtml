@@ -1,90 +1,9 @@
-﻿@page
+@page
 @using Metalama.Backstage.UserInterface
 @model ConsentsPageModel
 @inject WebLinks WebLinks;
 
-@section Scripts {
-
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-
-    <script>
-        function onSubmit(token) {
-            if ($('#subscribeToNewsletterCheckbox').is(':checked')) {
-                var email = $('#EmailAddress').val();
-                if (!email || email.trim() === '') {
-                    $('#emailValidationError').show();
-                    $('#EmailAddress').attr('aria-invalid', 'true');
-                    grecaptcha.reset();
-                    return;
-                }
-                $('#recaptchaResponse').val(token);
-            }
-
-            $('form').submit();
-        }
-
-        $(document).ready(function () {
-            // Select the 'Accept All' checkbox using its ID
-            $('#AcceptAll').change(function () {
-                // Check or uncheck all other checkboxes based on 'Accept All' state
-                var isChecked = $(this).is(':checked');
-                $('input[type="checkbox"]:enabled').not(this).prop('checked', isChecked);
-                updateEmailFieldVisibility();
-            });
-
-            $('#subscribeToNewsletterCheckbox').change(function () {
-                updateEmailFieldVisibility();
-            });
-
-            $('#EmailAddress').on('input', function () {
-                if ($(this).val().trim() !== '') {
-                    $('#emailValidationError').hide();
-                    $(this).removeAttr('aria-invalid');
-                }
-            });
-
-            function updateEmailFieldVisibility() {
-                var isChecked = $('#subscribeToNewsletterCheckbox').is(':checked');
-                $('#emailFieldGroup').toggle(isChecked);
-                if (isChecked) {
-                    $('#EmailAddress').attr('required', 'required');
-                } else {
-                    $('#EmailAddress').removeAttr('required');
-                    $('#emailValidationError').hide();
-                    $('#EmailAddress').removeAttr('aria-invalid');
-                }
-            }
-
-            // Initialize visibility on page load.
-            updateEmailFieldVisibility();
-        });
-    </script>
-}
-
 <form method="post">
-    @if (Model.IsDeviceOnline)
-    {
-        <input id="recaptchaResponse" type="hidden" asp-for="RecaptchaResponse "/>
-
-        <div class="checkbox">
-            <input id="subscribeToNewsletterCheckbox" type="checkbox" asp-for="SubscribeToNewsletter ">
-            <div class="label">
-                <p>
-                    <label asp-for="SubscribeToNewsletter ">
-                        Subscribe to the Metalama newsletter and the welcome e-mail
-                        course.
-                    </label>
-                    <small>You can unsubscribe or change your preferences at any time.</small>
-                </p>
-                <p id="emailFieldGroup" style="display:none;">
-                    <label asp-for="EmailAddress ">Email:</label> <input type="email" asp-for="EmailAddress " autocomplete="email" aria-describedby="emailValidationError">
-                    <span id="emailValidationError" class="text-danger" role="alert" style="display:none;">Please enter your email address.</span>
-                </p>
-
-            </div>
-        </div>
-    }
-
     <div class="checkbox">
         <input type="checkbox" asp-for="AcceptLicense ">
         <div class="label">
@@ -96,30 +15,12 @@
         </div>
     </div>
 
-
-    <div class="checkbox">
-        <input type="checkbox" id="AcceptAll" name="AcceptLicense" value="true">
-        <div class="label">
-            <label for="AcceptAll" style="font-size: 110%">
-                <b>Accept All</b>
-            </label>
-        </div>
-    </div>
     <div class="navigation-buttons">
         <div class="back-button">
             <a href="@Model.BackUrl">&larr; Back</a>
         </div>
         <div class="continue-button">
-            @if (Model.IsDeviceOnline)
-            {
-                <button type="submit" class="g-recaptcha" data-sitekey="@Model.RecaptchaSiteKey" data-callback="onSubmit">
-                    Continue
-                </button>
-            }
-            else
-            {
-                <button type="submit">Continue</button>
-            }
+            <button type="submit">Continue</button>
         </div>
     </div>
 

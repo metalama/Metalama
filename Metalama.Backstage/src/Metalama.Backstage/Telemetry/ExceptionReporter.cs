@@ -11,6 +11,7 @@ using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -247,7 +248,14 @@ internal sealed class ExceptionReporter : IExceptionReporter
             xmlWriter.WriteStartElement( "ErrorReport" );
             xmlWriter.WriteElementString( "InvariantHash", hash );
             xmlWriter.WriteElementString( "Time", XmlConvert.ToString( this._time.UtcNow, XmlDateTimeSerializationMode.RoundtripKind ) );
-            xmlWriter.WriteElementString( "ClientId", this._telemetryConfigurationService.DeviceId.ToString() );
+            // Emit an anonymized device hash keyed by the first-party-only ExceptionReportingSalt, never the raw
+            // DeviceId GUID (the rotation seed from which the Matomo hash is derivable). The dedicated salt keeps
+            // this exception-reporting pseudonym unjoinable to both the Matomo and the usage-tracking data. See #1668.
+            var exceptionReportingDeviceHash = HashUtilities.ComputeInt64Hmac(
+                this._telemetryConfigurationService.DeviceId.ToString(),
+                this._telemetryConfigurationService.ExceptionReportingSalt );
+
+            xmlWriter.WriteElementString( "ClientId", exceptionReportingDeviceHash.ToString( "x", CultureInfo.InvariantCulture ) );
             xmlWriter.WriteStartElement( "Application" );
             xmlWriter.WriteElementString( "Name", applicationInfo.Name );
             xmlWriter.WriteElementString( "Version", applicationInfo.PackageVersion );
