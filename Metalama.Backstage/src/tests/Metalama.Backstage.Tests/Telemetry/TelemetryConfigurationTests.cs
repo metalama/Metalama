@@ -61,6 +61,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
 
         this.TelemetryConfigurationService.SetStatus( true );
         Assert.Equal( isEnabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal( isEnabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Rss ) );
     }
 
     [Fact]

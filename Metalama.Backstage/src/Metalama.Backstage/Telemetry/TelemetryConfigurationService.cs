@@ -191,7 +191,10 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             TelemetryScenario.Exception => this._isExceptionTelemetryEnabled,
             TelemetryScenario.Performance => this._isPerformanceTelemetryEnabled,
             TelemetryScenario.Usage => this._isUsageTelemetryEnabled,
-            TelemetryScenario.Rss => this._isGloballyEnabled,
+
+            // The news feed counts as usage telemetry for opt-out purposes: an in-product opt-out
+            // (SetStatus(false)) must stop the RSS fetch, just like the opt-out environment variable. See #1670.
+            TelemetryScenario.Rss => this._isGloballyEnabled && this._isUsageTelemetryEnabled,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
