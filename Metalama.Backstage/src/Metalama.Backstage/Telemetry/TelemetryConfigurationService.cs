@@ -194,7 +194,9 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
 
             // The news feed counts as usage telemetry for opt-out purposes: an in-product opt-out
             // (SetStatus(false)) must stop the RSS fetch, just like the opt-out environment variable. See #1670.
-            TelemetryScenario.Rss => this._isGloballyEnabled && this._isUsageTelemetryEnabled,
+            // _isUsageTelemetryEnabled already implies _isGloballyEnabled, because it is only ever set to true
+            // when _isGloballyEnabled is true (see ReadConfiguration and SetStatus).
+            TelemetryScenario.Rss => this._isUsageTelemetryEnabled,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
