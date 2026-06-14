@@ -247,6 +247,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                       "IsFirstStart": false,
                                       "IsFirstTimeEvaluationLicenseRegistrationPending": true,
                                       "WelcomePageDisplayed": true,
+                                      "TelemetryNoticeDisplayed": false,
                                       "IsWelcomePagePending": true,
                                       "version": 2
                                     }
