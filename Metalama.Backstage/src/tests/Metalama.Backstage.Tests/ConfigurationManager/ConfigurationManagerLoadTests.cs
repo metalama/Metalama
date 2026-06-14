@@ -32,6 +32,7 @@ public sealed class ConfigurationManagerLoadTests : TestsBase
         services.AddSingleton<IFileSystem>( new FileSystem() );
         services.AddSingleton<IDateTimeProvider>( this.Time );
         services.AddSingleton<IEnvironmentVariableProvider>( this.EnvironmentVariableProvider );
+        services.AddSingleton<IRuntimeInformation>( new RuntimeInformationProvider() );
         services.AddSingleton<EarlyLoggerFactory>();
         services.AddSingleton<IStandardDirectories>( s => new StandardDirectories( s ) );
 
