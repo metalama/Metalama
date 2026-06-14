@@ -34,10 +34,6 @@ public sealed class WebLinks : IBackstageService
 
     public string DotNetTool => GetLink( "metalama-dotnet_tool" );
 
-    public string NewsletterGetCaptchaSiteKeyApi => "https://licensing.postsharp.net/GetCaptchaSiteKey.ashx";
-
-    public string NewsletterSubscribeApi => "https://licensing.postsharp.net/MetalamaNewsletter.ashx";
-
     public string DisableTelemetryInstructions => GetLink( "metalama-disable-telemetry" ); // TODO - Implement
 
     private static string GetLink( string alias, bool trackCampaign = true, string? queryString = null )
