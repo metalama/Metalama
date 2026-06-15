@@ -67,20 +67,22 @@ internal class ExceptionReportPageModel : PageModel
     {
         this.Report = report;
 
-        if ( !string.IsNullOrEmpty( report ) && this._exceptionReporter.TryGetReport( report!, out var localReport ) )
+        if ( !string.IsNullOrEmpty( report ) && this._exceptionReporter.TryGetReport( report!, out var capturedReport ) )
         {
-            this.ScrubbedContent = localReport.ScrubbedContent;
-            this.LocalContent = localReport.LocalContent;
-            this.Scenario = localReport.Category;
+            this.ScrubbedContent = capturedReport.ScrubbedContent;
+            this.LocalContent = capturedReport.LocalContent;
+            this.Scenario = capturedReport.Category;
             this.AutoReport = this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( this.Scenario ) == ReportingAction.Yes;
         }
     }
 
     public IActionResult OnPostReport()
     {
-        if ( !string.IsNullOrEmpty( this.Report ) && this._exceptionReporter.TryGetReport( this.Report!, out var localReport ) )
+        if ( !string.IsNullOrEmpty( this.Report ) && this._exceptionReporter.TryGetReport( this.Report!, out var capturedReport ) )
         {
-            this.Scenario = localReport.Category;
+            this.Scenario = capturedReport.Category;
+            this.ScrubbedContent = capturedReport.ScrubbedContent;
+            this.LocalContent = capturedReport.LocalContent;
 
             if ( this.AutoReport )
             {
@@ -89,9 +91,9 @@ internal class ExceptionReportPageModel : PageModel
                 this._telemetryConfigurationService.SetStatus( this.Scenario, enabled: true );
             }
 
-            this._exceptionReporter.SendReport( this.Report! );
-
-            this.IsReported = true;
+            // Only report the report as queued if it was actually enqueued: SendReport can fail (e.g. the file was
+            // removed). Keeping the report content set means the page still renders the report rather than a blank form.
+            this.IsReported = this._exceptionReporter.SendReport( this.Report! );
         }
 
         return this.Page();

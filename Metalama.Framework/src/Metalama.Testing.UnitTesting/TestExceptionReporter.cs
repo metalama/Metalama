@@ -35,7 +35,7 @@ internal sealed class TestExceptionReporter : IExceptionReporter
         this._reportedExceptions.Add( classifiedException.Exception );
     }
 
-    public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out LocalExceptionReport? report )
+    public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out CapturedExceptionReport? report )
     {
         report = null;
 

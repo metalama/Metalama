@@ -60,7 +60,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         }
     }
 
-    private bool IsGloballyEnabled()
+    private bool ComputeGlobalEnablement()
     {
         // Check if the current application supports telemetry.
         var applicationInfo = this._serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
@@ -213,7 +213,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 };
             } );
 
-        this._isGloballyEnabled = this.IsGloballyEnabled();
+        this._isGloballyEnabled = this.ComputeGlobalEnablement();
         this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
         this._initialized = true;
     }
@@ -273,6 +273,19 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     }
 
     public Guid DeviceId { get; private set; }
+
+    public bool IsGloballyEnabled
+    {
+        get
+        {
+            if ( !this._initialized )
+            {
+                throw new InvalidOperationException( "The service has not been initialized." );
+            }
+
+            return this._isGloballyEnabled;
+        }
+    }
 
     public bool IsEnabled( TelemetryScenario scenario )
     {

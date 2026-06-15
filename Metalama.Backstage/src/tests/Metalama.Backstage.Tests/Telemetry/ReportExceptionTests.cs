@@ -131,32 +131,63 @@ public sealed class ReportExceptionTests : TestsBase
     }
 
     [Theory]
-    [InlineData( ReportingAction.Yes, ReportingAction.No, ExceptionReportingKind.Exception, true )]
-    [InlineData( ReportingAction.No, ReportingAction.Yes, ExceptionReportingKind.Exception, false )]
-    [InlineData( ReportingAction.No, ReportingAction.Yes, ExceptionReportingKind.PerformanceProblem, true )]
-    [InlineData( ReportingAction.Yes, ReportingAction.No, ExceptionReportingKind.PerformanceProblem, false )]
-    [InlineData( ReportingAction.Yes, ReportingAction.Default, ExceptionReportingKind.PerformanceProblem, true )]
-    [InlineData( ReportingAction.Default, ReportingAction.Yes, ExceptionReportingKind.Exception, true )]
-    public void ExceptionsAreReportedAsConfiguredWhenTelemetryIsEnabled(
-        ReportingAction exceptionReportingAction,
-        ReportingAction performanceReportingAction,
+    // #1674: Capture is decoupled from sending. When telemetry is globally enabled, a scrubbed report is ALWAYS captured
+    // regardless of the per-category reporting action; the action only decides whether it is also auto-sent (moved to the
+    // upload queue). 'queued' is the action of the kind being reported; the other kind is set to No to prove independence.
+    [InlineData( ReportingAction.Yes, ExceptionReportingKind.Exception, true )]
+    [InlineData( ReportingAction.Default, ExceptionReportingKind.Exception, false )]
+    [InlineData( ReportingAction.No, ExceptionReportingKind.Exception, false )]
+    [InlineData( ReportingAction.Yes, ExceptionReportingKind.PerformanceProblem, true )]
+    [InlineData( ReportingAction.Default, ExceptionReportingKind.PerformanceProblem, false )]
+    [InlineData( ReportingAction.No, ExceptionReportingKind.PerformanceProblem, false )]
+    public void ReportIsAlwaysCapturedAndEnqueuedOnlyWhenCategoryIsYes(
+        ReportingAction reportingAction,
         ExceptionReportingKind exceptionReportingKind,
-        bool shouldReport )
+        bool shouldEnqueue )
     {
-        this.ReportException( exceptionReportingAction, performanceReportingAction, exceptionReportingKind );
+        this.ReportException(
+            exceptionReportingAction: exceptionReportingKind == ExceptionReportingKind.Exception ? reportingAction : ReportingAction.No,
+            performanceReportingAction: exceptionReportingKind == ExceptionReportingKind.PerformanceProblem ? reportingAction : ReportingAction.No,
+            exceptionReportingKind: exceptionReportingKind );
 
-        if ( shouldReport )
+        // A scrubbed report is captured in all cases (it is valid XML).
+        var scrubbed = this.GetScrubbedReportFile();
+        _ = XDocument.Parse( this.FileSystem.ReadAllText( scrubbed ) );
+
+        if ( shouldEnqueue )
         {
-            this.AssertFilesCount( 1 );
-
-            // Check that the result is valid XML.
-            var xml = this.FileSystem.ReadAllText( this.GetScrubbedReportFile() );
-            _ = XDocument.Parse( xml );
+            Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), scrubbed, StringComparison.Ordinal );
         }
         else
         {
-            this.AssertFilesCount( 0 );
+            Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), scrubbed, StringComparison.Ordinal );
+            Assert.DoesNotContain(
+                this.FileSystem.Mock.AllFiles,
+                f => f.Contains( Path.Combine( "Telemetry", "UploadQueue" ), StringComparison.Ordinal ) );
         }
+    }
+
+    [Theory]
+    [InlineData( ExceptionReportingKind.Exception )]
+    [InlineData( ExceptionReportingKind.PerformanceProblem )]
+    public void ReportIsCapturedAndToastShownEvenWhenCategoryIsOptedOut( ExceptionReportingKind exceptionReportingKind )
+    {
+        // #1674 / Copilot: capture + toast happen regardless of the per-category telemetry setting; only sending is
+        // gated. Even when the category is explicitly opted out (ReportingAction.No), the report is captured locally and
+        // a toast is shown, but it is NOT enqueued for upload.
+        this.ReportException(
+            exceptionReportingAction: ReportingAction.No,
+            performanceReportingAction: ReportingAction.No,
+            exceptionReportingKind: exceptionReportingKind );
+
+        var scrubbed = this.GetScrubbedReportFile();
+        Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), scrubbed, StringComparison.Ordinal );
+        Assert.DoesNotContain(
+            this.FileSystem.Mock.AllFiles,
+            f => f.Contains( Path.Combine( "Telemetry", "UploadQueue" ), StringComparison.Ordinal ) );
+
+        var toast = Assert.Single( this.UserInterface.Notifications );
+        Assert.Equal( ToastNotificationKinds.Exception.Name, toast.Kind.Name );
     }
 
     [Theory]
@@ -285,12 +316,66 @@ public sealed class ReportExceptionTests : TestsBase
         Assert.DoesNotContain( ".local.xml", enqueued, StringComparison.Ordinal );
     }
 
+    [Fact]
+    public void TryGetReportFindsAutoSentReportInUploadQueue()
+    {
+        // Copilot: an auto-sent (Yes) report is moved to the upload queue. Clicking its toast must still show it (the
+        // toast says "review what was reported"), so report lookup resolves reports in the upload queue too.
+        this.ReportException( exceptionReportingAction: ReportingAction.Yes, performanceReportingAction: ReportingAction.Yes );
+
+        var enqueued = Assert.Single( this.FileSystem.Mock.AllFiles );
+        Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), enqueued, StringComparison.Ordinal );
+
+        var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
+        Assert.True( reporter.TryGetReport( Path.GetFileName( enqueued ), out var report ) );
+        _ = XDocument.Parse( report!.ScrubbedContent );
+    }
+
+    [Fact]
+    public void SendReportIsIdempotentForAlreadyQueuedReport()
+    {
+        // Copilot: an already-queued report (auto-sent, or sent on a previous click) must not be treated as a failure;
+        // SendReport returns true without moving anything, so the worker page's Report button stays reliable.
+        this.ReportException( exceptionReportingAction: ReportingAction.Yes, performanceReportingAction: ReportingAction.Yes );
+        var enqueued = Path.GetFileName( Assert.Single( this.FileSystem.Mock.AllFiles ) );
+
+        var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
+        Assert.True( reporter.SendReport( enqueued ) );
+
+        // Still exactly one file, still in the upload queue (no duplicate, no move error).
+        var file = Assert.Single( this.FileSystem.Mock.AllFiles );
+        Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), file, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public void SendAndReadRejectTheFullLocalRendering()
+    {
+        // Copilot: the full, unscrubbed local rendering ('.local.xml') must never be uploadable. TryGetReport/SendReport
+        // reject it even though it is a bare file name that exists on disk.
+        this.ReportException( exceptionReportingAction: ReportingAction.Default, performanceReportingAction: ReportingAction.Default );
+
+        var localRendering = Path.GetFileName(
+            Assert.Single( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) ) );
+
+        var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
+
+        Assert.False( reporter.TryGetReport( localRendering, out var report ) );
+        Assert.Null( report );
+        Assert.False( reporter.SendReport( localRendering ) );
+
+        // The local rendering was not enqueued for upload.
+        Assert.DoesNotContain(
+            this.FileSystem.Mock.AllFiles,
+            f => f.Contains( Path.Combine( "Telemetry", "UploadQueue" ), StringComparison.Ordinal ) );
+    }
+
     [Theory]
     [InlineData( "../telemetry.json" )]
     [InlineData( "sub/report.xml" )]
     [InlineData( "sub\\report.xml" )]
     [InlineData( "" )]
     [InlineData( "does-not-exist.xml" )]
+    [InlineData( "exception-abc.local.xml" )]
     public void SendAndReadRejectInvalidOrMissingReportNames( string reportFileName )
     {
         // Guard against path traversal and missing files: a review page request must never read or send an arbitrary

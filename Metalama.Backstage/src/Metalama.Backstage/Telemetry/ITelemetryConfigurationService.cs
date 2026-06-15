@@ -26,6 +26,15 @@ public interface ITelemetryConfigurationService : IBackstageService
 
     bool IsEnabled( TelemetryScenario scenario );
 
+    /// <summary>
+    /// Gets a value indicating whether telemetry is enabled at the process level — i.e. the current application supports
+    /// telemetry, the process is not unattended, and the user has not opted out through the environment variable. Unlike
+    /// <see cref="IsEnabled"/>, this is independent of the per-category <see cref="ReportingAction"/>. Exception/performance
+    /// reports are captured locally (and a toast is shown) whenever this is <c>true</c>, regardless of the category's
+    /// reporting action; only auto-send is additionally gated on the category being <see cref="ReportingAction.Yes"/>. See #1674.
+    /// </summary>
+    bool IsGloballyEnabled { get; }
+
     void ResetDeviceId();
 
     /// <summary>

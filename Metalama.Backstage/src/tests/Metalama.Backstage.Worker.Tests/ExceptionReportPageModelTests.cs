@@ -24,11 +24,13 @@ public sealed class ExceptionReportPageModelTests : TestsBase
     // A fake IExceptionReporter so the page-model orchestration can be tested without the (internal) ExceptionReporter.
     private sealed class FakeExceptionReporter : IExceptionReporter
     {
-        public LocalExceptionReport? ReportToReturn { get; set; }
+        public CapturedExceptionReport? ReportToReturn { get; set; }
 
         public string? RequestedReport { get; private set; }
 
         public string? SentReport { get; private set; }
+
+        public bool SendReportResult { get; set; } = true;
 
         public void ReportException(
             Exception exception,
@@ -42,7 +44,7 @@ public sealed class ExceptionReportPageModelTests : TestsBase
             string? localReportPath = null,
             IExceptionAdapter? exceptionAdapter = null ) { }
 
-        public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out LocalExceptionReport? report )
+        public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out CapturedExceptionReport? report )
         {
             this.RequestedReport = reportFileName;
             report = this.ReportToReturn;
@@ -54,7 +56,7 @@ public sealed class ExceptionReportPageModelTests : TestsBase
         {
             this.SentReport = reportFileName;
 
-            return true;
+            return this.SendReportResult;
         }
     }
 
@@ -72,7 +74,7 @@ public sealed class ExceptionReportPageModelTests : TestsBase
     {
         var reporter = new FakeExceptionReporter
         {
-            ReportToReturn = new LocalExceptionReport( "<ErrorReport />", "<ErrorReport local=\"true\" />", TelemetryScenario.Exception )
+            ReportToReturn = new CapturedExceptionReport( "<ErrorReport />", "<ErrorReport local=\"true\" />", TelemetryScenario.Exception )
         };
 
         var model = this.CreateModel( reporter );
@@ -105,7 +107,7 @@ public sealed class ExceptionReportPageModelTests : TestsBase
     [InlineData( TelemetryScenario.Exception )]
     public void ScenarioIsReadFromTheReport( TelemetryScenario category )
     {
-        var reporter = new FakeExceptionReporter { ReportToReturn = new LocalExceptionReport( "<r/>", null, category ) };
+        var reporter = new FakeExceptionReporter { ReportToReturn = new CapturedExceptionReport( "<r/>", null, category ) };
         var model = this.CreateModel( reporter );
 
         model.OnGet( "report.xml" );
@@ -120,7 +122,7 @@ public sealed class ExceptionReportPageModelTests : TestsBase
 
         var reporter = new FakeExceptionReporter
         {
-            ReportToReturn = new LocalExceptionReport( "<r/>", null, TelemetryScenario.Exception )
+            ReportToReturn = new CapturedExceptionReport( "<r/>", null, TelemetryScenario.Exception )
         };
 
         var model = this.CreateModel( reporter );
@@ -143,7 +145,7 @@ public sealed class ExceptionReportPageModelTests : TestsBase
 
         var reporter = new FakeExceptionReporter
         {
-            ReportToReturn = new LocalExceptionReport( "<r/>", null, TelemetryScenario.Performance )
+            ReportToReturn = new CapturedExceptionReport( "<r/>", null, TelemetryScenario.Performance )
         };
 
         var model = this.CreateModel( reporter );
@@ -160,5 +162,29 @@ public sealed class ExceptionReportPageModelTests : TestsBase
         // Exceptions and usage telemetry are independent and unchanged.
         Assert.Equal( ReportingAction.Default, this.GetReportingAction( TelemetryScenario.Exception ) );
         Assert.Equal( ReportingAction.Yes, this.GetReportingAction( TelemetryScenario.Usage ) );
+    }
+
+    [Fact]
+    public void OnPostReportDoesNotShowQueuedWhenSendFails()
+    {
+        // Copilot review: the page must only show "Report queued" when the report was actually enqueued. If SendReport
+        // fails (e.g. the report file was removed), IsReported stays false so the page does not falsely claim success.
+        this.TelemetryConfigurationService.Initialize();
+
+        var reporter = new FakeExceptionReporter
+        {
+            ReportToReturn = new CapturedExceptionReport( "<r/>", null, TelemetryScenario.Exception ), SendReportResult = false
+        };
+
+        var model = this.CreateModel( reporter );
+        model.Report = "exception-abc.xml";
+
+        model.OnPostReport();
+
+        Assert.Equal( "exception-abc.xml", reporter.SentReport );
+        Assert.False( model.IsReported );
+
+        // The report content is still loaded, so the page re-renders the report rather than a blank form.
+        Assert.True( model.HasReport );
     }
 }

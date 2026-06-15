@@ -54,53 +54,98 @@ internal sealed class ExceptionReporter : IExceptionReporter
         this._toastNotificationService = serviceProvider.GetBackstageService<IToastNotificationService>();
     }
 
+    // The full, unscrubbed local rendering is stored next to the scrubbed report with this suffix, so the review page
+    // can show both side by side. It is local-only and must NEVER be uploaded; the scrubbed '.xml' is the only file
+    // ever sent. See #1674.
+    private const string _localRenderingSuffix = ".local.xml";
+
+    private static string GetLocalRenderingFileName( string scrubbedReportFileName )
+        => Path.GetFileNameWithoutExtension( scrubbedReportFileName ) + _localRenderingSuffix;
+
     /// <summary>
-    /// Resolves and validates a bare report file name against the local exceptions directory, guarding against path
-    /// traversal: <paramref name="reportFileName"/> must be a non-empty bare file name (no directory component).
+    /// Validates the bare file name of a scrubbed report, guarding against path traversal and against ever addressing
+    /// the full local rendering. <paramref name="reportFileName"/> must be a non-empty bare file name (no directory
+    /// component) and must not be the full local rendering ('.local.xml'), which is never uploadable.
     /// </summary>
-    private bool TryResolveReportPath( string reportFileName, [NotNullWhen( true )] out string? fullPath )
+    private static bool IsValidScrubbedReportFileName( string reportFileName )
+    {
+        if ( string.IsNullOrEmpty( reportFileName ) || Path.GetFileName( reportFileName ) != reportFileName )
+        {
+            return false;
+        }
+
+        // The full, unscrubbed local rendering must never be read as an upload payload nor enqueued for upload.
+        if ( reportFileName.EndsWith( _localRenderingSuffix, StringComparison.OrdinalIgnoreCase ) )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Locates a scrubbed report by its bare file name, whether it is still awaiting review under
+    /// <see cref="IStandardDirectories.TelemetryExceptionsDirectory"/> or has already been moved to
+    /// <see cref="IStandardDirectories.TelemetryUploadQueueDirectory"/> (auto-sent, or sent on demand). Returns
+    /// <c>false</c> if the name is invalid or the file is not found in either location.
+    /// </summary>
+    private bool TryResolveReportPath( string reportFileName, [NotNullWhen( true )] out string? fullPath, out bool isQueued )
     {
         fullPath = null;
+        isQueued = false;
 
-        if ( string.IsNullOrEmpty( reportFileName ) || Path.GetFileName( reportFileName ) != reportFileName )
+        if ( !IsValidScrubbedReportFileName( reportFileName ) )
         {
             this._logger.Warning?.Log( $"Rejecting an invalid exception report file name '{reportFileName}'." );
 
             return false;
         }
 
-        fullPath = Path.Combine( this._directories.TelemetryExceptionsDirectory, reportFileName );
+        var localPath = Path.Combine( this._directories.TelemetryExceptionsDirectory, reportFileName );
 
-        return true;
+        if ( this._fileSystem.FileExists( localPath ) )
+        {
+            fullPath = localPath;
+
+            return true;
+        }
+
+        var queuedPath = Path.Combine( this._directories.TelemetryUploadQueueDirectory, reportFileName );
+
+        if ( this._fileSystem.FileExists( queuedPath ) )
+        {
+            fullPath = queuedPath;
+            isQueued = true;
+
+            return true;
+        }
+
+        return false;
     }
 
-    // The full, unscrubbed local rendering is stored next to the scrubbed report with a '.local.xml' extension, so the
-    // review page can show both side by side. The scrubbed '.xml' is the only file ever uploaded. See #1674.
-    private static string GetLocalReportFileName( string scrubbedReportFileName )
-        => Path.GetFileNameWithoutExtension( scrubbedReportFileName ) + ".local.xml";
-
-    public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out LocalExceptionReport? report )
+    public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out CapturedExceptionReport? report )
     {
         report = null;
 
-        if ( !this.TryResolveReportPath( reportFileName, out var fullPath ) || !this._fileSystem.FileExists( fullPath ) )
+        if ( !this.TryResolveReportPath( reportFileName, out var fullPath, out _ ) )
         {
             return false;
         }
 
         var scrubbedContent = this._fileSystem.ReadAllText( fullPath );
 
-        // Read the full local rendering if it exists (it is absent for reports captured through a custom exception
-        // adapter, which cannot be re-rendered unscrubbed).
+        // The full local rendering always lives next to the captured report under the exceptions directory (it is never
+        // moved to the upload queue). It is absent for auto-sent reports and for reports captured through a custom
+        // exception adapter, which cannot be re-rendered unscrubbed.
         string? localContent = null;
-        var localFullPath = Path.Combine( this._directories.TelemetryExceptionsDirectory, GetLocalReportFileName( reportFileName ) );
+        var localRenderingPath = Path.Combine( this._directories.TelemetryExceptionsDirectory, GetLocalRenderingFileName( reportFileName ) );
 
-        if ( this._fileSystem.FileExists( localFullPath ) )
+        if ( this._fileSystem.FileExists( localRenderingPath ) )
         {
-            localContent = this._fileSystem.ReadAllText( localFullPath );
+            localContent = this._fileSystem.ReadAllText( localRenderingPath );
         }
 
-        report = new LocalExceptionReport( scrubbedContent, localContent, ParseCategory( scrubbedContent ) );
+        report = new CapturedExceptionReport( scrubbedContent, localContent, ParseCategory( scrubbedContent ) );
 
         return true;
     }
@@ -127,11 +172,20 @@ internal sealed class ExceptionReporter : IExceptionReporter
 
     public bool SendReport( string reportFileName )
     {
-        if ( !this.TryResolveReportPath( reportFileName, out var fullPath ) || !this._fileSystem.FileExists( fullPath ) )
+        if ( !this.TryResolveReportPath( reportFileName, out var fullPath, out var isQueued ) )
         {
             this._logger.Warning?.Log( $"Cannot send the exception report '{reportFileName}' because it does not exist." );
 
             return false;
+        }
+
+        if ( isQueued )
+        {
+            // The report has already been enqueued (auto-sent, or sent on a previous click). Sending again is a no-op
+            // success so the review page's Report button stays reliable. See #1674.
+            this._logger.Trace?.Log( $"The exception report '{reportFileName}' is already queued for upload." );
+
+            return true;
         }
 
         this._logger.Trace?.Log( $"Sending the exception report '{reportFileName}' upon user request." );
@@ -324,9 +378,14 @@ internal sealed class ExceptionReporter : IExceptionReporter
 
             var scenario = exceptionReportingKind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance;
 
-            if ( !this._telemetryConfigurationService.IsEnabled( scenario ) )
+            // Capture is decoupled from sending (#1674). The report is captured locally (and a toast shown) whenever
+            // telemetry is globally enabled, regardless of the per-category reporting action — the category only decides
+            // whether the report is additionally auto-sent (see below). A process-level opt-out (the application does not
+            // support telemetry, the process is unattended, or the opt-out environment variable is set) still suppresses
+            // capture entirely.
+            if ( !this._telemetryConfigurationService.IsGloballyEnabled )
             {
-                this._logger.Trace?.Log( $"The exception will not be captured because the telemetry is disabled." );
+                this._logger.Trace?.Log( $"The exception will not be captured because telemetry is disabled for this process." );
 
                 return;
             }
@@ -369,8 +428,9 @@ internal sealed class ExceptionReporter : IExceptionReporter
 
             // Capture is decoupled from sending (#1674). The scrubbed report has now been captured locally under the
             // Telemetry\Exceptions directory. We only auto-send it (move it to the upload queue) when the user has
-            // explicitly opted the category in (ReportingAction.Yes). For a review-first category (ReportingAction.Default)
-            // the report stays local until the user reviews and sends it from the worker page / CLI.
+            // explicitly opted the category in (ReportingAction.Yes). Otherwise (review-first: ReportingAction.Default,
+            // or an explicit opt-out: ReportingAction.No) the report stays local until the user reviews and sends it
+            // from the worker page / CLI.
             var reportingAction = this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( scenario );
 
             if ( reportingAction == ReportingAction.Yes )
@@ -393,16 +453,15 @@ internal sealed class ExceptionReporter : IExceptionReporter
                 if ( adapter is DefaultExceptionAdapter )
                 {
                     this._fileSystem.WriteAllText(
-                        Path.Combine( directory, GetLocalReportFileName( baseName + ".xml" ) ),
+                        Path.Combine( directory, GetLocalRenderingFileName( baseName + ".xml" ) ),
                         this.BuildReport( hash, scenario, classifiedException, adapter, ExceptionSensitiveDataHelper.Disabled ) );
                 }
             }
 
             // Notify the user that a report was captured. Clicking the toast opens the worker review page, which shows
-            // the exact scrubbed payload with a Report button and a per-category auto-report checkbox. The page reads
-            // the report from the local exceptions directory, so we reference it by its bare file name. For an
-            // auto-sent (Yes) report the file has been moved to the upload queue; the page then reports it as already
-            // sent. See #1674.
+            // the report renderings with a Report button and a per-category auto-report checkbox. We reference the report
+            // by the bare file name of its scrubbed payload; the page resolves it whether it is still under
+            // Telemetry\Exceptions (review-first) or has already been moved to Telemetry\UploadQueue (auto-sent). See #1674.
             this.ShowToastNotification( Path.GetFileName( fileName ), scenario, applicationInfo.Name, autoSent: reportingAction == ReportingAction.Yes );
         }
         catch ( Exception e )
