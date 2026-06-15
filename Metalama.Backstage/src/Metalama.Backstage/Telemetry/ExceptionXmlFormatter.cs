@@ -94,7 +94,7 @@ namespace Metalama.Backstage.Telemetry
                                     break;
 
                                 default:
-                                    writer.WriteElementString( "Value", scrubber.RemoveSensitiveData( data.Value.ToString() ) );
+                                    writer.WriteElementString( "Value", scrubber.RemoveSensitiveData( data.Value.Value.ToString() ) );
 
                                     break;
                             }

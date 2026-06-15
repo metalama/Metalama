@@ -14,8 +14,9 @@ namespace Metalama.Backstage.Telemetry;
 /// <param name="ScrubbedContent">The exact, scrubbed payload that would be uploaded.</param>
 /// <param name="LocalContent">
 /// The full, unscrubbed local rendering of the same report, kept on the machine and shown next to <paramref name="ScrubbedContent"/>
-/// so the user can see exactly what the scrubber removes. <c>null</c> when a full rendering is not available (an auto-sent
-/// report, or a report captured through a custom exception adapter that scrubs internally).
+/// so the user can see exactly what the scrubber removes. It is captured for every report (including auto-sent ones);
+/// it is <c>null</c> only when no full rendering is available — a report captured through a custom exception adapter that
+/// scrubs internally, or one whose local rendering has already been removed by the retention cleanup.
 /// </param>
 /// <param name="Category">The report category, which drives the per-category auto-report checkbox.</param>
 /// <param name="IsQueued">

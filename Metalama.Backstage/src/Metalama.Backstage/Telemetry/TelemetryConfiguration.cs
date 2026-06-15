@@ -76,9 +76,15 @@ public sealed record TelemetryConfiguration : ConfigurationFile
     public DateTime? LastMatomoPostTime { get; init; }
 
     /// <summary>
+    /// The retention period applied when <see cref="RetentionPeriodInDays"/> is not set.
+    /// </summary>
+    public const int DefaultRetentionPeriodInDays = 30;
+
+    /// <summary>
     /// Gets the number of days during which telemetry data is retained on disk before being deleted by the
     /// maintenance pass. The period is read live at each cleanup, so changing it takes effect on the next sweep.
-    /// The default value is 30 days.
+    /// <c>null</c> (the default for a new configuration, and for a configuration that omits the setting) means
+    /// <see cref="DefaultRetentionPeriodInDays"/> (30 days), applied at cleanup time.
     /// </summary>
     public int? RetentionPeriodInDays { get; init; }
 

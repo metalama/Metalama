@@ -476,11 +476,19 @@ internal sealed class ExceptionReporter : IExceptionReporter
             // whether the report is auto-sent or awaiting review. The '.local.xml' file is never uploaded (it is not
             // enqueued and the upload queue only ever receives the scrubbed '.xml'). We can only re-render unscrubbed
             // through the default adapter; a custom adapter (cross-process exceptions) scrubs internally. See #1674.
+            // This is best-effort: a failure to render the local copy must not prevent capture, auto-send or the toast.
             if ( adapter is DefaultExceptionAdapter )
             {
-                this._fileSystem.WriteAllText(
-                    Path.Combine( directory, GetLocalRenderingFileName( baseName + ".xml" ) ),
-                    this.BuildReport( hash, scenario, classifiedException, adapter, ExceptionSensitiveDataHelper.Disabled ) );
+                try
+                {
+                    this._fileSystem.WriteAllText(
+                        Path.Combine( directory, GetLocalRenderingFileName( baseName + ".xml" ) ),
+                        this.BuildReport( hash, scenario, classifiedException, adapter, ExceptionSensitiveDataHelper.Disabled ) );
+                }
+                catch ( Exception e )
+                {
+                    this._logger.Warning?.Log( $"Cannot write the full local rendering of the exception report: {e.Message}" );
+                }
             }
 
             // Capture is decoupled from sending (#1674). The scrubbed report has now been captured locally under the

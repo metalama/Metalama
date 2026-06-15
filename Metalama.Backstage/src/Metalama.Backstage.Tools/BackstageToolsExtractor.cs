@@ -24,7 +24,7 @@ internal sealed class BackstageToolsExtractor : IBackstageToolsExtractor
 
     private void Extract( BackstageTool tool )
     {
-        var directory = this._locator.GetToolDirectory( tool);
+        var directory = this._locator.GetToolDirectory( tool );
 
         var touchFile = Path.Combine( directory, "unzipped.touch" );
 

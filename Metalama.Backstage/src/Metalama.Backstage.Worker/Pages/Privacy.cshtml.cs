@@ -80,5 +80,14 @@ internal class PrivacyPageModel : PageModel
     }
 
     private bool GetIsEnabled( TelemetryScenario scenario )
-        => this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( scenario ) != ReportingAction.No;
+    {
+        var action = this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( scenario );
+
+        // Usage reporting is opt-out, so it is "on" unless explicitly disabled. Exception and performance-problem
+        // reporting are opt-in to auto-send: the "Send … reports" checkbox reflects auto-send (Yes), so the review-first
+        // default (ReportingAction.Default) correctly shows as unchecked. See #1674.
+        return scenario == TelemetryScenario.Usage
+            ? action != ReportingAction.No
+            : action == ReportingAction.Yes;
+    }
 }
