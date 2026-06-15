@@ -51,14 +51,20 @@ namespace Metalama.Backstage.Tests.Telemetry
         }
 
         [Fact]
-        public void ExceptionMessageSecretsAreRedacted()
+        public void ExceptionMessageIsNotSentAtAll()
         {
-            var exception = new InvalidOperationException( "Login failed: password=SuperSecret123" );
+            var exception = new InvalidOperationException( "Login failed: password=SuperSecret123 for user jane.doe" );
 
             var xml = WriteExceptionXml( exception );
 
+            // The XML must be well-formed.
+            var doc = XDocument.Parse( xml );
+
+            // Exception.Message is never serialized: it frequently embeds user input, paths or secrets, so neither
+            // the message text nor a Message element leaves the machine. See #1680.
             Assert.DoesNotContain( "SuperSecret123", xml, StringComparison.Ordinal );
-            Assert.Contains( "#secret", xml, StringComparison.Ordinal );
+            Assert.DoesNotContain( "Login failed", xml, StringComparison.Ordinal );
+            Assert.Empty( doc.Descendants( "Message" ) );
         }
 
         [Theory]

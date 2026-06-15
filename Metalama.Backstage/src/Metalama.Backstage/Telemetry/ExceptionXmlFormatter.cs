@@ -17,7 +17,11 @@ namespace Metalama.Backstage.Telemetry
         public static void WriteException( XmlWriter writer, Exception e )
         {
             writer.WriteElementString( "Type", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.GetType().FullName ) );
-            writer.WriteElementString( "Message", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.Message ) );
+
+            // Exception.Message is an arbitrary, often interpolated string that frequently embeds user input,
+            // file paths, connection strings or other secrets. For safety we never serialize it into the
+            // uploaded report — the exception type and stack trace are enough to diagnose. See #1680.
+
             writer.WriteElementString( "Source", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.Source ) );
 
             // Exception.Data is an arbitrary, developer-populated bag that may hold secrets, connection
