@@ -4,10 +4,11 @@
 
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
+using System;
 
 namespace Metalama.Backstage.Commands.Telemetry;
 
-internal abstract class SetTelemetryCommand : BaseCommand<BaseCommandSettings>
+internal abstract class SetTelemetryCommand : BaseCommand<SetTelemetryCommandSettings>
 {
     private readonly bool _enable;
 
@@ -16,10 +17,46 @@ internal abstract class SetTelemetryCommand : BaseCommand<BaseCommandSettings>
         this._enable = enable;
     }
 
-    protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
+    protected override void Execute( ExtendedCommandContext context, SetTelemetryCommandSettings settings )
     {
-        context.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>().SetStatus( this._enable );
+        var service = context.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
+
+        switch ( settings.Scenario )
+        {
+            case TelemetryScenarioArgument.Usage:
+                service.SetStatus( TelemetryScenario.Usage, this._enable );
+
+                break;
+
+            case TelemetryScenarioArgument.Exception:
+                service.SetStatus( TelemetryScenario.Exception, this._enable );
+
+                break;
+
+            case TelemetryScenarioArgument.Performance:
+                service.SetStatus( TelemetryScenario.Performance, this._enable );
+
+                break;
+
+            case TelemetryScenarioArgument.All:
+                service.SetStatus( this._enable );
+
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException( nameof(settings), settings.Scenario, "Unknown telemetry scenario." );
+        }
+
         var state = this._enable ? "enabled" : "disabled";
-        context.Console.WriteSuccess( $"Telemetry has been {state}." );
+
+        var scope = settings.Scenario switch
+        {
+            TelemetryScenarioArgument.Usage => "Usage telemetry",
+            TelemetryScenarioArgument.Exception => "Exception telemetry",
+            TelemetryScenarioArgument.Performance => "Performance telemetry",
+            _ => "Telemetry"
+        };
+
+        context.Console.WriteSuccess( $"{scope} has been {state}." );
     }
 }

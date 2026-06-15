@@ -134,6 +134,9 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 return c with
                 {
                     DeviceId = this._randomNumberGenerator.NextGuid(),
+
+                    // Usage reporting is opt-out (enabled by default), but exception and performance-problem reporting
+                    // are opt-in (disabled by default) because those reports may contain more sensitive diagnostic data.
                     UsageReportingAction = ReportingAction.Yes,
 
                     // The exception/performance channel defaults to review-first (Default) rather than auto-send (Yes):
@@ -234,21 +237,39 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         }
     }
 
-    public void SetReportingAction( TelemetryScenario scenario, ReportingAction action )
+    public void SetStatus( TelemetryScenario scenario, bool enabled )
     {
-        // Update a single category, leaving the other categories untouched. This is what makes the exception /
-        // performance auto-report setting independent of usage telemetry (unlike SetStatus, which flips all three). See #1674.
+        var reportAction = enabled ? ReportingAction.Yes : ReportingAction.No;
+
         this._configurationManager.Update<TelemetryConfiguration>(
             c => scenario switch
             {
-                TelemetryScenario.Exception => c with { ExceptionReportingAction = action },
-                TelemetryScenario.Performance => c with { PerformanceProblemReportingAction = action },
-                TelemetryScenario.Usage => c with { UsageReportingAction = action },
-                _ => throw new ArgumentOutOfRangeException( nameof(scenario), scenario, null )
+                TelemetryScenario.Usage => c with { UsageReportingAction = reportAction },
+                TelemetryScenario.Exception => c with { ExceptionReportingAction = reportAction },
+                TelemetryScenario.Performance => c with { PerformanceProblemReportingAction = reportAction },
+                _ => throw new ArgumentOutOfRangeException( nameof(scenario), scenario, "This telemetry scenario cannot be configured." )
             } );
 
-        // Refresh the cached enablement flags from the updated configuration.
-        this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
+        if ( this._isGloballyEnabled )
+        {
+            switch ( scenario )
+            {
+                case TelemetryScenario.Usage:
+                    this._isUsageTelemetryEnabled = enabled;
+
+                    break;
+
+                case TelemetryScenario.Exception:
+                    this._isExceptionTelemetryEnabled = enabled;
+
+                    break;
+
+                case TelemetryScenario.Performance:
+                    this._isPerformanceTelemetryEnabled = enabled;
+
+                    break;
+            }
+        }
     }
 
     public Guid DeviceId { get; private set; }

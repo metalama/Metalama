@@ -75,7 +75,7 @@ internal class ExceptionReportPageModel : PageModel
         {
             // Ticking "automatically report all …" enables this category's auto-send going forward, independently of
             // usage telemetry. See #1674.
-            this._telemetryConfigurationService.SetReportingAction( this.Scenario, ReportingAction.Yes );
+            this._telemetryConfigurationService.SetStatus( this.Scenario, enabled: true );
         }
 
         if ( !string.IsNullOrEmpty( this.Report ) )

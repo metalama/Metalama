@@ -16,11 +16,11 @@ public interface ITelemetryConfigurationService : IBackstageService
     void SetStatus( bool enabled );
 
     /// <summary>
-    /// Sets the <see cref="ReportingAction"/> of a single telemetry <paramref name="scenario"/> (e.g. exceptions or
-    /// performance problems) independently of the other scenarios. This backs the per-category "automatically report
-    /// all …" checkbox, which enables a category's auto-send without touching usage telemetry. See #1674.
+    /// Enables (sets to <see cref="ReportingAction.Yes"/>) or disables (<see cref="ReportingAction.No"/>) a single
+    /// telemetry <paramref name="scenario"/> independently of the other scenarios. This backs the per-category
+    /// "automatically report all …" checkbox, which enables a category's auto-send without touching usage telemetry. See #1672, #1674.
     /// </summary>
-    void SetReportingAction( TelemetryScenario scenario, ReportingAction action );
+    void SetStatus( TelemetryScenario scenario, bool enabled );
 
     Guid DeviceId { get; }
 

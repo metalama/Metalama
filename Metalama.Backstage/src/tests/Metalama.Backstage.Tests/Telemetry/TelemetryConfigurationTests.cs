@@ -28,8 +28,9 @@ public sealed class TelemetryConfigurationTests : TestsBase
     }
 
     [Fact]
-    public void EnabledByDefault()
+    public void UsageReportingEnabledByDefault()
     {
+        // Usage reporting is opt-out: enabled by default.
         Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
     }
 
@@ -48,28 +49,17 @@ public sealed class TelemetryConfigurationTests : TestsBase
         Assert.Equal( ReportingAction.Default, configuration.PerformanceProblemReportingAction );
     }
 
-    [Fact]
-    public void SetReportingActionChangesOnlyTheGivenCategory()
+    [Theory]
+    [InlineData( true )]
+    [InlineData( false )]
+    public void SetStatusPerScenarioIsIndependent( bool enabled )
     {
-        // #1674: The per-category "automatically report all …" checkbox enables a single category's auto-send (Yes)
-        // without touching the other categories — unlike SetStatus, which flips all three together. This delivers the
-        // long-standing goal of an exception-reporting setting independent of usage telemetry.
-        this.TelemetryConfigurationService.Initialize();
+        // Start from a known opposite state.
+        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Usage, !enabled );
+        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, enabled );
 
-        // Baseline after first run: exception/performance are review-first (Default), usage is opt-out (Yes).
-        var initial = this.ConfigurationManager!.Get<TelemetryConfiguration>();
-        Assert.Equal( ReportingAction.Default, initial.ExceptionReportingAction );
-        Assert.Equal( ReportingAction.Default, initial.PerformanceProblemReportingAction );
-        Assert.Equal( ReportingAction.Yes, initial.UsageReportingAction );
-
-        this.TelemetryConfigurationService.SetReportingAction( TelemetryScenario.Exception, ReportingAction.Yes );
-
-        var updated = this.ConfigurationManager!.Get<TelemetryConfiguration>();
-        Assert.Equal( ReportingAction.Yes, updated.ExceptionReportingAction );
-
-        // The other categories are untouched.
-        Assert.Equal( ReportingAction.Default, updated.PerformanceProblemReportingAction );
-        Assert.Equal( ReportingAction.Yes, updated.UsageReportingAction );
+        Assert.Equal( !enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal( enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Exception ) );
     }
 
     [Theory]

@@ -42,9 +42,11 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this._backstageServicesInitializer.Initialize();
         await this.DetectToastNotificationsAsync();
 
+        // The first-run telemetry notice is displayed independently of the license notification, so we assert on the
+        // specific notification kind rather than on an empty collection.
         if ( !shouldBeOpened )
         {
-            Assert.Empty( this.UserInterface.Notifications );
+            Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.RequiresLicense );
         }
         else
         {
@@ -55,7 +57,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this.UserInterface.Notifications.Clear();
 
         await this.DetectToastNotificationsAsync();
-        Assert.Empty( this.UserInterface.Notifications );
+        Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.RequiresLicense );
 
         // After the snooze period, we should see a notification.
         this.Time.AddTime( ToastNotificationKinds.RequiresLicense.AutoSnoozePeriod.Add( TimeSpan.FromSeconds( 1 ) ) );
@@ -64,7 +66,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
 
         if ( !shouldBeOpened )
         {
-            Assert.Empty( this.UserInterface.Notifications );
+            Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.RequiresLicense );
         }
         else
         {
@@ -95,7 +97,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
 
         if ( expectedTitleSubstring == null )
         {
-            Assert.Empty( this.UserInterface.Notifications );
+            Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TrialExpiring );
         }
         else
         {
@@ -130,7 +132,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
 
         if ( expectedTitleSubstring == null )
         {
-            Assert.Empty( this.UserInterface.Notifications );
+            Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.SubscriptionExpiring );
         }
         else
         {
@@ -160,12 +162,46 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
 
         if ( extensionInstalled )
         {
-            Assert.Empty( this.UserInterface.Notifications );
+            Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.VsxNotInstalled );
         }
         else
         {
             Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.VsxNotInstalled );
         }
+    }
+
+    [Theory]
+    [InlineData( true )]
+    [InlineData( false )]
+    public async Task TelemetryNoticeShownOnFirstRunRegardlessOfTelemetryStatusAsync( bool isTelemetryEnabled )
+    {
+        this.UserDeviceDetection.IsInteractiveDevice = true;
+        this.TelemetryConfigurationService.SetStatus( isTelemetryEnabled );
+
+        this._backstageServicesInitializer.Initialize();
+        await this.DetectToastNotificationsAsync();
+
+        // The first-run telemetry notice must be shown regardless of whether telemetry is currently enabled,
+        // because the point is to inform the user about telemetry independently of its current state.
+        Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
+
+        // The notice must not be shown again on subsequent runs (tracked in WelcomeConfiguration).
+        // Move the clock past the detection throttle so that detection actually runs again.
+        this.UserInterface.Notifications.Clear();
+        this.Time.AddTime( TimeSpan.FromMinutes( 1 ) );
+        await this.DetectToastNotificationsAsync();
+        Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
+    }
+
+    [Fact]
+    public async Task TelemetryNoticeNotShownOnNonInteractiveDeviceAsync()
+    {
+        this.UserDeviceDetection.IsInteractiveDevice = false;
+
+        this._backstageServicesInitializer.Initialize();
+        await this.DetectToastNotificationsAsync();
+
+        Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
     }
 
     [Fact]
