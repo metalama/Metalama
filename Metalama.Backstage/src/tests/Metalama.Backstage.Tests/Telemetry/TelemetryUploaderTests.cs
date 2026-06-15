@@ -147,6 +147,35 @@ public sealed class TelemetryUploaderTests : TestsBase
     }
 
     [Fact]
+    public async Task PackageAndQueueFilesAreDeletedAfterSuccessfulUpload()
+    {
+        var standardDirectories = this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>();
+
+        this.TelemetryConfigurationService.SetStatus( true );
+
+        // Queue an exception report so that there is something to upload.
+        var exceptionsReporter = this.ServiceProvider.GetRequiredBackstageService<IExceptionReporter>();
+        exceptionsReporter.ReportException( new InvalidOperationException( "Test Exception" ) );
+
+        await this._uploader.UploadAsync();
+
+        // The upload must have succeeded.
+        Assert.Single( this.HttpClientFactory.ProcessedRequests, x => x.Request.RequestUri!.ToString().ContainsOrdinal( "bits.postsharp.net" ) );
+
+        // The local .psf package has no review value and must be deleted immediately after a successful upload.
+        if ( this.FileSystem.DirectoryExists( standardDirectories.TelemetryUploadPackagesDirectory ) )
+        {
+            Assert.Empty( this.FileSystem.EnumerateFiles( standardDirectories.TelemetryUploadPackagesDirectory, "*.psf" ) );
+        }
+
+        // The queued files that were sent must be deleted (the post-upload deletion path executes).
+        if ( this.FileSystem.DirectoryExists( standardDirectories.TelemetryUploadQueueDirectory ) )
+        {
+            Assert.Empty( this.FileSystem.GetFiles( standardDirectories.TelemetryUploadQueueDirectory ) );
+        }
+    }
+
+    [Fact]
     public void BackstageWorkerIsNotStartedAfter10Minutes()
     {
         this.Time.AddTime( TimeSpan.FromMinutes( 10 ) );

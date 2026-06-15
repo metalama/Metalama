@@ -25,6 +25,12 @@ namespace Metalama.Backstage.Infrastructure
         string TempDirectory { get; }
 
         /// <summary>
+        /// Gets the root directory of the local telemetry data tree. Its content is subject to the
+        /// telemetry retention policy enforced by the maintenance pass.
+        /// </summary>
+        string TelemetryDirectory { get; }
+
+        /// <summary>
         /// Gets the temporary directories used by previous versions of Metalama but no longer used by the current
         /// version, so that the cache clean-up can remove them. Empty unless the location has changed across versions.
         /// </summary>
