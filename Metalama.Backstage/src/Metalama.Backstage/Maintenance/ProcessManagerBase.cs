@@ -29,10 +29,6 @@ internal abstract partial class ProcessManagerBase : IProcessManager
         // The Backstage Desktop tray app is a standalone '.exe'.
         new KillableProcessSpec( "Metalama.Backstage.Desktop.Windows", KillableModuleKind.StandaloneProcess, false, true ) );
 
-    // Exposed for testing (see ProcessManagerTests). The processes are killed against the live OS process list,
-    // so the kill specification itself is the only deterministically testable surface.
-    internal static ImmutableArray<KillableProcessSpec> ProcessesToKill => _processesToKill;
-
     protected ILogger Logger { get; }
 
     protected ProcessManagerBase( IServiceProvider serviceProvider )
