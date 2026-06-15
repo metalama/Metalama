@@ -111,6 +111,9 @@ namespace Metalama.Backstage.Tests.Telemetry
         [InlineData( "api_key=AKIAIOSFODNN7EXAMPLE", "api_key=#secret" )]
         [InlineData( "access_token=ya29.A0ARrdaM", "access_token=#secret" )]
 
+        // Non-dotted username.
+        [InlineData( "username=jdoe", "username=#secret" )]
+
         // key: value secret shapes.
         [InlineData( "apikey: AKIAIOSFODNN7EXAMPLE", "apikey: #secret" )]
         [InlineData( "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", "Authorization: Bearer #secret" )]

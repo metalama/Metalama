@@ -21,6 +21,19 @@ namespace Metalama.Backstage.Telemetry
             new(
                 @"(?<![\.\^0-9a-zA-Z<>_`])(?![0-9]|Microsoft\.|MS\.|System\.|PostSharp\.|Metalama\.|Presentation|EnvDTE|Windows|`)[a-zA-Z0-9\$`@_\?]+(?:\.(?![0-9])\.?[a-zA-Z0-9\$`@<>_]+)+(?![\.\^0-9a-zA-Z`@_\$])" );
 
+        // Redacts the value following an HTTP "Bearer" authentication scheme (e.g. "Bearer eyJ...").
+        // These tokens are non-dotted and would otherwise pass through the heuristic above. See #1680.
+        private static readonly Regex _bearerTokenRegEx =
+            new( @"(?<scheme>\bBearer\s+)(?<value>[A-Za-z0-9\._\-\+/]+=*)", RegexOptions.IgnoreCase );
+
+        // Denylist of secret-like "key=value" / "key: value" shapes (passwords, tokens, API keys,
+        // connection-string segments, usernames). The value is redacted regardless of whether it is
+        // dotted, so secrets that the dotted-identifier heuristic misses do not leave the machine. See #1680.
+        private static readonly Regex _secretKeyValueRegEx =
+            new(
+                @"(?<key>[\w\-]*(?:password|passwd|pwd|secret|token|api[_\-]?key|access[_\-]?key|client[_\-]?secret|credentials?|signature|user(?:name|id)?|uid)[\w\-]*)(?<sep>\s*[:=]\s*)(?<value>[^\s;,""'\]\}]+)",
+                RegexOptions.IgnoreCase );
+
         private readonly Regex _pathRegex;
 
         internal ExceptionSensitiveDataHelper( bool? isWindows = null )
@@ -41,7 +54,11 @@ namespace Metalama.Backstage.Telemetry
                 return "";
             }
 
-            return this._pathRegex.Replace( _userNameRegEx.Replace( input, "#user" ), "#path" );
+            // Redact secret-like values first, so the resulting "#secret" markers are not themselves
+            // mistaken for user identifiers or paths by the heuristics below.
+            var withoutSecrets = _secretKeyValueRegEx.Replace( _bearerTokenRegEx.Replace( input, "${scheme}#secret" ), "${key}${sep}#secret" );
+
+            return this._pathRegex.Replace( _userNameRegEx.Replace( withoutSecrets, "#user" ), "#path" );
         }
     }
 }
