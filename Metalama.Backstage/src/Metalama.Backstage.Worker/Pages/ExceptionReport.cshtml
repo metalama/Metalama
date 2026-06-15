@@ -1,0 +1,41 @@
+@page
+@model ExceptionReportPageModel
+
+@if (Model.IsReported)
+{
+    <h1>Report sent</h1>
+    <p>Thank you. The report has been sent and will help us improve Metalama.</p>
+}
+else if (Model.ReportContent == null)
+{
+    <h1>Report unavailable</h1>
+    <p>This report could not be found. It may have already been sent or removed.</p>
+}
+else
+{
+    <h1>Review error report</h1>
+    <p>
+        Review the exact, scrubbed report below before anything is sent. This is precisely what would be uploaded.
+        Nothing leaves your machine unless you click <strong>Report</strong>.
+    </p>
+
+    <pre class="report" style="max-height: 420px; overflow: auto; padding: 0.5rem; border: 1px solid #ccc; background: #f7f7f7; white-space: pre-wrap; word-break: break-word;">@Model.ReportContent</pre>
+
+    <form method="post" asp-page-handler="Report">
+        <input type="hidden" asp-for="Report" />
+        <input type="hidden" asp-for="Category" />
+
+        <div class="checkbox">
+            <input type="checkbox" asp-for="AutoReport" />
+            <div class="label">
+                <label asp-for="AutoReport">Automatically report all @Model.CategoryDisplayName in the future</label>
+            </div>
+        </div>
+
+        <div class="navigation-buttons">
+            <div class="continue-button">
+                <button type="submit">Report</button>
+            </div>
+        </div>
+    </form>
+}

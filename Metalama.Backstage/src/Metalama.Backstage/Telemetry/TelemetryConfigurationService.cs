@@ -234,6 +234,23 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         }
     }
 
+    public void SetReportingAction( TelemetryScenario scenario, ReportingAction action )
+    {
+        // Update a single category, leaving the other categories untouched. This is what makes the exception /
+        // performance auto-report setting independent of usage telemetry (unlike SetStatus, which flips all three). See #1674.
+        this._configurationManager.Update<TelemetryConfiguration>(
+            c => scenario switch
+            {
+                TelemetryScenario.Exception => c with { ExceptionReportingAction = action },
+                TelemetryScenario.Performance => c with { PerformanceProblemReportingAction = action },
+                TelemetryScenario.Usage => c with { UsageReportingAction = action },
+                _ => throw new ArgumentOutOfRangeException( nameof(scenario), scenario, null )
+            } );
+
+        // Refresh the cached enablement flags from the updated configuration.
+        this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
+    }
+
     public Guid DeviceId { get; private set; }
 
     public bool IsEnabled( TelemetryScenario scenario )

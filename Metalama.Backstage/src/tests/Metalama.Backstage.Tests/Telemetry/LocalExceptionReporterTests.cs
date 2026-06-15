@@ -40,14 +40,9 @@ public sealed class LocalExceptionReporterTests : TestsBase
         Assert.Empty( this.FileSystem.EnumerateFiles( this._crashReportsDirectory, "*.txt" ) );
     }
 
-    [Fact]
-    public void ToastNotificationReported()
-    {
-        var reporter = new LocalExceptionReporter( this.ServiceProvider );
-        reporter.ReportException( new InvalidOperationException(), "currentReport.txt" );
-        Assert.NotEmpty( this.UserInterface.Notifications );
-    }
-
+    // The exception toast is no longer shown by LocalExceptionReporter (which now only writes the human-readable local
+    // crash report). It is shown by ExceptionReporter once the scrubbed report is captured, so that clicking it can
+    // open the worker review page for that exact report. See ReportExceptionTests.ToastOpensReviewPage and #1674.
     [Fact]
     public void CrashReportContainsReportingCallStack()
     {

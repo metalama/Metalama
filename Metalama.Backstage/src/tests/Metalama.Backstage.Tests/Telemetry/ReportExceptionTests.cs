@@ -6,6 +6,7 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
+using Metalama.Backstage.UserInterface.Toasts;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -181,6 +182,71 @@ public sealed class ReportExceptionTests : TestsBase
         var file = Assert.Single( this.FileSystem.Mock.AllFiles );
         Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), file, StringComparison.Ordinal );
         Assert.DoesNotContain( Path.Combine( "Telemetry", "UploadQueue" ), file, StringComparison.Ordinal );
+    }
+
+    [Theory]
+    [InlineData( ExceptionReportingKind.Exception, "category=Exception" )]
+    [InlineData( ExceptionReportingKind.PerformanceProblem, "category=Performance" )]
+    public void ToastOpensReviewPage( ExceptionReportingKind exceptionReportingKind, string expectedCategoryQuery )
+    {
+        // #1674: When a report is captured, a toast is shown whose action opens the worker review page for that exact
+        // report (instead of opening the raw report file). The toast Uri carries the bare report file name and the
+        // category, both token-safe.
+        this.ReportException( exceptionReportingKind: exceptionReportingKind );
+
+        var toast = Assert.Single( this.UserInterface.Notifications );
+        Assert.Equal( ToastNotificationKinds.Exception.Name, toast.Kind.Name );
+        Assert.NotNull( toast.Uri );
+        Assert.StartsWith( "ExceptionReport?report=exception-", toast.Uri, StringComparison.Ordinal );
+        Assert.Contains( expectedCategoryQuery, toast.Uri!, StringComparison.Ordinal );
+
+        // The Uri must stay a single space-free token because the desktop toast activation argument is split on spaces.
+        Assert.DoesNotContain( ' ', toast.Uri! );
+
+        // The report referenced by the toast must be the captured report on disk.
+        var reportFileName = Path.GetFileName( this.FileSystem.Mock.AllFiles.Single() );
+        Assert.Contains( "report=" + reportFileName, toast.Uri!, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public void SendReportEnqueuesCapturedReviewFirstReport()
+    {
+        // #1674: A review-first report stays local until the user reviews and sends it. SendReport (invoked from the
+        // worker review page's Report button) enqueues that exact report for upload.
+        this.ReportException( exceptionReportingAction: ReportingAction.Default, performanceReportingAction: ReportingAction.Default );
+
+        var captured = Assert.Single( this.FileSystem.Mock.AllFiles );
+        Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), captured, StringComparison.Ordinal );
+
+        var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
+        var reportFileName = Path.GetFileName( captured );
+
+        // The exact scrubbed payload can be read back for review.
+        var content = reporter.TryGetReportContent( reportFileName );
+        Assert.NotNull( content );
+        _ = XDocument.Parse( content! );
+
+        // Sending moves the report to the upload queue.
+        Assert.True( reporter.SendReport( reportFileName ) );
+
+        var afterSend = Assert.Single( this.FileSystem.Mock.AllFiles );
+        Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), afterSend, StringComparison.Ordinal );
+    }
+
+    [Theory]
+    [InlineData( "../telemetry.json" )]
+    [InlineData( "sub/report.xml" )]
+    [InlineData( "sub\\report.xml" )]
+    [InlineData( "" )]
+    [InlineData( "does-not-exist.xml" )]
+    public void SendAndReadRejectInvalidOrMissingReportNames( string reportFileName )
+    {
+        // Guard against path traversal and missing files: a review page request must never read or send an arbitrary
+        // file outside the local exceptions directory.
+        var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
+
+        Assert.Null( reporter.TryGetReportContent( reportFileName ) );
+        Assert.False( reporter.SendReport( reportFileName ) );
     }
 
     private void AssertReportingDisabled()

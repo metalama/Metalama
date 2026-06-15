@@ -10,11 +10,13 @@ internal sealed class ActivationArguments
 {
     private readonly string _options;
     private readonly string _kind;
+    private readonly string? _uri;
 
     public ActivationArguments( NotifyCommandSettings settings )
     {
         this._options = settings.IsDevelopmentEnvironment ? "--dev" : "";
         this._kind = settings.Kind;
+        this._uri = settings.Uri;
     }
 
     public string Mute => $"{MuteNotificationCommand.Name} {this._kind} {this._options}";
@@ -24,4 +26,8 @@ internal sealed class ActivationArguments
     public string Setup => $"{SetupWizardCommand.Name} {this._options}";
 
     public string OpenRssOptions => $"{OpenWorkerRssOptionsCommand.Name} {this._options}";
+
+    // The toast Uri carries the worker review-page path (token-safe, no spaces). The activation argument is later split
+    // on spaces, so the page path stays a single argument. See #1674.
+    public string OpenExceptionReport => $"{OpenWorkerExceptionReportCommand.Name} {this._uri} {this._options}";
 }

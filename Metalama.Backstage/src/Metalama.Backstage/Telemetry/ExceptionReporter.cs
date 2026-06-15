@@ -7,10 +7,12 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.UserInterface.Toasts;
 using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -32,10 +34,13 @@ internal sealed class ExceptionReporter : IExceptionReporter
     private readonly bool _canIgnoreRecoverableExceptions;
     private readonly LocalExceptionReporter? _localExceptionReporter;
     private readonly ITelemetryConfigurationService _telemetryConfigurationService;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IToastNotificationService? _toastNotificationService;
 
     public ExceptionReporter( TelemetryQueue uploadManager, IServiceProvider serviceProvider )
     {
         this._uploadManager = uploadManager;
+        this._serviceProvider = serviceProvider;
         this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
         this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
         this._time = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
@@ -45,6 +50,81 @@ internal sealed class ExceptionReporter : IExceptionReporter
         this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
         this._canIgnoreRecoverableExceptions = serviceProvider.GetRequiredBackstageService<IRecoverableExceptionService>().CanIgnore;
         this._localExceptionReporter = serviceProvider.GetBackstageService<LocalExceptionReporter>();
+        this._toastNotificationService = serviceProvider.GetBackstageService<IToastNotificationService>();
+    }
+
+    /// <summary>
+    /// Resolves and validates a bare report file name against the local exceptions directory, guarding against path
+    /// traversal: <paramref name="reportFileName"/> must be a non-empty bare file name (no directory component).
+    /// </summary>
+    private bool TryResolveReportPath( string reportFileName, [NotNullWhen( true )] out string? fullPath )
+    {
+        fullPath = null;
+
+        if ( string.IsNullOrEmpty( reportFileName ) || Path.GetFileName( reportFileName ) != reportFileName )
+        {
+            this._logger.Warning?.Log( $"Rejecting an invalid exception report file name '{reportFileName}'." );
+
+            return false;
+        }
+
+        fullPath = Path.Combine( this._directories.TelemetryExceptionsDirectory, reportFileName );
+
+        return true;
+    }
+
+    public string? TryGetReportContent( string reportFileName )
+    {
+        if ( !this.TryResolveReportPath( reportFileName, out var fullPath ) || !this._fileSystem.FileExists( fullPath ) )
+        {
+            return null;
+        }
+
+        return this._fileSystem.ReadAllText( fullPath );
+    }
+
+    public bool SendReport( string reportFileName )
+    {
+        if ( !this.TryResolveReportPath( reportFileName, out var fullPath ) || !this._fileSystem.FileExists( fullPath ) )
+        {
+            this._logger.Warning?.Log( $"Cannot send the exception report '{reportFileName}' because it does not exist." );
+
+            return false;
+        }
+
+        this._logger.Trace?.Log( $"Sending the exception report '{reportFileName}' upon user request." );
+
+        this._uploadManager.EnqueueFile( fullPath );
+
+        // Force the upload now: the user explicitly asked to send this report, so we bypass the once-per-day throttling.
+        this._serviceProvider.GetBackstageService<ITelemetryUploader>()?.StartUpload( force: true );
+
+        return true;
+    }
+
+    private void ShowToastNotification( string reportFileName, TelemetryScenario scenario, string applicationName, bool autoSent )
+    {
+        if ( this._toastNotificationService == null )
+        {
+            return;
+        }
+
+        var category = scenario == TelemetryScenario.Performance ? "performance problem" : "exception";
+
+        // For a review-first report the call to action is to review and send; for an auto-sent report the toast is
+        // purely informational (clicking it still opens the page, which shows the report as already sent).
+        var callToAction = autoSent ? "Click to review what was reported." : "Click to review and report it.";
+
+        // The Uri carries the worker review-page relative path. It is token-safe (no spaces): the report file name is
+        // 'exception-<hash>-<guid>.xml' and the category is an enum name, so the desktop toast can pass it as a single
+        // command argument that opens the page on the worker web server. See #1674.
+        var pagePath = $"ExceptionReport?report={reportFileName}&category={scenario}";
+
+        this._toastNotificationService.Show(
+            new ToastNotification(
+                ToastNotificationKinds.Exception,
+                Text: $"The process {applicationName} encountered an unexpected {category}. {callToAction}",
+                Uri: pagePath ) );
     }
 
     private IEnumerable<string?> CleanStackTrace( string stackTrace )
@@ -346,6 +426,13 @@ internal sealed class ExceptionReporter : IExceptionReporter
                 this._logger.Trace?.Log(
                     $"The exception report was captured locally for review but not enqueued for upload because the category is review-first ('{reportingAction}')." );
             }
+
+            // Notify the user that a report was captured. Clicking the toast opens the worker review page, which shows
+            // the exact scrubbed payload with a Report button and a per-category auto-report checkbox. The page reads
+            // the report from the local exceptions directory, so we reference it by its bare file name. For an
+            // auto-sent (Yes) report the file has been moved to the upload queue; the page then reports it as already
+            // sent. See #1674.
+            this.ShowToastNotification( Path.GetFileName( fileName ), scenario, applicationInfo.Name, autoSent: reportingAction == ReportingAction.Yes );
         }
         catch ( Exception e )
         {

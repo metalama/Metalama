@@ -6,7 +6,6 @@ using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
-using Metalama.Backstage.UserInterface.Toasts;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -20,7 +19,6 @@ internal sealed class LocalExceptionReporter : IBackstageService
 {
     private readonly IStandardDirectories _standardDirectories;
     private readonly IApplicationInfoProvider _applicationInfoProvider;
-    private readonly IToastNotificationService? _toastNotificationService;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly IFileSystem _fileSystem;
@@ -29,7 +27,6 @@ internal sealed class LocalExceptionReporter : IBackstageService
     {
         this._standardDirectories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
         this._applicationInfoProvider = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>();
-        this._toastNotificationService = serviceProvider.GetBackstageService<IToastNotificationService>();
         this._loggerFactory = serviceProvider.GetLoggerFactory();
         this._logger = this._loggerFactory.GetLogger( nameof(LocalExceptionReporter) );
         this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
@@ -121,13 +118,6 @@ internal sealed class LocalExceptionReporter : IBackstageService
 
                 this._logger.Info?.Log( $"Creating an exception report in '{localReportPath}'." );
             }
-
-            this._toastNotificationService?.Show(
-                new ToastNotification(
-                    ToastNotificationKinds.Exception,
-                    Text: $"The process {this._applicationInfoProvider.CurrentApplication.Name} encountered "
-                          + $"an unexpected exception: {exception.Message}",
-                    Uri: "file:///" + localReportPath ) );
         }
         catch ( Exception e )
         {
