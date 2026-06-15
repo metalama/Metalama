@@ -719,7 +719,7 @@ public sealed class RssClientTests : TestsBase
     // Enable/Disable Tests
 
     /// <summary>
-    /// Verifies that RssClient.Enable sets PreferredFeed to Briefs and RssClient.Disable sets PreferredFeed to None.
+    /// Verifies that RssClient.TryEnable sets PreferredFeed to Briefs and RssClient.Disable sets PreferredFeed to None.
     /// </summary>
     [Fact]
     public async Task RssClientEnableAndDisableTogglePreferredFeed()
@@ -727,7 +727,7 @@ public sealed class RssClientTests : TestsBase
         var rssClient = new RssClient( this.ServiceProvider );
 
         // Enable RSS client
-        rssClient.Enable();
+        Assert.True( rssClient.TryEnable() );
         var enabledConfiguration = this.ConfigurationManager!.Get<RssClientConfiguration>();
         Assert.Equal( RssFeed.Briefs, enabledConfiguration.PreferredFeed );
 
@@ -742,7 +742,7 @@ public sealed class RssClientTests : TestsBase
         Assert.Empty( this.HttpClientFactory.ProcessedRequests );
 
         // Enable again and verify it can fetch
-        rssClient.Enable();
+        Assert.True( rssClient.TryEnable() );
 
         const string rssXml = """
                               <?xml version="1.0" encoding="UTF-8"?>
@@ -765,6 +765,24 @@ public sealed class RssClientTests : TestsBase
         Assert.Single( this.HttpClientFactory.ProcessedRequests );
         var notification = Assert.Single( this.UserInterface.Notifications );
         Assert.Equal( "Test Article After Enable", notification.Title );
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="RssClient.TryEnable"/> refuses to enable the news feed (returns false and leaves
+    /// PreferredFeed unchanged) when telemetry is disabled, because the feed rides the telemetry opt-out (#1670).
+    /// </summary>
+    [Fact]
+    public void RssClientTryEnableFailsWhenTelemetryIsDisabled()
+    {
+        this.EnvironmentVariableProvider.Environment[Backstage.Telemetry.TelemetryConfigurationService.OptOutEnvironmentVariable] = "1";
+
+        var rssClient = new RssClient( this.ServiceProvider );
+
+        Assert.False( rssClient.TryEnable() );
+
+        // The feed must not have been enabled.
+        var configuration = this.ConfigurationManager!.Get<RssClientConfiguration>();
+        Assert.NotEqual( RssFeed.Briefs, configuration.PreferredFeed );
     }
 
     // DisplayLatestNewsAsync Tests

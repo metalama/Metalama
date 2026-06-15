@@ -54,7 +54,21 @@ internal sealed class RssClient : IRssClient
 
     public void Disable() => this._configurationManager.Update<RssClientConfiguration>( c => c with { PreferredFeed = RssFeed.None } );
 
-    public void Enable() => this._configurationManager.Update<RssClientConfiguration>( c => c with { PreferredFeed = RssFeed.Briefs } );
+    public bool TryEnable()
+    {
+        // The news feed rides the usage-telemetry opt-out (see #1670), so enabling it while telemetry is disabled would
+        // have no effect — the feed would never be fetched. Report the error instead of silently enabling a dead feed.
+        if ( !this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Rss ) )
+        {
+            this._logger.Trace?.Log( "Cannot enable the news feed because telemetry is disabled." );
+
+            return false;
+        }
+
+        this._configurationManager.Update<RssClientConfiguration>( c => c with { PreferredFeed = RssFeed.Briefs } );
+
+        return true;
+    }
 
     internal async Task DisplayUnreadNewsAsync( bool skipPreconditions = false )
     {
