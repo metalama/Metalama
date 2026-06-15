@@ -6,12 +6,14 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Serialization;
 using System;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Telemetry;
 
 [ConfigurationFile( "telemetry.json" )]
+[Description( "Telemetry and exception-reporting options." )]
 public sealed record TelemetryConfiguration : ConfigurationFile
 {
     public ReportingAction ExceptionReportingAction { get; init; } = ReportingAction.Default;
@@ -78,7 +80,7 @@ public sealed record TelemetryConfiguration : ConfigurationFile
     /// maintenance pass. The period is read live at each cleanup, so changing it takes effect on the next sweep.
     /// The default value is 30 days.
     /// </summary>
-    public int RetentionPeriodInDays { get; init; } = 30;
+    public int? RetentionPeriodInDays { get; init; }
 
     public TelemetryConfiguration CleanUp( DateTime threshold )
     {
