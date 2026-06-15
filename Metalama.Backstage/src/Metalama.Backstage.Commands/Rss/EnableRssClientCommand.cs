@@ -12,7 +12,14 @@ public class EnableRssClientCommand : BaseCommand<BaseCommandSettings>
     protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
     {
         var rssClient = context.ServiceProvider.GetRequiredBackstageService<IRssClient>();
-        rssClient.Enable();
+
+        if ( !rssClient.TryEnable() )
+        {
+            throw new CommandException(
+                "Cannot enable the news feed because telemetry is disabled. Enable telemetry first by running 'metalama telemetry enable'." );
+        }
+
+        context.Console.WriteSuccess( "The news feed has been enabled." );
     }
 
     protected override BackstageInitializationOptions AddBackstageOptions( BackstageInitializationOptions options )

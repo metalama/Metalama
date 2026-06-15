@@ -26,11 +26,23 @@ public sealed class TelemetryConfigurationTests : TestsBase
         Assert.Equal( output, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
     }
 
+    [Theory]
+    [InlineData( true, true )]
+    [InlineData( false, false )]
+    public void SetStatusAffectsRss( bool input, bool output )
+    {
+        // The in-product opt-out (SetStatus) must stop the RSS feed fetch, just like the
+        // METALAMA_TELEMETRY_OPT_OUT environment variable does. See issue #1670.
+        this.TelemetryConfigurationService.SetStatus( input );
+        Assert.Equal( output, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Rss ) );
+    }
+
     [Fact]
     public void UsageReportingEnabledByDefault()
     {
         // Usage reporting is opt-out: enabled by default.
         Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+        Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Rss ) );
     }
 
     [Fact]
@@ -72,6 +84,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
 
         this.TelemetryConfigurationService.SetStatus( true );
         Assert.Equal( isEnabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal( isEnabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Rss ) );
     }
 
     [Fact]
