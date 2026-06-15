@@ -9,6 +9,7 @@ using Metalama.Backstage.Pages;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Xunit;
 using Xunit.Abstractions;
 using IConfigurationManager = Metalama.Backstage.Configuration.IConfigurationManager;
@@ -41,7 +42,7 @@ public sealed class ExceptionReportPageModelTests : TestsBase
             string? localReportPath = null,
             IExceptionAdapter? exceptionAdapter = null ) { }
 
-        public bool TryGetReport( string reportFileName, out LocalExceptionReport? report )
+        public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out LocalExceptionReport? report )
         {
             this.RequestedReport = reportFileName;
             report = this.ReportToReturn;

@@ -194,7 +194,7 @@ public sealed class ReportExceptionTests : TestsBase
         Assert.DoesNotContain( Path.Combine( "Telemetry", "UploadQueue" ), scrubbed, StringComparison.Ordinal );
 
         // A full, unscrubbed local rendering is captured alongside for side-by-side review (#1674).
-        var localRendering = Assert.Single( this.FileSystem.Mock.AllFiles.Where( f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) ) );
+        var localRendering = Assert.Single( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) );
         Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), localRendering, StringComparison.Ordinal );
     }
 
@@ -280,7 +280,7 @@ public sealed class ReportExceptionTests : TestsBase
         // Sending moves the scrubbed report to the upload queue.
         Assert.True( reporter.SendReport( reportFileName ) );
 
-        var enqueued = Assert.Single( this.FileSystem.Mock.AllFiles.Where( f => f.Contains( Path.Combine( "Telemetry", "UploadQueue" ), StringComparison.Ordinal ) ) );
+        var enqueued = Assert.Single( this.FileSystem.Mock.AllFiles, f => f.Contains( Path.Combine( "Telemetry", "UploadQueue" ), StringComparison.Ordinal ) );
         Assert.EndsWith( ".xml", enqueued, StringComparison.Ordinal );
         Assert.DoesNotContain( ".local.xml", enqueued, StringComparison.Ordinal );
     }
