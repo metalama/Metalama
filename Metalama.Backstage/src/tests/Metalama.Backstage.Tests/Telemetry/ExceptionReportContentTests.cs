@@ -30,7 +30,7 @@ namespace Metalama.Backstage.Tests.Telemetry
         }
 
         [Fact]
-        public void ExceptionDataValuesAreRedactedButKeysAreKept()
+        public void ExceptionDataIsNotSentAtAll()
         {
             var exception = new InvalidOperationException( "test" );
             exception.Data["ConnectionString"] = "Server=db;Password=p@ssw0rd;User=sa";
@@ -39,16 +39,15 @@ namespace Metalama.Backstage.Tests.Telemetry
             var xml = WriteExceptionXml( exception );
 
             // The XML must be well-formed.
-            _ = XDocument.Parse( xml );
+            var doc = XDocument.Parse( xml );
 
-            // Values of non-allow-listed keys must be redacted, whatever their shape.
+            // Exception.Data is never serialized: neither values nor keys leave the machine, and no
+            // Data element is emitted at all. See #1680.
             Assert.DoesNotContain( "p@ssw0rd", xml, StringComparison.Ordinal );
             Assert.DoesNotContain( "Jane Doe", xml, StringComparison.Ordinal );
-            Assert.Contains( "#redacted", xml, StringComparison.Ordinal );
-
-            // The (scrubbed) keys are preserved so reviewers can see which entries existed.
-            Assert.Contains( "ConnectionString", xml, StringComparison.Ordinal );
-            Assert.Contains( "CustomerName", xml, StringComparison.Ordinal );
+            Assert.DoesNotContain( "ConnectionString", xml, StringComparison.Ordinal );
+            Assert.DoesNotContain( "CustomerName", xml, StringComparison.Ordinal );
+            Assert.Empty( doc.Descendants( "Data" ) );
         }
 
         [Fact]
