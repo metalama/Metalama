@@ -12,8 +12,10 @@ namespace Metalama.Backstage.Pages;
 
 #pragma warning disable SA1649
 
-// Lets the user review the exact scrubbed exception/performance report before it is sent, then send it on demand and
-// optionally enable auto-reporting for that category. Opened from the exception toast. See #1674.
+// Lets the user review a locally-captured exception/performance report before it is sent. The page shows two renderings
+// of the same report — the full local report and the exact scrubbed payload that would be uploaded — so the user can
+// see precisely what the scrubber removes. The user can then send it on demand and optionally enable auto-reporting for
+// that category. Opened from the exception toast. See #1674.
 internal class ExceptionReportPageModel : PageModel
 {
     private readonly IExceptionReporter _exceptionReporter;
@@ -31,7 +33,7 @@ internal class ExceptionReportPageModel : PageModel
     }
 
     /// <summary>
-    /// Gets or sets the bare file name (the report id) of the report being reviewed.
+    /// Gets or sets the bare file name of the report being reviewed.
     /// </summary>
     [BindProperty]
     public string? Report { get; set; }
@@ -42,14 +44,21 @@ internal class ExceptionReportPageModel : PageModel
     [BindProperty]
     public bool AutoReport { get; set; }
 
-    public string? ReportContent { get; private set; }
+    /// <summary>
+    /// Gets the exact, scrubbed payload that would be uploaded.
+    /// </summary>
+    public string? ScrubbedContent { get; private set; }
+
+    /// <summary>
+    /// Gets the full, unscrubbed local rendering of the same report, or <c>null</c> if it is not available.
+    /// </summary>
+    public string? LocalContent { get; private set; }
+
+    public bool HasReport => this.ScrubbedContent != null;
 
     public bool IsReported { get; private set; }
 
-    /// <summary>
-    /// Gets the report category. It is read from the report itself (which is self-contained), not passed as a parameter.
-    /// Defaults to <see cref="TelemetryScenario.Exception"/> until a report has been loaded. See #1674.
-    /// </summary>
+    // The category is read from the report itself (it is self-contained), never passed as a parameter. See #1674.
     public TelemetryScenario Scenario { get; private set; } = TelemetryScenario.Exception;
 
     public string CategoryDisplayName => this.Scenario == TelemetryScenario.Performance ? "performance warnings" : "exceptions";
@@ -60,33 +69,30 @@ internal class ExceptionReportPageModel : PageModel
 
         if ( !string.IsNullOrEmpty( report ) && this._exceptionReporter.TryGetReport( report!, out var localReport ) )
         {
-            this.ReportContent = localReport.Content;
-            this.Scenario = localReport.Scenario;
+            this.ScrubbedContent = localReport.ScrubbedContent;
+            this.LocalContent = localReport.LocalContent;
+            this.Scenario = localReport.Category;
             this.AutoReport = this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( this.Scenario ) == ReportingAction.Yes;
         }
     }
 
     public IActionResult OnPostReport()
     {
-        // Re-read the report so the category (and thus which setting the checkbox toggles) comes from the report itself,
-        // keeping the report self-contained rather than trusting a round-tripped form value. See #1674.
-        if ( string.IsNullOrEmpty( this.Report ) || !this._exceptionReporter.TryGetReport( this.Report!, out var localReport ) )
+        if ( !string.IsNullOrEmpty( this.Report ) && this._exceptionReporter.TryGetReport( this.Report!, out var localReport ) )
         {
-            // The report is gone (e.g. already sent or removed); there is nothing left to report.
-            return this.Page();
+            this.Scenario = localReport.Category;
+
+            if ( this.AutoReport )
+            {
+                // Ticking "automatically report all …" enables this category's auto-send going forward, independently of
+                // usage telemetry. See #1674.
+                this._telemetryConfigurationService.SetStatus( this.Scenario, enabled: true );
+            }
+
+            this._exceptionReporter.SendReport( this.Report! );
+
+            this.IsReported = true;
         }
-
-        this.Scenario = localReport.Scenario;
-        this.ReportContent = localReport.Content;
-
-        if ( this.AutoReport )
-        {
-            // Ticking "automatically report all …" enables this category's auto-send going forward, independently of
-            // usage telemetry. See #1674.
-            this._telemetryConfigurationService.SetStatus( this.Scenario, enabled: true );
-        }
-
-        this.IsReported = this._exceptionReporter.SendReport( this.Report! );
 
         return this.Page();
     }

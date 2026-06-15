@@ -21,16 +21,27 @@ namespace Metalama.Backstage.Telemetry
             new(
                 @"(?<![\.\^0-9a-zA-Z<>_`])(?![0-9]|Microsoft\.|MS\.|System\.|PostSharp\.|Metalama\.|Presentation|EnvDTE|Windows|`)[a-zA-Z0-9\$`@_\?]+(?:\.(?![0-9])\.?[a-zA-Z0-9\$`@<>_]+)+(?![\.\^0-9a-zA-Z`@_\$])" );
 
-        private readonly Regex _pathRegex;
+        // An identity scrubber that leaves the input unchanged. It is used to render the full, unscrubbed local report
+        // shown side-by-side with the scrubbed upload payload on the review page, so the user can see exactly what the
+        // scrubber removes before anything leaves the machine. See #1674.
+        public static readonly ExceptionSensitiveDataHelper Disabled = new( enabled: false );
 
-        internal ExceptionSensitiveDataHelper( bool? isWindows = null )
+        private readonly Regex? _pathRegex;
+        private readonly bool _enabled;
+
+        internal ExceptionSensitiveDataHelper( bool? isWindows = null, bool enabled = true )
         {
-            if ( isWindows == null )
-            {
-                isWindows = RuntimeInformation.IsOSPlatform( OSPlatform.Windows );
-            }
+            this._enabled = enabled;
 
-            this._pathRegex = new Regex( isWindows.Value ? _windowsPathRegex : _unixPathRegex );
+            if ( enabled )
+            {
+                if ( isWindows == null )
+                {
+                    isWindows = RuntimeInformation.IsOSPlatform( OSPlatform.Windows );
+                }
+
+                this._pathRegex = new Regex( isWindows.Value ? _windowsPathRegex : _unixPathRegex );
+            }
         }
 
         /// <exclude />
@@ -41,7 +52,12 @@ namespace Metalama.Backstage.Telemetry
                 return "";
             }
 
-            return this._pathRegex.Replace( _userNameRegEx.Replace( input, "#user" ), "#path" );
+            if ( !this._enabled )
+            {
+                return input;
+            }
+
+            return this._pathRegex!.Replace( _userNameRegEx.Replace( input, "#user" ), "#path" );
         }
     }
 }

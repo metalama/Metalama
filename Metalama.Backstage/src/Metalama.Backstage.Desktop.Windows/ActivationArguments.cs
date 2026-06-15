@@ -29,7 +29,7 @@ internal sealed class ActivationArguments
 
     public string OpenPrivacyOptions => $"{OpenWorkerPrivacyOptionsCommand.Name} {this._options}";
 
-    // The toast Uri carries the exception report id (a bare, token-safe file name, no spaces). The activation argument
-    // is later split on spaces, so the report id stays a single argument. See #1674.
+    // The toast Uri carries only the bare exception-report id (token-safe, no spaces). The activation argument is later
+    // split on spaces, so the report id stays a single argument; the command builds the review-page path itself. See #1674.
     public string OpenExceptionReport => $"{OpenExceptionReportCommand.Name} {this._uri} {this._options}";
 }

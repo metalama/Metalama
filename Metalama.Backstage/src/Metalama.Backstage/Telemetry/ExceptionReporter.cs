@@ -74,6 +74,11 @@ internal sealed class ExceptionReporter : IExceptionReporter
         return true;
     }
 
+    // The full, unscrubbed local rendering is stored next to the scrubbed report with a '.local.xml' extension, so the
+    // review page can show both side by side. The scrubbed '.xml' is the only file ever uploaded. See #1674.
+    private static string GetLocalReportFileName( string scrubbedReportFileName )
+        => Path.GetFileNameWithoutExtension( scrubbedReportFileName ) + ".local.xml";
+
     public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out LocalExceptionReport? report )
     {
         report = null;
@@ -83,19 +88,29 @@ internal sealed class ExceptionReporter : IExceptionReporter
             return false;
         }
 
-        var content = this._fileSystem.ReadAllText( fullPath );
-        report = new LocalExceptionReport( content, ParseScenario( content ) );
+        var scrubbedContent = this._fileSystem.ReadAllText( fullPath );
+
+        // Read the full local rendering if it exists (it is absent for reports captured through a custom exception
+        // adapter, which cannot be re-rendered unscrubbed).
+        string? localContent = null;
+        var localFullPath = Path.Combine( this._directories.TelemetryExceptionsDirectory, GetLocalReportFileName( reportFileName ) );
+
+        if ( this._fileSystem.FileExists( localFullPath ) )
+        {
+            localContent = this._fileSystem.ReadAllText( localFullPath );
+        }
+
+        report = new LocalExceptionReport( scrubbedContent, localContent, ParseCategory( scrubbedContent ) );
 
         return true;
     }
 
-    // Reads the category stored in the report itself (the <Category> element) so the report is self-contained. Defaults
-    // to Exception for older or malformed reports that do not carry a recognizable category. See #1674.
-    private static TelemetryScenario ParseScenario( string content )
+    // Reads the self-contained <Category> element from a captured report. Defaults to Exception if absent or unparsable.
+    private static TelemetryScenario ParseCategory( string reportContent )
     {
         try
         {
-            var category = XDocument.Parse( content ).Root?.Element( "Category" )?.Value;
+            var category = XDocument.Parse( reportContent ).Root?.Element( "Category" )?.Value;
 
             if ( !string.IsNullOrEmpty( category ) && Enum.TryParse<TelemetryScenario>( category, out var scenario ) )
             {
@@ -104,7 +119,7 @@ internal sealed class ExceptionReporter : IExceptionReporter
         }
         catch ( XmlException )
         {
-            // Fall through to the default below.
+            // Fall through to the default.
         }
 
         return TelemetryScenario.Exception;
@@ -142,9 +157,10 @@ internal sealed class ExceptionReporter : IExceptionReporter
         // purely informational (clicking it still opens the page, which shows the report as already sent).
         var callToAction = autoSent ? "Click to review what was reported." : "Click to review and report it.";
 
-        // The Uri carries only the bare report file name (the report id), which is token-safe (no spaces):
-        // 'exception-<hash>-<guid>.xml'. The desktop command builds the review-page path from it and the page reads the
-        // category from the report itself. See #1674.
+        // The Uri carries only the bare report file name ('exception-<hash>-<guid>.xml'), not a page path, so it
+        // stays specifically an exception-report reference rather than an arbitrary URL. It is token-safe (no spaces),
+        // so the desktop toast can pass it as a single command argument; the desktop command builds the review-page
+        // path itself. The category is stored inside the report, so it is not passed here. See #1674.
         this._toastNotificationService.Show(
             new ToastNotification(
                 ToastNotificationKinds.Exception,
@@ -345,98 +361,11 @@ internal sealed class ExceptionReporter : IExceptionReporter
                 this._fileSystem.CreateDirectory( directory );
             }
 
-            var fileName = Path.Combine( directory, "exception-" + hash + "-" + Guid.NewGuid().ToString() + ".xml" );
+            var baseName = "exception-" + hash + "-" + Guid.NewGuid();
+            var fileName = Path.Combine( directory, baseName + ".xml" );
 
-            var stringWriter = new StringWriter();
-
-            var xmlWriter = new XmlTextWriter( stringWriter ) { Formatting = Formatting.Indented };
-            xmlWriter.WriteStartDocument();
-            xmlWriter.WriteStartElement( "ErrorReport" );
-            xmlWriter.WriteElementString( "InvariantHash", hash );
-
-            // Store the category in the report itself so the report is self-contained: the review page derives the
-            // category (which checkbox/setting to show) from the report, not from a separately-passed parameter. See #1674.
-            xmlWriter.WriteElementString( "Category", scenario.ToString() );
-            xmlWriter.WriteElementString( "Time", XmlConvert.ToString( this._time.UtcNow, XmlDateTimeSerializationMode.RoundtripKind ) );
-            // Emit an anonymized device hash keyed by the first-party-only ExceptionReportingSalt, never the raw
-            // DeviceId GUID (the rotation seed from which the Matomo hash is derivable). The dedicated salt keeps
-            // this exception-reporting pseudonym unjoinable to both the Matomo and the usage-tracking data. See #1668.
-            var exceptionReportingDeviceHash = HashUtilities.ComputeInt64Hmac(
-                this._telemetryConfigurationService.DeviceId.ToString(),
-                this._telemetryConfigurationService.ExceptionReportingSalt );
-
-            xmlWriter.WriteElementString( "ClientId", exceptionReportingDeviceHash.ToString( "x", CultureInfo.InvariantCulture ) );
-            xmlWriter.WriteStartElement( "Application" );
-            xmlWriter.WriteElementString( "Name", applicationInfo.Name );
-            xmlWriter.WriteElementString( "Version", applicationInfo.PackageVersion );
-            xmlWriter.WriteEndElement();
-
-            var currentProcess = Process.GetCurrentProcess();
-            xmlWriter.WriteStartElement( "Process" );
-            xmlWriter.WriteElementString( "Name", currentProcess.ProcessName );
-            xmlWriter.WriteElementString( "ProcessorArchitecture", XmlConvert.ToString( IntPtr.Size * 8 ) );
-            xmlWriter.WriteElementString( "SessionId", XmlConvert.ToString( currentProcess.SessionId ) );
-            xmlWriter.WriteElementString( "TotalProcessorTime", XmlConvert.ToString( currentProcess.TotalProcessorTime ) );
-            xmlWriter.WriteElementString( "WorkingSet", XmlConvert.ToString( currentProcess.WorkingSet64 ) );
-            xmlWriter.WriteElementString( "PeakWorkingSet", XmlConvert.ToString( currentProcess.PeakWorkingSet64 ) );
-            xmlWriter.WriteElementString( "ManagedHeap", XmlConvert.ToString( GC.GetTotalMemory( false ) ) );
-            xmlWriter.WriteEndElement();
-            xmlWriter.WriteStartElement( "Environment" );
-            xmlWriter.WriteElementString( "OSVersion", Environment.OSVersion.Version.ToString() );
-            xmlWriter.WriteElementString( "ProcessorCount", XmlConvert.ToString( Environment.ProcessorCount ) );
-            xmlWriter.WriteElementString( "Version", Environment.Version.ToString() );
-            xmlWriter.WriteEndElement();
-
-            xmlWriter.WriteStartElement( "Exception" );
-
-            adapter.WriteException( xmlWriter, classifiedException.Exception );
-
-            xmlWriter.WriteEndElement();
-
-            // Include the call stack at the point where the exception is being reported.
-            // This is essential for async exceptions where the exception's own StackTrace
-            // only shows the throw-to-catch chain, but not the broader context of the entry
-            // point that caught the exception (e.g., CodeLens, Preview, AspectExplorer).
-            try
-            {
-                var reportingCallStack =
-                    Environment.NewLine
-                    + ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( Environment.StackTrace )
-                    + Environment.NewLine;
-
-                xmlWriter.WriteElementString( "ReportingCallStack", reportingCallStack );
-            }
-            catch
-            {
-                // Best-effort: ignore failures when capturing or sanitizing the reporting call stack
-                // so that exception reporting remains resilient.
-            }
-
-            xmlWriter.WriteStartElement( "Assemblies" );
-
-            foreach ( var assembly in AppDomain.CurrentDomain.GetAssemblies() )
-            {
-                var assemblyName = assembly.GetName();
-                xmlWriter.WriteStartElement( "Assembly" );
-                xmlWriter.WriteElementString( "Name", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( assemblyName.Name ) );
-                xmlWriter.WriteElementString( "Version", assemblyName.Version?.ToString() ?? "<unknown>" );
-
-                try
-                {
-                    if ( !assembly.IsDynamic && !string.IsNullOrEmpty( assembly.Location ) )
-                    {
-                        xmlWriter.WriteElementString( "FileVersion", FileVersionInfo.GetVersionInfo( assembly.Location ).FileVersion );
-                    }
-                }
-                catch ( NotSupportedException ) { }
-
-                xmlWriter.WriteEndElement();
-            }
-
-            xmlWriter.WriteEndElement();
-            xmlWriter.Close();
-
-            this._fileSystem.WriteAllText( fileName, stringWriter.ToString() );
+            // The scrubbed report is the exact payload that would be uploaded.
+            this._fileSystem.WriteAllText( fileName, this.BuildReport( hash, scenario, classifiedException, adapter, ExceptionSensitiveDataHelper.Instance ) );
 
             // Capture is decoupled from sending (#1674). The scrubbed report has now been captured locally under the
             // Telemetry\Exceptions directory. We only auto-send it (move it to the upload queue) when the user has
@@ -454,6 +383,19 @@ internal sealed class ExceptionReporter : IExceptionReporter
             {
                 this._logger.Trace?.Log(
                     $"The exception report was captured locally for review but not enqueued for upload because the category is review-first ('{reportingAction}')." );
+
+                // Capture the full, unscrubbed rendering of the same report next to it (with a '.local.xml' extension),
+                // so the review page can show both side by side and the user can see exactly what the scrubber removes
+                // before anything leaves the machine. The '.local.xml' file is never uploaded. We only need it for the
+                // review-first flow (an auto-sent report is uploaded immediately, with nothing to review). We can only
+                // re-render unscrubbed through the default adapter; a custom adapter (cross-process exceptions) scrubs
+                // internally. See #1674.
+                if ( adapter is DefaultExceptionAdapter )
+                {
+                    this._fileSystem.WriteAllText(
+                        Path.Combine( directory, GetLocalReportFileName( baseName + ".xml" ) ),
+                        this.BuildReport( hash, scenario, classifiedException, adapter, ExceptionSensitiveDataHelper.Disabled ) );
+                }
             }
 
             // Notify the user that a report was captured. Clicking the toast opens the worker review page, which shows
@@ -476,5 +418,119 @@ internal sealed class ExceptionReporter : IExceptionReporter
                 throw;
             }
         }
+    }
+
+    // Renders the error report to an XML string. The same report is rendered twice: once with the real scrubber (the
+    // upload payload) and once with ExceptionSensitiveDataHelper.Disabled (the full local rendering), so the review page
+    // can show both side by side. The category is written into the report so it is self-contained. See #1674.
+    private string BuildReport(
+        string hash,
+        TelemetryScenario scenario,
+        ClassifiedException classifiedException,
+        IExceptionAdapter adapter,
+        ExceptionSensitiveDataHelper scrubber )
+    {
+        var applicationInfo = this._applicationInfoProvider.CurrentApplication;
+
+        var stringWriter = new StringWriter();
+
+        var xmlWriter = new XmlTextWriter( stringWriter ) { Formatting = Formatting.Indented };
+        xmlWriter.WriteStartDocument();
+        xmlWriter.WriteStartElement( "ErrorReport" );
+        xmlWriter.WriteElementString( "InvariantHash", hash );
+
+        // Store the category in the report itself so it is self-contained: the toast, command and review page do not
+        // need to pass it as a parameter. See #1674.
+        xmlWriter.WriteElementString( "Category", scenario.ToString() );
+        xmlWriter.WriteElementString( "Time", XmlConvert.ToString( this._time.UtcNow, XmlDateTimeSerializationMode.RoundtripKind ) );
+
+        // Emit an anonymized device hash keyed by the first-party-only ExceptionReportingSalt, never the raw
+        // DeviceId GUID (the rotation seed from which the Matomo hash is derivable). The dedicated salt keeps
+        // this exception-reporting pseudonym unjoinable to both the Matomo and the usage-tracking data. See #1668.
+        var exceptionReportingDeviceHash = HashUtilities.ComputeInt64Hmac(
+            this._telemetryConfigurationService.DeviceId.ToString(),
+            this._telemetryConfigurationService.ExceptionReportingSalt );
+
+        xmlWriter.WriteElementString( "ClientId", exceptionReportingDeviceHash.ToString( "x", CultureInfo.InvariantCulture ) );
+        xmlWriter.WriteStartElement( "Application" );
+        xmlWriter.WriteElementString( "Name", applicationInfo.Name );
+        xmlWriter.WriteElementString( "Version", applicationInfo.PackageVersion );
+        xmlWriter.WriteEndElement();
+
+        var currentProcess = Process.GetCurrentProcess();
+        xmlWriter.WriteStartElement( "Process" );
+        xmlWriter.WriteElementString( "Name", currentProcess.ProcessName );
+        xmlWriter.WriteElementString( "ProcessorArchitecture", XmlConvert.ToString( IntPtr.Size * 8 ) );
+        xmlWriter.WriteElementString( "SessionId", XmlConvert.ToString( currentProcess.SessionId ) );
+        xmlWriter.WriteElementString( "TotalProcessorTime", XmlConvert.ToString( currentProcess.TotalProcessorTime ) );
+        xmlWriter.WriteElementString( "WorkingSet", XmlConvert.ToString( currentProcess.WorkingSet64 ) );
+        xmlWriter.WriteElementString( "PeakWorkingSet", XmlConvert.ToString( currentProcess.PeakWorkingSet64 ) );
+        xmlWriter.WriteElementString( "ManagedHeap", XmlConvert.ToString( GC.GetTotalMemory( false ) ) );
+        xmlWriter.WriteEndElement();
+        xmlWriter.WriteStartElement( "Environment" );
+        xmlWriter.WriteElementString( "OSVersion", Environment.OSVersion.Version.ToString() );
+        xmlWriter.WriteElementString( "ProcessorCount", XmlConvert.ToString( Environment.ProcessorCount ) );
+        xmlWriter.WriteElementString( "Version", Environment.Version.ToString() );
+        xmlWriter.WriteEndElement();
+
+        xmlWriter.WriteStartElement( "Exception" );
+
+        // The default adapter can render the exception with any scrubber, so the full local rendering is genuinely
+        // unscrubbed. A custom adapter (cross-process exceptions) scrubs internally, so we fall back to it.
+        if ( adapter is DefaultExceptionAdapter )
+        {
+            ExceptionXmlFormatter.WriteException( xmlWriter, classifiedException.Exception, scrubber );
+        }
+        else
+        {
+            adapter.WriteException( xmlWriter, classifiedException.Exception );
+        }
+
+        xmlWriter.WriteEndElement();
+
+        // Include the call stack at the point where the exception is being reported.
+        // This is essential for async exceptions where the exception's own StackTrace
+        // only shows the throw-to-catch chain, but not the broader context of the entry
+        // point that caught the exception (e.g., CodeLens, Preview, AspectExplorer).
+        try
+        {
+            var reportingCallStack =
+                Environment.NewLine
+                + scrubber.RemoveSensitiveData( Environment.StackTrace )
+                + Environment.NewLine;
+
+            xmlWriter.WriteElementString( "ReportingCallStack", reportingCallStack );
+        }
+        catch
+        {
+            // Best-effort: ignore failures when capturing or sanitizing the reporting call stack
+            // so that exception reporting remains resilient.
+        }
+
+        xmlWriter.WriteStartElement( "Assemblies" );
+
+        foreach ( var assembly in AppDomain.CurrentDomain.GetAssemblies() )
+        {
+            var assemblyName = assembly.GetName();
+            xmlWriter.WriteStartElement( "Assembly" );
+            xmlWriter.WriteElementString( "Name", scrubber.RemoveSensitiveData( assemblyName.Name ) );
+            xmlWriter.WriteElementString( "Version", assemblyName.Version?.ToString() ?? "<unknown>" );
+
+            try
+            {
+                if ( !assembly.IsDynamic && !string.IsNullOrEmpty( assembly.Location ) )
+                {
+                    xmlWriter.WriteElementString( "FileVersion", FileVersionInfo.GetVersionInfo( assembly.Location ).FileVersion );
+                }
+            }
+            catch ( NotSupportedException ) { }
+
+            xmlWriter.WriteEndElement();
+        }
+
+        xmlWriter.WriteEndElement();
+        xmlWriter.Close();
+
+        return stringWriter.ToString();
     }
 }

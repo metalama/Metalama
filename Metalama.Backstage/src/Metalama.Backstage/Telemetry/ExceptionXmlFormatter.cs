@@ -15,11 +15,15 @@ namespace Metalama.Backstage.Telemetry
     [PublicAPI]
     public static class ExceptionXmlFormatter
     {
-        public static void WriteException( XmlWriter writer, Exception e )
+        public static void WriteException( XmlWriter writer, Exception e ) => WriteException( writer, e, ExceptionSensitiveDataHelper.Instance );
+
+        // Renders the exception with the given <paramref name="scrubber"/>. Pass ExceptionSensitiveDataHelper.Disabled
+        // to render the full, unscrubbed local report shown next to the scrubbed upload payload on the review page. See #1674.
+        internal static void WriteException( XmlWriter writer, Exception e, ExceptionSensitiveDataHelper scrubber )
         {
-            writer.WriteElementString( "Type", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.GetType().FullName ) );
-            writer.WriteElementString( "Message", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.Message ) );
-            writer.WriteElementString( "Source", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.Source ) );
+            writer.WriteElementString( "Type", scrubber.RemoveSensitiveData( e.GetType().FullName ) );
+            writer.WriteElementString( "Message", scrubber.RemoveSensitiveData( e.Message ) );
+            writer.WriteElementString( "Source", scrubber.RemoveSensitiveData( e.Source ) );
 
             writer.WriteStartElement( "Data" );
 
@@ -29,7 +33,7 @@ namespace Metalama.Backstage.Telemetry
 
                 if ( data != null )
                 {
-                    writer.WriteElementString( "Key", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( data.Value.Key.ToString() ) );
+                    writer.WriteElementString( "Key", scrubber.RemoveSensitiveData( data.Value.Key.ToString() ) );
 
                     if ( data.Value.Value != null )
                     {
@@ -47,7 +51,7 @@ namespace Metalama.Backstage.Telemetry
                                         {
                                             case Exception exception:
                                                 writer.WriteStartElement( "Item" );
-                                                WriteException( writer, exception );
+                                                WriteException( writer, exception, scrubber );
                                                 writer.WriteEndElement();
 
                                                 break;
@@ -60,7 +64,7 @@ namespace Metalama.Backstage.Telemetry
                                             default:
                                                 writer.WriteElementString(
                                                     "Item",
-                                                    ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( value.ToString() ) );
+                                                    scrubber.RemoveSensitiveData( value.ToString() ) );
 
                                                 break;
                                         }
@@ -73,13 +77,13 @@ namespace Metalama.Backstage.Telemetry
 
                             case Exception exception:
                                 writer.WriteStartElement( "Value" );
-                                WriteException( writer, exception );
+                                WriteException( writer, exception, scrubber );
                                 writer.WriteEndElement();
 
                                 break;
 
                             default:
-                                writer.WriteElementString( "Value", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( data.Value.ToString() ) );
+                                writer.WriteElementString( "Value", scrubber.RemoveSensitiveData( data.Value.ToString() ) );
 
                                 break;
                         }
@@ -93,12 +97,12 @@ namespace Metalama.Backstage.Telemetry
 
             writer.WriteElementString(
                 "StackTrace",
-                Environment.NewLine + ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.StackTrace ) + Environment.NewLine );
+                Environment.NewLine + scrubber.RemoveSensitiveData( e.StackTrace ) + Environment.NewLine );
 
             if ( e.InnerException != null )
             {
                 writer.WriteStartElement( "InnerException" );
-                WriteException( writer, e.InnerException );
+                WriteException( writer, e.InnerException, scrubber );
                 writer.WriteEndElement();
             }
 
@@ -109,7 +113,7 @@ namespace Metalama.Backstage.Telemetry
                 foreach ( var innerException in aggregate.InnerExceptions )
                 {
                     writer.WriteStartElement( "Exception" );
-                    WriteException( writer, innerException );
+                    WriteException( writer, innerException, scrubber );
                     writer.WriteEndElement();
                 }
 

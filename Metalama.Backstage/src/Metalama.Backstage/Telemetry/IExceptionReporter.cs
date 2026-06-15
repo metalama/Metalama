@@ -24,10 +24,10 @@ public interface IExceptionReporter : IBackstageService
         IExceptionAdapter? exceptionAdapter = null );
 
     /// <summary>
-    /// Gets a locally-captured exception report (the exact scrubbed payload that would be uploaded, plus the category
-    /// stored in the report itself) so that it can be reviewed before sending. <paramref name="reportFileName"/> is a
-    /// bare file name (no directory component) of a file in the local exceptions directory. Returns <c>false</c> if the
-    /// name is invalid or the file does not exist (e.g. it was already sent). See #1674.
+    /// Gets a locally-captured exception report so that it can be reviewed before sending, including both the exact
+    /// scrubbed payload that would be uploaded and the full unscrubbed local rendering, plus the report category.
+    /// <paramref name="reportFileName"/> is a bare file name (no directory component) of a file in the local exceptions
+    /// directory. Returns <c>false</c> if the name is invalid or the report does not exist (e.g. it was already sent). See #1674.
     /// </summary>
     bool TryGetReport( string reportFileName, [NotNullWhen( true )] out LocalExceptionReport? report );
 
@@ -38,9 +38,3 @@ public interface IExceptionReporter : IBackstageService
     /// </summary>
     bool SendReport( string reportFileName );
 }
-
-/// <summary>
-/// A locally-captured exception report: the exact scrubbed payload that would be uploaded and the
-/// <see cref="TelemetryScenario"/> category read from the report itself, so the report is self-contained. See #1674.
-/// </summary>
-public sealed record LocalExceptionReport( string Content, TelemetryScenario Scenario );

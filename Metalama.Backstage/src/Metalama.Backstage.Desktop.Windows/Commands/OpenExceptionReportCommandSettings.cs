@@ -11,10 +11,10 @@ namespace Metalama.Backstage.Desktop.Windows.Commands;
 public class OpenExceptionReportCommandSettings : BaseSettings
 {
     /// <summary>
-    /// Gets the id of the exception report to review: the bare file name (no directory component) of a report in the
-    /// local exceptions directory (e.g. <c>exception-….xml</c>). It is token-safe (no spaces). The command builds the
-    /// review-page path from it. See #1674.
+    /// Gets the bare file name of the captured exception report to review (e.g. <c>exception-….xml</c>). It is
+    /// token-safe (no spaces). The command builds the review-page path from it, so this command opens specifically an
+    /// exception report rather than an arbitrary URL.
     /// </summary>
     [CommandArgument( 0, "<report>" )]
-    public string ReportFileName { get; init; } = null!;
+    public string Report { get; init; } = null!;
 }

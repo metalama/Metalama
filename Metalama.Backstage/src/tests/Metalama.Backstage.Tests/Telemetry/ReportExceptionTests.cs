@@ -55,8 +55,17 @@ public sealed class ReportExceptionTests : TestsBase
         this.Logger.WriteLine( "Files:" );
         this.FileSystem.Mock.AllFiles.ToList().ForEach( this.Logger.WriteLine );
 
-        Assert.Equal( expectedCount, this.FileSystem.Mock.AllFiles.Count() );
+        // The full local rendering ('.local.xml') is a review-only sibling of the scrubbed upload payload; it is never
+        // uploaded, so it does not count as a captured report. See #1674.
+        var reportFiles = this.FileSystem.Mock.AllFiles.Count( f => !f.EndsWith( ".local.xml", StringComparison.Ordinal ) );
+
+        Assert.Equal( expectedCount, reportFiles );
     }
+
+    // The scrubbed upload payload is the '.xml' file that is not the '.local.xml' sibling.
+    private string GetScrubbedReportFile()
+        => this.FileSystem.Mock.AllFiles.Single(
+            f => f.EndsWith( ".xml", StringComparison.Ordinal ) && !f.EndsWith( ".local.xml", StringComparison.Ordinal ) );
 
     [Fact]
     public async Task ShouldReportExceptionConcurrent()
@@ -141,7 +150,7 @@ public sealed class ReportExceptionTests : TestsBase
             this.AssertFilesCount( 1 );
 
             // Check that the result is valid XML.
-            var xml = this.FileSystem.ReadAllText( this.FileSystem.Mock.AllFiles.Single() );
+            var xml = this.FileSystem.ReadAllText( this.GetScrubbedReportFile() );
             _ = XDocument.Parse( xml );
         }
         else
@@ -179,38 +188,76 @@ public sealed class ReportExceptionTests : TestsBase
             performanceReportingAction: ReportingAction.Default,
             exceptionReportingKind: exceptionReportingKind );
 
-        var file = Assert.Single( this.FileSystem.Mock.AllFiles );
-        Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), file, StringComparison.Ordinal );
-        Assert.DoesNotContain( Path.Combine( "Telemetry", "UploadQueue" ), file, StringComparison.Ordinal );
+        // The scrubbed upload payload stays under Telemetry\Exceptions and is NOT enqueued for upload.
+        var scrubbed = this.GetScrubbedReportFile();
+        Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), scrubbed, StringComparison.Ordinal );
+        Assert.DoesNotContain( Path.Combine( "Telemetry", "UploadQueue" ), scrubbed, StringComparison.Ordinal );
+
+        // A full, unscrubbed local rendering is captured alongside for side-by-side review (#1674).
+        var localRendering = Assert.Single( this.FileSystem.Mock.AllFiles.Where( f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) ) );
+        Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), localRendering, StringComparison.Ordinal );
     }
 
     [Theory]
-    [InlineData( ExceptionReportingKind.Exception, "Exception" )]
-    [InlineData( ExceptionReportingKind.PerformanceProblem, "Performance" )]
-    public void ToastCarriesReportIdAndReportStoresCategory( ExceptionReportingKind exceptionReportingKind, string expectedCategory )
+    [InlineData( ExceptionReportingKind.Exception )]
+    [InlineData( ExceptionReportingKind.PerformanceProblem )]
+    public void ReviewFirstCaptureWritesScrubbedAndFullLocalRenderings( ExceptionReportingKind exceptionReportingKind )
     {
-        // #1674: When a report is captured, a toast is shown whose action opens the worker review page for that exact
-        // report (instead of opening the raw report file). The toast Uri carries only the bare report id (token-safe);
-        // the category is stored in the report itself, so the report is self-contained.
+        // #1674: A review-first capture writes both the scrubbed upload payload (.xml) and the full, unscrubbed local
+        // rendering (.local.xml), so the review page can show them side by side. The scrubber redacts the user-specific
+        // path from the upload payload, while the local rendering keeps it so the user sees exactly what was removed.
+        var exception = new InvalidOperationException( @"Failed reading C:\Users\johndoe\secret.txt" );
+
+        this.ReportException(
+            exception,
+            exceptionReportingAction: ReportingAction.Default,
+            performanceReportingAction: ReportingAction.Default,
+            exceptionReportingKind: exceptionReportingKind );
+
+        var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
+
+        Assert.True( reporter.TryGetReport( Path.GetFileName( this.GetScrubbedReportFile() ), out var report ) );
+        Assert.NotNull( report!.LocalContent );
+
+        // The upload payload is scrubbed: the user-specific path is redacted.
+        Assert.DoesNotContain( "johndoe", report.ScrubbedContent, StringComparison.Ordinal );
+
+        // The local rendering keeps the full detail.
+        Assert.Contains( "johndoe", report.LocalContent!, StringComparison.Ordinal );
+
+        // Both are valid XML and self-contained (the category is stored in the report).
+        _ = XDocument.Parse( report.ScrubbedContent );
+        _ = XDocument.Parse( report.LocalContent! );
+
+        var expectedCategory = exceptionReportingKind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance;
+        Assert.Equal( expectedCategory, report.Category );
+    }
+
+    [Theory]
+    [InlineData( ExceptionReportingKind.Exception )]
+    [InlineData( ExceptionReportingKind.PerformanceProblem )]
+    public void ToastOpensReviewPage( ExceptionReportingKind exceptionReportingKind )
+    {
+        // #1674: When a report is captured, a toast is shown whose action opens the review page for that exact report
+        // (instead of opening the raw report file). The toast Uri carries only the bare report file name (token-safe);
+        // the category is stored in the report itself, and the desktop command builds the review-page path from the id.
         this.ReportException( exceptionReportingKind: exceptionReportingKind );
 
         var toast = Assert.Single( this.UserInterface.Notifications );
         Assert.Equal( ToastNotificationKinds.Exception.Name, toast.Kind.Name );
         Assert.NotNull( toast.Uri );
-
-        // The Uri is the bare report file name (the report id), not a page path or query string. The desktop command
-        // builds the review-page path from it.
-        var reportFile = this.FileSystem.Mock.AllFiles.Single();
-        var reportFileName = Path.GetFileName( reportFile );
-        Assert.Equal( reportFileName, toast.Uri );
-        Assert.StartsWith( "exception-", toast.Uri!, StringComparison.Ordinal );
+        Assert.StartsWith( "exception-", toast.Uri, StringComparison.Ordinal );
+        Assert.EndsWith( ".xml", toast.Uri, StringComparison.Ordinal );
 
         // The Uri must stay a single space-free token because the desktop toast activation argument is split on spaces.
         Assert.DoesNotContain( ' ', toast.Uri! );
 
-        // The category is stored in the report itself, making the report self-contained.
-        var xml = XDocument.Parse( this.FileSystem.ReadAllText( reportFile ) );
-        Assert.Equal( expectedCategory, xml.Root!.Element( "Category" )!.Value );
+        // The Uri must not carry a page path or query string — only the report id.
+        Assert.DoesNotContain( '?', toast.Uri! );
+
+        // The report referenced by the toast must be the captured report on disk.
+        var reportFileName = Path.GetFileName( this.GetScrubbedReportFile() );
+        Assert.Equal( reportFileName, toast.Uri );
     }
 
     [Fact]
@@ -220,23 +267,22 @@ public sealed class ReportExceptionTests : TestsBase
         // worker review page's Report button) enqueues that exact report for upload.
         this.ReportException( exceptionReportingAction: ReportingAction.Default, performanceReportingAction: ReportingAction.Default );
 
-        var captured = Assert.Single( this.FileSystem.Mock.AllFiles );
+        var captured = this.GetScrubbedReportFile();
         Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), captured, StringComparison.Ordinal );
 
         var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
         var reportFileName = Path.GetFileName( captured );
 
-        // The exact scrubbed payload (and its category, read from the report itself) can be read back for review.
+        // The exact scrubbed payload (and the full local rendering) can be read back for review.
         Assert.True( reporter.TryGetReport( reportFileName, out var report ) );
-        Assert.NotNull( report );
-        _ = XDocument.Parse( report!.Content );
-        Assert.Equal( TelemetryScenario.Exception, report.Scenario );
+        _ = XDocument.Parse( report!.ScrubbedContent );
 
-        // Sending moves the report to the upload queue.
+        // Sending moves the scrubbed report to the upload queue.
         Assert.True( reporter.SendReport( reportFileName ) );
 
-        var afterSend = Assert.Single( this.FileSystem.Mock.AllFiles );
-        Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), afterSend, StringComparison.Ordinal );
+        var enqueued = Assert.Single( this.FileSystem.Mock.AllFiles.Where( f => f.Contains( Path.Combine( "Telemetry", "UploadQueue" ), StringComparison.Ordinal ) ) );
+        Assert.EndsWith( ".xml", enqueued, StringComparison.Ordinal );
+        Assert.DoesNotContain( ".local.xml", enqueued, StringComparison.Ordinal );
     }
 
     [Theory]

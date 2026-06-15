@@ -6,7 +6,7 @@
     <h1>Report queued</h1>
     <p>Thank you. The report has been queued for upload and will help us improve Metalama.</p>
 }
-else if (Model.ReportContent == null)
+else if (!Model.HasReport)
 {
     <h1>Report unavailable</h1>
     <p>This report could not be found. It may have already been sent or removed.</p>
@@ -16,13 +16,44 @@ else
     <div class="exception-report">
         <h1>Review error report</h1>
         <p>
-            Review the exact, scrubbed report below before anything is sent. This is precisely what would be uploaded.
-            Nothing leaves your machine unless you click <strong>Report</strong>.
+            Review the report below before anything is sent. Compare the full <strong>local report</strong> with the
+            exact, scrubbed <strong>report for upload</strong> — that scrubbed payload is precisely what would be
+            uploaded. Nothing leaves your machine unless you click <strong>Report</strong>.
         </p>
 
-        <pre class="report">@Model.ReportContent</pre>
+        @* Bootstrap nav-tabs. Bootstrap's bundled JS is shipped with the worker web server (see _Layout), so the tabs
+           work fully offline, with no external dependency. See #1674. *@
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="scrubbed-tab" data-bs-toggle="tab" data-bs-target="#scrubbed-pane"
+                        type="button" role="tab" aria-controls="scrubbed-pane" aria-selected="true">
+                    Report for upload (scrubbed)
+                </button>
+            </li>
+            @if (Model.LocalContent != null)
+            {
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="local-tab" data-bs-toggle="tab" data-bs-target="#local-pane"
+                            type="button" role="tab" aria-controls="local-pane" aria-selected="false">
+                        Local report (full)
+                    </button>
+                </li>
+            }
+        </ul>
 
-        <form method="post" asp-page-handler="Report">
+        <div class="tab-content report-content">
+            <div class="tab-pane fade show active" id="scrubbed-pane" role="tabpanel" aria-labelledby="scrubbed-tab">
+                <pre class="report">@Model.ScrubbedContent</pre>
+            </div>
+            @if (Model.LocalContent != null)
+            {
+                <div class="tab-pane fade" id="local-pane" role="tabpanel" aria-labelledby="local-tab">
+                    <pre class="report">@Model.LocalContent</pre>
+                </div>
+            }
+        </div>
+
+        <form method="post" asp-page-handler="Report" class="report-actions">
             <input type="hidden" asp-for="Report" />
 
             <div class="checkbox">

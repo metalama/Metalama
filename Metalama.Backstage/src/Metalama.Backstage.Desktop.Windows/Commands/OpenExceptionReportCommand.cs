@@ -5,12 +5,13 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.UserInterface;
+using System;
 using System.Threading.Tasks;
 
 namespace Metalama.Backstage.Desktop.Windows.Commands;
 
-// Opens the exception-report review page (formatted report + Report button + per-category auto-report checkbox) using the
-// worker-process web server. Activated when the user clicks the exception toast. See #1674.
+// Opens the exception-report review page (formatted report + Report button + per-category auto-report checkbox) using
+// the worker-process web server. Activated when the user clicks the exception toast. See #1674.
 [UsedImplicitly( ImplicitUseTargetFlags.WithMembers )]
 internal sealed class OpenExceptionReportCommand : BaseAsyncCommand<OpenExceptionReportCommandSettings>
 {
@@ -21,9 +22,11 @@ internal sealed class OpenExceptionReportCommand : BaseAsyncCommand<OpenExceptio
         var serviceProvider = App.GetBackstageServices( settings );
         var userInterfaceService = serviceProvider.GetRequiredBackstageService<IUserInterfaceService>();
 
-        // Build the review-page path from the report id. The page reads the category from the report itself, so the id
-        // (a bare, token-safe file name) is all that needs to be carried. See #1674.
-        await userInterfaceService.OpenConfigurationWebPageAsync( $"ExceptionReport?report={settings.ReportFileName}" );
+        // The command receives only the report id and builds the review-page path itself, so it is specifically about
+        // opening an exception report rather than an arbitrary URL. See #1674.
+        var page = "ExceptionReport?report=" + Uri.EscapeDataString( settings.Report );
+
+        await userInterfaceService.OpenConfigurationWebPageAsync( page );
 
         return 0;
     }
