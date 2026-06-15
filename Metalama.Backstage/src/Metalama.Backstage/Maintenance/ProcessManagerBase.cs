@@ -21,7 +21,13 @@ internal abstract partial class ProcessManagerBase : IProcessManager
         new KillableProcessSpec( "servicehub.roslyncodeanalysisservice", KillableModuleKind.Both, false, false, "Visual Studio" ),
         new KillableProcessSpec( "jetbrains.resharper.roslyn.worker", KillableModuleKind.DotNet, false, false, "Rider/Resharper" ),
         new KillableProcessSpec( "jetbrains.roslyn.worker", KillableModuleKind.DotNet, false, false, "Rider/Resharper" ),
-        new KillableProcessSpec( "omnisharp", KillableModuleKind.DotNet, false, false, "Visual Studio Code / Omnisharp" ) );
+        new KillableProcessSpec( "omnisharp", KillableModuleKind.DotNet, false, false, "Visual Studio Code / Omnisharp" ),
+
+        // The Backstage Worker runs under 'dotnet' (hosting Metalama.Backstage.Worker.dll), so it is matched as a DotNet module.
+        new KillableProcessSpec( "Metalama.Backstage.Worker", KillableModuleKind.DotNet, false, true ),
+
+        // The Backstage Desktop tray app is a standalone '.exe'.
+        new KillableProcessSpec( "Metalama.Backstage.Desktop.Windows", KillableModuleKind.StandaloneProcess, false, true ) );
 
     protected ILogger Logger { get; }
 
