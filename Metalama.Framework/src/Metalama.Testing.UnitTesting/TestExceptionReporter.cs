@@ -33,4 +33,8 @@ internal sealed class TestExceptionReporter : IExceptionReporter
     {
         this._reportedExceptions.Add( classifiedException.Exception );
     }
+
+    public string? TryGetReportContent( string reportFileName ) => null;
+
+    public bool SendReport( string reportFileName ) => false;
 }
