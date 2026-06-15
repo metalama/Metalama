@@ -327,6 +327,9 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             } );
     }
 
+    public void ResetReportedIssues()
+        => this._configurationManager.Update<TelemetryConfiguration>( c => c with { Issues = c.Issues.Clear() } );
+
     // Generates the three per-channel salts so that they are all non-zero and mutually distinct. A 64-bit CSPRNG
     // makes zero or a collision astronomically unlikely, but we guard against them anyway because the whole point of
     // the per-channel salts is that the resulting pseudonyms are mutually uncorrelatable. See #1668.

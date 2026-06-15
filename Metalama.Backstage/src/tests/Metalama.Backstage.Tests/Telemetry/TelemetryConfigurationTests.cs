@@ -212,4 +212,21 @@ public sealed class TelemetryConfigurationTests : TestsBase
 
         Assert.NotEqual( salt1, salt2 );
     }
+
+    [Fact]
+    public void ResetReportedIssuesClearsTheDedupStore()
+    {
+        // reset-dedup (#1684): clearing the record of already-reported issues lets an issue that was previously
+        // reported (and therefore deduplicated by the exception reporter) be captured and surfaced again. See #1674.
+        var configurationManager = this.ConfigurationManager!;
+
+        configurationManager.Update<TelemetryConfiguration>(
+            c => c with { Issues = c.Issues.SetItem( "some-issue-hash", ReportingStatus.Reported ) } );
+
+        Assert.NotEmpty( configurationManager.Get<TelemetryConfiguration>().Issues );
+
+        this.TelemetryConfigurationService.ResetReportedIssues();
+
+        Assert.Empty( configurationManager.Get<TelemetryConfiguration>().Issues );
+    }
 }
