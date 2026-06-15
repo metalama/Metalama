@@ -208,7 +208,7 @@ internal sealed class ExceptionReporter : IExceptionReporter
         var category = scenario == TelemetryScenario.Performance ? "performance problem" : "exception";
 
         // For a review-first report the call to action is to review and send; for an auto-sent report the toast is
-        // purely informational (clicking it still opens the page, which shows the report as already sent).
+        // purely informational (clicking it still opens the page, which shows what was reported).
         var callToAction = autoSent ? "Click to review what was reported." : "Click to review and report it.";
 
         // The Uri carries only the bare report file name ('exception-<hash>-<guid>.xml'), not a page path, so it
