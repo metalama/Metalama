@@ -127,7 +127,7 @@ internal sealed class ExceptionReporter : IExceptionReporter
     {
         report = null;
 
-        if ( !this.TryResolveReportPath( reportFileName, out var fullPath, out _ ) )
+        if ( !this.TryResolveReportPath( reportFileName, out var fullPath, out var isQueued ) )
         {
             return false;
         }
@@ -135,8 +135,8 @@ internal sealed class ExceptionReporter : IExceptionReporter
         var scrubbedContent = this._fileSystem.ReadAllText( fullPath );
 
         // The full local rendering always lives next to the captured report under the exceptions directory (it is never
-        // moved to the upload queue). It is absent for auto-sent reports and for reports captured through a custom
-        // exception adapter, which cannot be re-rendered unscrubbed.
+        // moved to the upload queue). It is absent for reports captured through a custom exception adapter, which cannot
+        // be re-rendered unscrubbed.
         string? localContent = null;
         var localRenderingPath = Path.Combine( this._directories.TelemetryExceptionsDirectory, GetLocalRenderingFileName( reportFileName ) );
 
@@ -145,7 +145,9 @@ internal sealed class ExceptionReporter : IExceptionReporter
             localContent = this._fileSystem.ReadAllText( localRenderingPath );
         }
 
-        report = new CapturedExceptionReport( scrubbedContent, localContent, ParseCategory( scrubbedContent ) );
+        // A report found in the upload queue has already been enqueued (auto-sent, or sent on a previous review), so the
+        // review page shows it as already sent rather than offering the Report button again. See #1674.
+        report = new CapturedExceptionReport( scrubbedContent, localContent, ParseCategory( scrubbedContent ), isQueued );
 
         return true;
     }
@@ -222,36 +224,12 @@ internal sealed class ExceptionReporter : IExceptionReporter
                 Uri: reportFileName ) );
     }
 
-    // Assembly-name prefixes considered framework/runtime, and therefore safe to disclose (name + version).
-    // Any other assembly is treated as user/third-party code: its name (even a single token), version and
-    // file version can identify the user's product or build, so they are redacted. See #1680.
-    private static readonly string[] _knownSafeAssemblyPrefixes =
-    {
-        "System", "Microsoft", "Metalama", "PostSharp", "mscorlib", "netstandard", "WindowsBase",
-        "Presentation", "EnvDTE", "Windows", "JetBrains", "Newtonsoft", "MessagePack", "StreamJsonRpc",
-        "Nerdbank", "Mono", "xunit", "testhost", "Roslyn"
-    };
-
-    internal static bool IsKnownSafeAssemblyName( string? name )
-    {
-        if ( string.IsNullOrEmpty( name ) )
-        {
-            return false;
-        }
-
-        foreach ( var prefix in _knownSafeAssemblyPrefixes )
-        {
-            // Match the prefix only at a name boundary (end of name or a non-alphanumeric separator), so that
-            // a user assembly such as "SystemwideTool" is not mistaken for a "System.*" framework assembly.
-            if ( name!.StartsWith( prefix, StringComparison.OrdinalIgnoreCase )
-                 && ( name.Length == prefix.Length || !char.IsLetterOrDigit( name[prefix.Length] ) ) )
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    // An assembly is safe to disclose (name + version) when its name starts with a known framework / first-party /
+    // bundled-OSS prefix; any other assembly is user/third-party code whose name (even a single token), version and
+    // file version can identify the user's product or build, so it is redacted to "#user". The prefix list and boundary
+    // rule are shared with the namespace scrubber (ExceptionSensitiveDataHelper.KnownSafePrefixes) so the two never
+    // diverge. See #1680.
+    internal static bool IsKnownSafeAssemblyName( string? name ) => ExceptionSensitiveDataHelper.IsKnownSafePrefix( name );
 
     internal static void WriteAssemblyElement( XmlWriter xmlWriter, string? name, Version? version, string? fileVersion )
         => WriteAssemblyElement( xmlWriter, name, version, fileVersion, ExceptionSensitiveDataHelper.Instance );
@@ -493,6 +471,18 @@ internal sealed class ExceptionReporter : IExceptionReporter
             // The scrubbed report is the exact payload that would be uploaded.
             this._fileSystem.WriteAllText( fileName, this.BuildReport( hash, scenario, classifiedException, adapter, ExceptionSensitiveDataHelper.Instance ) );
 
+            // Capture the full, unscrubbed rendering of the same report next to it (with a '.local.xml' extension), so
+            // the review page can always show both side by side and the user can see exactly what the scrubber removes —
+            // whether the report is auto-sent or awaiting review. The '.local.xml' file is never uploaded (it is not
+            // enqueued and the upload queue only ever receives the scrubbed '.xml'). We can only re-render unscrubbed
+            // through the default adapter; a custom adapter (cross-process exceptions) scrubs internally. See #1674.
+            if ( adapter is DefaultExceptionAdapter )
+            {
+                this._fileSystem.WriteAllText(
+                    Path.Combine( directory, GetLocalRenderingFileName( baseName + ".xml" ) ),
+                    this.BuildReport( hash, scenario, classifiedException, adapter, ExceptionSensitiveDataHelper.Disabled ) );
+            }
+
             // Capture is decoupled from sending (#1674). The scrubbed report has now been captured locally under the
             // Telemetry\Exceptions directory. We only auto-send it (move it to the upload queue) when the user has
             // explicitly opted the category in (ReportingAction.Yes). Otherwise (review-first: ReportingAction.Default,
@@ -510,19 +500,6 @@ internal sealed class ExceptionReporter : IExceptionReporter
             {
                 this._logger.Trace?.Log(
                     $"The exception report was captured locally for review but not enqueued for upload because the category is review-first ('{reportingAction}')." );
-
-                // Capture the full, unscrubbed rendering of the same report next to it (with a '.local.xml' extension),
-                // so the review page can show both side by side and the user can see exactly what the scrubber removes
-                // before anything leaves the machine. The '.local.xml' file is never uploaded. We only need it for the
-                // review-first flow (an auto-sent report is uploaded immediately, with nothing to review). We can only
-                // re-render unscrubbed through the default adapter; a custom adapter (cross-process exceptions) scrubs
-                // internally. See #1674.
-                if ( adapter is DefaultExceptionAdapter )
-                {
-                    this._fileSystem.WriteAllText(
-                        Path.Combine( directory, GetLocalRenderingFileName( baseName + ".xml" ) ),
-                        this.BuildReport( hash, scenario, classifiedException, adapter, ExceptionSensitiveDataHelper.Disabled ) );
-                }
             }
 
             // Notify the user that a report was captured. Clicking the toast opens the worker review page, which shows

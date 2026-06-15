@@ -196,14 +196,19 @@ public sealed class ReportExceptionTests : TestsBase
     public void AutoSendCategoryEnqueuesReportForUpload( ExceptionReportingKind exceptionReportingKind )
     {
         // #1674: When the category is explicitly opted in (ReportingAction.Yes), the captured report is auto-sent,
-        // i.e. moved to the telemetry upload queue.
+        // i.e. the scrubbed payload is moved to the telemetry upload queue. The full local rendering is still kept
+        // alongside (under Telemetry\Exceptions) so the review page can show it, and is never uploaded.
         this.ReportException(
             exceptionReportingAction: exceptionReportingKind == ExceptionReportingKind.Exception ? ReportingAction.Yes : ReportingAction.No,
             performanceReportingAction: exceptionReportingKind == ExceptionReportingKind.PerformanceProblem ? ReportingAction.Yes : ReportingAction.No,
             exceptionReportingKind: exceptionReportingKind );
 
-        var file = Assert.Single( this.FileSystem.Mock.AllFiles );
-        Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), file, StringComparison.Ordinal );
+        var scrubbed = this.GetScrubbedReportFile();
+        Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), scrubbed, StringComparison.Ordinal );
+
+        var localRendering = Assert.Single( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) );
+        Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), localRendering, StringComparison.Ordinal );
+        Assert.DoesNotContain( Path.Combine( "Telemetry", "UploadQueue" ), localRendering, StringComparison.Ordinal );
     }
 
     [Theory]
@@ -323,7 +328,7 @@ public sealed class ReportExceptionTests : TestsBase
         // toast says "review what was reported"), so report lookup resolves reports in the upload queue too.
         this.ReportException( exceptionReportingAction: ReportingAction.Yes, performanceReportingAction: ReportingAction.Yes );
 
-        var enqueued = Assert.Single( this.FileSystem.Mock.AllFiles );
+        var enqueued = this.GetScrubbedReportFile();
         Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), enqueued, StringComparison.Ordinal );
 
         var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
@@ -337,13 +342,13 @@ public sealed class ReportExceptionTests : TestsBase
         // Copilot: an already-queued report (auto-sent, or sent on a previous click) must not be treated as a failure;
         // SendReport returns true without moving anything, so the worker page's Report button stays reliable.
         this.ReportException( exceptionReportingAction: ReportingAction.Yes, performanceReportingAction: ReportingAction.Yes );
-        var enqueued = Path.GetFileName( Assert.Single( this.FileSystem.Mock.AllFiles ) );
+        var enqueued = Path.GetFileName( this.GetScrubbedReportFile() );
 
         var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
         Assert.True( reporter.SendReport( enqueued ) );
 
-        // Still exactly one file, still in the upload queue (no duplicate, no move error).
-        var file = Assert.Single( this.FileSystem.Mock.AllFiles );
+        // Still exactly one scrubbed report, still in the upload queue (no duplicate, no move error).
+        var file = this.GetScrubbedReportFile();
         Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), file, StringComparison.Ordinal );
     }
 
@@ -530,7 +535,7 @@ public sealed class ReportExceptionTests : TestsBase
         this.ReportException( caughtException );
         this.AssertFilesCount( 1 );
 
-        var xml = this.FileSystem.ReadAllText( this.FileSystem.Mock.AllFiles.Single() );
+        var xml = this.FileSystem.ReadAllText( this.GetScrubbedReportFile() );
         this.Logger.WriteLine( "XML report:" );
         this.Logger.WriteLine( xml );
 
@@ -579,7 +584,7 @@ public sealed class ReportExceptionTests : TestsBase
         this.ReportException();
         this.AssertFilesCount( 1 );
 
-        var xml = this.FileSystem.ReadAllText( this.FileSystem.Mock.AllFiles.Single() );
+        var xml = this.FileSystem.ReadAllText( this.GetScrubbedReportFile() );
         this.Logger.WriteLine( "XML report:" );
         this.Logger.WriteLine( xml );
 
@@ -605,7 +610,7 @@ public sealed class ReportExceptionTests : TestsBase
         this.ReportException( exception );
         this.AssertFilesCount( 1 );
 
-        var xml = this.FileSystem.ReadAllText( this.FileSystem.Mock.AllFiles.Single() );
+        var xml = this.FileSystem.ReadAllText( this.GetScrubbedReportFile() );
         this.Logger.WriteLine( "XML report:" );
         this.Logger.WriteLine( xml );
 

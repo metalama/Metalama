@@ -190,28 +190,76 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
 .back-button a:hover {
   color: #fff;
 }
-/* Exception-report review page (#1674). The page fits the viewport: only the report content scrolls, so the tabs,
-   the auto-report checkbox and the Report button stay visible. */
-.exception-report {
+/* Exception-report review page (#1674). The page fits the viewport exactly — only the report content scrolls, so the
+   tabs, the auto-report checkbox and the Report button stay visible and the page itself never scrolls. */
+
+/* Neutralise the page chrome that would otherwise make the page taller than the viewport — the body's bottom margin and
+   the html min-height (whose extra height shows as blank space when scrolling) — and the shared container's height cap.
+   Scoped to this page via :has() so other pages are unaffected. */
+html:has(.exception-report),
+body:has(.exception-report) {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* Make the container a full-height flex column so the logo header keeps its size and the report area fills the rest. */
+.container:has(.exception-report) {
+  max-height: none;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.exception-report .report-content {
-  margin-top: -1px; /* merge the active tab with the content border */
+.container:has(.exception-report) > main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.exception-report .report {
-  max-height: calc(100vh - 18rem);
+.exception-report {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0; /* fill the height left after the logo header; only the report scrolls */
+}
+
+.exception-report .report-content {
+  flex: 1 1 auto;
+  min-height: 0; /* allow the flex child to shrink below its content height so the inner <pre> scrolls */
+  margin-top: -1px; /* merge the active tab with the content border */
+  display: flex;
+  overflow: hidden;
+}
+
+/* The active tab pane fills the (flexible) content area so its report fills and scrolls. */
+.exception-report .report-content > .tab-pane.active {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+/* A read-only text box so the report is easy to select and copy. It fills the flex area; only it scrolls. */
+.exception-report textarea.report {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  resize: none; /* height is governed by the flex layout, not a drag handle */
   overflow: auto;
   margin: 0;
   padding: 0.5rem;
   border: 1px solid #ccc;
   background: #f7f7f7;
-  white-space: pre-wrap;
+  color: #000; /* black, not the page's gray body text */
+  font-family: monospace;
+  white-space: pre-wrap; /* wrap long lines instead of forcing a horizontal scrollbar */
   word-break: break-word;
 }
 
 .exception-report .report-actions {
   margin-top: 10px;
+  flex: 0 0 auto; /* keep the checkbox and Report button at their natural height, always visible */
 }

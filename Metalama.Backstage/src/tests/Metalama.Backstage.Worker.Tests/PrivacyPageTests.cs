@@ -23,7 +23,7 @@ public sealed class PrivacyPageTests : TestsBase
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, enabled );
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Performance, enabled );
 
-        var model = new PrivacyPageModel( this.TelemetryConfigurationService );
+        var model = new PrivacyPageModel( this.TelemetryConfigurationService, this.ConfigurationManager! );
         model.OnGet();
 
         Assert.Equal( enabled, model.IsUsageReportingEnabled );
@@ -39,7 +39,7 @@ public sealed class PrivacyPageTests : TestsBase
         // Start from the opposite state to make sure the post actually changes it.
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Usage, !enabled );
 
-        var model = new PrivacyPageModel( this.TelemetryConfigurationService ) { IsUsageReportingEnabled = enabled, IsExceptionReportingEnabled = false };
+        var model = new PrivacyPageModel( this.TelemetryConfigurationService, this.ConfigurationManager! ) { IsUsageReportingEnabled = enabled, IsExceptionReportingEnabled = false };
         model.OnPost();
 
         Assert.Equal( enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
@@ -55,7 +55,7 @@ public sealed class PrivacyPageTests : TestsBase
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, !enabled );
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Performance, !enabled );
 
-        var model = new PrivacyPageModel( this.TelemetryConfigurationService )
+        var model = new PrivacyPageModel( this.TelemetryConfigurationService, this.ConfigurationManager! )
         {
             IsUsageReportingEnabled = true, IsExceptionReportingEnabled = enabled, IsPerformanceReportingEnabled = !enabled
         };
@@ -82,7 +82,7 @@ public sealed class PrivacyPageTests : TestsBase
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, !enabled );
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Performance, !enabled );
 
-        var model = new PrivacyPageModel( this.TelemetryConfigurationService )
+        var model = new PrivacyPageModel( this.TelemetryConfigurationService, this.ConfigurationManager! )
         {
             IsUsageReportingEnabled = true, IsExceptionReportingEnabled = !enabled, IsPerformanceReportingEnabled = enabled
         };

@@ -58,6 +58,12 @@ internal class ExceptionReportPageModel : PageModel
 
     public bool IsReported { get; private set; }
 
+    /// <summary>
+    /// Gets a value indicating whether the report has already been sent (auto-reported, or sent on a previous review).
+    /// The page then shows the report renderings for transparency but without offering the Report button again. See #1674.
+    /// </summary>
+    public bool IsAlreadySent { get; private set; }
+
     // The category is read from the report itself (it is self-contained), never passed as a parameter. See #1674.
     public TelemetryScenario Scenario { get; private set; } = TelemetryScenario.Exception;
 
@@ -72,6 +78,7 @@ internal class ExceptionReportPageModel : PageModel
             this.ScrubbedContent = capturedReport.ScrubbedContent;
             this.LocalContent = capturedReport.LocalContent;
             this.Scenario = capturedReport.Category;
+            this.IsAlreadySent = capturedReport.IsQueued;
             this.AutoReport = this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( this.Scenario ) == ReportingAction.Yes;
         }
     }
@@ -94,6 +101,23 @@ internal class ExceptionReportPageModel : PageModel
             // Only report the report as queued if it was actually enqueued: SendReport can fail (e.g. the file was
             // removed). Keeping the report content set means the page still renders the report rather than a blank form.
             this.IsReported = this._exceptionReporter.SendReport( this.Report! );
+        }
+
+        return this.Page();
+    }
+
+    // The report has already been auto-sent; this handler only updates whether the category keeps being reported
+    // automatically (the checkbox stays available so the user can turn auto-reporting off). It does not re-send. See #1674.
+    public IActionResult OnPostUpdateAutoReport()
+    {
+        if ( !string.IsNullOrEmpty( this.Report ) && this._exceptionReporter.TryGetReport( this.Report!, out var capturedReport ) )
+        {
+            this.ScrubbedContent = capturedReport.ScrubbedContent;
+            this.LocalContent = capturedReport.LocalContent;
+            this.Scenario = capturedReport.Category;
+            this.IsAlreadySent = capturedReport.IsQueued;
+
+            this._telemetryConfigurationService.SetStatus( this.Scenario, enabled: this.AutoReport );
         }
 
         return this.Page();

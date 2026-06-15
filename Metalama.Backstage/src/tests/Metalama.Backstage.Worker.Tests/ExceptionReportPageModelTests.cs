@@ -92,6 +92,63 @@ public sealed class ExceptionReportPageModelTests : TestsBase
     }
 
     [Fact]
+    public void OnGetMarksAnAlreadyQueuedReportAsSent()
+    {
+        // #1674: a report that was already auto-sent (and therefore is queued) opens in a read-only "already sent" state:
+        // the renderings are still loaded for transparency, but the page must not offer the Report button again.
+        var reporter = new FakeExceptionReporter
+        {
+            ReportToReturn = new CapturedExceptionReport(
+                "<ErrorReport />",
+                "<ErrorReport local=\"true\" />",
+                TelemetryScenario.Exception,
+                IsQueued: true )
+        };
+
+        var model = this.CreateModel( reporter );
+
+        model.OnGet( "exception-abc.xml" );
+
+        Assert.True( model.IsAlreadySent );
+        Assert.True( model.HasReport );
+        Assert.Equal( "<ErrorReport local=\"true\" />", model.LocalContent );
+
+        // It is not the post-submit "thank you" state; the content is shown without the Report form.
+        Assert.False( model.IsReported );
+    }
+
+    [Theory]
+    [InlineData( true, ReportingAction.Yes )]
+    [InlineData( false, ReportingAction.No )]
+    public void OnPostUpdateAutoReportTogglesTheCategoryWithoutResending( bool autoReport, ReportingAction expectedAction )
+    {
+        // #1674: on an already-sent report the auto-report checkbox stays available so the user can turn auto-reporting
+        // on or off for the category. This only updates the setting — it does not (re-)send the report.
+        this.TelemetryConfigurationService.Initialize();
+
+        var reporter = new FakeExceptionReporter
+        {
+            ReportToReturn = new CapturedExceptionReport( "<r/>", "<r local/>", TelemetryScenario.Exception, IsQueued: true )
+        };
+
+        var model = this.CreateModel( reporter );
+        model.Report = "exception-abc.xml";
+        model.AutoReport = autoReport;
+
+        model.OnPostUpdateAutoReport();
+
+        Assert.Equal( expectedAction, this.GetReportingAction( TelemetryScenario.Exception ) );
+
+        // The page still renders as already sent, with the report content shown, and never as the "report queued" state.
+        Assert.True( model.IsAlreadySent );
+        Assert.True( model.HasReport );
+        Assert.False( model.IsReported );
+
+        // The report was not (re-)sent.
+        Assert.Null( reporter.SentReport );
+    }
+
+    [Fact]
     public void OnGetWithUnknownReportLeavesPageEmpty()
     {
         var model = this.CreateModel( new FakeExceptionReporter() );

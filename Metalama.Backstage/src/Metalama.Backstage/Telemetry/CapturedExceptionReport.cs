@@ -18,4 +18,8 @@ namespace Metalama.Backstage.Telemetry;
 /// report, or a report captured through a custom exception adapter that scrubs internally).
 /// </param>
 /// <param name="Category">The report category, which drives the per-category auto-report checkbox.</param>
-public sealed record CapturedExceptionReport( string ScrubbedContent, string? LocalContent, TelemetryScenario Category );
+/// <param name="IsQueued">
+/// <c>true</c> if the report has already been enqueued for upload (auto-sent, or sent on a previous review). The review
+/// page then shows it as already sent instead of offering the Report button again.
+/// </param>
+public sealed record CapturedExceptionReport( string ScrubbedContent, string? LocalContent, TelemetryScenario Category, bool IsQueued = false );

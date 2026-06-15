@@ -89,9 +89,12 @@ namespace Metalama.Backstage.Tests.Telemetry
         [InlineData( "   at Presentation.Type.Method(String message) in :line 16707565" )]
         [InlineData( "   at PresentationFramework.Type.Method(String message) in :line 16707565" )]
         [InlineData( "   at EnvDTE.Type.Method(String message) in :line 16707565" )]
-        [InlineData( "   at EnvDTENamespace.Type.Method(String message) in :line 16707565" )]
+        [InlineData( "   at EnvDTE80.Type.Method(String message) in :line 16707565" )]
         [InlineData( "   at Windows.Type.Method(String message) in :line 16707565" )]
-        [InlineData( "   at WindowsNamespace.Type.Method(String message) in :line 16707565" )]
+        [InlineData( "   at WindowsBase.Type.Method(String message) in :line 16707565" )]
+        [InlineData( "   at Spectre.Console.Cli.CommandExecutor.Execute(String message) in :line 16707565" )]
+        [InlineData( "   at Newtonsoft.Json.JsonConvert.SerializeObject(String message) in :line 16707565" )]
+        [InlineData( "   at JetBrains.Annotations.NotNullAttribute..ctor(String message) in :line 16707565" )]
         public void NonSensitiveDataIsNotRemoved( string input )
         {
             var actualOutput = ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( input );
