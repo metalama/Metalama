@@ -23,6 +23,10 @@ internal abstract partial class ProcessManagerBase : IProcessManager
         new KillableProcessSpec( "jetbrains.roslyn.worker", KillableModuleKind.DotNet, false, false, "Rider/Resharper" ),
         new KillableProcessSpec( "omnisharp", KillableModuleKind.DotNet, false, false, "Visual Studio Code / Omnisharp" ) );
 
+    // Exposed for testing (see ProcessManagerTests). The processes are killed against the live OS process list,
+    // so the kill specification itself is the only deterministically testable surface.
+    internal static ImmutableArray<KillableProcessSpec> ProcessesToKill => _processesToKill;
+
     protected ILogger Logger { get; }
 
     protected ProcessManagerBase( IServiceProvider serviceProvider )
