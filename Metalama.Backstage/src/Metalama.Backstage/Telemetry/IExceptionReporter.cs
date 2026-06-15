@@ -5,6 +5,7 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Backstage.Telemetry;
 
@@ -23,12 +24,12 @@ public interface IExceptionReporter : IBackstageService
         IExceptionAdapter? exceptionAdapter = null );
 
     /// <summary>
-    /// Gets the content of a locally-captured exception report (the exact scrubbed payload that would be uploaded), so
-    /// that it can be reviewed before sending. <paramref name="reportFileName"/> is a bare file name (no directory
-    /// component) of a file in the local exceptions directory. Returns <c>null</c> if the name is invalid or the file
-    /// does not exist (e.g. it was already sent). See #1674.
+    /// Gets a locally-captured exception report (the exact scrubbed payload that would be uploaded, plus the category
+    /// stored in the report itself) so that it can be reviewed before sending. <paramref name="reportFileName"/> is a
+    /// bare file name (no directory component) of a file in the local exceptions directory. Returns <c>false</c> if the
+    /// name is invalid or the file does not exist (e.g. it was already sent). See #1674.
     /// </summary>
-    string? TryGetReportContent( string reportFileName );
+    bool TryGetReport( string reportFileName, [NotNullWhen( true )] out LocalExceptionReport? report );
 
     /// <summary>
     /// Sends a single locally-captured exception report identified by its bare <paramref name="reportFileName"/>: the
@@ -37,3 +38,9 @@ public interface IExceptionReporter : IBackstageService
     /// </summary>
     bool SendReport( string reportFileName );
 }
+
+/// <summary>
+/// A locally-captured exception report: the exact scrubbed payload that would be uploaded and the
+/// <see cref="TelemetryScenario"/> category read from the report itself, so the report is self-contained. See #1674.
+/// </summary>
+public sealed record LocalExceptionReport( string Content, TelemetryScenario Scenario );

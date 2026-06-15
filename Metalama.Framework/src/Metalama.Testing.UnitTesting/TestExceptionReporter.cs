@@ -7,6 +7,7 @@ using Metalama.Backstage.Telemetry;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Testing.UnitTesting;
 
@@ -34,7 +35,12 @@ internal sealed class TestExceptionReporter : IExceptionReporter
         this._reportedExceptions.Add( classifiedException.Exception );
     }
 
-    public string? TryGetReportContent( string reportFileName ) => null;
+    public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out LocalExceptionReport? report )
+    {
+        report = null;
+
+        return false;
+    }
 
     public bool SendReport( string reportFileName ) => false;
 }

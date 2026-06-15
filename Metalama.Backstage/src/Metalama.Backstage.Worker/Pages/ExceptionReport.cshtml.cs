@@ -6,7 +6,6 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Telemetry;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System;
 using IConfigurationManager = Metalama.Backstage.Configuration.IConfigurationManager;
 
 namespace Metalama.Backstage.Pages;
@@ -32,17 +31,10 @@ internal class ExceptionReportPageModel : PageModel
     }
 
     /// <summary>
-    /// Gets or sets the bare file name of the report being reviewed.
+    /// Gets or sets the bare file name (the report id) of the report being reviewed.
     /// </summary>
     [BindProperty]
     public string? Report { get; set; }
-
-    /// <summary>
-    /// Gets or sets the report category name (<c>Exception</c> or <c>Performance</c>), which drives the checkbox label
-    /// and the setting that the checkbox toggles.
-    /// </summary>
-    [BindProperty]
-    public string? Category { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether all reports of this category should be sent automatically from now on.
@@ -54,23 +46,39 @@ internal class ExceptionReportPageModel : PageModel
 
     public bool IsReported { get; private set; }
 
-    public TelemetryScenario Scenario
-        => string.Equals( this.Category, nameof(TelemetryScenario.Performance), StringComparison.OrdinalIgnoreCase )
-            ? TelemetryScenario.Performance
-            : TelemetryScenario.Exception;
+    /// <summary>
+    /// Gets the report category. It is read from the report itself (which is self-contained), not passed as a parameter.
+    /// Defaults to <see cref="TelemetryScenario.Exception"/> until a report has been loaded. See #1674.
+    /// </summary>
+    public TelemetryScenario Scenario { get; private set; } = TelemetryScenario.Exception;
 
     public string CategoryDisplayName => this.Scenario == TelemetryScenario.Performance ? "performance warnings" : "exceptions";
 
-    public void OnGet( string? report, string? category )
+    public void OnGet( string? report )
     {
         this.Report = report;
-        this.Category = category;
-        this.ReportContent = string.IsNullOrEmpty( report ) ? null : this._exceptionReporter.TryGetReportContent( report! );
-        this.AutoReport = this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( this.Scenario ) == ReportingAction.Yes;
+
+        if ( !string.IsNullOrEmpty( report ) && this._exceptionReporter.TryGetReport( report!, out var localReport ) )
+        {
+            this.ReportContent = localReport.Content;
+            this.Scenario = localReport.Scenario;
+            this.AutoReport = this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( this.Scenario ) == ReportingAction.Yes;
+        }
     }
 
     public IActionResult OnPostReport()
     {
+        // Re-read the report so the category (and thus which setting the checkbox toggles) comes from the report itself,
+        // keeping the report self-contained rather than trusting a round-tripped form value. See #1674.
+        if ( string.IsNullOrEmpty( this.Report ) || !this._exceptionReporter.TryGetReport( this.Report!, out var localReport ) )
+        {
+            // The report is gone (e.g. already sent or removed); there is nothing left to report.
+            return this.Page();
+        }
+
+        this.Scenario = localReport.Scenario;
+        this.ReportContent = localReport.Content;
+
         if ( this.AutoReport )
         {
             // Ticking "automatically report all …" enables this category's auto-send going forward, independently of
@@ -78,12 +86,7 @@ internal class ExceptionReportPageModel : PageModel
             this._telemetryConfigurationService.SetStatus( this.Scenario, enabled: true );
         }
 
-        if ( !string.IsNullOrEmpty( this.Report ) )
-        {
-            this._exceptionReporter.SendReport( this.Report! );
-        }
-
-        this.IsReported = true;
+        this.IsReported = this._exceptionReporter.SendReport( this.Report! );
 
         return this.Page();
     }

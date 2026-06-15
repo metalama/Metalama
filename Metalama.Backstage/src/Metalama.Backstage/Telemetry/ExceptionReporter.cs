@@ -18,6 +18,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace Metalama.Backstage.Telemetry;
 
@@ -73,14 +74,40 @@ internal sealed class ExceptionReporter : IExceptionReporter
         return true;
     }
 
-    public string? TryGetReportContent( string reportFileName )
+    public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out LocalExceptionReport? report )
     {
+        report = null;
+
         if ( !this.TryResolveReportPath( reportFileName, out var fullPath ) || !this._fileSystem.FileExists( fullPath ) )
         {
-            return null;
+            return false;
         }
 
-        return this._fileSystem.ReadAllText( fullPath );
+        var content = this._fileSystem.ReadAllText( fullPath );
+        report = new LocalExceptionReport( content, ParseScenario( content ) );
+
+        return true;
+    }
+
+    // Reads the category stored in the report itself (the <Category> element) so the report is self-contained. Defaults
+    // to Exception for older or malformed reports that do not carry a recognizable category. See #1674.
+    private static TelemetryScenario ParseScenario( string content )
+    {
+        try
+        {
+            var category = XDocument.Parse( content ).Root?.Element( "Category" )?.Value;
+
+            if ( !string.IsNullOrEmpty( category ) && Enum.TryParse<TelemetryScenario>( category, out var scenario ) )
+            {
+                return scenario;
+            }
+        }
+        catch ( XmlException )
+        {
+            // Fall through to the default below.
+        }
+
+        return TelemetryScenario.Exception;
     }
 
     public bool SendReport( string reportFileName )
@@ -115,16 +142,14 @@ internal sealed class ExceptionReporter : IExceptionReporter
         // purely informational (clicking it still opens the page, which shows the report as already sent).
         var callToAction = autoSent ? "Click to review what was reported." : "Click to review and report it.";
 
-        // The Uri carries the worker review-page relative path. It is token-safe (no spaces): the report file name is
-        // 'exception-<hash>-<guid>.xml' and the category is an enum name, so the desktop toast can pass it as a single
-        // command argument that opens the page on the worker web server. See #1674.
-        var pagePath = $"ExceptionReport?report={reportFileName}&category={scenario}";
-
+        // The Uri carries only the bare report file name (the report id), which is token-safe (no spaces):
+        // 'exception-<hash>-<guid>.xml'. The desktop command builds the review-page path from it and the page reads the
+        // category from the report itself. See #1674.
         this._toastNotificationService.Show(
             new ToastNotification(
                 ToastNotificationKinds.Exception,
                 Text: $"The process {applicationName} encountered an unexpected {category}. {callToAction}",
-                Uri: pagePath ) );
+                Uri: reportFileName ) );
     }
 
     private IEnumerable<string?> CleanStackTrace( string stackTrace )
@@ -328,6 +353,10 @@ internal sealed class ExceptionReporter : IExceptionReporter
             xmlWriter.WriteStartDocument();
             xmlWriter.WriteStartElement( "ErrorReport" );
             xmlWriter.WriteElementString( "InvariantHash", hash );
+
+            // Store the category in the report itself so the report is self-contained: the review page derives the
+            // category (which checkbox/setting to show) from the report, not from a separately-passed parameter. See #1674.
+            xmlWriter.WriteElementString( "Category", scenario.ToString() );
             xmlWriter.WriteElementString( "Time", XmlConvert.ToString( this._time.UtcNow, XmlDateTimeSerializationMode.RoundtripKind ) );
             // Emit an anonymized device hash keyed by the first-party-only ExceptionReportingSalt, never the raw
             // DeviceId GUID (the rotation seed from which the Matomo hash is derivable). The dedicated salt keeps

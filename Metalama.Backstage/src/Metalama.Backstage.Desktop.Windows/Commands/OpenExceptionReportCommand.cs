@@ -9,19 +9,21 @@ using System.Threading.Tasks;
 
 namespace Metalama.Backstage.Desktop.Windows.Commands;
 
-// Opens the worker exception-report review page (formatted report + Report button + per-category auto-report checkbox).
-// Activated when the user clicks the exception toast. See #1674.
+// Opens the exception-report review page (formatted report + Report button + per-category auto-report checkbox) using the
+// worker-process web server. Activated when the user clicks the exception toast. See #1674.
 [UsedImplicitly( ImplicitUseTargetFlags.WithMembers )]
-internal sealed class OpenWorkerExceptionReportCommand : BaseAsyncCommand<OpenWorkerExceptionReportCommandSettings>
+internal sealed class OpenExceptionReportCommand : BaseAsyncCommand<OpenExceptionReportCommandSettings>
 {
     public const string Name = "exception-report";
 
-    protected override async Task<int> ExecuteAsync( ExtendedCommandContext context, OpenWorkerExceptionReportCommandSettings settings )
+    protected override async Task<int> ExecuteAsync( ExtendedCommandContext context, OpenExceptionReportCommandSettings settings )
     {
         var serviceProvider = App.GetBackstageServices( settings );
         var userInterfaceService = serviceProvider.GetRequiredBackstageService<IUserInterfaceService>();
 
-        await userInterfaceService.OpenConfigurationWebPageAsync( settings.Page );
+        // Build the review-page path from the report id. The page reads the category from the report itself, so the id
+        // (a bare, token-safe file name) is all that needs to be carried. See #1674.
+        await userInterfaceService.OpenConfigurationWebPageAsync( $"ExceptionReport?report={settings.ReportFileName}" );
 
         return 0;
     }

@@ -185,27 +185,32 @@ public sealed class ReportExceptionTests : TestsBase
     }
 
     [Theory]
-    [InlineData( ExceptionReportingKind.Exception, "category=Exception" )]
-    [InlineData( ExceptionReportingKind.PerformanceProblem, "category=Performance" )]
-    public void ToastOpensReviewPage( ExceptionReportingKind exceptionReportingKind, string expectedCategoryQuery )
+    [InlineData( ExceptionReportingKind.Exception, "Exception" )]
+    [InlineData( ExceptionReportingKind.PerformanceProblem, "Performance" )]
+    public void ToastCarriesReportIdAndReportStoresCategory( ExceptionReportingKind exceptionReportingKind, string expectedCategory )
     {
         // #1674: When a report is captured, a toast is shown whose action opens the worker review page for that exact
-        // report (instead of opening the raw report file). The toast Uri carries the bare report file name and the
-        // category, both token-safe.
+        // report (instead of opening the raw report file). The toast Uri carries only the bare report id (token-safe);
+        // the category is stored in the report itself, so the report is self-contained.
         this.ReportException( exceptionReportingKind: exceptionReportingKind );
 
         var toast = Assert.Single( this.UserInterface.Notifications );
         Assert.Equal( ToastNotificationKinds.Exception.Name, toast.Kind.Name );
         Assert.NotNull( toast.Uri );
-        Assert.StartsWith( "ExceptionReport?report=exception-", toast.Uri, StringComparison.Ordinal );
-        Assert.Contains( expectedCategoryQuery, toast.Uri!, StringComparison.Ordinal );
+
+        // The Uri is the bare report file name (the report id), not a page path or query string. The desktop command
+        // builds the review-page path from it.
+        var reportFile = this.FileSystem.Mock.AllFiles.Single();
+        var reportFileName = Path.GetFileName( reportFile );
+        Assert.Equal( reportFileName, toast.Uri );
+        Assert.StartsWith( "exception-", toast.Uri!, StringComparison.Ordinal );
 
         // The Uri must stay a single space-free token because the desktop toast activation argument is split on spaces.
         Assert.DoesNotContain( ' ', toast.Uri! );
 
-        // The report referenced by the toast must be the captured report on disk.
-        var reportFileName = Path.GetFileName( this.FileSystem.Mock.AllFiles.Single() );
-        Assert.Contains( "report=" + reportFileName, toast.Uri!, StringComparison.Ordinal );
+        // The category is stored in the report itself, making the report self-contained.
+        var xml = XDocument.Parse( this.FileSystem.ReadAllText( reportFile ) );
+        Assert.Equal( expectedCategory, xml.Root!.Element( "Category" )!.Value );
     }
 
     [Fact]
@@ -221,10 +226,11 @@ public sealed class ReportExceptionTests : TestsBase
         var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
         var reportFileName = Path.GetFileName( captured );
 
-        // The exact scrubbed payload can be read back for review.
-        var content = reporter.TryGetReportContent( reportFileName );
-        Assert.NotNull( content );
-        _ = XDocument.Parse( content! );
+        // The exact scrubbed payload (and its category, read from the report itself) can be read back for review.
+        Assert.True( reporter.TryGetReport( reportFileName, out var report ) );
+        Assert.NotNull( report );
+        _ = XDocument.Parse( report!.Content );
+        Assert.Equal( TelemetryScenario.Exception, report.Scenario );
 
         // Sending moves the report to the upload queue.
         Assert.True( reporter.SendReport( reportFileName ) );
@@ -245,7 +251,8 @@ public sealed class ReportExceptionTests : TestsBase
         // file outside the local exceptions directory.
         var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
 
-        Assert.Null( reporter.TryGetReportContent( reportFileName ) );
+        Assert.False( reporter.TryGetReport( reportFileName, out var report ) );
+        Assert.Null( report );
         Assert.False( reporter.SendReport( reportFileName ) );
     }
 

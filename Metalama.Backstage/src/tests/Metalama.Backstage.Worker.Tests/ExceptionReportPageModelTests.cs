@@ -9,6 +9,7 @@ using Metalama.Backstage.Pages;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Xunit;
 using Xunit.Abstractions;
 using IConfigurationManager = Metalama.Backstage.Configuration.IConfigurationManager;
@@ -23,9 +24,9 @@ public sealed class ExceptionReportPageModelTests : TestsBase
     // A fake IExceptionReporter so the page-model orchestration can be tested without the (internal) ExceptionReporter.
     private sealed class FakeExceptionReporter : IExceptionReporter
     {
-        public string? ContentToReturn { get; set; }
+        public LocalExceptionReport? ReportToReturn { get; set; }
 
-        public string? RequestedContentReport { get; private set; }
+        public string? RequestedReport { get; private set; }
 
         public string? SentReport { get; private set; }
 
@@ -41,11 +42,12 @@ public sealed class ExceptionReportPageModelTests : TestsBase
             string? localReportPath = null,
             IExceptionAdapter? exceptionAdapter = null ) { }
 
-        public string? TryGetReportContent( string reportFileName )
+        public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out LocalExceptionReport? report )
         {
-            this.RequestedContentReport = reportFileName;
+            this.RequestedReport = reportFileName;
+            report = this.ReportToReturn;
 
-            return this.ContentToReturn;
+            return report != null;
         }
 
         public bool SendReport( string reportFileName )
@@ -68,27 +70,41 @@ public sealed class ExceptionReportPageModelTests : TestsBase
     [Fact]
     public void OnGetLoadsTheScrubbedReportForReview()
     {
-        var reporter = new FakeExceptionReporter { ContentToReturn = "<ErrorReport />" };
+        var reporter = new FakeExceptionReporter { ReportToReturn = new LocalExceptionReport( "<ErrorReport />", TelemetryScenario.Exception ) };
         var model = this.CreateModel( reporter );
 
-        model.OnGet( "exception-abc.xml", "Exception" );
+        model.OnGet( "exception-abc.xml" );
 
-        Assert.Equal( "exception-abc.xml", reporter.RequestedContentReport );
+        Assert.Equal( "exception-abc.xml", reporter.RequestedReport );
         Assert.Equal( "<ErrorReport />", model.ReportContent );
         Assert.Equal( TelemetryScenario.Exception, model.Scenario );
         Assert.False( model.IsReported );
     }
 
     [Theory]
-    [InlineData( "Performance", TelemetryScenario.Performance )]
-    [InlineData( "Exception", TelemetryScenario.Exception )]
-    [InlineData( null, TelemetryScenario.Exception )]
-    public void ScenarioIsDerivedFromCategory( string? category, TelemetryScenario expected )
+    [InlineData( TelemetryScenario.Performance )]
+    [InlineData( TelemetryScenario.Exception )]
+    public void ScenarioIsReadFromTheReport( TelemetryScenario scenario )
     {
-        var model = this.CreateModel( new FakeExceptionReporter() );
-        model.Category = category;
+        // The category is read from the (self-contained) report, not passed as a parameter. See #1674.
+        var reporter = new FakeExceptionReporter { ReportToReturn = new LocalExceptionReport( "<ErrorReport />", scenario ) };
+        var model = this.CreateModel( reporter );
 
-        Assert.Equal( expected, model.Scenario );
+        model.OnGet( "report.xml" );
+
+        Assert.Equal( scenario, model.Scenario );
+    }
+
+    [Fact]
+    public void OnGetWithMissingReportShowsUnavailable()
+    {
+        var reporter = new FakeExceptionReporter { ReportToReturn = null };
+        var model = this.CreateModel( reporter );
+
+        model.OnGet( "gone.xml" );
+
+        Assert.Null( model.ReportContent );
+        Assert.False( model.IsReported );
     }
 
     [Fact]
@@ -96,10 +112,9 @@ public sealed class ExceptionReportPageModelTests : TestsBase
     {
         this.TelemetryConfigurationService.Initialize();
 
-        var reporter = new FakeExceptionReporter();
+        var reporter = new FakeExceptionReporter { ReportToReturn = new LocalExceptionReport( "<ErrorReport />", TelemetryScenario.Exception ) };
         var model = this.CreateModel( reporter );
         model.Report = "exception-abc.xml";
-        model.Category = "Exception";
         model.AutoReport = false;
 
         model.OnPostReport();
@@ -116,10 +131,10 @@ public sealed class ExceptionReportPageModelTests : TestsBase
     {
         this.TelemetryConfigurationService.Initialize();
 
-        var reporter = new FakeExceptionReporter();
+        // The category that the checkbox toggles is read from the report itself, not from the form. See #1674.
+        var reporter = new FakeExceptionReporter { ReportToReturn = new LocalExceptionReport( "<ErrorReport />", TelemetryScenario.Performance ) };
         var model = this.CreateModel( reporter );
         model.Report = "perf-xyz.xml";
-        model.Category = "Performance";
         model.AutoReport = true;
 
         model.OnPostReport();
@@ -132,5 +147,25 @@ public sealed class ExceptionReportPageModelTests : TestsBase
         // Exceptions and usage telemetry are independent and unchanged.
         Assert.Equal( ReportingAction.Default, this.GetReportingAction( TelemetryScenario.Exception ) );
         Assert.Equal( ReportingAction.Yes, this.GetReportingAction( TelemetryScenario.Usage ) );
+    }
+
+    [Fact]
+    public void OnPostReportWithMissingReportDoesNothing()
+    {
+        this.TelemetryConfigurationService.Initialize();
+
+        var reporter = new FakeExceptionReporter { ReportToReturn = null };
+        var model = this.CreateModel( reporter );
+        model.Report = "gone.xml";
+        model.AutoReport = true;
+
+        model.OnPostReport();
+
+        Assert.False( model.IsReported );
+        Assert.Null( reporter.SentReport );
+
+        // Nothing is enabled because the report could not be read.
+        Assert.Equal( ReportingAction.Default, this.GetReportingAction( TelemetryScenario.Exception ) );
+        Assert.Equal( ReportingAction.Default, this.GetReportingAction( TelemetryScenario.Performance ) );
     }
 }

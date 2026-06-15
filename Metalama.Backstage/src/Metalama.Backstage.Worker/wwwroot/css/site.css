@@ -168,6 +168,27 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
   box-shadow: 0 0 10px rgba(77, 77, 255, 0.6);
 }
 
+/* Exception report review page: keep the whole page within the viewport and let only the report content scroll, so the
+   Report button and the auto-report checkbox always stay visible. */
+.exception-report {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 160px);
+}
+
+.exception-report pre.report {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.5rem;
+  border: 1px solid #444;
+  border-radius: 5px;
+  background: #1e1e1e;
+  color: #ddd;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .continue-button {
   text-align: right;
 }

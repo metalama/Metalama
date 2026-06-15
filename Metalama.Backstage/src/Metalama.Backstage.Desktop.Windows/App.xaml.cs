@@ -66,7 +66,7 @@ internal sealed partial class App
                         configuration.AddCommand<SetupWizardCommand>( SetupWizardCommand.Name );
                         configuration.AddCommand<OpenWorkerRssOptionsCommand>( OpenWorkerRssOptionsCommand.Name );
                         configuration.AddCommand<OpenWorkerPrivacyOptionsCommand>( OpenWorkerPrivacyOptionsCommand.Name );
-                        configuration.AddCommand<OpenWorkerExceptionReportCommand>( OpenWorkerExceptionReportCommand.Name );
+                        configuration.AddCommand<OpenExceptionReportCommand>( OpenExceptionReportCommand.Name );
                     } );
 
                 return commandApp.RunAsync( args );

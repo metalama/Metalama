@@ -8,12 +8,13 @@ using Spectre.Console.Cli;
 namespace Metalama.Backstage.Desktop.Windows.Commands;
 
 [UsedImplicitly( ImplicitUseTargetFlags.WithMembers )]
-public class OpenWorkerExceptionReportCommandSettings : BaseSettings
+public class OpenExceptionReportCommandSettings : BaseSettings
 {
     /// <summary>
-    /// Gets the worker review-page relative path, including its query string (e.g.
-    /// <c>ExceptionReport?report=exception-….xml&amp;category=Exception</c>). It is token-safe (no spaces).
+    /// Gets the id of the exception report to review: the bare file name (no directory component) of a report in the
+    /// local exceptions directory (e.g. <c>exception-….xml</c>). It is token-safe (no spaces). The command builds the
+    /// review-page path from it. See #1674.
     /// </summary>
-    [CommandArgument( 0, "<page>" )]
-    public string Page { get; init; } = null!;
+    [CommandArgument( 0, "<report>" )]
+    public string ReportFileName { get; init; } = null!;
 }
