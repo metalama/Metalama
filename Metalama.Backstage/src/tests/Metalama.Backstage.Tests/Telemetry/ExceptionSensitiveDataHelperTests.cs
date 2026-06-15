@@ -99,6 +99,34 @@ namespace Metalama.Backstage.Tests.Telemetry
             Assert.Equal( input, actualOutput );
         }
 
+        [Theory]
+
+        // key=value secret shapes (denylist applied regardless of dotting).
+        [InlineData( "password=hunter2", "password=#secret" )]
+        [InlineData( "Password=hunter2", "Password=#secret" )]
+        [InlineData( "pwd=hunter2", "pwd=#secret" )]
+        [InlineData( "token=abc123def456", "token=#secret" )]
+        [InlineData( "secret=topsecretvalue", "secret=#secret" )]
+        [InlineData( "apikey=AKIAIOSFODNN7EXAMPLE", "apikey=#secret" )]
+        [InlineData( "api_key=AKIAIOSFODNN7EXAMPLE", "api_key=#secret" )]
+        [InlineData( "access_token=ya29.A0ARrdaM", "access_token=#secret" )]
+
+        // key: value secret shapes.
+        [InlineData( "apikey: AKIAIOSFODNN7EXAMPLE", "apikey: #secret" )]
+        [InlineData( "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", "Authorization: Bearer #secret" )]
+
+        // Bearer token without a preceding key.
+        [InlineData( "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", "Bearer #secret" )]
+
+        // Connection-string segments.
+        [InlineData( "Server=myserver;Password=p@ssw0rd;Database=db", "Server=myserver;Password=#secret;Database=db" )]
+        public void SecretsAreRedacted( string input, string expectedOutput )
+        {
+            var actualOutput = ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( input );
+
+            Assert.Equal( expectedOutput, actualOutput );
+        }
+
         // Always solve failures of the other tests before solving failures of this one.
         [Fact]
         public void SensitiveDataIsRemovedFromMultilineInput()
