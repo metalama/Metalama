@@ -461,8 +461,13 @@ public sealed class TempFileManager : ITempFileManager
     /// given <paramref name="retention"/> period, then deletes directories that became empty. This single
     /// file-age purge covers undelivered exception reports, orphaned packages and the audit log uniformly.
     /// </summary>
-    public void CleanTelemetryDirectories( TimeSpan retention )
+    private void CleanTelemetryDirectories( TimeSpan retention )
     {
+        if ( retention < TimeSpan.Zero )
+        {
+            throw new ArgumentOutOfRangeException( nameof(retention), "The retention period must not be negative." );
+        }
+
         var telemetryDirectory = this._standardDirectories.TelemetryDirectory;
 
         if ( !this._fileSystem.DirectoryExists( telemetryDirectory ) )

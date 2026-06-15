@@ -36,7 +36,7 @@ public sealed class TelemetryCleanUpTests : TestsBase
     }
 
     private string GetTelemetryDirectory( string subdirectory )
-        => Path.Combine( this._standardDirectories.ApplicationDataDirectory, "Telemetry", subdirectory );
+        => Path.Combine( this._standardDirectories.TelemetryDirectory, subdirectory );
 
     /// <summary>
     /// Regression test for #1679: the telemetry data tree under <c>ApplicationDataDirectory\Telemetry</c>
