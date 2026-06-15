@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using System.Collections;
 using System.Xml;
 using JetBrains.Annotations;
 
@@ -18,78 +17,15 @@ namespace Metalama.Backstage.Telemetry
         public static void WriteException( XmlWriter writer, Exception e )
         {
             writer.WriteElementString( "Type", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.GetType().FullName ) );
-            writer.WriteElementString( "Message", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.Message ) );
+
+            // Exception.Message is an arbitrary, often interpolated string that frequently embeds user input,
+            // file paths, connection strings or other secrets. For safety we never serialize it into the
+            // uploaded report — the exception type and stack trace are enough to diagnose. See #1680.
+
             writer.WriteElementString( "Source", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.Source ) );
 
-            writer.WriteStartElement( "Data" );
-
-            foreach ( DictionaryEntry? data in e.Data )
-            {
-                writer.WriteStartElement( "Item" );
-
-                if ( data != null )
-                {
-                    writer.WriteElementString( "Key", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( data.Value.Key.ToString() ) );
-
-                    if ( data.Value.Value != null )
-                    {
-                        switch ( data.Value.Value )
-                        {
-                            case Array array:
-                                {
-                                    writer.WriteStartElement( "Array" );
-
-                                    for ( var i = 0; i < array.Length; i++ )
-                                    {
-                                        var value = array.GetValue( i );
-
-                                        switch ( value )
-                                        {
-                                            case Exception exception:
-                                                writer.WriteStartElement( "Item" );
-                                                WriteException( writer, exception );
-                                                writer.WriteEndElement();
-
-                                                break;
-
-                                            case null:
-                                                writer.WriteElementString( "Item", "<null>" );
-
-                                                break;
-
-                                            default:
-                                                writer.WriteElementString(
-                                                    "Item",
-                                                    ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( value.ToString() ) );
-
-                                                break;
-                                        }
-                                    }
-
-                                    writer.WriteEndElement();
-
-                                    break;
-                                }
-
-                            case Exception exception:
-                                writer.WriteStartElement( "Value" );
-                                WriteException( writer, exception );
-                                writer.WriteEndElement();
-
-                                break;
-
-                            default:
-                                writer.WriteElementString( "Value", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( data.Value.ToString() ) );
-
-                                break;
-                        }
-                    }
-                }
-
-                writer.WriteEndElement();
-            }
-
-            writer.WriteEndElement();
+            // Exception.Data is an arbitrary, developer-populated bag that may hold secrets, connection
+            // strings or PII. We never serialize it into the uploaded report. See #1680.
 
             writer.WriteElementString(
                 "StackTrace",

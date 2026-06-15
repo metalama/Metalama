@@ -61,4 +61,32 @@ public sealed class LocalExceptionReporterTests : TestsBase
         Assert.Contains( "===== Reporting Call Stack =====", content, StringComparison.Ordinal );
         Assert.Contains( "ReportException", content, StringComparison.Ordinal );
     }
+
+    [Fact]
+    public void CrashReportScrubsSecretsInExceptionMessage()
+    {
+        // The exception message (emitted both standalone and via Exception.ToString()) must be scrubbed. See #1680.
+        var reporter = new LocalExceptionReporter( this.ServiceProvider );
+        reporter.ReportException( new InvalidOperationException( "Login failed for password=SuperSecret123" ), null );
+
+        var content = this.FileSystem.ReadAllText( this.FileSystem.EnumerateFiles( this._crashReportsDirectory, "*.txt" ).Single() );
+        this.Logger.WriteLine( content );
+
+        Assert.DoesNotContain( "SuperSecret123", content, StringComparison.Ordinal );
+        Assert.Contains( "#secret", content, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public void CrashReportScrubsCommandLine()
+    {
+        // The local crash report records Environment.CommandLine, which contains absolute host paths (and
+        // potentially the OS user name). It must be scrubbed rather than written verbatim. See #1680.
+        var reporter = new LocalExceptionReporter( this.ServiceProvider );
+        reporter.ReportException( new InvalidOperationException( "test" ), null );
+
+        var content = this.FileSystem.ReadAllText( this.FileSystem.EnumerateFiles( this._crashReportsDirectory, "*.txt" ).Single() );
+        this.Logger.WriteLine( content );
+
+        Assert.DoesNotContain( Environment.CommandLine, content, StringComparison.Ordinal );
+    }
 }
