@@ -78,7 +78,10 @@ internal sealed class LocalExceptionReporter : IBackstageService
                 AppendLineSafe( "Processor Architecture", () => $" {RuntimeInformation.ProcessArchitecture}" );
                 AppendLineSafe( "OS Description", () => $"{RuntimeInformation.OSDescription}" );
                 AppendLineSafe( "OS Architecture", () => $"{RuntimeInformation.OSArchitecture}" );
-                AppendLineSafe( "Process", () => $"{Process.GetCurrentProcess().ProcessName} {Environment.CommandLine}" );
+                AppendLineSafe(
+                    "Process",
+                    () =>
+                        $"{Process.GetCurrentProcess().ProcessName} {ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( Environment.CommandLine )}" );
 
                 AppendLineSafe(
                     "Managed thread",
@@ -87,12 +90,12 @@ internal sealed class LocalExceptionReporter : IBackstageService
 
                 AppendLineSafe( "Synchronization context", () => $"{SynchronizationContext.Current}" );
                 AppendLineSafe( "Exception type", () => $"{exception.GetType()}" );
-                AppendLineSafe( "Exception message", () => $"{exception.Message}" );
+                AppendLineSafe( "Exception message", () => ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( exception.Message ) );
 
                 try
                 {
                     // The next line may fail.
-                    var exceptionToString = exception.ToString();
+                    var exceptionToString = ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( exception.ToString() );
                     exceptionText.AppendLine( "===== Exception ===== " );
                     exceptionText.AppendLine( exceptionToString );
                 }

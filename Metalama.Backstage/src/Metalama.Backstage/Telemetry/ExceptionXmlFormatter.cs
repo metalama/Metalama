@@ -22,78 +22,90 @@ namespace Metalama.Backstage.Telemetry
         internal static void WriteException( XmlWriter writer, Exception e, ExceptionSensitiveDataHelper scrubber )
         {
             writer.WriteElementString( "Type", scrubber.RemoveSensitiveData( e.GetType().FullName ) );
-            writer.WriteElementString( "Message", scrubber.RemoveSensitiveData( e.Message ) );
+
+            // Exception.Message and Exception.Data are arbitrary, developer-populated content that frequently embeds
+            // user input, file paths, connection strings or other secrets, so they are NEVER part of the uploaded
+            // payload (#1680). They are included only in the full, unscrubbed local rendering shown for review (when the
+            // scrubber is disabled), so the user can see exactly what is withheld from upload before sending. See #1674.
+            if ( !scrubber.IsEnabled )
+            {
+                writer.WriteElementString( "Message", scrubber.RemoveSensitiveData( e.Message ) );
+            }
+
             writer.WriteElementString( "Source", scrubber.RemoveSensitiveData( e.Source ) );
 
-            writer.WriteStartElement( "Data" );
-
-            foreach ( DictionaryEntry? data in e.Data )
+            if ( !scrubber.IsEnabled )
             {
-                writer.WriteStartElement( "Item" );
+                writer.WriteStartElement( "Data" );
 
-                if ( data != null )
+                foreach ( DictionaryEntry? data in e.Data )
                 {
-                    writer.WriteElementString( "Key", scrubber.RemoveSensitiveData( data.Value.Key.ToString() ) );
+                    writer.WriteStartElement( "Item" );
 
-                    if ( data.Value.Value != null )
+                    if ( data != null )
                     {
-                        switch ( data.Value.Value )
+                        writer.WriteElementString( "Key", scrubber.RemoveSensitiveData( data.Value.Key.ToString() ) );
+
+                        if ( data.Value.Value != null )
                         {
-                            case Array array:
-                                {
-                                    writer.WriteStartElement( "Array" );
-
-                                    for ( var i = 0; i < array.Length; i++ )
+                            switch ( data.Value.Value )
+                            {
+                                case Array array:
                                     {
-                                        var value = array.GetValue( i );
+                                        writer.WriteStartElement( "Array" );
 
-                                        switch ( value )
+                                        for ( var i = 0; i < array.Length; i++ )
                                         {
-                                            case Exception exception:
-                                                writer.WriteStartElement( "Item" );
-                                                WriteException( writer, exception, scrubber );
-                                                writer.WriteEndElement();
+                                            var value = array.GetValue( i );
 
-                                                break;
+                                            switch ( value )
+                                            {
+                                                case Exception exception:
+                                                    writer.WriteStartElement( "Item" );
+                                                    WriteException( writer, exception, scrubber );
+                                                    writer.WriteEndElement();
 
-                                            case null:
-                                                writer.WriteElementString( "Item", "<null>" );
+                                                    break;
 
-                                                break;
+                                                case null:
+                                                    writer.WriteElementString( "Item", "<null>" );
 
-                                            default:
-                                                writer.WriteElementString(
-                                                    "Item",
-                                                    scrubber.RemoveSensitiveData( value.ToString() ) );
+                                                    break;
 
-                                                break;
+                                                default:
+                                                    writer.WriteElementString(
+                                                        "Item",
+                                                        scrubber.RemoveSensitiveData( value.ToString() ) );
+
+                                                    break;
+                                            }
                                         }
+
+                                        writer.WriteEndElement();
+
+                                        break;
                                     }
 
+                                case Exception exception:
+                                    writer.WriteStartElement( "Value" );
+                                    WriteException( writer, exception, scrubber );
                                     writer.WriteEndElement();
 
                                     break;
-                                }
 
-                            case Exception exception:
-                                writer.WriteStartElement( "Value" );
-                                WriteException( writer, exception, scrubber );
-                                writer.WriteEndElement();
+                                default:
+                                    writer.WriteElementString( "Value", scrubber.RemoveSensitiveData( data.Value.ToString() ) );
 
-                                break;
-
-                            default:
-                                writer.WriteElementString( "Value", scrubber.RemoveSensitiveData( data.Value.ToString() ) );
-
-                                break;
+                                    break;
+                            }
                         }
                     }
+
+                    writer.WriteEndElement();
                 }
 
                 writer.WriteEndElement();
             }
-
-            writer.WriteEndElement();
 
             writer.WriteElementString(
                 "StackTrace",

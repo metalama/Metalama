@@ -222,6 +222,73 @@ internal sealed class ExceptionReporter : IExceptionReporter
                 Uri: reportFileName ) );
     }
 
+    // Assembly-name prefixes considered framework/runtime, and therefore safe to disclose (name + version).
+    // Any other assembly is treated as user/third-party code: its name (even a single token), version and
+    // file version can identify the user's product or build, so they are redacted. See #1680.
+    private static readonly string[] _knownSafeAssemblyPrefixes =
+    {
+        "System", "Microsoft", "Metalama", "PostSharp", "mscorlib", "netstandard", "WindowsBase",
+        "Presentation", "EnvDTE", "Windows", "JetBrains", "Newtonsoft", "MessagePack", "StreamJsonRpc",
+        "Nerdbank", "Mono", "xunit", "testhost", "Roslyn"
+    };
+
+    internal static bool IsKnownSafeAssemblyName( string? name )
+    {
+        if ( string.IsNullOrEmpty( name ) )
+        {
+            return false;
+        }
+
+        foreach ( var prefix in _knownSafeAssemblyPrefixes )
+        {
+            // Match the prefix only at a name boundary (end of name or a non-alphanumeric separator), so that
+            // a user assembly such as "SystemwideTool" is not mistaken for a "System.*" framework assembly.
+            if ( name!.StartsWith( prefix, StringComparison.OrdinalIgnoreCase )
+                 && ( name.Length == prefix.Length || !char.IsLetterOrDigit( name[prefix.Length] ) ) )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal static void WriteAssemblyElement( XmlWriter xmlWriter, string? name, Version? version, string? fileVersion )
+        => WriteAssemblyElement( xmlWriter, name, version, fileVersion, ExceptionSensitiveDataHelper.Instance );
+
+    internal static void WriteAssemblyElement(
+        XmlWriter xmlWriter,
+        string? name,
+        Version? version,
+        string? fileVersion,
+        ExceptionSensitiveDataHelper scrubber )
+    {
+        xmlWriter.WriteStartElement( "Assembly" );
+
+        // The full local rendering (scrubber disabled) discloses every assembly so the user can see exactly what is
+        // withheld from the upload payload. The upload payload discloses only framework/runtime assemblies; any other
+        // assembly is user/third-party code whose name, version and file version can identify the user's product or
+        // build, so it is redacted. See #1674, #1680.
+        if ( !scrubber.IsEnabled || IsKnownSafeAssemblyName( name ) )
+        {
+            xmlWriter.WriteElementString( "Name", name );
+            xmlWriter.WriteElementString( "Version", version?.ToString() ?? "<unknown>" );
+
+            if ( !string.IsNullOrEmpty( fileVersion ) )
+            {
+                xmlWriter.WriteElementString( "FileVersion", scrubber.RemoveSensitiveData( fileVersion ) );
+            }
+        }
+        else
+        {
+            // User / third-party assembly: redact the name, version and file version, which can identify the
+            // user's product or build. The scrubber would not catch a single-token name on its own. See #1680.
+            xmlWriter.WriteElementString( "Name", "#user" );
+        }
+
+        xmlWriter.WriteEndElement();
+    }
+
     private IEnumerable<string?> CleanStackTrace( string stackTrace )
     {
         foreach ( Match? match in this._stackFrameRegex.Matches( stackTrace ) )
@@ -571,20 +638,19 @@ internal sealed class ExceptionReporter : IExceptionReporter
         foreach ( var assembly in AppDomain.CurrentDomain.GetAssemblies() )
         {
             var assemblyName = assembly.GetName();
-            xmlWriter.WriteStartElement( "Assembly" );
-            xmlWriter.WriteElementString( "Name", scrubber.RemoveSensitiveData( assemblyName.Name ) );
-            xmlWriter.WriteElementString( "Version", assemblyName.Version?.ToString() ?? "<unknown>" );
+
+            string? fileVersion = null;
 
             try
             {
                 if ( !assembly.IsDynamic && !string.IsNullOrEmpty( assembly.Location ) )
                 {
-                    xmlWriter.WriteElementString( "FileVersion", FileVersionInfo.GetVersionInfo( assembly.Location ).FileVersion );
+                    fileVersion = FileVersionInfo.GetVersionInfo( assembly.Location ).FileVersion;
                 }
             }
             catch ( NotSupportedException ) { }
 
-            xmlWriter.WriteEndElement();
+            WriteAssemblyElement( xmlWriter, assemblyName.Name, assemblyName.Version, fileVersion, scrubber );
         }
 
         xmlWriter.WriteEndElement();
