@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
+using System.Collections;
 using System.Xml;
 using JetBrains.Annotations;
 
@@ -14,27 +15,106 @@ namespace Metalama.Backstage.Telemetry
     [PublicAPI]
     public static class ExceptionXmlFormatter
     {
-        public static void WriteException( XmlWriter writer, Exception e )
+        public static void WriteException( XmlWriter writer, Exception e ) => WriteException( writer, e, ExceptionSensitiveDataHelper.Instance );
+
+        // Renders the exception with the given <paramref name="scrubber"/>. Pass ExceptionSensitiveDataHelper.Disabled
+        // to render the full, unscrubbed local report shown next to the scrubbed upload payload on the review page. See #1674.
+        internal static void WriteException( XmlWriter writer, Exception e, ExceptionSensitiveDataHelper scrubber )
         {
-            writer.WriteElementString( "Type", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.GetType().FullName ) );
+            writer.WriteElementString( "Type", scrubber.RemoveSensitiveData( e.GetType().FullName ) );
 
-            // Exception.Message is an arbitrary, often interpolated string that frequently embeds user input,
-            // file paths, connection strings or other secrets. For safety we never serialize it into the
-            // uploaded report — the exception type and stack trace are enough to diagnose. See #1680.
+            // Exception.Message and Exception.Data are arbitrary, developer-populated content that frequently embeds
+            // user input, file paths, connection strings or other secrets, so they are NEVER part of the uploaded
+            // payload (#1680). They are included only in the full, unscrubbed local rendering shown for review (when the
+            // scrubber is disabled), so the user can see exactly what is withheld from upload before sending. See #1674.
+            if ( !scrubber.IsEnabled )
+            {
+                writer.WriteElementString( "Message", scrubber.RemoveSensitiveData( e.Message ) );
+            }
 
-            writer.WriteElementString( "Source", ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.Source ) );
+            writer.WriteElementString( "Source", scrubber.RemoveSensitiveData( e.Source ) );
 
-            // Exception.Data is an arbitrary, developer-populated bag that may hold secrets, connection
-            // strings or PII. We never serialize it into the uploaded report. See #1680.
+            if ( !scrubber.IsEnabled )
+            {
+                writer.WriteStartElement( "Data" );
+
+                foreach ( DictionaryEntry? data in e.Data )
+                {
+                    writer.WriteStartElement( "Item" );
+
+                    if ( data != null )
+                    {
+                        writer.WriteElementString( "Key", scrubber.RemoveSensitiveData( data.Value.Key.ToString() ) );
+
+                        if ( data.Value.Value != null )
+                        {
+                            switch ( data.Value.Value )
+                            {
+                                case Array array:
+                                    {
+                                        writer.WriteStartElement( "Array" );
+
+                                        for ( var i = 0; i < array.Length; i++ )
+                                        {
+                                            var value = array.GetValue( i );
+
+                                            switch ( value )
+                                            {
+                                                case Exception exception:
+                                                    writer.WriteStartElement( "Item" );
+                                                    WriteException( writer, exception, scrubber );
+                                                    writer.WriteEndElement();
+
+                                                    break;
+
+                                                case null:
+                                                    writer.WriteElementString( "Item", "<null>" );
+
+                                                    break;
+
+                                                default:
+                                                    writer.WriteElementString(
+                                                        "Item",
+                                                        scrubber.RemoveSensitiveData( value.ToString() ) );
+
+                                                    break;
+                                            }
+                                        }
+
+                                        writer.WriteEndElement();
+
+                                        break;
+                                    }
+
+                                case Exception exception:
+                                    writer.WriteStartElement( "Value" );
+                                    WriteException( writer, exception, scrubber );
+                                    writer.WriteEndElement();
+
+                                    break;
+
+                                default:
+                                    writer.WriteElementString( "Value", scrubber.RemoveSensitiveData( data.Value.Value.ToString() ) );
+
+                                    break;
+                            }
+                        }
+                    }
+
+                    writer.WriteEndElement();
+                }
+
+                writer.WriteEndElement();
+            }
 
             writer.WriteElementString(
                 "StackTrace",
-                Environment.NewLine + ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( e.StackTrace ) + Environment.NewLine );
+                Environment.NewLine + scrubber.RemoveSensitiveData( e.StackTrace ) + Environment.NewLine );
 
             if ( e.InnerException != null )
             {
                 writer.WriteStartElement( "InnerException" );
-                WriteException( writer, e.InnerException );
+                WriteException( writer, e.InnerException, scrubber );
                 writer.WriteEndElement();
             }
 
@@ -45,7 +125,7 @@ namespace Metalama.Backstage.Telemetry
                 foreach ( var innerException in aggregate.InnerExceptions )
                 {
                     writer.WriteStartElement( "Exception" );
-                    WriteException( writer, innerException );
+                    WriteException( writer, innerException, scrubber );
                     writer.WriteEndElement();
                 }
 

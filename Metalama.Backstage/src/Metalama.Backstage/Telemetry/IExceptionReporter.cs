@@ -5,6 +5,7 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Backstage.Telemetry;
 
@@ -21,4 +22,22 @@ public interface IExceptionReporter : IBackstageService
         ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception,
         string? localReportPath = null,
         IExceptionAdapter? exceptionAdapter = null );
+
+    /// <summary>
+    /// Gets a locally-captured exception report so that it can be reviewed before sending, including both the exact
+    /// scrubbed payload that would be uploaded and the full unscrubbed local rendering, plus the report category.
+    /// <paramref name="reportFileName"/> is the bare file name (no directory component) of the scrubbed report, which is
+    /// resolved whether it is still awaiting review or has already been moved to the upload queue (auto-sent or sent on
+    /// demand). The full local rendering (<c>.local.xml</c>) is never a valid argument because it must never be uploaded.
+    /// Returns <c>false</c> if the name is invalid or the report does not exist. See #1674.
+    /// </summary>
+    bool TryGetReport( string reportFileName, [NotNullWhen( true )] out CapturedExceptionReport? report );
+
+    /// <summary>
+    /// Sends a single locally-captured exception report identified by the bare file name of its scrubbed payload: the
+    /// file is enqueued for upload and an upload is started. The operation is idempotent — a report that is already in
+    /// the upload queue returns <c>true</c> without being re-enqueued. Returns <c>false</c> only if the name is invalid
+    /// (including the full <c>.local.xml</c> rendering, which must never be uploaded) or the report does not exist. See #1674.
+    /// </summary>
+    bool SendReport( string reportFileName );
 }

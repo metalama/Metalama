@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
@@ -46,11 +47,18 @@ public sealed class TelemetryConfigurationTests : TestsBase
     }
 
     [Fact]
-    public void ExceptionReportingDisabledByDefault()
+    public void FirstRunDefaultsExceptionAndPerformanceChannelsToReviewFirst()
     {
-        // Exception and performance-problem reporting are opt-in: disabled until the user explicitly enables them.
-        Assert.False( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Exception ) );
-        Assert.False( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Performance ) );
+        // #1674: Capture and notification are decoupled from sending. On first run, the exception/performance
+        // channel must default to review-first (ReportingAction.Default) rather than auto-send (ReportingAction.Yes),
+        // so the most sensitive telemetry (stack traces, paths, Exception.Data) stays under explicit user control
+        // until the user clicks Report. Usage telemetry remains opt-out and is unchanged.
+        this.TelemetryConfigurationService.Initialize();
+
+        var configuration = this.ConfigurationManager!.Get<TelemetryConfiguration>();
+
+        Assert.Equal( ReportingAction.Default, configuration.ExceptionReportingAction );
+        Assert.Equal( ReportingAction.Default, configuration.PerformanceProblemReportingAction );
     }
 
     [Theory]
@@ -203,5 +211,22 @@ public sealed class TelemetryConfigurationTests : TestsBase
         var salt2 = GenerateSalt();
 
         Assert.NotEqual( salt1, salt2 );
+    }
+
+    [Fact]
+    public void ResetReportedIssuesClearsTheDedupStore()
+    {
+        // reset-dedup (#1684): clearing the record of already-reported issues lets an issue that was previously
+        // reported (and therefore deduplicated by the exception reporter) be captured and surfaced again. See #1674.
+        var configurationManager = this.ConfigurationManager!;
+
+        configurationManager.Update<TelemetryConfiguration>(
+            c => c with { Issues = c.Issues.SetItem( "some-issue-hash", ReportingStatus.Reported ) } );
+
+        Assert.NotEmpty( configurationManager.Get<TelemetryConfiguration>().Issues );
+
+        this.TelemetryConfigurationService.ResetReportedIssues();
+
+        Assert.Empty( configurationManager.Get<TelemetryConfiguration>().Issues );
     }
 }

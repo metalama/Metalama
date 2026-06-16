@@ -451,7 +451,8 @@ public sealed class TempFileManager : ITempFileManager
     {
         // The retention period is read live (not frozen into a per-directory cleanup.json), so changing
         // TelemetryConfiguration.RetentionPeriodInDays takes effect on the next sweep.
-        var retentionInDays = this._configurationManager.Get<TelemetryConfiguration>().RetentionPeriodInDays;
+        var retentionInDays = this._configurationManager.Get<TelemetryConfiguration>().RetentionPeriodInDays
+                              ?? TelemetryConfiguration.DefaultRetentionPeriodInDays;
 
         this.CleanTelemetryDirectories( TimeSpan.FromDays( Math.Max( 0, retentionInDays ) ) );
     }

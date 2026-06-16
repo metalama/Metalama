@@ -7,6 +7,7 @@ using Metalama.Backstage.Application;
 using Metalama.Backstage.Commands.Configuration;
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.UserInterface.Rss;
 using Metalama.Backstage.UserInterface.Toasts;
 using Spectre.Console;
@@ -40,6 +41,7 @@ public sealed class BackstageCommandOptions
         this.AddConfigurationFileAdapter<DiagnosticsConfiguration>();
         this.AddConfigurationFileAdapter<ToastNotificationsConfiguration>();
         this.AddConfigurationFileAdapter<RssClientConfiguration>();
+        this.AddConfigurationFileAdapter<TelemetryConfiguration>();
     }
 
     internal void ConfigureConsole( AnsiConsoleSettings settings )

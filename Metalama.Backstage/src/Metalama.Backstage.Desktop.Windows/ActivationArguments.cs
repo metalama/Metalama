@@ -10,11 +10,13 @@ internal sealed class ActivationArguments
 {
     private readonly string _options;
     private readonly string _kind;
+    private readonly string? _uri;
 
     public ActivationArguments( NotifyCommandSettings settings )
     {
         this._options = settings.IsDevelopmentEnvironment ? "--dev" : "";
         this._kind = settings.Kind;
+        this._uri = settings.Uri;
     }
 
     public string Mute => $"{MuteNotificationCommand.Name} {this._kind} {this._options}";
@@ -26,4 +28,8 @@ internal sealed class ActivationArguments
     public string OpenRssOptions => $"{OpenWorkerRssOptionsCommand.Name} {this._options}";
 
     public string OpenPrivacyOptions => $"{OpenWorkerPrivacyOptionsCommand.Name} {this._options}";
+
+    // The toast Uri carries only the bare exception-report id (token-safe, no spaces). The activation argument is later
+    // split on spaces, so the report id stays a single argument; the command builds the review-page path itself. See #1674.
+    public string OpenExceptionReport => $"{OpenExceptionReportCommand.Name} {this._uri} {this._options}";
 }

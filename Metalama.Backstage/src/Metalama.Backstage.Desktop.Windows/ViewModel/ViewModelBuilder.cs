@@ -78,11 +78,13 @@ internal static class ViewModelBuilder
         }
         else if ( settings.Kind == ToastNotificationKinds.Exception.Name )
         {
+            // Open the worker review page (formatted report + Report button + per-category auto-report checkbox)
+            // instead of opening the raw report file. See #1674.
             viewModel = new NotificationViewModel(
                 settings.Kind,
                 settings.Title ?? "Metalama failed",
                 settings.Text ?? "Metalama encountered an unhandled exception.",
-                new UriActionViewModel( "View", settings.Uri! ) );
+                new CommandActionViewModel( "Review", activationArguments.OpenExceptionReport ) );
 
             return true;
         }

@@ -15,13 +15,34 @@ public interface ITelemetryConfigurationService : IBackstageService
 
     void SetStatus( bool enabled );
 
+    /// <summary>
+    /// Enables (sets to <see cref="ReportingAction.Yes"/>) or disables (<see cref="ReportingAction.No"/>) a single
+    /// telemetry <paramref name="scenario"/> independently of the other scenarios. This backs the per-category
+    /// "automatically report all …" checkbox, which enables a category's auto-send without touching usage telemetry. See #1672, #1674.
+    /// </summary>
     void SetStatus( TelemetryScenario scenario, bool enabled );
 
     Guid DeviceId { get; }
 
     bool IsEnabled( TelemetryScenario scenario );
 
+    /// <summary>
+    /// Gets a value indicating whether telemetry is enabled at the process level — i.e. the current application supports
+    /// telemetry, the process is not unattended, and the user has not opted out through the environment variable. Unlike
+    /// <see cref="IsEnabled"/>, this is independent of the per-category <see cref="ReportingAction"/>. Exception/performance
+    /// reports are captured locally (and a toast is shown) whenever this is <c>true</c>, regardless of the category's
+    /// reporting action; only auto-send is additionally gated on the category being <see cref="ReportingAction.Yes"/>. See #1674.
+    /// </summary>
+    bool IsGloballyEnabled { get; }
+
     void ResetDeviceId();
+
+    /// <summary>
+    /// Clears the record of already-reported exception/performance issues, so that an issue which was previously
+    /// reported (and therefore deduplicated by <see cref="IExceptionReporter"/>) is captured and surfaced again.
+    /// This is primarily a testing aid for exercising the exception-report flow. See #1674.
+    /// </summary>
+    void ResetReportedIssues();
 
     /// <summary>
     /// Gets the salt used to hash identifiers sent to the third-party analytics platform (Matomo).

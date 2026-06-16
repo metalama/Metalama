@@ -55,7 +55,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                       "Issues": {},
                                       "Sessions": {},
                                       "LastMatomoPostTime": "2025-01-10T12:00:00Z",
-                                      "RetentionPeriodInDays": 30,
+                                      "RetentionPeriodInDays": null,
                                       "version": 5
                                     }
                                     """;
@@ -99,7 +99,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                         "session1": "2025-01-15T10:00:00Z"
                                       },
                                       "LastMatomoPostTime": null,
-                                      "RetentionPeriodInDays": 30,
+                                      "RetentionPeriodInDays": null,
                                       "version": null
                                     }
                                     """;

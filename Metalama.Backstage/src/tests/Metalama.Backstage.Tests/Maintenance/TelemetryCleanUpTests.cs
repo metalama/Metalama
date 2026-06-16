@@ -70,6 +70,42 @@ public sealed class TelemetryCleanUpTests : TestsBase
     }
 
     /// <summary>
+    /// Regression test for #1674/#1679: the full, unscrubbed local rendering ('.local.xml') captured next to a report
+    /// for side-by-side review is a normal file under the telemetry tree, so the age-based retention sweep deletes it
+    /// once it is older than the retention period, exactly like the scrubbed payload. It must not accumulate.
+    /// </summary>
+    [Fact]
+    public void LocalRenderingFilesOlderThanRetentionAreDeleted()
+    {
+        var exceptionsDirectory = this.GetTelemetryDirectory( "Exceptions" );
+        this.FileSystem.CreateDirectory( exceptionsDirectory );
+
+        var oldLocalRendering = Path.Combine( exceptionsDirectory, "exception-old.local.xml" );
+        var newLocalRendering = Path.Combine( exceptionsDirectory, "exception-new.local.xml" );
+
+        // Create an old local rendering, then advance time well past the default 30-day retention period.
+        this.FileSystem.WriteAllText( oldLocalRendering, "old" );
+        this.Time.AddTime( TimeSpan.FromDays( 40 ) );
+
+        // Create a recent local rendering.
+        this.FileSystem.WriteAllText( newLocalRendering, "new" );
+        this.Time.AddTime( TimeSpan.FromDays( 5 ) );
+
+        // Run the once-per-day maintenance pass (forced to ignore the schedule).
+        var tempFileManager = new TempFileManager( this.ServiceProvider );
+        tempFileManager.CleanTempDirectories( true );
+
+        // The old local rendering (45 days) must be deleted; the recent one (5 days) must be kept.
+        Assert.False(
+            this.FileSystem.FileExists( oldLocalRendering ),
+            "The '.local.xml' rendering older than the retention period should have been deleted." );
+
+        Assert.True(
+            this.FileSystem.FileExists( newLocalRendering ),
+            "The '.local.xml' rendering newer than the retention period should have been kept." );
+    }
+
+    /// <summary>
     /// Regression test for #1679: the retention period is read live from <c>telemetry.json</c> at each run and is
     /// not frozen, so changing <see cref="TelemetryConfiguration.RetentionPeriodInDays"/> changes the behavior on
     /// the next maintenance run.

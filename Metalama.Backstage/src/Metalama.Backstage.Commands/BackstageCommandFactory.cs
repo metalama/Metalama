@@ -114,6 +114,10 @@ public static class BackstageCommandFactory
                         telemetry.AddCommand<ResetDeviceIdCommand>( "reset-device-id" )
                             .WithDescription( "Generates a new anonymous device identifier for telemetry." );
 
+                        telemetry.AddCommand<ResetDedupCommand>( "reset-dedup" )
+                            .WithData( options )
+                            .WithDescription( "Clears the record of already-reported issues so they are captured again (testing aid)." );
+
                         telemetry.AddCommand<UploadTelemetryCommand>( "upload" )
                             .WithData( options )
                             .WithDescription( "Uploads all queued telemetry data immediately." );

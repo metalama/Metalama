@@ -1,0 +1,110 @@
+@page
+@model ExceptionReportPageModel
+
+@if (Model.IsReported)
+{
+    <h1>Report queued</h1>
+    <p>Thank you. The report has been queued for upload and will help us improve Metalama.</p>
+}
+else if (!Model.HasReport)
+{
+    <h1>Report unavailable</h1>
+    <p>This report could not be found. It may have already been sent or removed.</p>
+}
+else
+{
+    <div class="exception-report">
+        @if (Model.IsAlreadySent)
+        {
+            <h1>Error report sent</h1>
+            <p>
+                This report has already been sent automatically because automatic reporting is enabled for
+                @Model.CategoryDisplayName. Below is exactly what was uploaded: compare the full
+                <strong>local report</strong> with the scrubbed <strong>report for upload</strong> to see precisely
+                what the scrubber removed.
+            </p>
+        }
+        else
+        {
+            <h1>Review error report</h1>
+            <p>
+                Review the report below before anything is sent. Compare the full <strong>local report</strong> with the
+                exact, scrubbed <strong>report for upload</strong> — that scrubbed payload is precisely what would be
+                uploaded. Nothing leaves your machine unless you click <strong>Report</strong>.
+            </p>
+        }
+
+        @* Bootstrap nav-tabs. Bootstrap's bundled JS is shipped with the worker web server (see _Layout), so the tabs
+           work fully offline, with no external dependency. See #1674. *@
+        <ul class="nav nav-tabs" role="tablist">
+            @* The full local report comes first: it is the complete data, and the scrubbed payload is shown next to it
+               so the user can see what was removed. The scrubbed tab is active only when there is no local rendering. *@
+            @if (Model.LocalContent != null)
+            {
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="local-tab" data-bs-toggle="tab" data-bs-target="#local-pane"
+                            type="button" role="tab" aria-controls="local-pane" aria-selected="true">
+                        Local report (full)
+                    </button>
+                </li>
+            }
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(Model.LocalContent == null ? "active" : "")" id="scrubbed-tab" data-bs-toggle="tab"
+                        data-bs-target="#scrubbed-pane" type="button" role="tab" aria-controls="scrubbed-pane"
+                        aria-selected="@(Model.LocalContent == null ? "true" : "false")">
+                    Report for upload (scrubbed)
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content report-content">
+            @if (Model.LocalContent != null)
+            {
+                <div class="tab-pane fade show active" id="local-pane" role="tabpanel" aria-labelledby="local-tab">
+                    <textarea class="report" readonly aria-label="Local report (full)">@Model.LocalContent</textarea>
+                </div>
+            }
+            <div class="tab-pane fade @(Model.LocalContent == null ? "show active" : "")" id="scrubbed-pane" role="tabpanel"
+                 aria-labelledby="scrubbed-tab">
+                <textarea class="report" readonly aria-label="Report for upload (scrubbed)">@Model.ScrubbedContent</textarea>
+            </div>
+        </div>
+
+        @* The auto-report checkbox is shown in both states. *@
+        @if (Model.IsAlreadySent)
+        {
+            @* The report has already been auto-sent, so there is nothing more to send: toggling the checkbox saves the
+               per-category preference immediately (no button). *@
+            <form method="post" asp-page-handler="UpdateAutoReport" class="report-actions">
+                <input type="hidden" asp-for="Report" />
+
+                <div class="checkbox">
+                    <input type="checkbox" asp-for="AutoReport" onchange="this.form.submit()" />
+                    <div class="label">
+                        <label asp-for="AutoReport">Automatically report all @Model.CategoryDisplayName in the future</label>
+                    </div>
+                </div>
+            </form>
+        }
+        else
+        {
+            @* The report is awaiting review: the Report button sends it and, if ticked, also enables auto-reporting. *@
+            <form method="post" asp-page-handler="Report" class="report-actions">
+                <input type="hidden" asp-for="Report" />
+
+                <div class="checkbox">
+                    <input type="checkbox" asp-for="AutoReport" />
+                    <div class="label">
+                        <label asp-for="AutoReport">Automatically report all @Model.CategoryDisplayName in the future</label>
+                    </div>
+                </div>
+
+                <div class="navigation-buttons">
+                    <div class="continue-button">
+                        <button type="submit">Report</button>
+                    </div>
+                </div>
+            </form>
+        }
+    </div>
+}

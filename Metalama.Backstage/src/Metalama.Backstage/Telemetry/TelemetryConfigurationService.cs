@@ -60,7 +60,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         }
     }
 
-    private bool IsGloballyEnabled()
+    private bool ComputeGlobalEnablement()
     {
         // Check if the current application supports telemetry.
         var applicationInfo = this._serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
@@ -138,8 +138,13 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                     // Usage reporting is opt-out (enabled by default), but exception and performance-problem reporting
                     // are opt-in (disabled by default) because those reports may contain more sensitive diagnostic data.
                     UsageReportingAction = ReportingAction.Yes,
-                    PerformanceProblemReportingAction = ReportingAction.No,
-                    ExceptionReportingAction = ReportingAction.No,
+
+                    // The exception/performance channel defaults to review-first (Default) rather than auto-send (Yes):
+                    // the most sensitive telemetry (stack traces, paths, Exception.Data) is captured locally but only
+                    // uploaded when the user explicitly opts in (sets the category to Yes). Usage telemetry stays
+                    // opt-out (Yes). See #1674.
+                    PerformanceProblemReportingAction = ReportingAction.Default,
+                    ExceptionReportingAction = ReportingAction.Default,
 
                     // Make sure we don't upload telemetry data on the first second of use.
                     // Since first-time users are likely not to use the software for more than a few minutes,
@@ -208,7 +213,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 };
             } );
 
-        this._isGloballyEnabled = this.IsGloballyEnabled();
+        this._isGloballyEnabled = this.ComputeGlobalEnablement();
         this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
         this._initialized = true;
     }
@@ -269,6 +274,19 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
 
     public Guid DeviceId { get; private set; }
 
+    public bool IsGloballyEnabled
+    {
+        get
+        {
+            if ( !this._initialized )
+            {
+                throw new InvalidOperationException( "The service has not been initialized." );
+            }
+
+            return this._isGloballyEnabled;
+        }
+    }
+
     public bool IsEnabled( TelemetryScenario scenario )
     {
         if ( !this._initialized )
@@ -308,6 +326,9 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 };
             } );
     }
+
+    public void ResetReportedIssues()
+        => this._configurationManager.Update<TelemetryConfiguration>( c => c with { Issues = c.Issues.Clear() } );
 
     // Generates the three per-channel salts so that they are all non-zero and mutually distinct. A 64-bit CSPRNG
     // makes zero or a collision astronomically unlikely, but we guard against them anyway because the whole point of
