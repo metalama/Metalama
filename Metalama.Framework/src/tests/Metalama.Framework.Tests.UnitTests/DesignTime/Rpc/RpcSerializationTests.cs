@@ -16,6 +16,7 @@ using Metalama.Framework.DesignTime.VisualStudio.CompileTimeCodeEditingStatus;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using Metalama.Framework.Engine.DesignTime;
+using Metalama.Framework.Engine.SerializableIds;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Immutable;
@@ -408,6 +409,21 @@ public sealed class RpcSerializationTests
         Assert.Equal( original.TargetDeclarationId, result.TargetDeclarationId );
         Assert.Equal( original.Transformations.Length, result.Transformations.Length );
         Assert.Equal( original.Transformations[0].Description, result.Transformations[0].Description );
+    }
+
+    [Fact]
+    public void SymbolId_Roundtrip()
+    {
+        // Regression for the SymbolKey allow-list. SymbolId stores a boxed Microsoft.CodeAnalysis.SymbolKey in an
+        // object-typed field, so the typeless resolver writes the SymbolKey CLR type name on the wire. SymbolKey is
+        // internal to Roslyn and cannot carry [RpcContract], so it must be accepted via the system-type allow-list.
+        // Before the fix this threw on deserialization (see Premium's CodeFixSerializationTests).
+        var original = new SymbolId( "MySymbolId" );
+
+        var result = _helper.Deserialize( _helper.Serialize( original, typeof(SymbolId) ), typeof(SymbolId) );
+
+        var symbolId = Assert.IsType<SymbolId>( result );
+        Assert.Equal( original.Id, symbolId.Id );
     }
 
     [Fact]

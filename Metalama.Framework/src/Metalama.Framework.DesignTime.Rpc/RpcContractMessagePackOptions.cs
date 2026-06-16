@@ -4,6 +4,7 @@
 
 using MessagePack;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Metalama.Framework.DesignTime.Rpc;
@@ -28,9 +29,24 @@ namespace Metalama.Framework.DesignTime.Rpc;
 /// happens before the object is constructed. Concrete-typed members (which never take the typeless path and therefore
 /// never call <see cref="LoadType"/>) are unaffected.
 /// </para>
+/// <para>
+/// A small, explicit allow-list of data-only system types (see <c>_allowedSystemTypes</c>) is also accepted: these
+/// types legitimately ride the typeless path but cannot carry <see cref="RpcContractAttribute"/> because we do not
+/// own them (e.g. <c>Microsoft.CodeAnalysis.SymbolKey</c>, embedded in <c>SymbolId</c>).
+/// </para>
 /// </remarks>
 internal sealed class RpcContractMessagePackOptions : MessagePackSerializerOptions
 {
+    // System types that legitimately travel on the wire but cannot carry [RpcContract] because we do not own them.
+    // These are data-only types (no behavior is invoked on deserialization), pinned by both full name and declaring
+    // assembly so a same-named gadget from another assembly cannot slip through. Keep this list as small as possible.
+    //
+    // Microsoft.CodeAnalysis.SymbolKey: an opaque, string-backed Roslyn handle. SymbolId (see SerializableIds.SymbolId)
+    // stores a boxed SymbolKey in an object-typed field, so the typeless resolver writes its CLR type name on the wire.
+    // The type is internal to Microsoft.CodeAnalysis.Workspaces, so it can only be allow-listed by name.
+    private static readonly HashSet<(string FullName, string AssemblyName)> _allowedSystemTypes =
+        new() { ("Microsoft.CodeAnalysis.SymbolKey", "Microsoft.CodeAnalysis.Workspaces") };
+
     private readonly ConcurrentDictionary<Type, bool> _isAllowedCache = new();
 
     public RpcContractMessagePackOptions( MessagePackSerializerOptions copyFrom ) : base( copyFrom ) { }
@@ -56,5 +72,8 @@ internal sealed class RpcContractMessagePackOptions : MessagePackSerializerOptio
     }
 
     private bool IsAllowed( Type type )
-        => this._isAllowedCache.GetOrAdd( type, static t => t.GetCustomAttribute<RpcContractAttribute>( inherit: false ) != null );
+        => this._isAllowedCache.GetOrAdd(
+            type,
+            static t => t.GetCustomAttribute<RpcContractAttribute>( inherit: false ) != null
+                        || (t.FullName != null && _allowedSystemTypes.Contains( (t.FullName, t.Assembly.GetName().Name!) )) );
 }
