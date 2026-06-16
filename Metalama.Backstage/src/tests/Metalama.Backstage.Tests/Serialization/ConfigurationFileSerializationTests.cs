@@ -401,11 +401,11 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
     [Fact]
     public void RssClientConfiguration_Serialization()
     {
-        // Note: LastFetchTime is internal so it won't be serialized by ToJson()
         var input = new RssClientConfiguration { PreferredFeed = RssFeed.Posts, Version = 1 };
 
         const string expectedJson = """
                                     {
+                                      "LastFetchTime": null,
                                       "PreferredFeed": 1,
                                       "version": 1
                                     }
@@ -416,6 +416,38 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             expectedJson,
             obj => this.JsonService.Serialize( obj, typeof(RssClientConfiguration) ),
             json => JsonSerializer.Deserialize<RssClientConfiguration>( json, this.JsonOptions ) );
+    }
+
+    [Fact]
+    public void RssClientConfiguration_LastFetchTime_RoundTrip()
+    {
+        // Regression test for #1690: LastFetchTime was internal and therefore silently dropped by the
+        // source-generated JSON context, so the RSS feed was stuck in its "first fetch" state forever.
+        var input = new RssClientConfiguration
+        {
+            PreferredFeed = RssFeed.Briefs,
+            LastFetchTime = new DateTime( 2025, 6, 1, 12, 0, 0, DateTimeKind.Utc ),
+            Version = 1
+        };
+
+        const string expectedJson = """
+                                    {
+                                      "LastFetchTime": "2025-06-01T12:00:00Z",
+                                      "PreferredFeed": 2,
+                                      "version": 1
+                                    }
+                                    """;
+
+        this.TestSerialization(
+            input,
+            expectedJson,
+            obj => this.JsonService.Serialize( obj, typeof(RssClientConfiguration) ),
+            json => JsonSerializer.Deserialize<RssClientConfiguration>( json, this.JsonOptions ) );
+
+        // Assert that the round-tripped value is preserved (the core of the regression).
+        var deserialized = JsonSerializer.Deserialize<RssClientConfiguration>( expectedJson, this.JsonOptions );
+        Assert.NotNull( deserialized );
+        Assert.Equal( input.LastFetchTime, deserialized.LastFetchTime );
     }
 
     [Fact]
