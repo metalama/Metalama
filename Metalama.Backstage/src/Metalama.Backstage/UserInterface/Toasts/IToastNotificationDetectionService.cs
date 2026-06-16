@@ -7,8 +7,8 @@ using Metalama.Backstage.Extensibility;
 
 namespace Metalama.Backstage.UserInterface.Toasts;
 
-// This service is used in Metalama.Framework.Engine.
-// The detection is not called when a project has no aspects or validators.
+// This service is used in Metalama.Framework.Engine: SourceTransformer.InitializeServices calls Detect()
+// once the backstage services are initialized for a Metalama-enabled compilation.
 [PublicAPI]
 public interface IToastNotificationDetectionService : IBackstageService
 {

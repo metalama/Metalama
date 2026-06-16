@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.UserInterface.Toasts;
 using Metalama.Backstage.Welcome;
 using Metalama.Compiler;
 using Metalama.Framework.Engine.AdditionalOutputs;
@@ -52,7 +53,14 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
 
                 if ( BackstageServiceFactoryInitializer.Initialize( backstageOptions ) )
                 {
-                    BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<WelcomeService>().OpenWelcomePageIfRequired();
+                    var serviceProvider = BackstageServiceFactory.ServiceProvider;
+
+                    serviceProvider.GetRequiredBackstageService<WelcomeService>().OpenWelcomePageIfRequired();
+
+                    // Detect toast notifications (e.g. the first-run telemetry notice). This was previously triggered
+                    // by LicenseVerifier, which was removed when licensing moved out of the engine, leaving the
+                    // detection service with no caller (#1687).
+                    serviceProvider.GetBackstageService<IToastNotificationDetectionService>()?.Detect();
                 }
             }
         }
