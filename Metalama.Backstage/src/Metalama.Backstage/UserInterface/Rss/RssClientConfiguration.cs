@@ -12,7 +12,10 @@ namespace Metalama.Backstage.UserInterface.Rss;
 [Description( "Toast notifications for product news." )]
 public sealed record RssClientConfiguration : ConfigurationFile
 {
-    internal DateTime? LastFetchTime { get; init; }
+    // Must be public so that it is serialized by the source-generated JSON context (BackstageJsonContext),
+    // which only emits public properties. When this was internal, LastFetchTime was silently dropped on every
+    // write, so the RSS feed was permanently stuck in its "first fetch" state and never showed news (#1690).
+    public DateTime? LastFetchTime { get; init; }
 
     public RssFeed? PreferredFeed { get; init; }
 }
