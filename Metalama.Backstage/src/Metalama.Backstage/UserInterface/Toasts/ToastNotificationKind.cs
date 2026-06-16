@@ -16,4 +16,11 @@ public sealed record ToastNotificationKind( string Name )
     internal TimeSpan AutoSnoozePeriod { get; init; } = TimeSpan.FromHours( 1 );
 
     public TimeSpan ManualSnoozePeriod { get; init; } = TimeSpan.FromDays( 1 );
+
+    /// <summary>
+    /// Gets a value indicating whether this is a low-priority notification that should not be displayed shortly after
+    /// another notification was displayed (see <c>ToastNotificationStatusService</c>). Blocking or urgent notifications
+    /// (e.g. a required license, which fails the build, or an exception) are not throttled. The default is <c>false</c>.
+    /// </summary>
+    internal bool IsThrottled { get; init; }
 }

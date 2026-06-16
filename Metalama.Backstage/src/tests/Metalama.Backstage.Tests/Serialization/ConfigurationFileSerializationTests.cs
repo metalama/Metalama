@@ -292,6 +292,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                           "disabled": false
                                         }
                                       },
+                                      "lastNotificationTime": null,
                                       "version": 1
                                     }
                                     """;

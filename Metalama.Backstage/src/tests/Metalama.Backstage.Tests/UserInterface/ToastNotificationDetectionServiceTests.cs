@@ -160,6 +160,15 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this._backstageServicesInitializer.Initialize();
         await this.DetectToastNotificationsAsync();
 
+        // On the first run the VSX prompt is throttled behind the first-run telemetry notice (#1692), so it is not
+        // shown yet regardless of whether the extension is installed.
+        Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.VsxNotInstalled );
+
+        // After the throttle period, the VSX prompt is shown unless the extension is already installed.
+        this.UserInterface.Notifications.Clear();
+        this.Time.AddTime( TimeSpan.FromMinutes( 15 ) + TimeSpan.FromSeconds( 1 ) );
+        await this.DetectToastNotificationsAsync();
+
         if ( extensionInstalled )
         {
             Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.VsxNotInstalled );
@@ -168,6 +177,31 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         {
             Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.VsxNotInstalled );
         }
+    }
+
+    [Fact]
+    public async Task FirstRunShowsTelemetryNoticeAndDefersVsxPromptAsync()
+    {
+        // Regression test for #1692: the VSX-install prompt must not appear together with the first-run telemetry notice.
+        this.UserDeviceDetection.IsInteractiveDevice = true;
+        this.UserDeviceDetection.IsVisualStudioInstalled = true;
+        this.ServiceProvider.GetRequiredBackstageService<IIdeExtensionStatusService>().IsVisualStudioExtensionInstalled = false;
+        Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
+
+        this._backstageServicesInitializer.Initialize();
+        await this.DetectToastNotificationsAsync();
+
+        // First run: only the telemetry notice; the VSX prompt is deferred.
+        Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
+        Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.VsxNotInstalled );
+
+        // After the throttle period, the VSX prompt appears (and the once-only telemetry notice does not repeat).
+        this.UserInterface.Notifications.Clear();
+        this.Time.AddTime( TimeSpan.FromMinutes( 15 ) + TimeSpan.FromSeconds( 1 ) );
+        await this.DetectToastNotificationsAsync();
+
+        Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.VsxNotInstalled );
+        Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
     }
 
     [Theory]
@@ -216,6 +250,10 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
 
         // Initialize
         this._backstageServicesInitializer.Initialize();
+        await this.DetectToastNotificationsAsync();
+
+        // The VSX prompt is throttled behind the first-run telemetry notice (#1692), so advance past the throttle.
+        this.Time.AddTime( TimeSpan.FromMinutes( 15 ) + TimeSpan.FromSeconds( 1 ) );
         await this.DetectToastNotificationsAsync();
 
         var notification = this.UserInterface.Notifications.Single( n => n.Kind == ToastNotificationKinds.VsxNotInstalled );

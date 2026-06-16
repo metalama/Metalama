@@ -22,4 +22,12 @@ public sealed record ToastNotificationsConfiguration : ConfigurationFile
     [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<ToastNotificationConfiguration>) )]
     public ImmutableDictionary<string, ToastNotificationConfiguration> Notifications { get; init; } =
         ImmutableDictionary<string, ToastNotificationConfiguration>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
+
+    /// <summary>
+    /// Gets the time when any toast notification was last displayed. Used to throttle low-priority notifications
+    /// (see <see cref="ToastNotificationKind.IsThrottled"/>). Must be public so it is persisted by the source-generated
+    /// JSON context (which serializes public properties only), and stored here so the throttle works across processes.
+    /// </summary>
+    [JsonPropertyName( "lastNotificationTime" )]
+    public DateTime? LastNotificationTime { get; init; }
 }

@@ -11,7 +11,10 @@ public static class ToastNotificationKinds
 {
     public static ToastNotificationKind RequiresLicense { get; } = new( nameof(RequiresLicense) ) { AutoSnoozePeriod = TimeSpan.FromMinutes( 1 ) };
 
-    public static ToastNotificationKind VsxNotInstalled { get; } = new( nameof(VsxNotInstalled) ) { AutoSnoozePeriod = TimeSpan.FromHours( 1 ) };
+    // Throttled: the VSX-install prompt is low-priority, so it is deferred when another notification (e.g. the
+    // first-run telemetry notice) was shown recently, to avoid showing two toasts at once. See #1692.
+    public static ToastNotificationKind VsxNotInstalled { get; } =
+        new( nameof(VsxNotInstalled) ) { AutoSnoozePeriod = TimeSpan.FromHours( 1 ), IsThrottled = true };
 
     public static ToastNotificationKind SubscriptionExpiring { get; } =
         new( nameof(SubscriptionExpiring) ) { AutoSnoozePeriod = TimeSpan.FromDays( 1 ), ManualSnoozePeriod = TimeSpan.FromDays( 7 ) };
