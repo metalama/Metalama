@@ -51,8 +51,10 @@ namespace Metalama.Backstage.Configuration
                     // We no longer throw an exception here because we have a known random issue and throwing an exception seems to be worse
                     // than ignoring it.
 
+                    // Include the call stack so that, if this recurs, the contending caller can be identified from the log.
                     configurationManager.Logger.Error?.Log(
-                        $"Too many attempts to update the configuration {typeof(T).Name}. There must be an unaddressed race condition." );
+                        $"Too many attempts to update the configuration {typeof(T).Name}. There must be an unaddressed race condition.{
+                            Environment.NewLine}{Environment.StackTrace}" );
 
                     return false;
                 }
@@ -100,8 +102,10 @@ namespace Metalama.Backstage.Configuration
                     // We no longer throw an exception here because we have a known random issue and throwing an exception seems to be worse
                     // than ignoring it.
 
+                    // Include the call stack so that, if this recurs, the contending caller can be identified from the log.
                     configurationManager.Logger.Error?.Log(
-                        $"Too many attempts to update the configuration {typeof(T).Name}. There must be an unaddressed race condition." );
+                        $"Too many attempts to update the configuration {typeof(T).Name}. There must be an unaddressed race condition.{
+                            Environment.NewLine}{Environment.StackTrace}" );
 
                     return false;
                 }
