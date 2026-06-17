@@ -34,9 +34,15 @@ public static class MetalamaPathUtilities
     public static string GetTempDirectory()
         => BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>().TempDirectory;
 
-    public static string GetTempFileName()
+    public static string GetTempFileName() => GetTempFileName( GetTempDirectory() );
+
+    /// <summary>
+    /// Creates a uniquely-named, empty temporary file in the given <paramref name="directory" /> and returns its full path.
+    /// Callers that have a service provider at hand should resolve <see cref="IStandardDirectories.TempDirectory" /> themselves
+    /// and pass it here, rather than relying on the parameterless overload, which requires the backstage services to be initialized.
+    /// </summary>
+    public static string GetTempFileName( string directory )
     {
-        var directory = GetTempDirectory();
         Directory.CreateDirectory( directory );
 
         // https://stackoverflow.com/a/10152460/4100001
