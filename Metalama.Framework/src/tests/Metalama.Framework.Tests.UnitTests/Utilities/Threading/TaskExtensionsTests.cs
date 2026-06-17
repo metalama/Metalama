@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Utilities.Threading;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -24,19 +23,20 @@ public sealed class TaskExtensionsTests
     /// <see cref="TaskCompletionSource{T}"/> used by <c>WithCancellationSlow</c>.
     /// </summary>
     /// <remarks>
-    /// The test asserts the semantic invariant directly: a blocking continuation should not stop
-    /// <c>Cancel</c> from returning. Without <c>RunContinuationsAsynchronously</c> the continuation
-    /// runs inline on the cancelling thread, so <c>Cancel</c> is blocked inside the continuation
-    /// waiting on the same event the test only releases after the timeout has passed. With the flag
-    /// in place the continuation is dispatched to the thread pool and <c>Cancel</c> returns
-    /// immediately.
+    /// The test asserts the invariant <em>directly and deterministically</em>: it captures the
+    /// thread on which the continuation actually executes and proves it is not the cancelling
+    /// thread. There is no timing race — a <see cref="TaskCompletionSource{T}"/> signalled from
+    /// inside the continuation is the synchronization point.
     ///
-    /// Cancellation is started on a dedicated non-thread-pool <see cref="Thread"/> so that
-    /// <c>Join</c> measures Cancel's progress directly (a thread-pool task would let the thread pool
-    /// schedule it however it wants, complicating the timing semantics).
+    /// <para><c>ExecuteSynchronously</c> is essential: it forces the continuation to ride whichever
+    /// thread completes <c>wrapped</c>. Without <c>RunContinuationsAsynchronously</c> that thread is
+    /// the cancelling thread (the whole async cascade runs inline inside <c>Cancel</c>), so the
+    /// captured thread would equal the cancelling thread and the assertion fails. With the flag in
+    /// place the cascade is dispatched to the thread pool, so the captured thread is a pool worker —
+    /// never the dedicated, non-pool cancelling <see cref="Thread"/>.</para>
     /// </remarks>
     [Fact]
-    public async Task WithCancellation_OnCancel_DoesNotBlockOnSlowContinuations()
+    public async Task WithCancellation_OnCancel_DoesNotRunContinuationsOnCancellingThread()
     {
         // A task that never completes on its own: the only way out of WithCancellation is the token.
         var hangingTask = new TaskCompletionSource<int>().Task;
@@ -44,42 +44,38 @@ public sealed class TaskExtensionsTests
         using var cts = new CancellationTokenSource();
         var wrapped = hangingTask.WithCancellation( cts.Token );
 
-        using var continuationCanProceed = new ManualResetEventSlim( false );
+        // Signalled from inside the continuation with the thread it ran on. RunContinuationsAsynchronously
+        // keeps the awaiting test thread from resuming inline, so it cannot perturb the measurement.
+        var continuationRan = new TaskCompletionSource<Thread>( TaskCreationOptions.RunContinuationsAsynchronously );
 
-        // The continuation blocks on continuationCanProceed. With ExecuteSynchronously requested,
-        // an inline-running continuation would freeze the thread that completes wrapped — which,
-        // if Fix 1B regressed, is exactly the cancelling thread.
-        var continued = wrapped.ContinueWith(
-            _ => continuationCanProceed.Wait(),
+        // ExecuteSynchronously makes the continuation run on whichever thread completes wrapped. If
+        // Fix 1B regressed, that is the cancelling thread; with the fix it is a thread-pool worker.
+        _ = wrapped.ContinueWith(
+            _ => continuationRan.SetResult( Thread.CurrentThread ),
             CancellationToken.None,
             TaskContinuationOptions.ExecuteSynchronously,
             TaskScheduler.Default );
 
+        Thread? cancellingThread = null;
         var cancelThread = new Thread(
             () =>
             {
-#pragma warning disable VSTHRD103 // Synchronous Cancel is exactly what this test measures.
+                cancellingThread = Thread.CurrentThread;
+#pragma warning disable VSTHRD103 // Synchronous Cancel is exactly what this test exercises.
                 cts.Cancel();
 #pragma warning restore VSTHRD103
             } ) { IsBackground = true, Name = "WithCancellation-cancel-thread" };
 
         cancelThread.Start();
 
-        // Primary invariant. With Fix 1B's RunContinuationsAsynchronously the chain dispatches to a
-        // thread-pool worker and the cancelling thread returns immediately. Without it, the entire
-        // async cascade runs inline on the cancelling thread and gets stuck inside the continuation
-        // until we Set the event below — which we delay until after this Join's timeout. So the
-        // bug regressing manifests as Join returning false.
-        var cancelReturned = cancelThread.Join( TimeSpan.FromSeconds( 2 ) );
+        // Unbounded join: establishes a happens-before for reading cancellingThread and guarantees
+        // the cancel thread is gone before we compare identities. Cancel returns promptly in both
+        // the fixed and regressed cases, so this never hangs.
+        cancelThread.Join();
 
-        // Release the continuation so the thread pool (or, in the regressed case, the cancel thread)
-        // unwinds before the test exits. Otherwise we'd leak a blocked worker.
-        continuationCanProceed.Set();
+        // Deterministic sync point: completes exactly when the continuation has executed.
+        var continuationThread = await continuationRan.Task;
 
-        Assert.True( cancelReturned, "Cancel must return without waiting on the continuation; got blocked instead." );
-
-        // Await the continuation with a timeout so a badly broken implementation can't hang the test.
-        var raceWinner = await Task.WhenAny( continued, Task.Delay( TimeSpan.FromSeconds( 5 ) ) );
-        Assert.Same( continued, raceWinner );
+        Assert.NotSame( cancellingThread, continuationThread );
     }
 }
