@@ -21,7 +21,9 @@ internal sealed class UsageReporter : IUsageReporter
     // Serializes the in-process callers of ShouldCollectMetrics. This service is a per-process singleton, so when a
     // single process compiles many projects concurrently (e.g. the design-time analysis service or an in-process build),
     // all those threads would otherwise race on the shared TelemetryConfiguration timestamp and exhaust the
-    // optimistic-concurrency retries in UpdateIf. Serializing them lets each read-modify-write complete on its first attempt.
+    // optimistic-concurrency retries in UpdateIf. Serializing them removes this self-contention, which is the dominant
+    // source. It is not a full guarantee: occasional retries remain possible from other (infrequent) TelemetryConfiguration
+    // writers in the same process, or from other processes (still bounded by the cross-process mutex in ConfigurationManager).
     private readonly object _sync = new();
 
     public bool IsUsageReportingEnabled => this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage );
