@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,16 @@ namespace Metalama.Backstage.Infrastructure
     /// </summary>
     internal sealed class FileSystem : IFileSystem
     {
+        private readonly IServiceProvider? _serviceProvider;
+        private IStandardDirectories? _standardDirectories;
+
+        public FileSystem() { }
+
+        public FileSystem( IServiceProvider serviceProvider )
+        {
+            this._serviceProvider = serviceProvider;
+        }
+
         public string? SynchronizationPrefix => null;
 
         /// <inheritdoc />
@@ -173,6 +184,15 @@ namespace Metalama.Backstage.Infrastructure
         /// <inheritdoc />
         public string GetTempFileName()
         {
+            // When this service has its own service provider (e.g. in the worker process, which never initializes the
+            // global BackstageServiceFactory), resolve the temp directory from it instead of relying on the static accessor.
+            if ( this._serviceProvider != null )
+            {
+                this._standardDirectories ??= this._serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
+
+                return MetalamaPathUtilities.GetTempFileName( this._standardDirectories.TempDirectory );
+            }
+
             return MetalamaPathUtilities.GetTempFileName();
         }
 
