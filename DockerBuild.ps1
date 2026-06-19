@@ -74,7 +74,8 @@
     Do not generate or call Init.g.ps1 (skips environment variables, git config, safe.directory, etc).
 
 .PARAMETER Isolation
-    Docker isolation mode: 'process' (default) or 'hyperv'.
+    Docker isolation mode: 'process' or 'hyperv'.
+    When not specified, defaults to 'hyperv' on Windows Desktop and 'process' on Windows Server.
     Memory and CPU limits only apply to hyperv isolation.
 
 .PARAMETER Memory
@@ -146,7 +147,7 @@ param(
     [string]$Dockerfile, # Path to custom Dockerfile (defaults to Dockerfile or Dockerfile.claude based on -Claude).
     [string]$RegistryImage, # Use a pre-built image from a registry, skipping Dockerfile build entirely.
     [switch]$NoInit, # Do not generate or call Init.g.ps1 (skips git config, safe.directory, etc).
-    [string]$Isolation = 'hyperv', # Docker isolation mode (process or hyperv). Memory/CPU limits only apply to hyperv.
+    [string]$Isolation = 'process', # Docker isolation mode (process or hyperv). When not specified, defaults to hyperv on Windows Desktop and process on Windows Server. Memory/CPU limits only apply to hyperv.
     [string]$Memory = $(if ($env:BuildAgentMemory) { "${env:BuildAgentMemory}g" } else { '24g' }), # Docker memory limit (e.g., "8g"). Only used with hyperv isolation. Defaults to $env:BuildAgentMemory (in GB) or 24g.
     [string]$Cpus = $(if ($env:BuildAgentCpus) { $env:BuildAgentCpus } else { [Environment]::ProcessorCount }), # Docker CPU limit. Use a positive integer or "dynamic". Defaults to $env:BuildAgentCpus or host processor count.
     [string[]]$Mount, # Additional directories to mount from host (readonly by default, append :w for writable). Supports * and ** glob patterns.
@@ -181,7 +182,16 @@ if ($null -eq $IsWindows)
 }
 $IsUnix = -not $IsWindows  # Covers both Linux and macOS
 
-# Docker isolation is Windows-only
+# Docker isolation is Windows-only. Windows Server supports process isolation (faster,
+# no per-container VM); Windows Desktop (client) only reliably runs hyperv isolation.
+# Auto-detect by Windows edition unless -Isolation was passed explicitly.
+if ($IsWindows -and -not $PSBoundParameters.ContainsKey('Isolation'))
+{
+    # Win32_OperatingSystem.ProductType: 1 = Workstation (Desktop), 2/3 = Server.
+    $productType = (Get-CimInstance -ClassName Win32_OperatingSystem).ProductType
+    $Isolation = if ($productType -eq 1) { 'hyperv' } else { 'process' }
+    Write-Host "Detected Windows ProductType=$productType; using --isolation=$Isolation" -ForegroundColor Cyan
+}
 $isolationArg = if ($IsWindows)
 {
     "--isolation=$Isolation"
