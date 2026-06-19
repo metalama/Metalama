@@ -19,9 +19,11 @@ public interface ITelemetryConfigurationService : IBackstageService
     void Initialize();
 
     /// <summary>
-    /// Activates telemetry lazily: on first call, creates the persistent <see cref="DeviceId"/> and the per-channel salts
-    /// (and sets the default reporting actions) in the global configuration. Subsequent calls only ensure the monthly
-    /// rotation/back-fill. This is called by the reporters at the moment they actually report, so that a process which
+    /// Activates telemetry lazily: on first call, creates the persistent <see cref="DeviceId"/>, the per-channel salts
+    /// and the initial upload timing in the global configuration. It deliberately does NOT set the per-channel reporting
+    /// actions — their record defaults already express the policy, and writing them here would clobber a choice the user
+    /// made through <see cref="SetStatus(bool)"/> before telemetry was activated (activation is now lazy). Subsequent
+    /// calls only ensure the monthly rotation/back-fill. This is called by the reporters at the moment they actually report, so that a process which
     /// never reports (e.g. because every context is opted out) never writes anything to the global configuration and
     /// never creates a device identifier. Idempotent and thread-safe.
     /// </summary>

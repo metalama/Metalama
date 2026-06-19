@@ -22,8 +22,10 @@ public interface ITelemetryContext
     /// <summary>
     /// Determines whether telemetry may be collected and sent for the given <paramref name="scenario"/> in this context.
     /// This is <c>true</c> only when the repository has not opted out through <c>metalama.json</c> and the scenario is
-    /// enabled at the process and per-category level (see <see cref="ITelemetryConfigurationService.IsEnabled"/>) —
-    /// i.e. telemetry is actually activated for that specific scenario.
+    /// enabled at the process and per-category level (resolved through
+    /// <see cref="ITelemetryConfigurationService.GetEffectiveReportingAction"/>, which — unlike
+    /// <see cref="ITelemetryConfigurationService.IsEnabled"/> — also covers the ASK-capable Exception/Performance
+    /// scenarios) — i.e. telemetry is actually activated for that specific scenario.
     /// </summary>
     bool IsTelemetryEnabled( TelemetryScenario scenario );
 
