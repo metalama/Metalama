@@ -57,7 +57,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         }
     }
 
-    private bool ComputeGlobalEnablement()
+    private bool ComputeIsGloballyEnabled()
     {
         // Check if the current application supports telemetry.
         var applicationInfo = this._serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
@@ -127,11 +127,11 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             // (e.g. because every telemetry context is opted out, or it is a context-less process) must never write
             // anything to the global configuration and never create a device identifier. The DeviceId and salts are
             // created on demand by EnsureActivated, which the reporters call when they actually report. See #1701.
-            this._isGloballyEnabled = this.ComputeGlobalEnablement();
+            this._isGloballyEnabled = this.ComputeIsGloballyEnabled();
 
             // If telemetry was already activated in a previous session, keep the monthly rotation / salt back-fill up to
             // date. This never creates a DeviceId for a not-yet-activated configuration (it is a no-op in that case).
-            this.RotateAndBackfillIfActivated();
+            this.RotateDeviceIdAndSaltIfActivated();
 
             this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
             this._initialized = true;
@@ -177,7 +177,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 this._logger.Trace?.Log( "Telemetry was activated: a device identifier and salts were created." );
             }
 
-            this.RotateAndBackfillIfActivated();
+            this.RotateDeviceIdAndSaltIfActivated();
             this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
         }
 
@@ -203,9 +203,9 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         }
     }
 
-    // Performs the monthly rotation and the salt back-fill, but only for an already-activated configuration. It never
+    // Performs the monthly rotation of the salt and device ids, but only for an already-activated configuration. It never
     // creates a DeviceId, so calling it on a not-yet-activated configuration is a no-op (telemetry stays dormant).
-    private void RotateAndBackfillIfActivated()
+    private void RotateDeviceIdAndSaltIfActivated()
     {
         if ( this._configurationManager.Get<TelemetryConfiguration>().DeviceId == null )
         {
@@ -219,7 +219,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         var rotated = this._configurationManager.UpdateIf<TelemetryConfiguration>(
             c => c.DeviceId != null
                  && (c.MatomoSalt == null || c.LastSaltChangeTime == null
-                     || (this._dateTimeProvider.UtcNow >= firstOfMonth && c.LastSaltChangeTime.Value < firstOfMonth)),
+                                          || (this._dateTimeProvider.UtcNow >= firstOfMonth && c.LastSaltChangeTime.Value < firstOfMonth)),
             c =>
             {
                 var salts = this.GenerateDistinctSalts();
@@ -408,8 +408,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             } );
     }
 
-    public void ResetReportedIssues()
-        => this._configurationManager.Update<TelemetryConfiguration>( c => c with { Issues = c.Issues.Clear() } );
+    public void ResetReportedIssues() => this._configurationManager.Update<TelemetryConfiguration>( c => c with { Issues = c.Issues.Clear() } );
 
     // Generates the three per-channel salts so that they are all non-zero and mutually distinct. A 64-bit CSPRNG
     // makes zero or a collision astronomically unlikely, but we guard against them anyway because the whole point of
