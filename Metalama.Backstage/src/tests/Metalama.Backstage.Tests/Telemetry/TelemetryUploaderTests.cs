@@ -31,6 +31,11 @@ public sealed class TelemetryUploaderTests : TestsBase
         this._uploader = this.ServiceProvider.GetRequiredBackstageService<ITelemetryUploader>();
 
         this.TelemetryConfigurationService.SetStatus( true );
+
+        // Activation is lazy (#1701): it no longer happens at Initialize, so seed the device id / salts / upload timing
+        // explicitly. These tests exercise an active telemetry session, and the upload-throttle tests in particular
+        // depend on LastUploadTime being seeded (as it was when Initialize used to activate).
+        this.TelemetryConfigurationService.EnsureActivated();
     }
 
     protected override void ConfigureServices( ServiceProviderBuilder services )

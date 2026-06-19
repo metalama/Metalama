@@ -158,6 +158,9 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
 
         // Initialize
         this._backstageServicesInitializer.Initialize();
+
+        // Activate telemetry so the first-run telemetry notice is shown (#1701); the VSX prompt is throttled behind it.
+        this.TelemetryConfigurationService.EnsureActivated();
         await this.DetectToastNotificationsAsync();
 
         // On the first run the VSX prompt is throttled behind the first-run telemetry notice (#1692), so it is not
@@ -189,6 +192,9 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
 
         this._backstageServicesInitializer.Initialize();
+
+        // The first-run telemetry notice is shown when telemetry activates (#1701), so activate it.
+        this.TelemetryConfigurationService.EnsureActivated();
         await this.DetectToastNotificationsAsync();
 
         // First run: only the telemetry notice; the VSX prompt is deferred.
@@ -207,16 +213,19 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
     [Theory]
     [InlineData( true )]
     [InlineData( false )]
-    public async Task TelemetryNoticeShownOnFirstRunRegardlessOfTelemetryStatusAsync( bool isTelemetryEnabled )
+    public async Task TelemetryNoticeShownOnActivationRegardlessOfCategoryStatusAsync( bool isTelemetryEnabled )
     {
         this.UserDeviceDetection.IsInteractiveDevice = true;
         this.TelemetryConfigurationService.SetStatus( isTelemetryEnabled );
 
         this._backstageServicesInitializer.Initialize();
+
+        // The notice is shown the first time telemetry activates (#1701), so activate it.
+        this.TelemetryConfigurationService.EnsureActivated();
         await this.DetectToastNotificationsAsync();
 
-        // The first-run telemetry notice must be shown regardless of whether telemetry is currently enabled,
-        // because the point is to inform the user about telemetry independently of its current state.
+        // Once telemetry has activated, the notice is shown regardless of the per-category reporting status (the point
+        // is to inform the user that telemetry is being collected and how to opt out).
         Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
 
         // The notice must not be shown again on subsequent runs (tracked in WelcomeConfiguration).
@@ -233,6 +242,9 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this.UserDeviceDetection.IsInteractiveDevice = false;
 
         this._backstageServicesInitializer.Initialize();
+
+        // Even when telemetry is activated, a non-interactive device shows no toast.
+        this.TelemetryConfigurationService.EnsureActivated();
         await this.DetectToastNotificationsAsync();
 
         Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );

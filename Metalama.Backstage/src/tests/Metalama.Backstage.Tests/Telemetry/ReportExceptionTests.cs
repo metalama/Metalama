@@ -111,44 +111,40 @@ public sealed class ReportExceptionTests : TestsBase
         Assert.True( ExceptionClassifier.Classify( new InvalidOperationException( "" ) ).IsError );
     }
 
-    private void ReportException(
-        ReportingAction exceptionReportingAction = ReportingAction.Yes,
-        ReportingAction performanceReportingAction = ReportingAction.Yes,
-        ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception )
-        => this.ReportException( null, exceptionReportingAction, performanceReportingAction, exceptionReportingKind );
+    // Sets the reporting action of the category matching <paramref name="kind"/> and opts the other category out
+    // (ReportingAction.No), so a test exercises exactly one category at a time and proves the two are independent.
+    // Tests that need both categories enabled rely instead on the both-Yes baseline set in OnAfterServicesCreated.
+    private void ConfigureExceptionReporting( ExceptionReportingKind kind, ReportingAction action )
+        => this.ConfigurationManager!.Update<TelemetryConfiguration>(
+            c => kind == ExceptionReportingKind.Exception
+                ? c with { ExceptionReportingAction = action, PerformanceProblemReportingAction = ReportingAction.No }
+                : c with { ExceptionReportingAction = ReportingAction.No, PerformanceProblemReportingAction = action } );
 
-    private void ReportException(
-        Exception? exception,
-        ReportingAction exceptionReportingAction = ReportingAction.Yes,
-        ReportingAction performanceReportingAction = ReportingAction.Yes,
-        ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception )
+    // Reports an exception (a default InvalidOperationException when none is given) through a fresh reporter, using
+    // whatever reporting configuration is currently in effect. Combine with ConfigureExceptionReporting to exercise a
+    // specific action.
+    private void RecordException( Exception? exception = null, ExceptionReportingKind kind = ExceptionReportingKind.Exception )
     {
-        this.ConfigurationManager!.Update<TelemetryConfiguration>(
-            c => c with { ExceptionReportingAction = exceptionReportingAction, PerformanceProblemReportingAction = performanceReportingAction } );
-
         var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
-        reporter.ReportException( exception ?? new InvalidOperationException(), exceptionReportingKind );
+        reporter.ReportException( exception ?? new InvalidOperationException(), kind );
     }
 
     [Theory]
-    // #1674: Capture is decoupled from sending. When telemetry is globally enabled, a scrubbed report is ALWAYS captured
-    // regardless of the per-category reporting action; the action only decides whether it is also auto-sent (moved to the
-    // upload queue). 'queued' is the action of the kind being reported; the other kind is set to No to prove independence.
+    // #1674, #1701: For an ACTIVE category, capture is decoupled from sending — a scrubbed report is captured for both
+    // Default (ASK) and Yes, and the action only decides whether it is additionally auto-sent (moved to the upload
+    // queue). The No case (not captured nor asked) is covered by ReportIsNotCapturedNorToastShownWhenCategoryIsOptedOut.
+    // 'shouldEnqueue' is for the kind being reported; ConfigureExceptionReporting opts the other kind out to prove independence.
     [InlineData( ReportingAction.Yes, ExceptionReportingKind.Exception, true )]
     [InlineData( ReportingAction.Default, ExceptionReportingKind.Exception, false )]
-    [InlineData( ReportingAction.No, ExceptionReportingKind.Exception, false )]
     [InlineData( ReportingAction.Yes, ExceptionReportingKind.PerformanceProblem, true )]
     [InlineData( ReportingAction.Default, ExceptionReportingKind.PerformanceProblem, false )]
-    [InlineData( ReportingAction.No, ExceptionReportingKind.PerformanceProblem, false )]
-    public void ReportIsAlwaysCapturedAndEnqueuedOnlyWhenCategoryIsYes(
+    public void ReportIsCapturedForActiveCategoryAndEnqueuedOnlyWhenYes(
         ReportingAction reportingAction,
         ExceptionReportingKind exceptionReportingKind,
         bool shouldEnqueue )
     {
-        this.ReportException(
-            exceptionReportingAction: exceptionReportingKind == ExceptionReportingKind.Exception ? reportingAction : ReportingAction.No,
-            performanceReportingAction: exceptionReportingKind == ExceptionReportingKind.PerformanceProblem ? reportingAction : ReportingAction.No,
-            exceptionReportingKind: exceptionReportingKind );
+        this.ConfigureExceptionReporting( exceptionReportingKind, reportingAction );
+        this.RecordException( kind: exceptionReportingKind );
 
         // A scrubbed report is captured in all cases (it is valid XML).
         var scrubbed = this.GetScrubbedReportFile();
@@ -170,24 +166,19 @@ public sealed class ReportExceptionTests : TestsBase
     [Theory]
     [InlineData( ExceptionReportingKind.Exception )]
     [InlineData( ExceptionReportingKind.PerformanceProblem )]
-    public void ReportIsCapturedAndToastShownEvenWhenCategoryIsOptedOut( ExceptionReportingKind exceptionReportingKind )
+    public void ReportIsNotCapturedNorToastShownWhenCategoryIsOptedOut( ExceptionReportingKind exceptionReportingKind )
     {
-        // #1674 / Copilot: capture + toast happen regardless of the per-category telemetry setting; only sending is
-        // gated. Even when the category is explicitly opted out (ReportingAction.No), the report is captured locally and
-        // a toast is shown, but it is NOT enqueued for upload.
-        this.ReportException(
-            exceptionReportingAction: ReportingAction.No,
-            performanceReportingAction: ReportingAction.No,
-            exceptionReportingKind: exceptionReportingKind );
+        // #1701: When the category is explicitly opted out (ReportingAction.No), the report is NOT even captured and no
+        // review toast is shown — the user has chosen not to be asked. (The local crash report is independent of
+        // telemetry and is written separately, by LocalExceptionReporter.)
+        this.ConfigureExceptionReporting( exceptionReportingKind, ReportingAction.No );
+        this.RecordException( kind: exceptionReportingKind );
 
-        var scrubbed = this.GetScrubbedReportFile();
-        Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), scrubbed, StringComparison.Ordinal );
-        Assert.DoesNotContain(
-            this.FileSystem.Mock.AllFiles,
-            f => f.Contains( Path.Combine( "Telemetry", "UploadQueue" ), StringComparison.Ordinal ) );
+        // No telemetry report (neither the scrubbed payload nor the local rendering) is captured.
+        Assert.DoesNotContain( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".xml", StringComparison.Ordinal ) );
 
-        var toast = Assert.Single( this.UserInterface.Notifications );
-        Assert.Equal( ToastNotificationKinds.Exception.Name, toast.Kind.Name );
+        // And the user is not asked.
+        Assert.Empty( this.UserInterface.Notifications );
     }
 
     [Theory]
@@ -198,10 +189,8 @@ public sealed class ReportExceptionTests : TestsBase
         // #1674: When the category is explicitly opted in (ReportingAction.Yes), the captured report is auto-sent,
         // i.e. the scrubbed payload is moved to the telemetry upload queue. The full local rendering is still kept
         // alongside (under Telemetry\Exceptions) so the review page can show it, and is never uploaded.
-        this.ReportException(
-            exceptionReportingAction: exceptionReportingKind == ExceptionReportingKind.Exception ? ReportingAction.Yes : ReportingAction.No,
-            performanceReportingAction: exceptionReportingKind == ExceptionReportingKind.PerformanceProblem ? ReportingAction.Yes : ReportingAction.No,
-            exceptionReportingKind: exceptionReportingKind );
+        this.ConfigureExceptionReporting( exceptionReportingKind, ReportingAction.Yes );
+        this.RecordException( kind: exceptionReportingKind );
 
         var scrubbed = this.GetScrubbedReportFile();
         Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), scrubbed, StringComparison.Ordinal );
@@ -219,10 +208,8 @@ public sealed class ReportExceptionTests : TestsBase
         // #1674: Capture is decoupled from sending. When the category is review-first (ReportingAction.Default), the
         // scrubbed report is captured locally under Telemetry\Exceptions but NOT enqueued for upload, so it stays
         // under the user's control until they review and send it from the worker page / CLI.
-        this.ReportException(
-            exceptionReportingAction: ReportingAction.Default,
-            performanceReportingAction: ReportingAction.Default,
-            exceptionReportingKind: exceptionReportingKind );
+        this.ConfigureExceptionReporting( exceptionReportingKind, ReportingAction.Default );
+        this.RecordException( kind: exceptionReportingKind );
 
         // The scrubbed upload payload stays under Telemetry\Exceptions and is NOT enqueued for upload.
         var scrubbed = this.GetScrubbedReportFile();
@@ -244,11 +231,8 @@ public sealed class ReportExceptionTests : TestsBase
         // path from the upload payload, while the local rendering keeps it so the user sees exactly what was removed.
         var exception = new InvalidOperationException( @"Failed reading C:\Users\johndoe\secret.txt" );
 
-        this.ReportException(
-            exception,
-            exceptionReportingAction: ReportingAction.Default,
-            performanceReportingAction: ReportingAction.Default,
-            exceptionReportingKind: exceptionReportingKind );
+        this.ConfigureExceptionReporting( exceptionReportingKind, ReportingAction.Default );
+        this.RecordException( exception, exceptionReportingKind );
 
         var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
 
@@ -277,7 +261,7 @@ public sealed class ReportExceptionTests : TestsBase
         // #1674: When a report is captured, a toast is shown whose action opens the review page for that exact report
         // (instead of opening the raw report file). The toast Uri carries only the bare report file name (token-safe);
         // the category is stored in the report itself, and the desktop command builds the review-page path from the id.
-        this.ReportException( exceptionReportingKind: exceptionReportingKind );
+        this.RecordException( kind: exceptionReportingKind );
 
         var toast = Assert.Single( this.UserInterface.Notifications );
         Assert.Equal( ToastNotificationKinds.Exception.Name, toast.Kind.Name );
@@ -301,7 +285,8 @@ public sealed class ReportExceptionTests : TestsBase
     {
         // #1674: A review-first report stays local until the user reviews and sends it. SendReport (invoked from the
         // worker review page's Report button) enqueues that exact report for upload.
-        this.ReportException( exceptionReportingAction: ReportingAction.Default, performanceReportingAction: ReportingAction.Default );
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, ReportingAction.Default );
+        this.RecordException();
 
         var captured = this.GetScrubbedReportFile();
         Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), captured, StringComparison.Ordinal );
@@ -326,7 +311,8 @@ public sealed class ReportExceptionTests : TestsBase
     {
         // Copilot: an auto-sent (Yes) report is moved to the upload queue. Clicking its toast must still show it (the
         // toast says "review what was reported"), so report lookup resolves reports in the upload queue too.
-        this.ReportException( exceptionReportingAction: ReportingAction.Yes, performanceReportingAction: ReportingAction.Yes );
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, ReportingAction.Yes );
+        this.RecordException();
 
         var enqueued = this.GetScrubbedReportFile();
         Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), enqueued, StringComparison.Ordinal );
@@ -341,7 +327,8 @@ public sealed class ReportExceptionTests : TestsBase
     {
         // Copilot: an already-queued report (auto-sent, or sent on a previous click) must not be treated as a failure;
         // SendReport returns true without moving anything, so the worker page's Report button stays reliable.
-        this.ReportException( exceptionReportingAction: ReportingAction.Yes, performanceReportingAction: ReportingAction.Yes );
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, ReportingAction.Yes );
+        this.RecordException();
         var enqueued = Path.GetFileName( this.GetScrubbedReportFile() );
 
         var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
@@ -357,7 +344,8 @@ public sealed class ReportExceptionTests : TestsBase
     {
         // Copilot: the full, unscrubbed local rendering ('.local.xml') must never be uploadable. TryGetReport/SendReport
         // reject it even though it is a bare file name that exists on disk.
-        this.ReportException( exceptionReportingAction: ReportingAction.Default, performanceReportingAction: ReportingAction.Default );
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, ReportingAction.Default );
+        this.RecordException();
 
         var localRendering = Path.GetFileName(
             Assert.Single( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) ) );
@@ -394,7 +382,7 @@ public sealed class ReportExceptionTests : TestsBase
 
     private void AssertReportingDisabled()
     {
-        this.ReportException();
+        this.RecordException();
         this.AssertFilesCount( 0 );
     }
 
@@ -424,8 +412,8 @@ public sealed class ReportExceptionTests : TestsBase
     {
         var exception = new TestException( "Test", "Test" );
 
-        this.ReportException( exception );
-        this.ReportException( exception );
+        this.RecordException( exception );
+        this.RecordException( exception );
         this.AssertFilesCount( 1 );
     }
 
@@ -439,10 +427,10 @@ public sealed class ReportExceptionTests : TestsBase
         var exception1 = new TestException( "Test", stackTrace1, new TestException( "Inner", stackTrace2 ) );
         var exception2 = new TestException( "Test", stackTrace1, new TestException( "Inner", stackTrace3 ) );
 
-        this.ReportException( exception1 );
-        this.ReportException( exception2 );
-        this.ReportException( exception1 );
-        this.ReportException( exception2 );
+        this.RecordException( exception1 );
+        this.RecordException( exception2 );
+        this.RecordException( exception1 );
+        this.RecordException( exception2 );
 
         this.AssertFilesCount( 2 );
     }
@@ -461,10 +449,10 @@ public sealed class ReportExceptionTests : TestsBase
         var exception1 = CreateAggregateException( "Test", [innerException1, innerException2] );
         var exception2 = CreateAggregateException( "Test", [innerException1, innerException3] );
 
-        this.ReportException( exception1 );
-        this.ReportException( exception2 );
-        this.ReportException( exception1 );
-        this.ReportException( exception2 );
+        this.RecordException( exception1 );
+        this.RecordException( exception2 );
+        this.RecordException( exception1 );
+        this.RecordException( exception2 );
 
         this.AssertFilesCount( 2 );
     }
@@ -478,8 +466,8 @@ public sealed class ReportExceptionTests : TestsBase
         var exception1 = new TestException( "Test", stackTrace1 );
         var exception2 = new TestException( "Test", stackTrace2 );
 
-        this.ReportException( exception1 );
-        this.ReportException( exception2 );
+        this.RecordException( exception1 );
+        this.RecordException( exception2 );
 
         this.AssertFilesCount( 1 );
     }
@@ -493,8 +481,8 @@ public sealed class ReportExceptionTests : TestsBase
         var exception1 = new TestException( "Test", stackTrace1 );
         var exception2 = new TestException( "Test", stackTrace2 );
 
-        this.ReportException( exception1 );
-        this.ReportException( exception2 );
+        this.RecordException( exception1 );
+        this.RecordException( exception2 );
 
         this.AssertFilesCount( 2 );
     }
@@ -508,8 +496,8 @@ public sealed class ReportExceptionTests : TestsBase
         var exception1 = new TestException( "Test", stackTrace1 );
         var exception2 = new TestException( "Test", stackTrace2 );
 
-        this.ReportException( exception1 );
-        this.ReportException( exception2 );
+        this.RecordException( exception1 );
+        this.RecordException( exception2 );
 
         this.AssertFilesCount( 2 );
     }
@@ -532,7 +520,7 @@ public sealed class ReportExceptionTests : TestsBase
 
         Assert.NotNull( caughtException );
 
-        this.ReportException( caughtException );
+        this.RecordException( caughtException );
         this.AssertFilesCount( 1 );
 
         var xml = this.FileSystem.ReadAllText( this.GetScrubbedReportFile() );
@@ -581,7 +569,7 @@ public sealed class ReportExceptionTests : TestsBase
         // Regression test for #1668: the exception report (a first-party / bits-bound channel) must NOT
         // transmit the raw DeviceId GUID. The <ClientId> element must carry an anonymized hash
         // (keyed by the first-party-only ExceptionReportingSalt), not a parseable GUID.
-        this.ReportException();
+        this.RecordException();
         this.AssertFilesCount( 1 );
 
         var xml = this.FileSystem.ReadAllText( this.GetScrubbedReportFile() );
@@ -607,7 +595,7 @@ public sealed class ReportExceptionTests : TestsBase
         // was reported, providing context about the entry point that caught the exception.
         var exception = new TestException( "Test", CreateStackFrame( "DeepMethod", 1 ) );
 
-        this.ReportException( exception );
+        this.RecordException( exception );
         this.AssertFilesCount( 1 );
 
         var xml = this.FileSystem.ReadAllText( this.GetScrubbedReportFile() );

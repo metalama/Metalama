@@ -44,7 +44,13 @@ internal sealed class BackstageServicesInitializer : IBackstageService
         // The license manager may enqueue a file but be unable to start the process.
         var telemetryUploader = this._serviceProvider.GetBackstageService<ITelemetryUploader>();
 
-        if ( telemetryUploader != null && this._options.AutoUploadTelemetry )
+        // Do not attempt the auto-upload when telemetry has never been activated. Starting an upload advances
+        // LastUploadTime (and would therefore create telemetry.json) even when nothing has been captured, which would
+        // violate the lazy-activation guarantee that a process which never reports leaves the global configuration
+        // untouched. A not-yet-activated configuration also has nothing queued to upload. See #1701.
+        if ( telemetryUploader != null
+             && this._options.AutoUploadTelemetry
+             && this._telemetryConfigurationService?.IsActivated != false )
         {
             this._backgroundTasksService.Enqueue( () => telemetryUploader.StartUpload() );
         }

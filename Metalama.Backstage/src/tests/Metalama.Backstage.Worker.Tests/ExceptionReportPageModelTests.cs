@@ -216,9 +216,10 @@ public sealed class ExceptionReportPageModelTests : TestsBase
         // Ticking "automatically report all performance warnings" enables auto-send for performance only.
         Assert.Equal( ReportingAction.Yes, this.GetReportingAction( TelemetryScenario.Performance ) );
 
-        // Exceptions and usage telemetry are independent and unchanged.
+        // Exceptions and usage telemetry are independent and unchanged. Usage stays at its opt-out default
+        // (ReportingAction.Default, which is treated as enabled): lazy activation no longer writes reporting actions.
         Assert.Equal( ReportingAction.Default, this.GetReportingAction( TelemetryScenario.Exception ) );
-        Assert.Equal( ReportingAction.Yes, this.GetReportingAction( TelemetryScenario.Usage ) );
+        Assert.Equal( ReportingAction.Default, this.GetReportingAction( TelemetryScenario.Usage ) );
     }
 
     [Fact]

@@ -35,6 +35,13 @@ public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
     public bool AddUserInterface { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the welcome web page should be opened the first time telemetry is activated.
+    /// The default is <c>false</c>. The command-line compiler enables it; Visual Studio leaves it disabled because the
+    /// extension shows its own welcome page. See #1701.
+    /// </summary>
+    public bool OpenWelcomePage { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the current program executes from a development environment,
     /// i.e. tools are located under the bin directory of their respective projects. 
     /// </summary>

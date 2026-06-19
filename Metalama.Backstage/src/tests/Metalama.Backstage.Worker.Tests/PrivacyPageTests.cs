@@ -63,10 +63,10 @@ public sealed class PrivacyPageTests : TestsBase
         model.OnPost();
 
         // The exception checkbox drives only exception reporting.
-        Assert.Equal( enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Exception ) );
+        Assert.Equal( enabled, this.TelemetryConfigurationService.GetEffectiveReportingAction( TelemetryScenario.Exception ) != ReportingAction.No );
 
         // Performance reporting follows its own checkbox and must be unaffected by the exception one.
-        Assert.Equal( !enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Performance ) );
+        Assert.Equal( !enabled, this.TelemetryConfigurationService.GetEffectiveReportingAction( TelemetryScenario.Performance ) != ReportingAction.No );
 
         // Usage reporting must be unaffected.
         Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
@@ -90,10 +90,10 @@ public sealed class PrivacyPageTests : TestsBase
         model.OnPost();
 
         // The performance checkbox drives only performance reporting.
-        Assert.Equal( enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Performance ) );
+        Assert.Equal( enabled, this.TelemetryConfigurationService.GetEffectiveReportingAction( TelemetryScenario.Performance ) != ReportingAction.No );
 
         // Exception reporting follows its own checkbox and must be unaffected by the performance one.
-        Assert.Equal( !enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Exception ) );
+        Assert.Equal( !enabled, this.TelemetryConfigurationService.GetEffectiveReportingAction( TelemetryScenario.Exception ) != ReportingAction.No );
 
         // Usage reporting must be unaffected.
         Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );

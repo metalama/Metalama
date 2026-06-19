@@ -423,17 +423,26 @@ internal sealed class ExceptionReporter : IExceptionReporter
 
             var scenario = exceptionReportingKind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance;
 
-            // Capture is decoupled from sending (#1674). The report is captured locally (and a toast shown) whenever
-            // telemetry is globally enabled, regardless of the per-category reporting action — the category only decides
-            // whether the report is additionally auto-sent (see below). A process-level opt-out (the application does not
-            // support telemetry, the process is unattended, or the opt-out environment variable is set) still suppresses
-            // capture entirely.
-            if ( !this._telemetryConfigurationService.IsGloballyEnabled )
+            // The local crash report (written above) is local support data and is always written. The telemetry capture
+            // below is governed by the effective reporting action, which folds in both the process-level opt-out (the
+            // application does not support telemetry, the process is unattended, or the opt-out environment variable is
+            // set) and the per-category action (see ReportingAction):
+            //   • No      → do NOT even capture or ask the user (process opted out, or the scenario is opted out);
+            //   • Default → ASK: capture locally and show a review toast, but do not auto-send;
+            //   • Yes     → ASK + auto-send: capture, show the toast, and additionally enqueue the report for upload.
+            // Capture is decoupled from sending (#1674): the auto-send decision (Yes) is applied below, after capture.
+            var reportingAction = this._telemetryConfigurationService.GetEffectiveReportingAction( scenario );
+
+            if ( reportingAction == ReportingAction.No )
             {
-                this._logger.Trace?.Log( $"The exception will not be captured because telemetry is disabled for this process." );
+                this._logger.Trace?.Log( $"The exception will not be captured because the effective reporting action for '{scenario}' is No." );
 
                 return;
             }
+
+            // We are about to capture an exception report, so make sure telemetry is activated (the DeviceId and salts
+            // exist). Activation is lazy so that a process which never reports never creates a device identifier. See #1701.
+            this._telemetryConfigurationService.EnsureActivated();
 
             this._logger.Trace?.Log( $"Capturing the exception report." );
 
@@ -491,13 +500,10 @@ internal sealed class ExceptionReporter : IExceptionReporter
                 }
             }
 
-            // Capture is decoupled from sending (#1674). The scrubbed report has now been captured locally under the
-            // Telemetry\Exceptions directory. We only auto-send it (move it to the upload queue) when the user has
-            // explicitly opted the category in (ReportingAction.Yes). Otherwise (review-first: ReportingAction.Default,
-            // or an explicit opt-out: ReportingAction.No) the report stays local until the user reviews and sends it
-            // from the worker page / CLI.
-            var reportingAction = this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( scenario );
-
+            // The scrubbed report has now been captured locally under the Telemetry\Exceptions directory. We auto-send
+            // it (move it to the upload queue) only when the category is Yes; for Default (ASK) it stays local until the
+            // user reviews and sends it from the worker page / CLI. (No was already handled above — it never reaches
+            // capture.) See #1674.
             if ( reportingAction == ReportingAction.Yes )
             {
                 this._logger.Trace?.Log( $"Auto-sending the exception report because the category is set to '{ReportingAction.Yes}'." );

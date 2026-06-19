@@ -8,6 +8,7 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Registration;
+using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Welcome;
 using System;
 
@@ -23,6 +24,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
     private readonly WebLinks _webLinks;
     private readonly IConfigurationManager _configurationManager;
+    private readonly ITelemetryConfigurationService? _telemetryConfigurationService;
     private readonly object _initializationSync = new();
     private readonly ILogger _logger;
 
@@ -39,7 +41,17 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         this._webLinks = serviceProvider.GetRequiredBackstageService<WebLinks>();
         this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(ToastNotificationDetectionService) );
+
+        // The first-run telemetry notice is shown only once telemetry is actually activated, so re-run detection when
+        // that happens (bypassing the throttle, since the process-init detection likely ran moments earlier). OnActivated
+        // (rather than a plain event) ensures we still react if telemetry was already activated by this process before
+        // this service was constructed. The telemetry configuration service is absent when support services are not
+        // registered. See #1701.
+        this._telemetryConfigurationService = serviceProvider.GetBackstageService<ITelemetryConfigurationService>();
+        this._telemetryConfigurationService?.OnActivated( this.OnTelemetryActivated );
     }
+
+    private void OnTelemetryActivated() => this._backgroundTasksService.Enqueue( () => this.DetectImpl( bypassThrottle: true ) );
 
     private string FormatExpiration( DateTime expiration )
     {
@@ -112,13 +124,14 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         }
     }
 
-    private void DetectImpl()
+    private void DetectImpl( bool bypassThrottle )
     {
         // Avoid too frequent detections for performance reasons. The threshold (here 15 seconds) should be lower
-        // than the lowest auto-snooze period of a toast notification.
+        // than the lowest auto-snooze period of a toast notification. Detection triggered by telemetry activation
+        // bypasses the throttle so the first-run telemetry notice is not suppressed by the process-init detection.
         lock ( this._initializationSync )
         {
-            if ( this._lastTimeDetectionStarted > this._dateTimeProvider.UtcNow.Subtract( TimeSpan.FromSeconds( 15 ) ) )
+            if ( !bypassThrottle && this._lastTimeDetectionStarted > this._dateTimeProvider.UtcNow.Subtract( TimeSpan.FromSeconds( 15 ) ) )
             {
                 this._logger.Trace?.Log( "Skipping detection because it has been performed recently." );
 
@@ -139,13 +152,15 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
 
         this._logger.Trace?.Log( "Detecting relevant toast notifications." );
 
-        // Show the first-run telemetry notice exactly once. This is shown regardless of whether telemetry is currently
-        // enabled, because the point is to inform the user that telemetry exists and how to opt out. It is tracked by
-        // its own WelcomeConfiguration.TelemetryNoticeDisplayed flag (independent of WelcomePageDisplayed, which also
-        // serves as an installation tracker), so the toast and the legacy welcome web page are displayed independently.
-        if ( this._configurationManager.UpdateIf<WelcomeConfiguration>(
-                c => !c.TelemetryNoticeDisplayed,
-                c => c with { TelemetryNoticeDisplayed = true } ) )
+        // Show the first-run telemetry notice exactly once, the first time telemetry is actually activated — so a
+        // machine that never activates telemetry (e.g. one that only builds opted-out repositories) never sees it.
+        // It is tracked by its own WelcomeConfiguration.TelemetryNoticeDisplayed flag (independent of WelcomePageDisplayed,
+        // which also serves as an installation tracker), so the toast and the legacy welcome web page are independent.
+        // See #1701.
+        if ( this._telemetryConfigurationService?.IsActivated == true
+             && this._configurationManager.UpdateIf<WelcomeConfiguration>(
+                 c => !c.TelemetryNoticeDisplayed,
+                 c => c with { TelemetryNoticeDisplayed = true } ) )
         {
             this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.TelemetryNotice ) );
         }
@@ -166,5 +181,5 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         }
     }
 
-    public void Detect() => this._backgroundTasksService.Enqueue( this.DetectImpl );
+    public void Detect() => this._backgroundTasksService.Enqueue( () => this.DetectImpl( bypassThrottle: false ) );
 }

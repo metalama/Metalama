@@ -12,5 +12,8 @@ internal sealed class ApplicationInfo : ApplicationInfoBase
 
     public override string Name => typeof(ApplicationInfo).Assembly.GetName().Name!;
 
-    public override bool IsTelemetryEnabled => true;
+    // The `metalama` global tool does not report telemetry: it is not repo-scoped, and the context-scoped telemetry
+    // model collects only from repository-scoped builds/analysis. Disabling it here makes the process-level gate fail,
+    // so the tool never activates telemetry nor creates a device identifier. See #1701.
+    public override bool IsTelemetryEnabled => false;
 }

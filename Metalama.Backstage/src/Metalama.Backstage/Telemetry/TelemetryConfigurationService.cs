@@ -22,9 +22,6 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly RandomNumberGenerator _randomNumberGenerator;
 
-    private bool _isUsageTelemetryEnabled;
-    private bool _isPerformanceTelemetryEnabled;
-    private bool _isExceptionTelemetryEnabled;
     private bool _isGloballyEnabled;
     private bool _initialized;
 
@@ -60,7 +57,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         }
     }
 
-    private bool ComputeGlobalEnablement()
+    private bool ComputeIsGloballyEnabled()
     {
         // Check if the current application supports telemetry.
         var applicationInfo = this._serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
@@ -107,62 +104,122 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         return true;
     }
 
+    // Caches the salts and device identifier read from the configuration. The per-scenario enablement is NOT cached: it
+    // is computed on demand by GetEffectiveReportingAction, which reads the (cached) configuration and applies the
+    // process-level gate. See #1674, #1701.
     private void ReadConfiguration( TelemetryConfiguration configuration )
     {
-        if ( this._isGloballyEnabled )
-        {
-            this._isExceptionTelemetryEnabled = configuration.ExceptionReportingAction != ReportingAction.No;
-            this._isPerformanceTelemetryEnabled = configuration.PerformanceProblemReportingAction != ReportingAction.No;
-            this._isUsageTelemetryEnabled = configuration.UsageReportingAction != ReportingAction.No;
-        }
-
-        // We should not have null values here because Initialize sets it.
+        // We should not have null values here because EnsureActivated sets it.
         this.MatomoSalt = configuration.MatomoSalt ?? 0;
         this.UsageTrackingSalt = configuration.UsageTrackingSalt ?? 0;
         this.ExceptionReportingSalt = configuration.ExceptionReportingSalt ?? 0;
         this.DeviceId = configuration.DeviceId ?? Guid.Empty;
     }
 
+    // Serializes EnsureActivated against itself and against Initialize so the lazy first-run write happens at most once.
+    private readonly object _activationSync = new();
+
     public void Initialize()
     {
-        this._configurationManager.UpdateIf<TelemetryConfiguration>(
-            c => c.DeviceId == null,
-            c =>
-            {
-                var salts = this.GenerateDistinctSalts();
+        lock ( this._activationSync )
+        {
+            // Activation is lazy: we do NOT create the DeviceId / salts here. A process that never reports any telemetry
+            // (e.g. because every telemetry context is opted out, or it is a context-less process) must never write
+            // anything to the global configuration and never create a device identifier. The DeviceId and salts are
+            // created on demand by EnsureActivated, which the reporters call when they actually report. See #1701.
+            this._isGloballyEnabled = this.ComputeIsGloballyEnabled();
 
-                return c with
+            // If telemetry was already activated in a previous session, keep the monthly rotation / salt back-fill up to
+            // date. This never creates a DeviceId for a not-yet-activated configuration (it is a no-op in that case).
+            this.RotateDeviceIdAndSaltIfActivated();
+
+            this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
+            this._initialized = true;
+        }
+    }
+
+    public void EnsureActivated()
+    {
+        bool created;
+
+        lock ( this._activationSync )
+        {
+            created = this._configurationManager.UpdateIf<TelemetryConfiguration>(
+                c => c.DeviceId == null,
+                c =>
                 {
-                    DeviceId = this._randomNumberGenerator.NextGuid(),
+                    var salts = this.GenerateDistinctSalts();
 
-                    // Usage reporting is opt-out (enabled by default), but exception and performance-problem reporting
-                    // are opt-in (disabled by default) because those reports may contain more sensitive diagnostic data.
-                    UsageReportingAction = ReportingAction.Yes,
+                    // We only write the activation artifacts here (the device identifier, the salts and the upload
+                    // timing). We deliberately do NOT set the per-channel reporting actions: their record defaults
+                    // already express the intended policy — usage is opt-out (ReportingAction.Default is treated as
+                    // enabled, see ReadConfiguration) and the exception/performance channels are review-first
+                    // (ReportingAction.Default, see #1674). Setting them here would clobber any choice the user made
+                    // through SetStatus before telemetry was activated (activation is now lazy, so it can run after
+                    // an in-product opt-in/opt-out). See #1701, #1674.
+                    return c with
+                    {
+                        DeviceId = this._randomNumberGenerator.NextGuid(),
 
-                    // The exception/performance channel defaults to review-first (Default) rather than auto-send (Yes):
-                    // the most sensitive telemetry (stack traces, paths, Exception.Data) is captured locally but only
-                    // uploaded when the user explicitly opts in (sets the category to Yes). Usage telemetry stays
-                    // opt-out (Yes). See #1674.
-                    PerformanceProblemReportingAction = ReportingAction.Default,
-                    ExceptionReportingAction = ReportingAction.Default,
+                        // Make sure we don't upload telemetry data on the first second of use.
+                        // Since first-time users are likely not to use the software for more than a few minutes,
+                        // configure so that we will upload data in 15 minutes.
+                        LastUploadTime = this._dateTimeProvider.UtcNow.AddDays( -1 ).AddMinutes( 15 ),
+                        MatomoSalt = salts.Matomo,
+                        UsageTrackingSalt = salts.UsageTracking,
+                        ExceptionReportingSalt = salts.ExceptionReporting,
+                        LastSaltChangeTime = this._dateTimeProvider.UtcNow
+                    };
+                } );
 
-                    // Make sure we don't upload telemetry data on the first second of use.
-                    // Since first-time users are likely not to use the software for more than a few minutes,
-                    // configure so that we will upload data in 15 minutes.
-                    LastUploadTime = this._dateTimeProvider.UtcNow.AddDays( -1 ).AddMinutes( 15 ),
-                    MatomoSalt = salts.Matomo,
-                    UsageTrackingSalt = salts.UsageTracking,
-                    ExceptionReportingSalt = salts.ExceptionReporting,
-                    LastSaltChangeTime = this._dateTimeProvider.UtcNow
-                };
-            } );
+            if ( created )
+            {
+                this._logger.Trace?.Log( "Telemetry was activated: a device identifier and salts were created." );
+            }
+
+            this.RotateDeviceIdAndSaltIfActivated();
+            this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
+        }
+
+        // Invoke the registered OnActivated callbacks outside the lock so handlers (the welcome page and the first-run
+        // telemetry notice) cannot deadlock or re-enter. This runs exactly once: only the thread that created the device
+        // identifier sees created == true. Callbacks registered after this point are invoked immediately by OnActivated.
+        // See #1701.
+        if ( created )
+        {
+            Action[] callbacks;
+
+            lock ( this._activationCallbackSync )
+            {
+                this._activatedThisSession = true;
+                callbacks = this._onActivatedCallbacks.ToArray();
+                this._onActivatedCallbacks.Clear();
+            }
+
+            foreach ( var callback in callbacks )
+            {
+                callback();
+            }
+        }
+    }
+
+    // Performs the monthly rotation of the salt and device ids, but only for an already-activated configuration. It never
+    // creates a DeviceId, so calling it on a not-yet-activated configuration is a no-op (telemetry stays dormant).
+    private void RotateDeviceIdAndSaltIfActivated()
+    {
+        if ( this._configurationManager.Get<TelemetryConfiguration>().DeviceId == null )
+        {
+            return;
+        }
 
         // We rotate telemetry ids and salts on the first Monday of the month to make sure that
         // weekly aggregates are correct because they are the most important.
         var firstOfMonth = this._dateTimeProvider.UtcNow.Date.GetFirstMondayOfMonth();
 
         var rotated = this._configurationManager.UpdateIf<TelemetryConfiguration>(
-            c => c.MatomoSalt == null || c.LastSaltChangeTime == null || (this._dateTimeProvider.UtcNow >= firstOfMonth && c.LastSaltChangeTime.Value < firstOfMonth),
+            c => c.DeviceId != null
+                 && (c.MatomoSalt == null || c.LastSaltChangeTime == null
+                                          || (this._dateTimeProvider.UtcNow >= firstOfMonth && c.LastSaltChangeTime.Value < firstOfMonth)),
             c =>
             {
                 var salts = this.GenerateDistinctSalts();
@@ -212,10 +269,6 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                     ExceptionReportingSalt = c.ExceptionReportingSalt ?? this.NextDistinctSalt( existingSalts )
                 };
             } );
-
-        this._isGloballyEnabled = this.ComputeGlobalEnablement();
-        this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
-        this._initialized = true;
     }
 
     public void SetStatus( bool enabled )
@@ -228,13 +281,6 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
 
         this._configurationManager.Update<TelemetryConfiguration>(
             c => c with { UsageReportingAction = reportAction, ExceptionReportingAction = reportAction, PerformanceProblemReportingAction = reportAction } );
-
-        if ( this._isGloballyEnabled )
-        {
-            this._isExceptionTelemetryEnabled = enabled;
-            this._isUsageTelemetryEnabled = enabled;
-            this._isPerformanceTelemetryEnabled = enabled;
-        }
     }
 
     public void SetStatus( TelemetryScenario scenario, bool enabled )
@@ -249,30 +295,41 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 TelemetryScenario.Performance => c with { PerformanceProblemReportingAction = reportAction },
                 _ => throw new ArgumentOutOfRangeException( nameof(scenario), scenario, "This telemetry scenario cannot be configured." )
             } );
-
-        if ( this._isGloballyEnabled )
-        {
-            switch ( scenario )
-            {
-                case TelemetryScenario.Usage:
-                    this._isUsageTelemetryEnabled = enabled;
-
-                    break;
-
-                case TelemetryScenario.Exception:
-                    this._isExceptionTelemetryEnabled = enabled;
-
-                    break;
-
-                case TelemetryScenario.Performance:
-                    this._isPerformanceTelemetryEnabled = enabled;
-
-                    break;
-            }
-        }
     }
 
     public Guid DeviceId { get; private set; }
+
+    public bool IsActivated => this.DeviceId != Guid.Empty;
+
+    // Coordinates OnActivated callbacks with EnsureActivated. _activatedThisSession is set when THIS process performs the
+    // activation (the device-id creation): callbacks registered before that are invoked then; callbacks registered after
+    // it are invoked immediately. A device id that merely exists from a previous session does not set this flag. See #1701.
+    private readonly object _activationCallbackSync = new();
+    private readonly List<Action> _onActivatedCallbacks = new();
+    private bool _activatedThisSession;
+
+    public void OnActivated( Action callback )
+    {
+        bool invokeNow;
+
+        lock ( this._activationCallbackSync )
+        {
+            if ( this._activatedThisSession )
+            {
+                invokeNow = true;
+            }
+            else
+            {
+                this._onActivatedCallbacks.Add( callback );
+                invokeNow = false;
+            }
+        }
+
+        if ( invokeNow )
+        {
+            callback();
+        }
+    }
 
     public bool IsGloballyEnabled
     {
@@ -287,26 +344,50 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         }
     }
 
-    public bool IsEnabled( TelemetryScenario scenario )
+    public ReportingAction GetEffectiveReportingAction( TelemetryScenario scenario )
     {
         if ( !this._initialized )
         {
             throw new InvalidOperationException( "The service has not been initialized." );
         }
 
+        // The process-level gate overrides the configured per-category action: when telemetry is disabled for the
+        // process (unattended, opt-out environment variable, or unsupported application), every scenario is effectively
+        // No. See #1701.
+        if ( !this._isGloballyEnabled )
+        {
+            return ReportingAction.No;
+        }
+
+        var configuration = this._configurationManager.Get<TelemetryConfiguration>();
+
         return scenario switch
         {
-            TelemetryScenario.Exception => this._isExceptionTelemetryEnabled,
-            TelemetryScenario.Performance => this._isPerformanceTelemetryEnabled,
-            TelemetryScenario.Usage => this._isUsageTelemetryEnabled,
-
-            // The news feed counts as usage telemetry for opt-out purposes: an in-product opt-out
-            // (SetStatus(false)) must stop the RSS fetch, just like the opt-out environment variable. See #1670.
-            // _isUsageTelemetryEnabled already implies _isGloballyEnabled, because it is only ever set to true
-            // when _isGloballyEnabled is true (see ReadConfiguration and SetStatus).
-            TelemetryScenario.Rss => this._isUsageTelemetryEnabled,
-            _ => throw new ArgumentOutOfRangeException()
+            // The news feed counts as usage telemetry for opt-out purposes: an in-product opt-out (SetStatus(false))
+            // must stop the RSS fetch, just like the opt-out environment variable. See #1670.
+            TelemetryScenario.Usage or TelemetryScenario.Rss => configuration.UsageReportingAction,
+            TelemetryScenario.Exception => configuration.ExceptionReportingAction,
+            TelemetryScenario.Performance => configuration.PerformanceProblemReportingAction,
+            _ => throw new ArgumentOutOfRangeException( nameof(scenario), scenario, null )
         };
+    }
+
+    public bool IsEnabled( TelemetryScenario scenario )
+    {
+        // IsEnabled collapses the reporting action to a boolean, which is only meaningful for scenarios that have no
+        // ASK state. Exception and Performance can be ASK (ReportingAction.Default = capture + ask, no auto-send), where
+        // a boolean would be ambiguous, so callers must use GetEffectiveReportingAction for those. See #1674, #1701.
+        switch ( scenario )
+        {
+            case TelemetryScenario.Exception:
+            case TelemetryScenario.Performance:
+                throw new ArgumentOutOfRangeException(
+                    nameof(scenario),
+                    scenario,
+                    $"The '{scenario}' scenario can be in an ASK state; use {nameof(this.GetEffectiveReportingAction)} instead." );
+        }
+
+        return this.GetEffectiveReportingAction( scenario ) != ReportingAction.No;
     }
 
     public void ResetDeviceId()
@@ -327,8 +408,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             } );
     }
 
-    public void ResetReportedIssues()
-        => this._configurationManager.Update<TelemetryConfiguration>( c => c with { Issues = c.Issues.Clear() } );
+    public void ResetReportedIssues() => this._configurationManager.Update<TelemetryConfiguration>( c => c with { Issues = c.Issues.Clear() } );
 
     // Generates the three per-channel salts so that they are all non-zero and mutually distinct. A 64-bit CSPRNG
     // makes zero or a collision astronomically unlikely, but we guard against them anyway because the whole point of
