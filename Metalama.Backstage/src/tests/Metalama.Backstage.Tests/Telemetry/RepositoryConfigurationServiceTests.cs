@@ -103,15 +103,16 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
     }
 
     [Fact]
-    public void WithoutGitNearestFileIsUsedAndWarns()
+    public void WithoutGitRootFileIsIgnoredSilently()
     {
-        // No .git anywhere: the repository root cannot be confirmed, so the nearest file is honored with a warning.
+        // No .git anywhere: the repository root cannot be confirmed, so no metalama.json is honored and the global
+        // default applies. This is a common case (e.g. building outside a git working tree), so it is not even warned.
         this.WriteFile( _repoRoot, """{ "telemetry": { "enabled": false } }""" );
 
         var result = this.CreateService().GetConfiguration( _projectDirectory );
 
-        Assert.False( result.Configuration.Telemetry!.Enabled );
-        Assert.Equal( RepositoryConfigurationWarningKind.RepositoryRootNotConfirmed, Assert.Single( result.Warnings ).Kind );
+        Assert.Null( result.Configuration.Telemetry );
+        Assert.Empty( result.Warnings );
     }
 
     [Fact]

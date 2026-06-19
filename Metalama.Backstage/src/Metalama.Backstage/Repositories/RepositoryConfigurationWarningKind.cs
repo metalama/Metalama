@@ -14,11 +14,5 @@ internal enum RepositoryConfigurationWarningKind
     /// <summary>
     /// A <c>metalama.json</c> exists but could not be parsed and was ignored.
     /// </summary>
-    MalformedFile,
-
-    /// <summary>
-    /// The repository root (a directory containing <c>.git</c>) could not be located, so the nearest <c>metalama.json</c>
-    /// was used without confirming it is at the repository root.
-    /// </summary>
-    RepositoryRootNotConfirmed
+    MalformedFile
 }

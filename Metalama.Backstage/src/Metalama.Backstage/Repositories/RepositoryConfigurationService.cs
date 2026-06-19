@@ -8,7 +8,6 @@ using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Serialization;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 
@@ -47,17 +46,9 @@ internal sealed class RepositoryConfigurationService : IRepositoryConfigurationS
             return RepositoryConfigurationResult.Empty;
         }
 
-        string key;
-
-        try
-        {
-            key = Path.GetFullPath( startingDirectory );
-        }
-        catch ( ArgumentException )
-        {
-            // An invalid path cannot resolve a repository; behave as if no file applies.
-            return RepositoryConfigurationResult.Empty;
-        }
+        // An invalid path is a programming error in the caller, so let Path.GetFullPath throw rather than silently
+        // behaving as if no file applies.
+        var key = Path.GetFullPath( startingDirectory );
 
         var now = this._dateTimeProvider.UtcNow;
 
@@ -74,20 +65,14 @@ internal sealed class RepositoryConfigurationService : IRepositoryConfigurationS
 
     private RepositoryConfigurationResult Resolve( string startingDirectory )
     {
-        // Walk up from the starting directory, recording every directory that contains a metalama.json (nearest first)
-        // and stopping at the repository root (the first directory that contains a .git folder or file).
-        var directoriesWithFile = new List<string>();
+        // Locate the repository root: the nearest ancestor (including the starting directory) that contains a '.git'
+        // folder or file. Only a metalama.json located in that root directory is honored. When there is no repository
+        // root at all (a very common case, e.g. building outside a git working tree), no file applies and the global
+        // default is used, without any warning.
         string? repositoryRoot = null;
 
-        var directory = startingDirectory;
-
-        while ( directory != null )
+        for ( var directory = startingDirectory; directory != null; directory = Path.GetDirectoryName( directory ) )
         {
-            if ( this._fileSystem.FileExists( Path.Combine( directory, FileName ) ) )
-            {
-                directoriesWithFile.Add( directory );
-            }
-
             var gitPath = Path.Combine( directory, ".git" );
 
             if ( this._fileSystem.DirectoryExists( gitPath ) || this._fileSystem.FileExists( gitPath ) )
@@ -96,59 +81,43 @@ internal sealed class RepositoryConfigurationService : IRepositoryConfigurationS
 
                 break;
             }
+        }
 
-            directory = Path.GetDirectoryName( directory );
+        if ( repositoryRoot == null )
+        {
+            return RepositoryConfigurationResult.Empty;
         }
 
         var warnings = ImmutableArray.CreateBuilder<RepositoryConfigurationWarning>();
-        string? effectiveFile = null;
 
-        if ( repositoryRoot != null )
+        // Any metalama.json located below the repository root is misplaced: it is ignored and reported.
+        for ( var directory = startingDirectory;
+              directory != null && !PathsEqual( directory, repositoryRoot );
+              directory = Path.GetDirectoryName( directory ) )
         {
-            foreach ( var directoryWithFile in directoriesWithFile )
+            var misplacedFile = Path.Combine( directory, FileName );
+
+            if ( this._fileSystem.FileExists( misplacedFile ) )
             {
-                if ( PathsEqual( directoryWithFile, repositoryRoot ) )
-                {
-                    effectiveFile = Path.Combine( repositoryRoot, FileName );
-                }
-                else
-                {
-                    var misplacedFile = Path.Combine( directoryWithFile, FileName );
-
-                    warnings.Add(
-                        new RepositoryConfigurationWarning(
-                            RepositoryConfigurationWarningKind.MisplacedFile,
-                            misplacedFile,
-                            $"The file '{misplacedFile}' is ignored because '{FileName}' must be located at the repository root ('{repositoryRoot}')." ) );
-                }
+                warnings.Add(
+                    new RepositoryConfigurationWarning(
+                        RepositoryConfigurationWarningKind.MisplacedFile,
+                        misplacedFile,
+                        $"The file '{misplacedFile}' is ignored because '{FileName}' must be located at the repository root ('{repositoryRoot}')." ) );
             }
-        }
-        else if ( directoriesWithFile.Count > 0 )
-        {
-            // No repository root could be confirmed (no .git anywhere up the tree). Honor the nearest file but warn.
-            effectiveFile = Path.Combine( directoriesWithFile[0], FileName );
-
-            warnings.Add(
-                new RepositoryConfigurationWarning(
-                    RepositoryConfigurationWarningKind.RepositoryRootNotConfirmed,
-                    effectiveFile,
-                    $"The repository root (a directory containing '.git') could not be located above '{startingDirectory}'. "
-                    + $"The file '{effectiveFile}' is being used, but its location could not be verified to be the repository root." ) );
         }
 
         var configuration = new RepositoryConfiguration();
+        var rootFile = Path.Combine( repositoryRoot, FileName );
 
-        if ( effectiveFile != null )
+        if ( this._fileSystem.FileExists( rootFile ) )
         {
-            configuration = this.ReadFile( effectiveFile, warnings );
+            configuration = this.ReadFile( rootFile, warnings );
         }
 
-        if ( warnings.Count > 0 )
+        foreach ( var warning in warnings )
         {
-            foreach ( var warning in warnings )
-            {
-                this._logger.Warning?.Log( warning.Message );
-            }
+            this._logger.Warning?.Log( warning.Message );
         }
 
         return new RepositoryConfigurationResult { Configuration = configuration, Warnings = warnings.ToImmutable() };
