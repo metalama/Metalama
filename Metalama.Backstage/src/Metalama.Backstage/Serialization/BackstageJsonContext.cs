@@ -6,6 +6,7 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Maintenance;
+using Metalama.Backstage.Repositories;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Rss;
@@ -22,6 +23,8 @@ namespace Metalama.Backstage.Serialization;
 
 [JsonSourceGenerationOptions( WriteIndented = true )]
 [JsonSerializable( typeof(TelemetryConfiguration) )]
+[JsonSerializable( typeof(RepositoryConfiguration) )]
+[JsonSerializable( typeof(RepositoryTelemetryConfiguration) )]
 [JsonSerializable( typeof(LicensingConfiguration) )]
 [JsonSerializable( typeof(DiagnosticsConfiguration) )]
 [JsonSerializable( typeof(LoggingConfiguration) )]

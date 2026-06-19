@@ -6,12 +6,14 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
 using Metalama.Compiler.Services;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using IExceptionReporter = Metalama.Backstage.Telemetry.IExceptionReporter;
 using ILogger = Metalama.Compiler.Services.ILogger;
 
@@ -25,6 +27,7 @@ public sealed partial class SourceTransformer
         private readonly Dictionary<Type, object> _services = new();
         private readonly IDisposable _scope;
         private readonly IUsageSession? _session;
+        private readonly ITelemetryContext _telemetryContext;
 
         public CompilerServiceProvider( IServiceProvider serviceProvider, AnalyzerConfigOptionsProvider contextAnalyzerConfigOptionsProvider )
         {
@@ -38,14 +41,27 @@ public sealed partial class SourceTransformer
 
             this._services.Add( typeof(ILoggerFactory), loggerFactory );
             this._services.Add( typeof(ILogger), new LoggerAdapter( loggerFactory.GetLogger( "Compiler" ) ) );
-            this._services.Add( typeof(IExceptionReporter), new ExceptionReporterAdapter( serviceProvider.GetBackstageService<IExceptionReporter>() ) );
 
-            // Initialize usage reporting.
+            // Open a telemetry context for the project's repository so the repository-root metalama.json opt-out is
+            // honored. The context is resolved from the project directory; when the project path is unknown, telemetry
+            // is disabled (the null context still writes local crash reports). See #1701.
+            var telemetryService = serviceProvider.GetRequiredBackstageService<ITelemetryService>();
+            var projectDirectory = string.IsNullOrEmpty( options.ProjectPath ) ? null : Path.GetDirectoryName( options.ProjectPath );
+
+            this._telemetryContext = string.IsNullOrEmpty( projectDirectory )
+                ? telemetryService.NullContext
+                : telemetryService.OpenContext( projectDirectory! );
+
+            // Expose the telemetry context through this service provider, and route engine exceptions through it.
+            this._services.Add( typeof(ITelemetryContext), this._telemetryContext );
+            this._services.Add( typeof(IExceptionReporter), new ExceptionReporterAdapter( this._telemetryContext ) );
+
+            // Initialize usage reporting through the telemetry context (a no-op when the repository opted out).
             try
             {
-                if ( serviceProvider.GetBackstageService<IUsageReporter>() is { } usageReporter && options.AssemblyName != null )
+                if ( options.AssemblyName != null )
                 {
-                    this._session = usageReporter.StartSession( "TransformerUsage", options.AssemblyName );
+                    this._session = this._telemetryContext.StartUsageSession( "TransformerUsage", options.AssemblyName );
                 }
             }
             catch ( Exception e )
@@ -65,6 +81,16 @@ public sealed partial class SourceTransformer
 
         public void DisposeServices( Action<Diagnostic> reportDiagnostic )
         {
+            // Report any repository-configuration warnings (e.g. a misplaced or malformed metalama.json) gathered when
+            // the telemetry context was opened. We report them once per project, on the diagnostic sink the compiler
+            // provides, with the location pointing at the metalama.json file. See #1701.
+            foreach ( var warning in this._telemetryContext.Warnings )
+            {
+                var location = warning.FilePath != null ? Location.Create( warning.FilePath, default, default ) : null;
+
+                reportDiagnostic( GeneralDiagnosticDescriptors.InvalidRepositoryConfiguration.CreateRoslynDiagnostic( location, warning.Message ) );
+            }
+
             // Report usage.
             try
             {

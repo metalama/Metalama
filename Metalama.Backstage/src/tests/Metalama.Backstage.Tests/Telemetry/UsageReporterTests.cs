@@ -258,8 +258,10 @@ public sealed class UsageReporterTests : TestsBase
             }
         }
 
-        // First session must cause audit.
-        await StartSessionAndAssert( "Project1", true, "6e62252b7f67887c", DeviceAgeBucket.LessThan1 );
+        // First session must cause audit. (The 'rand' Matomo cache-buster is drawn from the seeded test RNG; its value
+        // shifted with lazy activation (#1701) because the device-id draw now happens on first report. The device hash
+        // '_id', the once-per-day cadence and the device-age buckets are unchanged.)
+        await StartSessionAndAssert( "Project1", true, "5cf58a1a689e1e0c", DeviceAgeBucket.LessThan1 );
 
         // Second session (even with different project) must not cause audit.
         await StartSessionAndAssert( "Project1", false, null, DeviceAgeBucket.LessThan1 );
@@ -267,7 +269,7 @@ public sealed class UsageReporterTests : TestsBase
 
         // Third session the next day must cause audit.
         this.Time.AddTime( TimeSpan.FromDays( 1.1 ) );
-        await StartSessionAndAssert( "Project1", true, "56addf3428448b3b", DeviceAgeBucket.From1To30 );
+        await StartSessionAndAssert( "Project1", true, "624e91464771d36f", DeviceAgeBucket.From1To30 );
         await StartSessionAndAssert( "Project2", false, null, DeviceAgeBucket.From1To30 );
     }
 }

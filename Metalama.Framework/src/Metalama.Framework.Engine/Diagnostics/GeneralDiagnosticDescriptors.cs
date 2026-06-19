@@ -394,6 +394,17 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "Syntax error in generated code." );
 
+        // Surfaces a warning produced while resolving the repository-root metalama.json (e.g. a misplaced or malformed
+        // file). The {0} text field carries the full explanation computed by the repository-configuration reader in
+        // Metalama.Backstage. See #1701.
+        internal static readonly DiagnosticDefinition<string> InvalidRepositoryConfiguration =
+            new(
+                "LAMA0075",
+                _category,
+                "The Metalama repository configuration file 'metalama.json' was not fully applied: {0}",
+                Warning,
+                "The repository configuration file (metalama.json) was not fully applied." );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(

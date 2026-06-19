@@ -53,7 +53,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
         // channel must default to review-first (ReportingAction.Default) rather than auto-send (ReportingAction.Yes),
         // so the most sensitive telemetry (stack traces, paths, Exception.Data) stays under explicit user control
         // until the user clicks Report. Usage telemetry remains opt-out and is unchanged.
-        this.TelemetryConfigurationService.Initialize();
+        this.TelemetryConfigurationService.EnsureActivated();
 
         var configuration = this.ConfigurationManager!.Get<TelemetryConfiguration>();
 
@@ -71,7 +71,9 @@ public sealed class TelemetryConfigurationTests : TestsBase
         this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, enabled );
 
         Assert.Equal( !enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
-        Assert.Equal( enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Exception ) );
+
+        // Exception is an ASK-capable scenario, so IsEnabled throws for it; query the effective action instead.
+        Assert.Equal( enabled, this.TelemetryConfigurationService.GetEffectiveReportingAction( TelemetryScenario.Exception ) != ReportingAction.No );
     }
 
     [Theory]
@@ -99,7 +101,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
     public void SaltRotation()
     {
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
-        this.TelemetryConfigurationService.Initialize();
+        this.TelemetryConfigurationService.EnsureActivated();
         var initialSalt = this.TelemetryConfigurationService.MatomoSalt;
 
         // There should be no change on April 30th or even on May the 4th because the first Monday is the 5th.
@@ -126,7 +128,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
                 : this.TelemetryConfigurationService.UsageTrackingSalt;
 
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
-        this.TelemetryConfigurationService.Initialize();
+        this.TelemetryConfigurationService.EnsureActivated();
         var initialDiagnosticSalt = GetSalt();
 
         // No rotation before the first Monday of May (the 5th).
@@ -147,7 +149,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
         // Each salt must be a non-zero value, and the three salts must be mutually distinct, so that the Matomo,
         // usage-tracking and exception-reporting pseudonyms cannot be correlated with one another (#1668).
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
-        this.TelemetryConfigurationService.Initialize();
+        this.TelemetryConfigurationService.EnsureActivated();
 
         var matomoSalt = this.TelemetryConfigurationService.MatomoSalt;
         var usageTrackingSalt = this.TelemetryConfigurationService.UsageTrackingSalt;
@@ -169,7 +171,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
         // usage-tracking <Machine> (keyed by UsageTrackingSalt) and the exception-reporting <ClientId> (keyed by
         // ExceptionReportingSalt) — must all differ, so none of the three datasets shares a join key. #1668.
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
-        this.TelemetryConfigurationService.Initialize();
+        this.TelemetryConfigurationService.EnsureActivated();
 
         var deviceId = this.TelemetryConfigurationService.DeviceId.ToString();
         var matomoHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.MatomoSalt );
@@ -196,7 +198,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
         {
             var serviceProvider = this.CloneServiceCollection().BuildServiceProvider();
             var telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
-            telemetryConfigurationService.Initialize();
+            telemetryConfigurationService.EnsureActivated();
 
             return saltKind switch
             {

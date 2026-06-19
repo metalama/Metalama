@@ -9,12 +9,14 @@ namespace Metalama.Framework.Engine.Services;
 
 internal sealed class ExceptionReporterAdapter : IExceptionReporter
 {
-    private readonly Backstage.Telemetry.IExceptionReporter? _backstageReporter;
+    private readonly Backstage.Telemetry.ITelemetryContext _telemetryContext;
 
-    public ExceptionReporterAdapter( Backstage.Telemetry.IExceptionReporter? backstageReporter )
+    public ExceptionReporterAdapter( Backstage.Telemetry.ITelemetryContext telemetryContext )
     {
-        this._backstageReporter = backstageReporter;
+        this._telemetryContext = telemetryContext;
     }
 
-    public void ReportException( Exception reportedException ) => this._backstageReporter?.ReportException( reportedException );
+    // Routes engine exceptions through the telemetry context so that the repository-scoped opt-out (metalama.json) is
+    // honored: a disabled context writes the local crash report but sends no telemetry. See #1701.
+    public void ReportException( Exception reportedException ) => this._telemetryContext.ReportException( reportedException );
 }

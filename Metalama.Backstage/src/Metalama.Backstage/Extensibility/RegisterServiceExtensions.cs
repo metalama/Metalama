@@ -12,6 +12,7 @@ using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.Licensing.Registration;
 using Metalama.Backstage.Maintenance;
+using Metalama.Backstage.Repositories;
 using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Tools;
@@ -219,7 +220,7 @@ public static class RegisterServiceExtensions
         // Add user interface.
         if ( options.AddUserInterface )
         {
-            serviceProviderBuilder.AddSingleton( serviceProvider => new WelcomeService( serviceProvider ) );
+            serviceProviderBuilder.AddSingleton( serviceProvider => new WelcomePageService( serviceProvider ) );
 
             serviceProviderBuilder.AddService(
                 typeof(IToastNotificationStatusService),
@@ -272,12 +273,14 @@ public static class RegisterServiceExtensions
     {
         // Add telemetry.
         serviceProviderBuilder
+            .AddSingleton<IRepositoryConfigurationService>( serviceProvider => new RepositoryConfigurationService( serviceProvider ) )
             .AddSingleton( serviceProvider => new TelemetryLogger( serviceProvider ) )
             .AddSingleton<LocalExceptionReporter>( serviceProvider => new LocalExceptionReporter( serviceProvider ) )
             .AddSingleton<IExceptionReporter>( serviceProvider => new ExceptionReporter( new TelemetryQueue( serviceProvider ), serviceProvider ) )
             .AddSingleton<ITelemetryUploader>( serviceProvider => new TelemetryUploader( serviceProvider ) )
             .AddSingleton<IUsageReporter>( serviceProvider => new UsageReporter( serviceProvider ) )
             .AddSingleton<ITelemetryConfigurationService>( serviceProvider => new TelemetryConfigurationService( serviceProvider ) )
+            .AddSingleton<ITelemetryService>( serviceProvider => new TelemetryService( serviceProvider ) )
             .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )
             .AddSingleton<MatomoUploader>( serviceProvider => new MatomoUploader( serviceProvider ) );
     }
