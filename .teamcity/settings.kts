@@ -474,7 +474,7 @@ object UpstreamMerge : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-BuildImage -ImageName metalama-2026.0 -Dockerfile eng/docker/Dockerfile.claude "
+            scriptArgs = "-BuildImage -ImageName metalama-2026.0 -Dockerfile eng/docker/claude.Dockerfile "
         }
         powerShell {
             name = "Merge upstream"
@@ -484,7 +484,7 @@ object UpstreamMerge : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-Script Build.ps1 -ImageName metalama-2026.0 -Dockerfile eng/docker/Dockerfile.claude -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% -Snapshot upstream-merge --timeout %UpstreamMerge.Timeout% %UpstreamMerge.Arguments%"
+            scriptArgs = "-Script Build.ps1 -ImageName metalama-2026.0 -Dockerfile eng/docker/claude.Dockerfile -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% -Snapshot upstream-merge --timeout %UpstreamMerge.Timeout% %UpstreamMerge.Arguments%"
         }
         powerShell {
             name = "Cleanup Docker containers"

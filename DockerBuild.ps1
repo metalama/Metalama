@@ -1,5 +1,6 @@
 # The original of this file is in <PostSharp.Engineering>/src/PostSharp.Engineering.BuildTools/Resources/DockerBuild.ps1.
 # You can generate this file using `./Build.ps1 generate-scripts`.
+# Documentation: https://raw.githubusercontent.com/postsharp/PostSharp.Engineering/HEAD/doc/dockerbuild.md
 
 <#
 .SYNOPSIS
@@ -74,7 +75,8 @@
     Do not generate or call Init.g.ps1 (skips environment variables, git config, safe.directory, etc).
 
 .PARAMETER Isolation
-    Docker isolation mode: 'process' (default) or 'hyperv'.
+    Docker isolation mode: 'process' or 'hyperv'.
+    When not specified, defaults to 'hyperv' on Windows Desktop and 'process' on Windows Server.
     Memory and CPU limits only apply to hyperv isolation.
 
 .PARAMETER Memory
@@ -146,7 +148,7 @@ param(
     [string]$Dockerfile, # Path to custom Dockerfile (defaults to Dockerfile or Dockerfile.claude based on -Claude).
     [string]$RegistryImage, # Use a pre-built image from a registry, skipping Dockerfile build entirely.
     [switch]$NoInit, # Do not generate or call Init.g.ps1 (skips git config, safe.directory, etc).
-    [string]$Isolation = 'hyperv', # Docker isolation mode (process or hyperv). Memory/CPU limits only apply to hyperv.
+    [string]$Isolation = 'process', # Docker isolation mode (process or hyperv). When not specified, defaults to hyperv on Windows Desktop and process on Windows Server. Memory/CPU limits only apply to hyperv.
     [string]$Memory = $(if ($env:BuildAgentMemory) { "${env:BuildAgentMemory}g" } else { '24g' }), # Docker memory limit (e.g., "8g"). Only used with hyperv isolation. Defaults to $env:BuildAgentMemory (in GB) or 24g.
     [string]$Cpus = $(if ($env:BuildAgentCpus) { $env:BuildAgentCpus } else { [Environment]::ProcessorCount }), # Docker CPU limit. Use a positive integer or "dynamic". Defaults to $env:BuildAgentCpus or host processor count.
     [string[]]$Mount, # Additional directories to mount from host (readonly by default, append :w for writable). Supports * and ** glob patterns.
@@ -168,6 +170,7 @@ if ($PSVersionTable.PSVersion -lt [Version]'7.5')
 # These settings are replaced by the generate-scripts command.
 $EngPath = 'eng'
 $EnvironmentVariables = 'AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AZ_IDENTITY_USERNAME,AZURE_CLIENT_ID,AZURE_CLIENT_SECRET,AZURE_DEVOPS_TOKEN,AZURE_DEVOPS_USER,AZURE_TENANT_ID,CLAUDE_CODE_OAUTH_TOKEN,DOC_API_KEY,DOWNLOADS_API_KEY,ENG_USERNAME,GIT_USER_EMAIL,GIT_USER_NAME,GITHUB_AUTHOR_EMAIL,GITHUB_REVIEWER_TOKEN,GITHUB_TOKEN,IS_POSTSHARP_OWNED,IS_TEAMCITY_AGENT,MetalamaLicense,NUGET_ORG_API_KEY,PostSharpLicense,SIGNSERVER_SECRET,TEAMCITY_CLOUD_TOKEN,TYPESENSE_API_KEY,VS_MARKETPLACE_ACCESS_TOKEN,VSS_NUGET_EXTERNAL_FEED_ENDPOINTS'
+$DockerImagePrefix = 'metalama-2026.0'
 $OvercommitRatio = 1.0
 ####
 
@@ -181,7 +184,16 @@ if ($null -eq $IsWindows)
 }
 $IsUnix = -not $IsWindows  # Covers both Linux and macOS
 
-# Docker isolation is Windows-only
+# Docker isolation is Windows-only. Windows Server supports process isolation (faster,
+# no per-container VM); Windows Desktop (client) only reliably runs hyperv isolation.
+# Auto-detect by Windows edition unless -Isolation was passed explicitly.
+if ($IsWindows -and -not $PSBoundParameters.ContainsKey('Isolation'))
+{
+    # Win32_OperatingSystem.ProductType: 1 = Workstation (Desktop), 2/3 = Server.
+    $productType = (Get-CimInstance -ClassName Win32_OperatingSystem).ProductType
+    $Isolation = if ($productType -eq 1) { 'hyperv' } else { 'process' }
+    Write-Host "Detected Windows ProductType=$productType; using --isolation=$Isolation" -ForegroundColor Cyan
+}
 $isolationArg = if ($IsWindows)
 {
     "--isolation=$Isolation"
@@ -421,7 +433,7 @@ try
         Write-Host "Environment variables: $( $sortedKeys -join ', ' )" -ForegroundColor Gray
 
         # Store in script-level variable for Init.g.ps1 generation
-        $script:EnvironmentVariablesToSet = $envVariables
+        $script:ContainerEnvironmentVariables = $envVariables
     }
 
     # Function to collect Claude-specific environment variables for container
@@ -540,7 +552,7 @@ try
         Write-Host "Environment variables: $( $sortedKeys -join ', ' )" -ForegroundColor Gray
 
         # Store in script-level variable for Init.g.ps1 generation
-        $script:EnvironmentVariablesToSet = $claudeEnv
+        $script:ContainerEnvironmentVariables = $claudeEnv
     }
 
     # Fixed port for MCP approval server (must match McpHttpServer.FixedPort)
@@ -615,7 +627,8 @@ try
         param(
             [string]$DockerfilePath,
             [string]$ContextDirectory,
-            [string]$DayStamp  # non-empty => mix into hash (used in -Claude mode)
+            [string]$DayStamp,  # non-empty => mix into hash (used in -Claude mode)
+            [string]$ExtraInput  # folded in so a base-image (or OS) change invalidates this image's hash
         )
 
         $hashInput = Get-Content $DockerfilePath -Raw -ErrorAction SilentlyContinue
@@ -648,6 +661,18 @@ try
             $hashInput += "`n--- day-stamp ---`n$DayStamp"
         }
 
+        # Fold the base/OS discriminator so a parent-image change (or a different WINDOWS_VERSION) yields a
+        # different tag for this image and all its descendants.
+        if ($ExtraInput)
+        {
+            $hashInput += "`n--- base ---`n$ExtraInput"
+        }
+
+        # Normalize line endings so the hash is identical whether files were checked out with LF (typical on a
+        # dev machine) or CRLF (git autocrlf on CI). Otherwise the same Dockerfile yields a different tag on CI
+        # than on dev, the registry cache never hits, and CI rebuilds the chain from scratch every time.
+        $hashInput = $hashInput -replace "`r", ""
+
         $hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
                 [System.Text.Encoding]::UTF8.GetBytes($hashInput)
         )
@@ -655,11 +680,220 @@ try
         return [System.BitConverter]::ToString($hashBytes, 0, 8).Replace("-", "").ToLower()
     }
 
+    # --- Image chain resolution ---------------------------------------------------------------------
+    # A Dockerfile may declare its parent with `ARG BASE_IMAGE=<parent>.Dockerfile`. We resolve that to the
+    # parent's content-hash tag (building or pulling it first), fold the parent tag into this image's hash, and
+    # inject --build-arg BASE_IMAGE=<parentTag>. The image NAME is the Dockerfile stem (e.g.
+    # <prefix>-build.Dockerfile -> image <prefix>-build), so the product/version prefix lives in the file name.
+    $script:resolvedTags = @{ }
+
+    function Get-DockerfileStem([string]$dfPath)
+    {
+        return [System.IO.Path]::GetFileNameWithoutExtension($dfPath)
+    }
+
+    # Per-image build context: docker-context/<stem>, falling back to the shared docker-context when there is
+    # no per-image directory (keeps un-stemmed/legacy Dockerfiles working).
+    function Get-ContextDirFor([string]$dfPath)
+    {
+        $perImage = Join-Path $dockerContextDirectory (Get-DockerfileStem $dfPath)
+        if (Test-Path $perImage) { return $perImage } else { return $dockerContextDirectory }
+    }
+
+    # Parse the parent Dockerfile from `ARG BASE_IMAGE=<parent>.Dockerfile`; $null if this is a chain root.
+    function Get-BaseDockerfile([string]$dfPath)
+    {
+        foreach ($line in (Get-Content $dfPath -ErrorAction SilentlyContinue))
+        {
+            if ($line -match '^\s*ARG\s+BASE_IMAGE\s*=\s*(\S+\.Dockerfile)\s*$')
+            {
+                return (Join-Path (Split-Path $dfPath -Parent) $Matches[1])
+            }
+        }
+        return $null
+    }
+
+    # Pure: compute the content-hash tag for a Dockerfile and (recursively) its ancestors. No docker calls.
+    function Resolve-ImageTag([string]$dfPath)
+    {
+        $key = $dfPath.ToLower()
+        if ($script:resolvedTags.ContainsKey($key)) { return $script:resolvedTags[$key] }
+
+        $baseFold = $null
+        $baseDf = Get-BaseDockerfile $dfPath
+        if ($baseDf)
+        {
+            if (-not (Test-Path $baseDf)) { Write-Error "Base Dockerfile '$baseDf' referenced by '$dfPath' was not found."; exit 1 }
+            # Fold only the base's CONTENT HASH (the part after the last ':'), never the full tag - so the child
+            # hash is independent of the registry prefix and is identical in local and registry modes.
+            $baseFold = ((Resolve-ImageTag $baseDf) -split ':')[-1]
+        }
+
+        # OS discriminator so ltsc2025 / ltsc2022 produce distinct tags of the same image name. Propagates to
+        # descendants through $baseFold.
+        $extra = "os=$windowsVersion|base=$baseFold"
+
+        # Fold the daily stamp only for images that bake the update.timestamp cache-buster (the Claude leaf), so
+        # @latest npm installs of the Claude CLI and plug-ins refresh once per UTC day.
+        $body = Get-Content $dfPath -Raw -ErrorAction SilentlyContinue
+        $hashDayStamp = if ($body -and $body -match 'update\.timestamp') { $script:DayStamp } else { $null }
+
+        $hash = Get-ContentHash -DockerfilePath $dfPath -ContextDirectory (Get-ContextDirFor $dfPath) -DayStamp $hashDayStamp -ExtraInput $extra
+        # The image NAME carries the product/version prefix ($DockerImagePrefix); the Dockerfile file stem does
+        # not. e.g. stem 'build' -> image '<prefix>-build'. ARG BASE_IMAGE references stems (prefix-free).
+        $imageName = "$DockerImagePrefix-$( Get-DockerfileStem $dfPath )"
+        $tag = if ($dockerRegistry) { "${dockerRegistry}/${imageName}:${hash}" } else { "${imageName}:${hash}" }
+        $script:resolvedTags[$key] = $tag
+        return $tag
+    }
+
+    # The platform-specific mountpoints-creation step. This is NEVER baked into a chain Dockerfile - it goes
+    # only into the dynamically generated boot image (see New-BootImage), so the chain images stay clean and
+    # free of the machine-specific mount set.
+    function Get-MountpointsBlock
+    {
+        if ($IsWindows)
+        {
+            return @"
+ARG MOUNTPOINTS
+RUN if (`$env:MOUNTPOINTS) { ``
+        `$mounts = `$env:MOUNTPOINTS -split ';'; ``
+        foreach (`$dir in `$mounts) { ``
+            if (`$dir) { ``
+                Write-Host "Creating directory `$dir``."; ``
+                New-Item -ItemType Directory -Path `$dir -Force | Out-Null; ``
+            } ``
+        } ``
+    }
+"@
+        }
+        else
+        {
+            return @"
+ARG MOUNTPOINTS
+RUN if [ -n "`$MOUNTPOINTS" ]; then \
+        OLD_IFS="`$IFS"; \
+        IFS=':'; \
+        set -- `$MOUNTPOINTS; \
+        IFS="`$OLD_IFS"; \
+        for dir in "`$@"; do \
+            if [ -n "`$dir" ]; then \
+                echo "Creating directory `$dir."; \
+                mkdir -p "`$dir"; \
+            fi; \
+        done; \
+    fi
+"@
+        }
+    }
+
+    # Build one chain image from its STATIC Dockerfile, unmodified (per-image context, base build-arg).
+    function Build-OneImage([string]$dfPath, [string]$tag, [string[]]$baseBuildArg)
+    {
+        $content = Get-Content -Raw $dfPath   # piped to docker build verbatim - the file on disk is never changed
+        $ctxDir = Get-ContextDirFor $dfPath
+        $cmd = @('build', '-t', $tag)
+        if ($isolationArg) { $cmd += $isolationArg }
+        if ($Memory -and $Isolation -ne 'process') { $cmd += "--memory=$Memory" }
+        # Pass WINDOWS_VERSION only to the root image that declares it (avoids 'unconsumed build-arg' warnings).
+        if ($IsWindows -and $windowsVersion -and ($content -match 'ARG\s+WINDOWS_VERSION'))
+        {
+            $cmd += @('--build-arg', "WINDOWS_VERSION=$windowsVersion")
+        }
+        $cmd += $baseBuildArg
+        $cmd += @('-f', '-', $ctxDir)
+        Write-Host "Building $tag" -ForegroundColor Green
+        Write-Host "Docker command: docker $( $cmd -join ' ' )" -ForegroundColor Cyan
+        # Pipe docker output to the host so it does NOT become this function's return value (which would
+        # otherwise pollute the tag string the caller folds into the next --build-arg BASE_IMAGE).
+        $content | & docker @cmd 2>&1 | Out-Host
+        if ($LASTEXITCODE -ne 0) { Write-Host "Docker build failed for $tag (exit $LASTEXITCODE)" -ForegroundColor Red; exit $LASTEXITCODE }
+        $script:builtNewImage = $true
+    }
+
+    # Build the local "boot" image: a thin layer over the resolved chain image that creates the bind-mount
+    # directories. The mount set is machine-specific, so this is kept out of the shared chain images and is
+    # never pushed. Returns the boot image tag, which is what `docker run` uses.
+    function New-BootImage([string]$baseTag)
+    {
+        $ref = ($baseTag -split '/')[-1]   # strip any registry prefix - the boot image is local only
+        if ($ref -match '^(.*):([^:]+)$') { $bootTag = "$( $Matches[1] )-boot:$( $Matches[2] )" } else { $bootTag = "$ref-boot:latest" }
+
+        # On Windows the mountpoints RUN uses backtick line-continuations, so set `# escape=` + backtick. On
+        # Unix the block uses backslash continuations, so keep Docker's default escape char (emit no directive).
+        $escapeLine = if ($IsWindows) { "# escape=$([char]96)`n" } else { "" }
+        $content = $escapeLine + "FROM $baseTag`n" + (Get-MountpointsBlock)
+
+        # The boot layer has no COPY, so build it against an empty context.
+        $bootCtx = Join-Path ([System.IO.Path]::GetTempPath()) "docker-boot-$( New-Guid )"
+        New-Item -ItemType Directory -Path $bootCtx -Force | Out-Null
+        try
+        {
+            $cmd = @('build', '-t', $bootTag)
+            if ($isolationArg) { $cmd += $isolationArg }
+            if ($Memory -and $Isolation -ne 'process') { $cmd += "--memory=$Memory" }
+            $cmd += @('--build-arg', "MOUNTPOINTS=$mountPointsAsString", '-f', '-', $bootCtx)
+            Write-Host "Building boot image $bootTag (bind-mount dirs) over $baseTag" -ForegroundColor Green
+            $content | & docker @cmd 2>&1 | Out-Host
+            if ($LASTEXITCODE -ne 0) { Write-Host "Boot image build failed for $bootTag (exit $LASTEXITCODE)" -ForegroundColor Red; exit $LASTEXITCODE }
+        }
+        finally { Remove-Item $bootCtx -Recurse -Force -ErrorAction SilentlyContinue }
+        return $bootTag
+    }
+
+    # Ensure the image and its ancestors exist (parent first): use local, else pull, else build; queue a push
+    # when building in registry mode. Returns the image tag.
+    function Ensure-Image([string]$dfPath)
+    {
+        $baseBuildArg = @()
+        $baseDf = Get-BaseDockerfile $dfPath
+        if ($baseDf)
+        {
+            $baseTag = Ensure-Image $baseDf
+            $baseBuildArg = @('--build-arg', "BASE_IMAGE=$baseTag")
+        }
+
+        $tag = Resolve-ImageTag $dfPath
+        Write-Host "Ensuring image: $tag" -ForegroundColor Cyan
+
+        docker image inspect $tag *> $null
+        if ($LASTEXITCODE -eq 0)
+        {
+            Write-Host "  found locally" -ForegroundColor Green
+        }
+        elseif ($dockerRegistry -and (& { docker @dockerConfigArg manifest inspect $tag *> $null; $LASTEXITCODE -eq 0 }))
+        {
+            Write-Host "  pulling from registry" -ForegroundColor Green
+            docker @dockerConfigArg pull $tag 2>&1 | Out-Host
+            if ($LASTEXITCODE -ne 0) { Write-Host "Docker pull failed for $tag" -ForegroundColor Red; exit 1 }
+            return $tag
+        }
+        else
+        {
+            Build-OneImage $dfPath $tag $baseBuildArg
+        }
+
+        # Queue an async push if the image isn't already in the registry. Pushes run in background jobs started
+        # after ALL builds (so a push never overlaps a host docker build) and are waited for at the end.
+        if ($dockerRegistry)
+        {
+            docker @dockerConfigArg manifest inspect $tag *> $null
+            if ($LASTEXITCODE -ne 0)
+            {
+                Write-Host "  queued for async push to registry" -ForegroundColor Cyan
+                $script:ImagesToPush += $tag
+            }
+        }
+        return $tag
+    }
+
     # Dictionary to track volume mounts with "writable wins" logic
     $script:VolumeMountDict = @{ }
 
-    # Background job for async registry push (if applicable)
-    $script:RegistryPushJob = $null
+    # Async registry push: images are queued during chain resolution, pushed in background jobs started after
+    # ALL builds complete (so a push never overlaps a host docker build), and all waited for at the end.
+    $script:ImagesToPush = @()
+    $script:RegistryPushJobs = @()
 
     function Add-VolumeMount
     {
@@ -719,34 +953,26 @@ try
             [DateTime]::UtcNow.Date.ToString("yyyy-MM-dd")
         }
 
-        # Determine which Dockerfile will be used (needed for ImageName generation)
+        # Determine which Dockerfile will be used.
         $DockerfilesDir = "$EngPath/docker"
+
+        # Detect the Windows base-image tag. The OS variant is delivered as the WINDOWS_VERSION build-arg (and
+        # folded into the content hash) rather than as a separate Dockerfile, so one chain serves both editions.
+        # Windows build < 26100 is Windows Server 2022; otherwise Windows Server 2025.
+        $windowsVersion = $null
+        if ($IsWindows)
+        {
+            $osBuild = [System.Environment]::OSVersion.Version.Build
+            $windowsVersion = if ($osBuild -lt 26100) { 'ltsc2022' } else { 'ltsc2025' }
+            Write-Host "Detected Windows build $osBuild; using base image tag '$windowsVersion'" -ForegroundColor Cyan
+        }
 
         if (-not $Dockerfile)
         {
-            # Start with the base Dockerfile name
-            $Dockerfile = "$DockerfilesDir/Dockerfile"
-
-            # Append .claude suffix if in Claude mode
-            if ($Claude)
-            {
-                $Dockerfile = "$Dockerfile.claude"
-            }
-
-            # Win2022 detection - append .win2022 suffix (applies to both standard and Claude)
-            if ($IsWindows)
-            {
-                $osBuild = [System.Environment]::OSVersion.Version.Build
-                if ($osBuild -lt 26100)
-                {
-                    $win2022Dockerfile = "$Dockerfile.win2022"
-                    if (Test-Path (Join-Path $PSScriptRoot $win2022Dockerfile))
-                    {
-                        Write-Host "Detected Windows Server 2022 (build $osBuild), using $win2022Dockerfile" -ForegroundColor Cyan
-                        $Dockerfile = $win2022Dockerfile
-                    }
-                }
-            }
+            # Dockerfile names are prefix-free ("<layer>.Dockerfile"). -Claude targets the claude leaf; otherwise
+            # the build leaf. The chain resolver walks ARG BASE_IMAGE to build/pull the ancestors first.
+            $layer = if ($Claude) { 'claude' } else { 'build' }
+            $Dockerfile = "$DockerfilesDir/$layer.Dockerfile"
         }
 
         # Get the full path of the Dockerfile
@@ -759,39 +985,14 @@ try
             $dockerfileFullPath = Join-Path $PSScriptRoot $Dockerfile
         }
 
-        # Generate content-based hash for image tag.
-        # Mix $script:DayStamp in whenever the Dockerfile bakes in the
-        # update.timestamp cache-invalidation layer (which itself rotates
-        # daily). Keying this off the Dockerfile content — not the -Claude
-        # runtime flag — keeps PrepareImage (-BuildImage, typically no
-        # -Claude) and the main step (-NoBuildImage -Claude) in sync when
-        # they share a Dockerfile; otherwise the two steps compute
-        # different tags and docker run tries to pull a tag that was never
-        # built or pushed.
-        $dockerfileBody = Get-Content $dockerfileFullPath -Raw -ErrorAction SilentlyContinue
-        $hashDayStamp = if ($dockerfileBody -and $dockerfileBody -match 'update\.timestamp') { $script:DayStamp } else { $null }
-        $contentHash = Get-ContentHash `
-                -DockerfilePath $dockerfileFullPath `
-                -ContextDirectory $dockerContextDirectory `
-                -DayStamp $hashDayStamp
+        # Resolve the Docker registry for build images (env-based). Registry mode is off (local image tags) if
+        # not set. Set before Resolve-ImageTag, which uses it to form the tag.
         $dockerRegistry = $env:DOCKER_REGISTRY
 
-        if ($dockerRegistry)
-        {
-            # Registry mode: use registry URL with image name and content hash
-            $ImageTag = "${dockerRegistry}/build-${contentHash}:${contentHash}"
-            Write-Host "Registry image tag: $ImageTag" -ForegroundColor Cyan
-        }
-        elseif ([string]::IsNullOrEmpty($ImageName))
-        {
-            $ImageTag = "dockerfile-$contentHash"
-            Write-Host "Generated image tag from content hash: $ImageTag" -ForegroundColor Cyan
-        }
-        else
-        {
-            $ImageTag = "$ImageName`:$contentHash"
-            Write-Host "Image will be tagged as: $ImageTag" -ForegroundColor Cyan
-        }
+        # Compute the target image tag (and, transitively, its ancestors' tags via ARG BASE_IMAGE). The image
+        # name is the Dockerfile stem; the tag is its content hash (folding the parent tag, OS and day-stamp).
+        $ImageTag = Resolve-ImageTag $dockerfileFullPath
+        Write-Host "Target image tag: $ImageTag" -ForegroundColor Cyan
     }
 
     # Check MCP server availability for -Claude mode
@@ -863,6 +1064,23 @@ try
             }
 
             New-EnvHashtable -EnvironmentVariableList $EnvironmentVariables
+        }
+
+        # Allow the product repo to customize the container environment variables.
+        # The optional script mutates the hashtable in place (add / change / remove keys)
+        # and receives the leaf Dockerfile name and the mode as context.
+        $customizeEnvScript = Join-Path $EngPath 'CustomizeDockerEnvironment.ps1'
+        if (Test-Path $customizeEnvScript)
+        {
+            $dockerfileName = if ($Dockerfile) { Split-Path -Leaf $Dockerfile } else { '' }
+            Write-Host "Customizing environment variables from $customizeEnvScript" -ForegroundColor Cyan
+            . $customizeEnvScript `
+                -ContainerEnvironmentVariables $script:ContainerEnvironmentVariables `
+                -DockerfileName $dockerfileName `
+                -Claude:([bool]$Claude)
+
+            $sortedKeys = $script:ContainerEnvironmentVariables.Keys | Sort-Object
+            Write-Host "Environment variables after customization: $( $sortedKeys -join ', ' )" -ForegroundColor Gray
         }
     }
 
@@ -1409,12 +1627,12 @@ try
 
         # Generate inline environment variable assignments
         $envVarAssignments = ""
-        if ($script:EnvironmentVariablesToSet -and $script:EnvironmentVariablesToSet.Count -gt 0)
+        if ($script:ContainerEnvironmentVariables -and $script:ContainerEnvironmentVariables.Count -gt 0)
         {
             $envVarAssignments = "# Set environment variables`n"
-            foreach ($key in $script:EnvironmentVariablesToSet.Keys | Sort-Object)
+            foreach ($key in $script:ContainerEnvironmentVariables.Keys | Sort-Object)
             {
-                $value = $script:EnvironmentVariablesToSet[$key]
+                $value = $script:ContainerEnvironmentVariables[$key]
                 # Escape single quotes in the value
                 $escapedValue = $value -replace "'", "''"
                 $envVarAssignments += "Write-Host `"Setting environment variable: $key`" -ForegroundColor Green`n"
@@ -1427,14 +1645,14 @@ try
         # Generate git config commands directly from known values
         $gitConfigCommands = "# Configure git identity and safe.directory`n"
 
-        if ($script:EnvironmentVariablesToSet -and $script:EnvironmentVariablesToSet.ContainsKey('GIT_USER_NAME'))
+        if ($script:ContainerEnvironmentVariables -and $script:ContainerEnvironmentVariables.ContainsKey('GIT_USER_NAME'))
         {
-            $escapedName = $script:EnvironmentVariablesToSet['GIT_USER_NAME'] -replace "'", "''"
+            $escapedName = $script:ContainerEnvironmentVariables['GIT_USER_NAME'] -replace "'", "''"
             $gitConfigCommands += "git config --global user.name '$escapedName'`n"
         }
-        if ($script:EnvironmentVariablesToSet -and $script:EnvironmentVariablesToSet.ContainsKey('GIT_USER_EMAIL'))
+        if ($script:ContainerEnvironmentVariables -and $script:ContainerEnvironmentVariables.ContainsKey('GIT_USER_EMAIL'))
         {
-            $escapedEmail = $script:EnvironmentVariablesToSet['GIT_USER_EMAIL'] -replace "'", "''"
+            $escapedEmail = $script:ContainerEnvironmentVariables['GIT_USER_EMAIL'] -replace "'", "''"
             $gitConfigCommands += "git config --global user.email '$escapedEmail'`n"
         }
 
@@ -1484,17 +1702,20 @@ $envVarAssignments$gitConfigCommands$postInitCommands
         $initScriptContent | Set-Content -Path $initScript -Encoding UTF8
     }
 
-    # Copy timestamp file to docker context (for cache invalidation)
+    # Copy timestamp file into the consuming image's per-image context. Only the Claude image bakes the
+    # cache-buster (via `COPY .g/update.timestamp`), so it goes into docker-context/<prefix>-claude/.g/ — not
+    # the shared context. (The .g/ dir is excluded from the content hash; daily rotation is folded via DayStamp.)
     if ($timestampFile)
     {
-        $gDirectory = Join-Path $dockerContextDirectory ".g"
+        $claudeContextDir = Join-Path $dockerContextDirectory "claude"
+        $gDirectory = Join-Path $claudeContextDir ".g"
         if (-not (Test-Path $gDirectory))
         {
             New-Item -ItemType Directory -Path $gDirectory -Force | Out-Null
         }
         $timestampDestination = Join-Path $gDirectory "update.timestamp"
         Copy-Item -Path $timestampFile -Destination $timestampDestination -Force
-        Write-Host "Copied timestamp file to docker context" -ForegroundColor Cyan
+        Write-Host "Copied timestamp file to Claude image context ($claudeContextDir)" -ForegroundColor Cyan
     }
 
     # Path separator depends on platform (and container OS)
@@ -1532,150 +1753,37 @@ $envVarAssignments$gitConfigCommands$postInitCommands
         }
     }
 
-    # Registry authentication and pull logic
+    # Registry authentication + image-chain resolution (build the ancestor chain; pull-or-build+push each level).
     $builtNewImage = $false
     $dockerConfigArg = @()
-    # When we skip the registry flow (e.g. -NoBuildImage parameter), assume image is already in registry to avoid unauthenticated push
-    $imageExistsInRegistry = ($NoBuildImage -or $existingContainerId)
 
-    if ($dockerRegistry -and -not $NoBuildImage -and -not $existingContainerId)
-    {
-        # Create a temporary Docker config directory to avoid credential helper issues
-        # (e.g., docker-credential-desktop not found when using Docker Engine without Desktop)
-        $tempDockerConfig = Join-Path $env:TEMP "docker-config-$( New-Guid )"
-        New-Item -ItemType Directory -Path $tempDockerConfig -Force | Out-Null
-        @{ auths = @{ } } | ConvertTo-Json | Set-Content (Join-Path $tempDockerConfig "config.json")
-        $dockerConfigArg = @("--config", $tempDockerConfig)
-
-        # Authenticate to registry
-        $dockerPassword = $env:DOCKER_PASSWORD
-        $dockerUsername = $env:DOCKER_USERNAME
-        if ($dockerPassword -and $dockerUsername)
-        {
-            Write-Host "Authenticating to registry..." -ForegroundColor Gray
-            $dockerPassword | docker @dockerConfigArg login $dockerRegistry --username $dockerUsername --password-stdin 2> $null
-            if ($LASTEXITCODE -ne 0)
-            {
-                Write-Host "Warning: Registry authentication failed. Pull/push may fail." -ForegroundColor Yellow
-            }
-        }
-        else
-        {
-            Write-Host "Warning: DOCKER_USERNAME/DOCKER_PASSWORD not set. Registry pull/push may fail." -ForegroundColor Yellow
-        }
-
-        # Check if image already exists locally
-        docker image inspect $ImageTag *> $null
-        if ($LASTEXITCODE -eq 0)
-        {
-            Write-Host "Using locally cached image: $ImageTag" -ForegroundColor Green
-            $NoBuildImage = $true
-
-            # Check if image also exists in registry; if not, push it
-            docker @dockerConfigArg manifest inspect $ImageTag *> $null
-            if ($LASTEXITCODE -eq 0)
-            {
-                $imageExistsInRegistry = $true
-            }
-            else
-            {
-                Write-Host "Image not yet in registry, will push after container run." -ForegroundColor Cyan
-            }
-        }
-        else
-        {
-            # Try to pull the image from registry
-            Write-Host "Checking registry for existing image: $ImageTag" -ForegroundColor Cyan
-            docker @dockerConfigArg pull $ImageTag 2> $null
-            if ($LASTEXITCODE -eq 0)
-            {
-                Write-Host "Using cached image from registry." -ForegroundColor Green
-                $NoBuildImage = $true
-                $imageExistsInRegistry = $true
-            }
-            else
-            {
-                Write-Host "Image not found in registry, will build locally." -ForegroundColor Yellow
-            }
-        }
-    }
-
-    # Building the image.
     if (-not $NoBuildImage -and -not $existingContainerId)
     {
-
-        Write-Host "Using Dockerfile: $Dockerfile" -ForegroundColor Cyan
-
-        # Read the dockerfile content
-        $dockerfileContent = Get-Content -Raw $Dockerfile
-
-        # Check if the dockerfile has mountpoints creation code
-        if ($dockerfileContent -notmatch 'ARG MOUNTPOINTS')
+        if ($dockerRegistry)
         {
-            Write-Host "Dockerfile does not have mountpoints creation code. Appending mountpoints setup." -ForegroundColor Yellow
+            # Temporary Docker config dir to avoid credential-helper issues (e.g. docker-credential-desktop not
+            # found when using Docker Engine without Desktop), then authenticate.
+            $tempDockerConfig = Join-Path ([System.IO.Path]::GetTempPath()) "docker-config-$( New-Guid )"
+            New-Item -ItemType Directory -Path $tempDockerConfig -Force | Out-Null
+            @{ auths = @{ } } | ConvertTo-Json | Set-Content (Join-Path $tempDockerConfig "config.json")
+            $dockerConfigArg = @("--config", $tempDockerConfig)
 
-            # Append hardcoded mountpoints creation code (platform-specific)
-            if ($IsWindows)
+            $dockerPassword = $env:DOCKER_PASSWORD
+            $dockerUsername = $env:DOCKER_USERNAME
+            if ($dockerPassword -and $dockerUsername)
             {
-                # Windows container (PowerShell)
-                $mountpointsCode = @"
-
-# Create directories for mountpoints
-ARG MOUNTPOINTS
-RUN if (`$env:MOUNTPOINTS) { ``
-        `$mounts = `$env:MOUNTPOINTS -split ';'; ``
-        foreach (`$dir in `$mounts) { ``
-            if (`$dir) { ``
-                Write-Host "Creating directory `$dir``."; ``
-                New-Item -ItemType Directory -Path `$dir -Force | Out-Null; ``
-            } ``
-        } ``
-    }
-"@
+                Write-Host "Authenticating to registry..." -ForegroundColor Gray
+                $dockerPassword | docker @dockerConfigArg login $dockerRegistry --username $dockerUsername --password-stdin 2> $null
+                if ($LASTEXITCODE -ne 0) { Write-Host "Warning: Registry authentication failed. Pull/push may fail." -ForegroundColor Yellow }
             }
             else
             {
-                # Unix container (POSIX sh-compatible)
-                $mountpointsCode = @"
-
-# Create directories for mountpoints
-ARG MOUNTPOINTS
-RUN if [ -n "`$MOUNTPOINTS" ]; then \
-        OLD_IFS="`$IFS"; \
-        IFS=':'; \
-        set -- `$MOUNTPOINTS; \
-        IFS="`$OLD_IFS"; \
-        for dir in "`$@"; do \
-            if [ -n "`$dir" ]; then \
-                echo "Creating directory `$dir."; \
-                mkdir -p "`$dir"; \
-            fi; \
-        done; \
-    fi
-"@
+                Write-Host "Warning: DOCKER_USERNAME/DOCKER_PASSWORD not set. Registry pull/push may fail." -ForegroundColor Yellow
             }
-            $dockerfileContent += $mountpointsCode
-            Write-Host "Appended mountpoints creation code" -ForegroundColor Cyan
         }
 
-        Write-Host "Building the image with tag: $ImageTag" -ForegroundColor Green
-
-        # Build docker build command with optional --memory (not supported in process isolation)
-        $dockerBuildCmd = @('build', '-t', $ImageTag)
-        if ($Memory -and $Isolation -ne 'process')
-        {
-            $dockerBuildCmd += "--memory=$Memory"
-        }
-        $dockerBuildCmd += @('--build-arg', "MOUNTPOINTS=$mountPointsAsString", '-f', '-', $dockerContextDirectory)
-
-        $dockerfileContent | & docker @dockerBuildCmd
-        if ($LASTEXITCODE -ne 0)
-        {
-            Write-Host "Docker build failed with exit code $LASTEXITCODE" -ForegroundColor Red
-            exit $LASTEXITCODE
-        }
-
-        $builtNewImage = $true
+        # Resolve the whole chain: build or pull each image (parent first); freshly built layers are queued for push.
+        Ensure-Image $dockerfileFullPath | Out-Null
     }
     else
     {
@@ -1689,14 +1797,26 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         }
     }
 
-    # Auto-push to registry if image is not already there (after build or from local cache)
-    if ($dockerRegistry -and -not $imageExistsInRegistry -and -not $existingContainerId)
+    # Build the local boot image over the resolved chain image (creates the bind-mount directories). The static
+    # chain images stay pure and shareable; this thin layer carries the machine-specific mount set and is never
+    # pushed. `docker run` below uses the boot image. (Its `FROM` auto-pulls the leaf when running -NoBuildImage
+    # against a registry.)
+    if (-not $BuildImage -and -not $existingContainerId -and $mountPointsAsString)
     {
-        Write-Host "Starting async push to registry: $ImageTag" -ForegroundColor Cyan
-        $script:RegistryPushJob = Start-Job -ScriptBlock {
-            docker @using:dockerConfigArg push $using:ImageTag 2>&1
+        $ImageTag = New-BootImage $ImageTag
+    }
+
+    # Start the async registry pushes now - after every host build (chain + boot) is done, so a push never runs
+    # concurrently with a docker build. Each queued image pushes in its own background job; they overlap the
+    # container run and are all waited for at the end.
+    foreach ($pushTag in ($script:ImagesToPush | Select-Object -Unique))
+    {
+        Write-Host "Starting async push to registry: $pushTag" -ForegroundColor Cyan
+        $pushJob = Start-Job -ScriptBlock {
+            docker @using:dockerConfigArg push $using:pushTag 2>&1
             $LASTEXITCODE
         }
+        $script:RegistryPushJobs += [pscustomobject]@{ Tag = $pushTag; Job = $pushJob }
     }
 
 
@@ -1964,42 +2084,38 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         Write-Host "Skipping container run (BuildImage specified)." -ForegroundColor Yellow
     }
 
-    # Check async registry push status if one was started
-    if ($script:RegistryPushJob)
+    # Wait for ALL async registry push jobs to complete (each image pushed in its own job).
+    if ($script:RegistryPushJobs.Count -gt 0)
     {
         Write-Host ""
-        Write-Host "Waiting for registry push..." -ForegroundColor Cyan
+        Write-Host "Waiting for $( $script:RegistryPushJobs.Count ) registry push job(s) to complete..." -ForegroundColor Cyan
 
-        # Wait for the job to complete with a timeout
-        $pushJob = $script:RegistryPushJob
-        $completed = Wait-Job -Job $pushJob -Timeout 300  # 5 minute timeout
-
-        if ($completed)
+        foreach ($entry in $script:RegistryPushJobs)
         {
-            $jobOutput = Receive-Job -Job $pushJob
-            $exitCode = $jobOutput[-1]  # Last item is the exit code
-            $output = $jobOutput[0..($jobOutput.Count - 2)] -join "`n"
-
-            if ($exitCode -eq 0)
+            $completed = Wait-Job -Job $entry.Job -Timeout 1800  # 30 minute timeout per job
+            if ($completed)
             {
-                Write-Host "Registry push completed successfully" -ForegroundColor Green
+                $jobOutput = Receive-Job -Job $entry.Job
+                $exitCode = $jobOutput[-1]  # last item is the exit code
+                $output = if ($jobOutput.Count -gt 1) { $jobOutput[0..($jobOutput.Count - 2)] -join "`n" } else { "" }
+
+                if ($exitCode -eq 0)
+                {
+                    Write-Host "Registry push completed: $( $entry.Tag )" -ForegroundColor Green
+                }
+                else
+                {
+                    Write-Host "Registry push FAILED (exit $exitCode): $( $entry.Tag )" -ForegroundColor Yellow
+                    if ($output) { Write-Host "Push output: $output" -ForegroundColor Gray }
+                }
             }
             else
             {
-                Write-Host "Registry push failed with exit code $exitCode" -ForegroundColor Yellow
-                if ($output)
-                {
-                    Write-Host "Push output: $output" -ForegroundColor Gray
-                }
+                Write-Host "Registry push timed out (still running in background): $( $entry.Tag )" -ForegroundColor Yellow
+                Stop-Job -Job $entry.Job
             }
+            Remove-Job -Job $entry.Job -Force
         }
-        else
-        {
-            Write-Host "Registry push timed out (still running in background)" -ForegroundColor Yellow
-            Stop-Job -Job $pushJob
-        }
-
-        Remove-Job -Job $pushJob -Force
     }
 
     # Stop timing and display results
