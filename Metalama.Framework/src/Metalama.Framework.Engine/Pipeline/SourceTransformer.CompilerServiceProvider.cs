@@ -49,9 +49,11 @@ public sealed partial class SourceTransformer
 
             this._telemetryContext = telemetryService.OpenContext( telemetryService.GetPolicy( projectDirectory ) );
 
-            // Expose the telemetry context through this service provider, and route engine exceptions through it.
+            // Expose the telemetry context through this service provider, and route engine exceptions through it. The
+            // adapter implements the compiler's IExceptionReporter (Metalama.Compiler.Services), so it must be registered
+            // under that type for Metalama.Compiler to resolve it.
             this._services.Add( typeof(ITelemetryContext), this._telemetryContext );
-            this._services.Add( typeof(IExceptionReportManager), new ExceptionReporterAdapter( this._telemetryContext ) );
+            this._services.Add( typeof(IExceptionReporter), new ExceptionReporterAdapter( this._telemetryContext ) );
 
             // Initialize usage reporting through the telemetry context (a no-op when the repository opted out).
             try

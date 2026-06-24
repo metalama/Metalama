@@ -31,6 +31,14 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "Unexpected exception in Metalama." );
 
+        internal static readonly DiagnosticDefinition<string> CannotWriteCrashReportFile =
+            new(
+                "LAMA0076",
+                _category,
+                "Metalama could not write the crash report file: {0}",
+                Warning,
+                "Cannot write the Metalama crash report file." );
+
         internal static readonly
             DiagnosticDefinition<(string AspectType, DeclarationKind DeclarationKind, IDeclaration Declaration, ITypeSymbol InterfaceType)>
             AspectAppliedToIncorrectDeclaration =

@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -30,28 +31,37 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             this._projectOptions = (IProjectOptions?) serviceProvider.GetService( typeof(IProjectOptions) );
         }
 
-        // Writes the rich crash report and returns the file path to cite in the diagnostic. The write is cut when no
-        // standard-directories service is available (e.g. in unit tests) and is otherwise best-effort: a failure to write
-        // the report must never escape the handler (which is itself handling an exception). See #1701.
-        private string WriteLocalReport( string reportContent )
+        // Writes the rich crash report. Returns <c>true</c> and sets <paramref name="reportFile"/> to the written path on
+        // success. Returns <c>false</c> on failure: <paramref name="errorMessage"/> describes the failure when the write
+        // was attempted but failed (an I/O error), or is <c>null</c> when there was simply no place to write the report
+        // (no standard-directories service, e.g. in unit tests where the flow is cut). The write is best-effort: it is
+        // itself handling an exception, so it must never throw. See #1701.
+        private bool TryWriteLocalReport( string reportContent, [NotNullWhen( true )] out string? reportFile, out string? errorMessage )
         {
+            reportFile = null;
+            errorMessage = null;
+
             if ( this._standardDirectories == null )
             {
-                return "(crash report unavailable)";
+                return false;
             }
 
-            var reportFile = Path.Combine( this._standardDirectories.CrashReportsDirectory, $"exception-{Guid.NewGuid()}.txt" );
+            var file = Path.Combine( this._standardDirectories.CrashReportsDirectory, $"exception-{Guid.NewGuid()}.txt" );
 
             try
             {
                 Directory.CreateDirectory( this._standardDirectories.CrashReportsDirectory );
-                File.WriteAllText( reportFile, reportContent );
+                File.WriteAllText( file, reportContent );
+                reportFile = file;
+
+                return true;
             }
+            catch ( Exception e )
+            {
+                errorMessage = $"Cannot write the crash report to '{file}': {e.Message}";
 
-            // ReSharper disable once EmptyGeneralCatchClause
-            catch { }
-
-            return reportFile;
+                return false;
+            }
         }
 
         // Opens the telemetry context for the report. With project options (the normal, project-scoped case), it honors
@@ -120,7 +130,24 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             // ReSharper disable once EmptyGeneralCatchClause
             catch { }
 
-            var reportFile = this.WriteLocalReport( exceptionText.ToString() );
+            string reportFile;
+
+            if ( this.TryWriteLocalReport( exceptionText.ToString(), out var writtenReportFile, out var reportErrorMessage ) )
+            {
+                reportFile = writtenReportFile;
+            }
+            else if ( reportErrorMessage != null )
+            {
+                // The report could not be written. Cite "<error>" in the main diagnostic and surface the write failure as
+                // a separate diagnostic so the user understands why the cited path is unavailable. See #1701.
+                reportFile = "<error>";
+                reportDiagnostic( GeneralDiagnosticDescriptors.CannotWriteCrashReportFile.CreateRoslynDiagnostic( node?.GetLocation(), reportErrorMessage ) );
+            }
+            else
+            {
+                // There was no place to write the report (e.g. in unit tests where the flow is cut).
+                reportFile = "(crash report unavailable)";
+            }
 
             var diagnosticDefinition =
                 canIgnoreException ? GeneralDiagnosticDescriptors.IgnorableUnhandledException : GeneralDiagnosticDescriptors.UnhandledException;
