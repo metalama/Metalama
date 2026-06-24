@@ -9,7 +9,6 @@ using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Services;
-using System.IO;
 
 namespace Metalama.Framework.DesignTime.Utilities
 {

@@ -20,14 +20,38 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
     internal sealed class CompileTimeExceptionHandler : ICompileTimeExceptionHandler
     {
         private readonly ITelemetryService? _telemetryService;
-        private readonly IStandardDirectories _standardDirectories;
+        private readonly IStandardDirectories? _standardDirectories;
         private readonly IProjectOptions? _projectOptions;
 
         public CompileTimeExceptionHandler( IServiceProvider serviceProvider )
         {
             this._telemetryService = serviceProvider.GetBackstageService<ITelemetryService>();
-            this._standardDirectories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
+            this._standardDirectories = serviceProvider.GetBackstageService<IStandardDirectories>();
             this._projectOptions = (IProjectOptions?) serviceProvider.GetService( typeof(IProjectOptions) );
+        }
+
+        // Writes the rich crash report and returns the file path to cite in the diagnostic. The write is cut when no
+        // standard-directories service is available (e.g. in unit tests) and is otherwise best-effort: a failure to write
+        // the report must never escape the handler (which is itself handling an exception). See #1701.
+        private string WriteLocalReport( string reportContent )
+        {
+            if ( this._standardDirectories == null )
+            {
+                return "(crash report unavailable)";
+            }
+
+            var reportFile = Path.Combine( this._standardDirectories.CrashReportsDirectory, $"exception-{Guid.NewGuid()}.txt" );
+
+            try
+            {
+                Directory.CreateDirectory( this._standardDirectories.CrashReportsDirectory );
+                File.WriteAllText( reportFile, reportContent );
+            }
+
+            // ReSharper disable once EmptyGeneralCatchClause
+            catch { }
+
+            return reportFile;
         }
 
         // Opens the telemetry context for the report. With project options (the normal, project-scoped case), it honors
@@ -69,8 +93,6 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                 node = syntaxProcessingException.SyntaxNode;
             }
 
-            var reportFile = Path.Combine( this._standardDirectories.CrashReportsDirectory, $"exception-{Guid.NewGuid()}.txt" );
-
             var exceptionText = new StringBuilder();
 
             exceptionText.AppendLineInvariant( $"Metalama Version: {EngineAssemblyMetadataReader.Instance.PackageVersion}" );
@@ -98,7 +120,7 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             // ReSharper disable once EmptyGeneralCatchClause
             catch { }
 
-            File.WriteAllText( reportFile, exceptionText.ToString() );
+            var reportFile = this.WriteLocalReport( exceptionText.ToString() );
 
             var diagnosticDefinition =
                 canIgnoreException ? GeneralDiagnosticDescriptors.IgnorableUnhandledException : GeneralDiagnosticDescriptors.UnhandledException;
