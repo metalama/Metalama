@@ -15,6 +15,7 @@ using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Testing;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
@@ -100,6 +101,9 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
 
         try
         {
+            // Test-only fault injection point exercising the global (outer) handling layer. No-op in production. See #1701.
+            globalServices.GetService<ITestFaultInjector>()?.InjectFault( FaultInjectionPoints.SourceTransformerEntry );
+
             var projectOptions = context.ProjectOptions;
 
             // The compile-time exception handler is a project-scoped service, so it can resolve the project options and
@@ -110,6 +114,10 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
 
             try
             {
+                // Test-only fault injection point exercising the project-scoped (inner) handling layer. No-op in
+                // production. See #1701.
+                globalServices.GetService<ITestFaultInjector>()?.InjectFault( FaultInjectionPoints.CompileTimePipeline );
+
                 using var pipeline = CompileTimeAspectPipeline.Create( projectServiceProvider );
 
                 var taskRunner = globalServices.GetRequiredService<ITaskRunner>();
