@@ -276,7 +276,12 @@ public static class RegisterServiceExtensions
             .AddSingleton<IRepositoryConfigurationService>( serviceProvider => new RepositoryConfigurationService( serviceProvider ) )
             .AddSingleton( serviceProvider => new TelemetryLogger( serviceProvider ) )
             .AddSingleton<LocalExceptionReporter>( serviceProvider => new LocalExceptionReporter( serviceProvider ) )
-            .AddSingleton<IExceptionReporter>( serviceProvider => new ExceptionReporter( new TelemetryQueue( serviceProvider ), serviceProvider ) )
+
+            // A single ExceptionReporter instance is exposed under both IExceptionReportManager (review/upload, used by
+            // the worker and CLI) and IExceptionCapturer (capture, used by the telemetry context). See #1701.
+            .AddSingleton<ExceptionReporter>( serviceProvider => new ExceptionReporter( new TelemetryQueue( serviceProvider ), serviceProvider ) )
+            .AddSingleton<IExceptionReportManager>( serviceProvider => serviceProvider.GetRequiredBackstageService<ExceptionReporter>() )
+            .AddSingleton<IExceptionCapturer>( serviceProvider => serviceProvider.GetRequiredBackstageService<ExceptionReporter>() )
             .AddSingleton<ITelemetryUploader>( serviceProvider => new TelemetryUploader( serviceProvider ) )
             .AddSingleton<IUsageReporter>( serviceProvider => new UsageReporter( serviceProvider ) )
             .AddSingleton<ITelemetryConfigurationService>( serviceProvider => new TelemetryConfigurationService( serviceProvider ) )

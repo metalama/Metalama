@@ -33,7 +33,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
         this.CreateGitRoot();
         this.WriteFile( _repoRoot, """{ "telemetry": { "enabled": false } }""" );
 
-        var result = this.CreateService().GetConfiguration( _projectDirectory );
+        var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
         Assert.False( result.Configuration.Telemetry!.Enabled );
         Assert.Empty( result.Warnings );
@@ -45,7 +45,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
         this.CreateGitRoot();
         this.WriteFile( _repoRoot, """{ "telemetry": { "enabled": true } }""" );
 
-        var result = this.CreateService().GetConfiguration( _projectDirectory );
+        var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
         Assert.True( result.Configuration.Telemetry!.Enabled );
         Assert.Empty( result.Warnings );
@@ -59,7 +59,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
         // camelCase keys, plus an unknown key that must be ignored for forward-compatibility.
         this.WriteFile( _repoRoot, """{ "telemetry": { "enabled": false }, "someFutureSetting": 42 }""" );
 
-        var result = this.CreateService().GetConfiguration( _projectDirectory );
+        var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
         Assert.False( result.Configuration.Telemetry!.Enabled );
         Assert.Empty( result.Warnings );
@@ -70,7 +70,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
     {
         this.CreateGitRoot();
 
-        var result = this.CreateService().GetConfiguration( _projectDirectory );
+        var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
         Assert.Null( result.Configuration.Telemetry );
         Assert.Empty( result.Warnings );
@@ -84,7 +84,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
         // The file is in a non-root directory: it must be ignored and a warning produced.
         this.WriteFile( Path.Combine( _repoRoot, "src" ), """{ "telemetry": { "enabled": false } }""" );
 
-        var result = this.CreateService().GetConfiguration( _projectDirectory );
+        var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
         Assert.Null( result.Configuration.Telemetry );
         Assert.Equal( RepositoryConfigurationWarningKind.MisplacedFile, Assert.Single( result.Warnings ).Kind );
@@ -96,7 +96,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
         this.CreateGitRoot();
         this.WriteFile( _repoRoot, "{ this is not valid json" );
 
-        var result = this.CreateService().GetConfiguration( _projectDirectory );
+        var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
         Assert.Null( result.Configuration.Telemetry );
         Assert.Equal( RepositoryConfigurationWarningKind.MalformedFile, Assert.Single( result.Warnings ).Kind );
@@ -109,7 +109,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
         // default applies. This is a common case (e.g. building outside a git working tree), so it is not even warned.
         this.WriteFile( _repoRoot, """{ "telemetry": { "enabled": false } }""" );
 
-        var result = this.CreateService().GetConfiguration( _projectDirectory );
+        var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
         Assert.Null( result.Configuration.Telemetry );
         Assert.Empty( result.Warnings );
@@ -122,11 +122,11 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
         this.WriteFile( _repoRoot, """{ "telemetry": { "enabled": false } }""" );
 
         var service = this.CreateService();
-        var first = service.GetConfiguration( _projectDirectory );
+        var first = service.GetRepositoryConfiguration( _projectDirectory );
 
         // Changing the file after the first resolution must not affect the cached result (10-minute TTL).
         this.FileSystem.WriteAllText( Path.Combine( _repoRoot, "metalama.json" ), """{ "telemetry": { "enabled": true } }""" );
-        var second = service.GetConfiguration( _projectDirectory );
+        var second = service.GetRepositoryConfiguration( _projectDirectory );
 
         Assert.Same( first, second );
         Assert.False( second.Configuration.Telemetry!.Enabled );

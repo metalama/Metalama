@@ -6,6 +6,7 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -18,16 +19,42 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
 {
     internal sealed class CompileTimeExceptionHandler : ICompileTimeExceptionHandler
     {
-        private readonly IExceptionReporter? _exceptionReporter;
+        private readonly ITelemetryService? _telemetryService;
         private readonly IStandardDirectories _standardDirectories;
+        private readonly IProjectOptions? _projectOptions;
 
         public CompileTimeExceptionHandler( IServiceProvider serviceProvider )
         {
-            this._exceptionReporter = (IExceptionReporter?) serviceProvider.GetService( typeof(IExceptionReporter) );
+            this._telemetryService = serviceProvider.GetBackstageService<ITelemetryService>();
             this._standardDirectories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
+            this._projectOptions = (IProjectOptions?) serviceProvider.GetService( typeof(IProjectOptions) );
         }
 
-        public void ReportException( Exception exception, Action<Diagnostic> reportDiagnostic, bool canIgnoreException, out bool isHandled )
+        // Opens the telemetry context for the report. With project options (the normal, project-scoped case), it honors
+        // the project repository's metalama.json opt-out. With no project options (the handler used as a global fallback),
+        // it reports as a tooling exception. The local crash report is written regardless. See #1701.
+        private ITelemetryContext? GetTelemetryContext()
+        {
+            if ( this._telemetryService == null )
+            {
+                return null;
+            }
+
+            if ( this._projectOptions == null )
+            {
+                return this._telemetryService.OpenContext( this._telemetryService.GetToolingPolicy() );
+            }
+
+            var projectDirectory = string.IsNullOrEmpty( this._projectOptions.ProjectPath ) ? null : Path.GetDirectoryName( this._projectOptions.ProjectPath );
+
+            return this._telemetryService.OpenContext( this._telemetryService.GetPolicy( projectDirectory ) );
+        }
+
+        public void ReportException(
+            Exception exception,
+            Action<Diagnostic> reportDiagnostic,
+            bool canIgnoreException,
+            out bool isHandled )
         {
             // Unwrap AggregateException.
             if ( exception is AggregateException { InnerExceptions: { Count: 1 } innerExceptions } )
@@ -82,7 +109,9 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                     (exception.Message, reportFile),
                     description: exceptionText.ToString() ) );
 
-            this._exceptionReporter?.ReportException( exception, localReportPath: reportFile );
+            // We have already written the rich local report (reportFile) and cited it in the diagnostic above, so the
+            // telemetry path must not write a duplicate local report (writeLocalReport: false). See #1701.
+            this.GetTelemetryContext()?.ReportException( exception, writeLocalReport: false );
 
             isHandled = true;
         }

@@ -52,7 +52,7 @@ namespace Metalama.Testing.UnitTesting
 
         private readonly ITestOutputHelper? _logger;
         private readonly bool _injectLoggingService;
-        private readonly TestExceptionReporter _exceptionReporter = new();
+        private readonly TestTelemetryService _telemetryService = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UnitTestClass"/> class.
@@ -106,7 +106,7 @@ namespace Metalama.Testing.UnitTesting
         // Resharper disable once VirtualMemberNeverOverridden.Global
         protected virtual void AddExceptionHandler( IAdditionalServiceCollection services )
         {
-            ((AdditionalServiceCollection) services).BackstageServices.Add( this._exceptionReporter );
+            ((AdditionalServiceCollection) services).BackstageServices.Add( this._telemetryService );
             services.AddGlobalService( provider => new DesignTimeExceptionHandler( provider ) );
         }
 
@@ -197,7 +197,7 @@ namespace Metalama.Testing.UnitTesting
         {
             // We generally don't want to see any exceptions reported during the test.
             // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
-            Assert.DoesNotContain( this._exceptionReporter.ReportedExceptions, e => e.GetType().Name is not "ConnectionLostException" );
+            Assert.DoesNotContain( this._telemetryService.ReportedExceptions, e => e.GetType().Name is not "ConnectionLostException" );
         }
     }
 }

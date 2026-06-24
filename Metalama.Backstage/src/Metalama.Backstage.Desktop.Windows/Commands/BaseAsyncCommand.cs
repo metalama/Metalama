@@ -36,7 +36,9 @@ public abstract class BaseAsyncCommand<T> : AsyncCommand<T>
             {
                 var classifiedException = ExceptionClassifier.Classify( e );
                 logger.LogException( classifiedException );
-                serviceProvider.GetBackstageService<IExceptionReporter>()?.ReportException( classifiedException );
+
+                // A CLI crash is telemetry about the tooling itself: report through the tooling policy. See #1701.
+                serviceProvider.ReportToolingException( classifiedException );
             }
             catch ( Exception reporterException )
             {

@@ -32,7 +32,7 @@ internal sealed class LocalExceptionReporter : IBackstageService
         this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
     }
 
-    public void ReportException( Exception exception, string? localReportPath )
+    public void ReportException( Exception exception )
     {
         var classifiedException = ExceptionClassifier.Classify( exception );
 
@@ -48,79 +48,75 @@ internal sealed class LocalExceptionReporter : IBackstageService
 
         try
         {
-            if ( localReportPath == null )
-            {
-                // If the caller did not create the report file, create it ourselves.
-                localReportPath = Path.Combine( this._standardDirectories.CrashReportsDirectory, $"exception-{Guid.NewGuid()}.txt" );
+            var localReportPath = Path.Combine( this._standardDirectories.CrashReportsDirectory, $"exception-{Guid.NewGuid()}.txt" );
 
-                var exceptionText = new StringBuilder();
+            var exceptionText = new StringBuilder();
 
 #pragma warning disable CA1305
-                void AppendLineSafe( string name, Func<string> getValue )
-                {
-                    string value;
-
-                    try
-                    {
-                        value = getValue();
-                    }
-                    catch ( Exception e )
-                    {
-                        value = e.Message;
-                    }
-
-                    exceptionText.AppendLine( $"{name}: {value}" );
-                }
-
-                AppendLineSafe( "Metalama Application", () => $"{this._applicationInfoProvider.CurrentApplication.Name}" );
-                AppendLineSafe( "Metalama Version", () => $"{this._applicationInfoProvider.CurrentApplication.PackageVersion}" );
-                AppendLineSafe( ".NET Runtime", () => $"{RuntimeInformation.FrameworkDescription}" );
-                AppendLineSafe( "Processor Architecture", () => $" {RuntimeInformation.ProcessArchitecture}" );
-                AppendLineSafe( "OS Description", () => $"{RuntimeInformation.OSDescription}" );
-                AppendLineSafe( "OS Architecture", () => $"{RuntimeInformation.OSArchitecture}" );
-                AppendLineSafe(
-                    "Process",
-                    () =>
-                        $"{Process.GetCurrentProcess().ProcessName} {ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( Environment.CommandLine )}" );
-
-                AppendLineSafe(
-                    "Managed thread",
-                    ()
-                        => $"Id={Thread.CurrentThread.ManagedThreadId}, Name='{Thread.CurrentThread.Name}', IsBackground={Thread.CurrentThread.IsBackground}, IsPooled={Thread.CurrentThread.IsThreadPoolThread}" );
-
-                AppendLineSafe( "Synchronization context", () => $"{SynchronizationContext.Current}" );
-                AppendLineSafe( "Exception type", () => $"{exception.GetType()}" );
-                AppendLineSafe( "Exception message", () => ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( exception.Message ) );
+            void AppendLineSafe( string name, Func<string> getValue )
+            {
+                string value;
 
                 try
                 {
-                    // The next line may fail.
-                    var exceptionToString = ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( exception.ToString() );
-                    exceptionText.AppendLine( "===== Exception ===== " );
-                    exceptionText.AppendLine( exceptionToString );
+                    value = getValue();
                 }
-
-                // ReSharper disable once EmptyGeneralCatchClause
-                catch { }
-
-                // Include the call stack at the point where the exception is being reported.
-                // This is essential for async exceptions where the exception's own StackTrace
-                // only shows the throw-to-catch chain, but not the broader context of the entry
-                // point that caught the exception (e.g., CodeLens, Preview, AspectExplorer).
-                try
+                catch ( Exception e )
                 {
-                    exceptionText.AppendLine( "===== Reporting Call Stack =====" );
-                    exceptionText.AppendLine( ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( Environment.StackTrace ) );
+                    value = e.Message;
                 }
 
-                // ReSharper disable once EmptyGeneralCatchClause
-                catch { }
+                exceptionText.AppendLine( $"{name}: {value}" );
+            }
+
+            AppendLineSafe( "Metalama Application", () => $"{this._applicationInfoProvider.CurrentApplication.Name}" );
+            AppendLineSafe( "Metalama Version", () => $"{this._applicationInfoProvider.CurrentApplication.PackageVersion}" );
+            AppendLineSafe( ".NET Runtime", () => $"{RuntimeInformation.FrameworkDescription}" );
+            AppendLineSafe( "Processor Architecture", () => $" {RuntimeInformation.ProcessArchitecture}" );
+            AppendLineSafe( "OS Description", () => $"{RuntimeInformation.OSDescription}" );
+            AppendLineSafe( "OS Architecture", () => $"{RuntimeInformation.OSArchitecture}" );
+            AppendLineSafe(
+                "Process",
+                () =>
+                    $"{Process.GetCurrentProcess().ProcessName} {ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( Environment.CommandLine )}" );
+
+            AppendLineSafe(
+                "Managed thread",
+                ()
+                    => $"Id={Thread.CurrentThread.ManagedThreadId}, Name='{Thread.CurrentThread.Name}', IsBackground={Thread.CurrentThread.IsBackground}, IsPooled={Thread.CurrentThread.IsThreadPoolThread}" );
+
+            AppendLineSafe( "Synchronization context", () => $"{SynchronizationContext.Current}" );
+            AppendLineSafe( "Exception type", () => $"{exception.GetType()}" );
+            AppendLineSafe( "Exception message", () => ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( exception.Message ) );
+
+            try
+            {
+                // The next line may fail.
+                var exceptionToString = ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( exception.ToString() );
+                exceptionText.AppendLine( "===== Exception ===== " );
+                exceptionText.AppendLine( exceptionToString );
+            }
+
+            // ReSharper disable once EmptyGeneralCatchClause
+            catch { }
+
+            // Include the call stack at the point where the exception is being reported.
+            // This is essential for async exceptions where the exception's own StackTrace
+            // only shows the throw-to-catch chain, but not the broader context of the entry
+            // point that caught the exception (e.g., CodeLens, Preview, AspectExplorer).
+            try
+            {
+                exceptionText.AppendLine( "===== Reporting Call Stack =====" );
+                exceptionText.AppendLine( ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( Environment.StackTrace ) );
+            }
+
+            // ReSharper disable once EmptyGeneralCatchClause
+            catch { }
 #pragma warning restore CA1305
 
-                this._fileSystem.WriteAllText( localReportPath, exceptionText.ToString() );
+            this._fileSystem.WriteAllText( localReportPath, exceptionText.ToString() );
 
-                this._logger.Info?.Log( $"Creating an exception report in '{localReportPath}'." );
-            }
+            this._logger.Info?.Log( $"Creating an exception report in '{localReportPath}'." );
         }
         catch ( Exception e )
         {

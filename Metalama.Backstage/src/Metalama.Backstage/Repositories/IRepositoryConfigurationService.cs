@@ -18,5 +18,12 @@ internal interface IRepositoryConfigurationService : IBackstageService
     /// solution directory). The result is never <c>null</c>; when no applicable file is found, it carries an empty
     /// configuration and no warnings.
     /// </summary>
-    RepositoryConfigurationResult GetConfiguration( string startingDirectory );
+    RepositoryConfigurationResult GetRepositoryConfiguration( string startingDirectory );
+
+    /// <summary>
+    /// Gets the repository root for <paramref name="startingDirectory"/> — the nearest ancestor (including the directory
+    /// itself) that contains a <c>.git</c> folder or file — or <c>null</c> when <paramref name="startingDirectory"/> is
+    /// not inside a git repository (or is null/empty).
+    /// </summary>
+    string? GetRepositoryRoot( string? startingDirectory );
 }

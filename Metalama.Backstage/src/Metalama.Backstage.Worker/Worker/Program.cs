@@ -79,11 +79,10 @@ internal static class Program
     {
         try
         {
-            var exceptionReporter = serviceProvider?.GetBackstageService<IExceptionReporter>();
-
-            if ( exceptionReporter != null )
+            // A worker crash is telemetry about the tooling itself: report through the tooling policy. See #1701.
+            if ( serviceProvider != null )
             {
-                exceptionReporter.ReportException( e );
+                serviceProvider.ReportToolingException( e );
 
                 return true;
             }

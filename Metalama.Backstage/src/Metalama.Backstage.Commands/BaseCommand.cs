@@ -51,7 +51,9 @@ namespace Metalama.Backstage.Commands
                 {
                     var classifiedException = ExceptionClassifier.Classify( e );
                     logger.LogException( classifiedException );
-                    extendedContext.ServiceProvider.GetBackstageService<IExceptionReporter>()?.ReportException( classifiedException );
+
+                    // A CLI crash is telemetry about the tooling itself: report through the tooling policy. See #1701.
+                    extendedContext.ServiceProvider.ReportToolingException( classifiedException );
                 }
                 catch ( Exception reporterException )
                 {

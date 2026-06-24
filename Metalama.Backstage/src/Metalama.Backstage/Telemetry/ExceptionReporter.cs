@@ -22,7 +22,7 @@ using System.Xml.Linq;
 
 namespace Metalama.Backstage.Telemetry;
 
-internal sealed class ExceptionReporter : IExceptionReporter
+internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCapturer
 {
     private readonly TelemetryQueue _uploadManager;
     private readonly IDateTimeProvider _time;
@@ -392,18 +392,12 @@ internal sealed class ExceptionReporter : IExceptionReporter
         }
     }
 
-    public void ReportException(
-        Exception exception,
-        ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception,
-        string? localReportPath = null,
-        IExceptionAdapter? adapter = null )
-        => this.ReportException( ExceptionClassifier.Classify( exception ), exceptionReportingKind, localReportPath, adapter );
-
-    public void ReportException(
+    public void Capture(
         ClassifiedException classifiedException,
-        ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception,
-        string? localReportPath = null,
-        IExceptionAdapter? adapter = null )
+        ExceptionReportingKind exceptionReportingKind,
+        ReportingAction reportingAction,
+        bool writeLocalReport,
+        IExceptionAdapter? adapter )
     {
         try
         {
@@ -414,25 +408,23 @@ internal sealed class ExceptionReporter : IExceptionReporter
 
             this._logger.Trace?.Log( $"Attempting to report an exception of type '{classifiedException.GetType().Name}' of kind '{exceptionReportingKind}'." );
 
-            if ( exceptionReportingKind == ExceptionReportingKind.Exception )
+            if ( exceptionReportingKind == ExceptionReportingKind.Exception && writeLocalReport )
             {
                 this._logger.Trace?.Log( $"Reporting the exception locally." );
 
-                this._localExceptionReporter?.ReportException( classifiedException.Exception, localReportPath );
+                this._localExceptionReporter?.ReportException( classifiedException.Exception );
             }
 
             var scenario = exceptionReportingKind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance;
 
-            // The local crash report (written above) is local support data and is always written. The telemetry capture
-            // below is governed by the effective reporting action, which folds in both the process-level opt-out (the
-            // application does not support telemetry, the process is unattended, or the opt-out environment variable is
-            // set) and the per-category action (see ReportingAction):
+            // The local crash report (written above) is local support data and is always written (unless the caller
+            // already wrote its own — see writeLocalReport). The telemetry capture below is governed by the policy-resolved
+            // reportingAction passed by the context, which folds in the process-level opt-out, the per-category action and
+            // the repository opt-out (see ReportingAction):
             //   • No      → do NOT even capture or ask the user (process opted out, or the scenario is opted out);
             //   • Default → ASK: capture locally and show a review toast, but do not auto-send;
             //   • Yes     → ASK + auto-send: capture, show the toast, and additionally enqueue the report for upload.
             // Capture is decoupled from sending (#1674): the auto-send decision (Yes) is applied below, after capture.
-            var reportingAction = this._telemetryConfigurationService.GetEffectiveReportingAction( scenario );
-
             if ( reportingAction == ReportingAction.No )
             {
                 this._logger.Trace?.Log( $"The exception will not be captured because the effective reporting action for '{scenario}' is No." );

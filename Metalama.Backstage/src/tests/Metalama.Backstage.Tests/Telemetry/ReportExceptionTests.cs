@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.UserInterface.Toasts;
@@ -126,7 +127,13 @@ public sealed class ReportExceptionTests : TestsBase
     private void RecordException( Exception? exception = null, ExceptionReportingKind kind = ExceptionReportingKind.Exception )
     {
         var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
-        reporter.ReportException( exception ?? new InvalidOperationException(), kind );
+
+        // Capture now receives the policy-resolved action explicitly (in production the telemetry context does this). We
+        // resolve it the same way the default policy does — through the configuration service. See #1701.
+        var scenario = kind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance;
+        var action = this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>().GetEffectiveReportingAction( scenario );
+
+        reporter.Capture( ExceptionClassifier.Classify( exception ?? new InvalidOperationException() ), kind, action, writeLocalReport: true, adapter: null );
     }
 
     [Theory]

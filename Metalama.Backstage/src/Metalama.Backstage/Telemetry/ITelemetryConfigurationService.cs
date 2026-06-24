@@ -111,7 +111,7 @@ public interface ITelemetryConfigurationService : IBackstageService
 
     /// <summary>
     /// Clears the record of already-reported exception/performance issues, so that an issue which was previously
-    /// reported (and therefore deduplicated by <see cref="IExceptionReporter"/>) is captured and surfaced again.
+    /// reported (and therefore deduplicated by <see cref="IExceptionReportManager"/>) is captured and surfaced again.
     /// This is primarily a testing aid for exercising the exception-report flow. See #1674.
     /// </summary>
     void ResetReportedIssues();

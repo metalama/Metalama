@@ -129,7 +129,7 @@ namespace Metalama.Framework.DesignTime.CodeFixes
             }
             catch ( Exception e ) when ( DesignTimeExceptionHandler.MustHandle( e ) )
             {
-                this._exceptionHandler.ReportException( e, this._logger );
+                this._exceptionHandler.ReportException( e, context.Document.Project, this._logger );
 
                 return Task.CompletedTask;
             }
@@ -178,7 +178,7 @@ namespace Metalama.Framework.DesignTime.CodeFixes
             }
             catch ( Exception e )
             {
-                this._exceptionHandler.ReportException( e, this._logger );
+                this._exceptionHandler.ReportException( e, document.Project, this._logger );
 
                 return document;
             }

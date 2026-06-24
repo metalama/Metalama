@@ -301,7 +301,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         }
         catch ( Exception exception )
         {
-            this._exceptionHandler.ReportException( exception );
+            this._exceptionHandler.ReportException( exception, this.ProjectOptions );
         }
     }
 #pragma warning restore VSTHRD100
