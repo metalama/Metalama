@@ -58,16 +58,6 @@ RUN dotnet tool install --global dotnet-dump;
 ENV PATH="C:\Users\ContainerAdministrator\.dotnet\tools;${PATH}"
 
 
-# Install Node.js
-RUN Invoke-WebRequest -Uri "https://nodejs.org/dist/v22.0.0/node-v22.0.0-win-x64.zip" -OutFile node.zip; `
-    Expand-Archive node.zip -DestinationPath C:\; `
-    Rename-Item "C:\node-v22.0.0-win-x64" "C:\nodejs"; `
-    Remove-Item node.zip
-
-ENV NPM_CONFIG_PREFIX=C:\npm
-ENV PATH="C:\nodejs;C:\npm;${PATH}"
-
-
 # Install Azure CLI
 RUN Invoke-WebRequest -Uri https://aka.ms/installazurecliwindowsx64 -OutFile AzureCLI.msi; `
     $process = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/I AzureCLI.msi /quiet'; `

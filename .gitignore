@@ -71,3 +71,4 @@ Metalama.Framework/BenchmarkDotNet.Artifacts/results
 *.swp
 .idea/
 .tmp*/
+.g/
