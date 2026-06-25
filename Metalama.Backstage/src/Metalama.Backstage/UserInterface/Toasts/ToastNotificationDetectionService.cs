@@ -126,11 +126,16 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
 
     private void DetectImpl( bool bypassThrottle )
     {
-        // Avoid too frequent detections for performance reasons. The threshold (here 15 seconds) should be lower
-        // than the lowest auto-snooze period of a toast notification. Detection triggered by telemetry activation
-        // bypasses the throttle so the first-run telemetry notice is not suppressed by the process-init detection.
+        // The whole detection is serialized under '_initializationSync' so that two concurrent detections (e.g. the
+        // process-init detection and the one re-triggered by telemetry activation, which run on the thread pool via
+        // BackstageBackgroundTasksService) never interleave. Serialization guarantees the in-method ordering — the
+        // first-run telemetry notice is shown (and stamps the notification throttle) before the low-priority
+        // VSX-install prompt is evaluated — holds across runs, so the VSX prompt cannot slip through unthrottled. See #1692.
         lock ( this._initializationSync )
         {
+            // Avoid too frequent detections for performance reasons. The threshold (here 15 seconds) should be lower
+            // than the lowest auto-snooze period of a toast notification. Detection triggered by telemetry activation
+            // bypasses the throttle so the first-run telemetry notice is not suppressed by the process-init detection.
             if ( !bypassThrottle && this._lastTimeDetectionStarted > this._dateTimeProvider.UtcNow.Subtract( TimeSpan.FromSeconds( 15 ) ) )
             {
                 this._logger.Trace?.Log( "Skipping detection because it has been performed recently." );
@@ -139,45 +144,45 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
             }
 
             this._lastTimeDetectionStarted = this._dateTimeProvider.UtcNow;
-        }
 
-        var notificationReported = false;
+            var notificationReported = false;
 
-        if ( !this._userDeviceDetectionService.IsInteractiveDevice )
-        {
-            this._logger.Trace?.Log( "Skipping detection because the session is not interactive." );
-
-            return;
-        }
-
-        this._logger.Trace?.Log( "Detecting relevant toast notifications." );
-
-        // Show the first-run telemetry notice exactly once, the first time telemetry is actually activated — so a
-        // machine that never activates telemetry (e.g. one that only builds opted-out repositories) never sees it.
-        // It is tracked by its own WelcomeConfiguration.TelemetryNoticeDisplayed flag (independent of WelcomePageDisplayed,
-        // which also serves as an installation tracker), so the toast and the legacy welcome web page are independent.
-        // See #1701.
-        if ( this._telemetryConfigurationService?.IsActivated == true
-             && this._configurationManager.UpdateIf<WelcomeConfiguration>(
-                 c => !c.TelemetryNoticeDisplayed,
-                 c => c with { TelemetryNoticeDisplayed = true } ) )
-        {
-            this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.TelemetryNotice ) );
-        }
-
-        // Validate registered licenses, but do not complain about the lack of licenses.
-        if ( this._licenseRegistrationService != null )
-        {
-            foreach ( var license in this._licenseRegistrationService.RegisteredLicenses )
+            if ( !this._userDeviceDetectionService.IsInteractiveDevice )
             {
-                this.ValidateRegisteredLicense( license, ref notificationReported );
-            }
-        }
+                this._logger.Trace?.Log( "Skipping detection because the session is not interactive." );
 
-        // Suggest to install Visual Studio Tools for Metalama.
-        if ( !notificationReported && this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
-        {
-            this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
+                return;
+            }
+
+            this._logger.Trace?.Log( "Detecting relevant toast notifications." );
+
+            // Show the first-run telemetry notice exactly once, the first time telemetry is actually activated — so a
+            // machine that never activates telemetry (e.g. one that only builds opted-out repositories) never sees it.
+            // It is tracked by its own WelcomeConfiguration.TelemetryNoticeDisplayed flag (independent of WelcomePageDisplayed,
+            // which also serves as an installation tracker), so the toast and the legacy welcome web page are independent.
+            // See #1701.
+            if ( this._telemetryConfigurationService?.IsActivated == true
+                 && this._configurationManager.UpdateIf<WelcomeConfiguration>(
+                     c => !c.TelemetryNoticeDisplayed,
+                     c => c with { TelemetryNoticeDisplayed = true } ) )
+            {
+                this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.TelemetryNotice ) );
+            }
+
+            // Validate registered licenses, but do not complain about the lack of licenses.
+            if ( this._licenseRegistrationService != null )
+            {
+                foreach ( var license in this._licenseRegistrationService.RegisteredLicenses )
+                {
+                    this.ValidateRegisteredLicense( license, ref notificationReported );
+                }
+            }
+
+            // Suggest to install Visual Studio Tools for Metalama.
+            if ( !notificationReported && this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
+            {
+                this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
+            }
         }
     }
 
