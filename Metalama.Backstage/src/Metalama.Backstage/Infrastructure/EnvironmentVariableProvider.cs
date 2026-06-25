@@ -11,4 +11,6 @@ namespace Metalama.Backstage.Infrastructure;
 public sealed class EnvironmentVariableProvider : IEnvironmentVariableProvider
 {
     public string? GetEnvironmentVariable( string variable ) => Environment.GetEnvironmentVariable( variable, EnvironmentVariableTarget.Process );
+
+    public string CurrentDirectory => Environment.CurrentDirectory;
 }

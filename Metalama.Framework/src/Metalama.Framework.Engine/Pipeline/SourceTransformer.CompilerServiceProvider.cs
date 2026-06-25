@@ -14,7 +14,6 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using IExceptionReporter = Metalama.Backstage.Telemetry.IExceptionReporter;
 using ILogger = Metalama.Compiler.Services.ILogger;
 
 namespace Metalama.Framework.Engine.Pipeline;
@@ -48,11 +47,11 @@ public sealed partial class SourceTransformer
             var telemetryService = serviceProvider.GetRequiredBackstageService<ITelemetryService>();
             var projectDirectory = string.IsNullOrEmpty( options.ProjectPath ) ? null : Path.GetDirectoryName( options.ProjectPath );
 
-            this._telemetryContext = string.IsNullOrEmpty( projectDirectory )
-                ? telemetryService.NullContext
-                : telemetryService.OpenContext( projectDirectory! );
+            this._telemetryContext = telemetryService.OpenContext( telemetryService.GetPolicy( projectDirectory ) );
 
-            // Expose the telemetry context through this service provider, and route engine exceptions through it.
+            // Expose the telemetry context through this service provider, and route engine exceptions through it. The
+            // adapter implements the compiler's IExceptionReporter (Metalama.Compiler.Services), so it must be registered
+            // under that type for Metalama.Compiler to resolve it.
             this._services.Add( typeof(ITelemetryContext), this._telemetryContext );
             this._services.Add( typeof(IExceptionReporter), new ExceptionReporterAdapter( this._telemetryContext ) );
 

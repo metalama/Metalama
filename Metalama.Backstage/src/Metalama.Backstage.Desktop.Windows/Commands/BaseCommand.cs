@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
 using Spectre.Console.Cli;
 using System;
@@ -33,7 +32,9 @@ public abstract class BaseCommand<T> : Command<T>
             {
                 var classifiedException = ExceptionClassifier.Classify( e );
                 logger.LogException( classifiedException );
-                serviceProvider.GetBackstageService<IExceptionReporter>()?.ReportException( classifiedException );
+
+                // A CLI crash is telemetry about the tooling itself: report through the tooling policy. See #1701.
+                serviceProvider.ReportToolingException( classifiedException );
             }
             catch ( Exception reporterException )
             {

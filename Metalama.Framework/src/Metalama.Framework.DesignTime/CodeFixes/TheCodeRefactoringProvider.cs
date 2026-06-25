@@ -140,7 +140,7 @@ namespace Metalama.Framework.DesignTime.CodeFixes
             }
             catch ( Exception e ) when ( DesignTimeExceptionHandler.MustHandle( e ) )
             {
-                this._exceptionHandler.ReportException( e );
+                this._exceptionHandler.ReportException( e, context.Document.Project );
             }
         }
     }

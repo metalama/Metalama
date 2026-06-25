@@ -78,13 +78,13 @@ public sealed class RegisterServiceExtensionsTests
         {
             Assert.NotNull( serviceProvider.GetBackstageService<ILoggerFactory>() );
             Assert.NotNull( serviceProvider.GetBackstageService<ITelemetryUploader>() );
-            Assert.NotNull( serviceProvider.GetBackstageService<IExceptionReporter>() );
+            Assert.NotNull( serviceProvider.GetBackstageService<IExceptionReportManager>() );
             Assert.NotNull( serviceProvider.GetBackstageService<IUsageReporter>() );
         }
         else
         {
             Assert.Null( serviceProvider.GetBackstageService<ILoggerFactory>() );
-            Assert.Null( serviceProvider.GetBackstageService<IExceptionReporter>() );
+            Assert.Null( serviceProvider.GetBackstageService<IExceptionReportManager>() );
             Assert.Null( serviceProvider.GetBackstageService<IUsageReporter>() );
             Assert.Null( serviceProvider.GetBackstageService<ITelemetryUploader>() );
         }

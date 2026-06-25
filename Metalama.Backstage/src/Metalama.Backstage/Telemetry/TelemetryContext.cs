@@ -11,38 +11,31 @@ namespace Metalama.Backstage.Telemetry;
 /// <inheritdoc cref="ITelemetryContext"/>
 internal sealed class TelemetryContext : ITelemetryContext
 {
-    private readonly bool _isRepositoryTelemetryDisabled;
-    private readonly ITelemetryConfigurationService _telemetryConfigurationService;
+    private readonly ITelemetryPolicy _policy;
     private readonly IUsageReporter _usageReporter;
-    private readonly IExceptionReporter _exceptionReporter;
+    private readonly IExceptionCapturer _exceptionCapturer;
     private readonly LocalExceptionReporter? _localExceptionReporter;
 
-    public ImmutableArray<TelemetryContextWarning> Warnings { get; }
-
     public TelemetryContext(
-        bool isRepositoryTelemetryDisabled,
-        ImmutableArray<TelemetryContextWarning> warnings,
-        ITelemetryConfigurationService telemetryConfigurationService,
+        ITelemetryPolicy policy,
         IUsageReporter usageReporter,
-        IExceptionReporter exceptionReporter,
+        IExceptionCapturer exceptionCapturer,
         LocalExceptionReporter? localExceptionReporter )
     {
-        this._isRepositoryTelemetryDisabled = isRepositoryTelemetryDisabled;
-        this.Warnings = warnings.IsDefault ? ImmutableArray<TelemetryContextWarning>.Empty : warnings;
-        this._telemetryConfigurationService = telemetryConfigurationService;
+        this._policy = policy;
         this._usageReporter = usageReporter;
-        this._exceptionReporter = exceptionReporter;
+        this._exceptionCapturer = exceptionCapturer;
         this._localExceptionReporter = localExceptionReporter;
     }
 
+    public ImmutableArray<TelemetryContextWarning> Warnings => this._policy.Warnings;
+
     public bool IsTelemetryEnabled( TelemetryScenario scenario )
 
-        // The repository opt-out (metalama.json) vetoes every scenario. Otherwise the channel is active when the
-        // effective reporting action is not No (which combines the process-level gates with the per-category action in
-        // telemetry.json). We use GetEffectiveReportingAction rather than IsEnabled because it is valid for every
-        // scenario, including the ASK-capable exception/performance ones. The short-circuit also means a disabled /
-        // context-less context never touches the configuration service. See #1701.
-        => !this._isRepositoryTelemetryDisabled && this._telemetryConfigurationService.GetEffectiveReportingAction( scenario ) != ReportingAction.No;
+        // The policy is the single authority: it combines the repository opt-out (metalama.json), the process-level gates
+        // and the per-category action in telemetry.json. A scenario is active when the policy resolves to anything other
+        // than No. See #1701.
+        => this._policy.GetReportingAction( scenario ) != ReportingAction.No;
 
     public IUsageSession StartUsageSession( string kind, string? projectName = null )
         => this.IsTelemetryEnabled( TelemetryScenario.Usage ) ? this._usageReporter.StartSession( kind, projectName ) : NullUsageSession.Instance;
@@ -50,33 +43,33 @@ internal sealed class TelemetryContext : ITelemetryContext
     public void ReportException(
         Exception exception,
         ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception,
-        string? localReportPath = null,
+        bool writeLocalReport = true,
         IExceptionAdapter? exceptionAdapter = null )
-        => this.ReportException( ExceptionClassifier.Classify( exception ), exceptionReportingKind, localReportPath, exceptionAdapter );
+        => this.ReportException( ExceptionClassifier.Classify( exception ), exceptionReportingKind, writeLocalReport, exceptionAdapter );
 
     public void ReportException(
         ClassifiedException classifiedException,
         ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception,
-        string? localReportPath = null,
+        bool writeLocalReport = true,
         IExceptionAdapter? exceptionAdapter = null )
     {
         var scenario = exceptionReportingKind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance;
 
-        if ( this.IsTelemetryEnabled( scenario ) )
+        var reportingAction = this._policy.GetReportingAction( scenario );
+
+        if ( reportingAction != ReportingAction.No )
         {
-            // Telemetry is enabled for this scenario: capture the report for telemetry (this path also writes the local
-            // crash report).
-            this._exceptionReporter.ReportException( classifiedException, exceptionReportingKind, localReportPath, exceptionAdapter );
+            // Telemetry is enabled for this scenario: capture the report (the capturer also writes the local crash report
+            // when writeLocalReport is true and this is an exception).
+            this._exceptionCapturer.Capture( classifiedException, exceptionReportingKind, reportingAction, writeLocalReport, exceptionAdapter );
         }
-        else
+        else if ( writeLocalReport && exceptionReportingKind == ExceptionReportingKind.Exception )
         {
             // Disabled / context-less / opted-out: never capture or send telemetry, but still write the local crash
-            // report for support (it is local diagnostics, not telemetry). Only the exception channel produces a local
-            // report; performance reports have no local rendering. See #1701.
-            if ( exceptionReportingKind == ExceptionReportingKind.Exception )
-            {
-                this._localExceptionReporter?.ReportException( classifiedException.Exception, localReportPath );
-            }
+            // report for support (it is local diagnostics, not telemetry) — unless the caller already wrote its own
+            // (writeLocalReport == false). Only the exception channel produces a local report; performance reports have
+            // no local rendering. See #1701.
+            this._localExceptionReporter?.ReportException( classifiedException.Exception );
         }
     }
 }

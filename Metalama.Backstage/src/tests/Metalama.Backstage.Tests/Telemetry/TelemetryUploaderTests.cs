@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
@@ -111,13 +112,23 @@ public sealed class TelemetryUploaderTests : TestsBase
         await this.AssertUploadedAsync( true );
     }
 
+    // Captures an exception report the same way the telemetry context does in production — resolving the effective
+    // action from the configuration and invoking the capturer. See #1701.
+    private void CaptureException( Exception exception, ExceptionReportingKind kind = ExceptionReportingKind.Exception )
+    {
+        var scenario = kind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance;
+        var action = this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>().GetEffectiveReportingAction( scenario );
+
+        this.ServiceProvider.GetRequiredBackstageService<IExceptionCapturer>()
+            .Capture( ExceptionClassifier.Classify( exception ), kind, action, writeLocalReport: true, adapter: null );
+    }
+
     [Fact]
     public async Task ExceptionsAreUploaded()
     {
         this.TelemetryConfigurationService.SetStatus( true );
 
-        var exceptionsReporter = this.ServiceProvider.GetRequiredBackstageService<IExceptionReporter>();
-        exceptionsReporter.ReportException( new InvalidOperationException( "Test Exception" ) );
+        this.CaptureException( new InvalidOperationException( "Test Exception" ) );
 
         await this.AssertUploadedAsync( true );
     }
@@ -127,8 +138,7 @@ public sealed class TelemetryUploaderTests : TestsBase
     {
         this.TelemetryConfigurationService.SetStatus( true );
 
-        var exceptionsReporter = this.ServiceProvider.GetRequiredBackstageService<IExceptionReporter>();
-        exceptionsReporter.ReportException( new InvalidOperationException( "Test Performance Problem" ), ExceptionReportingKind.PerformanceProblem );
+        this.CaptureException( new InvalidOperationException( "Test Performance Problem" ), ExceptionReportingKind.PerformanceProblem );
 
         await this.AssertUploadedAsync( true );
     }
@@ -159,8 +169,7 @@ public sealed class TelemetryUploaderTests : TestsBase
         this.TelemetryConfigurationService.SetStatus( true );
 
         // Queue an exception report so that there is something to upload.
-        var exceptionsReporter = this.ServiceProvider.GetRequiredBackstageService<IExceptionReporter>();
-        exceptionsReporter.ReportException( new InvalidOperationException( "Test Exception" ) );
+        this.CaptureException( new InvalidOperationException( "Test Exception" ) );
 
         await this._uploader.UploadAsync();
 

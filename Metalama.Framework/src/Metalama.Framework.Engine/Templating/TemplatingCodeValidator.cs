@@ -201,7 +201,7 @@ namespace Metalama.Framework.Engine.Templating
             }
             catch ( Exception e )
             {
-                var handler = serviceProvider.Global.GetService<ICompileTimeExceptionHandler>();
+                var handler = serviceProvider.GetService<ICompileTimeExceptionHandler>();
 
                 if ( handler == null )
                 {
@@ -211,7 +211,7 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     // It is important to swallow the exception here because this validator is executed on the whole code, even without
                     // aspect, so an exception in this code would have a large impact without any workaround. However, this code has no
-                    // other use than reporting diagnostics, so skipping it is safer than failing the compilation. 
+                    // other use than reporting diagnostics, so skipping it is safer than failing the compilation.
                     handler.ReportException( e, reportDiagnostic, true, out _ );
                 }
             }

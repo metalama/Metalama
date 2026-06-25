@@ -4,7 +4,6 @@
 
 using Metalama.Compiler;
 using Metalama.Framework.Engine.Options;
-using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Project;
 using Microsoft.CodeAnalysis;
@@ -22,13 +21,6 @@ internal sealed class TransformerContextAdapter : ITransformerContext
         var globalServices = this.ServiceProvider.Underlying;
 
         this._underlying = underlying;
-
-        // Try.Metalama ships its own handler. Having the default ICompileTimeExceptionHandler added earlier
-        // is not possible, because it needs access to IExceptionReporter service, which comes from the TransformerContext.
-        if ( globalServices.GetService<ICompileTimeExceptionHandler>() == null )
-        {
-            globalServices = globalServices.WithService( new CompileTimeExceptionHandler( globalServices ) );
-        }
 
         // Try.Metalama ships its own project options factory using the async-local service provider.
         var projectOptionsFactory = globalServices.GetRequiredService<IProjectOptionsFactory>();

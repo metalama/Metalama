@@ -26,18 +26,9 @@ public sealed class LocalExceptionReporterTests : TestsBase
     public void CrashReportCreatedWhenNotProvided()
     {
         var reporter = new LocalExceptionReporter( this.ServiceProvider );
-        reporter.ReportException( new InvalidOperationException(), null );
+        reporter.ReportException( new InvalidOperationException() );
 
         Assert.NotEmpty( this.FileSystem.EnumerateFiles( this._crashReportsDirectory, "*.txt" ) );
-    }
-
-    [Fact]
-    public void CrashReportNotCreatedWhenProvided()
-    {
-        var reporter = new LocalExceptionReporter( this.ServiceProvider );
-        reporter.ReportException( new InvalidOperationException(), "currentReport.txt" );
-
-        Assert.Empty( this.FileSystem.EnumerateFiles( this._crashReportsDirectory, "*.txt" ) );
     }
 
     // The exception toast is no longer shown by LocalExceptionReporter (which now only writes the human-readable local
@@ -47,7 +38,7 @@ public sealed class LocalExceptionReporterTests : TestsBase
     public void CrashReportContainsReportingCallStack()
     {
         var reporter = new LocalExceptionReporter( this.ServiceProvider );
-        reporter.ReportException( new InvalidOperationException( "Test exception" ), null );
+        reporter.ReportException( new InvalidOperationException( "Test exception" ) );
 
         var files = this.FileSystem.EnumerateFiles( this._crashReportsDirectory, "*.txt" ).ToList();
         Assert.Single( files );
@@ -62,7 +53,7 @@ public sealed class LocalExceptionReporterTests : TestsBase
     {
         // The exception message (emitted both standalone and via Exception.ToString()) must be scrubbed. See #1680.
         var reporter = new LocalExceptionReporter( this.ServiceProvider );
-        reporter.ReportException( new InvalidOperationException( "Login failed for password=SuperSecret123" ), null );
+        reporter.ReportException( new InvalidOperationException( "Login failed for password=SuperSecret123" ) );
 
         var content = this.FileSystem.ReadAllText( this.FileSystem.EnumerateFiles( this._crashReportsDirectory, "*.txt" ).Single() );
         this.Logger.WriteLine( content );
@@ -77,7 +68,7 @@ public sealed class LocalExceptionReporterTests : TestsBase
         // The local crash report records Environment.CommandLine, which contains absolute host paths (and
         // potentially the OS user name). It must be scrubbed rather than written verbatim. See #1680.
         var reporter = new LocalExceptionReporter( this.ServiceProvider );
-        reporter.ReportException( new InvalidOperationException( "test" ), null );
+        reporter.ReportException( new InvalidOperationException( "test" ) );
 
         var content = this.FileSystem.ReadAllText( this.FileSystem.EnumerateFiles( this._crashReportsDirectory, "*.txt" ).Single() );
         this.Logger.WriteLine( content );

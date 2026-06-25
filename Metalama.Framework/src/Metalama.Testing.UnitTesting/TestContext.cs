@@ -30,6 +30,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Metalama.Testing.UnitTesting;
@@ -69,6 +70,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
     private readonly StackTrace _stackTrace = new();
     private readonly Lazy<ImmutableArray<object>> _plugIns;
     private readonly ApplicationExitManager _applicationExitManager;
+    private readonly TestTelemetryService _telemetryService = new();
 
     internal TestProjectOptions TestProjectOptions { get; }
 
@@ -92,6 +94,19 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
     /// Gets the <see cref="ProjectServiceProvider"/> for the current context.
     /// </summary>
     public ProjectServiceProvider ServiceProvider { get; private set; }
+
+    /// <summary>
+    /// Gets the exceptions reported through the telemetry capture path in this context, with the routing each reporter
+    /// chose (per-project repository directory, tooling, or disabled). See #1701.
+    /// </summary>
+    public IReadOnlyCollection<ReportedTelemetryException> ReportedTelemetryExceptions => this._telemetryService.ReportedExceptions;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the test deliberately reports exceptions through the telemetry capture
+    /// path. When <c>true</c>, the end-of-test assertion that no exceptions were reported is skipped (the test is expected
+    /// to assert on <see cref="ReportedTelemetryExceptions"/> itself). See #1701.
+    /// </summary>
+    public bool ExpectsReportedExceptions { get; set; }
 
     /// <summary>
     /// Gets a <see cref="CancellationToken"/> used to cancel the test in case of timeout. The timeout period is defined
@@ -148,6 +163,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
             var backstageServices = ServiceProvider<IBackstageService>.Empty
                 .WithService( this )
                 .WithService( platformInfo )
+                .WithService( this._telemetryService )
                 .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<IFileSystem>() )
                 .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>() );
 
@@ -313,6 +329,11 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
     protected virtual void Dispose( bool disposing )
     {
+        if ( disposing )
+        {
+            GC.SuppressFinalize( this );
+        }
+
         if ( this._isRoot )
         {
             this._applicationExitManager.Dispose();
@@ -327,11 +348,14 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
             this._testCancellationTokenSource?.Dispose();
             this._cancellationTokenRegistration?.Dispose();
             this._timer?.Dispose();
-        }
 
-        if ( disposing )
-        {
-            GC.SuppressFinalize( this );
+            // We generally don't want to see any exceptions reported during the test, unless the test opts in. This runs
+            // after the resources are released and after finalization is suppressed, so a failed assertion does not leak
+            // resources or trigger the finalizer. See #1701.
+            if ( disposing && !this.ExpectsReportedExceptions )
+            {
+                Assert.DoesNotContain( this._telemetryService.ReportedExceptions, e => e.Exception.GetType().Name is not "ConnectionLostException" );
+            }
         }
     }
 

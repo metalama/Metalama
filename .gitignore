@@ -67,7 +67,7 @@ coverage.json
 **/.idea/copilot.data.*.xml
 *-TODO.md
 Metalama.Framework/BenchmarkDotNet.Artifacts/results
-eng/docker-context/.g/
+.g/
 *.swp
 .idea/
 .tmp*/
