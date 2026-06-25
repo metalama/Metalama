@@ -42,19 +42,21 @@ public interface ITelemetryContext
     IUsageSession StartUsageSession( string kind, string? projectName = null );
 
     /// <summary>
-    /// Reports an exception. The local crash report is always written (local support data). The telemetry capture,
-    /// review-first toast and upload happen only when <see cref="IsTelemetryEnabled"/> is <c>true</c>.
+    /// Reports an exception. The local crash report is written (local support data) unless <paramref name="writeLocalReport"/>
+    /// is <c>false</c> — which a caller that has already written its own report passes to avoid a duplicate. The telemetry
+    /// capture, review-first toast and upload happen only when <see cref="IsTelemetryEnabled"/> is <c>true</c> for the
+    /// corresponding scenario.
     /// </summary>
     void ReportException(
         Exception exception,
         ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception,
-        string? localReportPath = null,
+        bool writeLocalReport = true,
         IExceptionAdapter? exceptionAdapter = null );
 
-    /// <inheritdoc cref="ReportException(System.Exception,Metalama.Backstage.Telemetry.ExceptionReportingKind,string?,Metalama.Backstage.Telemetry.IExceptionAdapter?)"/>
+    /// <inheritdoc cref="ReportException(System.Exception,Metalama.Backstage.Telemetry.ExceptionReportingKind,bool,Metalama.Backstage.Telemetry.IExceptionAdapter?)"/>
     void ReportException(
         ClassifiedException classifiedException,
         ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception,
-        string? localReportPath = null,
+        bool writeLocalReport = true,
         IExceptionAdapter? exceptionAdapter = null );
 }

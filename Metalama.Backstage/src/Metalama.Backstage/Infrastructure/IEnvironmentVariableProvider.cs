@@ -11,4 +11,10 @@ namespace Metalama.Backstage.Infrastructure;
 public interface IEnvironmentVariableProvider : IBackstageService
 {
     string? GetEnvironmentVariable( string variable );
+
+    /// <summary>
+    /// Gets the current working directory of the process. Used, for example, to resolve the tooling telemetry policy:
+    /// telemetry about the tooling itself is governed by the repository the process is running in, if any. See #1701.
+    /// </summary>
+    string CurrentDirectory { get; }
 }

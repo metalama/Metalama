@@ -35,7 +35,6 @@ namespace Metalama.Backstage.Telemetry
         private readonly ILogger _logger;
         private readonly Uri _requestUri = new( "https://bits.postsharp.net:44301/upload" );
         private readonly IConfigurationManager _configurationManager;
-        private readonly IExceptionReporter _exceptionReporter;
         private readonly List<(string File, Exception Reason)> _failedFiles = [];
         private readonly TelemetryLogger _telemetryLogger;
         private readonly BackstageBackgroundTasksService _backgroundTasksService;
@@ -51,7 +50,6 @@ namespace Metalama.Backstage.Telemetry
             this._httpClientFactory = serviceProvider.GetRequiredBackstageService<IHttpClientFactory>();
             this._time = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
             this._logger = serviceProvider.GetLoggerFactory().Telemetry();
-            this._exceptionReporter = serviceProvider.GetRequiredBackstageService<IExceptionReporter>();
             this._telemetryLogger = serviceProvider.GetRequiredBackstageService<TelemetryLogger>();
             this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
             this._randomNumberGenerator = serviceProvider.GetRequiredBackstageService<RandomNumberGenerator>();
@@ -406,7 +404,8 @@ namespace Metalama.Backstage.Telemetry
                         $"Failed to pack '{failedFile.File}' telemetry file: {failedFile.Reason.Message}",
                         failedFile.Reason );
 
-                    this._exceptionReporter.ReportException( exception );
+                    // A telemetry-packing failure is about the tooling itself: report through the tooling policy. See #1701.
+                    this._serviceProvider.ReportToolingException( exception );
 
 #if DEBUG
                     failedFileExceptions.Add( exception );

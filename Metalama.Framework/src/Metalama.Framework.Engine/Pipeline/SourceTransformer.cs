@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.UserInterface.Toasts;
 using Metalama.Backstage.Welcome;
 using Metalama.Compiler;
@@ -14,6 +15,7 @@ using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Testing;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
@@ -25,7 +27,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using DiagnosticFilter = Metalama.Compiler.DiagnosticFilter;
-using IExceptionReporter = Metalama.Backstage.Telemetry.IExceptionReporter;
 
 namespace Metalama.Framework.Engine.Pipeline;
 
@@ -79,8 +80,9 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
     {
         try
         {
-            var reporter = serviceProvider.GetBackstageService<IExceptionReporter>();
-            reporter?.ReportException( e );
+            // This is the compiler outer fallback (the per-directory context could not be set up): report through the
+            // tooling policy. See #1701.
+            serviceProvider.ReportToolingException( e );
         }
         catch ( Exception reporterException )
         {
@@ -99,50 +101,72 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
 
         try
         {
+            // Test-only fault injection point exercising the global (outer) handling layer. No-op in production. See #1701.
+            globalServices.GetService<ITestFaultInjector>()?.InjectFault( FaultInjectionPoints.SourceTransformerEntry );
+
             var projectOptions = context.ProjectOptions;
 
+            // The compile-time exception handler is a project-scoped service, so it can resolve the project options and
+            // the per-project telemetry context (honoring the repository metalama.json opt-out). See #1701.
             var projectServiceProvider = globalServices
-                .WithProjectScopedServices( projectOptions, context.Compilation );
+                .WithProjectScopedServices( projectOptions, context.Compilation )
+                .WithService( sp => new CompileTimeExceptionHandler( sp ) );
 
-            using var pipeline = CompileTimeAspectPipeline.Create( projectServiceProvider );
-
-            var taskRunner = globalServices.GetRequiredService<ITaskRunner>();
-
-            var suppressions = new ConcurrentQueue<ScopedSuppression>();
-
-            // ReSharper disable once AccessToDisposedClosure
-
-            var pipelineResult =
-                taskRunner.RunSynchronously(
-                    () => pipeline.ExecuteAsync(
-                        context.ReportDiagnostic,
-                        suppressions.Enqueue,
-                        context.Compilation,
-                        context.Resources,
-                        TestableCancellationToken.None ) );
-
-            HandleSuppressions( context, projectServiceProvider, suppressions );
-
-            if ( pipelineResult.IsSuccessful )
+            try
             {
-                context.AddResources( pipelineResult.Value.AdditionalResources );
-                context.AddSyntaxTreeTransformations( pipelineResult.Value.SyntaxTreeTransformations );
-                HandleAdditionalCompilationOutputFiles( projectOptions, pipelineResult.Value );
-                HandleSuppressions( context, projectServiceProvider, pipelineResult.Value.DiagnosticSuppressions );
+                // Test-only fault injection point exercising the project-scoped (inner) handling layer. No-op in
+                // production. See #1701.
+                globalServices.GetService<ITestFaultInjector>()?.InjectFault( FaultInjectionPoints.CompileTimePipeline );
+
+                using var pipeline = CompileTimeAspectPipeline.Create( projectServiceProvider );
+
+                var taskRunner = globalServices.GetRequiredService<ITaskRunner>();
+
+                var suppressions = new ConcurrentQueue<ScopedSuppression>();
+
+                // ReSharper disable once AccessToDisposedClosure
+
+                var pipelineResult =
+                    taskRunner.RunSynchronously(
+                        () => pipeline.ExecuteAsync(
+                            context.ReportDiagnostic,
+                            suppressions.Enqueue,
+                            context.Compilation,
+                            context.Resources,
+                            TestableCancellationToken.None ) );
+
+                HandleSuppressions( context, projectServiceProvider, suppressions );
+
+                if ( pipelineResult.IsSuccessful )
+                {
+                    context.AddResources( pipelineResult.Value.AdditionalResources );
+                    context.AddSyntaxTreeTransformations( pipelineResult.Value.SyntaxTreeTransformations );
+                    HandleAdditionalCompilationOutputFiles( projectOptions, pipelineResult.Value );
+                    HandleSuppressions( context, projectServiceProvider, pipelineResult.Value.DiagnosticSuppressions );
+                }
+            }
+            catch ( Exception e )
+            {
+                // The project scope is known: report through the project-scoped handler, which writes the rich diagnostic
+                // and captures telemetry through the per-project context.
+                var isHandled = false;
+
+                projectServiceProvider
+                    .GetService<ICompileTimeExceptionHandler>()
+                    ?.ReportException( e, context.ReportDiagnostic, false, out isHandled );
+
+                if ( !isHandled )
+                {
+                    throw;
+                }
             }
         }
         catch ( Exception e )
         {
-            var isHandled = false;
-
-            globalServices
-                .GetService<ICompileTimeExceptionHandler>()
-                ?.ReportException( e, context.ReportDiagnostic, false, out isHandled );
-
-            if ( !isHandled )
-            {
-                throw;
-            }
+            // The project scope could not be established (e.g. building the project service provider failed): there is no
+            // project context. Report through a handler built from the global services — it writes the local report, emits
+            // the diagnostic and reports tooling telemetry — then swallow the exception so the compiler does not crash.
+            new CompileTimeExceptionHandler( globalServices ).ReportException( e, context.ReportDiagnostic, false, out _ );
         }
         finally
         {

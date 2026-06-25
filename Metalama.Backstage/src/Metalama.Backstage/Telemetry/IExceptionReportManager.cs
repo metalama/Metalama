@@ -2,27 +2,19 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
-using System;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Backstage.Telemetry;
 
-public interface IExceptionReporter : IBackstageService
+/// <summary>
+/// Retrieves and sends locally-captured exception reports. Capturing an exception is not part of this interface: it
+/// happens through <see cref="ITelemetryContext.ReportException(System.Exception,ExceptionReportingKind,bool,IExceptionAdapter?)"/>
+/// (internally <see cref="IExceptionCapturer"/>), so that capture always passes through the telemetry policy. This
+/// interface manages the already-captured reports — it backs the worker review page and the CLI. See #1674, #1701.
+/// </summary>
+public interface IExceptionReportManager : IBackstageService
 {
-    void ReportException(
-        Exception exception,
-        ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception,
-        string? localReportPath = null,
-        IExceptionAdapter? exceptionAdapter = null );
-
-    void ReportException(
-        ClassifiedException classifiedException,
-        ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception,
-        string? localReportPath = null,
-        IExceptionAdapter? exceptionAdapter = null );
-
     /// <summary>
     /// Gets a locally-captured exception report so that it can be reviewed before sending, including both the exact
     /// scrubbed payload that would be uploaded and the full unscrubbed local rendering, plus the report category.

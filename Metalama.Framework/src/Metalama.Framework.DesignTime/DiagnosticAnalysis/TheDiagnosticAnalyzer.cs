@@ -244,7 +244,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
             }
             catch ( Exception e )
             {
-                this._exceptionHandler.ReportException( e );
+                this._exceptionHandler.ReportException( e, context.ProjectOptions );
             }
             finally
             {

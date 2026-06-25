@@ -6,10 +6,12 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -18,16 +20,75 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
 {
     internal sealed class CompileTimeExceptionHandler : ICompileTimeExceptionHandler
     {
-        private readonly IExceptionReporter? _exceptionReporter;
-        private readonly IStandardDirectories _standardDirectories;
+        private readonly ITelemetryService? _telemetryService;
+        private readonly IStandardDirectories? _standardDirectories;
+        private readonly IProjectOptions? _projectOptions;
 
         public CompileTimeExceptionHandler( IServiceProvider serviceProvider )
         {
-            this._exceptionReporter = (IExceptionReporter?) serviceProvider.GetService( typeof(IExceptionReporter) );
-            this._standardDirectories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
+            this._telemetryService = serviceProvider.GetBackstageService<ITelemetryService>();
+            this._standardDirectories = serviceProvider.GetBackstageService<IStandardDirectories>();
+            this._projectOptions = (IProjectOptions?) serviceProvider.GetService( typeof(IProjectOptions) );
         }
 
-        public void ReportException( Exception exception, Action<Diagnostic> reportDiagnostic, bool canIgnoreException, out bool isHandled )
+        // Writes the rich crash report. Returns <c>true</c> and sets <paramref name="reportFile"/> to the written path on
+        // success. Returns <c>false</c> on failure: <paramref name="errorMessage"/> describes the failure when the write
+        // was attempted but failed (an I/O error), or is <c>null</c> when there was simply no place to write the report
+        // (no standard-directories service, e.g. in unit tests where the flow is cut). The write is best-effort: it is
+        // itself handling an exception, so it must never throw. See #1701.
+        private bool TryWriteLocalReport( string reportContent, [NotNullWhen( true )] out string? reportFile, out string? errorMessage )
+        {
+            reportFile = null;
+            errorMessage = null;
+
+            if ( this._standardDirectories == null )
+            {
+                return false;
+            }
+
+            var file = Path.Combine( this._standardDirectories.CrashReportsDirectory, $"exception-{Guid.NewGuid()}.txt" );
+
+            try
+            {
+                Directory.CreateDirectory( this._standardDirectories.CrashReportsDirectory );
+                File.WriteAllText( file, reportContent );
+                reportFile = file;
+
+                return true;
+            }
+            catch ( Exception e )
+            {
+                errorMessage = $"Cannot write the crash report to '{file}': {e.Message}";
+
+                return false;
+            }
+        }
+
+        // Opens the telemetry context for the report. With project options (the normal, project-scoped case), it honors
+        // the project repository's metalama.json opt-out. With no project options (the handler used as a global fallback),
+        // it reports as a tooling exception. The local crash report is written regardless. See #1701.
+        private ITelemetryContext? GetTelemetryContext()
+        {
+            if ( this._telemetryService == null )
+            {
+                return null;
+            }
+
+            if ( this._projectOptions == null )
+            {
+                return this._telemetryService.OpenContext( this._telemetryService.GetToolingPolicy() );
+            }
+
+            var projectDirectory = string.IsNullOrEmpty( this._projectOptions.ProjectPath ) ? null : Path.GetDirectoryName( this._projectOptions.ProjectPath );
+
+            return this._telemetryService.OpenContext( this._telemetryService.GetPolicy( projectDirectory ) );
+        }
+
+        public void ReportException(
+            Exception exception,
+            Action<Diagnostic> reportDiagnostic,
+            bool canIgnoreException,
+            out bool isHandled )
         {
             // Unwrap AggregateException.
             if ( exception is AggregateException { InnerExceptions: { Count: 1 } innerExceptions } )
@@ -41,8 +102,6 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             {
                 node = syntaxProcessingException.SyntaxNode;
             }
-
-            var reportFile = Path.Combine( this._standardDirectories.CrashReportsDirectory, $"exception-{Guid.NewGuid()}.txt" );
 
             var exceptionText = new StringBuilder();
 
@@ -71,7 +130,24 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             // ReSharper disable once EmptyGeneralCatchClause
             catch { }
 
-            File.WriteAllText( reportFile, exceptionText.ToString() );
+            string reportFile;
+
+            if ( this.TryWriteLocalReport( exceptionText.ToString(), out var writtenReportFile, out var reportErrorMessage ) )
+            {
+                reportFile = writtenReportFile;
+            }
+            else if ( reportErrorMessage != null )
+            {
+                // The report could not be written. Cite "<error>" in the main diagnostic and surface the write failure as
+                // a separate diagnostic so the user understands why the cited path is unavailable. See #1701.
+                reportFile = "<error>";
+                reportDiagnostic( GeneralDiagnosticDescriptors.CannotWriteCrashReportFile.CreateRoslynDiagnostic( node?.GetLocation(), reportErrorMessage ) );
+            }
+            else
+            {
+                // There was no place to write the report (e.g. in unit tests where the flow is cut).
+                reportFile = "(crash report unavailable)";
+            }
 
             var diagnosticDefinition =
                 canIgnoreException ? GeneralDiagnosticDescriptors.IgnorableUnhandledException : GeneralDiagnosticDescriptors.UnhandledException;
@@ -82,7 +158,9 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                     (exception.Message, reportFile),
                     description: exceptionText.ToString() ) );
 
-            this._exceptionReporter?.ReportException( exception, localReportPath: reportFile );
+            // We have already written the rich local report (reportFile) and cited it in the diagnostic above, so the
+            // telemetry path must not write a duplicate local report (writeLocalReport: false). See #1701.
+            this.GetTelemetryContext()?.ReportException( exception, writeLocalReport: false );
 
             isHandled = true;
         }

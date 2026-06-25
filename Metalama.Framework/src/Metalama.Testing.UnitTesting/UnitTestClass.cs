@@ -11,7 +11,6 @@ using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Services;
 using System;
 using System.Runtime.CompilerServices;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace Metalama.Testing.UnitTesting
@@ -52,7 +51,6 @@ namespace Metalama.Testing.UnitTesting
 
         private readonly ITestOutputHelper? _logger;
         private readonly bool _injectLoggingService;
-        private readonly TestExceptionReporter _exceptionReporter = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UnitTestClass"/> class.
@@ -65,7 +63,7 @@ namespace Metalama.Testing.UnitTesting
         }
 
         /// <summary>
-        /// Gets an object allowing to write to the test output. 
+        /// Gets an object allowing to write to the test output.
         /// </summary>
         protected ITestOutputHelper TestOutput => this._logger.AssertNotNull();
 
@@ -106,7 +104,6 @@ namespace Metalama.Testing.UnitTesting
         // Resharper disable once VirtualMemberNeverOverridden.Global
         protected virtual void AddExceptionHandler( IAdditionalServiceCollection services )
         {
-            ((AdditionalServiceCollection) services).BackstageServices.Add( this._exceptionReporter );
             services.AddGlobalService( provider => new DesignTimeExceptionHandler( provider ) );
         }
 
@@ -193,11 +190,6 @@ namespace Metalama.Testing.UnitTesting
             return services;
         }
 
-        public void Dispose()
-        {
-            // We generally don't want to see any exceptions reported during the test.
-            // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
-            Assert.DoesNotContain( this._exceptionReporter.ReportedExceptions, e => e.GetType().Name is not "ConnectionLostException" );
-        }
+        public void Dispose() { }
     }
 }

@@ -16,13 +16,7 @@ namespace Metalama.Backstage.Application
     /// </summary>
     public abstract class ApplicationInfoBase : ComponentInfoBase, IApplicationInfo
     {
-        protected ApplicationInfoBase( Assembly metadataAssembly ) : base( metadataAssembly )
-        {
-            if ( this.PackageVersion != null )
-            {
-                this.IsTelemetryEnabled = !VersionHelper.IsDevelopmentVersion( this.PackageVersion );
-            }
-        }
+        protected ApplicationInfoBase( Assembly metadataAssembly ) : base( metadataAssembly ) {}
 
         /// <inheritdoc />
         public virtual ProcessKind ProcessKind => ProcessUtilities.ProcessKind;
@@ -34,7 +28,7 @@ namespace Metalama.Backstage.Application
         public virtual bool IsUnattendedProcess( ILoggerFactory loggerFactory ) => ProcessUtilities.IsCurrentProcessUnattended( loggerFactory );
 
         /// <inheritdoc />
-        public virtual bool IsTelemetryEnabled { get; }
+        public virtual bool IsTelemetryEnabled => true;
 
         /// <inheritdoc />
         public virtual bool IsLicenseAuditEnabled => false;

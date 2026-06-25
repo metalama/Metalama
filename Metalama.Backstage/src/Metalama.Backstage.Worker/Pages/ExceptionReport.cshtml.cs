@@ -18,12 +18,12 @@ namespace Metalama.Backstage.Pages;
 // that category. Opened from the exception toast. See #1674.
 internal class ExceptionReportPageModel : PageModel
 {
-    private readonly IExceptionReporter _exceptionReporter;
+    private readonly IExceptionReportManager _exceptionReporter;
     private readonly ITelemetryConfigurationService _telemetryConfigurationService;
     private readonly IConfigurationManager _configurationManager;
 
     public ExceptionReportPageModel(
-        IExceptionReporter exceptionReporter,
+        IExceptionReportManager exceptionReporter,
         ITelemetryConfigurationService telemetryConfigurationService,
         IConfigurationManager configurationManager )
     {

@@ -39,7 +39,7 @@ internal sealed class RepositoryConfigurationService : IRepositoryConfigurationS
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "RepositoryConfiguration" );
     }
 
-    public RepositoryConfigurationResult GetConfiguration( string startingDirectory )
+    public RepositoryConfigurationResult GetRepositoryConfiguration( string startingDirectory )
     {
         if ( string.IsNullOrEmpty( startingDirectory ) )
         {
@@ -63,25 +63,40 @@ internal sealed class RepositoryConfigurationService : IRepositoryConfigurationS
         return result;
     }
 
-    private RepositoryConfigurationResult Resolve( string startingDirectory )
+    public string? GetRepositoryRoot( string? startingDirectory )
     {
-        // Locate the repository root: the nearest ancestor (including the starting directory) that contains a '.git'
-        // folder or file. Only a metalama.json located in that root directory is honored. When there is no repository
-        // root at all (a very common case, e.g. building outside a git working tree), no file applies and the global
-        // default is used, without any warning.
-        string? repositoryRoot = null;
+        if ( string.IsNullOrEmpty( startingDirectory ) )
+        {
+            return null;
+        }
 
+        return this.FindRepositoryRoot( Path.GetFullPath( startingDirectory! ) );
+    }
+
+    // Locate the repository root: the nearest ancestor (including the starting directory) that contains a '.git' folder
+    // or file. Returns null when there is no repository root at all (a common case, e.g. building outside a git working
+    // tree). The argument must already be an absolute path.
+    private string? FindRepositoryRoot( string startingDirectory )
+    {
         for ( var directory = startingDirectory; directory != null; directory = Path.GetDirectoryName( directory ) )
         {
             var gitPath = Path.Combine( directory, ".git" );
 
             if ( this._fileSystem.DirectoryExists( gitPath ) || this._fileSystem.FileExists( gitPath ) )
             {
-                repositoryRoot = directory;
-
-                break;
+                return directory;
             }
         }
+
+        return null;
+    }
+
+    private RepositoryConfigurationResult Resolve( string startingDirectory )
+    {
+        // Only a metalama.json located in the repository root directory is honored. When there is no repository root at
+        // all (a very common case, e.g. building outside a git working tree), no file applies and the global default is
+        // used, without any warning.
+        var repositoryRoot = this.FindRepositoryRoot( startingDirectory );
 
         if ( repositoryRoot == null )
         {
