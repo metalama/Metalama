@@ -71,3 +71,4 @@ eng/docker-context/.g/
 *.swp
 .idea/
 .tmp*/
+.g/
