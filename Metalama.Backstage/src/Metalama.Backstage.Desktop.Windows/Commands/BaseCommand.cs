@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
 using Spectre.Console.Cli;
 using System;
