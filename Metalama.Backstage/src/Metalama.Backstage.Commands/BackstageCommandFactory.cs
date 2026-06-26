@@ -111,6 +111,12 @@ public static class BackstageCommandFactory
                             .WithData( options )
                             .WithDescription( "Disables telemetry for a scenario (usage, exception, performance or all)." );
 
+                        telemetry.AddCommand<ResetTelemetryCommand>( "reset" )
+                            .WithData( options )
+                            .WithDescription(
+                                "Resets telemetry for a scenario (usage, exception, performance or all) to its default state "
+                                + "(review-first for exceptions and performance problems)." );
+
                         telemetry.AddCommand<ResetDeviceIdCommand>( "reset-device-id" )
                             .WithDescription( "Generates a new anonymous device identifier for telemetry." );
 
@@ -149,6 +155,10 @@ public static class BackstageCommandFactory
                         rss.AddCommand<EnableRssClientCommand>( "enable" )
                             .WithData( options )
                             .WithDescription( "Enables automatic notifications for new Metalama updates." );
+
+                        rss.AddCommand<RssStatusCommand>( "status" )
+                            .WithData( options )
+                            .WithDescription( "Displays the current news notification settings." );
                     } );
 
                 appConfig.AddCommand<VersionCommand>( "version" ).WithData( options ).WithDescription( "Prints version information." );

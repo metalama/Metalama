@@ -19,11 +19,12 @@ namespace Metalama.Backstage.Telemetry;
 /// See #1674, #1701.
 /// </summary>
 [PublicAPI]
-public enum ReportingAction
+public enum TelemetryConsent
 {
     /// <summary>
-    /// For usage, enabled (opt-out). For exception/performance, ASK: capture locally and show a review toast, but do not
-    /// auto-send.
+    /// For usage (opt-out), unconfigured — treated as disabled, the same as <see cref="No"/>, however the value
+    /// is automatically set to <see cref="Yes"/> upon first use. For exception/performance,
+    /// ASK: capture locally and show a review toast, but do not auto-send.
     /// </summary>
     Default,
 

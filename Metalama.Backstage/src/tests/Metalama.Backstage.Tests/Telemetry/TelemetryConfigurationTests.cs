@@ -18,34 +18,6 @@ public sealed class TelemetryConfigurationTests : TestsBase
 {
     public TelemetryConfigurationTests( ITestOutputHelper logger ) : base( logger, new TestApplicationInfo() { IsTelemetryEnabled = true } ) { }
 
-    [Theory]
-    [InlineData( true, true )]
-    [InlineData( false, false )]
-    public void SetStatus( bool input, bool output )
-    {
-        this.TelemetryConfigurationService.SetStatus( input );
-        Assert.Equal( output, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
-    }
-
-    [Theory]
-    [InlineData( true, true )]
-    [InlineData( false, false )]
-    public void SetStatusAffectsRss( bool input, bool output )
-    {
-        // The in-product opt-out (SetStatus) must stop the RSS feed fetch, just like the
-        // METALAMA_TELEMETRY_OPT_OUT environment variable does. See issue #1670.
-        this.TelemetryConfigurationService.SetStatus( input );
-        Assert.Equal( output, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Rss ) );
-    }
-
-    [Fact]
-    public void UsageReportingEnabledByDefault()
-    {
-        // Usage reporting is opt-out: enabled by default.
-        Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
-        Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Rss ) );
-    }
-
     [Fact]
     public void FirstRunDefaultsExceptionAndPerformanceChannelsToReviewFirst()
     {
@@ -57,23 +29,8 @@ public sealed class TelemetryConfigurationTests : TestsBase
 
         var configuration = this.ConfigurationManager!.Get<TelemetryConfiguration>();
 
-        Assert.Equal( ReportingAction.Default, configuration.ExceptionReportingAction );
-        Assert.Equal( ReportingAction.Default, configuration.PerformanceProblemReportingAction );
-    }
-
-    [Theory]
-    [InlineData( true )]
-    [InlineData( false )]
-    public void SetStatusPerScenarioIsIndependent( bool enabled )
-    {
-        // Start from a known opposite state.
-        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Usage, !enabled );
-        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, enabled );
-
-        Assert.Equal( !enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
-
-        // Exception is an ASK-capable scenario, so IsEnabled throws for it; query the effective action instead.
-        Assert.Equal( enabled, this.TelemetryConfigurationService.GetEffectiveReportingAction( TelemetryScenario.Exception ) != ReportingAction.No );
+        Assert.Equal( TelemetryConsent.Default, configuration.ExceptionConsent );
+        Assert.Equal( TelemetryConsent.Default, configuration.PerformanceProblemConsent );
     }
 
     [Theory]
@@ -92,9 +49,8 @@ public sealed class TelemetryConfigurationTests : TestsBase
             this.EnvironmentVariableProvider.Environment[Backstage.Telemetry.TelemetryConfigurationService.OptOutEnvironmentVariable] = value;
         }
 
-        this.TelemetryConfigurationService.SetStatus( true );
-        Assert.Equal( isEnabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
-        Assert.Equal( isEnabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Rss ) );
+        this.TelemetryConfigurationService.SetConsent( TelemetryConsent.Yes );
+        Assert.Equal( isEnabled, this.TelemetryConfigurationService.GetEffectiveConsent( TelemetryScenario.Usage ) != TelemetryConsent.No );
     }
 
     [Fact]
@@ -196,7 +152,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
         // same RNG seed must therefore produce different salts.
         long GenerateSalt()
         {
-            var serviceProvider = this.CloneServiceCollection().BuildServiceProvider();
+            var serviceProvider = this.CloneServiceCollection().BuildServiceProvider().InitializeBackstageServices();
             var telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
             telemetryConfigurationService.EnsureActivated();
 
@@ -222,8 +178,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
         // reported (and therefore deduplicated by the exception reporter) be captured and surfaced again. See #1674.
         var configurationManager = this.ConfigurationManager!;
 
-        configurationManager.Update<TelemetryConfiguration>(
-            c => c with { Issues = c.Issues.SetItem( "some-issue-hash", ReportingStatus.Reported ) } );
+        configurationManager.Update<TelemetryConfiguration>( c => c with { Issues = c.Issues.SetItem( "some-issue-hash", ReportingStatus.Reported ) } );
 
         Assert.NotEmpty( configurationManager.Get<TelemetryConfiguration>().Issues );
 

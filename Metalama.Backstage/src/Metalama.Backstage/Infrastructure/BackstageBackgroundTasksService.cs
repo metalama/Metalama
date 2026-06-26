@@ -32,16 +32,18 @@ public sealed class BackstageBackgroundTasksService : IBackstageService
     [PublicAPI]
     public static BackstageBackgroundTasksService Default { get; } = new();
 
-    internal void Enqueue( Func<Task> func )
+    internal Task Enqueue( Func<Task> func )
     {
         this.OnTaskStarting();
-        Task.Run( func ).ContinueWith( this.OnTaskCompleted );
+
+        return Task.Run( func ).ContinueWith( this.OnTaskCompleted );
     }
 
-    internal void Enqueue( Action action )
+    internal Task Enqueue( Action action )
     {
         this.OnTaskStarting();
-        Task.Run( action ).ContinueWith( this.OnTaskCompleted );
+
+        return Task.Run( action ).ContinueWith( this.OnTaskCompleted );
     }
 
     /// <summary>

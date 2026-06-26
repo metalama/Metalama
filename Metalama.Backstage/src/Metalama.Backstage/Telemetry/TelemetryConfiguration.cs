@@ -16,18 +16,27 @@ namespace Metalama.Backstage.Telemetry;
 [Description( "Telemetry and exception-reporting options." )]
 public sealed record TelemetryConfiguration : ConfigurationFile
 {
-    public ReportingAction ExceptionReportingAction { get; init; } = ReportingAction.Default;
+    /// <summary>
+    /// The name of the environment variable that opts the whole machine out of telemetry, regardless of the per-category
+    /// configuration. A non-empty value other than <c>false</c>/<c>0</c> disables telemetry at the process level.
+    /// </summary>
+    public const string OptOutEnvironmentVariableName = "METALAMA_TELEMETRY_OPT_OUT";
 
-    public ReportingAction PerformanceProblemReportingAction { get; init; } = ReportingAction.Default;
+    [JsonPropertyName( "ExceptionReportingAction" )]
+    public TelemetryConsent ExceptionConsent { get; init; } = TelemetryConsent.Default;
 
-    public ReportingAction UsageReportingAction { get; init; } = ReportingAction.Default;
+    [JsonPropertyName( "PerformanceProblemReportingAction" )]
+    public TelemetryConsent PerformanceProblemConsent { get; init; } = TelemetryConsent.Default;
 
-    public ReportingAction GetReportingAction( TelemetryScenario scenario )
+    [JsonPropertyName( "UsageReportingAction" )]
+    public TelemetryConsent UsageConsent { get; init; } = TelemetryConsent.Default;
+
+    public TelemetryConsent GetConsent( TelemetryScenario scenario )
         => scenario switch
         {
-            TelemetryScenario.Exception => this.ExceptionReportingAction,
-            TelemetryScenario.Performance => this.PerformanceProblemReportingAction,
-            TelemetryScenario.Usage => this.UsageReportingAction,
+            TelemetryScenario.Exception => this.ExceptionConsent,
+            TelemetryScenario.Performance => this.PerformanceProblemConsent,
+            TelemetryScenario.Usage => this.UsageConsent,
             _ => throw new ArgumentOutOfRangeException()
         };
 

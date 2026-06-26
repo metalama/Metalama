@@ -52,8 +52,8 @@ public sealed class ExceptionReportPageModelTests : TestsBase
             this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>(),
             this.ServiceProvider.GetRequiredBackstageService<IConfigurationManager>() );
 
-    private ReportingAction GetReportingAction( TelemetryScenario scenario )
-        => this.ServiceProvider.GetRequiredBackstageService<IConfigurationManager>().Get<TelemetryConfiguration>().GetReportingAction( scenario );
+    private TelemetryConsent GetConsent( TelemetryScenario scenario )
+        => this.ServiceProvider.GetRequiredBackstageService<IConfigurationManager>().Get<TelemetryConfiguration>().GetConsent( scenario );
 
     [Fact]
     public void OnGetLoadsBothReportRenderingsForReview()
@@ -104,13 +104,12 @@ public sealed class ExceptionReportPageModelTests : TestsBase
     }
 
     [Theory]
-    [InlineData( true, ReportingAction.Yes )]
-    [InlineData( false, ReportingAction.No )]
-    public void OnPostUpdateAutoReportTogglesTheCategoryWithoutResending( bool autoReport, ReportingAction expectedAction )
+    [InlineData( true, TelemetryConsent.Yes )]
+    [InlineData( false, TelemetryConsent.Default )]
+    public void OnPostUpdateAutoReportTogglesTheCategoryWithoutResending( bool autoReport, TelemetryConsent expectedAction )
     {
         // #1674: on an already-sent report the auto-report checkbox stays available so the user can turn auto-reporting
         // on or off for the category. This only updates the setting — it does not (re-)send the report.
-        this.TelemetryConfigurationService.Initialize();
 
         var reporter = new FakeExceptionReportManager
         {
@@ -123,7 +122,7 @@ public sealed class ExceptionReportPageModelTests : TestsBase
 
         model.OnPostUpdateAutoReport();
 
-        Assert.Equal( expectedAction, this.GetReportingAction( TelemetryScenario.Exception ) );
+        Assert.Equal( expectedAction, this.GetConsent( TelemetryScenario.Exception ) );
 
         // The page still renders as already sent, with the report content shown, and never as the "report queued" state.
         Assert.True( model.IsAlreadySent );
@@ -161,12 +160,7 @@ public sealed class ExceptionReportPageModelTests : TestsBase
     [Fact]
     public void OnPostReportSendsTheReportWithoutEnablingAutoReport()
     {
-        this.TelemetryConfigurationService.Initialize();
-
-        var reporter = new FakeExceptionReportManager
-        {
-            ReportToReturn = new CapturedExceptionReport( "<r/>", null, TelemetryScenario.Exception )
-        };
+        var reporter = new FakeExceptionReportManager { ReportToReturn = new CapturedExceptionReport( "<r/>", null, TelemetryScenario.Exception ) };
 
         var model = this.CreateModel( reporter );
         model.Report = "exception-abc.xml";
@@ -178,18 +172,13 @@ public sealed class ExceptionReportPageModelTests : TestsBase
         Assert.Equal( "exception-abc.xml", reporter.SentReport );
 
         // The category stays review-first because the checkbox was not ticked.
-        Assert.Equal( ReportingAction.Default, this.GetReportingAction( TelemetryScenario.Exception ) );
+        Assert.Equal( TelemetryConsent.Default, this.GetConsent( TelemetryScenario.Exception ) );
     }
 
     [Fact]
     public void OnPostReportWithAutoReportEnablesOnlyThatCategory()
     {
-        this.TelemetryConfigurationService.Initialize();
-
-        var reporter = new FakeExceptionReportManager
-        {
-            ReportToReturn = new CapturedExceptionReport( "<r/>", null, TelemetryScenario.Performance )
-        };
+        var reporter = new FakeExceptionReportManager { ReportToReturn = new CapturedExceptionReport( "<r/>", null, TelemetryScenario.Performance ) };
 
         var model = this.CreateModel( reporter );
         model.Report = "perf-xyz.xml";
@@ -200,12 +189,12 @@ public sealed class ExceptionReportPageModelTests : TestsBase
         Assert.Equal( "perf-xyz.xml", reporter.SentReport );
 
         // Ticking "automatically report all performance warnings" enables auto-send for performance only.
-        Assert.Equal( ReportingAction.Yes, this.GetReportingAction( TelemetryScenario.Performance ) );
+        Assert.Equal( TelemetryConsent.Yes, this.GetConsent( TelemetryScenario.Performance ) );
 
         // Exceptions and usage telemetry are independent and unchanged. Usage stays at its opt-out default
         // (ReportingAction.Default, which is treated as enabled): lazy activation no longer writes reporting actions.
-        Assert.Equal( ReportingAction.Default, this.GetReportingAction( TelemetryScenario.Exception ) );
-        Assert.Equal( ReportingAction.Default, this.GetReportingAction( TelemetryScenario.Usage ) );
+        Assert.Equal( TelemetryConsent.Default, this.GetConsent( TelemetryScenario.Exception ) );
+        Assert.Equal( TelemetryConsent.Default, this.GetConsent( TelemetryScenario.Usage ) );
     }
 
     [Fact]
@@ -213,7 +202,6 @@ public sealed class ExceptionReportPageModelTests : TestsBase
     {
         // Copilot review: the page must only show "Report queued" when the report was actually enqueued. If SendReport
         // fails (e.g. the report file was removed), IsReported stays false so the page does not falsely claim success.
-        this.TelemetryConfigurationService.Initialize();
 
         var reporter = new FakeExceptionReportManager
         {

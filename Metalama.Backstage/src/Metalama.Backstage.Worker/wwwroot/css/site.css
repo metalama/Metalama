@@ -92,11 +92,40 @@ div.radio-option:hover {
   background-color: #331158;
 }
 
+/* Custom radio button. The native control (even with accent-color) renders with too little contrast on the dark card,
+   so the selected state is hard to tell from the unselected one. We draw it ourselves: a clearly visible ring when
+   unchecked, and a bright accent dot inside an accent ring when checked. The inset box-shadow paints a gap in the card
+   color so the fill reads as a centered dot. */
 div.radio-option input[type="radio"] {
-  margin-top: 5px;
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 4px;
   margin-right: 15px;
+  border: 2px solid #9b93c2;
+  border-radius: 50%;
+  background-color: transparent;
   cursor: pointer;
-  accent-color: #4d4dff;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+div.radio-option input[type="radio"]:checked {
+  border-color: #6f6cff;
+  background-color: #6f6cff;
+  box-shadow: inset 0 0 0 3px #250d45;
+}
+
+/* Keep the dot's gap matching the card color when the option is hovered. */
+div.radio-option:hover input[type="radio"]:checked {
+  box-shadow: inset 0 0 0 3px #331158;
+}
+
+div.radio-option input[type="radio"]:focus-visible {
+  outline: 2px solid #6f6cff;
+  outline-offset: 2px;
 }
 
 div.radio-option label {
@@ -112,6 +141,76 @@ div.radio-option label strong {
 
 div.radio-option label small {
   color: #b1b0b2;
+}
+
+/* Compact, low-emphasis radio options (e.g. the Privacy page's three-state controls). Unlike the prominent card-style
+   options used for primary choices, these sit on the normal page background, use the normal text color and tighter
+   spacing, so they read as ordinary settings rather than call-to-action cards. */
+div.radio-group.compact {
+  margin: 10px 0;
+}
+
+div.radio-group.compact div.radio-option {
+  margin-bottom: 8px;
+  padding: 4px 0;
+  background-color: transparent;
+}
+
+div.radio-group.compact div.radio-option:hover {
+  background-color: transparent;
+}
+
+/* The compact radios reuse the custom drawing above but in muted grays, and sit on the normal page background, so the
+   inset gap uses the page color rather than the card color. */
+div.radio-group.compact div.radio-option input[type="radio"] {
+  width: 15px;
+  height: 15px;
+  margin-top: 3px;
+  margin-right: 10px;
+  border-color: #6f6786;
+}
+
+div.radio-group.compact div.radio-option input[type="radio"]:checked {
+  border-color: #b1b0b2;
+  background-color: #b1b0b2;
+  box-shadow: inset 0 0 0 3px #130722;
+}
+
+div.radio-group.compact div.radio-option label strong {
+  margin-bottom: 2px;
+  color: #b1b0b2;
+}
+
+/* Add breathing room before a section heading that follows a radio group (e.g. "Performance reports" after the
+   exception options on the Privacy page), so consecutive categories don't run together. */
+div.radio-group + h4 {
+  margin-top: 30px;
+}
+
+div.device-id-action {
+  margin-top: 6px;
+}
+
+/* A secondary action rendered inline as a link rather than the prominent bright button, so it does not compete with the
+   primary controls (e.g. "Reset device ID now" on the Privacy page). */
+button.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  color: #fff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+button.link-button:hover {
+  background: none;
+  color: #c9c8ff;
+}
+
+div.device-id-action span.text-success {
+  margin-left: 10px;
 }
 
 
@@ -248,15 +347,15 @@ body:has(.exception-report) {
   min-height: 0;
   width: 100%;
   resize: none; /* height is governed by the flex layout, not a drag handle */
-  overflow: auto;
+  overflow: auto; /* horizontal + vertical scrollbars appear as needed */
   margin: 0;
   padding: 0.5rem;
   border: 1px solid #ccc;
   background: #f7f7f7;
   color: #000; /* black, not the page's gray body text */
   font-family: monospace;
-  white-space: pre-wrap; /* wrap long lines instead of forcing a horizontal scrollbar */
-  word-break: break-word;
+  font-size: 0.8rem; /* smaller so more of each line fits before scrolling */
+  white-space: pre; /* do not wrap long lines; scroll horizontally instead (reinforced by wrap="off") */
 }
 
 .exception-report .report-actions {

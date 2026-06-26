@@ -13,9 +13,21 @@ namespace Metalama.Backstage.Repositories;
 /// </summary>
 internal sealed record RepositoryConfigurationResult
 {
-    public static RepositoryConfigurationResult Empty { get; } = new();
+    public RepositoryConfigurationResult( bool isRepository, RepositoryConfiguration? configuration, ImmutableArray<RepositoryConfigurationWarning> warnings )
+    {
+        this.IsRepository = isRepository;
+        this.Configuration = configuration;
+        this.Warnings = warnings;
+    }
 
-    public RepositoryConfiguration Configuration { get; init; } = new();
+    public static RepositoryConfigurationResult NotRepository { get; } = new(
+        false,
+        null,
+        ImmutableArray<RepositoryConfigurationWarning>.Empty );
 
-    public ImmutableArray<RepositoryConfigurationWarning> Warnings { get; init; } = ImmutableArray<RepositoryConfigurationWarning>.Empty;
+    public bool IsRepository { get; }
+
+    public RepositoryConfiguration? Configuration { get; }
+
+    public ImmutableArray<RepositoryConfigurationWarning> Warnings { get; }
 }

@@ -3,6 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
+using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Rss;
@@ -10,6 +12,7 @@ using Metalama.Backstage.UserInterface.Toasts;
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Security;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -23,14 +26,57 @@ namespace Metalama.Backstage.Tests.UserInterface;
 /// </summary>
 public sealed class RssClientTests : TestsBase
 {
-    public RssClientTests( ITestOutputHelper logger ) : base( logger, new TestApplicationInfo() { IsTelemetryEnabled = true } ) { }
+    private ITelemetryContext _telemetryContext = null!;
 
-    private void UpdateConfiguration( Func<RssClientConfiguration, RssClientConfiguration> func ) => this.ConfigurationManager!.Update( func );
+    private const string _validRssXml = $"""
+                                         <?xml version="1.0" encoding="UTF-8"?>
+                                         <rss version="2.0">
+                                           <channel>
+                                             <title>Test Feed</title>
+                                             <link>https://metalama.net/</link>
+                                             <description>Test Description</description>
+                                             <item>
+                                               <title>Latest News Article</title>
+                                               <link>https://metalama.net/latest-news</link>
+                                               <pubDate>Mon, 01 Nov 2025 12:00:00 GMT</pubDate>
+                                               <description>This is the latest article</description>
+                                             </item>
+                                             <item>
+                                               <title>Older News Article</title>
+                                               <link>https://metalama.net/older-news</link>
+                                               <pubDate>Mon, 25 Oct 2025 12:00:00 GMT</pubDate>
+                                               <description>This is an older article</description>
+                                             </item>
+                                           </channel>
+                                         </rss>
+                                         """;
+    
+    public RssClientTests( ITestOutputHelper logger ) : base( logger, new TestApplicationInfo() { IsTelemetryEnabled = true } )
+    {
+        this.UserDeviceDetection.IsInteractiveDevice = true;
+    }
 
-    private void EnsureNewsWillBeChecked() => this.UpdateConfiguration( c => c with { LastFetchTime = DateTime.MinValue } );
+    protected override void OnAfterServicesCreated( Services services )
+    {
+        base.OnAfterServicesCreated( services );
+        
+        var telemetryService = services.ServiceProvider.GetRequiredBackstageService<ITelemetryService>();
+        services.FileSystem.CreateDirectory( "C:\\src" );
+        this._telemetryContext = telemetryService.OpenContext( telemetryService.GetPolicy( "C:\\src" ) );
+    }
 
-    private void RegisterResponse( string url, string response )
-        => this.HttpClientFactory.AddHook(
+    private void UpdateRssConfiguration( Func<RssClientConfiguration, RssClientConfiguration> func ) => this.ConfigurationManager!.Update( func );
+
+    private void EnsureNewsWillBeChecked()
+    {
+        this.TelemetryConfigurationService.SetConsent( TelemetryConsent.Yes );
+        this.UpdateRssConfiguration( c => c with { LastFetchTime = DateTime.MinValue, PreferredFeed = RssFeed.Briefs } );
+        this.RegisterHttpResponse( RssClient.BriefsUrl, _validRssXml );
+        this.RegisterHttpResponse( RssClient.PostsUrl, _validRssXml );
+    }
+
+    private void RegisterHttpResponse( string url, string response )
+        => this.HttpClientFactory.InsertHook(
             r => r.RequestUri!.ToString().StartsWith( url, StringComparison.Ordinal ),
             ( _, _ ) => Task.FromResult( new HttpResponseMessage( HttpStatusCode.OK ) { Content = new StringContent( response ) } ) );
 
@@ -43,10 +89,10 @@ public sealed class RssClientTests : TestsBase
     public async Task RssClientDoesNotFetchWhenFeedIsDisabled()
     {
         this.EnsureNewsWillBeChecked();
-        this.UpdateConfiguration( c => c with { PreferredFeed = RssFeed.None } );
+        this.UpdateRssConfiguration( c => c with { PreferredFeed = RssFeed.None } );
 
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         Assert.Empty( this.HttpClientFactory.ProcessedRequests );
     }
@@ -61,7 +107,7 @@ public sealed class RssClientTests : TestsBase
         this.EnsureNewsWillBeChecked();
 
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         Assert.Empty( this.HttpClientFactory.ProcessedRequests );
     }
@@ -72,8 +118,10 @@ public sealed class RssClientTests : TestsBase
     [Fact]
     public async Task RssClientSetsLastFetchTimeAndPreferredFeedOnFirstRun()
     {
+        this.EnsureNewsWillBeChecked();
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
         var configuration = this.ConfigurationManager!.Get<RssClientConfiguration>();
 
         Assert.NotNull( configuration.LastFetchTime );
@@ -88,7 +136,7 @@ public sealed class RssClientTests : TestsBase
     public async Task RssClientDoesNotShowPastNewsOnFirstFetch()
     {
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         Assert.Empty( this.HttpClientFactory.ProcessedRequests );
         Assert.Empty( this.UserInterface.Notifications );
@@ -105,12 +153,12 @@ public sealed class RssClientTests : TestsBase
         this.EnsureNewsWillBeChecked();
 
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
         Assert.Single( this.HttpClientFactory.ProcessedRequests );
 
         this.Time.AddTime( TimeSpan.FromHours( 1 ) );
         this.HttpClientFactory.ClearProcessedRequests();
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
         Assert.Empty( this.HttpClientFactory.ProcessedRequests );
     }
 
@@ -123,12 +171,12 @@ public sealed class RssClientTests : TestsBase
         this.EnsureNewsWillBeChecked();
 
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
         Assert.Single( this.HttpClientFactory.ProcessedRequests );
 
         this.Time.AddTime( TimeSpan.FromHours( 25 ) );
         this.HttpClientFactory.ClearProcessedRequests();
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
         Assert.Single( this.HttpClientFactory.ProcessedRequests );
     }
 
@@ -143,10 +191,11 @@ public sealed class RssClientTests : TestsBase
     [InlineData( RssFeed.Posts, RssClient.PostsUrl )]
     public async Task RssClientUsesCorrectFeedUrl( RssFeed preferredFeed, string expectedFeed )
     {
-        this.UpdateConfiguration( c => c with { PreferredFeed = preferredFeed } );
         this.EnsureNewsWillBeChecked();
+        this.UpdateRssConfiguration( c => c with { PreferredFeed = preferredFeed } );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
         var request = Assert.Single( this.HttpClientFactory.ProcessedRequests ).Request;
 
         Assert.Equal( expectedFeed, request.RequestUri!.ToString() );
@@ -156,13 +205,16 @@ public sealed class RssClientTests : TestsBase
     /// Verifies that RssClient skips fetching when PreferredFeed is set to an invalid value.
     /// </summary>
     [Fact]
-    public async Task RssClientSkipsInvalidPreferredFeed()
+    public async Task RssClientFallsBackOnInvalidPreferredFeed()
     {
-        this.UpdateConfiguration( c => c with { PreferredFeed = (RssFeed) 100 } );
         this.EnsureNewsWillBeChecked();
+        this.UpdateRssConfiguration( c => c with { PreferredFeed = (RssFeed) 100 } );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
-        Assert.Empty( this.HttpClientFactory.ProcessedRequests );
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
+        var request = Assert.Single( this.HttpClientFactory.ProcessedRequests ).Request;
+
+        Assert.Equal( RssClient.BriefsUrl, request.RequestUri!.ToString() );
     }
 
     // RSS Parsing Tests
@@ -173,35 +225,11 @@ public sealed class RssClientTests : TestsBase
     [Fact]
     public async Task RssClientParsesValidRssFeedSuccessfully()
     {
-        const string rssXml = $"""
-                               <?xml version="1.0" encoding="UTF-8"?>
-                               <rss version="2.0">
-                                 <channel>
-                                   <title>Test Feed</title>
-                                   <link>https://metalama.net/</link>
-                                   <description>Test Description</description>
-                                   <item>
-                                     <title>Latest News Article</title>
-                                     <link>https://metalama.net/latest-news</link>
-                                     <pubDate>Mon, 01 Nov 2025 12:00:00 GMT</pubDate>
-                                     <description>This is the latest article</description>
-                                   </item>
-                                   <item>
-                                     <title>Older News Article</title>
-                                     <link>https://metalama.net/older-news</link>
-                                     <pubDate>Mon, 25 Oct 2025 12:00:00 GMT</pubDate>
-                                     <description>This is an older article</description>
-                                   </item>
-                                 </channel>
-                               </rss>
-                               """;
-
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
         this.EnsureNewsWillBeChecked();
 
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         var notification = Assert.Single( this.UserInterface.Notifications );
         Assert.Equal( "Latest News Article", notification.Title );
@@ -239,7 +267,7 @@ public sealed class RssClientTests : TestsBase
                           <description>Test Description</description>
                           <item>
                             <title>News Article</title>
-                            <link>{System.Security.SecurityElement.Escape( link )}</link>
+                            <link>{SecurityElement.Escape( link )}</link>
                             <pubDate>Mon, 01 Nov 2025 12:00:00 GMT</pubDate>
                             <description>This article's link is under test</description>
                           </item>
@@ -247,12 +275,13 @@ public sealed class RssClientTests : TestsBase
                       </rss>
                       """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
-        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
         this.EnsureNewsWillBeChecked();
 
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         if ( shouldBeRejected )
         {
@@ -284,12 +313,13 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
-        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
         this.EnsureNewsWillBeChecked();
 
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         Assert.Empty( this.UserInterface.Notifications );
     }
@@ -311,12 +341,13 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
-        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
         this.EnsureNewsWillBeChecked();
 
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         Assert.Empty( this.UserInterface.Notifications );
     }
@@ -340,12 +371,13 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
-        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
         this.EnsureNewsWillBeChecked();
 
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         Assert.Empty( this.UserInterface.Notifications );
     }
@@ -369,12 +401,13 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
-        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
         this.EnsureNewsWillBeChecked();
 
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         Assert.Empty( this.UserInterface.Notifications );
     }
@@ -399,12 +432,13 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
-        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
         this.EnsureNewsWillBeChecked();
 
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         Assert.Empty( this.UserInterface.Notifications );
     }
@@ -429,12 +463,13 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
-        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
         this.EnsureNewsWillBeChecked();
 
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         Assert.Empty( this.UserInterface.Notifications );
     }
@@ -454,12 +489,13 @@ public sealed class RssClientTests : TestsBase
                                     <title>Test Article
                               """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
-        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
         this.EnsureNewsWillBeChecked();
 
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         Assert.Empty( this.UserInterface.Notifications );
 
@@ -477,16 +513,17 @@ public sealed class RssClientTests : TestsBase
     [Fact]
     public async Task RssClientHandlesExceptions()
     {
+        this.EnsureNewsWillBeChecked();
+
         // First, set up an exception response
-        this.HttpClientFactory.AddHook(
+        this.HttpClientFactory.InsertHook(
             r => r.RequestUri!.ToString().StartsWith( RssClient.BriefsUrl, StringComparison.Ordinal ),
             ( _, _ ) => throw new HttpRequestException( "Network error" ) );
 
         this.Time.Set( new DateTime( 2025, 11, 1, 0, 0, 0, DateTimeKind.Utc ) );
-        this.EnsureNewsWillBeChecked();
 
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         // Verify no notification was shown
         Assert.Empty( this.UserInterface.Notifications );
@@ -514,9 +551,9 @@ public sealed class RssClientTests : TestsBase
 
         this.HttpClientFactory.ClearHooks();
         this.HttpClientFactory.ClearProcessedRequests();
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
 
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         // Verify the notification is now displayed
         var notification = Assert.Single( this.UserInterface.Notifications );
@@ -531,17 +568,18 @@ public sealed class RssClientTests : TestsBase
     [Fact]
     public async Task RssClientHttpResponseStatus()
     {
+        this.EnsureNewsWillBeChecked();
+
         // First, set up an error response (500 Internal Server Error)
-        this.HttpClientFactory.AddHook(
+        this.HttpClientFactory.InsertHook(
             r => r.RequestUri!.ToString().StartsWith( RssClient.BriefsUrl, StringComparison.Ordinal ),
             ( _, _ ) => Task.FromResult(
                 new HttpResponseMessage( HttpStatusCode.InternalServerError ) { Content = new StringContent( "Internal Server Error" ) } ) );
 
         this.Time.Set( new DateTime( 2025, 11, 1, 0, 0, 0, DateTimeKind.Utc ) );
-        this.EnsureNewsWillBeChecked();
 
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         // Verify no notification was shown
         Assert.Empty( this.UserInterface.Notifications );
@@ -569,9 +607,9 @@ public sealed class RssClientTests : TestsBase
 
         this.HttpClientFactory.ClearProcessedRequests();
         this.HttpClientFactory.ClearHooks();
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
 
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         // Verify the notification is now displayed
         var notification = Assert.Single( this.UserInterface.Notifications );
@@ -599,14 +637,14 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
 
         var expectedTime = new DateTime( 2025, 11, 2, 10, 30, 0, DateTimeKind.Utc );
         this.Time.Set( expectedTime );
         this.EnsureNewsWillBeChecked();
 
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         // Verify LastFetchTime was updated to the current time
         var configuration = this.ConfigurationManager!.Get<RssClientConfiguration>();
@@ -636,12 +674,13 @@ public sealed class RssClientTests : TestsBase
                                      </rss>
                                      """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, initialRssXml );
-        this.Time.Set( new DateTime( 2025, 11, 1, 0, 0, 0, DateTimeKind.Utc ) );
         this.EnsureNewsWillBeChecked();
 
+        this.RegisterHttpResponse( RssClient.BriefsUrl, initialRssXml );
+        this.Time.Set( new DateTime( 2025, 11, 1, 0, 0, 0, DateTimeKind.Utc ) );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         // Verify first notification was shown
         var firstNotification = Assert.Single( this.UserInterface.Notifications );
@@ -672,10 +711,10 @@ public sealed class RssClientTests : TestsBase
                                      """;
 
         this.HttpClientFactory.ClearHooks();
-        this.RegisterResponse( RssClient.BriefsUrl, updatedRssXml );
+        this.RegisterHttpResponse( RssClient.BriefsUrl, updatedRssXml );
         this.HttpClientFactory.ClearProcessedRequests();
 
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         // Verify only the new notification is shown, not the old one
         var secondNotification = Assert.Single( this.UserInterface.Notifications );
@@ -703,12 +742,13 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
-        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
         this.EnsureNewsWillBeChecked();
 
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
+
         var rssClient = new RssClient( this.ServiceProvider );
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
         var notification = Assert.Single( this.UserInterface.Notifications );
         Assert.Equal( "Article With Query Params", notification.Title );
@@ -724,12 +764,9 @@ public sealed class RssClientTests : TestsBase
     [Fact]
     public async Task RssClientEnableAndDisableTogglePreferredFeed()
     {
-        var rssClient = new RssClient( this.ServiceProvider );
+        this.EnsureNewsWillBeChecked();
 
-        // Enable RSS client
-        Assert.True( rssClient.TryEnable() );
-        var enabledConfiguration = this.ConfigurationManager!.Get<RssClientConfiguration>();
-        Assert.Equal( RssFeed.Briefs, enabledConfiguration.PreferredFeed );
+        var rssClient = new RssClient( this.ServiceProvider );
 
         // Disable RSS client
         rssClient.Disable();
@@ -737,52 +774,16 @@ public sealed class RssClientTests : TestsBase
         Assert.Equal( RssFeed.None, disabledConfiguration.PreferredFeed );
 
         // Verify that disabled RSS client does not fetch news
-        this.EnsureNewsWillBeChecked();
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
         Assert.Empty( this.HttpClientFactory.ProcessedRequests );
 
         // Enable again and verify it can fetch
         Assert.True( rssClient.TryEnable() );
 
-        const string rssXml = """
-                              <?xml version="1.0" encoding="UTF-8"?>
-                              <rss version="2.0">
-                                <channel>
-                                  <title>Test Feed</title>
-                                  <item>
-                                    <title>Test Article After Enable</title>
-                                    <link>https://metalama.net/test-after-enable</link>
-                                    <pubDate>Mon, 01 Nov 2025 12:00:00 GMT</pubDate>
-                                  </item>
-                                </channel>
-                              </rss>
-                              """;
-
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
-        this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
-
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
         Assert.Single( this.HttpClientFactory.ProcessedRequests );
         var notification = Assert.Single( this.UserInterface.Notifications );
-        Assert.Equal( "Test Article After Enable", notification.Title );
-    }
-
-    /// <summary>
-    /// Verifies that <see cref="RssClient.TryEnable"/> refuses to enable the news feed (returns false and leaves
-    /// PreferredFeed unchanged) when telemetry is disabled, because the feed rides the telemetry opt-out (#1670).
-    /// </summary>
-    [Fact]
-    public void RssClientTryEnableFailsWhenTelemetryIsDisabled()
-    {
-        this.EnvironmentVariableProvider.Environment[Backstage.Telemetry.TelemetryConfigurationService.OptOutEnvironmentVariable] = "1";
-
-        var rssClient = new RssClient( this.ServiceProvider );
-
-        Assert.False( rssClient.TryEnable() );
-
-        // The feed must not have been enabled.
-        var configuration = this.ConfigurationManager!.Get<RssClientConfiguration>();
-        Assert.NotEqual( RssFeed.Briefs, configuration.PreferredFeed );
+        Assert.Equal( "Latest News Article", notification.Title );
     }
 
     // DisplayLatestNewsAsync Tests
@@ -808,16 +809,16 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 1, 0, 0, 0, DateTimeKind.Utc ) );
 
         // Set LastFetchTime to very recent (normally would prevent fetching)
-        this.UpdateConfiguration( c => c with { LastFetchTime = this.Time.UtcNow.AddMinutes( -30 ), PreferredFeed = RssFeed.Briefs } );
+        this.UpdateRssConfiguration( c => c with { LastFetchTime = this.Time.UtcNow.AddMinutes( -30 ), PreferredFeed = RssFeed.Briefs } );
 
         var rssClient = new RssClient( this.ServiceProvider );
 
         // DisplayUnreadNewsAsync should not fetch due to recent LastFetchTime
-        await rssClient.DisplayUnreadNewsAsync();
+        await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
         Assert.Empty( this.HttpClientFactory.ProcessedRequests );
         Assert.Empty( this.UserInterface.Notifications );
 
@@ -849,9 +850,9 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 1, 0, 0, 0, DateTimeKind.Utc ) );
-        this.UpdateConfiguration( c => c with { PreferredFeed = RssFeed.Briefs } );
+        this.UpdateRssConfiguration( c => c with { PreferredFeed = RssFeed.Briefs } );
 
         var rssClient = new RssClient( this.ServiceProvider );
 

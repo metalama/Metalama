@@ -15,15 +15,15 @@ namespace Metalama.Tools.Config.Tests.Commands.Telemetry
         public SetTelemetryCommandTests( ITestOutputHelper logger )
             : base( logger ) { }
 
-        private ReportingAction GetAction( TelemetryScenario scenario )
-            => this.ConfigurationManager!.Get<TelemetryConfiguration>().GetReportingAction( scenario );
+        private TelemetryConsent GetAction( TelemetryScenario scenario ) => this.ConfigurationManager!.Get<TelemetryConfiguration>().GetConsent( scenario );
 
         private void SetBaseline( bool enabled )
         {
             // Set a known baseline so the assertions don't depend on the first-run defaults.
-            this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Usage, enabled );
-            this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, enabled );
-            this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Performance, enabled );
+            var consent = enabled ? TelemetryConsent.Yes : TelemetryConsent.No;
+            this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Usage, consent );
+            this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Exception, consent );
+            this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Performance, consent );
         }
 
         [Fact]
@@ -33,9 +33,9 @@ namespace Metalama.Tools.Config.Tests.Commands.Telemetry
 
             await this.TestCommandAsync( "telemetry enable exception", "Exception telemetry has been enabled." );
 
-            Assert.Equal( ReportingAction.Yes, this.GetAction( TelemetryScenario.Exception ) );
-            Assert.Equal( ReportingAction.No, this.GetAction( TelemetryScenario.Usage ) );
-            Assert.Equal( ReportingAction.No, this.GetAction( TelemetryScenario.Performance ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Exception ) );
+            Assert.Equal( TelemetryConsent.No, this.GetAction( TelemetryScenario.Usage ) );
+            Assert.Equal( TelemetryConsent.No, this.GetAction( TelemetryScenario.Performance ) );
         }
 
         [Fact]
@@ -45,9 +45,9 @@ namespace Metalama.Tools.Config.Tests.Commands.Telemetry
 
             await this.TestCommandAsync( "telemetry enable performance", "Performance telemetry has been enabled." );
 
-            Assert.Equal( ReportingAction.Yes, this.GetAction( TelemetryScenario.Performance ) );
-            Assert.Equal( ReportingAction.No, this.GetAction( TelemetryScenario.Usage ) );
-            Assert.Equal( ReportingAction.No, this.GetAction( TelemetryScenario.Exception ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Performance ) );
+            Assert.Equal( TelemetryConsent.No, this.GetAction( TelemetryScenario.Usage ) );
+            Assert.Equal( TelemetryConsent.No, this.GetAction( TelemetryScenario.Exception ) );
         }
 
         [Fact]
@@ -57,9 +57,9 @@ namespace Metalama.Tools.Config.Tests.Commands.Telemetry
 
             await this.TestCommandAsync( "telemetry disable usage", "Usage telemetry has been disabled." );
 
-            Assert.Equal( ReportingAction.No, this.GetAction( TelemetryScenario.Usage ) );
-            Assert.Equal( ReportingAction.Yes, this.GetAction( TelemetryScenario.Exception ) );
-            Assert.Equal( ReportingAction.Yes, this.GetAction( TelemetryScenario.Performance ) );
+            Assert.Equal( TelemetryConsent.No, this.GetAction( TelemetryScenario.Usage ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Exception ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Performance ) );
         }
 
         [Fact]
@@ -69,9 +69,9 @@ namespace Metalama.Tools.Config.Tests.Commands.Telemetry
 
             await this.TestCommandAsync( "telemetry enable all", "Telemetry has been enabled." );
 
-            Assert.Equal( ReportingAction.Yes, this.GetAction( TelemetryScenario.Usage ) );
-            Assert.Equal( ReportingAction.Yes, this.GetAction( TelemetryScenario.Exception ) );
-            Assert.Equal( ReportingAction.Yes, this.GetAction( TelemetryScenario.Performance ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Usage ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Exception ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Performance ) );
         }
 
         [Fact]
@@ -81,9 +81,9 @@ namespace Metalama.Tools.Config.Tests.Commands.Telemetry
 
             await this.TestCommandAsync( "telemetry disable all", "Telemetry has been disabled." );
 
-            Assert.Equal( ReportingAction.No, this.GetAction( TelemetryScenario.Usage ) );
-            Assert.Equal( ReportingAction.No, this.GetAction( TelemetryScenario.Exception ) );
-            Assert.Equal( ReportingAction.No, this.GetAction( TelemetryScenario.Performance ) );
+            Assert.Equal( TelemetryConsent.No, this.GetAction( TelemetryScenario.Usage ) );
+            Assert.Equal( TelemetryConsent.No, this.GetAction( TelemetryScenario.Exception ) );
+            Assert.Equal( TelemetryConsent.No, this.GetAction( TelemetryScenario.Performance ) );
         }
 
         [Fact]
@@ -93,9 +93,33 @@ namespace Metalama.Tools.Config.Tests.Commands.Telemetry
 
             await this.TestCommandAsync( "telemetry enable", "Telemetry has been enabled." );
 
-            Assert.Equal( ReportingAction.Yes, this.GetAction( TelemetryScenario.Usage ) );
-            Assert.Equal( ReportingAction.Yes, this.GetAction( TelemetryScenario.Exception ) );
-            Assert.Equal( ReportingAction.Yes, this.GetAction( TelemetryScenario.Performance ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Usage ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Exception ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Performance ) );
+        }
+
+        [Fact]
+        public async Task ResetExceptionAffectsOnlyExceptionAndSetsDefault()
+        {
+            this.SetBaseline( true );
+
+            await this.TestCommandAsync( "telemetry reset exception", "Exception telemetry has been reset to its default state." );
+
+            Assert.Equal( TelemetryConsent.Default, this.GetAction( TelemetryScenario.Exception ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Usage ) );
+            Assert.Equal( TelemetryConsent.Yes, this.GetAction( TelemetryScenario.Performance ) );
+        }
+
+        [Fact]
+        public async Task ResetWithoutScenarioResetsEveryScenarioToDefault()
+        {
+            this.SetBaseline( true );
+
+            await this.TestCommandAsync( "telemetry reset", "Telemetry has been reset to its default state." );
+
+            Assert.Equal( TelemetryConsent.Default, this.GetAction( TelemetryScenario.Usage ) );
+            Assert.Equal( TelemetryConsent.Default, this.GetAction( TelemetryScenario.Exception ) );
+            Assert.Equal( TelemetryConsent.Default, this.GetAction( TelemetryScenario.Performance ) );
         }
     }
 }

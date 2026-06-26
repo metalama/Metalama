@@ -7,14 +7,11 @@ using Metalama.Backstage.UserInterface.Rss;
 
 namespace Metalama.Backstage.Commands.Rss;
 
-public class DisableRssClientCommand : BaseCommand<BaseCommandSettings>
+public class DisableRssClientCommand : RssCommand
 {
     protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
     {
         var rssClient = context.ServiceProvider.GetRequiredBackstageService<IRssClient>();
         rssClient.Disable();
     }
-
-    protected override BackstageInitializationOptions AddBackstageOptions( BackstageInitializationOptions options )
-        => options with { AddUserInterface = true, NotifyOfLatestNews = false };
 }

@@ -13,21 +13,13 @@ namespace Metalama.Backstage.Telemetry;
 /// A telemetry context, obtained from <see cref="ITelemetryService.OpenContext"/> for a directory (a project, solution
 /// or repository directory). Reporting telemetry always goes through a context, so that the repository-scoped opt-out
 /// (<c>metalama.json</c>) and the process-level gates are enforced by construction: a context whose
-/// <see cref="IsTelemetryEnabled"/> is <c>false</c> never collects or sends anything. Local crash reports are written
+/// <see cref="ITelemetryPolicy.GetConsent"/> is <c>false</c> never collects or sends anything. Local crash reports are written
 /// regardless (they are local support data, not telemetry). See #1701.
 /// </summary>
 [PublicAPI]
 public interface ITelemetryContext
 {
-    /// <summary>
-    /// Determines whether telemetry may be collected and sent for the given <paramref name="scenario"/> in this context.
-    /// This is <c>true</c> only when the repository has not opted out through <c>metalama.json</c> and the scenario is
-    /// enabled at the process and per-category level (resolved through
-    /// <see cref="ITelemetryConfigurationService.GetEffectiveReportingAction"/>, which — unlike
-    /// <see cref="ITelemetryConfigurationService.IsEnabled"/> — also covers the ASK-capable Exception/Performance
-    /// scenarios) — i.e. telemetry is actually activated for that specific scenario.
-    /// </summary>
-    bool IsTelemetryEnabled( TelemetryScenario scenario );
+    ITelemetryPolicy Policy { get; }
 
     /// <summary>
     /// Gets the warnings produced while resolving the repository configuration (for example, a misplaced or malformed
@@ -37,14 +29,15 @@ public interface ITelemetryContext
     ImmutableArray<TelemetryContextWarning> Warnings { get; }
 
     /// <summary>
-    /// Starts a usage-telemetry session. Returns a no-op session when <see cref="IsTelemetryEnabled"/> is <c>false</c>.
+    /// Starts a usage-telemetry session. Returns a no-op session when <see cref="ITelemetryPolicy.GetConsent"/> is <c>false</c>
+    /// for <see cref="TelemetryScenario.Usage"/>.
     /// </summary>
     IUsageSession StartUsageSession( string kind, string? projectName = null );
 
     /// <summary>
     /// Reports an exception. The local crash report is written (local support data) unless <paramref name="writeLocalReport"/>
     /// is <c>false</c> — which a caller that has already written its own report passes to avoid a duplicate. The telemetry
-    /// capture, review-first toast and upload happen only when <see cref="IsTelemetryEnabled"/> is <c>true</c> for the
+    /// capture, review-first toast and upload happen only when <see cref="ITelemetryPolicy.GetConsent"/> is <c>true</c> for the
     /// corresponding scenario.
     /// </summary>
     void ReportException(

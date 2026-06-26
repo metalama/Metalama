@@ -53,7 +53,10 @@
       "Bash(gh search:*)",
       "Bash(find /c/src/Metalama-2026.1/Metalama -type f \\\\\\(-name *.xml -o -name *.config \\\\\\))",
       "Read(//c/src/Metalama-2026.1/**)",
-      "Read(//c/src/PostSharp.Engineering/**)"
+      "Read(//c/src/PostSharp.Engineering/**)",
+      "PowerShell(dotnet build *)",
+      "PowerShell(dotnet test *)",
+      "WebFetch(domain:nicolaiarocci.com)"
     ],
     "deny": [],
     "ask": []

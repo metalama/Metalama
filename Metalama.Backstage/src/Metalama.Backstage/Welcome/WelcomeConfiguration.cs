@@ -20,13 +20,6 @@ internal record WelcomeConfiguration : ConfigurationFile
 
     public bool WelcomePageDisplayed { get; init; }
 
-    /// <summary>
-    /// Gets a value indicating whether the first-run telemetry notice (toast) has already been displayed. This is
-    /// tracked independently of <see cref="WelcomePageDisplayed"/> (which also serves as an installation tracker) so
-    /// that the toast and the welcome page are displayed independently.
-    /// </summary>
-    public bool TelemetryNoticeDisplayed { get; init; }
-
     // This property is no longer used but we keep it here so that users don't get warnings during deserialization.
     [Obsolete]
     public bool IsWelcomePagePending { get; init; } = true;

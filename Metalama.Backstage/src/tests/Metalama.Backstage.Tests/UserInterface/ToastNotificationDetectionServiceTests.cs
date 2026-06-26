@@ -3,7 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Licensing.Consumption;
+using Metalama.Backstage.Licensing.Consumption.Requirements;
 using Metalama.Backstage.Licensing.Registration;
+using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Tests.Licensing;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Toasts;
@@ -18,29 +21,50 @@ namespace Metalama.Backstage.Tests.UserInterface;
 public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
 {
     private readonly IToastNotificationDetectionService _toastNotificationDetectionService;
-    private readonly BackstageServicesInitializer _backstageServicesInitializer;
 
-    public ToastNotificationDetectionServiceTests( ITestOutputHelper logger ) : base( logger )
+    public ToastNotificationDetectionServiceTests( ITestOutputHelper logger ) : base( logger, isTelemetryEnabled: true )
     {
         this._toastNotificationDetectionService = this.ServiceProvider.GetRequiredBackstageService<IToastNotificationDetectionService>();
-        this._backstageServicesInitializer = this.ServiceProvider.GetRequiredBackstageService<BackstageServicesInitializer>();
     }
 
-    private async Task DetectToastNotificationsAsync()
+    protected override void OnAfterServicesCreated( Services services )
     {
-        this._toastNotificationDetectionService.Detect();
-        await this.BackgroundTasks.WhenNoPendingTaskAsync();
+        base.OnAfterServicesCreated( services );
+        this.UserDeviceDetection.IsInteractiveDevice = true;
+    }
+
+    private async Task DetectToastNotificationsAsync( bool openTelemetrySession = true, bool requireLicense = true )
+    {
+        // In practice, licensing is enforced from an MSBuild task prior to the Metalama compiler process.
+        if ( requireLicense )
+        {
+            var licensing = this.ServiceProvider.GetRequiredBackstageService<ILicenseConsumptionService>();
+            var consumer = licensing.CreateConsumer();
+            consumer.TryConsume( new AnyLicenseRequirement() );
+        }
+
+        // The telemetry notification is linked to the first activation of telemetry, from
+        // default to enabled status for the 'usage' scenario.
+        if ( openTelemetrySession )
+        {
+            this.FileSystem.CreateDirectory( "c:\\src" );
+            var telemetryService = this.ServiceProvider.GetRequiredBackstageService<ITelemetryService>();
+            var telemetryPolicy = telemetryService.GetPolicy( "c:\\src" );
+            var telemetryContext = telemetryService.OpenContext( telemetryPolicy );
+            telemetryContext.StartUsageSession( "Test" );
+        }
+
+        await this._toastNotificationDetectionService.DetectAsync();
     }
 
     [Theory]
-    [InlineData( true, false )]
+    [InlineData( true, true )]
     [InlineData( false, false )]
-    public async Task IsActivationSuggestedOnFirstRunAsync( bool isUserInteractive, bool shouldBeOpened )
+    public async Task IsLicenseActivationSuggestedOnFirstRunAsync( bool isUserInteractive, bool shouldBeOpened )
     {
         this.UserDeviceDetection.IsInteractiveDevice = isUserInteractive;
 
-        this._backstageServicesInitializer.Initialize();
-        await this.DetectToastNotificationsAsync();
+        await this.DetectToastNotificationsAsync( openTelemetrySession: false );
 
         // The first-run telemetry notice is displayed independently of the license notification, so we assert on the
         // specific notification kind rather than on an empty collection.
@@ -56,7 +80,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         // Initializing a second time should not show a notification because of snoozing.
         this.UserInterface.Notifications.Clear();
 
-        await this.DetectToastNotificationsAsync();
+        await this.DetectToastNotificationsAsync( openTelemetrySession: false );
         Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.RequiresLicense );
 
         // After the snooze period, we should see a notification.
@@ -92,8 +116,8 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this.Time.AddTime( LicensingConstants.EvaluationPeriod - TimeSpan.FromDays( daysBeforeExpiration + 1 ) );
 
         // Initialize
-        this._backstageServicesInitializer.Initialize();
-        await this.DetectToastNotificationsAsync();
+
+        await this.DetectToastNotificationsAsync( openTelemetrySession: false );
 
         if ( expectedTitleSubstring == null )
         {
@@ -126,9 +150,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         // Move the clock.
         this.Time.Set( LicenseKeyProvider.DefaultSubscriptionExpirationDate - TimeSpan.FromDays( daysBeforeExpiration ) );
 
-        // Initialize
-        this._backstageServicesInitializer.Initialize();
-        await this.DetectToastNotificationsAsync();
+        await this.DetectToastNotificationsAsync( openTelemetrySession: false );
 
         if ( expectedTitleSubstring == null )
         {
@@ -156,11 +178,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         // Register a trial version.
         Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
 
-        // Initialize
-        this._backstageServicesInitializer.Initialize();
-
-        // Activate telemetry so the first-run telemetry notice is shown (#1701); the VSX prompt is throttled behind it.
-        this.TelemetryConfigurationService.EnsureActivated();
+        // Detect notifications.
         await this.DetectToastNotificationsAsync();
 
         // On the first run the VSX prompt is throttled behind the first-run telemetry notice (#1692), so it is not
@@ -169,7 +187,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
 
         // After the throttle period, the VSX prompt is shown unless the extension is already installed.
         this.UserInterface.Notifications.Clear();
-        this.Time.AddTime( TimeSpan.FromMinutes( 15 ) + TimeSpan.FromSeconds( 1 ) );
+        this.Time.AddTime( ToastNotificationStatusService.LowPriorityThrottlePeriod + TimeSpan.FromSeconds( 1 ) );
         await this.DetectToastNotificationsAsync();
 
         if ( extensionInstalled )
@@ -189,13 +207,9 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this.UserDeviceDetection.IsInteractiveDevice = true;
         this.UserDeviceDetection.IsVisualStudioInstalled = true;
         this.ServiceProvider.GetRequiredBackstageService<IIdeExtensionStatusService>().IsVisualStudioExtensionInstalled = false;
-        Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
 
-        this._backstageServicesInitializer.Initialize();
-
-        // The first-run telemetry notice is shown when telemetry activates (#1701), so activate it.
-        this.TelemetryConfigurationService.EnsureActivated();
-        await this.DetectToastNotificationsAsync();
+        // Detect notifications.
+        await this.DetectToastNotificationsAsync( requireLicense: false );
 
         // First run: only the telemetry notice; the VSX prompt is deferred.
         Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
@@ -204,29 +218,32 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         // After the throttle period, the VSX prompt appears (and the once-only telemetry notice does not repeat).
         this.UserInterface.Notifications.Clear();
         this.Time.AddTime( TimeSpan.FromMinutes( 15 ) + TimeSpan.FromSeconds( 1 ) );
-        await this.DetectToastNotificationsAsync();
+        await this.DetectToastNotificationsAsync( requireLicense: false );
 
         Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.VsxNotInstalled );
         Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
     }
 
     [Theory]
-    [InlineData( true )]
-    [InlineData( false )]
-    public async Task TelemetryNoticeShownOnActivationRegardlessOfCategoryStatusAsync( bool isTelemetryEnabled )
+    [InlineData( TelemetryConsent.Default, true )]
+    [InlineData( TelemetryConsent.Yes, false )]
+    [InlineData( TelemetryConsent.No, false )]
+    public async Task TelemetryNoticeShownDependingOnReportingStatus( TelemetryConsent telemetryConsent, bool isNotificationExpected )
     {
         this.UserDeviceDetection.IsInteractiveDevice = true;
-        this.TelemetryConfigurationService.SetStatus( isTelemetryEnabled );
+        this.TelemetryConfigurationService.SetConsent( telemetryConsent );
 
-        this._backstageServicesInitializer.Initialize();
+        // Detect notifications.
+        await this.DetectToastNotificationsAsync( requireLicense: false );
 
-        // The notice is shown the first time telemetry activates (#1701), so activate it.
-        this.TelemetryConfigurationService.EnsureActivated();
-        await this.DetectToastNotificationsAsync();
-
-        // Once telemetry has activated, the notice is shown regardless of the per-category reporting status (the point
-        // is to inform the user that telemetry is being collected and how to opt out).
-        Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
+        if ( isNotificationExpected )
+        {
+            Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
+        }
+        else
+        {
+            Assert.Empty( this.UserInterface.Notifications );
+        }
 
         // The notice must not be shown again on subsequent runs (tracked in WelcomeConfiguration).
         // Move the clock past the detection throttle so that detection actually runs again.
@@ -241,10 +258,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
     {
         this.UserDeviceDetection.IsInteractiveDevice = false;
 
-        this._backstageServicesInitializer.Initialize();
-
-        // Even when telemetry is activated, a non-interactive device shows no toast.
-        this.TelemetryConfigurationService.EnsureActivated();
+        // Detect notifications.
         await this.DetectToastNotificationsAsync();
 
         Assert.DoesNotContain( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.TelemetryNotice );
@@ -260,8 +274,6 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         // Register a trial version.
         Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
 
-        // Initialize
-        this._backstageServicesInitializer.Initialize();
         await this.DetectToastNotificationsAsync();
 
         // The VSX prompt is throttled behind the first-run telemetry notice (#1692), so advance past the throttle.

@@ -45,6 +45,8 @@ namespace Metalama.Backstage.Licensing.Consumption.Sources
 
         public abstract LicenseSourcePriority Priority { get; }
 
+        public bool SupportsRegistration => true;
+
         protected void OnChanged() => this.Changed?.Invoke();
 
         public override string ToString() => this.GetType().Name;

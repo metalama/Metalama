@@ -16,5 +16,5 @@ public class DisplayLatestNewsCommand : BaseCommand<BaseCommandSettings>
     }
 
     protected override BackstageInitializationOptions AddBackstageOptions( BackstageInitializationOptions options )
-        => options with { AddUserInterface = true, NotifyOfLatestNews = false };
+        => options with { AddUserInterface = true, AddRssClient = true };
 }

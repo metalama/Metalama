@@ -35,7 +35,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
 
         var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
-        Assert.False( result.Configuration.Telemetry!.Enabled );
+        Assert.False( result.Configuration!.Telemetry!.Enabled );
         Assert.Empty( result.Warnings );
     }
 
@@ -47,7 +47,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
 
         var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
-        Assert.True( result.Configuration.Telemetry!.Enabled );
+        Assert.True( result.Configuration!.Telemetry!.Enabled );
         Assert.Empty( result.Warnings );
     }
 
@@ -61,7 +61,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
 
         var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
-        Assert.False( result.Configuration.Telemetry!.Enabled );
+        Assert.False( result.Configuration!.Telemetry!.Enabled );
         Assert.Empty( result.Warnings );
     }
 
@@ -72,7 +72,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
 
         var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
-        Assert.Null( result.Configuration.Telemetry );
+        Assert.Null( result.Configuration!.Telemetry );
         Assert.Empty( result.Warnings );
     }
 
@@ -86,7 +86,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
 
         var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
-        Assert.Null( result.Configuration.Telemetry );
+        Assert.Null( result.Configuration!.Telemetry );
         Assert.Equal( RepositoryConfigurationWarningKind.MisplacedFile, Assert.Single( result.Warnings ).Kind );
     }
 
@@ -98,7 +98,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
 
         var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
-        Assert.Null( result.Configuration.Telemetry );
+        Assert.Null( result.Configuration!.Telemetry );
         Assert.Equal( RepositoryConfigurationWarningKind.MalformedFile, Assert.Single( result.Warnings ).Kind );
     }
 
@@ -111,7 +111,7 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
 
         var result = this.CreateService().GetRepositoryConfiguration( _projectDirectory );
 
-        Assert.Null( result.Configuration.Telemetry );
+        Assert.Null( result.Configuration );
         Assert.Empty( result.Warnings );
     }
 
@@ -129,6 +129,6 @@ public sealed class RepositoryConfigurationServiceTests : TestsBase
         var second = service.GetRepositoryConfiguration( _projectDirectory );
 
         Assert.Same( first, second );
-        Assert.False( second.Configuration.Telemetry!.Enabled );
+        Assert.False( second.Configuration!.Telemetry!.Enabled );
     }
 }

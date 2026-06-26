@@ -34,6 +34,12 @@ namespace Metalama.Backstage.Licensing.Consumption.Sources
         event Action? Changed;
 
         LicenseSourcePriority Priority { get; }
+
+        /// <summary>
+        /// Determines whether the <see cref="ILicense.CanBeRegistered"/> and <see cref="ILicense.TryGetRegistrationProperties"/>
+        /// methods are supported.
+        /// </summary>
+        bool SupportsRegistration { get; }
     }
 
     [PublicAPI]

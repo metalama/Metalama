@@ -24,4 +24,8 @@ public interface IToastNotificationStatusService : IBackstageService
     /// </summary>
     /// <param name="timeSpan">The <see cref="TimeSpan"/> during which notifications should be paused.</param>
     IDisposable PauseAll( TimeSpan timeSpan );
+
+    DateTime? LastNotificationTime { get; }
+
+    bool CanDisplayLowPriorityNotifications { get; }
 }

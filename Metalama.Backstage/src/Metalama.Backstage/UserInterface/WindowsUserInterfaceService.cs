@@ -58,7 +58,6 @@ internal sealed class WindowsUserInterfaceService : UserInterfaceService
         {
             // Start the UI process.
             this._toolsExecutor.Start( BackstageTool.DesktopWindows, arguments.ToArray() );
-            this.OnToastNotificationShown();
         }
         catch ( Exception e )
         {

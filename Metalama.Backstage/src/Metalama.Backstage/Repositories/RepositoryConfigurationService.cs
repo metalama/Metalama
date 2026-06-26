@@ -43,7 +43,7 @@ internal sealed class RepositoryConfigurationService : IRepositoryConfigurationS
     {
         if ( string.IsNullOrEmpty( startingDirectory ) )
         {
-            return RepositoryConfigurationResult.Empty;
+            return RepositoryConfigurationResult.NotRepository;
         }
 
         // An invalid path is a programming error in the caller, so let Path.GetFullPath throw rather than silently
@@ -100,7 +100,7 @@ internal sealed class RepositoryConfigurationService : IRepositoryConfigurationS
 
         if ( repositoryRoot == null )
         {
-            return RepositoryConfigurationResult.Empty;
+            return RepositoryConfigurationResult.NotRepository;
         }
 
         var warnings = ImmutableArray.CreateBuilder<RepositoryConfigurationWarning>();
@@ -135,7 +135,7 @@ internal sealed class RepositoryConfigurationService : IRepositoryConfigurationS
             this._logger.Warning?.Log( warning.Message );
         }
 
-        return new RepositoryConfigurationResult { Configuration = configuration, Warnings = warnings.ToImmutable() };
+        return new RepositoryConfigurationResult( true, configuration, warnings.ToImmutable() );
     }
 
     private RepositoryConfiguration ReadFile( string path, ImmutableArray<RepositoryConfigurationWarning>.Builder warnings )

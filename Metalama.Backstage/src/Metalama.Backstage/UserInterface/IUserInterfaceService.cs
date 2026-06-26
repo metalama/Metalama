@@ -4,7 +4,6 @@
 
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.UserInterface.Toasts;
-using System;
 using System.Threading.Tasks;
 
 namespace Metalama.Backstage.UserInterface;
@@ -20,8 +19,6 @@ public interface IUserInterfaceService : IBackstageService
     /// This is the job of the <see cref="IToastNotificationService"/>.
     /// </summary>
     void ShowToastNotification( ToastNotification notification );
-
-    DateTime? LastToastNotificationTime { get; }
 }
 
 public enum BrowserMode

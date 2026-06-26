@@ -2,68 +2,119 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Registration;
 using Metalama.Backstage.Telemetry;
-using Metalama.Backstage.Welcome;
+using Metalama.Backstage.UserInterface.Rss;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Metalama.Backstage.UserInterface.Toasts;
 
-internal sealed class ToastNotificationDetectionService : IToastNotificationDetectionService
+internal sealed class ToastNotificationDetectionService : IToastNotificationDetectionService, IDisposable
 {
     private readonly IToastNotificationService _toastNotificationService;
+    private readonly IToastNotificationStatusService _toastNotificationStatusService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IUserDeviceDetectionService _userDeviceDetectionService;
     private readonly IIdeExtensionStatusService? _ideExtensionStatusService;
-    private readonly ILicenseRegistrationService? _licenseRegistrationService;
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
     private readonly WebLinks _webLinks;
-    private readonly IConfigurationManager _configurationManager;
-    private readonly ITelemetryConfigurationService? _telemetryConfigurationService;
-    private readonly object _initializationSync = new();
     private readonly ILogger _logger;
+    private readonly SemaphoreSlim _semaphoreSlim = new( 1 );
+    private readonly IRssClient? _rssClient;
+    private readonly ILicenseRegistrationService? _licenseRegistrationService;
 
-    private DateTime _lastTimeDetectionStarted;
+    private DateTime _lastTimeDetectionEnqueued;
 
     public ToastNotificationDetectionService( IServiceProvider serviceProvider )
     {
-        this._licenseRegistrationService = serviceProvider.GetBackstageService<ILicenseRegistrationService>();
         this._userDeviceDetectionService = serviceProvider.GetRequiredBackstageService<IUserDeviceDetectionService>();
         this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._ideExtensionStatusService = serviceProvider.GetBackstageService<IIdeExtensionStatusService>();
         this._toastNotificationService = serviceProvider.GetRequiredBackstageService<IToastNotificationService>();
+        this._toastNotificationStatusService = serviceProvider.GetRequiredBackstageService<IToastNotificationStatusService>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
         this._webLinks = serviceProvider.GetRequiredBackstageService<WebLinks>();
-        this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(ToastNotificationDetectionService) );
-
-        // The first-run telemetry notice is shown only once telemetry is actually activated, so re-run detection when
-        // that happens (bypassing the throttle, since the process-init detection likely ran moments earlier). OnActivated
-        // (rather than a plain event) ensures we still react if telemetry was already activated by this process before
-        // this service was constructed. The telemetry configuration service is absent when support services are not
-        // registered. See #1701.
-        this._telemetryConfigurationService = serviceProvider.GetBackstageService<ITelemetryConfigurationService>();
-        this._telemetryConfigurationService?.OnActivated( this.OnTelemetryActivated );
+        this._rssClient = serviceProvider.GetBackstageService<IRssClient>();
+        this._licenseRegistrationService = serviceProvider.GetBackstageService<ILicenseRegistrationService>();
     }
 
-    private void OnTelemetryActivated() => this._backgroundTasksService.Enqueue( () => this.DetectImpl( bypassThrottle: true ) );
-
-    private string FormatExpiration( DateTime expiration )
+    private async Task DetectImplAsync( ITelemetryContext? telemetryContext, ToastNotificationCategories categories )
     {
-        var daysToExpiration = (int) Math.Floor( (expiration - this._dateTimeProvider.UtcNow).TotalDays );
+        await this._semaphoreSlim.WaitAsync();
 
-        return daysToExpiration switch
+        try
         {
-            < 0 => "has expired",
-            0 => "expires today",
-            1 => "expires tomorrow",
-            _ => $"expires in {daysToExpiration} days"
-        };
+            if ( !this._userDeviceDetectionService.IsInteractiveDevice )
+            {
+                this._logger.Trace?.Log( "Skipping detection because the session is not interactive." );
+
+                return;
+            }
+
+            this._logger.Trace?.Log( "Detecting relevant toast notifications." );
+
+            var notificationReported = false;
+
+            this.DetectHighPriorityNotifications( ref notificationReported, categories );
+
+            if ( !this._toastNotificationStatusService.CanDisplayLowPriorityNotifications )
+            {
+                this._logger.Trace?.Log( $"Skipping detection because it's not a good time to display low-priority notifications." );
+
+                return;
+            }
+
+            await this.DetectLowPriorityNotificationsAsync( notificationReported, telemetryContext, categories );
+        }
+        finally
+        {
+            this._semaphoreSlim.Release();
+        }
+    }
+
+    private async Task DetectLowPriorityNotificationsAsync(
+        bool notificationReported,
+        ITelemetryContext? telemetryContext,
+        ToastNotificationCategories categories )
+    {
+        if ( (categories & ToastNotificationCategories.Compiler) != 0 )
+        {
+            // Suggest to install Visual Studio Tools for Metalama.
+            if ( !notificationReported && this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
+            {
+                this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
+                notificationReported = true;
+            }
+
+            // Display news.
+            if ( !notificationReported && this._rssClient != null && telemetryContext != null )
+            {
+                await this._rssClient.DisplayUnreadLatestNewsAsync( telemetryContext );
+            }
+        }
+    }
+
+    private void DetectHighPriorityNotifications( ref bool notificationReported, ToastNotificationCategories categories )
+    {
+        if ( (categories & ToastNotificationCategories.Licensing) != 0 )
+        {
+            // Validate registered licenses, but do not complain about the lack of licenses.
+
+            if ( this._licenseRegistrationService != null )
+            {
+                foreach ( var license in this._licenseRegistrationService.RegisteredLicenses )
+                {
+                    this.ValidateRegisteredLicense( license, ref notificationReported );
+                }
+            }
+        }
     }
 
     private void ValidateRegisteredLicense( LicenseRegistrationProperties? license, ref bool notificationReported )
@@ -81,7 +132,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
                         this._toastNotificationService.Show(
                             new ToastNotification(
                                 ToastNotificationKinds.TrialExpiring,
-                                $"Your Metalama trial {this.FormatExpiration( license.ValidTo.Value )}",
+                                $"Your Metalama trial {FormatExpiration( license.ValidTo.Value )}",
                                 "Register a new license key to avoid losing functionality." ) );
                     }
                     else
@@ -89,7 +140,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
                         this._toastNotificationService.Show(
                             new ToastNotification(
                                 ToastNotificationKinds.LicenseExpiring,
-                                $"Your Metalama license {this.FormatExpiration( license.ValidTo.Value )}",
+                                $"Your Metalama license {FormatExpiration( license.ValidTo.Value )}",
                                 "Register a new license key to avoid losing functionality." ) );
                     }
 
@@ -114,7 +165,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
                     this._toastNotificationService.Show(
                         new ToastNotification(
                             ToastNotificationKinds.SubscriptionExpiring,
-                            $"Your Metalama subscription {this.FormatExpiration( license.SubscriptionEndDate.Value )}",
+                            $"Your Metalama subscription {FormatExpiration( license.SubscriptionEndDate.Value )}",
                             "Renew your subscription and register a new license key to continue benefiting from updates." ) );
 
                     notificationReported = true;
@@ -122,69 +173,38 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
 
                 break;
         }
-    }
 
-    private void DetectImpl( bool bypassThrottle )
-    {
-        // The whole detection is serialized under '_initializationSync' so that two concurrent detections (e.g. the
-        // process-init detection and the one re-triggered by telemetry activation, which run on the thread pool via
-        // BackstageBackgroundTasksService) never interleave. Serialization guarantees the in-method ordering — the
-        // first-run telemetry notice is shown (and stamps the notification throttle) before the low-priority
-        // VSX-install prompt is evaluated — holds across runs, so the VSX prompt cannot slip through unthrottled. See #1692.
-        lock ( this._initializationSync )
+        string FormatExpiration( DateTime expiration )
         {
-            // Avoid too frequent detections for performance reasons. The threshold (here 15 seconds) should be lower
-            // than the lowest auto-snooze period of a toast notification. Detection triggered by telemetry activation
-            // bypasses the throttle so the first-run telemetry notice is not suppressed by the process-init detection.
-            if ( !bypassThrottle && this._lastTimeDetectionStarted > this._dateTimeProvider.UtcNow.Subtract( TimeSpan.FromSeconds( 15 ) ) )
+            var daysToExpiration = (int) Math.Floor( (expiration - this._dateTimeProvider.UtcNow).TotalDays );
+
+            return daysToExpiration switch
             {
-                this._logger.Trace?.Log( "Skipping detection because it has been performed recently." );
-
-                return;
-            }
-
-            this._lastTimeDetectionStarted = this._dateTimeProvider.UtcNow;
-
-            var notificationReported = false;
-
-            if ( !this._userDeviceDetectionService.IsInteractiveDevice )
-            {
-                this._logger.Trace?.Log( "Skipping detection because the session is not interactive." );
-
-                return;
-            }
-
-            this._logger.Trace?.Log( "Detecting relevant toast notifications." );
-
-            // Show the first-run telemetry notice exactly once, the first time telemetry is actually activated — so a
-            // machine that never activates telemetry (e.g. one that only builds opted-out repositories) never sees it.
-            // It is tracked by its own WelcomeConfiguration.TelemetryNoticeDisplayed flag (independent of WelcomePageDisplayed,
-            // which also serves as an installation tracker), so the toast and the legacy welcome web page are independent.
-            // See #1701.
-            if ( this._telemetryConfigurationService?.IsActivated == true
-                 && this._configurationManager.UpdateIf<WelcomeConfiguration>(
-                     c => !c.TelemetryNoticeDisplayed,
-                     c => c with { TelemetryNoticeDisplayed = true } ) )
-            {
-                this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.TelemetryNotice ) );
-            }
-
-            // Validate registered licenses, but do not complain about the lack of licenses.
-            if ( this._licenseRegistrationService != null )
-            {
-                foreach ( var license in this._licenseRegistrationService.RegisteredLicenses )
-                {
-                    this.ValidateRegisteredLicense( license, ref notificationReported );
-                }
-            }
-
-            // Suggest to install Visual Studio Tools for Metalama.
-            if ( !notificationReported && this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
-            {
-                this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
-            }
+                < 0 => "has expired",
+                0 => "expires today",
+                1 => "expires tomorrow",
+                _ => $"expires in {daysToExpiration} days"
+            };
         }
     }
 
-    public void Detect() => this._backgroundTasksService.Enqueue( () => this.DetectImpl( bypassThrottle: false ) );
+    public Task DetectAsync( ITelemetryContext? telemetryContext, ToastNotificationCategories categories = ToastNotificationCategories.All )
+    {
+        // Avoid too frequent detections for performance reasons. We take the throttle period quite arbitrarily
+        // because we don't have a case that requires more frequent detection.
+        // This throttling deliberately ignores the telemetry context.
+        // In real use cases, each caller process uses a single mask for ToastNotificationCategories, so we also ignore this parameter for throttling.
+        if ( this._lastTimeDetectionEnqueued > this._dateTimeProvider.UtcNow.Subtract( ToastNotificationStatusService.LowPriorityThrottlePeriod ) )
+        {
+            this._logger.Trace?.Log( "Skipping detection because it has been performed recently." );
+
+            return Task.CompletedTask;
+        }
+
+        this._lastTimeDetectionEnqueued = this._dateTimeProvider.UtcNow;
+
+        return this._backgroundTasksService.Enqueue( () => this.DetectImplAsync( telemetryContext, categories ) );
+    }
+
+    public void Dispose() => this._semaphoreSlim.Dispose();
 }

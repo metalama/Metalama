@@ -37,29 +37,26 @@ public interface ITelemetryConfigurationService : IBackstageService
     bool IsActivated { get; }
 
     /// <summary>
-    /// Registers a <paramref name="callback"/> invoked once when telemetry is activated <b>during the current process</b>
-    /// (see <see cref="EnsureActivated"/>). Unlike a plain event, this avoids a registration race: if telemetry has
-    /// already been activated by the current process when the callback is registered, the callback is invoked
-    /// immediately; otherwise it is invoked when activation happens. If telemetry was activated only in a previous
-    /// session (the device identifier already exists on disk but no activation happened this run), the callback is not
-    /// invoked — the welcome page and the first-run notice were already shown then. Used to defer those until telemetry
-    /// is actually collected. See #1701.
-    /// </summary>
-    void OnActivated( Action callback );
-
-    /// <summary>
-    /// Enables (sets every category to <see cref="ReportingAction.Yes"/>) or disables (<see cref="ReportingAction.No"/>)
+    /// Enables (sets every category to <see cref="TelemetryConsent.Yes"/>) or disables (<see cref="TelemetryConsent.No"/>)
     /// all telemetry scenarios at once. This backs the global telemetry on/off switch (e.g. the <c>metalama telemetry
     /// enable</c> / <c>disable</c> commands).
     /// </summary>
+    [Obsolete( "Use SetConsent instead." )]
     void SetStatus( bool enabled );
 
     /// <summary>
-    /// Enables (sets to <see cref="ReportingAction.Yes"/>) or disables (<see cref="ReportingAction.No"/>) a single
+    /// Enables (sets to <see cref="TelemetryConsent.Yes"/>) or disables (<see cref="TelemetryConsent.No"/>) a single
     /// telemetry <paramref name="scenario"/> independently of the other scenarios. This backs the per-category
     /// "automatically report all …" checkbox, which enables a category's auto-send without touching usage telemetry. See #1672, #1674.
     /// </summary>
+    [Obsolete( "Use SetConsent instead." )]
     void SetStatus( TelemetryScenario scenario, bool enabled );
+
+    void SetConsent( TelemetryConsent action );
+
+    void SetConsent( TelemetryScenario scenario, TelemetryConsent action );
+
+    bool CompareExchangeConsent( TelemetryScenario scenario, TelemetryConsent newAction, TelemetryConsent oldAction );
 
     /// <summary>
     /// Gets the anonymized device identifier used to correlate telemetry reports, or <see cref="System.Guid.Empty"/>
@@ -70,36 +67,21 @@ public interface ITelemetryConfigurationService : IBackstageService
     Guid DeviceId { get; }
 
     /// <summary>
-    /// Gets the effective <see cref="ReportingAction"/> for the given <paramref name="scenario"/>: the configured
-    /// per-category action, gated by the process-level checks. It returns <see cref="ReportingAction.No"/> whenever
+    /// Gets the effective <see cref="TelemetryConsent"/> for the given <paramref name="scenario"/>: the configured
+    /// per-category action, gated by the process-level checks. It returns <see cref="TelemetryConsent.No"/> whenever
     /// telemetry is disabled at the process level (see <see cref="IsGloballyEnabled"/>), regardless of the configured
     /// value. This is the universal way to query telemetry enablement and the only one valid for the exception and
-    /// performance scenarios, where the action carries the ASK distinction (<see cref="ReportingAction.Default"/> =
-    /// capture + ask, <see cref="ReportingAction.Yes"/> = capture + auto-send, <see cref="ReportingAction.No"/> = do not
+    /// performance scenarios, where the action carries the ASK distinction (<see cref="TelemetryConsent.Default"/> =
+    /// capture + ask, <see cref="TelemetryConsent.Yes"/> = capture + auto-send, <see cref="TelemetryConsent.No"/> = do not
     /// even capture or ask). See #1674, #1701.
     /// </summary>
-    ReportingAction GetEffectiveReportingAction( TelemetryScenario scenario );
+    TelemetryConsent GetEffectiveConsent( TelemetryScenario scenario );
 
-    /// <summary>
-    /// A convenience over <see cref="GetEffectiveReportingAction"/> for scenarios that have no ASK state — i.e.
-    /// <see cref="TelemetryScenario.Usage"/> and <see cref="TelemetryScenario.Rss"/>, where telemetry is simply
-    /// collected and sent (opt-out). Equivalent to <c>GetEffectiveReportingAction(scenario) != ReportingAction.No</c>.
-    /// </summary>
-    /// <exception cref="System.ArgumentOutOfRangeException">
-    /// <paramref name="scenario"/> can be in an ASK state (<see cref="TelemetryScenario.Exception"/> or
-    /// <see cref="TelemetryScenario.Performance"/>), for which a boolean is ambiguous — use
-    /// <see cref="GetEffectiveReportingAction"/> instead.
-    /// </exception>
-    bool IsEnabled( TelemetryScenario scenario );
+    ( TelemetryConsent Consent, TelemetryDisabledReason Reason ) GetEffectiveConsentAndReason( TelemetryScenario scenario );
 
     /// <summary>
     /// Gets a value indicating whether telemetry is enabled at the process level — i.e. the current application supports
-    /// telemetry, the process is not unattended, and the user has not opted out through the environment variable. Unlike
-    /// <see cref="IsEnabled"/>, this is independent of the per-category <see cref="ReportingAction"/>. Exception/performance
-    /// reports are captured locally (and a toast is shown) when this is <c>true</c> and the category is not
-    /// <see cref="ReportingAction.No"/> (<see cref="ReportingAction.Default"/> = capture + ask; <see cref="ReportingAction.Yes"/>
-    /// = capture + ask + auto-send; <see cref="ReportingAction.No"/> = not captured); auto-send is additionally gated on
-    /// the category being <see cref="ReportingAction.Yes"/>. See #1674, #1701.
+    /// telemetry, the process is not unattended, and the user has not opted out through the environment variable.
     /// </summary>
     bool IsGloballyEnabled { get; }
 
@@ -147,6 +129,16 @@ public enum TelemetryScenario
     None,
     Usage,
     Exception,
-    Performance,
-    Rss
+    Performance
+}
+
+public enum TelemetryDisabledReason
+{
+    None,                      // telemetry is enabled
+    UnsupportedApplication,    // host app doesn't support telemetry
+    UnattendedProcess,         // CI / build server / unattended
+    EnvironmentVariableOptOut, // METALAMA_TELEMETRY_OPT_OUT
+    RepositoryOptOut,          // metalama.json telemetry.enabled = false
+    UserOptOut,                // telemetry.json category set to No
+    NoRepositoryContext        // no directory / repository context
 }

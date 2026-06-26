@@ -49,7 +49,7 @@ public static class BackstageServiceFactory
     public static IServiceProvider InitializeBackstageServices( this IServiceProvider serviceProvider )
     {
         serviceProvider.GetRequiredBackstageService<BackstageServicesInitializer>().Initialize();
-        serviceProvider.GetRequiredBackstageService<ShutdownService>().Initialize();
+        serviceProvider.GetBackstageService<ShutdownService>()?.Initialize();
 
         return serviceProvider;
     }

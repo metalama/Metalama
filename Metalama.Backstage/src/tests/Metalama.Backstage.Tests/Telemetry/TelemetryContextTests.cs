@@ -48,7 +48,9 @@ public sealed class TelemetryContextTests : TestsBase
     {
         this.CreateRepository( telemetryEnabled: null );
 
-        Assert.True( this.TelemetryService.OpenContext( this.TelemetryService.GetPolicy( _projectDirectory ) ).IsTelemetryEnabled( TelemetryScenario.Usage ) );
+        Assert.NotEqual(
+            TelemetryConsent.No,
+            this.TelemetryService.GetPolicy( _projectDirectory ).GetConsent( TelemetryScenario.Usage ) );
     }
 
     [Fact]
@@ -56,7 +58,9 @@ public sealed class TelemetryContextTests : TestsBase
     {
         this.CreateRepository( telemetryEnabled: true );
 
-        Assert.True( this.TelemetryService.OpenContext( this.TelemetryService.GetPolicy( _projectDirectory ) ).IsTelemetryEnabled( TelemetryScenario.Usage ) );
+        Assert.NotEqual(
+            TelemetryConsent.No,
+            this.TelemetryService.GetPolicy( _projectDirectory ).GetConsent( TelemetryScenario.Usage ) );
     }
 
     [Fact]
@@ -64,11 +68,11 @@ public sealed class TelemetryContextTests : TestsBase
     {
         this.CreateRepository( telemetryEnabled: false );
 
-        var context = this.TelemetryService.OpenContext( this.TelemetryService.GetPolicy( _projectDirectory ) );
+        var policy = this.TelemetryService.GetPolicy( _projectDirectory );
 
-        Assert.False( context.IsTelemetryEnabled( TelemetryScenario.Usage ) );
-        Assert.False( context.IsTelemetryEnabled( TelemetryScenario.Exception ) );
-        Assert.False( context.IsTelemetryEnabled( TelemetryScenario.Performance ) );
+        Assert.Equal( TelemetryConsent.No, policy.GetConsent( TelemetryScenario.Usage ) );
+        Assert.Equal( TelemetryConsent.No, policy.GetConsent( TelemetryScenario.Exception ) );
+        Assert.Equal( TelemetryConsent.No, policy.GetConsent( TelemetryScenario.Performance ) );
     }
 
     [Fact]
@@ -115,7 +119,9 @@ public sealed class TelemetryContextTests : TestsBase
         this.EnvironmentVariableProvider.Environment[Backstage.Telemetry.TelemetryConfigurationService.OptOutEnvironmentVariable] = "1";
         this.CreateRepository( telemetryEnabled: true );
 
-        Assert.False( this.TelemetryService.OpenContext( this.TelemetryService.GetPolicy( _projectDirectory ) ).IsTelemetryEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal(
+            TelemetryConsent.No,
+            this.TelemetryService.GetPolicy( _projectDirectory ).GetConsent( TelemetryScenario.Usage ) );
     }
 
     [Fact]
@@ -123,29 +129,21 @@ public sealed class TelemetryContextTests : TestsBase
     {
         // `metalama telemetry disable` (SetStatus(false)) disables usage even when there is no metalama.json.
         this.CreateRepository( telemetryEnabled: null );
-        this.TelemetryConfigurationService.SetStatus( false );
+        this.TelemetryConfigurationService.SetConsent( TelemetryConsent.No );
 
-        Assert.False( this.TelemetryService.OpenContext( this.TelemetryService.GetPolicy( _projectDirectory ) ).IsTelemetryEnabled( TelemetryScenario.Usage ) );
-    }
-
-    [Fact]
-    public void NullContext_AllScenariosDisabled()
-    {
-        var context = this.TelemetryService.NullContext;
-
-        Assert.False( context.IsTelemetryEnabled( TelemetryScenario.Usage ) );
-        Assert.False( context.IsTelemetryEnabled( TelemetryScenario.Exception ) );
-        Assert.False( context.IsTelemetryEnabled( TelemetryScenario.Performance ) );
+        Assert.Equal(
+            TelemetryConsent.No,
+            this.TelemetryService.GetPolicy( _projectDirectory ).GetConsent( TelemetryScenario.Usage ) );
     }
 
     [Fact]
     public void ToolingPolicy_NoWorkingDirectory_Disabled()
     {
         // With no working directory, there is no repository context, so the tooling policy disables telemetry.
-        var context = this.TelemetryService.OpenContext( this.TelemetryService.GetToolingPolicy() );
+        var policy = this.TelemetryService.GetToolingPolicy();
 
-        Assert.False( context.IsTelemetryEnabled( TelemetryScenario.Usage ) );
-        Assert.False( context.IsTelemetryEnabled( TelemetryScenario.Exception ) );
+        Assert.Equal( TelemetryConsent.No, policy.GetConsent( TelemetryScenario.Usage ) );
+        Assert.Equal( TelemetryConsent.No, policy.GetConsent( TelemetryScenario.Exception ) );
     }
 
     [Fact]
@@ -155,7 +153,9 @@ public sealed class TelemetryContextTests : TestsBase
         // policy disables telemetry.
         this.EnvironmentVariableProvider.CurrentDirectory = _projectDirectory;
 
-        Assert.False( this.TelemetryService.OpenContext( this.TelemetryService.GetToolingPolicy() ).IsTelemetryEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal(
+            TelemetryConsent.No,
+            this.TelemetryService.GetToolingPolicy().GetConsent( TelemetryScenario.Usage ) );
     }
 
     [Fact]
@@ -166,7 +166,9 @@ public sealed class TelemetryContextTests : TestsBase
         this.CreateRepository( telemetryEnabled: null );
         this.EnvironmentVariableProvider.CurrentDirectory = _projectDirectory;
 
-        Assert.True( this.TelemetryService.OpenContext( this.TelemetryService.GetToolingPolicy() ).IsTelemetryEnabled( TelemetryScenario.Usage ) );
+        Assert.NotEqual(
+            TelemetryConsent.No,
+            this.TelemetryService.GetToolingPolicy().GetConsent( TelemetryScenario.Usage ) );
     }
 
     [Fact]
@@ -177,7 +179,9 @@ public sealed class TelemetryContextTests : TestsBase
         this.CreateRepository( telemetryEnabled: false );
         this.EnvironmentVariableProvider.CurrentDirectory = _projectDirectory;
 
-        Assert.False( this.TelemetryService.OpenContext( this.TelemetryService.GetToolingPolicy() ).IsTelemetryEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal(
+            TelemetryConsent.No,
+            this.TelemetryService.GetToolingPolicy().GetConsent( TelemetryScenario.Usage ) );
     }
 
     [Fact]
@@ -187,9 +191,9 @@ public sealed class TelemetryContextTests : TestsBase
         // (no metalama.json) would have enabled.
         this.CreateRepository( telemetryEnabled: null );
 
-        var context = this.TelemetryService.OpenContext( new FixedPolicy( ReportingAction.No ) );
+        var context = this.TelemetryService.OpenContext( new FixedPolicy( TelemetryConsent.No ) );
 
-        Assert.False( context.IsTelemetryEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal( TelemetryConsent.No, context.Policy.GetConsent( TelemetryScenario.Usage ) );
     }
 
     [Fact]
@@ -198,9 +202,9 @@ public sealed class TelemetryContextTests : TestsBase
         // Pure replace: the ad-hoc policy fully substitutes the default, so the metalama.json opt-out is NOT consulted.
         this.CreateRepository( telemetryEnabled: false );
 
-        var context = this.TelemetryService.OpenContext( new FixedPolicy( ReportingAction.Yes ) );
+        var context = this.TelemetryService.OpenContext( new FixedPolicy( TelemetryConsent.Yes ) );
 
-        Assert.True( context.IsTelemetryEnabled( TelemetryScenario.Usage ) );
+        Assert.NotEqual( TelemetryConsent.No, context.Policy.GetConsent( TelemetryScenario.Usage ) );
     }
 
     [Fact]
@@ -213,21 +217,146 @@ public sealed class TelemetryContextTests : TestsBase
         var composed = new ComposedPolicy( hostConsent: true, this.TelemetryService.GetPolicy( _projectDirectory ) );
         var context = this.TelemetryService.OpenContext( composed );
 
-        Assert.False( context.IsTelemetryEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal( TelemetryConsent.No, context.Policy.GetConsent( TelemetryScenario.Usage ) );
+    }
+
+    // ---- Reason propagation: ITelemetryPolicy.GetConsentAndReason resolves WHY telemetry is on/off and the reason must
+    // propagate from the metalama.json resolution (TelemetryService) and the process/per-category gates
+    // (ITelemetryConfigurationService) through the policy. See #1701. ----
+
+    [Fact]
+    public void Reason_EnabledRepository_IsNone()
+    {
+        this.CreateRepository( telemetryEnabled: null );
+
+        var (consent, reason) = this.TelemetryService.GetPolicy( _projectDirectory ).GetConsentAndReason( TelemetryScenario.Usage );
+
+        Assert.NotEqual( TelemetryConsent.No, consent );
+        Assert.Equal( TelemetryDisabledReason.None, reason );
+    }
+
+    [Fact]
+    public void Reason_RepositoryOptOut_PropagatesToEveryScenario()
+    {
+        this.CreateRepository( telemetryEnabled: false );
+
+        var policy = this.TelemetryService.GetPolicy( _projectDirectory );
+
+        // The metalama.json opt-out is a repository-wide veto, so the reason is the same for every scenario.
+        foreach ( var scenario in new[] { TelemetryScenario.Usage, TelemetryScenario.Exception, TelemetryScenario.Performance } )
+        {
+            var (consent, reason) = policy.GetConsentAndReason( scenario );
+
+            Assert.Equal( TelemetryConsent.No, consent );
+            Assert.Equal( TelemetryDisabledReason.RepositoryOptOut, reason );
+        }
+    }
+
+    [Fact]
+    public void Reason_EnvironmentVariableOptOut()
+    {
+        // The repository does not opt out, so the reason comes from the env-var gate resolved by the configuration service.
+        this.EnvironmentVariableProvider.Environment[Backstage.Telemetry.TelemetryConfigurationService.OptOutEnvironmentVariable] = "1";
+        this.CreateRepository( telemetryEnabled: true );
+
+        var (consent, reason) = this.TelemetryService.GetPolicy( _projectDirectory ).GetConsentAndReason( TelemetryScenario.Usage );
+
+        Assert.Equal( TelemetryConsent.No, consent );
+        Assert.Equal( TelemetryDisabledReason.EnvironmentVariableOptOut, reason );
+    }
+
+    [Fact]
+    public void Reason_UnsupportedApplication()
+    {
+        // Must be set before the service provider (and thus the telemetry configuration service) is created.
+        this.ApplicationInfo = new TestApplicationInfo { IsTelemetryEnabled = false };
+        this.CreateRepository( telemetryEnabled: null );
+
+        var (consent, reason) = this.TelemetryService.GetPolicy( _projectDirectory ).GetConsentAndReason( TelemetryScenario.Usage );
+
+        Assert.Equal( TelemetryConsent.No, consent );
+        Assert.Equal( TelemetryDisabledReason.UnsupportedApplication, reason );
+    }
+
+    [Fact]
+    public void Reason_UnattendedProcess()
+    {
+        this.ApplicationInfo = new TestApplicationInfo { IsTelemetryEnabled = true, IsUnattendedProcess = true };
+        this.CreateRepository( telemetryEnabled: null );
+
+        var (consent, reason) = this.TelemetryService.GetPolicy( _projectDirectory ).GetConsentAndReason( TelemetryScenario.Usage );
+
+        Assert.Equal( TelemetryConsent.No, consent );
+        Assert.Equal( TelemetryDisabledReason.UnattendedProcess, reason );
+    }
+
+    [Fact]
+    public void Reason_UserOptOut_IsPerScenario()
+    {
+        // The per-category telemetry.json opt-out is independent per scenario, so the reason must be too: a disabled
+        // category reports UserOptOut while an enabled one reports None.
+        this.CreateRepository( telemetryEnabled: null );
+        this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Usage, TelemetryConsent.No );
+        this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Exception, TelemetryConsent.Yes );
+
+        var policy = this.TelemetryService.GetPolicy( _projectDirectory );
+
+        var usage = policy.GetConsentAndReason( TelemetryScenario.Usage );
+        Assert.Equal( TelemetryConsent.No, usage.Consent );
+        Assert.Equal( TelemetryDisabledReason.UserOptOut, usage.Reason );
+
+        var exception = policy.GetConsentAndReason( TelemetryScenario.Exception );
+        Assert.NotEqual( TelemetryConsent.No, exception.Consent );
+        Assert.Equal( TelemetryDisabledReason.None, exception.Reason );
+    }
+
+    [Fact]
+    public void Reason_NullPolicy_IsNoRepositoryContext()
+    {
+        var (consent, reason) = NullTelemetryPolicy.NoContext.GetConsentAndReason( TelemetryScenario.Usage );
+
+        Assert.Equal( TelemetryConsent.No, consent );
+        Assert.Equal( TelemetryDisabledReason.NoRepositoryContext, reason );
+    }
+
+    [Fact]
+    public void Reason_GetPolicyWithoutDirectory_IsNoRepositoryContext()
+    {
+        var (consent, reason) = this.TelemetryService.GetPolicy( null ).GetConsentAndReason( TelemetryScenario.Usage );
+
+        Assert.Equal( TelemetryConsent.No, consent );
+        Assert.Equal( TelemetryDisabledReason.NoRepositoryContext, reason );
+    }
+
+    [Fact]
+    public void Reason_ToolingPolicyOutsideRepository_IsNoRepositoryContext()
+    {
+        // The working directory is not inside a git repository, so the tooling policy has no repository context.
+        this.EnvironmentVariableProvider.CurrentDirectory = _projectDirectory;
+
+        var (consent, reason) = this.TelemetryService.GetToolingPolicy().GetConsentAndReason( TelemetryScenario.Usage );
+
+        Assert.Equal( TelemetryConsent.No, consent );
+        Assert.Equal( TelemetryDisabledReason.NoRepositoryContext, reason );
     }
 
     // A policy that returns a fixed action for every scenario, used to prove that a caller-supplied policy replaces the
     // default outright.
     private sealed class FixedPolicy : ITelemetryPolicy
     {
-        private readonly ReportingAction _action;
+        private readonly TelemetryConsent _consent;
 
-        public FixedPolicy( ReportingAction action )
+        public FixedPolicy( TelemetryConsent consent )
         {
-            this._action = action;
+            this._consent = consent;
         }
 
-        public ReportingAction GetReportingAction( TelemetryScenario scenario ) => this._action;
+        public bool HasRepositoryContext => throw new NotImplementedException();
+
+        public TelemetryConsent GetConsent( TelemetryScenario scenario ) => this._consent;
+
+        public (TelemetryConsent Consent, TelemetryDisabledReason Reason) GetConsentAndReason( TelemetryScenario scenario )
+            => throw new NotImplementedException();
 
         public ImmutableArray<TelemetryContextWarning> Warnings => ImmutableArray<TelemetryContextWarning>.Empty;
     }
@@ -245,8 +374,12 @@ public sealed class TelemetryContextTests : TestsBase
             this._inner = inner;
         }
 
-        public ReportingAction GetReportingAction( TelemetryScenario scenario )
-            => this._hostConsent ? this._inner.GetReportingAction( scenario ) : ReportingAction.No;
+        public bool HasRepositoryContext => throw new NotImplementedException();
+
+        public TelemetryConsent GetConsent( TelemetryScenario scenario ) => this._hostConsent ? this._inner.GetConsent( scenario ) : TelemetryConsent.No;
+
+        public (TelemetryConsent Consent, TelemetryDisabledReason Reason) GetConsentAndReason( TelemetryScenario scenario )
+            => throw new NotImplementedException();
 
         public ImmutableArray<TelemetryContextWarning> Warnings => this._inner.Warnings;
     }

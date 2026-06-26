@@ -49,12 +49,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
         base.OnAfterServicesCreated( services );
 
         services.ConfigurationManager!.Update<TelemetryConfiguration>(
-            c => c with
-            {
-                DeviceId = _testDeviceId,
-                MatomoSalt = _testSalt,
-                LastSaltChangeTime = this.Time.UtcNow
-            } );
+            c => c with { DeviceId = _testDeviceId, MatomoSalt = _testSalt, LastSaltChangeTime = this.Time.UtcNow } );
     }
 
     private InstrumentedLicenseWrapper CreateAndConsumeLicense( string licenseKey )
@@ -227,7 +222,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
     [Fact]
     public void LicenseIsReportedWhenOptOutEnvironmentVariableIsSet()
     {
-        this.EnvironmentVariableProvider.Environment["METALAMA_TELEMETRY_OPT_OUT"] = "true";
+        this.EnvironmentVariableProvider.Environment[TelemetryConfiguration.OptOutEnvironmentVariableName] = "true";
         this.ConsumeAndAssertReportsCount( 1 );
     }
 

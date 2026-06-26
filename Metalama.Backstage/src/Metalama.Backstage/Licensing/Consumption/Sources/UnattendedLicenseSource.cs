@@ -64,6 +64,7 @@ internal sealed class UnattendedLicenseSource : ILicenseSource, ILicense
             false,
             false,
             null,
+            null,
             SubscriptionStatus.None,
             LicenseGeneration.Current,
             ServicingPhase.LongTerm );
@@ -83,4 +84,6 @@ internal sealed class UnattendedLicenseSource : ILicenseSource, ILicense
     event Action? ILicenseSource.Changed { add { } remove { } }
 
     public LicenseSourcePriority Priority => LicenseSourcePriority.Unattended;
+
+    public bool SupportsRegistration => false;
 }

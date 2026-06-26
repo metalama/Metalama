@@ -27,9 +27,9 @@ internal sealed class RssClient : IRssClient
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger _logger;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ITelemetryConfigurationService _telemetryConfigurationService;
-    private readonly IToastNotificationService _toastNotificationService;
-    private readonly BackstageBackgroundTasksService _backgroundTasksService;
+    private readonly IToastNotificationService? _toastNotificationService;
+    private readonly IToastNotificationStatusService? _toastNotificationStatusService;
+    private readonly IUserDeviceDetectionService? _userDeviceDetectionService;
 
     public RssClient( IServiceProvider serviceProvider )
     {
@@ -37,58 +37,81 @@ internal sealed class RssClient : IRssClient
         this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(RssClient) );
         this._httpClientFactory = serviceProvider.GetRequiredBackstageService<IHttpClientFactory>();
-        this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
-        this._toastNotificationService = serviceProvider.GetRequiredBackstageService<IToastNotificationService>();
-        this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
+        
+        // Not always available in configuration-only scenarios.
+        this._toastNotificationService = serviceProvider.GetBackstageService<IToastNotificationService>();
+        this._userDeviceDetectionService = serviceProvider.GetBackstageService<IUserDeviceDetectionService>();
+        this._toastNotificationStatusService = serviceProvider.GetBackstageService<IToastNotificationStatusService>();
     }
 
-    public void Initialize()
+    public Task DisplayUnreadLatestNewsAsync( ITelemetryContext context )
     {
-        this._backgroundTasksService.Enqueue( () => this.DisplayUnreadNewsAsync() );
+        if ( this.GetDisabledReason( context ) != TelemetryDisabledReason.None )
+        {
+            return Task.CompletedTask;
+        }
+
+        return this.DisplayNewsAsync( false );
     }
 
-    public Task DisplayLatestNewsAsync()
-    {
-        return this.DisplayUnreadNewsAsync( true );
-    }
+    public Task<bool> DisplayLatestNewsAsync() => this.DisplayNewsAsync( true );
 
     public void Disable() => this._configurationManager.Update<RssClientConfiguration>( c => c with { PreferredFeed = RssFeed.None } );
 
     public bool TryEnable()
     {
-        // The news feed rides the usage-telemetry opt-out (see #1670), so enabling it while telemetry is disabled would
-        // have no effect — the feed would never be fetched. Report the error instead of silently enabling a dead feed.
-        if ( !this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Rss ) )
-        {
-            this._logger.Trace?.Log( "Cannot enable the news feed because telemetry is disabled." );
-
-            return false;
-        }
-
         this._configurationManager.Update<RssClientConfiguration>( c => c with { PreferredFeed = RssFeed.Briefs } );
 
         return true;
     }
 
-    internal async Task DisplayUnreadNewsAsync( bool skipPreconditions = false )
+    public TelemetryDisabledReason GetDisabledReason( ITelemetryContext telemetryContext ) 
     {
+        var usageConsent = telemetryContext.Policy.GetConsentAndReason( TelemetryScenario.Usage );
+
+        if ( usageConsent.Consent == TelemetryConsent.No && usageConsent.Reason != TelemetryDisabledReason.UserOptOut )
+        {
+            this._logger.Trace?.Log( $"Usage telemetry is disabled because {usageConsent.Reason}. Do not fetch news." );
+
+            return usageConsent.Reason;
+        }
+        
+        var configuration = this._configurationManager.Get<RssClientConfiguration>();
+        
+        if ( configuration.PreferredFeed == RssFeed.None )
+        {
+            this._logger.Trace?.Log( "The RSS client has been disabled." );
+
+            return TelemetryDisabledReason.UserOptOut;
+        }
+
+        return TelemetryDisabledReason.None;
+    }
+
+    private async Task<bool> DisplayNewsAsync( bool skipPreconditions )
+    {
+        if ( this._toastNotificationStatusService == null || this._userDeviceDetectionService == null || this._toastNotificationService == null )
+        {
+            throw new InvalidOperationException( "UI services are not available." );
+        }
+        
         var configuration = this._configurationManager.Get<RssClientConfiguration>();
 
         if ( !skipPreconditions )
         {
             // Check preconditions.
-            if ( configuration.PreferredFeed == RssFeed.None )
+            if ( !this._userDeviceDetectionService.IsInteractiveDevice )
             {
-                this._logger.Trace?.Log( "The RSS client has been disabled." );
+                this._logger.Trace?.Log( "This is an unattended session. Do not fetch news." );
 
-                return;
+                return false;
             }
 
-            if ( !this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Rss ) )
+            if ( !this._toastNotificationStatusService.CanDisplayLowPriorityNotifications )
             {
-                this._logger.Trace?.Log( "Telemetry is disabled. Do not fetch news." );
+                this._logger.Trace?.Log( "Not a good time to display low-priority news. Do not fetch news." );
 
-                return;
+                return false;
             }
 
             if ( configuration.LastFetchTime == null )
@@ -99,31 +122,23 @@ internal sealed class RssClient : IRssClient
                 this._configurationManager.Update<RssClientConfiguration>(
                     c => c with { LastFetchTime = this._dateTimeProvider.UtcNow, PreferredFeed = c.PreferredFeed ?? RssFeed.Briefs } );
 
-                return;
+                return false;
             }
             else if ( configuration.LastFetchTime.Value.AddDays( 1 ) > this._dateTimeProvider.UtcNow )
             {
                 this._logger.Trace?.Log( $"News were already checked on {configuration.LastFetchTime}." );
 
-                return;
+                return false;
             }
         }
 
         // Select feed URL.
         var url = configuration.PreferredFeed switch
         {
-            null or RssFeed.Briefs => BriefsUrl,
             RssFeed.Posts => PostsUrl,
-            _ => null
+            _ => BriefsUrl
         };
-
-        if ( url == null )
-        {
-            this._logger.Warning?.Log( $"Invalid preferred feed: {configuration.PreferredFeed}. Skipping." );
-
-            return;
-        }
-
+        
         try
         {
             // Fetch content.
@@ -134,7 +149,14 @@ internal sealed class RssClient : IRssClient
             {
                 this._logger.Trace?.Log( $"Cannot get '{url}': {response.ReasonPhrase}." );
 
-                return;
+                return false;
+            }
+
+            if ( response.Content == null! || response.Content.Headers.ContentLength == 0 )
+            {
+                this._logger.Trace?.Log( $"Cannot get '{url}': content is null or empty." );
+
+                return false;
             }
 
             var content = await response.Content.ReadAsStringAsync();
@@ -142,7 +164,7 @@ internal sealed class RssClient : IRssClient
             // Try to parse the item.
             if ( !this.TryParseContent( content, out var title, out var link, out var pubDate ) )
             {
-                return;
+                return false;
             }
 
             // Only notify if the item was published after the last fetch time.
@@ -151,16 +173,19 @@ internal sealed class RssClient : IRssClient
                 this._logger.Trace?.Log(
                     $"Item published on {pubDate} is not newer than last fetch time {configuration.LastFetchTime}. Skipping notification." );
 
-                return;
+                return false;
             }
 
             // Create and show a toast notification.
             var notification = new ToastNotification( ToastNotificationKinds.News, title, null, link );
-            this._toastNotificationService.Show( notification );
+
+            return this._toastNotificationService.Show( notification );
         }
         catch ( Exception e )
         {
             this._logger.LogException( e, "Failed to fetch or parse RSS feed" );
+
+            return false;
         }
         finally
         {

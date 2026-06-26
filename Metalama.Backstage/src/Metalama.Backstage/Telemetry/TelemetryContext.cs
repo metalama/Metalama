@@ -11,7 +11,6 @@ namespace Metalama.Backstage.Telemetry;
 /// <inheritdoc cref="ITelemetryContext"/>
 internal sealed class TelemetryContext : ITelemetryContext
 {
-    private readonly ITelemetryPolicy _policy;
     private readonly IUsageReporter _usageReporter;
     private readonly IExceptionCapturer _exceptionCapturer;
     private readonly LocalExceptionReporter? _localExceptionReporter;
@@ -22,23 +21,20 @@ internal sealed class TelemetryContext : ITelemetryContext
         IExceptionCapturer exceptionCapturer,
         LocalExceptionReporter? localExceptionReporter )
     {
-        this._policy = policy;
+        this.Policy = policy;
         this._usageReporter = usageReporter;
         this._exceptionCapturer = exceptionCapturer;
         this._localExceptionReporter = localExceptionReporter;
     }
 
-    public ImmutableArray<TelemetryContextWarning> Warnings => this._policy.Warnings;
+    public ITelemetryPolicy Policy { get; }
 
-    public bool IsTelemetryEnabled( TelemetryScenario scenario )
-
-        // The policy is the single authority: it combines the repository opt-out (metalama.json), the process-level gates
-        // and the per-category action in telemetry.json. A scenario is active when the policy resolves to anything other
-        // than No. See #1701.
-        => this._policy.GetReportingAction( scenario ) != ReportingAction.No;
+    public ImmutableArray<TelemetryContextWarning> Warnings => this.Policy.Warnings;
 
     public IUsageSession StartUsageSession( string kind, string? projectName = null )
-        => this.IsTelemetryEnabled( TelemetryScenario.Usage ) ? this._usageReporter.StartSession( kind, projectName ) : NullUsageSession.Instance;
+        => this.Policy.GetConsent( TelemetryScenario.Usage ) != TelemetryConsent.No
+            ? this._usageReporter.StartSession( kind, projectName )
+            : NullUsageSession.Instance;
 
     public void ReportException(
         Exception exception,
@@ -55,13 +51,13 @@ internal sealed class TelemetryContext : ITelemetryContext
     {
         var scenario = exceptionReportingKind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance;
 
-        var reportingAction = this._policy.GetReportingAction( scenario );
+        var consent = this.Policy.GetConsent( scenario );
 
-        if ( reportingAction != ReportingAction.No )
+        if ( consent != TelemetryConsent.No )
         {
             // Telemetry is enabled for this scenario: capture the report (the capturer also writes the local crash report
             // when writeLocalReport is true and this is an exception).
-            this._exceptionCapturer.Capture( classifiedException, exceptionReportingKind, reportingAction, writeLocalReport, exceptionAdapter );
+            this._exceptionCapturer.Capture( classifiedException, exceptionReportingKind, consent, writeLocalReport, exceptionAdapter );
         }
         else if ( writeLocalReport && exceptionReportingKind == ExceptionReportingKind.Exception )
         {

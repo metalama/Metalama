@@ -59,6 +59,8 @@ namespace Metalama.Backstage.Licensing.Consumption
         /// </summary>
         public bool IsAuditable { get; }
 
+        public DateTime? LicenseEndDate { get; }
+
         public DateTime? SubscriptionEndDate { get; }
 
         public SubscriptionStatus SubscriptionStatus { get; }
@@ -88,6 +90,7 @@ namespace Metalama.Backstage.Licensing.Consumption
             string? licenseString,
             bool isRedistributable,
             bool isAuditable,
+            DateTime? licenseEndDate,
             DateTime? subscriptionEndDate,
             SubscriptionStatus subscriptionStatus,
             LicenseGeneration generation,
@@ -98,6 +101,7 @@ namespace Metalama.Backstage.Licensing.Consumption
             this.DisplayName = displayName;
             this.LicenseString = licenseString;
             this.IsAuditable = isAuditable;
+            this.LicenseEndDate = licenseEndDate;
             this.SubscriptionEndDate = subscriptionEndDate;
             this.SubscriptionStatus = subscriptionStatus;
             this.Generation = generation;

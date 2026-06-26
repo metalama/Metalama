@@ -31,15 +31,13 @@ internal sealed class TelemetryService : ITelemetryService
         this._localExceptionReporter = serviceProvider.GetBackstageService<LocalExceptionReporter>();
     }
 
-    public ITelemetryContext NullContext => this.OpenContext( NullTelemetryPolicy.Instance );
-
     public ITelemetryPolicy GetPolicy( string? directory )
     {
         if ( string.IsNullOrEmpty( directory ) )
         {
             // The directory is unknown, so there is no repository to consult: disable telemetry. This lets callers write
             // OpenContext( GetPolicy( directory ) ) without a null check. See #1701.
-            return NullTelemetryPolicy.Instance;
+            return NullTelemetryPolicy.NoContext;
         }
 
         // directory is non-null here (guarded above), but string.IsNullOrEmpty is not annotated on all target frameworks.
@@ -48,13 +46,17 @@ internal sealed class TelemetryService : ITelemetryService
         // The repository opts out when metalama.json explicitly sets telemetry.enabled = false. An explicit true (or an
         // absent setting) does not override the process-level / per-category gates: those are evaluated per scenario by
         // the policy through ITelemetryConfigurationService.GetEffectiveReportingAction.
-        var isOptedOut = repositoryConfigurationResult.Configuration.Telemetry?.Enabled == false;
+        var isDisabledByRepository = repositoryConfigurationResult.Configuration?.Telemetry?.Enabled == false;
 
         var warnings = repositoryConfigurationResult.Warnings.IsDefaultOrEmpty
             ? ImmutableArray<TelemetryContextWarning>.Empty
             : repositoryConfigurationResult.Warnings.Select( w => new TelemetryContextWarning( w.Message, w.FilePath ) ).ToImmutableArray();
 
-        return new TelemetryPolicy( isOptedOut, this._telemetryConfigurationService, warnings );
+        return new TelemetryPolicy(
+            repositoryConfigurationResult.IsRepository,
+            isDisabledByRepository ? TelemetryDisabledReason.RepositoryOptOut : TelemetryDisabledReason.None,
+            this._telemetryConfigurationService,
+            warnings );
     }
 
     public ITelemetryPolicy GetToolingPolicy()
@@ -68,7 +70,7 @@ internal sealed class TelemetryService : ITelemetryService
 
         return this._repositoryConfigurationService.GetRepositoryRoot( workingDirectory ) != null
             ? this.GetPolicy( workingDirectory )
-            : NullTelemetryPolicy.Instance;
+            : NullTelemetryPolicy.NoContext;
     }
 
     public ITelemetryContext OpenContext( ITelemetryPolicy policy )

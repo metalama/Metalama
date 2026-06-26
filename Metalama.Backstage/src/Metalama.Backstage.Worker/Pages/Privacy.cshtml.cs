@@ -24,34 +24,57 @@ internal class PrivacyPageModel : PageModel
         this._configurationManager = configurationManager;
     }
 
+    // Usage telemetry is a genuine two-state opt-out (Yes/No), so it stays a checkbox.
     [BindProperty]
     [DisplayName( "Send anonymous usage data" )]
     public bool IsUsageReportingEnabled { get; set; }
 
+    // Exception and performance reporting are three-state (see TelemetryConsent): No (never), Default (review-first:
+    // capture locally and ask before sending) and Yes (auto-send). They bind to a radio group, not a checkbox. See #1707.
     [BindProperty]
-    [DisplayName( "Send exception reports" )]
-    public bool IsExceptionReportingEnabled { get; set; }
+    [DisplayName( "Exception reports" )]
+    public TelemetryConsent ExceptionConsent { get; set; }
 
     [BindProperty]
-    [DisplayName( "Send performance reports" )]
-    public bool IsPerformanceReportingEnabled { get; set; }
+    [DisplayName( "Performance reports" )]
+    public TelemetryConsent PerformanceConsent { get; set; }
 
     public bool IsSaved { get; private set; }
+
+    // Whether telemetry has been activated, i.e. a device ID exists. The "reset device ID" action is only meaningful (and
+    // only offered) in that case: rotating a never-activated configuration would create a device ID and thereby activate
+    // telemetry, which must stay lazy. See #1701.
+    public bool IsTelemetryActivated { get; private set; }
+
+    public bool IsDeviceIdReset { get; private set; }
 
     public void OnGet()
     {
         this.ReadStatus();
     }
 
+    public IActionResult OnPostResetDeviceId()
+    {
+        if ( this._telemetryConfigurationService.IsActivated )
+        {
+            // Regenerates the device ID and the per-channel salts so past and future reports can no longer be correlated.
+            this._telemetryConfigurationService.ResetDeviceId();
+            this.IsDeviceIdReset = true;
+        }
+
+        this.ReadStatus();
+
+        return this.Page();
+    }
+
     public IActionResult OnPost()
     {
-        // Usage reporting is opt-out; exception and performance-problem reporting are opt-in. Each scenario is
-        // configured independently, and a scenario is only changed when its checkbox actually differs from the stored
-        // preference — so saving without touching a category preserves a review-first ('Default') category instead of
-        // flipping it to auto-send ('Yes'). See #1674.
-        this.UpdateIfChanged( TelemetryScenario.Usage, this.IsUsageReportingEnabled );
-        this.UpdateIfChanged( TelemetryScenario.Exception, this.IsExceptionReportingEnabled );
-        this.UpdateIfChanged( TelemetryScenario.Performance, this.IsPerformanceReportingEnabled );
+        // Each scenario is configured independently. Usage is opt-out (Yes/No), while exception and performance carry the
+        // full three-state consent including the review-first 'Default'. We only write a scenario whose stored consent
+        // actually changed, so saving without touching a category never clobbers it. See #1674, #1707.
+        this.SetConsentIfChanged( TelemetryScenario.Usage, this.IsUsageReportingEnabled ? TelemetryConsent.Yes : TelemetryConsent.No );
+        this.SetConsentIfChanged( TelemetryScenario.Exception, this.ExceptionConsent );
+        this.SetConsentIfChanged( TelemetryScenario.Performance, this.PerformanceConsent );
 
         this.ReadStatus();
         this.IsSaved = true;
@@ -59,35 +82,29 @@ internal class PrivacyPageModel : PageModel
         return this.Page();
     }
 
-    private void UpdateIfChanged( TelemetryScenario scenario, bool enabled )
+    private void SetConsentIfChanged( TelemetryScenario scenario, TelemetryConsent consent )
     {
-        if ( this.GetIsEnabled( scenario ) != enabled )
+        if ( this.GetConsent( scenario ) != consent )
         {
-            this._telemetryConfigurationService.SetStatus( scenario, enabled );
+            this._telemetryConfigurationService.SetConsent( scenario, consent );
         }
     }
 
     // Reads the stored per-scenario preference directly from the configuration. We intentionally do NOT use
-    // ITelemetryConfigurationService.IsEnabled here: the worker is an unattended (and, on a development build,
-    // telemetry-disabled) process, so its process-level enablement is always false and IsEnabled would both require
-    // consumer-style initialization (device id / salts, usage tracking) and report every category as off regardless of
-    // the user's saved choice. This page edits the shared preference, not whether the worker itself sends telemetry.
+    // ITelemetryConfigurationService.GetEffectiveConsent here: the worker is an unattended (and, on a development build,
+    // telemetry-disabled) process, so its process-level enablement is always false and GetEffectiveConsent would both
+    // require consumer-style initialization (device id / salts, usage tracking) and report every category as 'No'
+    // regardless of the user's saved choice. This page edits the shared preference, not whether the worker itself sends
+    // telemetry.
     private void ReadStatus()
     {
-        this.IsUsageReportingEnabled = this.GetIsEnabled( TelemetryScenario.Usage );
-        this.IsExceptionReportingEnabled = this.GetIsEnabled( TelemetryScenario.Exception );
-        this.IsPerformanceReportingEnabled = this.GetIsEnabled( TelemetryScenario.Performance );
+        // Usage reporting is opt-out, so it is "on" unless explicitly disabled. Exception and performance reporting
+        // expose their full three-state consent so the page can distinguish 'Default' (review-first) from 'No'. See #1707.
+        this.IsUsageReportingEnabled = this.GetConsent( TelemetryScenario.Usage ) != TelemetryConsent.No;
+        this.ExceptionConsent = this.GetConsent( TelemetryScenario.Exception );
+        this.PerformanceConsent = this.GetConsent( TelemetryScenario.Performance );
+        this.IsTelemetryActivated = this._telemetryConfigurationService.IsActivated;
     }
 
-    private bool GetIsEnabled( TelemetryScenario scenario )
-    {
-        var action = this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( scenario );
-
-        // Usage reporting is opt-out, so it is "on" unless explicitly disabled. Exception and performance-problem
-        // reporting are opt-in to auto-send: the "Send … reports" checkbox reflects auto-send (Yes), so the review-first
-        // default (ReportingAction.Default) correctly shows as unchecked. See #1674.
-        return scenario == TelemetryScenario.Usage
-            ? action != ReportingAction.No
-            : action == ReportingAction.Yes;
-    }
+    private TelemetryConsent GetConsent( TelemetryScenario scenario ) => this._configurationManager.Get<TelemetryConfiguration>().GetConsent( scenario );
 }

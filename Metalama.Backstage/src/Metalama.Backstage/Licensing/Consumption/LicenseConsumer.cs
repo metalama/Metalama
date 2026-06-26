@@ -6,14 +6,10 @@ using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
-using Metalama.Backstage.Licensing.Consumption.Sources;
 using Metalama.Backstage.Licensing.Licenses;
-using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Toasts;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Globalization;
 using System.Linq;
 
 namespace Metalama.Backstage.Licensing.Consumption;
@@ -25,9 +21,9 @@ internal sealed class LicenseConsumer : ILicenseConsumer
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger _logger;
     private readonly IApplicationInfo _applicationInfo;
-    private readonly IUserInterfaceService? _userInterfaceService;
+    private readonly IToastNotificationService? _toastNotificationService;
 
-    private LicenseConsumer(
+    internal LicenseConsumer(
         IServiceProvider services,
         ImmutableArray<(ILicense License, LicenseConsumptionProperties Properties)> licenses,
         LicenseConsumptionOptions options )
@@ -37,53 +33,7 @@ internal sealed class LicenseConsumer : ILicenseConsumer
         this._logger = services.GetLoggerFactory().Licensing();
         this._dateTimeProvider = services.GetRequiredBackstageService<IDateTimeProvider>();
         this._applicationInfo = services.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
-        this._userInterfaceService = services.GetBackstageService<IUserInterfaceService>();
-    }
-
-    public static ILicenseConsumer Create(
-        LicenseConsumptionOptions options,
-        IServiceProvider services,
-        IEnumerable<ILicenseSource> licenseSources,
-        Action<LicensingMessage>? reportMessage = null )
-    {
-        var logger = services.GetLoggerFactory().Licensing();
-
-        // Gather valid licenses.
-        var licenses = licenseSources.OrderBy( s => s.Priority ).SelectMany( s => s.GetLicenses( ReportMessage ).Select( l => (License: l, Source: s) ) );
-
-        var validLicenses = ImmutableArray.CreateBuilder<(ILicense License, LicenseConsumptionProperties Properties)>();
-
-        foreach ( var license in licenses )
-        {
-            if ( !license.License.TryGetConsumptionProperties( options, out var licenseConsumptionData, out var errorMessage ) )
-            {
-                _ = license.License.TryGetRegistrationProperties( out var registrationData, out _ );
-
-                var message =
-                    $"Cannot use the license '{registrationData?.LicenseId?.ToString( CultureInfo.InvariantCulture ) ?? registrationData?.Description}': {errorMessage}"
-                        .TrimEnd( '.' ) + ".";
-
-                if ( license.Source.GetType() != typeof(UserProfileLicenseSource) )
-                {
-                    message += $" The license key originates from {license.Source.Description}.";
-                }
-
-                ReportMessage( new LicensingMessage( message ) );
-
-                continue;
-            }
-
-            validLicenses.Add( (license.License, licenseConsumptionData) );
-        }
-
-        // Return the LicenseConsumer.
-        return new LicenseConsumer( services, validLicenses.ToImmutableArray(), options );
-
-        void ReportMessage( LicensingMessage message )
-        {
-            reportMessage?.Invoke( message );
-            logger.Warning?.Log( message.Text );
-        }
+        this._toastNotificationService = services.GetBackstageService<IToastNotificationService>();
     }
 
     /// <inheritdoc />
@@ -150,7 +100,7 @@ internal sealed class LicenseConsumer : ILicenseConsumer
         // Show a toast notification, unless the application provides its own UI.
         if ( showsToastNotification )
         {
-            this._userInterfaceService?.ShowToastNotification(
+            this._toastNotificationService?.Show(
                 new ToastNotification(
                     ToastNotificationKinds.RequiresLicense,
                     "Metalama Professional",

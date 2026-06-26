@@ -28,8 +28,8 @@ else
         {
             <h1>Review error report</h1>
             <p>
-                Review the report below before anything is sent. Compare the full <strong>local report</strong> with the
-                exact, scrubbed <strong>report for upload</strong> — that scrubbed payload is precisely what would be
+                Review the report below before anything is sent. The scrubbed <strong>report for upload</strong> is
+                precisely what would be
                 uploaded. Nothing leaves your machine unless you click <strong>Report</strong>.
             </p>
         }
@@ -49,9 +49,10 @@ else
                 </li>
             }
             <li class="nav-item" role="presentation">
-                <button class="nav-link @(Model.LocalContent == null ? "active" : "")" id="scrubbed-tab" data-bs-toggle="tab"
+                <button class="nav-link @( Model.LocalContent == null ? "active" : "" )" id="scrubbed-tab"
+                        data-bs-toggle="tab"
                         data-bs-target="#scrubbed-pane" type="button" role="tab" aria-controls="scrubbed-pane"
-                        aria-selected="@(Model.LocalContent == null ? "true" : "false")">
+                        aria-selected="@( Model.LocalContent == null ? "true" : "false" )">
                     Report for upload (scrubbed)
                 </button>
             </li>
@@ -61,12 +62,15 @@ else
             @if (Model.LocalContent != null)
             {
                 <div class="tab-pane fade show active" id="local-pane" role="tabpanel" aria-labelledby="local-tab">
-                    <textarea class="report" readonly aria-label="Local report (full)">@Model.LocalContent</textarea>
+                    <textarea class="report" readonly wrap="off"
+                              aria-label="Local report (full)">@Model.LocalContent</textarea>
                 </div>
             }
-            <div class="tab-pane fade @(Model.LocalContent == null ? "show active" : "")" id="scrubbed-pane" role="tabpanel"
+            <div class="tab-pane fade @( Model.LocalContent == null ? "show active" : "" )" id="scrubbed-pane"
+                 role="tabpanel"
                  aria-labelledby="scrubbed-tab">
-                <textarea class="report" readonly aria-label="Report for upload (scrubbed)">@Model.ScrubbedContent</textarea>
+                <textarea class="report" readonly wrap="off"
+                          aria-label="Report for upload (scrubbed)">@Model.ScrubbedContent</textarea>
             </div>
         </div>
 
@@ -76,12 +80,13 @@ else
             @* The report has already been auto-sent, so there is nothing more to send: toggling the checkbox saves the
                per-category preference immediately (no button). *@
             <form method="post" asp-page-handler="UpdateAutoReport" class="report-actions">
-                <input type="hidden" asp-for="Report" />
+                <input type="hidden" asp-for="Report"/>
 
                 <div class="checkbox">
-                    <input type="checkbox" asp-for="AutoReport" onchange="this.form.submit()" />
+                    <input type="checkbox" asp-for="AutoReport" onchange="this.form.submit()"/>
                     <div class="label">
-                        <label asp-for="AutoReport">Automatically report all @Model.CategoryDisplayName in the future</label>
+                        <label asp-for="AutoReport">Automatically report all @Model.CategoryDisplayName in the
+                            future</label>
                     </div>
                 </div>
             </form>
@@ -90,12 +95,13 @@ else
         {
             @* The report is awaiting review: the Report button sends it and, if ticked, also enables auto-reporting. *@
             <form method="post" asp-page-handler="Report" class="report-actions">
-                <input type="hidden" asp-for="Report" />
+                <input type="hidden" asp-for="Report"/>
 
                 <div class="checkbox">
-                    <input type="checkbox" asp-for="AutoReport" />
+                    <input type="checkbox" asp-for="AutoReport"/>
                     <div class="label">
-                        <label asp-for="AutoReport">Automatically report all @Model.CategoryDisplayName in the future</label>
+                        <label asp-for="AutoReport">Automatically report all @Model.CategoryDisplayName in the
+                            future</label>
                     </div>
                 </div>
 
