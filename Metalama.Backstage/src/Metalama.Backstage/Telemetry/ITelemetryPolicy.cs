@@ -19,14 +19,18 @@ namespace Metalama.Backstage.Telemetry;
 [PublicAPI]
 public interface ITelemetryPolicy
 {
+    bool HasRepositoryContext { get; }
+
     /// <summary>
-    /// Gets the effective <see cref="ReportingAction"/> for the given <paramref name="scenario"/>. <see cref="ReportingAction.No"/>
+    /// Gets the effective <see cref="TelemetryConsent"/> for the given <paramref name="scenario"/>. <see cref="TelemetryConsent.No"/>
     /// means the scenario is disabled (not even captured). For the ASK-capable Exception/Performance scenarios,
-    /// <see cref="ReportingAction.Default"/> means capture + ask and <see cref="ReportingAction.Yes"/> means capture +
-    /// auto-send; for opt-out scenarios (Usage/Rss) both <see cref="ReportingAction.Default"/> and
-    /// <see cref="ReportingAction.Yes"/> mean enabled.
+    /// <see cref="TelemetryConsent.Default"/> means capture + ask and <see cref="TelemetryConsent.Yes"/> means capture +
+    /// auto-send; for opt-out scenarios (Usage/Rss) both <see cref="TelemetryConsent.Default"/> and
+    /// <see cref="TelemetryConsent.Yes"/> mean enabled.
     /// </summary>
-    ReportingAction GetReportingAction( TelemetryScenario scenario );
+    TelemetryConsent GetConsent( TelemetryScenario scenario );
+
+    ( TelemetryConsent Consent, TelemetryDisabledReason Reason ) GetConsentAndReason( TelemetryScenario scenario );
 
     /// <summary>
     /// Gets the warnings produced while resolving the configuration backing this policy (for example, a misplaced or

@@ -10,11 +10,11 @@ namespace Metalama.Backstage.Commands.Telemetry;
 
 internal abstract class SetTelemetryCommand : BaseCommand<SetTelemetryCommandSettings>
 {
-    private readonly bool _enable;
+    private readonly TelemetryConsent _consent;
 
-    protected SetTelemetryCommand( bool enable )
+    protected SetTelemetryCommand( TelemetryConsent consent )
     {
-        this._enable = enable;
+        this._consent = consent;
     }
 
     protected override void Execute( ExtendedCommandContext context, SetTelemetryCommandSettings settings )
@@ -24,22 +24,22 @@ internal abstract class SetTelemetryCommand : BaseCommand<SetTelemetryCommandSet
         switch ( settings.Scenario )
         {
             case TelemetryScenarioArgument.Usage:
-                service.SetStatus( TelemetryScenario.Usage, this._enable );
+                service.SetConsent( TelemetryScenario.Usage, this._consent );
 
                 break;
 
             case TelemetryScenarioArgument.Exception:
-                service.SetStatus( TelemetryScenario.Exception, this._enable );
+                service.SetConsent( TelemetryScenario.Exception, this._consent );
 
                 break;
 
             case TelemetryScenarioArgument.Performance:
-                service.SetStatus( TelemetryScenario.Performance, this._enable );
+                service.SetConsent( TelemetryScenario.Performance, this._consent );
 
                 break;
 
             case TelemetryScenarioArgument.All:
-                service.SetStatus( this._enable );
+                service.SetConsent( this._consent );
 
                 break;
 
@@ -47,7 +47,13 @@ internal abstract class SetTelemetryCommand : BaseCommand<SetTelemetryCommandSet
                 throw new ArgumentOutOfRangeException( nameof(settings), settings.Scenario, "Unknown telemetry scenario." );
         }
 
-        var state = this._enable ? "enabled" : "disabled";
+        var state = this._consent switch
+        {
+            TelemetryConsent.Yes => "enabled",
+            TelemetryConsent.No => "disabled",
+            TelemetryConsent.Default => "reset to its default state",
+            _ => throw new ArgumentOutOfRangeException( nameof(this._consent), this._consent, "Unknown telemetry consent." )
+        };
 
         var scope = settings.Scenario switch
         {

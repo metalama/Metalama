@@ -49,25 +49,15 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
 
                 var backstageOptions = new BackstageInitializationOptions( applicationInfo )
                 {
-                    AddLicensing = false, AddUserInterface = true, AddSupportServices = true,
+                    AddLicensing = false, 
+                    AddUserInterface = true, 
+                    AddSupportServices = true,
 
                     // The command-line compiler opens the welcome page the first time telemetry activates (#1701).
                     OpenWelcomePage = true
                 };
 
-                if ( BackstageServiceFactoryInitializer.Initialize( backstageOptions ) )
-                {
-                    var serviceProvider = BackstageServiceFactory.ServiceProvider;
-
-                    // Instantiate the welcome-page service so it subscribes to the telemetry-activated event and opens
-                    // the welcome page the first time telemetry actually activates (never on an opted-out machine). #1701.
-                    serviceProvider.GetRequiredBackstageService<WelcomePageService>();
-
-                    // Detect toast notifications (license/VSX). The first-run telemetry notice within this is shown only
-                    // once telemetry activates. This detection was previously triggered by LicenseVerifier, which was
-                    // removed when licensing moved out of the engine, leaving the detection service with no caller (#1687).
-                    serviceProvider.GetBackstageService<IToastNotificationDetectionService>()?.Detect();
-                }
+                BackstageServiceFactoryInitializer.Initialize( backstageOptions );
             }
         }
 

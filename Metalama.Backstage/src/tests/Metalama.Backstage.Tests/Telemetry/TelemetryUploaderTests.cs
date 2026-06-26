@@ -31,7 +31,7 @@ public sealed class TelemetryUploaderTests : TestsBase
         this.FileSystem.CreateDirectory( _feedbackDirectory );
         this._uploader = this.ServiceProvider.GetRequiredBackstageService<ITelemetryUploader>();
 
-        this.TelemetryConfigurationService.SetStatus( true );
+        this.TelemetryConfigurationService.SetConsent( TelemetryConsent.Yes );
 
         // Activation is lazy (#1701): it no longer happens at Initialize, so seed the device id / salts / upload timing
         // explicitly. These tests exercise an active telemetry session, and the upload-throttle tests in particular
@@ -48,7 +48,7 @@ public sealed class TelemetryUploaderTests : TestsBase
     protected override void OnAfterServicesCreated( Services services )
     {
         base.OnAfterServicesCreated( services );
-        services.HttpClientFactory.AddHook( r => r.RequestUri!.Host == "bits.postsharp.net", this.ProcessBitsRequest );
+        services.HttpClientFactory.InsertHook( r => r.RequestUri!.Host == "bits.postsharp.net", this.ProcessBitsRequest );
     }
 
     private async Task<HttpResponseMessage> ProcessBitsRequest( HttpRequestMessage requestMessage, CancellationToken cancellationToken )
@@ -117,7 +117,7 @@ public sealed class TelemetryUploaderTests : TestsBase
     private void CaptureException( Exception exception, ExceptionReportingKind kind = ExceptionReportingKind.Exception )
     {
         var scenario = kind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance;
-        var action = this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>().GetEffectiveReportingAction( scenario );
+        var action = this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>().GetEffectiveConsent( scenario );
 
         this.ServiceProvider.GetRequiredBackstageService<IExceptionCapturer>()
             .Capture( ExceptionClassifier.Classify( exception ), kind, action, writeLocalReport: true, adapter: null );
@@ -126,7 +126,7 @@ public sealed class TelemetryUploaderTests : TestsBase
     [Fact]
     public async Task ExceptionsAreUploaded()
     {
-        this.TelemetryConfigurationService.SetStatus( true );
+        this.TelemetryConfigurationService.SetConsent( TelemetryConsent.Yes );
 
         this.CaptureException( new InvalidOperationException( "Test Exception" ) );
 
@@ -136,7 +136,7 @@ public sealed class TelemetryUploaderTests : TestsBase
     [Fact]
     public async Task PerformanceProblemsAreUploaded()
     {
-        this.TelemetryConfigurationService.SetStatus( true );
+        this.TelemetryConfigurationService.SetConsent( TelemetryConsent.Yes );
 
         this.CaptureException( new InvalidOperationException( "Test Performance Problem" ), ExceptionReportingKind.PerformanceProblem );
 
@@ -166,7 +166,7 @@ public sealed class TelemetryUploaderTests : TestsBase
     {
         var standardDirectories = this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>();
 
-        this.TelemetryConfigurationService.SetStatus( true );
+        this.TelemetryConfigurationService.SetConsent( TelemetryConsent.Yes );
 
         // Queue an exception report so that there is something to upload.
         this.CaptureException( new InvalidOperationException( "Test Exception" ) );

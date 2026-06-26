@@ -38,7 +38,7 @@ namespace Metalama.Backstage.Serialization;
 [JsonSerializable( typeof(IdeExtensionsStatusConfiguration) )]
 [JsonSerializable( typeof(RssClientConfiguration) )]
 [JsonSerializable( typeof(LicenseAuditConfiguration) )]
-[JsonSerializable( typeof(ReportingAction) )]
+[JsonSerializable( typeof(TelemetryConsent) )]
 [JsonSerializable( typeof(ReportingStatus) )]
 [JsonSerializable( typeof(RssFeed) )]
 [JsonSerializable( typeof(ImmutableDictionary<string, bool>) )]

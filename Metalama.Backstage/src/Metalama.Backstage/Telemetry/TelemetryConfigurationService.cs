@@ -15,14 +15,15 @@ namespace Metalama.Backstage.Telemetry;
 
 internal sealed class TelemetryConfigurationService : ITelemetryConfigurationService
 {
-    public const string OptOutEnvironmentVariable = "METALAMA_TELEMETRY_OPT_OUT";
+    public const string OptOutEnvironmentVariable = TelemetryConfiguration.OptOutEnvironmentVariableName;
+
     private readonly IConfigurationManager _configurationManager;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger _logger;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly RandomNumberGenerator _randomNumberGenerator;
 
-    private bool _isGloballyEnabled;
+    private TelemetryDisabledReason _globallyDisabledReason;
     private bool _initialized;
 
     // Tests use this constructor to supply a constant Guid.
@@ -57,7 +58,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         }
     }
 
-    private bool ComputeIsGloballyEnabled()
+    private TelemetryDisabledReason ComputeGlobalTelemetryDisabledReason()
     {
         // Check if the current application supports telemetry.
         var applicationInfo = this._serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
@@ -67,7 +68,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         {
             this._logger.Trace?.Log( $"Telemetry is disabled for '{applicationInfo.Name} {applicationInfo.PackageVersion}'." );
 
-            return false;
+            return TelemetryDisabledReason.UnsupportedApplication;
         }
 
         // Check if the current process is unattended.
@@ -75,7 +76,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         {
             this._logger.Trace?.Log( $"Telemetry is disabled because the current process is unattended." );
 
-            return false;
+            return TelemetryDisabledReason.UnattendedProcess;
         }
 
         // Check if there is an environment variable opt-out.
@@ -98,10 +99,10 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         {
             this._logger.Trace?.Log( $"Telemetry is disabled by the opt-out environment variable." );
 
-            return false;
+            return TelemetryDisabledReason.EnvironmentVariableOptOut;
         }
 
-        return true;
+        return TelemetryDisabledReason.None;
     }
 
     // Caches the salts and device identifier read from the configuration. The per-scenario enablement is NOT cached: it
@@ -127,7 +128,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             // (e.g. because every telemetry context is opted out, or it is a context-less process) must never write
             // anything to the global configuration and never create a device identifier. The DeviceId and salts are
             // created on demand by EnsureActivated, which the reporters call when they actually report. See #1701.
-            this._isGloballyEnabled = this.ComputeIsGloballyEnabled();
+            this._globallyDisabledReason = this.ComputeGlobalTelemetryDisabledReason();
 
             // If telemetry was already activated in a previous session, keep the monthly rotation / salt back-fill up to
             // date. This never creates a DeviceId for a not-yet-activated configuration (it is a no-op in that case).
@@ -138,13 +139,28 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         }
     }
 
+    private void EnsureInitialized()
+    {
+        if ( !this._initialized )
+        {
+            throw new InvalidOperationException();
+        }
+    }
+
+    /// <summary>
+    /// Ensures that the <see cref="DeviceId"/>, <see cref="ExceptionReportingSalt"/>, <see cref="MatomoSalt"/>, <see cref="UsageTrackingSalt"/>
+    /// properties are property initialized.
+    /// </summary>
     public void EnsureActivated()
     {
-        bool created;
+        if ( !this.IsGloballyEnabled )
+        {
+            throw new InvalidOperationException( "Telemetry is forbidden for this user." );
+        }
 
         lock ( this._activationSync )
         {
-            created = this._configurationManager.UpdateIf<TelemetryConfiguration>(
+            var activatedNow = this._configurationManager.UpdateIf<TelemetryConfiguration>(
                 c => c.DeviceId == null,
                 c =>
                 {
@@ -172,34 +188,13 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                     };
                 } );
 
-            if ( created )
+            if ( activatedNow )
             {
                 this._logger.Trace?.Log( "Telemetry was activated: a device identifier and salts were created." );
             }
 
             this.RotateDeviceIdAndSaltIfActivated();
             this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
-        }
-
-        // Invoke the registered OnActivated callbacks outside the lock so handlers (the welcome page and the first-run
-        // telemetry notice) cannot deadlock or re-enter. This runs exactly once: only the thread that created the device
-        // identifier sees created == true. Callbacks registered after this point are invoked immediately by OnActivated.
-        // See #1701.
-        if ( created )
-        {
-            Action[] callbacks;
-
-            lock ( this._activationCallbackSync )
-            {
-                this._activatedThisSession = true;
-                callbacks = this._onActivatedCallbacks.ToArray();
-                this._onActivatedCallbacks.Clear();
-            }
-
-            foreach ( var callback in callbacks )
-            {
-                callback();
-            }
         }
     }
 
@@ -275,24 +270,64 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     {
         var reportAction = enabled switch
         {
-            true => ReportingAction.Yes,
-            false => ReportingAction.No
+            true => TelemetryConsent.Yes,
+            false => TelemetryConsent.No
         };
 
-        this._configurationManager.Update<TelemetryConfiguration>(
-            c => c with { UsageReportingAction = reportAction, ExceptionReportingAction = reportAction, PerformanceProblemReportingAction = reportAction } );
+        this.SetConsent( reportAction );
     }
 
     public void SetStatus( TelemetryScenario scenario, bool enabled )
     {
-        var reportAction = enabled ? ReportingAction.Yes : ReportingAction.No;
+        var reportAction = enabled ? TelemetryConsent.Yes : TelemetryConsent.No;
+
+        this.SetConsent( scenario, reportAction );
+    }
+
+    public void SetConsent( TelemetryConsent telemetryConsent )
+    {
+        this.EnsureInitialized();
+
+        this._configurationManager.Update<TelemetryConfiguration>(
+            c => c with { UsageConsent = telemetryConsent, ExceptionConsent = telemetryConsent, PerformanceProblemConsent = telemetryConsent } );
+    }
+
+    public void SetConsent( TelemetryScenario scenario, TelemetryConsent action )
+    {
+        this.EnsureInitialized();
 
         this._configurationManager.Update<TelemetryConfiguration>(
             c => scenario switch
             {
-                TelemetryScenario.Usage => c with { UsageReportingAction = reportAction },
-                TelemetryScenario.Exception => c with { ExceptionReportingAction = reportAction },
-                TelemetryScenario.Performance => c with { PerformanceProblemReportingAction = reportAction },
+                TelemetryScenario.Usage => c with { UsageConsent = action },
+                TelemetryScenario.Exception => c with { ExceptionConsent = action },
+                TelemetryScenario.Performance => c with { PerformanceProblemConsent = action },
+                _ => throw new ArgumentOutOfRangeException( nameof(scenario), scenario, "This telemetry scenario cannot be configured." )
+            } );
+    }
+
+    public bool CompareExchangeConsent( TelemetryScenario scenario, TelemetryConsent newAction, TelemetryConsent oldAction )
+    {
+        this.EnsureInitialized();
+
+        return this._configurationManager.UpdateIf<TelemetryConfiguration>(
+            c =>
+            {
+                var oldStatus = scenario switch
+                {
+                    TelemetryScenario.Usage => c.UsageConsent,
+                    TelemetryScenario.Exception => c.ExceptionConsent,
+                    TelemetryScenario.Performance => c.PerformanceProblemConsent,
+                    _ => throw new ArgumentOutOfRangeException( nameof(scenario), scenario, "This telemetry scenario cannot be configured." )
+                };
+
+                return oldStatus == oldAction;
+            },
+            c => scenario switch
+            {
+                TelemetryScenario.Usage => c with { UsageConsent = newAction },
+                TelemetryScenario.Exception => c with { ExceptionConsent = newAction },
+                TelemetryScenario.Performance => c with { PerformanceProblemConsent = newAction },
                 _ => throw new ArgumentOutOfRangeException( nameof(scenario), scenario, "This telemetry scenario cannot be configured." )
             } );
     }
@@ -301,97 +336,55 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
 
     public bool IsActivated => this.DeviceId != Guid.Empty;
 
-    // Coordinates OnActivated callbacks with EnsureActivated. _activatedThisSession is set when THIS process performs the
-    // activation (the device-id creation): callbacks registered before that are invoked then; callbacks registered after
-    // it are invoked immediately. A device id that merely exists from a previous session does not set this flag. See #1701.
-    private readonly object _activationCallbackSync = new();
-    private readonly List<Action> _onActivatedCallbacks = new();
-    private bool _activatedThisSession;
-
-    public void OnActivated( Action callback )
-    {
-        bool invokeNow;
-
-        lock ( this._activationCallbackSync )
-        {
-            if ( this._activatedThisSession )
-            {
-                invokeNow = true;
-            }
-            else
-            {
-                this._onActivatedCallbacks.Add( callback );
-                invokeNow = false;
-            }
-        }
-
-        if ( invokeNow )
-        {
-            callback();
-        }
-    }
-
     public bool IsGloballyEnabled
     {
         get
         {
-            if ( !this._initialized )
-            {
-                throw new InvalidOperationException( "The service has not been initialized." );
-            }
+            this.EnsureInitialized();
 
-            return this._isGloballyEnabled;
+            return this._globallyDisabledReason == TelemetryDisabledReason.None;
         }
     }
 
-    public ReportingAction GetEffectiveReportingAction( TelemetryScenario scenario )
-    {
-        if ( !this._initialized )
-        {
-            throw new InvalidOperationException( "The service has not been initialized." );
-        }
+    public TelemetryConsent GetEffectiveConsent( TelemetryScenario scenario ) => this.GetEffectiveConsentAndReason( scenario ).Consent;
 
+    public (TelemetryConsent Consent, TelemetryDisabledReason Reason) GetEffectiveConsentAndReason( TelemetryScenario scenario )
+
+    {
         // The process-level gate overrides the configured per-category action: when telemetry is disabled for the
         // process (unattended, opt-out environment variable, or unsupported application), every scenario is effectively
         // No. See #1701.
-        if ( !this._isGloballyEnabled )
+        if ( !this.IsGloballyEnabled )
         {
-            return ReportingAction.No;
+            return (TelemetryConsent.No, this._globallyDisabledReason);
         }
 
         var configuration = this._configurationManager.Get<TelemetryConfiguration>();
 
-        return scenario switch
+        var consent = scenario switch
         {
             // The news feed counts as usage telemetry for opt-out purposes: an in-product opt-out (SetStatus(false))
             // must stop the RSS fetch, just like the opt-out environment variable. See #1670.
-            TelemetryScenario.Usage or TelemetryScenario.Rss => configuration.UsageReportingAction,
-            TelemetryScenario.Exception => configuration.ExceptionReportingAction,
-            TelemetryScenario.Performance => configuration.PerformanceProblemReportingAction,
+            TelemetryScenario.Usage => configuration.UsageConsent,
+            TelemetryScenario.Exception => configuration.ExceptionConsent,
+            TelemetryScenario.Performance => configuration.PerformanceProblemConsent,
             _ => throw new ArgumentOutOfRangeException( nameof(scenario), scenario, null )
         };
-    }
 
-    public bool IsEnabled( TelemetryScenario scenario )
-    {
-        // IsEnabled collapses the reporting action to a boolean, which is only meaningful for scenarios that have no
-        // ASK state. Exception and Performance can be ASK (ReportingAction.Default = capture + ask, no auto-send), where
-        // a boolean would be ambiguous, so callers must use GetEffectiveReportingAction for those. See #1674, #1701.
-        switch ( scenario )
+        if ( consent == TelemetryConsent.No )
         {
-            case TelemetryScenario.Exception:
-            case TelemetryScenario.Performance:
-                throw new ArgumentOutOfRangeException(
-                    nameof(scenario),
-                    scenario,
-                    $"The '{scenario}' scenario can be in an ASK state; use {nameof(this.GetEffectiveReportingAction)} instead." );
+            return (TelemetryConsent.No, TelemetryDisabledReason.UserOptOut);
         }
-
-        return this.GetEffectiveReportingAction( scenario ) != ReportingAction.No;
+        else
+        {
+            return (consent, TelemetryDisabledReason.None);
+        }
     }
 
     public void ResetDeviceId()
     {
+        this.EnsureInitialized();
+
         this._configurationManager.Update<TelemetryConfiguration>(
             c =>
             {

@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Testing;
 using System;
@@ -21,14 +20,12 @@ public sealed class StandardDirectoriesTests : TestsBase
 {
     public StandardDirectoriesTests( ITestOutputHelper logger ) : base( logger ) { }
 
-    private IStandardDirectories Directories => this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>();
-
     [Fact]
     public void Windows_TempDirectoryIsUnderUserTempPath_AndHasNoLegacyDirectories()
     {
         this.RuntimeInformation.Platform = OSPlatform.Windows;
 
-        var directories = this.Directories;
+        var directories = new StandardDirectories( this.ServiceProvider );
 
         // On Windows the user temp directory is already private to the current user.
         Assert.Equal( Path.Combine( Path.GetTempPath(), "Metalama" ), directories.TempDirectory );
@@ -40,7 +37,7 @@ public sealed class StandardDirectoriesTests : TestsBase
     {
         this.RuntimeInformation.Platform = OSPlatform.Linux;
 
-        var directories = this.Directories;
+        var directories = new StandardDirectories( this.ServiceProvider );
 
         // Must be under the user-private application-data directory, and never under the world-writable /tmp (#1650).
         Assert.Equal( Path.Combine( directories.ApplicationDataDirectory, "Temp" ), directories.TempDirectory );
@@ -59,7 +56,7 @@ public sealed class StandardDirectoriesTests : TestsBase
         var overridePath = Path.Combine( Path.GetTempPath(), "CustomMetalamaTemp" );
         this.EnvironmentVariableProvider.Environment["METALAMA_TEMP"] = overridePath;
 
-        var directories = this.Directories;
+        var directories = new StandardDirectories( this.ServiceProvider );
 
         Assert.Equal( Path.Combine( overridePath, "Metalama" ), directories.TempDirectory );
         Assert.Empty( directories.LegacyTempDirectories );

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Infrastructure;
 using System;
 using System.Collections.Concurrent;
@@ -16,14 +17,21 @@ namespace Metalama.Backstage.Testing
 {
     public sealed class TestHttpClientFactory : IHttpClientFactory
     {
+        private readonly ILogger _logger;
+
+        public TestHttpClientFactory( IServiceProvider serviceProvider )
+        {
+            this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(TestHttpClientFactory) );
+        }
+
         private readonly List<(Predicate<HttpRequestMessage> Filter, Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> Hook)>
             _hooks = new();
 
         public ConcurrentBag<(HttpRequestMessage Request, HttpResponseMessage Response)> ProcessedRequests { get; private set; } = [];
 
-        public void AddHook( Predicate<HttpRequestMessage> filter, Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> hook )
+        public void InsertHook( Predicate<HttpRequestMessage> filter, Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> hook )
         {
-            this._hooks.Add( (filter, hook) );
+            this._hooks.Insert( 0, (filter, hook) );
         }
 
         public void ClearProcessedRequests() => this.ProcessedRequests = [];
@@ -50,11 +58,17 @@ namespace Metalama.Backstage.Testing
 
                 if ( hook != null )
                 {
+                    this._parent._logger.Trace?.Log( $"Hooking '{request.RequestUri}'." );
                     response = await hook( request, cancellationToken );
                 }
                 else
                 {
-                    response = new HttpResponseMessage( HttpStatusCode.OK );
+                    this._parent._logger.Trace?.Log( $"No hook was registered for '{request.RequestUri}'. Returning dummy response." );
+
+                    response = new HttpResponseMessage( HttpStatusCode.OK )
+                    {
+                        Content = new StringContent( $"<error>No hook was registered for '{request.RequestUri}'.</error>" )
+                    };
                 }
 
                 this._parent.ProcessedRequests.Add( (request, response) );

@@ -25,24 +25,28 @@ public sealed class RegisterServiceExtensionsTests
     [Theory]
     [InlineData( true, true, true )]
     [InlineData( false, true, true )]
-    [InlineData( false, false, true )]
+    [InlineData( false, false, true, true, true, false )]
     [InlineData( true, true, false )]
     [InlineData( false, true, false )]
     [InlineData( false, false, false )]
-    [InlineData( true, false, true, true )]
+    [InlineData( true, false, true, true, true, false )]
     [InlineData( true, true, true, false, false )]
     public void AddBackstageServices(
         bool addLicensing,
         bool addSupportServices,
         bool addUserInterface,
         bool disableLicenseAudit = true,
-        bool addToolsExtractor = true )
+        bool addToolsExtractor = true,
+        bool notifyOfLatestNews = true )
     {
         var options =
             new BackstageInitializationOptions(
                 new TestApplicationInfo( "Test", true, "1.0", DateTime.Today ) { IsLicenseAuditEnabled = !disableLicenseAudit } )
             {
-                AddLicensing = addLicensing, AddSupportServices = addSupportServices, AddUserInterface = addUserInterface
+                AddLicensing = addLicensing,
+                AddSupportServices = addSupportServices,
+                AddUserInterface = addUserInterface,
+                NotifyOfLatestNews = notifyOfLatestNews
             };
 
         if ( addToolsExtractor && (addSupportServices || addUserInterface) )

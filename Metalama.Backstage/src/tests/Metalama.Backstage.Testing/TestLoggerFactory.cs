@@ -9,6 +9,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Threading;
 using Xunit.Abstractions;
 
 namespace Metalama.Backstage.Testing;
@@ -95,7 +96,7 @@ public class TestLoggerFactory : ILoggerFactory
 
             try
             {
-                var formatted = $"{this._severity.ToString().ToUpperInvariant()} {this._category}: {message}";
+                var formatted = $"{Thread.CurrentThread.ManagedThreadId} {this._severity.ToString().ToUpperInvariant()} {this._category}: {message}";
                 this._parent._testOutputHelper.WriteLine( formatted );
                 this._parent.MessageReported?.Invoke( formatted );
             }

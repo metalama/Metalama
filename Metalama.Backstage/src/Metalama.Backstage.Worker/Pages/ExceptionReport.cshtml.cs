@@ -79,7 +79,7 @@ internal class ExceptionReportPageModel : PageModel
             this.LocalContent = capturedReport.LocalContent;
             this.Scenario = capturedReport.Category;
             this.IsAlreadySent = capturedReport.IsQueued;
-            this.AutoReport = this._configurationManager.Get<TelemetryConfiguration>().GetReportingAction( this.Scenario ) == ReportingAction.Yes;
+            this.AutoReport = this._configurationManager.Get<TelemetryConfiguration>().GetConsent( this.Scenario ) == TelemetryConsent.Yes;
         }
     }
 
@@ -95,7 +95,7 @@ internal class ExceptionReportPageModel : PageModel
             {
                 // Ticking "automatically report all …" enables this category's auto-send going forward, independently of
                 // usage telemetry. See #1674.
-                this._telemetryConfigurationService.SetStatus( this.Scenario, enabled: true );
+                this._telemetryConfigurationService.SetConsent( this.Scenario, TelemetryConsent.Yes );
             }
 
             // Only report the report as queued if it was actually enqueued: SendReport can fail (e.g. the file was
@@ -117,7 +117,7 @@ internal class ExceptionReportPageModel : PageModel
             this.Scenario = capturedReport.Category;
             this.IsAlreadySent = capturedReport.IsQueued;
 
-            this._telemetryConfigurationService.SetStatus( this.Scenario, enabled: this.AutoReport );
+            this._telemetryConfigurationService.SetConsent( this.Scenario, this.AutoReport ? TelemetryConsent.Yes : TelemetryConsent.Default );
         }
 
         return this.Page();

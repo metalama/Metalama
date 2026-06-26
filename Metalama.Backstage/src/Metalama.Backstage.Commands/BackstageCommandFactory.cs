@@ -111,6 +111,12 @@ public static class BackstageCommandFactory
                             .WithData( options )
                             .WithDescription( "Disables telemetry for a scenario (usage, exception, performance or all)." );
 
+                        telemetry.AddCommand<ResetTelemetryCommand>( "reset" )
+                            .WithData( options )
+                            .WithDescription(
+                                "Resets telemetry for a scenario (usage, exception, performance or all) to its default state "
+                                + "(review-first for exceptions and performance problems)." );
+
                         telemetry.AddCommand<ResetDeviceIdCommand>( "reset-device-id" )
                             .WithDescription( "Generates a new anonymous device identifier for telemetry." );
 

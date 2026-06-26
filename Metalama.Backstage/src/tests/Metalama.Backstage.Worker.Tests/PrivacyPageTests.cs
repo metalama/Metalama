@@ -2,9 +2,11 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Pages;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
+using System;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -14,21 +16,40 @@ public sealed class PrivacyPageTests : TestsBase
 {
     public PrivacyPageTests( ITestOutputHelper logger ) : base( logger, new TestApplicationInfo() { IsTelemetryEnabled = true } ) { }
 
+    // Reads the stored consent the same way the page does, so the assertions distinguish 'Default' (review-first) from
+    // 'No' instead of collapsing them. See #1707.
+    private TelemetryConsent GetStoredConsent( TelemetryScenario scenario ) => this.ConfigurationManager!.Get<TelemetryConfiguration>().GetConsent( scenario );
+
+    private PrivacyPageModel CreateModel() => new( this.TelemetryConfigurationService, this.ConfigurationManager! );
+
     [Theory]
     [InlineData( true )]
     [InlineData( false )]
-    public void OnGetReflectsCurrentTelemetryStatus( bool enabled )
+    public void OnGetReflectsUsageOptOut( bool enabled )
     {
-        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Usage, enabled );
-        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, enabled );
-        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Performance, enabled );
+        this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Usage, enabled ? TelemetryConsent.Yes : TelemetryConsent.No );
 
-        var model = new PrivacyPageModel( this.TelemetryConfigurationService, this.ConfigurationManager! );
+        var model = this.CreateModel();
         model.OnGet();
 
         Assert.Equal( enabled, model.IsUsageReportingEnabled );
-        Assert.Equal( enabled, model.IsExceptionReportingEnabled );
-        Assert.Equal( enabled, model.IsPerformanceReportingEnabled );
+    }
+
+    [Theory]
+    [InlineData( TelemetryConsent.No )]
+    [InlineData( TelemetryConsent.Default )]
+    [InlineData( TelemetryConsent.Yes )]
+    public void OnGetReflectsStoredExceptionAndPerformanceConsent( TelemetryConsent consent )
+    {
+        // The whole point of the three-state control: 'Default' (review-first) must be read back distinctly from 'No'.
+        this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Exception, consent );
+        this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Performance, consent );
+
+        var model = this.CreateModel();
+        model.OnGet();
+
+        Assert.Equal( consent, model.ExceptionConsent );
+        Assert.Equal( consent, model.PerformanceConsent );
     }
 
     [Theory]
@@ -37,66 +58,111 @@ public sealed class PrivacyPageTests : TestsBase
     public void OnPostUpdatesUsageReportingIndependently( bool enabled )
     {
         // Start from the opposite state to make sure the post actually changes it.
-        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Usage, !enabled );
+        this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Usage, enabled ? TelemetryConsent.No : TelemetryConsent.Yes );
 
-        var model = new PrivacyPageModel( this.TelemetryConfigurationService, this.ConfigurationManager! ) { IsUsageReportingEnabled = enabled, IsExceptionReportingEnabled = false };
+        var model = this.CreateModel();
+        model.IsUsageReportingEnabled = enabled;
+        model.ExceptionConsent = TelemetryConsent.Default;
+        model.PerformanceConsent = TelemetryConsent.Default;
+
         model.OnPost();
 
-        Assert.Equal( enabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal( enabled ? TelemetryConsent.Yes : TelemetryConsent.No, this.GetStoredConsent( TelemetryScenario.Usage ) );
         Assert.True( model.IsSaved );
     }
 
     [Theory]
-    [InlineData( true )]
-    [InlineData( false )]
-    public void OnPostUpdatesExceptionReportingIndependently( bool enabled )
+    [InlineData( TelemetryConsent.No )]
+    [InlineData( TelemetryConsent.Default )]
+    [InlineData( TelemetryConsent.Yes )]
+    public void OnPostPersistsExceptionConsentIncludingReviewFirst( TelemetryConsent consent )
     {
-        // Start from the opposite state to make sure the post actually changes it.
-        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, !enabled );
-        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Performance, !enabled );
+        // Start from a different state so the post actually writes the value.
+        this.TelemetryConfigurationService.SetConsent(
+            TelemetryScenario.Exception,
+            consent == TelemetryConsent.Yes ? TelemetryConsent.No : TelemetryConsent.Yes );
 
-        var model = new PrivacyPageModel( this.TelemetryConfigurationService, this.ConfigurationManager! )
-        {
-            IsUsageReportingEnabled = true, IsExceptionReportingEnabled = enabled, IsPerformanceReportingEnabled = !enabled
-        };
+        var model = this.CreateModel();
+        model.IsUsageReportingEnabled = true;
+        model.ExceptionConsent = consent;
+        model.PerformanceConsent = TelemetryConsent.Default;
 
         model.OnPost();
 
-        // The exception checkbox drives only exception reporting.
-        Assert.Equal( enabled, this.TelemetryConfigurationService.GetEffectiveReportingAction( TelemetryScenario.Exception ) != ReportingAction.No );
-
-        // Performance reporting follows its own checkbox and must be unaffected by the exception one.
-        Assert.Equal( !enabled, this.TelemetryConfigurationService.GetEffectiveReportingAction( TelemetryScenario.Performance ) != ReportingAction.No );
-
-        // Usage reporting must be unaffected.
-        Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal( consent, this.GetStoredConsent( TelemetryScenario.Exception ) );
         Assert.True( model.IsSaved );
     }
 
     [Theory]
-    [InlineData( true )]
-    [InlineData( false )]
-    public void OnPostUpdatesPerformanceReportingIndependently( bool enabled )
+    [InlineData( TelemetryConsent.No )]
+    [InlineData( TelemetryConsent.Default )]
+    [InlineData( TelemetryConsent.Yes )]
+    public void OnPostPersistsPerformanceConsentIncludingReviewFirst( TelemetryConsent consent )
     {
-        // Start from the opposite state to make sure the post actually changes it.
-        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Exception, !enabled );
-        this.TelemetryConfigurationService.SetStatus( TelemetryScenario.Performance, !enabled );
+        // Start from a different state so the post actually writes the value.
+        this.TelemetryConfigurationService.SetConsent(
+            TelemetryScenario.Performance,
+            consent == TelemetryConsent.Yes ? TelemetryConsent.No : TelemetryConsent.Yes );
 
-        var model = new PrivacyPageModel( this.TelemetryConfigurationService, this.ConfigurationManager! )
-        {
-            IsUsageReportingEnabled = true, IsExceptionReportingEnabled = !enabled, IsPerformanceReportingEnabled = enabled
-        };
+        var model = this.CreateModel();
+        model.IsUsageReportingEnabled = true;
+        model.ExceptionConsent = TelemetryConsent.Default;
+        model.PerformanceConsent = consent;
 
         model.OnPost();
 
-        // The performance checkbox drives only performance reporting.
-        Assert.Equal( enabled, this.TelemetryConfigurationService.GetEffectiveReportingAction( TelemetryScenario.Performance ) != ReportingAction.No );
-
-        // Exception reporting follows its own checkbox and must be unaffected by the performance one.
-        Assert.Equal( !enabled, this.TelemetryConfigurationService.GetEffectiveReportingAction( TelemetryScenario.Exception ) != ReportingAction.No );
-
-        // Usage reporting must be unaffected.
-        Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+        Assert.Equal( consent, this.GetStoredConsent( TelemetryScenario.Performance ) );
         Assert.True( model.IsSaved );
+    }
+
+    [Fact]
+    public void OnPostUpdatesEachCategoryIndependently()
+    {
+        this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Usage, TelemetryConsent.No );
+        this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Exception, TelemetryConsent.No );
+        this.TelemetryConfigurationService.SetConsent( TelemetryScenario.Performance, TelemetryConsent.No );
+
+        var model = this.CreateModel();
+        model.IsUsageReportingEnabled = true;
+        model.ExceptionConsent = TelemetryConsent.Yes;
+        model.PerformanceConsent = TelemetryConsent.Default;
+
+        model.OnPost();
+
+        Assert.Equal( TelemetryConsent.Yes, this.GetStoredConsent( TelemetryScenario.Usage ) );
+        Assert.Equal( TelemetryConsent.Yes, this.GetStoredConsent( TelemetryScenario.Exception ) );
+        Assert.Equal( TelemetryConsent.Default, this.GetStoredConsent( TelemetryScenario.Performance ) );
+        Assert.True( model.IsSaved );
+    }
+
+    [Fact]
+    public void OnPostResetDeviceId_RotatesDeviceId_WhenActivated()
+    {
+        this.TelemetryConfigurationService.EnsureActivated();
+        var original = this.TelemetryConfigurationService.DeviceId;
+        Assert.NotEqual( Guid.Empty, original );
+
+        var model = this.CreateModel();
+        model.OnPostResetDeviceId();
+
+        Assert.True( model.IsTelemetryActivated );
+        Assert.True( model.IsDeviceIdReset );
+        Assert.NotEqual( Guid.Empty, this.TelemetryConfigurationService.DeviceId );
+        Assert.NotEqual( original, this.TelemetryConfigurationService.DeviceId );
+    }
+
+    [Fact]
+    public void OnPostResetDeviceId_DoesNothing_WhenNotActivated()
+    {
+        // Rotating a never-activated configuration would create a device ID and thereby activate telemetry, which must
+        // stay lazy. The handler is a no-op in that case. See #1701.
+        Assert.False( this.TelemetryConfigurationService.IsActivated );
+
+        var model = this.CreateModel();
+        model.OnPostResetDeviceId();
+
+        Assert.False( model.IsTelemetryActivated );
+        Assert.False( model.IsDeviceIdReset );
+        Assert.False( this.TelemetryConfigurationService.IsActivated );
     }
 }

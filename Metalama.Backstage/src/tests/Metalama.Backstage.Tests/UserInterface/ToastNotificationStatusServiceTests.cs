@@ -40,23 +40,6 @@ public sealed class ToastNotificationStatusServiceTests : TestsBase
     }
 
     [Fact]
-    public void ThrottledNotificationIsDeferredAfterAnotherNotification()
-    {
-        // Regression test for #1692. A non-throttled notification is displayed and records the last-notification time.
-        Assert.True( this._toastService.TryAcquire( ToastNotificationKinds.TelemetryNotice ) );
-
-        // A throttled (low-priority) notification is suppressed because another notification was just displayed.
-        Assert.False( this._toastService.TryAcquire( ToastNotificationKinds.VsxNotInstalled ) );
-
-        // An urgent, non-throttled notification (e.g. a required license, which fails the build) is NOT throttled.
-        Assert.True( this._toastService.TryAcquire( ToastNotificationKinds.RequiresLicense ) );
-
-        // After the throttle period elapses, the throttled notification is displayed.
-        this.Time.AddTime( TimeSpan.FromMinutes( 15 ) + TimeSpan.FromSeconds( 1 ) );
-        Assert.True( this._toastService.TryAcquire( ToastNotificationKinds.VsxNotInstalled ) );
-    }
-
-    [Fact]
     public void Disable()
     {
         this._toastService.Mute( ToastNotificationKinds.LicenseExpiring );

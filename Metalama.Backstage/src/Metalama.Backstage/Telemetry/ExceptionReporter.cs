@@ -395,7 +395,7 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
     public void Capture(
         ClassifiedException classifiedException,
         ExceptionReportingKind exceptionReportingKind,
-        ReportingAction reportingAction,
+        TelemetryConsent telemetryConsent,
         bool writeLocalReport,
         IExceptionAdapter? adapter )
     {
@@ -425,7 +425,7 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
             //   • Default → ASK: capture locally and show a review toast, but do not auto-send;
             //   • Yes     → ASK + auto-send: capture, show the toast, and additionally enqueue the report for upload.
             // Capture is decoupled from sending (#1674): the auto-send decision (Yes) is applied below, after capture.
-            if ( reportingAction == ReportingAction.No )
+            if ( telemetryConsent == TelemetryConsent.No )
             {
                 this._logger.Trace?.Log( $"The exception will not be captured because the effective reporting action for '{scenario}' is No." );
 
@@ -496,23 +496,23 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
             // it (move it to the upload queue) only when the category is Yes; for Default (ASK) it stays local until the
             // user reviews and sends it from the worker page / CLI. (No was already handled above — it never reaches
             // capture.) See #1674.
-            if ( reportingAction == ReportingAction.Yes )
+            if ( telemetryConsent == TelemetryConsent.Yes )
             {
-                this._logger.Trace?.Log( $"Auto-sending the exception report because the category is set to '{ReportingAction.Yes}'." );
+                this._logger.Trace?.Log( $"Auto-sending the exception report because the category is set to '{TelemetryConsent.Yes}'." );
 
                 this._uploadManager.EnqueueFile( fileName );
             }
             else
             {
                 this._logger.Trace?.Log(
-                    $"The exception report was captured locally for review but not enqueued for upload because the category is review-first ('{reportingAction}')." );
+                    $"The exception report was captured locally for review but not enqueued for upload because the category is review-first ('{telemetryConsent}')." );
             }
 
             // Notify the user that a report was captured. Clicking the toast opens the worker review page, which shows
             // the report renderings with a Report button and a per-category auto-report checkbox. We reference the report
             // by the bare file name of its scrubbed payload; the page resolves it whether it is still under
             // Telemetry\Exceptions (review-first) or has already been moved to Telemetry\UploadQueue (auto-sent). See #1674.
-            this.ShowToastNotification( Path.GetFileName( fileName ), scenario, applicationInfo.Name, autoSent: reportingAction == ReportingAction.Yes );
+            this.ShowToastNotification( Path.GetFileName( fileName ), scenario, applicationInfo.Name, autoSent: telemetryConsent == TelemetryConsent.Yes );
         }
         catch ( Exception e )
         {

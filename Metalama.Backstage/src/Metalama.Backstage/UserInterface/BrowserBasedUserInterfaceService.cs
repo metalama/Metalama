@@ -27,7 +27,6 @@ internal class BrowserBasedUserInterfaceService : UserInterfaceService
             // We are waiting for the method to complete because we have no mechanism to ensure that the process does
             // not end before the method completes.
             Task.Run( () => this.OpenConfigurationWebPageAsync( "Setup" ) ).Wait();
-            this.OnToastNotificationShown();
         }
         else
         {

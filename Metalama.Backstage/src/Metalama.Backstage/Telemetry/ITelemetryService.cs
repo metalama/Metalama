@@ -40,10 +40,4 @@ public interface ITelemetryService : IBackstageService
     /// enablement; obtain the default from <see cref="GetPolicy(string)"/> or supply your own.
     /// </summary>
     ITelemetryContext OpenContext( ITelemetryPolicy policy );
-
-    /// <summary>
-    /// Gets a disabled context for callers that have no directory (and therefore must not send telemetry). It still
-    /// writes local crash reports for support, but collects and sends no telemetry. See #1701.
-    /// </summary>
-    ITelemetryContext NullContext { get; }
 }

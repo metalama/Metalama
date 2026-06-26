@@ -4,6 +4,8 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Telemetry;
+using System.Threading.Tasks;
 
 namespace Metalama.Backstage.UserInterface.Toasts;
 
@@ -12,5 +14,9 @@ namespace Metalama.Backstage.UserInterface.Toasts;
 [PublicAPI]
 public interface IToastNotificationDetectionService : IBackstageService
 {
-    void Detect();
+    /// <summary>
+    /// Detect toast notification that
+    /// </summary>
+    /// <param name="telemetryContext">An optional <see cref="ITelemetryContext"/>, for toast notifications whose detection requires network access.</param>
+    Task DetectAsync( ITelemetryContext? telemetryContext = null );
 }

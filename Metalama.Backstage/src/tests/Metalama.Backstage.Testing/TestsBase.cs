@@ -8,9 +8,14 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Licensing;
+using Metalama.Backstage.Licensing.Audit;
+using Metalama.Backstage.Licensing.Consumption;
+using Metalama.Backstage.Licensing.Consumption.Sources;
 using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.Licensing.Registration;
 using Metalama.Backstage.Maintenance;
+using Metalama.Backstage.Repositories;
 using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Tools;
@@ -176,7 +181,7 @@ namespace Metalama.Backstage.Testing
         {
             var serviceCollection = this.CreateServiceCollection( serviceBuilder, options );
 
-            var serviceProvider = serviceCollection.BuildServiceProvider();
+            var serviceProvider = serviceCollection.BuildServiceProvider().InitializeBackstageServices();
 
             return new Services(
                 serviceCollection,
@@ -207,7 +212,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IRuntimeInformation>( _ => new TestRuntimeInformation() )
                 .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
                 .AddSingleton( this.BackgroundTasks )
-                .AddSingleton<IHttpClientFactory>( _ => new TestHttpClientFactory() )
+                .AddSingleton<IHttpClientFactory>( serviceProvider => new TestHttpClientFactory( serviceProvider ) )
                 .AddSingleton<WebLinks>( _ => new WebLinks() )
                 .AddSingleton( _ => new RandomNumberGenerator( 0 ) )
 
@@ -220,19 +225,34 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IConfigurationManager>( serviceProvider => new InMemoryConfigurationManager( serviceProvider ) )
                 .AddSingleton<ITempFileManager>( serviceProvider => new TempFileManager( serviceProvider ) )
                 .AddSingleton<ILicenseRegistrationService>( serviceProvider => new LicenseRegistrationService( serviceProvider ) )
+                .AddSingleton<ILicenseConsumptionService>(
+                    serviceProvider => LicenseConsumptionServiceFactory.Create(
+                        serviceProvider,
+                        new LicensingInitializationOptions { IgnoredLicenseSources = LicenseSourceKind.Unattended } ) )
                 .AddSingleton<IBackstageToolsExecutor>( serviceProvider => new BackstageToolsExecutor( serviceProvider ) )
                 .AddSingleton<IBackstageToolsLocator>( serviceProvider => new BackstageToolsLocator( serviceProvider ) )
                 .AddSingleton<IUserInterfaceService>( serviceProvider => new TestUserInterfaceService( serviceProvider ) )
                 .AddSingleton<IToastNotificationService>( serviceProvider => new ToastNotificationService( serviceProvider ) )
                 .AddSingleton<IToastNotificationStatusService>( serviceProvider => new ToastNotificationStatusService( serviceProvider ) )
                 .AddSingleton<BackstageServicesInitializer>( serviceProvider => new BackstageServicesInitializer( serviceProvider, options ) )
-                .AddSingleton<WelcomePageService>( serviceProvider => new WelcomePageService( serviceProvider ) )
                 .AddSingleton<IIdeExtensionStatusService>( serviceProvider => new IdeExtensionStatusService( serviceProvider ) )
                 .AddSingleton<IToastNotificationDetectionService>( serviceProvider => new ToastNotificationDetectionService( serviceProvider ) )
                 .AddSingleton<IStandardDirectories>( serviceProvider => new StandardDirectories( serviceProvider ) )
                 .AddSingleton<IBackstageToolsExtractor>( serviceProvider => new BackstageToolsExtractor( serviceProvider ) )
                 .AddSingleton<ITelemetryConfigurationService>( serviceProvider => new TelemetryConfigurationService( serviceProvider ) )
+                .AddSingleton<ITelemetryService>( serviceProvider => new TelemetryService( serviceProvider ) )
+                .AddSingleton<IRepositoryConfigurationService>( serviceProvider => new RepositoryConfigurationService( serviceProvider ) )
+                .AddSingleton<IUsageReporter>( serviceProvider => new UsageReporter( serviceProvider ) )
+                .AddSingleton<IExceptionCapturer>( _ => new TestExceptionCapturer() )
+                .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )
+                .AddSingleton<ITelemetryUploader>( serviceProvider => new TelemetryUploader( serviceProvider ) )
+                .AddSingleton<TelemetryLogger>( serviceProvider => new TelemetryLogger( serviceProvider ) )
                 .AddSingleton( this.LicensingAuthority );
+
+            if ( options.OpenWelcomePage )
+            {
+                serviceCollection.AddSingleton<WelcomePageService>( serviceProvider => new WelcomePageService( serviceProvider ) );
+            }
 
             var serviceProviderBuilder =
                 new ServiceProviderBuilder( ( type, instance ) => serviceCollection.AddSingleton( type, instance ) );

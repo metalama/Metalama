@@ -6,7 +6,9 @@ using Metalama.Backstage.Telemetry;
 
 namespace Metalama.Backstage.Commands.Telemetry;
 
-internal class DisableTelemetryCommand : SetTelemetryCommand
+// Resets a scenario to TelemetryConsent.Default: review-first (ask) for exception/performance, and the opt-out default
+// for usage. This is the third state that 'enable' (Yes) and 'disable' (No) cannot express. See #1674, #1707.
+internal class ResetTelemetryCommand : SetTelemetryCommand
 {
-    public DisableTelemetryCommand() : base( TelemetryConsent.No ) { }
+    public ResetTelemetryCommand() : base( TelemetryConsent.Default ) { }
 }

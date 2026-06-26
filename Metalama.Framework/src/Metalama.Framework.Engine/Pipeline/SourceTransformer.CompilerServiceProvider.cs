@@ -5,6 +5,7 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
+using Metalama.Backstage.UserInterface.Toasts;
 using Metalama.Compiler.Services;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
@@ -54,14 +55,18 @@ public sealed partial class SourceTransformer
             // under that type for Metalama.Compiler to resolve it.
             this._services.Add( typeof(ITelemetryContext), this._telemetryContext );
             this._services.Add( typeof(IExceptionReporter), new ExceptionReporterAdapter( this._telemetryContext ) );
-
-            // Initialize usage reporting through the telemetry context (a no-op when the repository opted out).
+            
             try
             {
+                // Initialize usage reporting through the telemetry context (a no-op when the repository opted out).
                 if ( options.AssemblyName != null )
                 {
                     this._session = this._telemetryContext.StartUsageSession( "TransformerUsage", options.AssemblyName );
                 }
+                
+                // Show toast notifications _after_ starting a usage session, so these notifications can be deferred
+                // in case StartUsageSession showed the "telemetry enabled" notification.
+                _ = serviceProvider.GetBackstageService<IToastNotificationDetectionService>()?.DetectAsync();
             }
             catch ( Exception e )
             {

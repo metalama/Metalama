@@ -28,9 +28,9 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
     {
         var input = new TelemetryConfiguration
         {
-            ExceptionReportingAction = ReportingAction.Yes,
-            PerformanceProblemReportingAction = ReportingAction.No,
-            UsageReportingAction = ReportingAction.Default,
+            ExceptionConsent = TelemetryConsent.Yes,
+            PerformanceProblemConsent = TelemetryConsent.No,
+            UsageConsent = TelemetryConsent.Default,
             DeviceId = Guid.Parse( "a1b2c3d4-e5f6-7890-abcd-ef1234567890" ),
             LastUploadTime = new DateTime( 2025, 1, 15, 10, 30, 0, DateTimeKind.Utc ),
             MatomoSalt = 1234567890L,
@@ -74,7 +74,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         // rather than exact JSON matching for dictionaries
         var input = new TelemetryConfiguration
         {
-            ExceptionReportingAction = ReportingAction.Default,
+            ExceptionConsent = TelemetryConsent.Default,
             Issues = ImmutableDictionary<string, ReportingStatus>.Empty
                 .Add( "ISSUE001", ReportingStatus.Reported ),
             Sessions = ImmutableDictionary<string, DateTime>.Empty
@@ -254,7 +254,6 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                       "IsFirstStart": false,
                                       "IsFirstTimeEvaluationLicenseRegistrationPending": true,
                                       "WelcomePageDisplayed": true,
-                                      "TelemetryNoticeDisplayed": false,
                                       "IsWelcomePagePending": true,
                                       "version": 2
                                     }
@@ -426,9 +425,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
         // source-generated JSON context, so the RSS feed was stuck in its "first fetch" state forever.
         var input = new RssClientConfiguration
         {
-            PreferredFeed = RssFeed.Briefs,
-            LastFetchTime = new DateTime( 2025, 6, 1, 12, 0, 0, DateTimeKind.Utc ),
-            Version = 1
+            PreferredFeed = RssFeed.Briefs, LastFetchTime = new DateTime( 2025, 6, 1, 12, 0, 0, DateTimeKind.Utc ), Version = 1
         };
 
         const string expectedJson = """

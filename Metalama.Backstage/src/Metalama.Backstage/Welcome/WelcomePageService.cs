@@ -24,6 +24,7 @@ public sealed class WelcomePageService : IBackstageService
     private readonly WebLinks _webLinks;
     private readonly IUserInterfaceService _userInterfaceService;
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
+    private readonly ITelemetryConfigurationService _telemetryConfigurationService;
 
     internal WelcomePageService( IServiceProvider serviceProvider )
     {
@@ -31,16 +32,12 @@ public sealed class WelcomePageService : IBackstageService
         this._webLinks = serviceProvider.GetRequiredBackstageService<WebLinks>();
         this._userInterfaceService = serviceProvider.GetRequiredBackstageService<IUserInterfaceService>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
+        this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
 
-        // The welcome page is opened the first time telemetry is activated, so that an opted-out or dormant machine
-        // never opens it. We subscribe only when the host actually wants the page opened (the command-line compiler;
-        // not Visual Studio, which shows its own). The telemetry configuration service is absent when support services
-        // are not registered, in which case there is nothing to open the page for. OnActivated (rather than a plain
-        // event) so we still react if telemetry was already activated by this process before this service was
-        // constructed. See #1701.
-        if ( serviceProvider.GetRequiredBackstageService<BackstageInitializationOptionsProvider>().Options.OpenWelcomePage )
+        if ( !serviceProvider.GetRequiredBackstageService<BackstageInitializationOptionsProvider>().Options.OpenWelcomePage )
         {
-            serviceProvider.GetBackstageService<ITelemetryConfigurationService>()?.OnActivated( this.OpenWelcomePageIfRequired );
+            throw new InvalidOperationException(
+                $"{nameof(BackstageInitializationOptions)}.{nameof(BackstageInitializationOptions.OpenWelcomePage)} is false." );
         }
     }
 
@@ -51,8 +48,14 @@ public sealed class WelcomePageService : IBackstageService
         set => this._configurationManager.Update<WelcomeConfiguration>( c => c with { WelcomePageDisplayed = value } );
     }
 
-    private void OpenWelcomePageIfRequired()
-        => this._backgroundTasksService.Enqueue(
+    public void OpenWelcomePageOnce()
+    {
+        if ( this._telemetryConfigurationService.GetEffectiveConsent( TelemetryScenario.Usage ) != TelemetryConsent.Yes )
+        {
+            throw new InvalidOperationException( "Cannot open the welcome page when telemetry is disabled." );
+        }
+
+        this._backgroundTasksService.Enqueue(
             () =>
             {
                 if ( this._configurationManager.UpdateIf<WelcomeConfiguration>(
@@ -62,4 +65,5 @@ public sealed class WelcomePageService : IBackstageService
                     this._userInterfaceService.OpenExternalWebPage( this._webLinks.Welcome, BrowserMode.Default );
                 }
             } );
+    }
 }

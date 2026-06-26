@@ -6,6 +6,9 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.UserInterface.Rss;
+using Metalama.Backstage.UserInterface.Toasts;
+using Metalama.Backstage.Welcome;
 using System;
 
 namespace Metalama.Backstage.Telemetry;
@@ -17,6 +20,9 @@ internal sealed class UsageReporter : IUsageReporter
     private readonly ITelemetryConfigurationService _telemetryConfigurationService;
     private readonly IDateTimeProvider _time;
     private readonly ILogger _logger;
+    private readonly WelcomePageService? _welcomePageService;
+    private readonly IToastNotificationService? _toastNotificationService;
+    private readonly IRssClient? _rssClient;
 
     // Serializes the in-process callers of ShouldCollectMetrics. This service is a per-process singleton, so when a
     // single process compiles many projects concurrently (e.g. the design-time analysis service or an in-process build),
@@ -26,7 +32,7 @@ internal sealed class UsageReporter : IUsageReporter
     // writers in the same process, or from other processes (still bounded by the cross-process mutex in ConfigurationManager).
     private readonly object _sync = new();
 
-    public bool IsUsageReportingEnabled => this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage );
+    public bool IsUsageReportingEnabled => this._telemetryConfigurationService.GetEffectiveConsent( TelemetryScenario.Usage ) == TelemetryConsent.Yes;
 
     public UsageReporter( IServiceProvider serviceProvider )
     {
@@ -35,6 +41,9 @@ internal sealed class UsageReporter : IUsageReporter
         this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
         this._time = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._logger = serviceProvider.GetLoggerFactory().Telemetry();
+        this._welcomePageService = serviceProvider.GetBackstageService<WelcomePageService>();
+        this._toastNotificationService = serviceProvider.GetBackstageService<IToastNotificationService>();
+        this._rssClient = serviceProvider.GetBackstageService<IRssClient>();
     }
 
     private bool ShouldCollectMetrics( string projectName )
@@ -85,13 +94,28 @@ internal sealed class UsageReporter : IUsageReporter
 
     public IUsageSession StartSession( string kind, string? projectName = null )
     {
+        // If usage reporting is in the default state, we try to enable it. If we are the one who enable it, we display notifications.
+        if ( this._telemetryConfigurationService.CompareExchangeConsent( TelemetryScenario.Usage, TelemetryConsent.Yes, TelemetryConsent.Default ) )
+        {
+            this._logger.Trace?.Log( $"Enabling telemetry now." );
+            this._toastNotificationService?.Show( new ToastNotification( ToastNotificationKinds.TelemetryNotice ) );
+            this._welcomePageService?.OpenWelcomePageOnce();
+            this._rssClient?.TryEnable();
+        }
+        else
+        {
+            this._logger.Trace?.Log( $"Telemetry was in status: {this._telemetryConfigurationService.GetEffectiveConsent( TelemetryScenario.Usage )}." );
+        }
+
         if ( !this.IsUsageReportingEnabled )
         {
+            this._logger.Trace?.Log( $"Telemetry is disabled." );
+
             return NullUsageSession.Instance;
         }
 
         // We are about to report usage, so make sure telemetry is activated (the DeviceId and salts exist). Activation
-        // is lazy so that a process which never reports never creates a device identifier. See #1701.
+        // is lazy so that a process which never reports creates a device identifier. See #1701.
         this._telemetryConfigurationService.EnsureActivated();
 
         // If the project name is not provided, we use the kind as the key

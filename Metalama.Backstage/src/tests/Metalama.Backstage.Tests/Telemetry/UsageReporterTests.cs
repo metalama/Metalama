@@ -36,13 +36,7 @@ public sealed class UsageReporterTests : TestsBase
         base.OnAfterServicesCreated( services );
 
         services.ConfigurationManager!.Update<TelemetryConfiguration>(
-            c => c with
-            {
-                UsageReportingAction = ReportingAction.Yes,
-                DeviceId = _testDeviceId,
-                MatomoSalt = _testSalt,
-                LastSaltChangeTime = this.Time.UtcNow
-            } );
+            c => c with { UsageConsent = TelemetryConsent.Yes, DeviceId = _testDeviceId, MatomoSalt = _testSalt, LastSaltChangeTime = this.Time.UtcNow } );
     }
 
     protected override void ConfigureServices( ServiceProviderBuilder services )
@@ -82,12 +76,12 @@ public sealed class UsageReporterTests : TestsBase
     }
 
     [Theory]
-    [InlineData( ReportingAction.Yes, true )]
-    [InlineData( ReportingAction.No, false )]
-    [InlineData( ReportingAction.Default, true )]
-    public void UsageIsReportedAsConfiguredWhenTelemetryIsEnabled( ReportingAction usageReportingAction, bool shouldReport )
+    [InlineData( TelemetryConsent.Yes, true )]
+    [InlineData( TelemetryConsent.No, false )]
+    [InlineData( TelemetryConsent.Default, true )]
+    public void UsageIsReportedAsConfiguredWhenTelemetryIsEnabled( TelemetryConsent usageTelemetryConsent, bool shouldReport )
     {
-        this.ConfigurationManager!.Update<TelemetryConfiguration>( c => c with { UsageReportingAction = usageReportingAction } );
+        this.ConfigurationManager!.Update<TelemetryConfiguration>( c => c with { UsageConsent = usageTelemetryConsent } );
 
         if ( shouldReport )
         {
@@ -109,7 +103,7 @@ public sealed class UsageReporterTests : TestsBase
     [Fact]
     public void UsageIsNotReportedWhenOptOutEnvironmentVariableIsSet()
     {
-        this.EnvironmentVariableProvider.Environment["METALAMA_TELEMETRY_OPT_OUT"] = "true";
+        this.EnvironmentVariableProvider.Environment[TelemetryConfiguration.OptOutEnvironmentVariableName] = "true";
         this.AssertReportingDisabled();
     }
 

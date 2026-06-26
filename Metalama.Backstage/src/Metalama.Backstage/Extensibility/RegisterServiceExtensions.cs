@@ -220,14 +220,28 @@ public static class RegisterServiceExtensions
         // Add user interface.
         if ( options.AddUserInterface )
         {
-            serviceProviderBuilder.AddSingleton( serviceProvider => new WelcomePageService( serviceProvider ) );
+            if ( options.OpenWelcomePage )
+            {
+                serviceProviderBuilder.AddSingleton( serviceProvider => new WelcomePageService( serviceProvider ) );
+            }
 
             serviceProviderBuilder.AddService(
                 typeof(IToastNotificationStatusService),
                 serviceProvider => new ToastNotificationStatusService( serviceProvider ) );
 
             serviceProviderBuilder.AddService( typeof(IToastNotificationService), serviceProvider => new ToastNotificationService( serviceProvider ) );
-            serviceProviderBuilder.AddSingleton<IRssClient>( serviceProvider => new RssClient( serviceProvider ) );
+
+            if ( options.NotifyOfLatestNews )
+            {
+                if ( !options.AddSupportServices )
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(options),
+                        $"{nameof(options.NotifyOfLatestNews)} requires {nameof(options.AddSupportServices)}." );
+                }
+
+                serviceProviderBuilder.AddSingleton<IRssClient>( serviceProvider => new RssClient( serviceProvider ) );
+            }
 
             if ( options.DetectToastNotifications )
             {

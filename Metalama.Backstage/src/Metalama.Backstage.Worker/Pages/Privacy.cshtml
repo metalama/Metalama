@@ -1,4 +1,5 @@
 @page
+@using Metalama.Backstage.Telemetry
 @using Metalama.Backstage.UserInterface
 @model PrivacyPageModel
 @inject WebLinks WebLinks;
@@ -6,8 +7,8 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Auto-save when any checkbox selection changes.
-            $('#isUsageReportingEnabledCheckbox, #isExceptionReportingEnabledCheckbox, #isPerformanceReportingEnabledCheckbox').change(function () {
+            // Auto-save when the usage checkbox or any of the exception/performance radio buttons change.
+            $('#isUsageReportingEnabledCheckbox, input[name="ExceptionConsent"], input[name="PerformanceConsent"]').change(function () {
                 $('form').submit();
             });
         });
@@ -15,7 +16,7 @@
 }
 
 <form method="post">
-    <h3>Privacy</h3>
+    <h3>Telemetry and Privacy Options</h3>
     <p>
         To improve the product, Metalama can collect anonymous data. You can change your choices at any time.
         Read more in our <a href="@WebLinks.PrivacyPolicy" target="_blank">Privacy Policy</a> and the
@@ -28,27 +29,82 @@
             <label asp-for="IsUsageReportingEnabled">
                 Send anonymous usage data to help improve Metalama.
             </label>
-            <small>Anonymous statistics about which features are used. Reports include a randomly generated device ID that you can reset at any time.</small>
+            <small>Anonymous statistics about which features are used. Reports include a randomly generated device ID
+                that you can reset at any time.</small>
+            @if (Model.IsTelemetryActivated)
+            {
+                <div class="device-id-action">
+                    <button type="submit" class="link-button" asp-page-handler="ResetDeviceId">Reset device ID now</button>
+                    @if (Model.IsDeviceIdReset)
+                    {
+                        <span class="text-success">Your device ID has been reset.</span>
+                    }
+                </div>
+            }
         </div>
     </div>
 
-    <div class="checkbox">
-        <input id="isExceptionReportingEnabledCheckbox" type="checkbox" asp-for="IsExceptionReportingEnabled">
-        <div class="label">
-            <label asp-for="IsExceptionReportingEnabled">
-                Send exception reports.
+    <h4>Exception reports</h4>
+    <p>Reports of unhandled exceptions, which may include code-related diagnostic details.</p>
+    <div class="radio-group compact">
+        <div class="radio-option">
+            <input type="radio" id="exceptionAsk" name="ExceptionConsent" value="@TelemetryConsent.Default"
+                   checked="@( Model.ExceptionConsent == TelemetryConsent.Default )">
+            <label for="exceptionAsk">
+                <strong>Ask me each time (recommended)</strong>
+                <small>The report is captured locally and a notification lets you review it before anything is
+                    sent.</small>
             </label>
-            <small>Reports of unhandled exceptions, which may include code-related diagnostic details. Disabled by default.</small>
+        </div>
+
+        <div class="radio-option">
+            <input type="radio" id="exceptionSend" name="ExceptionConsent" value="@TelemetryConsent.Yes"
+                   checked="@( Model.ExceptionConsent == TelemetryConsent.Yes )">
+            <label for="exceptionSend">
+                <strong>Send automatically</strong>
+                <small>Reports are captured and sent without asking.</small>
+            </label>
+        </div>
+
+        <div class="radio-option">
+            <input type="radio" id="exceptionNever" name="ExceptionConsent" value="@TelemetryConsent.No"
+                   checked="@( Model.ExceptionConsent == TelemetryConsent.No )">
+            <label for="exceptionNever">
+                <strong>Never send</strong>
+                <small>Nothing is captured and you are never asked.</small>
+            </label>
         </div>
     </div>
 
-    <div class="checkbox">
-        <input id="isPerformanceReportingEnabledCheckbox" type="checkbox" asp-for="IsPerformanceReportingEnabled">
-        <div class="label">
-            <label asp-for="IsPerformanceReportingEnabled">
-                Send performance reports.
+    <h4>Performance reports</h4>
+    <p>Reports of performance problems, which may include code-related diagnostic details.</p>
+    <div class="radio-group compact">
+        <div class="radio-option">
+            <input type="radio" id="performanceAsk" name="PerformanceConsent" value="@TelemetryConsent.Default"
+                   checked="@( Model.PerformanceConsent == TelemetryConsent.Default )">
+            <label for="performanceAsk">
+                <strong>Ask me each time (recommended)</strong>
+                <small>The report is captured locally and a notification lets you review it before anything is
+                    sent.</small>
             </label>
-            <small>Reports of performance problems, which may include code-related diagnostic details. Disabled by default.</small>
+        </div>
+
+        <div class="radio-option">
+            <input type="radio" id="performanceSend" name="PerformanceConsent" value="@TelemetryConsent.Yes"
+                   checked="@( Model.PerformanceConsent == TelemetryConsent.Yes )">
+            <label for="performanceSend">
+                <strong>Send automatically</strong>
+                <small>Reports are captured and sent without asking.</small>
+            </label>
+        </div>
+
+        <div class="radio-option">
+            <input type="radio" id="performanceNever" name="PerformanceConsent" value="@TelemetryConsent.No"
+                   checked="@( Model.PerformanceConsent == TelemetryConsent.No )">
+            <label for="performanceNever">
+                <strong>Never send</strong>
+                <small>Nothing is captured and you are never asked.</small>
+            </label>
         </div>
     </div>
 

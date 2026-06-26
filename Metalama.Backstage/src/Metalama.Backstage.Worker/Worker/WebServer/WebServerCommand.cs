@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Worker.Logger;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -106,6 +107,12 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
 
         // Add services to the container.
         var app = builder.Build();
+
+        // The backstage services are factory-based singletons, so the ASP.NET container builds its own instances rather
+        // than reusing the ones from Program.cs. Initialize them here too, otherwise services that require initialization
+        // (e.g. ITelemetryConfigurationService) throw when first used — for instance when the Privacy page saves a consent
+        // and calls SetConsent, whose EnsureInitialized() would fail. See #1707.
+        app.Services.InitializeBackstageServices();
 
         // Reject requests whose 'Host' header does not target the loopback interface. This must run before any other
         // middleware so that rejected requests never reach the application.

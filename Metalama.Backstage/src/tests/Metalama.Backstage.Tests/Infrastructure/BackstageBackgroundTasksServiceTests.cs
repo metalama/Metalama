@@ -20,7 +20,7 @@ public sealed class BackstageBackgroundTasksServiceTests
 
         for ( var i = 0; i < n; i++ )
         {
-            service.Enqueue(
+            _ = service.Enqueue(
                 async () =>
                 {
                     await Task.Yield();
@@ -44,7 +44,7 @@ public sealed class BackstageBackgroundTasksServiceTests
         {
             for ( var j = 0; j < m; j++ )
             {
-                service.Enqueue(
+                _ = service.Enqueue(
                     async () =>
                     {
                         await Task.Yield();

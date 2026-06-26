@@ -19,10 +19,6 @@ namespace Metalama.Backstage.UserInterface.Toasts;
 [PublicAPI]
 public sealed class ToastNotificationStatusService : IToastNotificationStatusService
 {
-    // A throttled (low-priority) notification is not displayed while another notification was displayed within this
-    // period, so that e.g. the VSX-install prompt does not appear together with the first-run telemetry notice (#1692).
-    private static readonly TimeSpan _throttlePeriod = TimeSpan.FromMinutes( 15 );
-
     private readonly IConfigurationManager _configurationManager;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger _logger;
@@ -37,16 +33,6 @@ public sealed class ToastNotificationStatusService : IToastNotificationStatusSer
 
     private bool IsEnabled( ToastNotificationKind kind, ToastNotificationsConfiguration configuration )
     {
-        if ( kind.IsThrottled
-             && configuration.LastNotificationTime != null
-             && configuration.LastNotificationTime.Value + _throttlePeriod > this._dateTimeProvider.UtcNow )
-        {
-            this._logger.Trace?.Log(
-                $"The notification kind {kind.Name} is throttled because another notification was displayed at {configuration.LastNotificationTime}." );
-
-            return false;
-        }
-
         if ( !configuration.Notifications.TryGetValue( kind.Name, out var kindConfiguration ) )
         {
             this._logger.Trace?.Log( $"The notification kind {kind.Name} is not configured." );
@@ -123,6 +109,7 @@ public sealed class ToastNotificationStatusService : IToastNotificationStatusSer
             config => config with
             {
                 Pauses = config.Pauses
+
                     // Use '<=' so a pause that expires exactly at the current time is cleaned up. This matches the
                     // 'IsPaused' check (which treats 'Value > now' as active) and avoids accumulating stale pauses.
                     .RemoveRange( config.Pauses.Where( c => c.Value <= this._dateTimeProvider.UtcNow ).Select( c => c.Key ) )
@@ -137,6 +124,8 @@ public sealed class ToastNotificationStatusService : IToastNotificationStatusSer
         }
     }
 
+    public DateTime? LastNotificationTime => this._configurationManager.Get<ToastNotificationsConfiguration>().LastNotificationTime;
+
     private bool IsPaused
     {
         get
@@ -144,6 +133,18 @@ public sealed class ToastNotificationStatusService : IToastNotificationStatusSer
             var pauses = this._configurationManager.Get<ToastNotificationsConfiguration>().Pauses;
 
             return pauses.Any( p => p.Value > this._dateTimeProvider.UtcNow );
+        }
+    }
+
+    public static TimeSpan LowPriorityThrottlePeriod => TimeSpan.FromMinutes( 15 );
+
+    public bool CanDisplayLowPriorityNotifications
+    {
+        get
+        {
+            var lastNotificationTime = this.LastNotificationTime;
+
+            return lastNotificationTime == null || lastNotificationTime < this._dateTimeProvider.UtcNow - LowPriorityThrottlePeriod;
         }
     }
 }

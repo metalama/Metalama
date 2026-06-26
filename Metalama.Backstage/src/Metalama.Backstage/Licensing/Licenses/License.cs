@@ -228,6 +228,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 licenseKeyData.LicenseString,
                 isRedistributable,
                 licenseKeyData.Auditable ?? true,
+                licenseKeyData.ValidTo,
                 licenseKeyData.SubscriptionEndDate,
                 subscriptionStatus,
                 licenseKeyData.Generation.GetValueOrDefault(),

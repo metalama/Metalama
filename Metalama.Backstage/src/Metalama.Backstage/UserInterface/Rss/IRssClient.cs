@@ -3,15 +3,16 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Telemetry;
 using System.Threading.Tasks;
 
 namespace Metalama.Backstage.UserInterface.Rss;
 
 public interface IRssClient : IBackstageService
 {
-    void Initialize();
+    Task DisplayUnreadLatestNewsAsync( ITelemetryContext context );
 
-    Task DisplayLatestNewsAsync();
+    Task<bool> DisplayLatestNewsAsync();
 
     void Disable();
 

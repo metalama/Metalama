@@ -6,7 +6,6 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.UserInterface;
-using Metalama.Backstage.Welcome;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,16 +25,26 @@ public sealed class WelcomePageServiceTests : TestsBase
 
     protected override void ConfigureServices( ServiceProviderBuilder services ) => services.AddTelemetryServices();
 
-    // Instantiating the service is what subscribes it to the telemetry-activated event.
-    private void RegisterWelcomePageService() => this.ServiceProvider.GetRequiredBackstageService<WelcomePageService>();
+    protected override void OnAfterServicesCreated( Services services )
+    {
+        this.UserDeviceDetection.IsInteractiveDevice = true;
+    }
+
+    private async Task OpenTelemetrySession()
+    {
+        this.FileSystem.CreateDirectory( "C:\\Src" );
+        var telemetryService = this.ServiceProvider.GetRequiredBackstageService<ITelemetryService>();
+        var telemetryContext = telemetryService.OpenContext( telemetryService.GetPolicy( "C:\\Src" ) );
+        telemetryContext.StartUsageSession( "Test" );
+
+        // Opening web pages is done from a backgronud thread, so we need to wait.
+        await this.BackgroundTasks.WhenNoPendingTaskAsync();
+    }
 
     [Fact]
     public async Task WelcomePageOpenedWhenTelemetryActivates()
     {
-        this.RegisterWelcomePageService();
-
-        this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>().EnsureActivated();
-        await this.BackgroundTasks.WhenNoPendingTaskAsync();
+        await this.OpenTelemetrySession();
 
         Assert.Single( this.UserInterface.ExternalWebPagesOpened );
         Assert.StartsWith( new WebLinks().Welcome, this.UserInterface.ExternalWebPagesOpened.Single().Url, StringComparison.Ordinal );
@@ -44,8 +53,9 @@ public sealed class WelcomePageServiceTests : TestsBase
     [Fact]
     public async Task WelcomePageNotOpenedWhenTelemetryNeverActivates()
     {
-        this.RegisterWelcomePageService();
-        await this.BackgroundTasks.WhenNoPendingTaskAsync();
+        this.TelemetryConfigurationService.SetConsent( TelemetryConsent.No );
+
+        await this.OpenTelemetrySession();
 
         Assert.Empty( this.UserInterface.ExternalWebPagesOpened );
     }
@@ -53,17 +63,13 @@ public sealed class WelcomePageServiceTests : TestsBase
     [Fact]
     public async Task WelcomePageOpenedOnlyOnce()
     {
-        this.RegisterWelcomePageService();
-        var telemetryConfigurationService = this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
+        await this.OpenTelemetrySession();
 
-        telemetryConfigurationService.EnsureActivated();
-        await this.BackgroundTasks.WhenNoPendingTaskAsync();
         this.UserInterface.ExternalWebPagesOpened.Clear();
 
         // A second activation call does not re-raise the event (telemetry is already activated), and the
         // WelcomePageDisplayed guard would prevent re-opening anyway.
-        telemetryConfigurationService.EnsureActivated();
-        await this.BackgroundTasks.WhenNoPendingTaskAsync();
+        await this.OpenTelemetrySession();
 
         Assert.Empty( this.UserInterface.ExternalWebPagesOpened );
     }

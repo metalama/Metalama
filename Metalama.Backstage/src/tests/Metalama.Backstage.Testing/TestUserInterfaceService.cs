@@ -3,8 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Toasts;
 using System;
@@ -16,11 +15,11 @@ namespace Metalama.Backstage.Testing;
 [PublicAPI]
 public class TestUserInterfaceService : IUserInterfaceService
 {
-    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ILogger _logger;
 
     public TestUserInterfaceService( IServiceProvider serviceProvider )
     {
-        this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
+        this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(TestUserInterfaceService) );
     }
 
     public List<ToastNotification> Notifications { get; } = [];
@@ -33,16 +32,23 @@ public class TestUserInterfaceService : IUserInterfaceService
 
     public Task OpenConfigurationWebPageAsync( string path )
     {
-        this.ConfigurationWebPagesOpened.Add( path );
+        this._logger.Trace?.Log( $"Opening configuration web page: '{path}'." );
+
+        lock ( this.ConfigurationWebPagesOpened )
+        {
+            this.ConfigurationWebPagesOpened.Add( path );
+        }
 
         return Task.CompletedTask;
     }
 
     public void ShowToastNotification( ToastNotification notification )
     {
-        this.Notifications.Add( notification );
-        this.LastToastNotificationTime = this._dateTimeProvider.UtcNow;
-    }
+        this._logger.Trace?.Log( $"Received notification: {notification}." );
 
-    public DateTime? LastToastNotificationTime { get; private set; }
+        lock ( this.Notifications )
+        {
+            this.Notifications.Add( notification );
+        }
+    }
 }

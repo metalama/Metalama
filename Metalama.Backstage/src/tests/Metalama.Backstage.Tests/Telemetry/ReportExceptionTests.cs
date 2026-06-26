@@ -30,7 +30,9 @@ public sealed class ReportExceptionTests : TestsBase
         base.OnAfterServicesCreated( services );
 
         services.ConfigurationManager!.Update<TelemetryConfiguration>(
-            c => c with { ExceptionReportingAction = ReportingAction.Yes, PerformanceProblemReportingAction = ReportingAction.Yes } );
+            c => c with { ExceptionConsent = TelemetryConsent.Yes, PerformanceProblemConsent = TelemetryConsent.Yes } );
+
+        this.UserDeviceDetection.IsInteractiveDevice = true;
     }
 
     private static string CreateStackFrame( string methodName, int lineNumber )
@@ -65,8 +67,7 @@ public sealed class ReportExceptionTests : TestsBase
 
     // The scrubbed upload payload is the '.xml' file that is not the '.local.xml' sibling.
     private string GetScrubbedReportFile()
-        => this.FileSystem.Mock.AllFiles.Single(
-            f => f.EndsWith( ".xml", StringComparison.Ordinal ) && !f.EndsWith( ".local.xml", StringComparison.Ordinal ) );
+        => this.FileSystem.Mock.AllFiles.Single( f => f.EndsWith( ".xml", StringComparison.Ordinal ) && !f.EndsWith( ".local.xml", StringComparison.Ordinal ) );
 
     [Fact]
     public async Task ShouldReportExceptionConcurrent()
@@ -115,11 +116,11 @@ public sealed class ReportExceptionTests : TestsBase
     // Sets the reporting action of the category matching <paramref name="kind"/> and opts the other category out
     // (ReportingAction.No), so a test exercises exactly one category at a time and proves the two are independent.
     // Tests that need both categories enabled rely instead on the both-Yes baseline set in OnAfterServicesCreated.
-    private void ConfigureExceptionReporting( ExceptionReportingKind kind, ReportingAction action )
+    private void ConfigureExceptionReporting( ExceptionReportingKind kind, TelemetryConsent action )
         => this.ConfigurationManager!.Update<TelemetryConfiguration>(
             c => kind == ExceptionReportingKind.Exception
-                ? c with { ExceptionReportingAction = action, PerformanceProblemReportingAction = ReportingAction.No }
-                : c with { ExceptionReportingAction = ReportingAction.No, PerformanceProblemReportingAction = action } );
+                ? c with { ExceptionConsent = action, PerformanceProblemConsent = TelemetryConsent.No }
+                : c with { ExceptionConsent = TelemetryConsent.No, PerformanceProblemConsent = action } );
 
     // Reports an exception (a default InvalidOperationException when none is given) through a fresh reporter, using
     // whatever reporting configuration is currently in effect. Combine with ConfigureExceptionReporting to exercise a
@@ -131,26 +132,27 @@ public sealed class ReportExceptionTests : TestsBase
         // Capture now receives the policy-resolved action explicitly (in production the telemetry context does this). We
         // resolve it the same way the default policy does — through the configuration service. See #1701.
         var scenario = kind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance;
-        var action = this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>().GetEffectiveReportingAction( scenario );
+        var action = this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>().GetEffectiveConsent( scenario );
 
         reporter.Capture( ExceptionClassifier.Classify( exception ?? new InvalidOperationException() ), kind, action, writeLocalReport: true, adapter: null );
     }
 
     [Theory]
+
     // #1674, #1701: For an ACTIVE category, capture is decoupled from sending — a scrubbed report is captured for both
     // Default (ASK) and Yes, and the action only decides whether it is additionally auto-sent (moved to the upload
     // queue). The No case (not captured nor asked) is covered by ReportIsNotCapturedNorToastShownWhenCategoryIsOptedOut.
     // 'shouldEnqueue' is for the kind being reported; ConfigureExceptionReporting opts the other kind out to prove independence.
-    [InlineData( ReportingAction.Yes, ExceptionReportingKind.Exception, true )]
-    [InlineData( ReportingAction.Default, ExceptionReportingKind.Exception, false )]
-    [InlineData( ReportingAction.Yes, ExceptionReportingKind.PerformanceProblem, true )]
-    [InlineData( ReportingAction.Default, ExceptionReportingKind.PerformanceProblem, false )]
+    [InlineData( TelemetryConsent.Yes, ExceptionReportingKind.Exception, true )]
+    [InlineData( TelemetryConsent.Default, ExceptionReportingKind.Exception, false )]
+    [InlineData( TelemetryConsent.Yes, ExceptionReportingKind.PerformanceProblem, true )]
+    [InlineData( TelemetryConsent.Default, ExceptionReportingKind.PerformanceProblem, false )]
     public void ReportIsCapturedForActiveCategoryAndEnqueuedOnlyWhenYes(
-        ReportingAction reportingAction,
+        TelemetryConsent telemetryConsent,
         ExceptionReportingKind exceptionReportingKind,
         bool shouldEnqueue )
     {
-        this.ConfigureExceptionReporting( exceptionReportingKind, reportingAction );
+        this.ConfigureExceptionReporting( exceptionReportingKind, telemetryConsent );
         this.RecordException( kind: exceptionReportingKind );
 
         // A scrubbed report is captured in all cases (it is valid XML).
@@ -164,6 +166,7 @@ public sealed class ReportExceptionTests : TestsBase
         else
         {
             Assert.Contains( Path.Combine( "Telemetry", "Exceptions" ), scrubbed, StringComparison.Ordinal );
+
             Assert.DoesNotContain(
                 this.FileSystem.Mock.AllFiles,
                 f => f.Contains( Path.Combine( "Telemetry", "UploadQueue" ), StringComparison.Ordinal ) );
@@ -178,7 +181,7 @@ public sealed class ReportExceptionTests : TestsBase
         // #1701: When the category is explicitly opted out (ReportingAction.No), the report is NOT even captured and no
         // review toast is shown — the user has chosen not to be asked. (The local crash report is independent of
         // telemetry and is written separately, by LocalExceptionReporter.)
-        this.ConfigureExceptionReporting( exceptionReportingKind, ReportingAction.No );
+        this.ConfigureExceptionReporting( exceptionReportingKind, TelemetryConsent.No );
         this.RecordException( kind: exceptionReportingKind );
 
         // No telemetry report (neither the scrubbed payload nor the local rendering) is captured.
@@ -196,7 +199,7 @@ public sealed class ReportExceptionTests : TestsBase
         // #1674: When the category is explicitly opted in (ReportingAction.Yes), the captured report is auto-sent,
         // i.e. the scrubbed payload is moved to the telemetry upload queue. The full local rendering is still kept
         // alongside (under Telemetry\Exceptions) so the review page can show it, and is never uploaded.
-        this.ConfigureExceptionReporting( exceptionReportingKind, ReportingAction.Yes );
+        this.ConfigureExceptionReporting( exceptionReportingKind, TelemetryConsent.Yes );
         this.RecordException( kind: exceptionReportingKind );
 
         var scrubbed = this.GetScrubbedReportFile();
@@ -215,7 +218,7 @@ public sealed class ReportExceptionTests : TestsBase
         // #1674: Capture is decoupled from sending. When the category is review-first (ReportingAction.Default), the
         // scrubbed report is captured locally under Telemetry\Exceptions but NOT enqueued for upload, so it stays
         // under the user's control until they review and send it from the worker page / CLI.
-        this.ConfigureExceptionReporting( exceptionReportingKind, ReportingAction.Default );
+        this.ConfigureExceptionReporting( exceptionReportingKind, TelemetryConsent.Default );
         this.RecordException( kind: exceptionReportingKind );
 
         // The scrubbed upload payload stays under Telemetry\Exceptions and is NOT enqueued for upload.
@@ -238,7 +241,7 @@ public sealed class ReportExceptionTests : TestsBase
         // path from the upload payload, while the local rendering keeps it so the user sees exactly what was removed.
         var exception = new InvalidOperationException( @"Failed reading C:\Users\johndoe\secret.txt" );
 
-        this.ConfigureExceptionReporting( exceptionReportingKind, ReportingAction.Default );
+        this.ConfigureExceptionReporting( exceptionReportingKind, TelemetryConsent.Default );
         this.RecordException( exception, exceptionReportingKind );
 
         var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
@@ -265,6 +268,8 @@ public sealed class ReportExceptionTests : TestsBase
     [InlineData( ExceptionReportingKind.PerformanceProblem )]
     public void ToastOpensReviewPage( ExceptionReportingKind exceptionReportingKind )
     {
+        this.TelemetryConfigurationService.SetConsent( TelemetryConsent.Default );
+
         // #1674: When a report is captured, a toast is shown whose action opens the review page for that exact report
         // (instead of opening the raw report file). The toast Uri carries only the bare report file name (token-safe);
         // the category is stored in the report itself, and the desktop command builds the review-page path from the id.
@@ -292,7 +297,7 @@ public sealed class ReportExceptionTests : TestsBase
     {
         // #1674: A review-first report stays local until the user reviews and sends it. SendReport (invoked from the
         // worker review page's Report button) enqueues that exact report for upload.
-        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, ReportingAction.Default );
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Default );
         this.RecordException();
 
         var captured = this.GetScrubbedReportFile();
@@ -318,7 +323,7 @@ public sealed class ReportExceptionTests : TestsBase
     {
         // Copilot: an auto-sent (Yes) report is moved to the upload queue. Clicking its toast must still show it (the
         // toast says "review what was reported"), so report lookup resolves reports in the upload queue too.
-        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, ReportingAction.Yes );
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Yes );
         this.RecordException();
 
         var enqueued = this.GetScrubbedReportFile();
@@ -334,7 +339,7 @@ public sealed class ReportExceptionTests : TestsBase
     {
         // Copilot: an already-queued report (auto-sent, or sent on a previous click) must not be treated as a failure;
         // SendReport returns true without moving anything, so the worker page's Report button stays reliable.
-        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, ReportingAction.Yes );
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Yes );
         this.RecordException();
         var enqueued = Path.GetFileName( this.GetScrubbedReportFile() );
 
@@ -351,11 +356,10 @@ public sealed class ReportExceptionTests : TestsBase
     {
         // Copilot: the full, unscrubbed local rendering ('.local.xml') must never be uploadable. TryGetReport/SendReport
         // reject it even though it is a bare file name that exists on disk.
-        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, ReportingAction.Default );
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Default );
         this.RecordException();
 
-        var localRendering = Path.GetFileName(
-            Assert.Single( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) ) );
+        var localRendering = Path.GetFileName( Assert.Single( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) ) );
 
         var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
 
@@ -403,7 +407,7 @@ public sealed class ReportExceptionTests : TestsBase
     [Fact]
     public void ExceptionsAreNotReportedWhenOptOutEnvironmentVariableIsSet()
     {
-        this.EnvironmentVariableProvider.Environment["METALAMA_TELEMETRY_OPT_OUT"] = "true";
+        this.EnvironmentVariableProvider.Environment[TelemetryConfiguration.OptOutEnvironmentVariableName] = "true";
         this.AssertReportingDisabled();
     }
 

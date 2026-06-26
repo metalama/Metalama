@@ -10,33 +10,52 @@ namespace Metalama.Backstage.Telemetry;
 /// <summary>
 /// The default <see cref="ITelemetryPolicy"/>, built by <see cref="ITelemetryService.GetPolicy"/> for a directory. It
 /// combines the repository-scoped <c>metalama.json</c> opt-out with the process-level and per-category gates resolved by
-/// <see cref="ITelemetryConfigurationService.GetEffectiveReportingAction"/>. It is public so that a host-supplied policy
+/// <see cref="ITelemetryConfigurationService.GetEffectiveConsent"/>. It is public so that a host-supplied policy
 /// (which, under pure replacement, would otherwise lose the <c>metalama.json</c> opt-out) can delegate to it. See #1701.
 /// </summary>
 [PublicAPI]
 public sealed class TelemetryPolicy : ITelemetryPolicy
 {
-    private readonly bool _isRepositoryTelemetryDisabled;
+    private readonly TelemetryDisabledReason _disabledReason;
     private readonly ITelemetryConfigurationService _telemetryConfigurationService;
 
     public TelemetryPolicy(
-        bool isRepositoryTelemetryDisabled,
+        bool hasRepositoryContext,
+        TelemetryDisabledReason disabledReason,
         ITelemetryConfigurationService telemetryConfigurationService,
         ImmutableArray<TelemetryContextWarning> warnings )
     {
-        this._isRepositoryTelemetryDisabled = isRepositoryTelemetryDisabled;
+        this.HasRepositoryContext = hasRepositoryContext;
+        this._disabledReason = disabledReason;
         this._telemetryConfigurationService = telemetryConfigurationService;
         this.Warnings = warnings.IsDefault ? ImmutableArray<TelemetryContextWarning>.Empty : warnings;
     }
 
+    public (TelemetryConsent Consent, TelemetryDisabledReason Reason) GetConsentAndReason( TelemetryScenario scenario )
+    {
+        // The repository opt-out (metalama.json) vetoes every scenario. Otherwise we return the effective reporting
+        // action, which combines the process-level gates with the per-category action in telemetry.json and preserves
+        // the ASK distinction for the exception/performance scenarios. See #1701.
+        if ( this._disabledReason != TelemetryDisabledReason.None )
+        {
+            return (TelemetryConsent.No, this._disabledReason);
+        }
+        else
+        {
+            return this._telemetryConfigurationService.GetEffectiveConsentAndReason( scenario );
+        }
+    }
+
     public ImmutableArray<TelemetryContextWarning> Warnings { get; }
 
-    public ReportingAction GetReportingAction( TelemetryScenario scenario )
+    public bool HasRepositoryContext { get; }
+
+    public TelemetryConsent GetConsent( TelemetryScenario scenario )
 
         // The repository opt-out (metalama.json) vetoes every scenario. Otherwise we return the effective reporting
         // action, which combines the process-level gates with the per-category action in telemetry.json and preserves
         // the ASK distinction for the exception/performance scenarios. See #1701.
-        => this._isRepositoryTelemetryDisabled
-            ? ReportingAction.No
-            : this._telemetryConfigurationService.GetEffectiveReportingAction( scenario );
+        => this._disabledReason != TelemetryDisabledReason.None
+            ? TelemetryConsent.No
+            : this._telemetryConfigurationService.GetEffectiveConsent( scenario );
 }
