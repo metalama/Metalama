@@ -347,15 +347,15 @@ body:has(.exception-report) {
   min-height: 0;
   width: 100%;
   resize: none; /* height is governed by the flex layout, not a drag handle */
-  overflow: auto;
+  overflow: auto; /* horizontal + vertical scrollbars appear as needed */
   margin: 0;
   padding: 0.5rem;
   border: 1px solid #ccc;
   background: #f7f7f7;
   color: #000; /* black, not the page's gray body text */
   font-family: monospace;
-  white-space: pre-wrap; /* wrap long lines instead of forcing a horizontal scrollbar */
-  word-break: break-word;
+  font-size: 0.8rem; /* smaller so more of each line fits before scrolling */
+  white-space: pre; /* do not wrap long lines; scroll horizontally instead (reinforced by wrap="off") */
 }
 
 .exception-report .report-actions {

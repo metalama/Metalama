@@ -45,7 +45,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         this._licenseRegistrationService = serviceProvider.GetBackstageService<ILicenseRegistrationService>();
     }
 
-    private async Task DetectImplAsync( ITelemetryContext? telemetryContext )
+    private async Task DetectImplAsync( ITelemetryContext? telemetryContext, ToastNotificationCategories categories )
     {
         await this._semaphoreSlim.WaitAsync();
 
@@ -62,7 +62,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
 
             var notificationReported = false;
 
-            this.DetectHighPriorityNotifications( ref notificationReported );
+            this.DetectHighPriorityNotifications( ref notificationReported, categories );
 
             if ( !this._toastNotificationStatusService.CanDisplayLowPriorityNotifications )
             {
@@ -71,7 +71,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
                 return;
             }
 
-            await this.DetectLowPriorityNotificationsAsync( notificationReported, telemetryContext );
+            await this.DetectLowPriorityNotificationsAsync( notificationReported, telemetryContext, categories );
         }
         finally
         {
@@ -79,31 +79,40 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         }
     }
 
-    private async Task DetectLowPriorityNotificationsAsync( bool notificationReported, ITelemetryContext? telemetryContext )
+    private async Task DetectLowPriorityNotificationsAsync(
+        bool notificationReported,
+        ITelemetryContext? telemetryContext,
+        ToastNotificationCategories categories )
     {
-        // Suggest to install Visual Studio Tools for Metalama.
-        if ( !notificationReported && this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
+        if ( (categories & ToastNotificationCategories.Compiler) != 0 )
         {
-            this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
-            notificationReported = true;
-        }
+            // Suggest to install Visual Studio Tools for Metalama.
+            if ( !notificationReported && this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
+            {
+                this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.VsxNotInstalled, Uri: this._webLinks.InstallVsx ) );
+                notificationReported = true;
+            }
 
-        // Display news.
-        if ( !notificationReported && this._rssClient != null && telemetryContext != null )
-        {
-            await this._rssClient.DisplayUnreadLatestNewsAsync( telemetryContext );
+            // Display news.
+            if ( !notificationReported && this._rssClient != null && telemetryContext != null )
+            {
+                await this._rssClient.DisplayUnreadLatestNewsAsync( telemetryContext );
+            }
         }
     }
 
-    private void DetectHighPriorityNotifications( ref bool notificationReported )
+    private void DetectHighPriorityNotifications( ref bool notificationReported, ToastNotificationCategories categories )
     {
-        // Validate registered licenses, but do not complain about the lack of licenses.
-
-        if ( this._licenseRegistrationService != null )
+        if ( (categories & ToastNotificationCategories.Licensing) != 0 )
         {
-            foreach ( var license in this._licenseRegistrationService.RegisteredLicenses )
+            // Validate registered licenses, but do not complain about the lack of licenses.
+
+            if ( this._licenseRegistrationService != null )
             {
-                this.ValidateRegisteredLicense( license, ref notificationReported );
+                foreach ( var license in this._licenseRegistrationService.RegisteredLicenses )
+                {
+                    this.ValidateRegisteredLicense( license, ref notificationReported );
+                }
             }
         }
     }
@@ -179,21 +188,22 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         }
     }
 
-    public Task DetectAsync( ITelemetryContext? telemetryContext )
+    public Task DetectAsync( ITelemetryContext? telemetryContext, ToastNotificationCategories categories = ToastNotificationCategories.All )
     {
         // Avoid too frequent detections for performance reasons. We take the throttle period quite arbitrarily
         // because we don't have a case that requires more frequent detection.
         // This throttling deliberately ignores the telemetry context.
+        // In real use cases, each caller process uses a single mask for ToastNotificationCategories, so we also ignore this parameter for throttling.
         if ( this._lastTimeDetectionEnqueued > this._dateTimeProvider.UtcNow.Subtract( ToastNotificationStatusService.LowPriorityThrottlePeriod ) )
         {
             this._logger.Trace?.Log( "Skipping detection because it has been performed recently." );
 
             return Task.CompletedTask;
         }
-        
+
         this._lastTimeDetectionEnqueued = this._dateTimeProvider.UtcNow;
-        
-        return this._backgroundTasksService.Enqueue( () => this.DetectImplAsync( telemetryContext ) );
+
+        return this._backgroundTasksService.Enqueue( () => this.DetectImplAsync( telemetryContext, categories ) );
     }
 
     public void Dispose() => this._semaphoreSlim.Dispose();

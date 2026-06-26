@@ -52,7 +52,7 @@ public sealed partial class SourceTransformer
             
             // Initiate (but do not await) detection of toast notifications.
             var toasts = serviceProvider.GetRequiredBackstageService<IToastNotificationDetectionService>();
-            _ = toasts.DetectAsync( this._telemetryContext );
+            _ = toasts.DetectAsync( this._telemetryContext, ToastNotificationCategories.Compiler );
 
             // Expose the telemetry context through this service provider, and route engine exceptions through it. The
             // adapter implements the compiler's IExceptionReporter (Metalama.Compiler.Services), so it must be registered
