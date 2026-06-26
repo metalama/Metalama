@@ -15,7 +15,11 @@ public static class BackstageServiceFactoryInitializer
     public static bool IsInitialized => BackstageServiceFactory.IsInitialized;
 
     private static BackstageInitializationOptions WithToolsAndFrameworkJsonContext( BackstageInitializationOptions options )
-        => options with { AddToolsExtractor = builder => builder.AddTools(), AdditionalJsonTypeInfoResolvers = [FrameworkConfigurationJsonContext.Default] };
+        => options with
+        {
+            AddToolsExtractor = builder => builder.AddTools(), 
+            AdditionalJsonTypeInfoResolvers = [FrameworkConfigurationJsonContext.Default]
+        };
 
     private static void InitializeMetalamaServices() => Logger.Initialize();
 

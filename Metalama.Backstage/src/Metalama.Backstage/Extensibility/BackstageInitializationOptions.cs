@@ -58,14 +58,14 @@ public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
     /// Gets a value indicating whether toast notifications like <see cref="ToastNotificationKinds.RequiresLicense"/> or
     /// <see cref="ToastNotificationKinds.VsxNotInstalled"/> should be detected and opened. The default value is <c>true</c>.
     /// </summary>
-    public bool DetectToastNotifications { get; init; } = true;
+    public bool DetectToastNotifications { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the RSS client should fetch the RSS feed and open a toast notification
     /// upon initialization. It is <c>true</c> by default and can be set to <c>false</c> for commands
     /// that explicitly call the RSS client.
     /// </summary>
-    public bool AddRssClient { get; init; } = true;
+    public bool AddRssClient { get; init; }
 
     /// <summary>
     /// Gets diagnostic (tracing) options. Considered only when <see cref="AddSupportServices"/> is <c>true</c>.

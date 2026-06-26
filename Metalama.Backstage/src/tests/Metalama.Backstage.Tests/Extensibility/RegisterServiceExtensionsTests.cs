@@ -43,7 +43,11 @@ public sealed class RegisterServiceExtensionsTests
             new BackstageInitializationOptions(
                 new TestApplicationInfo( "Test", true, "1.0", DateTime.Today ) { IsLicenseAuditEnabled = !disableLicenseAudit } )
             {
-                AddLicensing = addLicensing, AddSupportServices = addSupportServices, AddUserInterface = addUserInterface, AddRssClient = addRssClient
+                AddLicensing = addLicensing,
+                AddSupportServices = addSupportServices,
+                AddUserInterface = addUserInterface,
+                AddRssClient = addRssClient,
+                DetectToastNotifications = addUserInterface
             };
 
         if ( addToolsExtractor && (addSupportServices || addUserInterface) )
@@ -92,8 +96,8 @@ public sealed class RegisterServiceExtensionsTests
 
         if ( addUserInterface )
         {
-            Assert.NotNull( serviceProvider.GetBackstageService<IToastNotificationService>() );
             Assert.NotNull( serviceProvider.GetBackstageService<IUserInterfaceService>() );
+            Assert.NotNull( serviceProvider.GetBackstageService<IToastNotificationService>() );
             Assert.NotNull( serviceProvider.GetBackstageService<IToastNotificationDetectionService>() );
         }
         else

@@ -52,7 +52,11 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
                     AddSupportServices = true,
 
                     // The command-line compiler opens the welcome page the first time telemetry activates (#1701).
-                    OpenWelcomePage = true
+                    OpenWelcomePage = true,
+                    
+                    // Enable toast notifications.
+                    AddRssClient = true,
+                    DetectToastNotifications = true
                 };
 
                 BackstageServiceFactoryInitializer.Initialize( backstageOptions );
