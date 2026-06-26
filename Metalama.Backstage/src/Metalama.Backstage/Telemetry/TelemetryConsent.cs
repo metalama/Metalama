@@ -22,8 +22,9 @@ namespace Metalama.Backstage.Telemetry;
 public enum TelemetryConsent
 {
     /// <summary>
-    /// For usage, unconfigured (which means <see cref="No"/>). For exception/performance, ASK: capture locally and show a review toast, but do not
-    /// auto-send.
+    /// For usage (opt-out), unconfigured — treated as disabled, the same as <see cref="No"/>, however the value
+    /// is automatically set to <see cref="Yes"/> upon first use. For exception/performance,
+    /// ASK: capture locally and show a review toast, but do not auto-send.
     /// </summary>
     Default,
 

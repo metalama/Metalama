@@ -9,15 +9,17 @@ using System.Threading.Tasks;
 
 namespace Metalama.Backstage.UserInterface.Toasts;
 
-// This service is used in Metalama.Framework.Engine: SourceTransformer.InitializeServices calls Detect()
-// once the backstage services are initialized for a Metalama-enabled compilation.
+// This service is used in Metalama.Framework.Engine: SourceTransformer's compiler service provider calls DetectAsync()
+// once the backstage services and a telemetry context are available for a Metalama-enabled compilation.
 [PublicAPI]
 public interface IToastNotificationDetectionService : IBackstageService
 {
     /// <summary>
-    /// Detect toast notification that
+    /// Detects and displays any pending toast notifications in the given <paramref name="categories"/>, including
+    /// notifications whose detection requires network access (gated on the supplied <paramref name="telemetryContext"/>).
     /// </summary>
     /// <param name="telemetryContext">An optional <see cref="ITelemetryContext"/>, for toast notifications whose detection requires network access.</param>
+    /// <param name="categories">The categories of notifications to detect. Defaults to <see cref="ToastNotificationCategories.All"/>.</param>
     /// <remarks>This method should be called by the Metalama framework when an <see cref="ITelemetryContext"/> is known.</remarks>
     Task DetectAsync( ITelemetryContext? telemetryContext = null, ToastNotificationCategories categories = ToastNotificationCategories.All );
 }

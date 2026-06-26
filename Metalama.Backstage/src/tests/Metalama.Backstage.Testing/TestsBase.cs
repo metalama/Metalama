@@ -20,6 +20,7 @@ using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Tools;
 using Metalama.Backstage.UserInterface;
+using Metalama.Backstage.UserInterface.Rss;
 using Metalama.Backstage.UserInterface.Toasts;
 using Metalama.Backstage.Welcome;
 using Microsoft.Extensions.DependencyInjection;
@@ -247,6 +248,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )
                 .AddSingleton<ITelemetryUploader>( serviceProvider => new TelemetryUploader( serviceProvider ) )
                 .AddSingleton<TelemetryLogger>( serviceProvider => new TelemetryLogger( serviceProvider ) )
+                .AddSingleton<IRssClient>( serviceProvider => new RssClient( serviceProvider ) )
                 .AddSingleton( this.LicensingAuthority );
 
             if ( options.OpenWelcomePage )

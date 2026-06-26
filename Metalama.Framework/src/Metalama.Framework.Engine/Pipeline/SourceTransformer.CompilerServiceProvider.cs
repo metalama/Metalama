@@ -50,10 +50,6 @@ public sealed partial class SourceTransformer
 
             this._telemetryContext = telemetryService.OpenContext( telemetryService.GetPolicy( projectDirectory ) );
             
-            // Initiate (but do not await) detection of toast notifications.
-            var toasts = serviceProvider.GetRequiredBackstageService<IToastNotificationDetectionService>();
-            _ = toasts.DetectAsync( this._telemetryContext, ToastNotificationCategories.Compiler );
-
             // Expose the telemetry context through this service provider, and route engine exceptions through it. The
             // adapter implements the compiler's IExceptionReporter (Metalama.Compiler.Services), so it must be registered
             // under that type for Metalama.Compiler to resolve it.
@@ -68,9 +64,9 @@ public sealed partial class SourceTransformer
                     this._session = this._telemetryContext.StartUsageSession( "TransformerUsage", options.AssemblyName );
                 }
                 
-                // Show toast notifications _after_ starting a usage session, so these notifications can be deferred
-                // in case StartUsageSession showed the "telemetry enabled" notification.
-                _ = serviceProvider.GetBackstageService<IToastNotificationDetectionService>()?.DetectAsync();
+                // Initiate (but do not await) detection of toast notifications.
+                var toasts = serviceProvider.GetRequiredBackstageService<IToastNotificationDetectionService>();
+                _ = toasts.DetectAsync( this._telemetryContext, ToastNotificationCategories.Compiler );
             }
             catch ( Exception e )
             {

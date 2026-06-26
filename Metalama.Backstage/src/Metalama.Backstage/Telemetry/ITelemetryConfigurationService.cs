@@ -41,7 +41,7 @@ public interface ITelemetryConfigurationService : IBackstageService
     /// all telemetry scenarios at once. This backs the global telemetry on/off switch (e.g. the <c>metalama telemetry
     /// enable</c> / <c>disable</c> commands).
     /// </summary>
-    [Obsolete( "Use SetReportingAction instead." )]
+    [Obsolete( "Use SetConsent instead." )]
     void SetStatus( bool enabled );
 
     /// <summary>

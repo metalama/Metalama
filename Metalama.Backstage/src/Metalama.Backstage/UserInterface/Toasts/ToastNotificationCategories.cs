@@ -9,7 +9,6 @@ namespace Metalama.Backstage.UserInterface.Toasts;
 /// <summary>
 /// Categories of toast notifications, for <see cref="IToastNotificationDetectionService"/>.
 /// </summary>
-/// <remarks></remarks>
 [Flags]
 public enum ToastNotificationCategories
 {
@@ -26,7 +25,7 @@ public enum ToastNotificationCategories
     Compiler = 2,
 
     /// <summary>
-    /// No notifications (typically for tests).
+    /// All notification categories (typically used by tests and by callers that want to detect every category).
     /// </summary>
     All = Licensing | Compiler
 }

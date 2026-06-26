@@ -115,7 +115,7 @@ internal sealed class UsageReporter : IUsageReporter
         }
 
         // We are about to report usage, so make sure telemetry is activated (the DeviceId and salts exist). Activation
-        // is lazy so that a process which never reports creates a device identifier. See #1701.
+        // is lazy so that a process which never reports never creates a device identifier. See #1701.
         this._telemetryConfigurationService.EnsureActivated();
 
         // If the project name is not provided, we use the kind as the key

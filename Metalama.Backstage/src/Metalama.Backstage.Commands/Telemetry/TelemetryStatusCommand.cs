@@ -47,7 +47,7 @@ internal class TelemetryStatusCommand : BaseCommand<BaseCommandSettings>
         table.AddRow(
             "Exception",
             FormatConsent( TelemetryScenario.Exception, configuration.GetConsent( TelemetryScenario.Exception ) ),
-            FormatConsent( TelemetryScenario.Usage, exceptionConsent.Consent ),
+            FormatConsent( TelemetryScenario.Exception, exceptionConsent.Consent ),
             exceptionConsent.Reason.ToString() );
 
         table.AddRow(
