@@ -18,5 +18,6 @@ public interface IToastNotificationDetectionService : IBackstageService
     /// Detect toast notification that
     /// </summary>
     /// <param name="telemetryContext">An optional <see cref="ITelemetryContext"/>, for toast notifications whose detection requires network access.</param>
+    /// <remarks>This method should be called by the Metalama framework when an <see cref="ITelemetryContext"/> is known.</remarks>
     Task DetectAsync( ITelemetryContext? telemetryContext = null );
 }

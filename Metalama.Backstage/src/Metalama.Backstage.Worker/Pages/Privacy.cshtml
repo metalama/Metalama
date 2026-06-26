@@ -34,7 +34,7 @@
             @if (Model.IsTelemetryActivated)
             {
                 <div class="device-id-action">
-                    <button type="submit" class="link-button" asp-page-handler="ResetDeviceId">Reset device ID now</button>
+                    <button type="submit" class="link-button" asp-page-handler="ResetDeviceId" title="Your device ID is rotated every first Monday of the month.">Reset device ID now</button>
                     @if (Model.IsDeviceIdReset)
                     {
                         <span class="text-success">Your device ID has been reset.</span>

@@ -56,7 +56,11 @@ internal sealed class TestTelemetryService : ITelemetryService
 
     private sealed record TestTelemetryPolicy( TelemetryRouting Routing, string? Directory ) : ITelemetryPolicy
     {
-        public ReportingAction GetReportingAction( TelemetryScenario scenario ) => ReportingAction.No;
+        public TelemetryConsent GetConsent( TelemetryScenario scenario ) => TelemetryConsent.No;
+
+        public (TelemetryConsent Consent, TelemetryDisabledReason Reason) GetConsentAndReason( TelemetryScenario scenario ) => throw new NotImplementedException();
+
+        public bool HasRepositoryContext { get; set; }
 
         public ImmutableArray<TelemetryContextWarning> Warnings => ImmutableArray<TelemetryContextWarning>.Empty;
     }
@@ -73,9 +77,7 @@ internal sealed class TestTelemetryService : ITelemetryService
         }
 
         public ImmutableArray<TelemetryContextWarning> Warnings => ImmutableArray<TelemetryContextWarning>.Empty;
-
-        public bool IsTelemetryEnabled( TelemetryScenario scenario ) => false;
-
+        
         public IUsageSession StartUsageSession( string kind, string? projectName = null ) => NullTestUsageSession.Instance;
 
         public void ReportException(
@@ -91,6 +93,8 @@ internal sealed class TestTelemetryService : ITelemetryService
             bool writeLocalReport = true,
             IExceptionAdapter? exceptionAdapter = null )
             => this.Record( classifiedException.Exception, exceptionReportingKind );
+
+        public ITelemetryPolicy Policy => this._policy;
 
         private void Record( Exception exception, ExceptionReportingKind kind )
         {

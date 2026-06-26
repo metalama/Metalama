@@ -6,8 +6,6 @@ using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
-using Metalama.Backstage.UserInterface.Toasts;
-using Metalama.Backstage.Welcome;
 using Metalama.Compiler;
 using Metalama.Framework.Engine.AdditionalOutputs;
 using Metalama.Framework.Engine.Diagnostics;

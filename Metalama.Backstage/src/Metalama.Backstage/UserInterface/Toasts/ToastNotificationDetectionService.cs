@@ -29,7 +29,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
     private readonly IRssClient? _rssClient;
     private readonly ILicenseRegistrationService? _licenseRegistrationService;
 
-    private DateTime _lastTimeDetectionStarted;
+    private DateTime _lastTimeDetectionEnqueued;
 
     public ToastNotificationDetectionService( IServiceProvider serviceProvider )
     {
@@ -51,17 +51,6 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
 
         try
         {
-            // Avoid too frequent detections for performance reasons. We take the throttle period quite arbitrarily
-            // because we don't have a case that requires more frequent detection.
-            if ( this._lastTimeDetectionStarted > this._dateTimeProvider.UtcNow.Subtract( ToastNotificationStatusService.LowPriorityThrottlePeriod ) )
-            {
-                this._logger.Trace?.Log( "Skipping detection because it has been performed recently." );
-
-                return;
-            }
-
-            this._lastTimeDetectionStarted = this._dateTimeProvider.UtcNow;
-
             if ( !this._userDeviceDetectionService.IsInteractiveDevice )
             {
                 this._logger.Trace?.Log( "Skipping detection because the session is not interactive." );
@@ -189,9 +178,23 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
             };
         }
     }
-    
 
-    public Task DetectAsync( ITelemetryContext? telemetryContext ) => this._backgroundTasksService.Enqueue( () => this.DetectImplAsync( telemetryContext) );
+    public Task DetectAsync( ITelemetryContext? telemetryContext )
+    {
+        // Avoid too frequent detections for performance reasons. We take the throttle period quite arbitrarily
+        // because we don't have a case that requires more frequent detection.
+        // This throttling deliberately ignores the telemetry context.
+        if ( this._lastTimeDetectionEnqueued > this._dateTimeProvider.UtcNow.Subtract( ToastNotificationStatusService.LowPriorityThrottlePeriod ) )
+        {
+            this._logger.Trace?.Log( "Skipping detection because it has been performed recently." );
+
+            return Task.CompletedTask;
+        }
+        
+        this._lastTimeDetectionEnqueued = this._dateTimeProvider.UtcNow;
+        
+        return this._backgroundTasksService.Enqueue( () => this.DetectImplAsync( telemetryContext ) );
+    }
 
     public void Dispose() => this._semaphoreSlim.Dispose();
 }
