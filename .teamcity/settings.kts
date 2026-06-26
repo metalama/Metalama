@@ -54,6 +54,15 @@ object DebugBuild : BuildType({
 
     steps {
         powerShell {
+            name = "Clean NuGet cache of dependency packages"
+            id = "CleanDependencyNuGetCache"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = script {
+                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('metalama.compiler', 'metalama.compiler.*', 'postsharp.engineering', 'postsharp.engineering.*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName)\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue } } } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            }
+            noProfile = false
+        }
+        powerShell {
             name = "Prepare Docker image metalama-2026.1"
             id = "PrepareImage"
             edition = PowerShellStep.Edition.Core
@@ -171,6 +180,15 @@ object ReleaseBuild : BuildType({
 
     steps {
         powerShell {
+            name = "Clean NuGet cache of dependency packages"
+            id = "CleanDependencyNuGetCache"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = script {
+                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('metalama.compiler', 'metalama.compiler.*', 'postsharp.engineering', 'postsharp.engineering.*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName)\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue } } } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            }
+            noProfile = false
+        }
+        powerShell {
             name = "Prepare Docker image metalama-2026.1"
             id = "PrepareImage"
             edition = PowerShellStep.Edition.Core
@@ -277,6 +295,15 @@ object PublicBuild : BuildType({
 
     steps {
         powerShell {
+            name = "Clean NuGet cache of dependency packages"
+            id = "CleanDependencyNuGetCache"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = script {
+                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('metalama.compiler', 'metalama.compiler.*', 'postsharp.engineering', 'postsharp.engineering.*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName)\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue } } } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            }
+            noProfile = false
+        }
+        powerShell {
             name = "Prepare Docker image metalama-2026.1"
             id = "PrepareImage"
             edition = PowerShellStep.Edition.Core
@@ -378,6 +405,15 @@ object PublicDeployment : BuildType({
 
     steps {
         powerShell {
+            name = "Clean NuGet cache of dependency packages"
+            id = "CleanDependencyNuGetCache"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = script {
+                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('metalama.compiler', 'metalama.compiler.*', 'postsharp.engineering', 'postsharp.engineering.*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName)\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue } } } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            }
+            noProfile = false
+        }
+        powerShell {
             name = "Prepare Docker image metalama-2026.1"
             id = "PrepareImage"
             edition = PowerShellStep.Edition.Core
@@ -467,6 +503,15 @@ object UpstreamMerge : BuildType({
 
     steps {
         powerShell {
+            name = "Clean NuGet cache of dependency packages"
+            id = "CleanDependencyNuGetCache"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = script {
+                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('metalama.compiler', 'metalama.compiler.*', 'postsharp.engineering', 'postsharp.engineering.*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName)\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue } } } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            }
+            noProfile = false
+        }
+        powerShell {
             name = "Prepare Docker image metalama-2026.1"
             id = "PrepareImage"
             edition = PowerShellStep.Edition.Core
@@ -532,6 +577,15 @@ object DockerTestsWinX64 : BuildType({
     }
 
     steps {
+        powerShell {
+            name = "Clean NuGet cache of dependency packages"
+            id = "CleanDependencyNuGetCache"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = script {
+                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('metalama.compiler', 'metalama.compiler.*', 'postsharp.engineering', 'postsharp.engineering.*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName)\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue } } } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            }
+            noProfile = false
+        }
         powerShell {
             name = "Copy nuget.restored.config to nuget.config"
             id = "CopyNuGetConfig"
@@ -635,6 +689,15 @@ object DockerTestsWslX64 : BuildType({
     }
 
     steps {
+        powerShell {
+            name = "Clean NuGet cache of dependency packages"
+            id = "CleanDependencyNuGetCache"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = script {
+                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('metalama.compiler', 'metalama.compiler.*', 'postsharp.engineering', 'postsharp.engineering.*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName)\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue } } } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            }
+            noProfile = false
+        }
         powerShell {
             name = "Copy nuget.restored.config to nuget.config"
             id = "CopyNuGetConfig"
