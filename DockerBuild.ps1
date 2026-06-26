@@ -639,9 +639,12 @@ try
 
         # Add context files (excluding generated .g/ directory, which holds
         # per-invocation files like env.g.json and Init.g.ps1).
+        # Sort with the invariant culture so the file order (and therefore the hash) is identical regardless of the
+        # host's locale. The default Sort-Object uses the current culture, which can order non-ASCII names differently
+        # on different machines and yield a different tag for identical content.
         $contextFiles = Get-ChildItem $ContextDirectory -Recurse -File -ErrorAction SilentlyContinue |
                 Where-Object { $_.FullName -notmatch '[/\\]\.g[/\\]' } |
-                Sort-Object FullName
+                Sort-Object -Property FullName -Culture ([System.Globalization.CultureInfo]::InvariantCulture)
 
         foreach ($file in $contextFiles)
         {
@@ -692,12 +695,13 @@ try
         return [System.IO.Path]::GetFileNameWithoutExtension($dfPath)
     }
 
-    # Per-image build context: docker-context/<stem>, falling back to the shared docker-context when there is
-    # no per-image directory (keeps un-stemmed/legacy Dockerfiles working).
+    # Per-image build context: docker-context/<stem>. There is deliberately NO fallback to the shared docker-context
+    # root: stray machine-specific files living there (e.g. .credentials.json, claude.json) would otherwise be folded
+    # into the image content hash and produce different tags on different machines for identical content. A missing
+    # directory is treated as an empty context by Get-ContentHash, and Build-OneImage creates it before building.
     function Get-ContextDirFor([string]$dfPath)
     {
-        $perImage = Join-Path $dockerContextDirectory (Get-DockerfileStem $dfPath)
-        if (Test-Path $perImage) { return $perImage } else { return $dockerContextDirectory }
+        return Join-Path $dockerContextDirectory (Get-DockerfileStem $dfPath)
     }
 
     # Parse the parent Dockerfile from `ARG BASE_IMAGE=<parent>.Dockerfile`; $null if this is a chain root.
@@ -792,6 +796,9 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     {
         $content = Get-Content -Raw $dfPath   # piped to docker build verbatim - the file on disk is never changed
         $ctxDir = Get-ContextDirFor $dfPath
+        # The per-image context dir is normally created by generate-scripts, but it is not tracked by git (it is often
+        # empty), so ensure it exists here before handing it to docker build.
+        if (-not (Test-Path $ctxDir)) { New-Item -ItemType Directory -Path $ctxDir -Force | Out-Null }
         $cmd = @('build', '-t', $tag)
         if ($isolationArg) { $cmd += $isolationArg }
         if ($Memory -and $Isolation -ne 'process') { $cmd += "--memory=$Memory" }
