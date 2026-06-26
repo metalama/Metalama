@@ -14,21 +14,17 @@ namespace Metalama.Backstage.Telemetry;
 /// <inheritdoc cref="ITelemetryService"/>
 internal sealed class TelemetryService : ITelemetryService
 {
+    private readonly IServiceProvider _serviceProvider;
     private readonly IRepositoryConfigurationService _repositoryConfigurationService;
     private readonly ITelemetryConfigurationService _telemetryConfigurationService;
     private readonly IEnvironmentVariableProvider _environmentVariableProvider;
-    private readonly IUsageReporter _usageReporter;
-    private readonly IExceptionCapturer _exceptionCapturer;
-    private readonly LocalExceptionReporter? _localExceptionReporter;
 
     public TelemetryService( IServiceProvider serviceProvider )
     {
+        this._serviceProvider = serviceProvider;
         this._repositoryConfigurationService = serviceProvider.GetRequiredBackstageService<IRepositoryConfigurationService>();
         this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
         this._environmentVariableProvider = serviceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>();
-        this._usageReporter = serviceProvider.GetRequiredBackstageService<IUsageReporter>();
-        this._exceptionCapturer = serviceProvider.GetRequiredBackstageService<IExceptionCapturer>();
-        this._localExceptionReporter = serviceProvider.GetBackstageService<LocalExceptionReporter>();
     }
 
     public ITelemetryPolicy GetPolicy( string? directory )
@@ -73,6 +69,5 @@ internal sealed class TelemetryService : ITelemetryService
             : NullTelemetryPolicy.NoContext;
     }
 
-    public ITelemetryContext OpenContext( ITelemetryPolicy policy )
-        => new TelemetryContext( policy, this._usageReporter, this._exceptionCapturer, this._localExceptionReporter );
+    public ITelemetryContext OpenContext( ITelemetryPolicy policy ) => new TelemetryContext( this._serviceProvider, policy );
 }

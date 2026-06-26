@@ -19,7 +19,7 @@ using Xunit.Abstractions;
 
 namespace Metalama.Backstage.Tests.Telemetry;
 
-public sealed class UsageReporterTests : TestsBase
+public sealed class UsageSessionFactoryTests : TestsBase
 {
     // The salt is generated from a CSPRNG (see #1654), so it can no longer be derived from the deterministically-seeded
     // test RNG. We pin the device id and salt so that the device hash sent to Matomo stays deterministic.
@@ -29,7 +29,7 @@ public sealed class UsageReporterTests : TestsBase
     // This field can be modified by tests before the first use of the service provider.
     private TestApplicationInfo _applicationInfo = new() { IsTelemetryEnabled = true };
 
-    public UsageReporterTests( ITestOutputHelper logger ) : base( logger ) { }
+    public UsageSessionFactoryTests( ITestOutputHelper logger ) : base( logger ) { }
 
     protected override void OnAfterServicesCreated( Services services )
     {
@@ -49,8 +49,7 @@ public sealed class UsageReporterTests : TestsBase
 
     private void ReportSession( string kind = "TestSession" )
     {
-        var reporter = new UsageReporter( this.ServiceProvider );
-        var session = reporter.StartSession( kind );
+        var session = this.CreateUsageSession( kind );
         Assert.NotNull( session );
         Assert.NotEmpty( session.Metrics );
 
@@ -64,15 +63,24 @@ public sealed class UsageReporterTests : TestsBase
 
     private void AssertReportingDisabled()
     {
-        // We can't use the reporter from the constructor, because it's been created with the wrong configuration.
-        var reporter = new UsageReporter( this.ServiceProvider );
+        var session = this.CreateUsageSession();
 
-        var session = reporter.StartSession( "TestSession", "TestProject" );
         Assert.False( session.ShouldCollectMetrics );
         session.Dispose();
         this.BackgroundTasks.WhenNoPendingTaskAsync().Wait();
         Assert.Empty( this.FileSystem.Mock.AllFiles );
         Assert.Empty( this.HttpClientFactory.ProcessedRequests );
+    }
+
+    private IUsageSession CreateUsageSession( string kind = "TestSession" )
+    {
+        var telemetryService = this.ServiceProvider.GetRequiredBackstageService<ITelemetryService>();
+        this.FileSystem.CreateDirectory( "C:\\src" );
+        var telemetryPolicy = telemetryService.GetPolicy( "C:\\src" );
+        var telemetryContext = telemetryService.OpenContext( telemetryPolicy );
+        var session = telemetryContext.StartUsageSession( kind );
+
+        return session;
     }
 
     [Theory]
@@ -115,19 +123,15 @@ public sealed class UsageReporterTests : TestsBase
         this.AssertReportingDisabled();
     }
 
-    private void AssertSessionShouldBeReported( string projectName = "TestProject" )
+    private void AssertSessionShouldBeReported( string kind = "TestSession" )
     {
-        var reporter = new UsageReporter( this.ServiceProvider );
-        var session = reporter.StartSession( "Usage", projectName );
-        Assert.NotNull( session );
+        var session = this.CreateUsageSession( kind );
         Assert.True( session.ShouldCollectMetrics );
     }
 
-    private void AssertSessionShouldNotBeReported( string projectName = "TestProject" )
+    private void AssertSessionShouldNotBeReported( string kind = "TestSession" )
     {
-        var reporter = new UsageReporter( this.ServiceProvider );
-        var session = reporter.StartSession( "Usage", projectName );
-        Assert.NotNull( session );
+        var session = this.CreateUsageSession( kind );
         Assert.False( session.ShouldCollectMetrics );
     }
 
@@ -159,15 +163,15 @@ public sealed class UsageReporterTests : TestsBase
     [Fact]
     public void SessionShouldBeReportedAfterOneDayEvenWhenOtherProjectsReported()
     {
-        this.AssertSessionShouldBeReported( "TestProject1" );
-        this.AssertSessionShouldNotBeReported( "TestProject1" );
-        this.AssertSessionShouldBeReported( "TestProject2" );
-        this.AssertSessionShouldNotBeReported( "TestProject2" );
+        this.AssertSessionShouldBeReported( "Project1" );
+        this.AssertSessionShouldNotBeReported( "Project1" );
+        this.AssertSessionShouldBeReported( "Project2" );
+        this.AssertSessionShouldNotBeReported( "Project2" );
         this.Time.AddTime( TimeSpan.FromDays( 1 ) );
-        this.AssertSessionShouldBeReported( "TestProject1" );
-        this.AssertSessionShouldNotBeReported( "TestProject1" );
-        this.AssertSessionShouldBeReported( "TestProject2" );
-        this.AssertSessionShouldNotBeReported( "TestProject2" );
+        this.AssertSessionShouldBeReported( "Project1" );
+        this.AssertSessionShouldNotBeReported( "Project1" );
+        this.AssertSessionShouldBeReported( "Project2" );
+        this.AssertSessionShouldNotBeReported( "Project2" );
     }
 
     [Fact]
@@ -176,12 +180,12 @@ public sealed class UsageReporterTests : TestsBase
         void AssertSessionsCount( int count ) => Assert.Equal( count, this.ConfigurationManager!.Get<TelemetryConfiguration>().Sessions.Count );
 
         AssertSessionsCount( 0 );
-        this.AssertSessionShouldBeReported( "TestProject1" );
+        this.AssertSessionShouldBeReported( "Project1" );
         AssertSessionsCount( 1 );
-        this.AssertSessionShouldBeReported( "TestProject2" );
+        this.AssertSessionShouldBeReported( "Project2" );
         AssertSessionsCount( 2 );
         this.Time.AddTime( TimeSpan.FromDays( 1 ) );
-        this.AssertSessionShouldBeReported( "TestProject1" );
+        this.AssertSessionShouldBeReported();
         AssertSessionsCount( 1 );
     }
 
@@ -193,8 +197,8 @@ public sealed class UsageReporterTests : TestsBase
 
         async Task<IDisposable> StartSession( string projectName, SemaphoreSlim e )
         {
-            var reporter = new UsageReporter( this.ServiceProvider );
-            var session = reporter.StartSession( "TestSession", projectName );
+            var reporter = new UsageSessionFactory( this.ServiceProvider );
+            var session = reporter.CreateSession( "TestSession" );
             Assert.NotNull( session );
             session.Metrics.Add( new StringMetric( "ProjectName", projectName ) );
 
@@ -227,11 +231,11 @@ public sealed class UsageReporterTests : TestsBase
     {
         async Task StartSessionAndAssert( string projectName, bool isReportingExpected, string? random, DeviceAgeBucket expectedDeviceAge )
         {
-            var reporter = new UsageReporter( this.ServiceProvider );
+            var reporter = new UsageSessionFactory( this.ServiceProvider );
 
             this.HttpClientFactory.ClearProcessedRequests();
 
-            var session = reporter.StartSession( "TestSession", projectName );
+            var session = reporter.CreateSession( "TestSession" );
             session.Dispose();
             await this.BackgroundTasks.WhenNoPendingTaskAsync();
 

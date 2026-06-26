@@ -2,15 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using JetBrains.Annotations;
-using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Telemetry;
 
-namespace Metalama.Backstage.Telemetry;
+namespace Metalama.Backstage.Testing;
 
-[PublicAPI]
-public interface IUsageReporter : IBackstageService
+public sealed class NullUsageSessionFactory : IUsageSessionFactory
 {
-    bool IsUsageReportingEnabled { get; }
+    public object Sync { get; } = new();
 
-    IUsageSession StartSession( string kind, string? projectName = null );
+    public IUsageSession CreateSession( string kind, bool shouldCollectMetrics ) => NullUsageSession.Instance;
 }

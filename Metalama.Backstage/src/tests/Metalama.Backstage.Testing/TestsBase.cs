@@ -243,7 +243,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<ITelemetryConfigurationService>( serviceProvider => new TelemetryConfigurationService( serviceProvider ) )
                 .AddSingleton<ITelemetryService>( serviceProvider => new TelemetryService( serviceProvider ) )
                 .AddSingleton<IRepositoryConfigurationService>( serviceProvider => new RepositoryConfigurationService( serviceProvider ) )
-                .AddSingleton<IUsageReporter>( serviceProvider => new UsageReporter( serviceProvider ) )
+                .AddSingleton<IUsageSessionFactory>( serviceProvider => new UsageSessionFactory( serviceProvider ) )
                 .AddSingleton<IExceptionCapturer>( _ => new TestExceptionCapturer() )
                 .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )
                 .AddSingleton<ITelemetryUploader>( serviceProvider => new TelemetryUploader( serviceProvider ) )

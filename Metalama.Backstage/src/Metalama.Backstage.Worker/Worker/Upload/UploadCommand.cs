@@ -28,18 +28,17 @@ namespace Metalama.Backstage.Worker.Upload
                 var logger = serviceProvider.GetLoggerFactory().GetLogger( "Worker" );
                 logger.Trace?.Log( "Job started." );
 
-                var usageReporter = serviceProvider.GetBackstageService<IUsageReporter>();
-                usageReportingSession = usageReporter?.StartSession( "CompilerUsage" );
-
-                // Clean-up. Scheduled automatically by telemetry.
-                logger.Trace?.Log( "Starting temporary directories cleanup." );
-                var tempFileManager = new TempFileManager( serviceProvider );
-                tempFileManager.CleanTempDirectories();
-
                 // Telemetry.
                 logger.Trace?.Log( "Starting telemetry upload." );
                 var uploader = serviceProvider.GetRequiredBackstageService<ITelemetryUploader>();
                 await uploader.UploadAsync();
+
+                // Clean-up. Scheduled automatically by telemetry.
+                // This is not completely limited to telemetry, but we use the opportunity that we already schedule periodic uploads,
+                // so that we also do periodic clean ups.
+                logger.Trace?.Log( "Starting temporary directories cleanup." );
+                var tempFileManager = new TempFileManager( serviceProvider );
+                tempFileManager.CleanTempDirectories();
 
                 logger.Trace?.Log( "Job done." );
 

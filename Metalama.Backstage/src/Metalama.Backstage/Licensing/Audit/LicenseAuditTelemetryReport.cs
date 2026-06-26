@@ -16,13 +16,11 @@ namespace Metalama.Backstage.Licensing.Audit;
 
 internal sealed class LicenseAuditTelemetryReport : TelemetryReport
 {
-    private readonly IUsageReporter _usageReporter;
-
     public LicenseConsumptionProperties License { get; }
 
     public override string Kind => "LicenseAudit";
 
-    private bool IsUsageReportingEnabled => this._usageReporter.IsUsageReportingEnabled;
+    protected override TelemetrySaltKind DetailedTrackingHashKind => TelemetrySaltKind.LicenseAudit;
 
     public long AuditHashCode { get; }
 
@@ -31,9 +29,12 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
         LicenseConsumptionProperties license ) : base( serviceProvider, new MetricCollection() )
     {
         this.License = license;
+
         var date = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>().UtcNow;
 
-        this._usageReporter = serviceProvider.GetRequiredBackstageService<IUsageReporter>();
+        var isUsageReportingEnabled =
+            serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>().GetEffectiveConsent( TelemetryScenario.Usage )
+            == TelemetryConsent.Yes;
 
         var buildDate = this.ReportedComponent.BuildDate
                         ?? throw new InvalidOperationException( $"Build date of '{this.ReportedComponent.Name}' application is unknown." );
@@ -53,11 +54,12 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
         AddToMetricsAndHashCode( new StringMetric( "Version", this.ReportedComponent.PackageVersion ) );
         AddToMetricsAndHashCode( new LicenseAuditDateMetric( "BuildDate", buildDate ) );
         AddToMetricsAndHashCode( new StringMetric( "License", this.License.LicenseString ) );
+
         // This is a first-party (bits) usage-tracking report, so identifiers are keyed by UsageTrackingSalt and
         // cannot be correlated with the Matomo dataset nor with the exception-reporting data. See #1668.
-        AddToMetricsAndHashCode( new LicenseAuditHashMetric( "User", this.UserHash ) );
-        AddToMetricsAndHashCode( new LicenseAuditHashMetric( "Machine", this.UsageTrackingDeviceHash ) );
-        AddToMetricsAndHashCode( new BoolMetric( "CEIP", this.IsUsageReportingEnabled ) );
+        AddToMetricsAndHashCode( new LicenseAuditHashMetric( "User", this.DetailedTrackingUserHash ) );
+        AddToMetricsAndHashCode( new LicenseAuditHashMetric( "Machine", this.DetailedTrackingDeviceHash ) );
+        AddToMetricsAndHashCode( new BoolMetric( "CEIP", isUsageReportingEnabled ) );
         AddToMetricsAndHashCode( new StringMetric( "ApplicationName", this.ApplicationName ) );
 
         this.AuditHashCode = unchecked((long) auditHashCodeBuilder.GetCurrentHashAsUInt64());

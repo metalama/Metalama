@@ -58,18 +58,18 @@ public sealed class TelemetryConfigurationTests : TestsBase
     {
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
         this.TelemetryConfigurationService.EnsureActivated();
-        var initialSalt = this.TelemetryConfigurationService.MatomoSalt;
+        var initialSalt = this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.Matomo );
 
         // There should be no change on April 30th or even on May the 4th because the first Monday is the 5th.
         this.Time.Set( new DateTime( 2025, 4, 30, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.Equal( initialSalt, this.TelemetryConfigurationService.MatomoSalt );
+        Assert.Equal( initialSalt, this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.Matomo ) );
 
         this.Time.Set( new DateTime( 2025, 5, 4, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.Equal( initialSalt, this.TelemetryConfigurationService.MatomoSalt );
+        Assert.Equal( initialSalt, this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.Matomo ) );
 
         // Now there should be a change.
         this.Time.Set( new DateTime( 2025, 5, 5, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.NotEqual( initialSalt, this.TelemetryConfigurationService.MatomoSalt );
+        Assert.NotEqual( initialSalt, this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.Matomo ) );
     }
 
     [Theory]
@@ -78,25 +78,25 @@ public sealed class TelemetryConfigurationTests : TestsBase
     public void DiagnosticSaltRotation( bool exceptionReporting )
     {
         // The first-party-only diagnostic salts (#1668) must rotate on the same monthly cadence as MatomoSalt/DeviceId.
-        long GetSalt()
+        long GetDiagnosticSalt()
             => exceptionReporting
-                ? this.TelemetryConfigurationService.ExceptionReportingSalt
-                : this.TelemetryConfigurationService.UsageTrackingSalt;
+                ? this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.ExceptionReport )
+                : this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.UsageTracking );
 
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
         this.TelemetryConfigurationService.EnsureActivated();
-        var initialDiagnosticSalt = GetSalt();
+        var initialDiagnosticSalt = GetDiagnosticSalt();
 
         // No rotation before the first Monday of May (the 5th).
         this.Time.Set( new DateTime( 2025, 4, 30, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.Equal( initialDiagnosticSalt, GetSalt() );
+        Assert.Equal( initialDiagnosticSalt, GetDiagnosticSalt() );
 
         this.Time.Set( new DateTime( 2025, 5, 4, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.Equal( initialDiagnosticSalt, GetSalt() );
+        Assert.Equal( initialDiagnosticSalt, GetDiagnosticSalt() );
 
         // Now there should be a change, in lockstep with MatomoSalt.
         this.Time.Set( new DateTime( 2025, 5, 5, 0, 0, 0, DateTimeKind.Utc ) );
-        Assert.NotEqual( initialDiagnosticSalt, GetSalt() );
+        Assert.NotEqual( initialDiagnosticSalt, GetDiagnosticSalt() );
     }
 
     [Fact]
@@ -107,9 +107,9 @@ public sealed class TelemetryConfigurationTests : TestsBase
         this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
         this.TelemetryConfigurationService.EnsureActivated();
 
-        var matomoSalt = this.TelemetryConfigurationService.MatomoSalt;
-        var usageTrackingSalt = this.TelemetryConfigurationService.UsageTrackingSalt;
-        var exceptionReportingSalt = this.TelemetryConfigurationService.ExceptionReportingSalt;
+        var matomoSalt = this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.Matomo );
+        var usageTrackingSalt = this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.UsageTracking );
+        var exceptionReportingSalt = this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.ExceptionReport );
 
         Assert.NotEqual( 0, matomoSalt );
         Assert.NotEqual( 0, usageTrackingSalt );
@@ -130,9 +130,9 @@ public sealed class TelemetryConfigurationTests : TestsBase
         this.TelemetryConfigurationService.EnsureActivated();
 
         var deviceId = this.TelemetryConfigurationService.DeviceId.ToString();
-        var matomoHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.MatomoSalt );
-        var usageTrackingHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.UsageTrackingSalt );
-        var exceptionReportingHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.ExceptionReportingSalt );
+        var matomoHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.Matomo ) );
+        var usageTrackingHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.UsageTracking ) );
+        var exceptionReportingHash = HashUtilities.ComputeInt64Hmac( deviceId, this.TelemetryConfigurationService.GetSalt( TelemetrySaltKind.ExceptionReport ) );
 
         Assert.NotEqual( matomoHash, usageTrackingHash );
         Assert.NotEqual( matomoHash, exceptionReportingHash );
@@ -158,9 +158,9 @@ public sealed class TelemetryConfigurationTests : TestsBase
 
             return saltKind switch
             {
-                "matomo" => telemetryConfigurationService.MatomoSalt,
-                "usage" => telemetryConfigurationService.UsageTrackingSalt,
-                "exception" => telemetryConfigurationService.ExceptionReportingSalt,
+                "matomo" => telemetryConfigurationService.GetSalt( TelemetrySaltKind.Matomo ),
+                "usage" => telemetryConfigurationService.GetSalt( TelemetrySaltKind.UsageTracking ),
+                "exception" => telemetryConfigurationService.GetSalt( TelemetrySaltKind.ExceptionReport ),
                 _ => throw new ArgumentOutOfRangeException( nameof(saltKind) )
             };
         }

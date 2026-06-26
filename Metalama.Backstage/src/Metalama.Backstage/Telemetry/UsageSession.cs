@@ -30,7 +30,7 @@ internal sealed class UsageSession : IUsageSession
 
     private bool _isDisposed;
 
-    public bool ShouldCollectMetrics { get; set; }
+    public bool ShouldCollectMetrics { get; }
 
     public MetricCollection Metrics { get; }
 

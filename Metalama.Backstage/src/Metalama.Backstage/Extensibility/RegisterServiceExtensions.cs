@@ -231,8 +231,6 @@ public static class RegisterServiceExtensions
 
             serviceProviderBuilder.AddService( typeof(IToastNotificationService), serviceProvider => new ToastNotificationService( serviceProvider ) );
 
-         
-
             if ( options.DetectToastNotifications )
             {
                 serviceProviderBuilder.AddService(
@@ -254,7 +252,7 @@ public static class RegisterServiceExtensions
                 serviceProviderBuilder.AddService( typeof(IUserInterfaceService), serviceProvider => new BrowserBasedUserInterfaceService( serviceProvider ) );
             }
         }
-        
+
         if ( options.AddRssClient )
         {
             if ( !options.AddSupportServices )
@@ -299,7 +297,7 @@ public static class RegisterServiceExtensions
             .AddSingleton<IExceptionReportManager>( serviceProvider => serviceProvider.GetRequiredBackstageService<ExceptionReporter>() )
             .AddSingleton<IExceptionCapturer>( serviceProvider => serviceProvider.GetRequiredBackstageService<ExceptionReporter>() )
             .AddSingleton<ITelemetryUploader>( serviceProvider => new TelemetryUploader( serviceProvider ) )
-            .AddSingleton<IUsageReporter>( serviceProvider => new UsageReporter( serviceProvider ) )
+            .AddSingleton<IUsageSessionFactory>( serviceProvider => new UsageSessionFactory( serviceProvider ) )
             .AddSingleton<ITelemetryConfigurationService>( serviceProvider => new TelemetryConfigurationService( serviceProvider ) )
             .AddSingleton<ITelemetryService>( serviceProvider => new TelemetryService( serviceProvider ) )
             .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )

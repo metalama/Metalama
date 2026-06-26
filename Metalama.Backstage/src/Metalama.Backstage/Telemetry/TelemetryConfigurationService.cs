@@ -9,7 +9,6 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Utilities;
 using System;
-using System.Collections.Generic;
 
 namespace Metalama.Backstage.Telemetry;
 
@@ -44,11 +43,32 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         this.Initialize();
     }
 
-    public long MatomoSalt { get; private set; }
+    private long _matomoSalt;
+    private long _usageTrackingSalt;
+    private long _exceptionReportingSalt;
+    private long _licenseAuditSalt;
 
-    public long UsageTrackingSalt { get; private set; }
+    [Obsolete( "Use GetSalt(TelemetrySaltKind.Matomo) instead." )]
+    public long MatomoSalt => this._matomoSalt;
 
-    public long ExceptionReportingSalt { get; private set; }
+    [Obsolete( "Use GetSalt(TelemetrySaltKind.UsageTracking) instead." )]
+    public long UsageTrackingSalt => this._usageTrackingSalt;
+
+    [Obsolete( "Use GetSalt(TelemetrySaltKind.ExceptionReport) instead." )]
+    public long ExceptionReportingSalt => this._exceptionReportingSalt;
+
+    [Obsolete( "Use GetSalt(TelemetrySaltKind.LicenseAudit) instead." )]
+    public long LicenseAuditSalt => this._licenseAuditSalt;
+
+    public long GetSalt( TelemetrySaltKind kind )
+        => kind switch
+        {
+            TelemetrySaltKind.ExceptionReport => this._exceptionReportingSalt,
+            TelemetrySaltKind.UsageTracking => this._usageTrackingSalt,
+            TelemetrySaltKind.LicenseAudit => this._licenseAuditSalt,
+            TelemetrySaltKind.Matomo => this._matomoSalt,
+            _ => throw new ArgumentOutOfRangeException( nameof(kind), kind, null )
+        };
 
     private void OnConfigurationChanged( ConfigurationFile configuration )
     {
@@ -111,9 +131,10 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     private void ReadConfiguration( TelemetryConfiguration configuration )
     {
         // We should not have null values here because EnsureActivated sets it.
-        this.MatomoSalt = configuration.MatomoSalt ?? 0;
-        this.UsageTrackingSalt = configuration.UsageTrackingSalt ?? 0;
-        this.ExceptionReportingSalt = configuration.ExceptionReportingSalt ?? 0;
+        this._matomoSalt = configuration.MatomoSalt ?? 0;
+        this._usageTrackingSalt = configuration.UsageTrackingSalt ?? 0;
+        this._exceptionReportingSalt = configuration.ExceptionReportingSalt ?? 0;
+        this._licenseAuditSalt = configuration.LicenseAuditSalt ?? 0;
         this.DeviceId = configuration.DeviceId ?? Guid.Empty;
     }
 
@@ -153,19 +174,12 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     /// </summary>
     public void EnsureActivated()
     {
-        if ( !this.IsGloballyEnabled )
-        {
-            throw new InvalidOperationException( "Telemetry is forbidden for this user." );
-        }
-
         lock ( this._activationSync )
         {
             var activatedNow = this._configurationManager.UpdateIf<TelemetryConfiguration>(
                 c => c.DeviceId == null,
-                c =>
+                c => c with
                 {
-                    var salts = this.GenerateDistinctSalts();
-
                     // We only write the activation artifacts here (the device identifier, the salts and the upload
                     // timing). We deliberately do NOT set the per-channel reporting actions: their record defaults
                     // already express the intended policy — usage is opt-out (ReportingAction.Default is treated as
@@ -173,19 +187,17 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                     // (ReportingAction.Default, see #1674). Setting them here would clobber any choice the user made
                     // through SetStatus before telemetry was activated (activation is now lazy, so it can run after
                     // an in-product opt-in/opt-out). See #1701, #1674.
-                    return c with
-                    {
-                        DeviceId = this._randomNumberGenerator.NextGuid(),
+                    DeviceId = this._randomNumberGenerator.NextGuid(),
+                    MatomoSalt = this.NextSalt(),
+                    UsageTrackingSalt = this.NextSalt(),
+                    ExceptionReportingSalt = this.NextSalt(),
+                    LicenseAuditSalt = this.NextSalt(),
+                    LastSaltChangeTime = this._dateTimeProvider.UtcNow,
 
-                        // Make sure we don't upload telemetry data on the first second of use.
-                        // Since first-time users are likely not to use the software for more than a few minutes,
-                        // configure so that we will upload data in 15 minutes.
-                        LastUploadTime = this._dateTimeProvider.UtcNow.AddDays( -1 ).AddMinutes( 15 ),
-                        MatomoSalt = salts.Matomo,
-                        UsageTrackingSalt = salts.UsageTracking,
-                        ExceptionReportingSalt = salts.ExceptionReporting,
-                        LastSaltChangeTime = this._dateTimeProvider.UtcNow
-                    };
+                    // Make sure we don't upload telemetry data on the first second of use.
+                    // Since first-time users are likely not to use the software for more than a few minutes,
+                    // configure so that we will upload data in 15 minutes.
+                    LastUploadTime = this._dateTimeProvider.UtcNow.AddDays( -1 ).AddMinutes( 15 )
                 } );
 
             if ( activatedNow )
@@ -215,18 +227,14 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             c => c.DeviceId != null
                  && (c.MatomoSalt == null || c.LastSaltChangeTime == null
                                           || (this._dateTimeProvider.UtcNow >= firstOfMonth && c.LastSaltChangeTime.Value < firstOfMonth)),
-            c =>
+            c => c with
             {
-                var salts = this.GenerateDistinctSalts();
-
-                return c with
-                {
-                    MatomoSalt = salts.Matomo,
-                    UsageTrackingSalt = salts.UsageTracking,
-                    ExceptionReportingSalt = salts.ExceptionReporting,
-                    DeviceId = this._randomNumberGenerator.NextGuid(),
-                    LastSaltChangeTime = this._dateTimeProvider.UtcNow
-                };
+                MatomoSalt = this.NextSalt(),
+                UsageTrackingSalt = this.NextSalt(),
+                ExceptionReportingSalt = this.NextSalt(),
+                LicenseAuditSalt = this.NextSalt(),
+                DeviceId = this._randomNumberGenerator.NextGuid(),
+                LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
 
         if ( rotated )
@@ -238,31 +246,12 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         // without rotating the Matomo Salt or the DeviceId (which would reset Matomo visitor continuity). The
         // back-filled salts are distinct from each other and from any salt already present. See #1668.
         this._configurationManager.UpdateIf<TelemetryConfiguration>(
-            c => c.DeviceId != null && (c.UsageTrackingSalt == null || c.ExceptionReportingSalt == null),
-            c =>
+            c => c.DeviceId != null && (c.UsageTrackingSalt == null || c.ExceptionReportingSalt == null || c.LicenseAuditSalt == null),
+            c => c with
             {
-                var existingSalts = new HashSet<long>();
-
-                if ( c.MatomoSalt != null )
-                {
-                    existingSalts.Add( c.MatomoSalt.Value );
-                }
-
-                if ( c.UsageTrackingSalt != null )
-                {
-                    existingSalts.Add( c.UsageTrackingSalt.Value );
-                }
-
-                if ( c.ExceptionReportingSalt != null )
-                {
-                    existingSalts.Add( c.ExceptionReportingSalt.Value );
-                }
-
-                return c with
-                {
-                    UsageTrackingSalt = c.UsageTrackingSalt ?? this.NextDistinctSalt( existingSalts ),
-                    ExceptionReportingSalt = c.ExceptionReportingSalt ?? this.NextDistinctSalt( existingSalts )
-                };
+                UsageTrackingSalt = c.UsageTrackingSalt ?? this.NextSalt(),
+                ExceptionReportingSalt = c.ExceptionReportingSalt ?? this.NextSalt(),
+                LicenseAuditSalt = c.LicenseAuditSalt ?? this.NextSalt()
             } );
     }
 
@@ -386,45 +375,19 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         this.EnsureInitialized();
 
         this._configurationManager.Update<TelemetryConfiguration>(
-            c =>
+            c => c with
             {
-                var salts = this.GenerateDistinctSalts();
-
-                return c with
-                {
-                    DeviceId = this._randomNumberGenerator.NextGuid(),
-                    MatomoSalt = salts.Matomo,
-                    UsageTrackingSalt = salts.UsageTracking,
-                    ExceptionReportingSalt = salts.ExceptionReporting,
-                    LastSaltChangeTime = this._dateTimeProvider.UtcNow
-                };
+                DeviceId = this._randomNumberGenerator.NextGuid(),
+                MatomoSalt = this.NextSalt(),
+                UsageTrackingSalt = this.NextSalt(),
+                ExceptionReportingSalt = this.NextSalt(),
+                LicenseAuditSalt = this.NextSalt(),
+                LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
     }
 
     public void ResetReportedIssues() => this._configurationManager.Update<TelemetryConfiguration>( c => c with { Issues = c.Issues.Clear() } );
 
-    // Generates the three per-channel salts so that they are all non-zero and mutually distinct. A 64-bit CSPRNG
-    // makes zero or a collision astronomically unlikely, but we guard against them anyway because the whole point of
-    // the per-channel salts is that the resulting pseudonyms are mutually uncorrelatable. See #1668.
-    private (long Matomo, long UsageTracking, long ExceptionReporting) GenerateDistinctSalts()
-    {
-        var salts = new HashSet<long>();
-
-        return (this.NextDistinctSalt( salts ), this.NextDistinctSalt( salts ), this.NextDistinctSalt( salts ));
-    }
-
-    // Returns a cryptographically-secure salt that is non-zero and not already present in <paramref name="existingSalts"/>,
-    // to which the returned value is added.
-    private long NextDistinctSalt( HashSet<long> existingSalts )
-    {
-        long salt;
-
-        do
-        {
-            salt = this._randomNumberGenerator.NextCryptographicInt64();
-        }
-        while ( salt == 0 || !existingSalts.Add( salt ) );
-
-        return salt;
-    }
+    // Returns a cryptographically-secure salt.
+    private long NextSalt() => this._randomNumberGenerator.NextCryptographicInt64();
 }

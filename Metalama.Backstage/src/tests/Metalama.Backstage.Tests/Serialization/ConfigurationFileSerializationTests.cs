@@ -51,6 +51,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                       "Salt": 1234567890,
                                       "UsageTrackingSalt": 9876543210,
                                       "ExceptionReportingSalt": 1357924680,
+                                      "LicenseAuditSalt": null,
                                       "LastSaltChangeTime": "2025-01-01T00:00:00Z",
                                       "Issues": {},
                                       "Sessions": {},
@@ -91,6 +92,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                       "Salt": null,
                                       "UsageTrackingSalt": null,
                                       "ExceptionReportingSalt": null,
+                                      "LicenseAuditSalt": null,
                                       "LastSaltChangeTime": null,
                                       "Issues": {
                                         "ISSUE001": 1

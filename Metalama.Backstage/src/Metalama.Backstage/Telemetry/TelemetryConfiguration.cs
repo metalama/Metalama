@@ -68,6 +68,8 @@ public sealed record TelemetryConfiguration : ConfigurationFile
     /// </summary>
     public long? ExceptionReportingSalt { get; init; }
 
+    public long? LicenseAuditSalt { get; init; }
+
     /// <summary>
     /// Gets the last time the <see cref="MatomoSalt"/>, <see cref="UsageTrackingSalt"/>, <see cref="ExceptionReportingSalt"/>
     /// and <see cref="DeviceId"/> properties were rotated. This should be done monthly.

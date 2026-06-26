@@ -558,7 +558,7 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
         // this exception-reporting pseudonym unjoinable to both the Matomo and the usage-tracking data. See #1668.
         var exceptionReportingDeviceHash = HashUtilities.ComputeInt64Hmac(
             this._telemetryConfigurationService.DeviceId.ToString(),
-            this._telemetryConfigurationService.ExceptionReportingSalt );
+            this._telemetryConfigurationService.GetSalt( TelemetrySaltKind.ExceptionReport ) );
 
         xmlWriter.WriteElementString( "ClientId", exceptionReportingDeviceHash.ToString( "x", CultureInfo.InvariantCulture ) );
         xmlWriter.WriteStartElement( "Application" );
