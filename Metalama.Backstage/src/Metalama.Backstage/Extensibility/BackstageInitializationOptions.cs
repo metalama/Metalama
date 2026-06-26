@@ -65,7 +65,7 @@ public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
     /// upon initialization. It is <c>true</c> by default and can be set to <c>false</c> for commands
     /// that explicitly call the RSS client.
     /// </summary>
-    public bool NotifyOfLatestNews { get; init; } = true;
+    public bool AddRssClient { get; init; } = true;
 
     /// <summary>
     /// Gets diagnostic (tracing) options. Considered only when <see cref="AddSupportServices"/> is <c>true</c>.

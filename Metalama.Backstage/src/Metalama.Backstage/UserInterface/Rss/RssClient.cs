@@ -27,9 +27,9 @@ internal sealed class RssClient : IRssClient
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger _logger;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IToastNotificationService _toastNotificationService;
-    private readonly IToastNotificationStatusService _toastNotificationStatusService;
-    private readonly IUserDeviceDetectionService _userDeviceDetectionService;
+    private readonly IToastNotificationService? _toastNotificationService;
+    private readonly IToastNotificationStatusService? _toastNotificationStatusService;
+    private readonly IUserDeviceDetectionService? _userDeviceDetectionService;
 
     public RssClient( IServiceProvider serviceProvider )
     {
@@ -37,22 +37,20 @@ internal sealed class RssClient : IRssClient
         this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(RssClient) );
         this._httpClientFactory = serviceProvider.GetRequiredBackstageService<IHttpClientFactory>();
-        this._toastNotificationService = serviceProvider.GetRequiredBackstageService<IToastNotificationService>();
-        this._userDeviceDetectionService = serviceProvider.GetRequiredBackstageService<IUserDeviceDetectionService>();
-        this._toastNotificationStatusService = serviceProvider.GetRequiredBackstageService<IToastNotificationStatusService>();
+        
+        // Not always available in configuration-only scenarios.
+        this._toastNotificationService = serviceProvider.GetBackstageService<IToastNotificationService>();
+        this._userDeviceDetectionService = serviceProvider.GetBackstageService<IUserDeviceDetectionService>();
+        this._toastNotificationStatusService = serviceProvider.GetBackstageService<IToastNotificationStatusService>();
     }
 
     public Task DisplayUnreadLatestNewsAsync( ITelemetryContext context )
     {
-        var usageConsent = context.Policy.GetConsentAndReason( TelemetryScenario.Usage );
-
-        if ( usageConsent.Consent == TelemetryConsent.No && usageConsent.Reason != TelemetryDisabledReason.UserOptOut )
+        if ( this.GetDisabledReason( context ) != TelemetryDisabledReason.None )
         {
-            this._logger.Trace?.Log( $"Usage telemetry is disabled because {usageConsent.Reason}. Do not fetch news." );
-            
             return Task.CompletedTask;
         }
-        
+
         return this.DisplayNewsAsync( false );
     }
 
@@ -67,20 +65,41 @@ internal sealed class RssClient : IRssClient
         return true;
     }
 
+    public TelemetryDisabledReason GetDisabledReason( ITelemetryContext telemetryContext ) 
+    {
+        var usageConsent = telemetryContext.Policy.GetConsentAndReason( TelemetryScenario.Usage );
+
+        if ( usageConsent.Consent == TelemetryConsent.No && usageConsent.Reason != TelemetryDisabledReason.UserOptOut )
+        {
+            this._logger.Trace?.Log( $"Usage telemetry is disabled because {usageConsent.Reason}. Do not fetch news." );
+
+            return usageConsent.Reason;
+        }
+        
+        var configuration = this._configurationManager.Get<RssClientConfiguration>();
+        
+        if ( configuration.PreferredFeed == RssFeed.None )
+        {
+            this._logger.Trace?.Log( "The RSS client has been disabled." );
+
+            return TelemetryDisabledReason.UserOptOut;
+        }
+
+        return TelemetryDisabledReason.None;
+    }
+
     private async Task<bool> DisplayNewsAsync( bool skipPreconditions )
     {
+        if ( this._toastNotificationStatusService == null || this._userDeviceDetectionService == null || this._toastNotificationService == null )
+        {
+            throw new InvalidOperationException( "UI services are not available." );
+        }
+        
         var configuration = this._configurationManager.Get<RssClientConfiguration>();
 
         if ( !skipPreconditions )
         {
             // Check preconditions.
-            if ( configuration.PreferredFeed == RssFeed.None )
-            {
-                this._logger.Trace?.Log( "The RSS client has been disabled." );
-
-                return false;
-            }
-            
             if ( !this._userDeviceDetectionService.IsInteractiveDevice )
             {
                 this._logger.Trace?.Log( "This is an unattended session. Do not fetch news." );
@@ -116,18 +135,10 @@ internal sealed class RssClient : IRssClient
         // Select feed URL.
         var url = configuration.PreferredFeed switch
         {
-            null or RssFeed.Briefs => BriefsUrl,
             RssFeed.Posts => PostsUrl,
-            _ => null
+            _ => BriefsUrl
         };
-
-        if ( url == null )
-        {
-            this._logger.Warning?.Log( $"Invalid preferred feed: {configuration.PreferredFeed}. Skipping." );
-
-            return false;
-        }
-
+        
         try
         {
             // Fetch content.

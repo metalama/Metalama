@@ -46,7 +46,7 @@ public sealed class RegisterServiceExtensionsTests
                 AddLicensing = addLicensing,
                 AddSupportServices = addSupportServices,
                 AddUserInterface = addUserInterface,
-                NotifyOfLatestNews = notifyOfLatestNews
+                AddRssClient = notifyOfLatestNews
             };
 
         if ( addToolsExtractor && (addSupportServices || addUserInterface) )

@@ -23,4 +23,6 @@ public interface IRssClient : IBackstageService
     /// </summary>
     /// <returns><c>true</c> if the news feed was enabled, or <c>false</c> if it was not enabled because telemetry is disabled.</returns>
     bool TryEnable();
+
+    TelemetryDisabledReason GetDisabledReason( ITelemetryContext telemetryContext );
 }

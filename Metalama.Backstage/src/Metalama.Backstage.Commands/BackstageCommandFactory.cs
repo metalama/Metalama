@@ -155,6 +155,10 @@ public static class BackstageCommandFactory
                         rss.AddCommand<EnableRssClientCommand>( "enable" )
                             .WithData( options )
                             .WithDescription( "Enables automatic notifications for new Metalama updates." );
+
+                        rss.AddCommand<RssStatusCommand>( "status" )
+                            .WithData( options )
+                            .WithDescription( "Displays the current news notification settings." );
                     } );
 
                 appConfig.AddCommand<VersionCommand>( "version" ).WithData( options ).WithDescription( "Prints version information." );

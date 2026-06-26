@@ -7,7 +7,7 @@ using Metalama.Backstage.UserInterface.Rss;
 
 namespace Metalama.Backstage.Commands.Rss;
 
-public class EnableRssClientCommand : BaseCommand<BaseCommandSettings>
+public class EnableRssClientCommand : RssCommand
 {
     protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
     {
@@ -21,7 +21,4 @@ public class EnableRssClientCommand : BaseCommand<BaseCommandSettings>
 
         context.Console.WriteSuccess( "The news feed has been enabled." );
     }
-
-    protected override BackstageInitializationOptions AddBackstageOptions( BackstageInitializationOptions options )
-        => options with { AddUserInterface = true, NotifyOfLatestNews = false };
 }

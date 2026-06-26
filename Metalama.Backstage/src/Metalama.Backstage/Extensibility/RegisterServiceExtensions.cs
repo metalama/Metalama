@@ -231,17 +231,7 @@ public static class RegisterServiceExtensions
 
             serviceProviderBuilder.AddService( typeof(IToastNotificationService), serviceProvider => new ToastNotificationService( serviceProvider ) );
 
-            if ( options.NotifyOfLatestNews )
-            {
-                if ( !options.AddSupportServices )
-                {
-                    throw new ArgumentOutOfRangeException(
-                        nameof(options),
-                        $"{nameof(options.NotifyOfLatestNews)} requires {nameof(options.AddSupportServices)}." );
-                }
-
-                serviceProviderBuilder.AddSingleton<IRssClient>( serviceProvider => new RssClient( serviceProvider ) );
-            }
+         
 
             if ( options.DetectToastNotifications )
             {
@@ -263,6 +253,18 @@ public static class RegisterServiceExtensions
             {
                 serviceProviderBuilder.AddService( typeof(IUserInterfaceService), serviceProvider => new BrowserBasedUserInterfaceService( serviceProvider ) );
             }
+        }
+        
+        if ( options.AddRssClient )
+        {
+            if ( !options.AddSupportServices )
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(options),
+                    $"{nameof(options.AddRssClient)} requires {nameof(options.AddSupportServices)}." );
+            }
+
+            serviceProviderBuilder.AddSingleton<IRssClient>( serviceProvider => new RssClient( serviceProvider ) );
         }
 
         // Add process management service.

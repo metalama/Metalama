@@ -26,7 +26,7 @@ namespace Metalama.Backstage.Tests.UserInterface;
 /// </summary>
 public sealed class RssClientTests : TestsBase
 {
-    private ITelemetryContext _telemetryContext;
+    private ITelemetryContext _telemetryContext = null!;
 
     private const string _validRssXml = $"""
                                          <?xml version="1.0" encoding="UTF-8"?>
@@ -205,14 +205,16 @@ public sealed class RssClientTests : TestsBase
     /// Verifies that RssClient skips fetching when PreferredFeed is set to an invalid value.
     /// </summary>
     [Fact]
-    public async Task RssClientSkipsInvalidPreferredFeed()
+    public async Task RssClientFallsBackOnInvalidPreferredFeed()
     {
         this.EnsureNewsWillBeChecked();
         this.UpdateRssConfiguration( c => c with { PreferredFeed = (RssFeed) 100 } );
 
         var rssClient = new RssClient( this.ServiceProvider );
         await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
-        Assert.Empty( this.HttpClientFactory.ProcessedRequests );
+        var request = Assert.Single( this.HttpClientFactory.ProcessedRequests ).Request;
+
+        Assert.Equal( RssClient.BriefsUrl, request.RequestUri!.ToString() );
     }
 
     // RSS Parsing Tests
