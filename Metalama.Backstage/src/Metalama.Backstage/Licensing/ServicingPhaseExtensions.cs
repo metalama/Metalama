@@ -13,8 +13,8 @@ public static class ServicingPhaseExtensions
             (ServicingPhase.Extended, false) => "Extended",
             (ServicingPhase.LongTerm, false) => "Long Term",
             (ServicingPhase.Current, true) => "Current",
-            (ServicingPhase.Extended, true) => "Curent, Extended",
-            (ServicingPhase.LongTerm, true) => "Current, Extented, Long Term",
+            (ServicingPhase.Extended, true) => "Current, Extended",
+            (ServicingPhase.LongTerm, true) => "Current, Extended, Long Term",
             _ => servicingPhase.ToString()
         };
 }

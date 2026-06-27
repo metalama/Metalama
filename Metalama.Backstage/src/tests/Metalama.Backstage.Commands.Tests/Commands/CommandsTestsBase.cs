@@ -30,12 +30,14 @@ namespace Metalama.Tools.Config.Tests.Commands
         protected Task TestCommandAsync(
             string commandLine,
             string? expectedOutput = null,
+            string? unexpectedOutput = null,
             int expectedExitCode = 0 )
-            => this.TestCommandAsync( commandLine.Split( ' ' ), expectedOutput, expectedExitCode );
+            => this.TestCommandAsync( commandLine.Split( ' ' ), expectedOutput, unexpectedOutput, expectedExitCode );
 
         protected async Task TestCommandAsync(
             string[] commandLine,
             string? expectedOutput = null,
+            string? unexpectedOutput = null,
             int expectedExitCode = 0 )
         {
             var output = new StringWriter();
@@ -48,9 +50,16 @@ namespace Metalama.Tools.Config.Tests.Commands
             BackstageCommandFactory.ConfigureCommandApp( commandApp, new BackstageCommandOptions( this, output, output, AnsiSupport.No ) );
             var exitCode = await commandApp.RunAsync( commandLine );
 
+            var outputString = output.ToString();
+
             if ( expectedOutput != null )
             {
-                Assert.Contains( expectedOutput, output.ToString(), StringComparison.OrdinalIgnoreCase );
+                Assert.Contains( expectedOutput, outputString, StringComparison.OrdinalIgnoreCase );
+            }
+
+            if ( unexpectedOutput != null )
+            {
+                Assert.DoesNotContain( unexpectedOutput, outputString, StringComparison.OrdinalIgnoreCase );
             }
 
             Assert.Equal( expectedExitCode, exitCode );

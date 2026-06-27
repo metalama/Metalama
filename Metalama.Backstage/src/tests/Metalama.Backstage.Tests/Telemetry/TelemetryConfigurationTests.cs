@@ -99,6 +99,25 @@ public sealed class TelemetryConfigurationTests : TestsBase
         Assert.NotEqual( initialDiagnosticSalt, GetDiagnosticSalt() );
     }
 
+    [Theory]
+    [InlineData( TelemetrySaltKind.Matomo )]
+    [InlineData( TelemetrySaltKind.UsageTracking )]
+    [InlineData( TelemetrySaltKind.ExceptionReport )]
+    [InlineData( TelemetrySaltKind.LicenseAudit )]
+    public void GetSaltThrowsWhenNotActivated( TelemetrySaltKind kind )
+    {
+        // Reading a salt before telemetry has been activated must fail loudly rather than silently return a zeroed salt
+        // (which would make the pseudonyms identical across all not-yet-activated machines). The caller is responsible
+        // for calling EnsureActivated() first. See #1711, #1701.
+        Assert.False( this.TelemetryConfigurationService.IsActivated );
+
+        Assert.Throws<InvalidOperationException>( () => this.TelemetryConfigurationService.GetSalt( kind ) );
+
+        // After activation, the salt is available and non-zero.
+        this.TelemetryConfigurationService.EnsureActivated();
+        Assert.NotEqual( 0L, this.TelemetryConfigurationService.GetSalt( kind ) );
+    }
+
     [Fact]
     public void SaltsAreGeneratedAndMutuallyDistinct()
     {

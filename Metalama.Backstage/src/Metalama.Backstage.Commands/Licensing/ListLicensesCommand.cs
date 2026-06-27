@@ -75,6 +75,7 @@ namespace Metalama.Backstage.Commands.Licensing
                     AddRow( "License Expiration", expiration );
                     AddRow( "Maintenance Expiration", Format( data.SubscriptionEndDate ) );
                     AddRow( "Eligible Servicing Phases", data.ServicingPhase.GetDisplayName( true ) );
+                    AddRow( "License Audit", data.Auditable ? "Yes" : "No" );
 
                     context.Console.Out.Write( table );
                 }
