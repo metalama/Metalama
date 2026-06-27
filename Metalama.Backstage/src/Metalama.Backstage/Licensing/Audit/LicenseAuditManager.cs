@@ -24,6 +24,7 @@ internal sealed class LicenseAuditManager : ILicenseAuditManager
     private readonly TelemetryReportUploader _telemetryReportUploader;
     private readonly MatomoUploader? _matomoAuditUploader;
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
+    private readonly ITelemetryConfigurationService _telemetryConfigurationService;
 
     public LicenseAuditManager( IServiceProvider serviceProvider )
     {
@@ -36,6 +37,7 @@ internal sealed class LicenseAuditManager : ILicenseAuditManager
         this._telemetryReportUploader = serviceProvider.GetRequiredBackstageService<TelemetryReportUploader>();
         this._matomoAuditUploader = serviceProvider.GetBackstageService<MatomoUploader>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
+        this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
     }
 
     public void ReportLicense( LicenseConsumptionProperties license )
@@ -60,6 +62,12 @@ internal sealed class LicenseAuditManager : ILicenseAuditManager
 
             return;
         }
+
+        // We are about to report a license audit, so make sure telemetry is activated (the DeviceId and salts exist).
+        // Activation is lazy so that a process which never reports also never creates a device identifier. Without this,
+        // the report would hash the user and device with a zeroed salt and an empty DeviceId, producing identical
+        // pseudonyms across all first-time users with the same username. See #1711.
+        this._telemetryConfigurationService.EnsureActivated();
 
         var report = new LicenseAuditTelemetryReport( this._serviceProvider, license );
 

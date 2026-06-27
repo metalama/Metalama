@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -231,5 +232,33 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
     {
         this.ApplicationInfo = new TestApplicationInfo() { IsUnattendedProcess = true };
         this.ConsumeAndAssertReportsCount( 0 );
+    }
+
+    [Fact]
+    public async Task LicenseAuditActivatesTelemetryOnFreshInstall()
+    {
+        // Simulate a fresh install where telemetry has not been activated yet: no DeviceId and no salts. Activation is
+        // lazy (see #1701), so the license audit must activate telemetry itself before reading the salts. Without this,
+        // the report would hash the user and device with a zeroed salt and an empty DeviceId, producing identical
+        // pseudonyms across all first-time users with the same username. See #1711.
+        this.ConfigurationManager!.Update<TelemetryConfiguration>(
+            c => c with
+            {
+                DeviceId = null,
+                MatomoSalt = null,
+                UsageTrackingSalt = null,
+                ExceptionReportingSalt = null,
+                LicenseAuditSalt = null
+            } );
+
+        var telemetryConfigurationService = this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
+        Assert.False( telemetryConfigurationService.IsActivated );
+
+        this.CreateAndConsumeLicense( _auditedLicenseKey );
+        await this.BackgroundTasks.WhenNoPendingTaskAsync();
+
+        Assert.True( telemetryConfigurationService.IsActivated );
+        Assert.NotEqual( Guid.Empty, telemetryConfigurationService.DeviceId );
+        Assert.NotEqual( 0L, telemetryConfigurationService.GetSalt( TelemetrySaltKind.LicenseAudit ) );
     }
 }
