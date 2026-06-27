@@ -4,9 +4,11 @@
 
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Licensing.Registration;
 using Metalama.Backstage.Telemetry;
 using Spectre.Console;
 using System.Globalization;
+using System.Linq;
 
 namespace Metalama.Backstage.Commands.Telemetry;
 
@@ -24,6 +26,26 @@ internal class TelemetryStatusCommand : BaseCommand<BaseCommandSettings>
         if ( !policy.HasRepositoryContext )
         {
             context.Console.WriteWarning( "The working directory is not a git repository. Effective values pertain to a specific repository context." );
+        }
+
+        // Surface any warning produced while resolving the repository configuration backing the policy (for example a
+        // misplaced or malformed metalama.json). See #1701.
+        foreach ( var warning in policy.Warnings )
+        {
+            context.Console.WriteWarning(
+                warning.FilePath != null
+                    ? $"{warning.Message} ({warning.FilePath})"
+                    : warning.Message );
+        }
+
+        if ( policy.GetConsent( TelemetryScenario.Usage ) == TelemetryConsent.No )
+        {
+            var licenseService = context.ServiceProvider.GetBackstageService<ILicenseRegistrationService>();
+
+            if ( licenseService?.RegisteredLicenses.Any( l => l.Auditable ) == true )
+            {
+                context.Console.WriteWarning( "Usage telemetry is disabled, but license audit data is uploaded independently and is not controlled by this setting." );
+            }
         }
 
         var usageConsent = policy.GetConsentAndReason( TelemetryScenario.Usage );
