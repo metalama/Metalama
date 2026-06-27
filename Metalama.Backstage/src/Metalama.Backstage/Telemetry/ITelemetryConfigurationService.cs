@@ -100,8 +100,12 @@ public interface ITelemetryConfigurationService : IBackstageService
 
     /// <summary>
     /// Gets the per-channel anonymization salt for hashing device and user identifiers.
-    /// See <see cref="TelemetrySaltKind"/> for which salt applies to which telemetry channel.
+    /// See <see cref="TelemetrySaltKind"/> for which salt applies to which telemetry channel. The caller must have
+    /// activated telemetry first (see <see cref="EnsureActivated"/>); this throws an <see cref="InvalidOperationException"/>
+    /// rather than return a zeroed salt, which would otherwise make the pseudonyms identical across all not-yet-activated
+    /// machines. See #1711.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Telemetry has not been activated (see <see cref="EnsureActivated"/>).</exception>
     long GetSalt( TelemetrySaltKind kind );
 
     /// <inheritdoc cref="GetSalt"/>

@@ -49,19 +49,31 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     private long _licenseAuditSalt;
 
     [Obsolete( "Use GetSalt(TelemetrySaltKind.Matomo) instead." )]
-    public long MatomoSalt => this._matomoSalt;
+    public long MatomoSalt => this.GetSalt( TelemetrySaltKind.Matomo );
 
     [Obsolete( "Use GetSalt(TelemetrySaltKind.UsageTracking) instead." )]
-    public long UsageTrackingSalt => this._usageTrackingSalt;
+    public long UsageTrackingSalt => this.GetSalt( TelemetrySaltKind.UsageTracking );
 
     [Obsolete( "Use GetSalt(TelemetrySaltKind.ExceptionReport) instead." )]
-    public long ExceptionReportingSalt => this._exceptionReportingSalt;
+    public long ExceptionReportingSalt => this.GetSalt( TelemetrySaltKind.ExceptionReport );
 
     [Obsolete( "Use GetSalt(TelemetrySaltKind.LicenseAudit) instead." )]
-    public long LicenseAuditSalt => this._licenseAuditSalt;
+    public long LicenseAuditSalt => this.GetSalt( TelemetrySaltKind.LicenseAudit );
 
     public long GetSalt( TelemetrySaltKind kind )
-        => kind switch
+    {
+        // Reading a salt means a reporter is about to hash an identifier. Activation is lazy (see #1701), so the caller
+        // MUST have called EnsureActivated() first to create the DeviceId and the salts. We refuse to return a zeroed
+        // salt — hashing with it would make the pseudonyms identical across all not-yet-activated machines — and instead
+        // fail loudly so a missing EnsureActivated() call is caught at its source rather than silently corrupting the
+        // audit data. See #1711.
+        if ( !this.IsActivated )
+        {
+            throw new InvalidOperationException(
+                $"Telemetry has not been activated, so the {kind} salt is not available. EnsureActivated() must be called before reading a telemetry salt." );
+        }
+
+        return kind switch
         {
             TelemetrySaltKind.ExceptionReport => this._exceptionReportingSalt,
             TelemetrySaltKind.UsageTracking => this._usageTrackingSalt,
@@ -69,6 +81,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             TelemetrySaltKind.Matomo => this._matomoSalt,
             _ => throw new ArgumentOutOfRangeException( nameof(kind), kind, null )
         };
+    }
 
     private void OnConfigurationChanged( ConfigurationFile configuration )
     {
