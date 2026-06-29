@@ -62,14 +62,40 @@ public static class ResourceExtractor
         _buildId = assemblyVersion.ToString( 4 ) + "-" +
                    string.Join( "", moduleId.ToByteArray().Take( 4 ).Select( i => i.ToString( "x2", CultureInfo.InvariantCulture ) ) );
 
-        _snapshotDirectory = GetTempDirectory( "Extract" );
-
+        // Read the METALAMA_TEMP override before computing any path that depends on it.
         var overriddenTempPath = Environment.GetEnvironmentVariable( "METALAMA_TEMP" );
         _overriddenTempPath = string.IsNullOrEmpty( overriddenTempPath ) ? null : overriddenTempPath;
+
+        _snapshotDirectory = GetTempDirectory( "Extract" );
     }
 
     private static string GetTempDirectory( string purpose )
-        => Path.Combine( _overriddenTempPath ?? Path.GetTempPath(), "Metalama", purpose, _buildId, _isNetFramework ? "desktop" : "core" );
+        => Path.Combine( GetTempBaseDirectory(), purpose, _buildId, _isNetFramework ? "desktop" : "core" );
+
+    // Mirrors Metalama.Backstage.Utilities.MetalamaPathUtilities.GetTempDirectory (we cannot reference Metalama.Backstage here).
+    // The directory holds assemblies that Metalama loads and executes, so on Unix it must not live under the world-writable
+    // /tmp (issue #1650); we use the per-user application-data directory instead. On Windows the temp directory is already
+    // specific to the current user.
+    private static string GetTempBaseDirectory()
+    {
+        if ( _overriddenTempPath != null )
+        {
+            return Path.Combine( _overriddenTempPath, "Metalama" );
+        }
+
+        if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+        {
+            return Path.Combine( Path.GetTempPath(), "Metalama" );
+        }
+
+        var localApplicationData = Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData );
+
+        var applicationDataDirectory = !string.IsNullOrEmpty( localApplicationData )
+            ? Path.Combine( localApplicationData, "Metalama" )
+            : Path.Combine( Environment.GetFolderPath( Environment.SpecialFolder.UserProfile ), ".metalama" );
+
+        return Path.Combine( applicationDataDirectory, "Temp" );
+    }
 
     private static void Initialize()
     {

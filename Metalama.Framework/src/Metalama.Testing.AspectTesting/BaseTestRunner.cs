@@ -943,7 +943,7 @@ internal abstract partial class BaseTestRunner
             if ( ns.ContainsOrdinal( "Microsoft.CSharp.RuntimeBinder" ) &&
                  string.Equals( typeName, "CSharpArgumentInfo", StringComparison.Ordinal ) )
             {
-                var directory = Path.Combine( MetalamaPathUtilities.GetTempPath(), "Metalama", "InvalidAssemblies" );
+                var directory = Path.Combine( MetalamaPathUtilities.GetTempDirectory(), "InvalidAssemblies" );
 
                 if ( !this._fileSystem.DirectoryExists( directory ) )
                 {

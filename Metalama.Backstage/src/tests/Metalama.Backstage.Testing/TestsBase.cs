@@ -34,6 +34,8 @@ namespace Metalama.Backstage.Testing
 
         protected TestEnvironmentVariableProvider EnvironmentVariableProvider { get; } = new();
 
+        protected TestRuntimeInformation RuntimeInformation { get; } = new();
+
         protected TestLoggerFactory Log { get; }
 
         protected IServiceProvider ServiceProvider => this._defaultTestContext.Value.ServiceProvider;
@@ -206,6 +208,7 @@ namespace Metalama.Backstage.Testing
                 // We must always have a single instance of the file system even if we use CloneServiceCollection.
                 .AddSingleton<IFileSystem>( serviceProvider => this._uniqueFileSystem ??= new TestFileSystem( serviceProvider ) )
                 .AddSingleton<IEnvironmentVariableProvider>( this.EnvironmentVariableProvider )
+                .AddSingleton<IRuntimeInformation>( this.RuntimeInformation )
                 .AddSingleton<IRecoverableExceptionService>( new TestRecoverableExceptionService() )
                 .AddSingleton<IUserDeviceDetectionService>( this.UserDeviceDetection )
                 .AddSingleton<IConfigurationManager>( serviceProvider => new InMemoryConfigurationManager( serviceProvider ) )

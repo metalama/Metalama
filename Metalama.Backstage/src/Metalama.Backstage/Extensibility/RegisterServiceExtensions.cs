@@ -124,6 +124,7 @@ public static class RegisterServiceExtensions
             .AddSingleton<IUserDeviceDetectionService>( serviceProvider => new WindowsUserDeviceDetectionService( serviceProvider ) )
             .AddSingleton<IDateTimeProvider>( new CurrentDateTimeProvider() )
             .AddSingleton<IFileSystem>( new FileSystem() )
+            .AddSingleton<IRuntimeInformation>( new RuntimeInformationProvider() )
             .AddSingleton<IStandardDirectories>( serviceProvider => new StandardDirectories( serviceProvider ) )
             .AddSingleton<IProcessExecutor>( new ProcessExecutor() )
             .AddSingleton<IHttpClientFactory>( new HttpClientFactory() )

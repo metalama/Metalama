@@ -5,8 +5,8 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Maintenance;
-using Metalama.Backstage.Utilities;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -20,6 +20,8 @@ namespace Metalama.Backstage.Infrastructure
     internal sealed class StandardDirectories : IStandardDirectories
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly IRuntimeInformation _runtimeInformation;
+        private readonly string? _overriddenTempPath;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StandardDirectories"/> class.
@@ -36,6 +38,10 @@ namespace Metalama.Backstage.Infrastructure
             // which leads to accessing different directories in each part.
 
             this._serviceProvider = serviceProvider;
+            this._runtimeInformation = serviceProvider.GetRequiredBackstageService<IRuntimeInformation>();
+
+            var overriddenTempPath = serviceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>().GetEnvironmentVariable( "METALAMA_TEMP" );
+            this._overriddenTempPath = string.IsNullOrEmpty( overriddenTempPath ) ? null : overriddenTempPath;
 
             var logger = serviceProvider.GetBackstageService<EarlyLoggerFactory>()?.GetLogger( nameof( StandardDirectories ) );
 
@@ -121,8 +127,37 @@ namespace Metalama.Backstage.Infrastructure
         /// <inheritdoc />
         public string ApplicationDataDirectory { get; }
 
+        // The Metalama temp directory holds assemblies that Metalama loads and executes, so it must be writable only by
+        // the current user. On Unix, Path.GetTempPath() (/tmp) is world-writable and would allow DLL planting (#1650),
+        // so we use the per-user application-data directory there. On Windows the temp directory is already per-user.
+        // The OS and environment are read through injected services so both branches are unit-testable on any platform.
+
         /// <inheritdoc />
-        public string TempDirectory { get; } = Path.Combine( MetalamaPathUtilities.GetTempPath(), "Metalama" );
+        public string TempDirectory
+        {
+            get
+            {
+                if ( this._overriddenTempPath != null )
+                {
+                    return Path.Combine( this._overriddenTempPath, "Metalama" );
+                }
+
+                if ( this._runtimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+                {
+                    return Path.Combine( Path.GetTempPath(), "Metalama" );
+                }
+
+                return Path.Combine( this.ApplicationDataDirectory, "Temp" );
+            }
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<string> LegacyTempDirectories
+            => this._overriddenTempPath != null || this._runtimeInformation.IsOSPlatform( OSPlatform.Windows )
+                ? Array.Empty<string>()
+
+                // The pre-#1650 location on Unix, e.g. '/tmp/Metalama'.
+                : new[] { Path.Combine( Path.GetTempPath(), "Metalama" ) };
 
         /// <inheritdoc />
         public string TelemetryLogsDirectory => Path.Combine( this.ApplicationDataDirectory, "Telemetry", "Logs" );
