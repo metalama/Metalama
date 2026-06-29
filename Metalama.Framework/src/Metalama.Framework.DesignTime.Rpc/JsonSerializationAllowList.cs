@@ -45,6 +45,11 @@ internal sealed class JsonSerializationAllowList
         {
             this._allowedTypes.Add( key );
         }
+
+        // A type registered here may already have a cached 'false' decision (its own, or that of an array/generic that
+        // references it as an element/argument), e.g. if it was deserialized before an extension registered it through
+        // the late-registration seam. Drop the cache so those decisions are recomputed against the updated allow-list.
+        this._cache.Clear();
     }
 
     /// <summary>
@@ -61,6 +66,9 @@ internal sealed class JsonSerializationAllowList
         {
             this._allowedTypes.Add( (assemblyName, fullName) );
         }
+
+        // See Add(Type): invalidate cached decisions that may predate this registration.
+        this._cache.Clear();
     }
 
     public bool IsAllowed( Type type ) => this._cache.GetOrAdd( type, this.IsAllowedCore );

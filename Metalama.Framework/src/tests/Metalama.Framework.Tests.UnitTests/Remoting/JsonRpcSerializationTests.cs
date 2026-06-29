@@ -92,6 +92,25 @@ public sealed class JsonRpcSerializationTests
         AssertRejectedByAllowList( () => JsonConvert.DeserializeObject<RpcEventEnvelope>( json, _settings ) );
     }
 
+    [Fact]
+    public void AddContractType_InvalidatesRejectionCache()
+    {
+        // Regression for the allow-list cache (#1651): a type rejected — and cached as denied — before it is registered
+        // through the late-registration seam must be accepted once AddContractType is called.
+        var binder = new JsonSerializationBinder();
+        binder.BindToName( typeof(OffContractGadget), out var assemblyName, out var typeName );
+        assemblyName = JsonSerializationBinderHelper.RemoveAssemblyDetailsFromAssemblyName( assemblyName! );
+        typeName = JsonSerializationBinderHelper.RemoveAssemblyDetailsFromTypeName( typeName! );
+
+        // Initially off-contract: rejected, and the rejection is cached.
+        Assert.Throws<InvalidOperationException>( () => binder.BindToType( assemblyName, typeName ) );
+
+        // Register the type after the rejection has been cached; the cached decision must be invalidated.
+        binder.AddContractType( typeof(OffContractGadget) );
+
+        Assert.Same( typeof(OffContractGadget), binder.BindToType( assemblyName, typeName ) );
+    }
+
     private static void AssertRejectedByAllowList( Func<object?> deserialize )
     {
         var exception = Record.Exception( () => deserialize() );
