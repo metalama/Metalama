@@ -55,4 +55,18 @@ public sealed class JsonSerializationBinderConfiguration
 
         this._binder.TryAddAssembly( assemblyName, assembly );
     }
+
+    /// <summary>
+    /// Adds a type to the RPC deserialization allow-list (#1651). Open generic definitions (e.g.
+    /// <c>typeof(ImmutableArray&lt;&gt;)</c>) are recorded as generic definitions; their type arguments are validated
+    /// recursively at deserialization time.
+    /// </summary>
+    public void AddType( Type type ) => this._binder.AllowList.Add( type );
+
+    /// <summary>
+    /// Adds a type to the RPC deserialization allow-list (#1651) by name, for types that cannot be referenced at compile
+    /// time. Prefer <see cref="AddType(System.Type)"/> whenever the type can be referenced.
+    /// </summary>
+    public void AddType( string assemblyName, string fullName, bool isGenericDefinition = false )
+        => this._binder.AllowList.Add( assemblyName, fullName, isGenericDefinition );
 }
