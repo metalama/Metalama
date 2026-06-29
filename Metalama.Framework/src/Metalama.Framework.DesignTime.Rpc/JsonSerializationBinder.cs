@@ -24,6 +24,13 @@ public sealed class JsonSerializationBinder : DefaultSerializationBinder
     /// </summary>
     internal JsonSerializationAllowList AllowList => this._allowList;
 
+    /// <summary>
+    /// Registers a type on the RPC deserialization allow-list (#1651) after construction. Used by design-time extensions
+    /// (including Premium) to allow-list the contract types they send over the RPC channel. Always pass <c>typeof(...)</c>
+    /// so the resolved assembly identity matches under the <c>Metalama.Repacked</c> ILMerge in the VS extension.
+    /// </summary>
+    public void AddContractType( Type type ) => this._allowList.Add( type );
+
     public JsonSerializationBinder( Action<JsonSerializationBinderConfiguration>? configure = null )
     {
         var configuration = new JsonSerializationBinderConfiguration( this );
