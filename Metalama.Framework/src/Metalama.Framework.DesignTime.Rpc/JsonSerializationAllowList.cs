@@ -3,47 +3,61 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.DesignTime.Rpc;
 
 /// <summary>
-/// A closed, per-type allow-list of CLR types that may be deserialized over the design-time RPC channel.
+/// A closed allow-list of CLR types, identified by full name, that may be deserialized over the design-time RPC channel.
 /// See issue #1651 (GHSA-h26j-4vp7-x9w2): the JSON wire format uses <see cref="Newtonsoft.Json.TypeNameHandling.All"/>,
 /// which embeds a CLR type name on the wire for every non-primitive object and reconstructs it on read. Without a
-/// per-type restriction, any type in an allow-listed assembly (including <c>System.Private.CoreLib</c>) could be
-/// instantiated before any application logic runs — an unsafe-deserialization / gadget-chain RCE primitive, the
-/// Newtonsoft analogue of <c>BinaryFormatter</c>. The check is enforced by <see cref="JsonSerializationBinder.BindToType"/>,
-/// the untrusted deserialization boundary.
+/// per-type restriction, any resolvable type (including <c>System.Private.CoreLib</c> gadgets) could be instantiated
+/// before any application logic runs — an unsafe-deserialization / gadget-chain RCE primitive, the Newtonsoft analogue
+/// of <c>BinaryFormatter</c>. The check is enforced by <see cref="JsonSerializationBinder.BindToType"/>, the untrusted
+/// deserialization boundary.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Types are matched by <see cref="System.Type.FullName"/> only, NOT by assembly identity. This is required by the
+/// multi-version design-time scenario (issue #31075): the same logical contract type is shipped in version-suffixed
+/// assemblies (e.g. <c>Metalama.Framework.DesignTime.4.8.0</c> vs <c>4.12.0</c>) and is repacked into
+/// <c>Metalama.Repacked</c> in the VS extension, so its assembly identity differs between the communicating processes
+/// while its full name is stable. Matching by full name also lets the allow-list be populated <em>without loading</em>
+/// the contract types — see <see cref="Add(string,bool)"/>. Loading them eagerly (e.g. via <c>typeof</c>) crashes in the
+/// multi-version scenario, because a contract type that implements a shared <c>Metalama.Framework.DesignTime.Contracts</c>
+/// interface fails to load when a different version of that Contracts assembly is already loaded in the process.
+/// </para>
+/// <para>
+/// Security is preserved because only the small, fixed set of contract full names is accepted: realistic deserialization
+/// gadgets (whose full names are never one of our contracts) are rejected, as are all unregistered types. Generic type
+/// arguments and array elements are validated recursively; scalar primitives and enums are always allowed.
+/// </para>
+/// </remarks>
 internal sealed class JsonSerializationAllowList
 {
-    // Keyed by (assembly simple name, type full name). Pinning by assembly name as well as full name prevents a
-    // same-named gadget from a different assembly from slipping through. The key always uses the *resolved* type's
-    // assembly, which is the runtime that will actually instantiate the object.
-    private readonly HashSet<(string AssemblyName, string FullName)> _allowedTypes = new();
+    private readonly HashSet<string> _allowedTypeNames = new( StringComparer.Ordinal );
 
-    // Open generic definitions that may appear on the wire (e.g. ImmutableArray<>); their type arguments are
-    // validated separately and recursively.
-    private readonly HashSet<(string AssemblyName, string FullName)> _allowedGenericDefinitions = new();
+    // Full names of open generic definitions that may appear on the wire (e.g. "System.Collections.Immutable.ImmutableArray`1");
+    // their type arguments are validated separately and recursively.
+    private readonly HashSet<string> _allowedGenericDefinitionNames = new( StringComparer.Ordinal );
 
     private readonly ConcurrentDictionary<Type, bool> _cache = new();
 
     /// <summary>
-    /// Adds a type to the allow-list. Open generic definitions (e.g. <c>typeof(ImmutableArray&lt;&gt;)</c>) are recorded
-    /// as generic definitions. Prefer this overload for any type we can reference, so the key uses the resolved
-    /// assembly identity (important under the <c>Metalama.Repacked</c> ILMerge in the VS extension).
+    /// Adds a type to the allow-list, by full name. Open generic definitions (e.g. <c>typeof(ImmutableArray&lt;&gt;)</c>)
+    /// are recorded as generic definitions. This overload loads the type, so use it only for types that are always safe to
+    /// load in any process (e.g. the framework's own RPC types and BCL types). For contract types that implement shared
+    /// <c>Metalama.Framework.DesignTime.Contracts</c> interfaces, use <see cref="Add(string,bool)"/> to avoid loading them.
     /// </summary>
     public void Add( Type type )
     {
-        var key = GetKey( type );
-
         if ( type.IsGenericTypeDefinition )
         {
-            this._allowedGenericDefinitions.Add( key );
+            this._allowedGenericDefinitionNames.Add( GetName( type ) );
         }
         else
         {
-            this._allowedTypes.Add( key );
+            this._allowedTypeNames.Add( GetName( type ) );
         }
 
         // A type registered here may already have a cached 'false' decision (its own, or that of an array/generic that
@@ -53,18 +67,19 @@ internal sealed class JsonSerializationAllowList
     }
 
     /// <summary>
-    /// Adds a type to the allow-list by name, for types that cannot be referenced at compile time (e.g. types owned by
-    /// another assembly we do not depend on). Use <see cref="Add(System.Type)"/> whenever the type can be referenced.
+    /// Adds a type to the allow-list by full name, <em>without loading it</em>. This is the preferred overload for contract
+    /// DTO types: it avoids the eager type-loading that crashes in the multi-version design-time scenario (see the remarks
+    /// on <see cref="JsonSerializationAllowList"/>).
     /// </summary>
-    public void Add( string assemblyName, string fullName, bool isGenericDefinition = false )
+    public void Add( string fullName, bool isGenericDefinition = false )
     {
         if ( isGenericDefinition )
         {
-            this._allowedGenericDefinitions.Add( (assemblyName, fullName) );
+            this._allowedGenericDefinitionNames.Add( fullName );
         }
         else
         {
-            this._allowedTypes.Add( (assemblyName, fullName) );
+            this._allowedTypeNames.Add( fullName );
         }
 
         // See Add(Type): invalidate cached decisions that may predate this registration.
@@ -88,9 +103,7 @@ internal sealed class JsonSerializationAllowList
         // independently, so a smuggled type argument can only be caught here.
         if ( type.IsGenericType && !type.IsGenericTypeDefinition )
         {
-            var definition = type.GetGenericTypeDefinition();
-
-            if ( !this._allowedGenericDefinitions.Contains( GetKey( definition ) ) )
+            if ( !this._allowedGenericDefinitionNames.Contains( GetName( type.GetGenericTypeDefinition() ) ) )
             {
                 return false;
             }
@@ -115,9 +128,8 @@ internal sealed class JsonSerializationAllowList
             return true;
         }
 
-        return this._allowedTypes.Contains( GetKey( type ) );
+        return this._allowedTypeNames.Contains( GetName( type ) );
     }
 
-    private static (string AssemblyName, string FullName) GetKey( Type type )
-        => (type.Assembly.GetName().Name ?? "", type.FullName ?? type.Name);
+    private static string GetName( Type type ) => type.FullName ?? type.Name;
 }

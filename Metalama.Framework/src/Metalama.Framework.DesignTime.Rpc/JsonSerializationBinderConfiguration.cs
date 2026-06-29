@@ -64,9 +64,12 @@ public sealed class JsonSerializationBinderConfiguration
     public void AddType( Type type ) => this._binder.AllowList.Add( type );
 
     /// <summary>
-    /// Adds a type to the RPC deserialization allow-list (#1651) by name, for types that cannot be referenced at compile
-    /// time. Prefer <see cref="AddType(System.Type)"/> whenever the type can be referenced.
+    /// Adds a type to the RPC deserialization allow-list (#1651) by full name, <em>without loading it</em>. This is the
+    /// preferred overload for contract DTO types that implement a shared <c>Metalama.Framework.DesignTime.Contracts</c>
+    /// interface: loading such a type eagerly (via <c>typeof</c>) crashes in the multi-version design-time scenario when a
+    /// different version of the Contracts assembly is loaded in the process (issue #31075). The allow-list matches by full
+    /// name only, so the assembly is irrelevant.
     /// </summary>
-    public void AddType( string assemblyName, string fullName, bool isGenericDefinition = false )
-        => this._binder.AllowList.Add( assemblyName, fullName, isGenericDefinition );
+    public void AddType( string fullName, bool isGenericDefinition = false )
+        => this._binder.AllowList.Add( fullName, isGenericDefinition );
 }
