@@ -31,6 +31,7 @@ public sealed class ConfigurationManagerLoadTests : TestsBase
         services.AddSingleton<IDateTimeProvider>( this.Time );
         services.AddSingleton<IEnvironmentVariableProvider>( this.EnvironmentVariableProvider );
         services.AddSingleton<EarlyLoggerFactory>();
+        services.AddSingleton<IRuntimeInformation>( new RuntimeInformationProvider() );
         services.AddSingleton<IStandardDirectories>( s => new StandardDirectories( s ) );
         var serviceProvider = services.BuildServiceProvider();
 
