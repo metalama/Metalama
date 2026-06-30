@@ -3,11 +3,15 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Rpc;
+using System;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
 public sealed partial class RpcClientTests
 {
+    private protected override IEnumerable<Type> AdditionalRpcContractTypes => [typeof(TestEventData)];
+
     /// <summary>
     /// Simple event data for testing RpcClient event handling.
     /// Must be internal because it's used by the internal TestService class.

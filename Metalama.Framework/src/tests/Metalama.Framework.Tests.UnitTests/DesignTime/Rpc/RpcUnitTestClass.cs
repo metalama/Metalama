@@ -7,6 +7,8 @@ using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
+using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Xunit.Abstractions;
 
@@ -21,6 +23,14 @@ public abstract class RpcUnitTestClass : UnitTestClass
     protected RpcUnitTestClass( ITestOutputHelper? logger = null ) : base( logger ) { }
 
     /// <summary>
+    /// Gets the RPC event/contract types defined by the test class that must be added to the deserialization allow-list
+    /// (security fix #1651) so they can round-trip over the design-time RPC channel. Override to register the test's own
+    /// <see cref="RpcEventData"/> subclasses; this is the test-side analogue of how design-time extensions allow-list their
+    /// contract types.
+    /// </summary>
+    private protected virtual IEnumerable<Type> AdditionalRpcContractTypes => [];
+
+    /// <summary>
     /// Creates an RPC test context with JSON serialization binder and synchronization provider pre-configured.
     /// </summary>
     /// <param name="callerFile">Automatically populated by the compiler.</param>
@@ -30,6 +40,13 @@ public abstract class RpcUnitTestClass : UnitTestClass
     private protected RpcTestContext CreateRpcTestContext( [CallerFilePath] string? callerFile = null, [CallerMemberName] string? callerMemberName = null )
     {
         var jsonSerializationBinderProvider = new JsonSerializationBinderProvider();
+
+        // Allow-list (#1651) the test's own RPC event/contract types so they can be deserialized over the channel.
+        foreach ( var contractType in this.AdditionalRpcContractTypes )
+        {
+            jsonSerializationBinderProvider.Binder.AddContractType( contractType );
+        }
+
         var syncProvider = new TestSynchronizationProvider( this.TestOutput );
 
         var additionalServices = new AdditionalServiceCollection();
