@@ -32,6 +32,7 @@ public interface IRuntimeInformation : IBackstageService
     /// <summary>
     /// Gets the architecture of the operating system.
     /// </summary>
+
     Architecture OSArchitecture { get; }
 
     /// <summary>

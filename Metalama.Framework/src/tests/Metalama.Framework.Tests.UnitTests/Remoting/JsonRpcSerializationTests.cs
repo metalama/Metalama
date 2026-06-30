@@ -118,7 +118,7 @@ public sealed class JsonRpcSerializationTests
         Assert.NotNull( exception );
 
         // Newtonsoft wraps binder exceptions in JsonSerializationException; the #1651 marker survives in ToString().
-        Assert.Contains( "#1651", exception!.ToString() );
+        Assert.Contains( "#1651", exception!.ToString(), StringComparison.Ordinal );
     }
 }
 
