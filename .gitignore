@@ -69,3 +69,4 @@ Metalama.Framework/BenchmarkDotNet.Artifacts/results
 eng/docker-context/.g/
 *.swp
 .idea/
+.g/

@@ -91,11 +91,51 @@ public sealed class TempFileManager : ITempFileManager
 
             // Go through all cache directories in temp directory (i.e. CrashReports, ExtractExceptions, Logs etc.)
             this.CleanUpDirectory( this._standardDirectories.TempDirectory, all );
+
+            // Also clean directories used by previous Metalama versions but no longer used by this one
+            // (e.g. the pre-#1650 '/tmp/Metalama' on Unix, now relocated under the user's application-data directory).
+            this.CleanUpLegacyDirectories( all );
         }
         finally
         {
             mutex.Dispose();
             this._configurationManager.Update<CleanUpConfiguration>( c => c with { LastCleanUpTime = this._time.UtcNow } );
+        }
+    }
+
+    private void CleanUpLegacyDirectories( bool all )
+    {
+        foreach ( var legacyDirectory in this._standardDirectories.LegacyTempDirectories )
+        {
+            if ( string.Equals( legacyDirectory, this._standardDirectories.TempDirectory, StringComparison.Ordinal )
+                 || !this._fileSystem.DirectoryExists( legacyDirectory ) )
+            {
+                continue;
+            }
+
+            // Use a mutex keyed on the legacy directory so we don't race an older Metalama version that may still be cleaning it.
+            var mutex = MutexHelper.WithLock(
+                legacyDirectory,
+                this._fileSystem.SynchronizationPrefix,
+                TimeSpan.FromMilliseconds( 1 ),
+                this._logger );
+
+            if ( mutex == null )
+            {
+                this._logger.Warning?.Log( $"Clean-up of the legacy directory '{legacyDirectory}' is already running." );
+
+                continue;
+            }
+
+            try
+            {
+                this._logger.Trace?.Log( $"Cleaning up the legacy temporary directory '{legacyDirectory}'." );
+                this.CleanUpDirectory( legacyDirectory, all );
+            }
+            finally
+            {
+                mutex.Dispose();
+            }
         }
     }
 
