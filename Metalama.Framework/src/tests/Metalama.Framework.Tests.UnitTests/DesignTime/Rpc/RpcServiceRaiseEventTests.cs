@@ -22,6 +22,8 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
 {
     public RpcServiceRaiseEventTests( ITestOutputHelper logger ) : base( logger ) { }
 
+    protected override IEnumerable<Type> AdditionalContractTypes => [typeof(TestEventData)];
+
     /// <summary>
     /// Tests that RaiseEventAsync broadcasts events to all connected clients of the same service.
     /// This tests the behavior at line 93 where _clients.Values is enumerated.

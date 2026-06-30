@@ -8,6 +8,7 @@
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -21,6 +22,8 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 public sealed partial class RpcClientTests : RpcUnitTestClass
 {
     public RpcClientTests( ITestOutputHelper logger ) : base( logger ) { }
+
+    protected override IEnumerable<Type> AdditionalContractTypes => [typeof(TestEventData)];
 
     /// <summary>
     /// Tests that multiple concurrent calls to GetApiAsync all wait and return the same API instance

@@ -7,6 +7,7 @@
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -20,6 +21,8 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 public sealed partial class RpcServicesTests : RpcUnitTestClass
 {
     public RpcServicesTests( ITestOutputHelper logger ) : base( logger ) { }
+
+    protected override IEnumerable<Type> AdditionalContractTypes => [typeof(TestEventData)];
 
     /// <summary>
     /// Tests that an endpoint can host multiple services and all are accessible via GetClient.
