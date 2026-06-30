@@ -639,9 +639,12 @@ try
 
         # Add context files (excluding generated .g/ directory, which holds
         # per-invocation files like env.g.json and Init.g.ps1).
+        # Sort with the invariant culture so the file order (and therefore the hash) is identical regardless of the
+        # host's locale. The default Sort-Object uses the current culture, which can order non-ASCII names differently
+        # on different machines and yield a different tag for identical content.
         $contextFiles = Get-ChildItem $ContextDirectory -Recurse -File -ErrorAction SilentlyContinue |
                 Where-Object { $_.FullName -notmatch '[/\\]\.g[/\\]' } |
-                Sort-Object FullName
+                Sort-Object -Property FullName -Culture ([System.Globalization.CultureInfo]::InvariantCulture)
 
         foreach ($file in $contextFiles)
         {
@@ -692,12 +695,13 @@ try
         return [System.IO.Path]::GetFileNameWithoutExtension($dfPath)
     }
 
-    # Per-image build context: docker-context/<stem>, falling back to the shared docker-context when there is
-    # no per-image directory (keeps un-stemmed/legacy Dockerfiles working).
+    # Per-image build context: docker-context/<stem>. There is deliberately NO fallback to the shared docker-context
+    # root: stray machine-specific files living there (e.g. .credentials.json, claude.json) would otherwise be folded
+    # into the image content hash and produce different tags on different machines for identical content. A missing
+    # directory is treated as an empty context by Get-ContentHash, and Build-OneImage creates it before building.
     function Get-ContextDirFor([string]$dfPath)
     {
-        $perImage = Join-Path $dockerContextDirectory (Get-DockerfileStem $dfPath)
-        if (Test-Path $perImage) { return $perImage } else { return $dockerContextDirectory }
+        return Join-Path $dockerContextDirectory (Get-DockerfileStem $dfPath)
     }
 
     # Parse the parent Dockerfile from `ARG BASE_IMAGE=<parent>.Dockerfile`; $null if this is a chain root.
@@ -792,6 +796,9 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     {
         $content = Get-Content -Raw $dfPath   # piped to docker build verbatim - the file on disk is never changed
         $ctxDir = Get-ContextDirFor $dfPath
+        # The per-image context dir is normally created by generate-scripts, but it is not tracked by git (it is often
+        # empty), so ensure it exists here before handing it to docker build.
+        if (-not (Test-Path $ctxDir)) { New-Item -ItemType Directory -Path $ctxDir -Force | Out-Null }
         $cmd = @('build', '-t', $tag)
         if ($isolationArg) { $cmd += $isolationArg }
         if ($Memory -and $Isolation -ne 'process') { $cmd += "--memory=$Memory" }
@@ -814,10 +821,18 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     # Build the local "boot" image: a thin layer over the resolved chain image that creates the bind-mount
     # directories. The mount set is machine-specific, so this is kept out of the shared chain images and is
     # never pushed. Returns the boot image tag, which is what `docker run` uses.
+    #
+    # The boot image is the leaf that `docker run` actually executes, so its tag must be GLOBALLY UNIQUE:
+    # concurrent invocations on the same host resolve to the same chain hash and would otherwise collide on a
+    # single boot tag, with one run rebuilding (or removing) the image out from under the other. A
+    # YYYYMMDDTHHmmss timestamp suffix keeps each run's leaf image distinct. The image is removed after the run
+    # (see the boot-image cleanup near the end), so unique tags do not accumulate.
     function New-BootImage([string]$baseTag)
     {
         $ref = ($baseTag -split '/')[-1]   # strip any registry prefix - the boot image is local only
-        if ($ref -match '^(.*):([^:]+)$') { $bootTag = "$( $Matches[1] )-boot:$( $Matches[2] )" } else { $bootTag = "$ref-boot:latest" }
+        $stamp = (Get-Date).ToString("yyyyMMdd'T'HHmmss")   # local time; only needs to be unique per host run
+        if ($ref -match '^(.*):([^:]+)$') { $bootTag = "$( $Matches[1] )-boot:$( $Matches[2] )-$stamp" } else { $bootTag = "$ref-boot:$stamp" }
+        $script:BootImageTag = $bootTag   # tracked so the run can remove this leaf image afterwards
 
         # On Windows the mountpoints RUN uses backtick line-continuations, so set `# escape=` + backtick. On
         # Unix the block uses backslash continuations, so keep Docker's default escape char (emit no directive).
@@ -854,6 +869,13 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         }
 
         $tag = Resolve-ImageTag $dfPath
+
+        # The Claude leaf is ALWAYS built locally and is NEVER pulled from or pushed to the registry. It bakes a
+        # daily cache-buster (update.timestamp) and `@latest` npm/plugin installs, so a registry copy is stale by
+        # design and sharing it saves nothing. Keeping it local-only also means a missing/unauthenticated registry
+        # (which only ever served the stable ancestor chain) can never fail a Claude run on pull/push.
+        $isClaudeLeaf = (Get-DockerfileStem $dfPath) -eq 'claude'
+
         Write-Host "Ensuring image: $tag" -ForegroundColor Cyan
 
         docker image inspect $tag *> $null
@@ -861,7 +883,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         {
             Write-Host "  found locally" -ForegroundColor Green
         }
-        elseif ($dockerRegistry -and (& { docker @dockerConfigArg manifest inspect $tag *> $null; $LASTEXITCODE -eq 0 }))
+        elseif (-not $isClaudeLeaf -and $dockerRegistry -and (& { docker @dockerConfigArg manifest inspect $tag *> $null; $LASTEXITCODE -eq 0 }))
         {
             Write-Host "  pulling from registry" -ForegroundColor Green
             docker @dockerConfigArg pull $tag 2>&1 | Out-Host
@@ -874,8 +896,9 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         }
 
         # Queue an async push if the image isn't already in the registry. Pushes run in background jobs started
-        # after ALL builds (so a push never overlaps a host docker build) and are waited for at the end.
-        if ($dockerRegistry)
+        # after ALL builds (so a push never overlaps a host docker build) and are waited for at the end. The
+        # Claude leaf is excluded (see $isClaudeLeaf above): it is local-only and never enters the registry.
+        if ($dockerRegistry -and -not $isClaudeLeaf)
         {
             docker @dockerConfigArg manifest inspect $tag *> $null
             if ($LASTEXITCODE -ne 0)
@@ -894,6 +917,9 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     # ALL builds complete (so a push never overlaps a host docker build), and all waited for at the end.
     $script:ImagesToPush = @()
     $script:RegistryPushJobs = @()
+
+    # Tag of the local, run-specific boot image (set by New-BootImage); removed after the container exits.
+    $script:BootImageTag = $null
 
     function Add-VolumeMount
     {
@@ -1757,12 +1783,20 @@ $envVarAssignments$gitConfigCommands$postInitCommands
     $builtNewImage = $false
     $dockerConfigArg = @()
 
-    if (-not $NoBuildImage -and -not $existingContainerId)
+    # $RegistryImage is an explicit user override ("use this pre-built image, skip all Dockerfile logic"), so the
+    # chain is neither authenticated nor resolved for it. Every other path (build step, default run, and the CI run
+    # step with -NoBuildImage) resolves the chain so the local-only Claude leaf is guaranteed present below.
+    if (-not $existingContainerId -and -not $RegistryImage)
     {
         if ($dockerRegistry)
         {
             # Temporary Docker config dir to avoid credential-helper issues (e.g. docker-credential-desktop not
             # found when using Docker Engine without Desktop), then authenticate.
+            #
+            # Authentication runs for BOTH the build step (-BuildImage) and the run step (-NoBuildImage). The run
+            # step still resolves the chain below, and when it executes on a different docker daemon than the build
+            # step it must PULL the stable ancestors (vs/build) from the registry - so credentials must be present
+            # here too. (The Claude leaf is never pulled; it is always built locally - see Ensure-Image.)
             $tempDockerConfig = Join-Path ([System.IO.Path]::GetTempPath()) "docker-config-$( New-Guid )"
             New-Item -ItemType Directory -Path $tempDockerConfig -Force | Out-Null
             @{ auths = @{ } } | ConvertTo-Json | Set-Content (Join-Path $tempDockerConfig "config.json")
@@ -1782,25 +1816,27 @@ $envVarAssignments$gitConfigCommands$postInitCommands
             }
         }
 
-        # Resolve the whole chain: build or pull each image (parent first); freshly built layers are queued for push.
+        # Resolve the whole chain (parent first): use local, else pull ancestors, else build; freshly built layers
+        # are queued for push. This runs in the run step (-NoBuildImage) too: Ensure-Image is idempotent (it is a
+        # no-op for images already present locally), so when the build step shared this daemon nothing is rebuilt.
+        # Its purpose here is to guarantee the local-only Claude leaf exists before the boot image's FROM resolves
+        # it - the leaf is never pushed, so it cannot be pulled and MUST be (re)built locally in the run step.
         Ensure-Image $dockerfileFullPath | Out-Null
+    }
+    elseif ($existingContainerId)
+    {
+        Write-Host "Skipping image build (reusing existing container $existingContainerId)." -ForegroundColor Yellow
     }
     else
     {
-        if ($existingContainerId)
-        {
-            Write-Host "Skipping image build (reusing existing container $existingContainerId)." -ForegroundColor Yellow
-        }
-        else
-        {
-            Write-Host "Skipping image build (-NoBuildImage specified)." -ForegroundColor Yellow
-        }
+        Write-Host "Skipping image build (using pre-built registry image $ImageTag)." -ForegroundColor Yellow
     }
 
     # Build the local boot image over the resolved chain image (creates the bind-mount directories). The static
     # chain images stay pure and shareable; this thin layer carries the machine-specific mount set and is never
-    # pushed. `docker run` below uses the boot image. (Its `FROM` auto-pulls the leaf when running -NoBuildImage
-    # against a registry.)
+    # pushed. `docker run` below uses the boot image. Its `FROM` resolves the chain leaf locally: Ensure-Image
+    # above guarantees the leaf is present (the Claude leaf is built locally, ancestors are local-or-pulled), so
+    # the boot build never pulls and needs no registry credentials (same as the chain builds in Build-OneImage).
     if (-not $BuildImage -and -not $existingContainerId -and $mountPointsAsString)
     {
         $ImageTag = New-BootImage $ImageTag
@@ -2132,6 +2168,17 @@ finally
     if ($isDynamicCpus)
     {
         try { Invoke-DynamicCpuRebalance -AdditionalContainers 0 | Out-Null } catch { }
+    }
+
+    # Remove the run-specific boot image. Its tag is unique per run (timestamp suffix), so leaving it behind
+    # would accumulate dangling leaf images. Running here (not after the run) guarantees removal even when the
+    # build throws or the user presses Ctrl+C - PowerShell still executes finally on a pipeline interrupt. The
+    # `docker run --rm` removes the container, so the image is normally unreferenced; `-f` untags it even if a
+    # stopped container still references it. Best-effort: a removal failure must not mask the build's exit code.
+    if ($script:BootImageTag)
+    {
+        Write-Host "Removing boot image $($script:BootImageTag)" -ForegroundColor Gray
+        docker image rm -f $script:BootImageTag *> $null
     }
 
     # Restore original location
