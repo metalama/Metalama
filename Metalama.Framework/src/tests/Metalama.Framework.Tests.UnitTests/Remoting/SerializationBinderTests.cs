@@ -20,6 +20,29 @@ public sealed class SerializationBinderTests
     [InlineData( typeof(ProjectKey) )]
     [InlineData( typeof(ImmutableArray<string>) )]
     [InlineData( typeof(ImmutableArray<ProjectKey>) )]
+
+    // Every contract DTO type must be on the #1651 allow-list. These are registered by full-name string in
+    // JsonSerializationBinderProvider (not via typeof, to avoid the multi-version eager-load crash of #31075), so this
+    // theory guards against a typo in those strings: a mismatch makes BindToType reject the type and fails the test.
+    [InlineData( typeof(Metalama.Framework.DesignTime.AspectExplorer.AspectDatabaseAspectInstance) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.AspectExplorer.AspectDatabaseAspectTransformation) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.VisualStudio.AspectExplorer.AspectClassesChangedEventData) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.VisualStudio.AspectExplorer.AspectInstancesChangedEventData) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.CodeLens.CodeLensSummary) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.CodeLens.CodeLensDetailsTable) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.CodeLens.CodeLensDetailsHeader) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.CodeLens.CodeLensDetailsEntry) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.CodeLens.CodeLensDetailsField) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.Diagnostics.DiagnosticData) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.VisualStudio.CompileTimeCodeEditingStatus.CompileTimeEditingStatusChangedEventData) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.VisualStudio.CompileTimeCodeEditingStatus.CompileTimeErrorsChangedEventData) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.VisualStudio.ServiceProvider.RpcServiceInfo) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.VisualStudio.ServiceProvider.ServicesAddedEventData) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.VisualStudio.SourceGenerating.GeneratedSourceChangedEventData) )]
+    [InlineData( typeof(Metalama.Framework.DesignTime.Preview.SerializablePreviewTransformationResult) )]
+    [InlineData( typeof(Metalama.Framework.Engine.DesignTime.SerializableSyntaxTree) )]
+    [InlineData( typeof(Metalama.Framework.Engine.DesignTime.SerializableAnnotation) )]
+    [InlineData( typeof(Metalama.Framework.Code.SerializableDeclarationId) )]
     public void Binder( Type type )
     {
         this._binder.BindToName( type, out var assemblyName, out var typeName );
