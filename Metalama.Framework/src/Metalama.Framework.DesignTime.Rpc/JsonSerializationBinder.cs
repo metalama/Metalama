@@ -17,6 +17,19 @@ public sealed class JsonSerializationBinder : DefaultSerializationBinder
 {
     private readonly ConcurrentDictionary<string, Assembly> _assemblies = new();
     private readonly Dictionary<string, string> _assemblyNames = new();
+    private readonly JsonSerializationAllowList _allowList = new();
+
+    /// <summary>
+    /// Gets the per-type allow-list enforced by <see cref="BindToType"/> (security fix #1651 / GHSA-h26j-4vp7-x9w2).
+    /// </summary>
+    internal JsonSerializationAllowList AllowList => this._allowList;
+
+    /// <summary>
+    /// Registers a type on the RPC deserialization allow-list (#1651) after construction. Used by design-time extensions
+    /// (including Premium) to allow-list the contract types they send over the RPC channel. Always pass <c>typeof(...)</c>
+    /// so the resolved assembly identity matches under the <c>Metalama.Repacked</c> ILMerge in the VS extension.
+    /// </summary>
+    public void AddContractType( Type type ) => this._allowList.Add( type );
 
     public JsonSerializationBinder( Action<JsonSerializationBinderConfiguration>? configure = null )
     {
@@ -33,7 +46,25 @@ public sealed class JsonSerializationBinder : DefaultSerializationBinder
         configuration.AddSystemLibrary( "System.Private.CoreLib" );
         configuration.AddSystemLibrary( "mscorlib" );
 
-        // Add additional assemblies.
+        // SECURITY (#1651 / GHSA-h26j-4vp7-x9w2): in addition to the assembly-level checks above, BindToType enforces a
+        // per-type allow-list. The wire uses TypeNameHandling.All, so without this an attacker who can write to the
+        // design-time pipe could name any type in an allow-listed assembly (e.g. System.Private.CoreLib) and have it
+        // instantiated before any application logic runs (an unsafe-deserialization / gadget-chain RCE primitive).
+        // System / collection / protocol types that legitimately travel on the wire:
+        configuration.AddType( typeof(ImmutableArray<>) );
+        configuration.AddType( typeof(ImmutableDictionary<,>) );
+        configuration.AddType( typeof(string) );
+        configuration.AddType( typeof(CommonErrorData) );
+
+        // RPC contract types defined in this assembly. Types from higher-level assemblies (Metalama.Framework.DesignTime,
+        // .Engine and core Metalama.Framework) are registered by the IJsonSerializationBinderProvider via 'configure' below.
+        configuration.AddType( typeof(ProjectKey) );
+        configuration.AddType( typeof(RpcEventEnvelope) );
+        configuration.AddType( typeof(RpcEventData) );
+        configuration.AddType( typeof(Notifications.CompilationResultChangedEventData) );
+        configuration.AddType( typeof(Notifications.EndpointChangedEventData) );
+
+        // Add additional assemblies and allow-listed types.
         configure?.Invoke( configuration );
     }
 
@@ -66,6 +97,17 @@ public sealed class JsonSerializationBinder : DefaultSerializationBinder
         var modifiedTypeName = JsonSerializationBinderHelper.QualifyAssemblies( typeName, this._assemblyNames );
 
         var type = assembly.GetType( modifiedTypeName );
+
+        // SECURITY (#1651 / GHSA-h26j-4vp7-x9w2): the wire uses TypeNameHandling.All, so an attacker who can write to the
+        // design-time named pipe can name an arbitrary loadable type and have it instantiated before any application logic
+        // runs. Assembly-level allow-listing is insufficient because allow-listed assemblies (e.g. Metalama.Framework.Engine,
+        // System.Private.CoreLib) contain dangerous types. Enforce the per-type allow-list here, the untrusted boundary.
+        if ( type != null && !this._allowList.IsAllowed( type ) )
+        {
+            throw new InvalidOperationException(
+                $"For security reasons, the type '{type.FullName}' from assembly '{assemblyName}' cannot be deserialized "
+                + "over the design-time RPC channel because it is not on the RPC type allow-list. See issue #1651." );
+        }
 
         return type;
     }

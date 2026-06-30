@@ -64,3 +64,4 @@ global.json
 **/.idea/workspace.xml
 **/.idea/copilot.data.*.xml
 eng/docket-context/.g/
+.g/

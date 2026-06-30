@@ -54,7 +54,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
         this._properties = contextOptions.Properties;
 
         // We don't use the backstage TempFileManager because it would generate paths that are too long.
-        var baseDirectory = Path.Combine( MetalamaPathUtilities.GetTempPath(), "Metalama", "Tests", Guid.NewGuid().ToString() );
+        var baseDirectory = Path.Combine( MetalamaPathUtilities.GetTempDirectory(), "Tests", Guid.NewGuid().ToString() );
 
         if ( contextOptions.TempPathLength.HasValue )
         {
