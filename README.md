@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="450" src="images/metalama.svg" alt="Metalama logo" />
+  <img width="450" src="https://raw.githubusercontent.com/metalama/.github/HEAD/images/metalama.svg" alt="Metalama logo" />
 </p>
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10558/badge)](https://www.bestpractices.dev/projects/10558) 
@@ -16,7 +16,7 @@ It lets you write cleaner, more maintainable .NET code by automating repetitive 
 
 - **Write and maintain less code**: Eliminate boilerplate by generating it dynamically during compilation, reducing code lines and bugs by up to 15%.
 - **Validate your codebase in real time**: Enforce adherence to design rules and conventions without waiting for code reviews.
-- **Excel with large, complex, or legacy codebases**: Metalama shines at scale and does not require architectural changes.
+- **Excel with large, complex, or legacy codebases**: Metalama performs well at scale and does not require architectural changes.
 
 ## When to use it?
 
@@ -26,7 +26,7 @@ Metalama is ideal for:
 - **Large teams**: Align developers on consistent patterns and practices.
 - **Long lifecycle projects**: Maintain quality over years of development.
 
-It's main use cases are:
+Its main use cases are:
 
 - **Design Patterns**: [Singleton](https://metalama.net/applications/classic-singleton), [Memento](https://metalama.net/applications/memento), [Factory](https://metalama.net/applications/factory), [Builder](https://metalama.net/applications/builder), [Decorator](https://metalama.net/applications/decorator), [Proxy](https://metalama.net/applications/proxy), ...
 - **UI Patterns**: [INotifyPropertyChanged](https://metalama.net/applications/inotifypropertychanged), [Change Tracking](https://metalama.net/applications/command), [Memoization](https://metalama.net/applications/memoization), [Undo/Redo](https://metalama.net/applications/undo-redo), [Command](https://metalama.net/applications/command), [Dependency Properties](https://metalama.net/applications/dependency-property), ...
@@ -120,12 +120,12 @@ Below is a list of packages originating from this repository:
 | [Metalama.Extensions.Metrics](https://www.nuget.org/packages/Metalama.Extensions.Metrics/)           | Implements code metrics that can be consumed by aspects and fabrics. |
 | [Metalama.Extensions.Multicast](https://www.nuget.org/packages/Metalama.Extensions.Multicast/)       | Simulates the legacy PostSharp attribute multicasting to ease the migration from PostSharp to Metalama. |
 | [Metalama.Extensions.Architecture](https://www.nuget.org/packages/Metalama.Extensions.Architecture/) | Allows you to validate the source code against architecture rules. |
-| [Metalama.Patterns.Caching](https://www.nuget.org/packages/Metalama.Patterns.Caching/)               | Comprehensive caching framework for Metalama.                                                         |
+| [Metalama.Patterns.Caching](https://www.nuget.org/packages/Metalama.Patterns.Caching/)               | Caching framework for Metalama.                                                         |
 | [Metalama.Patterns.Caching.Aspects](https://www.nuget.org/packages/Metalama.Patterns.Caching.Aspects/) | Aspects designed for Metalama caching, building upon `Metalama.Patterns.Caching`.                     |
 | [Metalama.Patterns.Caching.Backend](https://www.nuget.org/packages/Metalama.Patterns.Caching.Backend/) | Provides an abstraction over caching backends, including an in-memory caching implementation.         |
 | [Metalama.Patterns.Contracts](https://www.nuget.org/packages/Metalama.Patterns.Contracts/)           | Code contract aspects like `[NotNull]`, `[Url]` for contract-based programming.                       |
 | [Metalama.Patterns.Immutability](https://www.nuget.org/packages/Metalama.Patterns.Immutability/)     | Represents the concept of Immutable Type so that it can be used by other packages like Metalama.Patterns.Observability. |
-| [Metalama.Patterns.Memoization](https://www.nuget.org/packages/Metalama.Patterns.Memoization)         | Implements a memoization aspect, i.e., simple and super-fast caching.                                  |
+| [Metalama.Patterns.Memoization](https://www.nuget.org/packages/Metalama.Patterns.Memoization)         | Implements a memoization aspect, i.e., simple, low-overhead caching.                                  |
 | [Metalama.Patterns.Observability](https://www.nuget.org/packages/Metalama.Patterns.Observability)     | A Metalama aspect implementing `INotifyPropertyChanged`.                                              |
 | [Metalama.Patterns.Wpf](https://www.nuget.org/packages/Metalama.Patterns.Wpf)                         | Aspects that implement WPF dependency properties and commands.                                        |
 | [Metalama.LinqPad](https://www.nuget.org/packages/Metalama.LinqPad/)                                 | Provides integration with LINQPad for inspecting projects and solutions.                              |

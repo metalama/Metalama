@@ -10,7 +10,7 @@ The `Metalama.Patterns.Wpf` contains aspects that implement WPF dependency prope
   * Integrates with `Metalama.Patterns.Contracts`.
   * Supports custom property-changing and property-changed methods.
   * Turns property initializer values into default values.
-* Generates WPF **commands** from C# methods :
+* Generates WPF **commands** from C# methods:
   * Supports a `CanExecute` method or property.
   * Integrates with `Metalama.Patterns.Observability` to support `INotifyPropertyChanged`.
 * Supports custom naming conventions.
@@ -20,7 +20,7 @@ The `Metalama.Patterns.Wpf` contains aspects that implement WPF dependency prope
 The primary types in this package are:
 
 * `DependencyPropertyAttribute` is an aspect that generates a WPF dependency property from a plain automatic property.
-* `CommandAttribute` is an aspect that exposes generates a WPF command property from a plain C# method.
+* `CommandAttribute` is an aspect that generates a WPF command property from a plain C# method.
 * `DependencyPropertyExtensions.ConfigureDependencyProperty` is a fabric extension method that configures the `DependencyPropertyAttribute` aspect.
 * `CommandExtensions.ConfigureCommand` is a fabric extension method that configures the `CommandAttribute` aspect.
 

@@ -26,5 +26,5 @@ workspace
 ## Related Packages
 
 * `Metalama.Framework.Workspaces` allows you to do code queries in arbitrary projects without LinqPad.
-* `Metalama.Framework.Instrospection` exposes concepts like like `Workspace`, `Project`, `IIntrospectionAspectInstance`, `IIntrospectionAspectClass`, `IIntrospectionAspectDiagnostic`, ...
+* `Metalama.Framework.Introspection` exposes concepts like `Workspace`, `Project`, `IIntrospectionAspectInstance`, `IIntrospectionAspectClass`, `IIntrospectionAspectDiagnostic`, ...
 * `Metalama.Framework` exposes the basic code model in the `Metalama.Framework.Code` namespace.

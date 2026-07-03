@@ -1,6 +1,6 @@
 ![Metalama Logo](https://raw.githubusercontent.com/metalama/.github/HEAD/images/metalama.svg)
 
-The `Metalama.Framework.Instrospection` package allows you to look at and introspect resulting transformations created by Metalama aspects. 
+The `Metalama.Framework.Introspection` package allows you to look at and introspect resulting transformations created by Metalama aspects. 
 
 For documentation, see https://doc.metalama.net/introspection-api.
 

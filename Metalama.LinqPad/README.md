@@ -6,7 +6,7 @@ The `Metalama.LinqPad` package allows you to load any C# project or solution int
 
 ## Key Features
 
-- Query your code as a database -- iincluding references, diagnostics, and aspect internals.
+- Query your code as a database, including references, diagnostics, and aspect internals.
 - Two LINQPad drivers to query projects and solutions as a database.
 - Nice formatting of object trees.
 

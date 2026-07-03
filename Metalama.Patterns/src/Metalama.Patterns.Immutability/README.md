@@ -6,7 +6,7 @@ The `Metalama.Patterns.Immutability` implements the concept of immutable type, i
 
 ## Key Features
 
-* You can mark types as immutable using the `[Immutable]` custom attribute or the `ConfigreImmutability` fabric extension warning.
+* You can mark types as immutable using the `[Immutable]` custom attribute or the `ConfigureImmutability` fabric extension method.
 * Concept of _shallow_ or _deep_ immutability.
 * The `[Immutable]` aspect reports warnings if some fields or properties are not mutable.
 

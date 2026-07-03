@@ -19,4 +19,4 @@ The `Metalama.Patterns.Memoization` package introduces a memoization aspect via 
 
 ## Related Packages
 
-* `Metalama.Patterns.Caching.Aspects` is a comprehensive aspect-oriented caching framework. It is also compatible with methods that have parameters.
+* `Metalama.Patterns.Caching.Aspects` is an aspect-oriented caching framework. It is also compatible with methods that have parameters.
