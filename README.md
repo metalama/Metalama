@@ -8,15 +8,17 @@
 [![GitHub Release](https://img.shields.io/github/v/release/metalama/Metalama)](https://github.com/metalama/Metalama/releases)
 
 
-**Metalama is a Roslyn-based meta-programming framework for code generation, architecture validation, and aspect-oriented programming in C#.**
+**Metalama is an open-source patterns & architecture toolkit for C#: implement design patterns at compile time and enforce your architecture rules as you type.**
 
-It lets you write cleaner, more maintainable .NET code by automating repetitive patterns at compile time using aspects, templates, and compile-time logic. It integrates tightly with the Roslyn compiler, providing full control over how your code is built.
+Define your team's patterns once: the compiler writes the repetitive parts at build time and enforces your rules as you type.
 
 ## Why Metalama?
 
-- **Write and maintain less code**: Eliminate boilerplate by generating it dynamically during compilation, reducing code lines and bugs by up to 15%.
-- **Validate your codebase in real time**: Enforce adherence to design rules and conventions without waiting for code reviews.
-- **Excel with large, complex, or legacy codebases**: Metalama performs well at scale and does not require architectural changes.
+- **Write the pattern once, apply it everywhere**: Aspects generate the repetitive code at compile time; the boilerplate never lands in the repo, so it never needs review or maintenance.
+- **Enforce architecture as you type**: Dependency rules, naming conventions, and pattern guidelines in plain C#, with real-time IDE feedback long before the pull request.
+- **Stay consistent in the AI era**: Hand-written or AI-generated, every line is checked against your rules; a pattern change is one file edit and the whole codebase follows at the next build.
+
+Built on top of Roslyn by the makers of PostSharp, with 20+ years of meta-programming in .NET.
 
 ## When to use it?
 
