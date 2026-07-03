@@ -18,7 +18,7 @@ The primary types in this package are:
 
 * `ObservableAttribute` is a type-level aspect that implements the Observer pattern and the `INotifyPropertyChanged` interface.
 * `NotObservableAttribute` is an attribute that waives a property from the `ObservableAttribute` aspect.
-* `ConstantAttribute` is an attribute that represents that a method is safed for use from a property made observable by the `ObservableAttribute` aspect.
+* `ConstantAttribute` is an attribute that represents that a method is safe for use from a property made observable by the `ObservableAttribute` aspect.
 * `SuppressObservabilityWarningsAttribute` is an attribute that suppresses all warnings reported by the `ObservableAttribute` aspect in the target property.
 * `ObservabilityExtensions.ConfigureObservability` is a fabric extension method that allows to configure the `ObservableAttribute` aspect.
 

@@ -1,4 +1,4 @@
-![Metalama Logo](https://raw.githubusercontent.com/metalama/Metalama/master/images/metalama-by-postsharp.svg)
+![Metalama Logo](https://raw.githubusercontent.com/metalama/.github/HEAD/images/metalama.svg)
 
 The `Metalama.Framework.Implementation.<RoslynVersion>` package contains multiple implementation libraries for `Metalama.Framework`, where `<RoslynVersion>` refers to the Roslyn API version for which libraries are compiled.
 

@@ -6,14 +6,14 @@
 
 ## Key Features
 
-It has includes three use cases:
+It includes three use cases:
 
-- **Inspecting method bodies** using Roslyn's syntax tree and symbols (Metalama's code model does not give you access to this level of details.).
+- **Inspecting method bodies** using Roslyn's syntax tree and symbols (Metalama's code model does not give you access to this level of detail.)
 - **Build custom aspect weavers** to create aspects that perform arbitrary syntax tree transformation.
 - **Build custom metrics**.
 
 ## Resources
 
 * Documentation: [Extending Metalama with the Roslyn API](https://doc.metalama.net/conceptual/sdk).
-* Examples: [Metalama.Community](https://github.com/postsharp/Metalama.Community), a set of examples migrated from Fody.
+* Examples: [Metalama.Community](https://github.com/metalama/Metalama.Community), a set of examples migrated from Fody.
 

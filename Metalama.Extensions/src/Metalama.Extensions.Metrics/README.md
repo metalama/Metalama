@@ -7,7 +7,7 @@ The `Metalama.Extensions.Metrics` package implements a few metrics that can be c
 ## Principal Types
 
 * `StatementNumber`: counts the number of statements.
-* `SyntaxNodeNumber`: counts the number of Roslyn syntax node.
+* `SyntaxNodeNumber`: counts the number of Roslyn syntax nodes.
 
 To use a metric in an aspect, use for instance:
 

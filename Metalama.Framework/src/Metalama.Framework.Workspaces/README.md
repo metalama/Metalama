@@ -2,9 +2,9 @@
 
 ## About
 
-`Metalama.Framework.Workspaces` package allows you to load Metalama in any project, where you can load full pipeline but it's not possible to compile out of this pipeline.
+`Metalama.Framework.Workspaces` package loads the full Metalama pipeline for inspection, without compiling.
 
-When loading and running Metalama using this package, you can get object model of aspects, advices, transformations, diagnostics etc.
+When loading and running Metalama using this package, you can get the object model of aspects, advices, transformations, diagnostics etc.
 
 It also allows you to query code metrics.
 

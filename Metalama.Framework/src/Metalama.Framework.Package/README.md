@@ -18,7 +18,7 @@ Metalama is ideal for:
 - **Large teams**: Align developers on consistent patterns and practices.
 - **Long lifecycle projects**: Maintain quality over years of development.
 
-It's main use cases are:
+Its main use cases are:
 
 - **Design Patterns**: [Singleton](https://metalama.net/applications/design-patterns/classic-singleton), [Memento](https://metalama.net/applications/design-patterns/memento), [Factory](https://metalama.net/applications/design-patterns/factory), [Builder](https://metalama.net/applications/design-patterns/builder), [Decorator](https://metalama.net/applications/design-patterns/decorator), [Proxy](https://metalama.net/applications/design-patterns/proxy), ...
 - **UI Patterns**: [INotifyPropertyChanged](https://metalama.net/applications/ui/inotifypropertychanged), [Change Tracking](https://metalama.net/applications/ui/command), [Memoization](https://metalama.net/applications/ui/memoization), [Undo/Redo](https://metalama.net/applications/ui/undo-redo), [Command](https://metalama.net/applications/ui/command), [Dependency Properties](https://metalama.net/applications/ui/dependency-property), ...
