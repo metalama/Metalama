@@ -1,0 +1,37 @@
+<Project>
+
+  <!-- Imports Directory.Build.props of the upper directory. We must do this explicitly because this project has no SDK. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')" />
+
+  <!--
+    Issue #1722 - deterministic reproduction of the FileNotFoundException raised while evaluating aspect
+    eligibility, matching the reporter's scenario: an aspect NuGet package that references a compile-time helper
+    package is consumed, then the helper package is upgraded to a new version.
+
+    Root cause: the aspect's compile-time assembly (ml!Issue1722.Aspects_<hash>) is cached under a key
+    (CompileTimeCompilationBuilder.ComputeProjectHash) that includes the referenced Primitives project's SOURCE
+    hash only, NOT its identity/version. The 'ml!Issue1722.Primitives_<hash>' reference baked into ml!Aspects,
+    however, derives from Primitives' FULL hash, which DOES include the version. Issue1722.Primitives 1.0.0 and
+    2.0.0 have identical source, so:
+      * the aspect's compile-time cache key is unchanged, so the stale ml!Aspects (referencing ml!Primitives @
+        1.0.0) is reused;
+      * the domain loads ml!Primitives @ 2.0.0 (a differently-named compile-time assembly).
+    CompileTimeDomain.ResolveAssembly has no path fallback for referenced package compile-time assemblies, so the
+    mismatch is a fatal FileNotFoundException - during eligibility, the first place the compiled ml!Aspects
+    delegate's baked reference is JITed.
+
+    The steps are driven by repro.ps1, which launches every 'dotnet' invocation as an independent top-level
+    process (Start-Process -Wait). That isolation is essential: running the builds directly as MSBuild <Exec>
+    children makes them share one warm in-process CompileTimeDomain that keeps ml!Primitives @ 1.0.0 loaded,
+    which masks (self-heals) the bug.
+
+    The Build target FAILS while the bug is present and SUCCEEDS once it is fixed.
+  -->
+  <Target Name="Build">
+    <!-- Route through 'cmd /c start /wait' so the reproduction runs in a process tree fully detached from this
+         MSBuild invocation. Otherwise the builds it spawns rejoin this MSBuild's node ecosystem and share one
+         warm in-process CompileTimeDomain, which self-heals the bug. -->
+    <Exec Command="cmd /c start &quot;Issue1722&quot; /wait powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)repro.ps1&quot; -MetalamaVersion $(MetalamaVersion)" />
+  </Target>
+
+</Project>

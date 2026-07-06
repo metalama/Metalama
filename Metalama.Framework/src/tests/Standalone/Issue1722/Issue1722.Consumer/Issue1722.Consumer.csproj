@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only the aspect package is referenced directly; Issue1722.Primitives comes in transitively,
+         mirroring the NuGet dependency chain in issue #1722. -->
+    <ProjectReference Include="../Issue1722.Aspects/Issue1722.Aspects.csproj" />
+  </ItemGroup>
+
+</Project>

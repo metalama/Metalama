@@ -184,10 +184,15 @@ internal sealed partial class CompileTimeCompilationBuilder
         h.Append( assemblyIdentity.Version.ToString() );
         this._logger.Trace?.Log( $"ProjectHash: AssemblyIdentity='{assemblyIdentity.Name}, {assemblyIdentity.Version}'" );
 
-        foreach ( var reference in referencedProjects.OrderBy( r => r.Hash ) )
+        // We include each reference's full compile-time identity (its 'ml!<name>_<hash>' assembly name), not just
+        // its source hash. The compiled assembly bakes a reference to exactly that name, so if a referenced
+        // project's identity changes (e.g. a package version bump) while its source is unchanged, the dependent's
+        // hash must change too. Otherwise a stale dependent assembly is served from the cache and keeps a baked
+        // reference to a 'ml!' assembly that is no longer loaded, causing a FileNotFoundException (issue #1722).
+        foreach ( var reference in referencedProjects.OrderBy( r => r.CompileTimeIdentity.Name, StringComparer.Ordinal ) )
         {
-            h.Append( reference.Hash );
-            this._logger.Trace?.Log( $"ProjectHash: '{reference.RunTimeIdentity.Name}'={reference.Hash}" );
+            h.Append( reference.CompileTimeIdentity.Name );
+            this._logger.Trace?.Log( $"ProjectHash: '{reference.RunTimeIdentity.Name}'={reference.CompileTimeIdentity.Name}" );
         }
 
         h.Append( sourceHash );

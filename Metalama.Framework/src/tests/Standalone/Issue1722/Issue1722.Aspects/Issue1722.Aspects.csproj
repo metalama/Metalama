@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <InternalOnlyPackage>True</InternalOnlyPackage>
+    <!-- Aspects is packed once (version 1.0.0) against whatever Primitives version is current at pack time.
+         Its embedded compile-time manifest therefore records that Primitives version permanently, which is the
+         key to the deterministic reproduction: the consumer can later upgrade Primitives independently. -->
+    <Issue1722AspectsVersion Condition="'$(Issue1722AspectsVersion)' == ''">1.0.0</Issue1722AspectsVersion>
+    <Version>$(Issue1722AspectsVersion)</Version>
+    <AssemblyVersion>$(Issue1722AspectsVersion)</AssemblyVersion>
+    <FileVersion>$(Issue1722AspectsVersion)</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Issue1722.Primitives/Issue1722.Primitives.csproj" />
+  </ItemGroup>
+
+</Project>
