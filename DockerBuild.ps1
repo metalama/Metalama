@@ -581,7 +581,7 @@ try
         # Persists $script:DayStamp (the single source of truth, also mixed
         # into the image tag by Get-ContentHash in Claude mode) to disk so
         # Dockerfile.claude can COPY it in and invalidate inner layers on
-        # the same day boundary as the outer image tag.
+        # the same week boundary as the outer image tag.
 
         $timestampDir = if ($IsUnix)
         {
@@ -615,7 +615,7 @@ try
         if ($needsUpdate)
         {
             Set-Content -Path $timestampFile -Value $script:DayStamp -NoNewline -Force
-            $label = if ($Update) { "forced" } else { "daily" }
+            $label = if ($Update) { "forced" } else { "weekly" }
             Write-Host "Timestamp file updated ($label): $script:DayStamp" -ForegroundColor Cyan
         }
 
@@ -656,8 +656,8 @@ try
             }
         }
 
-        # When a day stamp is supplied (Claude mode), rotate the image tag once
-        # per UTC day so @latest npm installs of the Claude CLI and marketplace
+        # When a week stamp is supplied (Claude mode), rotate the image tag once
+        # per UTC week so @latest npm installs of the Claude CLI and marketplace
         # plug-ins actually get refreshed. Same string as update.timestamp.
         if ($DayStamp)
         {
@@ -737,8 +737,8 @@ try
         # descendants through $baseFold.
         $extra = "os=$windowsVersion|base=$baseFold"
 
-        # Fold the daily stamp only for images that bake the update.timestamp cache-buster (the Claude leaf), so
-        # @latest npm installs of the Claude CLI and plug-ins refresh once per UTC day.
+        # Fold the weekly stamp only for images that bake the update.timestamp cache-buster (the Claude leaf), so
+        # @latest npm installs of the Claude CLI and plug-ins refresh once per UTC week.
         $body = Get-Content $dfPath -Raw -ErrorAction SilentlyContinue
         $hashDayStamp = if ($body -and $body -match 'update\.timestamp') { $script:DayStamp } else { $null }
 
@@ -871,7 +871,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         $tag = Resolve-ImageTag $dfPath
 
         # The Claude leaf is ALWAYS built locally and is NEVER pulled from or pushed to the registry. It bakes a
-        # daily cache-buster (update.timestamp) and `@latest` npm/plugin installs, so a registry copy is stale by
+        # weekly cache-buster (update.timestamp) and `@latest` npm/plugin installs, so a registry copy is stale by
         # design and sharing it saves nothing. Keeping it local-only also means a missing/unauthenticated registry
         # (which only ever served the stable ancestor chain) can never fail a Claude run on pull/push.
         $isClaudeLeaf = (Get-DockerfileStem $dfPath) -eq 'claude'
@@ -965,18 +965,26 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     }
     else
     {
-        # Single source of truth for today's cache-busting stamp, shared by
+        # Single source of truth for the cache-busting stamp, shared by
         # Get-ContentHash (image tag, Claude mode only) and Get-TimestampFile
         # (update.timestamp file baked into the image). Computing it once here
         # guarantees both consumers see the same value even if the wall clock
-        # crosses UTC midnight mid-run.
+        # crosses a week boundary mid-run.
+        #
+        # The stamp rotates once per UTC week (anchored to the Monday of the
+        # current week) so the @latest npm installs of the Claude CLI and
+        # marketplace plug-ins refresh weekly rather than daily. Use -Update to
+        # force an immediate refresh regardless of the week boundary.
         $script:DayStamp = if ($Update)
         {
             [DateTime]::UtcNow.ToString("o")          # full ISO 8601, seconds precision
         }
         else
         {
-            [DateTime]::UtcNow.Date.ToString("yyyy-MM-dd")
+            # Monday of the current UTC week (DayOfWeek: Sunday=0 .. Saturday=6).
+            $utcToday = [DateTime]::UtcNow.Date
+            $daysSinceMonday = ([int]$utcToday.DayOfWeek + 6) % 7
+            $utcToday.AddDays(-$daysSinceMonday).ToString("yyyy-MM-dd")
         }
 
         # Determine which Dockerfile will be used.
@@ -1730,7 +1738,7 @@ $envVarAssignments$gitConfigCommands$postInitCommands
 
     # Copy timestamp file into the consuming image's per-image context. Only the Claude image bakes the
     # cache-buster (via `COPY .g/update.timestamp`), so it goes into docker-context/<prefix>-claude/.g/ — not
-    # the shared context. (The .g/ dir is excluded from the content hash; daily rotation is folded via DayStamp.)
+    # the shared context. (The .g/ dir is excluded from the content hash; weekly rotation is folded via DayStamp.)
     if ($timestampFile)
     {
         $claudeContextDir = Join-Path $dockerContextDirectory "claude"
