@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <InternalOnlyPackage>True</InternalOnlyPackage>
+    <!-- Re-enable assembly-info generation (the Standalone harness disables it) so AssemblyVersion actually
+         takes effect and v1/v2 produce different compile-time assembly hashes. -->
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <!-- The package/assembly version is driven by the Issue1722.proj orchestrator. Because the compile-time
+         assembly name 'ml!Issue1722.Primitives_<hash>' embeds this version (via
+         CompileTimeCompilationBuilder.ComputeProjectHash) but the SOURCE is unchanged, bumping the version
+         changes the compile-time assembly name without changing the source hash — the core of issue #1722. -->
+    <Issue1722PrimitivesVersion Condition="'$(Issue1722PrimitivesVersion)' == ''">1.0.0</Issue1722PrimitivesVersion>
+    <Version>$(Issue1722PrimitivesVersion)</Version>
+    <AssemblyVersion>$(Issue1722PrimitivesVersion)</AssemblyVersion>
+    <FileVersion>$(Issue1722PrimitivesVersion)</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+</Project>

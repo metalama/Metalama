@@ -1,0 +1,11 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Packages.props', '$(MSBuildThisFileDirectory)../'))" />
+  <PropertyGroup>
+    <ConsumerAspectsVersion Condition="'$(ConsumerAspectsVersion)' == ''">1.0.0</ConsumerAspectsVersion>
+    <ConsumerPrimitivesVersion Condition="'$(ConsumerPrimitivesVersion)' == ''">1.0.0</ConsumerPrimitivesVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Issue1722.Aspects" Version="$(ConsumerAspectsVersion)" />
+    <PackageVersion Include="Issue1722.Primitives" Version="$(ConsumerPrimitivesVersion)" />
+  </ItemGroup>
+</Project>
