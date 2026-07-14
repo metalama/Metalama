@@ -33,7 +33,7 @@ SHELL ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Comma
 # Install Claude CLI Add-ins
 # Install Claude plugins using cmd shell to avoid HCS issues with PowerShell
 SHELL ["cmd", "/S", "/C"]
-RUN echo Installing Claude plugins && C:\npm\claude plugin marketplace add https://github.com/metalama/Metalama.AI.Skills && C:\npm\claude plugin marketplace add https://github.com/postsharp/PostSharp.Engineering.AISkills && C:\npm\claude plugin install metalama && C:\npm\claude plugin install metalama-dev && C:\npm\claude plugin install eng
+RUN echo Installing Claude plugins && C:\npm\claude plugin marketplace add https://github.com/metalama/Metalama.AI.Skills && C:\npm\claude plugin marketplace add https://github.com/postsharp-ops/PostSharp.Engineering.AISkills && C:\npm\claude plugin install metalama && C:\npm\claude plugin install metalama-dev && C:\npm\claude plugin install eng
 
 # Restore PowerShell shell using full path
 SHELL ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Command"]
