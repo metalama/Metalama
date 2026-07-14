@@ -28,7 +28,6 @@
       "Bash(git add:*)",
       "Bash(git remote:*)",
       "SlashCommand(/tc-build)",
-      "WebFetch(domain:postsharp.teamcity.com)",
       "Bash(cat:*)",
       "Bash(git tag:*)",
       "Bash(gh issue list:*)",
@@ -45,18 +44,13 @@
       "Bash(git merge:*)",
       "Bash(grep:*)",
       "Bash(for:*)",
-      "Bash(pwsh:*)",
       "Bash(ls:*)",
       "SlashCommand(/fix-binlog-warnings)",
-      "Bash(code:*)",
       "Bash(git merge-base:*)",
       "Bash(gh search:*)",
-      "Bash(find /c/src/Metalama-2026.1/Metalama -type f \\\\\\(-name *.xml -o -name *.config \\\\\\))",
-      "Read(//c/src/Metalama-2026.1/**)",
-      "Read(//c/src/PostSharp.Engineering/**)",
       "PowerShell(dotnet build *)",
       "PowerShell(dotnet test *)",
-      "WebFetch(domain:nicolaiarocci.com)"
+      "Bash(gh release *)"
     ],
     "deny": [],
     "ask": []

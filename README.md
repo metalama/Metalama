@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="450" src="https://raw.githubusercontent.com/metalama/.github/HEAD/images/metalama.svg" alt="Metalama logo" />
+  <img width="450" src="https://raw.githubusercontent.com/metalama/.github/HEAD/images/metalama.svg" alt="Metalama by PostSharp" />
 </p>
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10558/badge)](https://www.bestpractices.dev/projects/10558) 
@@ -8,7 +8,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/metalama/Metalama)](https://github.com/metalama/Metalama/releases)
 
 
-**Metalama is an open-source patterns & architecture toolkit for C#: implement design patterns at compile time and enforce your architecture rules as you type.**
+**Metalama is an open-source patterns & architecture toolkit for C#.**
 
 Define your team's patterns once: the compiler writes the repetitive parts at build time and enforces your rules as you type.
 
@@ -18,7 +18,7 @@ Define your team's patterns once: the compiler writes the repetitive parts at bu
 - **Enforce architecture as you type**: Dependency rules, naming conventions, and pattern guidelines in plain C#, with real-time IDE feedback long before the pull request.
 - **Stay consistent in the AI era**: Hand-written or AI-generated, every line is checked against your rules; a pattern change is one file edit and the whole codebase follows at the next build.
 
-Built on top of Roslyn by the makers of PostSharp, with 20+ years of meta-programming in .NET.
+Built on Roslyn by the PostSharp team, who have been doing compiler-level meta-programming in .NET since 2004.
 
 ## When to use it?
 
@@ -30,43 +30,45 @@ Metalama is ideal for:
 
 Its main use cases are:
 
-- **Design Patterns**: [Singleton](https://metalama.net/applications/classic-singleton), [Memento](https://metalama.net/applications/memento), [Factory](https://metalama.net/applications/factory), [Builder](https://metalama.net/applications/builder), [Decorator](https://metalama.net/applications/decorator), [Proxy](https://metalama.net/applications/proxy), ...
-- **UI Patterns**: [INotifyPropertyChanged](https://metalama.net/applications/inotifypropertychanged), [Change Tracking](https://metalama.net/applications/command), [Memoization](https://metalama.net/applications/memoization), [Undo/Redo](https://metalama.net/applications/undo-redo), [Command](https://metalama.net/applications/command), [Dependency Properties](https://metalama.net/applications/dependency-property), ...
-- **Object Services**: [Cloning](https://metalama.net/applications/cloning), [ToString](https://metalama.net/applications/tostring), [Comparison](https://metalama.net/applications/equatable), ...
-- **Defensive Programming**: [Code Contracts](https://metalama.net/applications/contracts) (preconditions, post-conditions, invariants)
-- **DevOps**: [Logging & Tracing](https://metalama.net/applications/logging), [Metrics](https://metalama.net/applications/metrics), [Caching](https://metalama.net/applications/caching), [Exception Handling](https://metalama.net/applications/exception-handling)
-- [Architecture Validation](https://metalama.net/applications/architecture-verification) 💎
-- [Refactoring](https://metalama.net/applications/refactoring)
-- In general, [Clean Code](https://metalama.net/applications/clean-code) and [SOLID & DRY Principles](https://metalama.net/applications/solid)
+- **Design Patterns**: [Singleton](https://postsharp.net/metalama/applications/classic-singleton), [Memento](https://postsharp.net/metalama/applications/memento), [Factory](https://postsharp.net/metalama/applications/factory), [Builder](https://postsharp.net/metalama/applications/builder), [Decorator](https://postsharp.net/metalama/applications/decorator), [Proxy](https://postsharp.net/metalama/applications/proxy), ...
+- **UI Patterns**: [INotifyPropertyChanged](https://postsharp.net/metalama/applications/inotifypropertychanged), [Change Tracking](https://postsharp.net/metalama/applications/change-tracking), [Memoization](https://postsharp.net/metalama/applications/memoization), [Undo/Redo](https://postsharp.net/metalama/applications/undo-redo), [Command](https://postsharp.net/metalama/applications/command), [Dependency Properties](https://postsharp.net/metalama/applications/dependency-property), ...
+- **Object Services**: [Cloning](https://postsharp.net/metalama/applications/cloning), [ToString](https://postsharp.net/metalama/applications/tostring), [Comparison](https://postsharp.net/metalama/applications/equatable), ...
+- **Defensive Programming**: [Code Contracts](https://postsharp.net/metalama/applications/contracts) (preconditions, post-conditions, invariants)
+- **DevOps**: [Logging & Tracing](https://postsharp.net/metalama/applications/logging), [Metrics](https://postsharp.net/metalama/applications/metrics), [Caching](https://postsharp.net/metalama/applications/caching), [Exception Handling](https://postsharp.net/metalama/applications/exception-handling)
+- [Architecture Validation](https://postsharp.net/metalama/applications/architecture-verification) 💎
+- [Refactoring](https://postsharp.net/metalama/applications/refactoring)
+- In general, [Clean Code](https://postsharp.net/metalama/applications/clean-code) and [SOLID & DRY Principles](https://postsharp.net/metalama/applications/solid)
 
 
 ## License
 
-Metalama is released under the [MIT license](LICENSE.md).
+Metalama is vendor-led open source: built and maintained by full-time engineers, funded by commercial licenses.
+
+The core framework, which is the large majority of the codebase, is released under the [MIT license](LICENSE.md). It cannot be taken away, relicensed, or paywalled.
 
 Some optional extensions and IDE tooling are released under a proprietary license and are marked with a diamond 💎 symbol.
 
 ## Features
 
-- [Code Generation](https://metalama.net/features/code-generation)
-- [Code Validation](https://metalama.net/features/code-validation)
-- [Immediate Editor Feedback](https://metalama.net/features/architecture-verification)
-- [Code Fix Toolkit](https://metalama.net/features/code-fixes) 💎
-- [Ready-to-Use Aspect Libraries](https://metalama.net/features/aspect-libraries)
-- [Visual Studio Tooling](https://metalama.net/features/tooling) 💎
-- [Test Frameworks](https://metalama.net/features/testing)
-- [Debugging of Transformed Code](https://metalama.net/features/debugging)
-- [Roslyn Extensibility SDK](https://metalama.net/features/roslyn)
-- [Code Query API](https://metalama.net/features/code-query)
+- [Code Generation](https://postsharp.net/metalama/features/code-generation)
+- [Code Validation](https://postsharp.net/metalama/features/code-validation)
+- [Immediate Editor Feedback](https://postsharp.net/metalama/features/design-time-feedback)
+- [Code Fix Toolkit](https://postsharp.net/metalama/features/code-fixes) 💎
+- [Ready-to-Use Aspect Libraries](https://postsharp.net/metalama/features/aspect-libraries)
+- [Visual Studio Tooling](https://postsharp.net/metalama/features/tooling) 💎
+- [Test Frameworks](https://postsharp.net/metalama/features/testing)
+- [Debugging of Transformed Code](https://postsharp.net/metalama/features/debugging)
+- [Roslyn Extensibility SDK](https://postsharp.net/metalama/features/roslyn)
+- [Code Query API](https://postsharp.net/metalama/features/code-query)
 
 ## Resources
 
-- 🌐 [Metalama Website](https://metalama.net)
-- 📖 [Documentation](https://doc.metalama.net)
-- 📝 [Annotated Examples](https://doc.metalama.net/examples)
-- 📢 [Release Notes](https://doc.metalama.net/conceptual/release-notes)
-- 📜 [Builds](https://github.com/metalama/Metalama/releases)
-- ✨ [Metalama Tools for Visual Studio Extension](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp)
+- [Metalama Website](https://postsharp.net/metalama)
+- [Documentation](https://doc.postsharp.net/metalama)
+- [Annotated Examples](https://doc.postsharp.net/metalama/examples)
+- [Release Notes](https://doc.postsharp.net/metalama/conceptual/release-notes)
+- [Builds](https://github.com/metalama/Metalama/releases)
+- [Metalama Tools for Visual Studio Extension](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp)
 
 ## Quick Start
 
@@ -78,29 +80,26 @@ Some optional extensions and IDE tooling are released under a proprietary licens
 
 2. Optionally, install [Metalama Tools for Visual Studio Extension](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp). It's free for individuals, non-commercial uses, and companies with up to 3 users.
 
-3. Explore the [Metalama Marketplace](https://metalama.net/marketplace) for ready-made aspects or examples.
+3. Explore the [Metalama Marketplace](https://postsharp.net/metalama/marketplace) for ready-made aspects or examples.
 
-4. Follow the [Getting Started](https://doc.metalama.net/conceptual/getting-started) guide to create your first aspect.
+4. Follow the [Getting Started](https://doc.postsharp.net/metalama/conceptual/getting-started) guide to create your first aspect.
 
 ## Contributing
 
-We welcome contributions! Here's how you can help:
+Contributions are accepted through the following channels:
 
-- ⭐ Star this repository or review us on [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp).
-- 📝 Write a blog post or record a video about Metalama.
-- 📦 Share your aspects on the [Metalama Marketplace](https://metalama.net/marketplace).
-- 🛠️ Contribute to [Metalama.Community](https://github.com/metalama/Metalama.Community).
-- 📚 Improve the documentation. [Learn how](https://metalama.net/contributing/contribute-docs).
-- 🐛 Fix bugs or contribute code. [Learn how](https://metalama.net/contributing/contribute-code).
+- Share your aspects on the [Metalama Marketplace](https://postsharp.net/metalama/marketplace).
+- Contribute aspects to [Metalama.Community](https://github.com/metalama/Metalama.Community).
+- Improve the documentation. [Learn how](https://doc.postsharp.net/metalama/contributing/contribute-docs).
+- Fix bugs or contribute code. [Learn how](https://doc.postsharp.net/metalama/contributing/contribute-code).
 
-For more details, see [Contributing to Metalama](https://metalama.net/contributing).
+For more details, see [Contributing to Metalama](https://doc.postsharp.net/metalama/contributing).
 
-## Support & Community
+## Support
 
-- Report issues on GitHub. Follow [these recommendations](https://metalama.net/contributing/file-an-issue).
-- Join [GitHub discussions](https://github.com/orgs/metalama/discussions) for questions and proposals.
-- Enterprise support is available. Learn more about [premium support](https://metalama.net/premium/enterprise-support). 💎
-- Please review our [Community Guidelines](https://metalama.net/contributing/guidelines).
+- Report issues on GitHub. Follow [these recommendations](https://doc.postsharp.net/metalama/contributing/file-an-issue).
+- Ask questions and submit proposals in [GitHub discussions](https://github.com/orgs/metalama/discussions).
+- Enterprise support is available. Learn more about [premium support](https://postsharp.net/metalama/premium/enterprise-support). 💎
 
 ## Packages
 
@@ -120,7 +119,7 @@ Below is a list of packages originating from this repository:
 | [Metalama.Tool](https://www.nuget.org/packages/Metalama.Tool/)                                       |  The `metalama` tool for the .NET CLI.   |
 | [Metalama.Extensions.DependencyInjection](https://www.nuget.org/packages/Metalama.Extensions.DependencyInjection/) | A framework that allows aspects to consume dependencies from an arbitrary dependency injection framework. |
 | [Metalama.Extensions.Metrics](https://www.nuget.org/packages/Metalama.Extensions.Metrics/)           | Implements code metrics that can be consumed by aspects and fabrics. |
-| [Metalama.Extensions.Multicast](https://www.nuget.org/packages/Metalama.Extensions.Multicast/)       | Simulates the legacy PostSharp attribute multicasting to ease the migration from PostSharp to Metalama. |
+| [Metalama.Extensions.Multicast](https://www.nuget.org/packages/Metalama.Extensions.Multicast/)       | Reproduces PostSharp attribute multicasting in Metalama, for teams porting business code from one to the other. |
 | [Metalama.Extensions.Architecture](https://www.nuget.org/packages/Metalama.Extensions.Architecture/) | Allows you to validate the source code against architecture rules. |
 | [Metalama.Patterns.Caching](https://www.nuget.org/packages/Metalama.Patterns.Caching/)               | Caching framework for Metalama.                                                         |
 | [Metalama.Patterns.Caching.Aspects](https://www.nuget.org/packages/Metalama.Patterns.Caching.Aspects/) | Aspects designed for Metalama caching, building upon `Metalama.Patterns.Caching`.                     |
@@ -132,7 +131,7 @@ Below is a list of packages originating from this repository:
 | [Metalama.Patterns.Wpf](https://www.nuget.org/packages/Metalama.Patterns.Wpf)                         | Aspects that implement WPF dependency properties and commands.                                        |
 | [Metalama.LinqPad](https://www.nuget.org/packages/Metalama.LinqPad/)                                 | Provides integration with LINQPad for inspecting projects and solutions.                              |
 | [Flashtrace](https://www.nuget.org/packages/Flashtrace)                                               | A structured tracing library used by `Metalama.Patterns.Caching`.                                     |
-| [Flashtrace.Formatters](https://www.nuget.org/packages/Flashtrace.Formatters)                         | Object formatters used in caching and logging.                                                        ```
+| [Flashtrace.Formatters](https://www.nuget.org/packages/Flashtrace.Formatters)                         | Object formatters used in caching and logging.                                                        |
 
 ## Related Repositories
 
@@ -141,8 +140,8 @@ Below is a list of packages originating from this repository:
 | [Metalama.Compiler](https://github.com/metalama/Metalama.Compiler)        | MIT              | A [Roslyn](https://github.com/dotnet/roslyn) fork for source code transformations. |
 | [PostSharp.Engineering](https://github.com/postsharp/PostSharp.Engineering) | MIT              | A custom multi-repo build and CI framework.                                 |
 | [Metalama.Community](https://github.com/metalama/Metalama.Community)     | MIT              | Community-contributed aspects repository.                                   |
-| [Metalama.Documentation](https://github.com/metalama/Metalama.Documentation) | MIT              | Source for documentation hosted on [Metalama Docs](https://doc.metalama.net/). |
-| [Metalama.Samples](https://github.com/metalama/Metalama.Samples)          | MIT              | Illustrative samples available at [Metalama Examples](https://doc.metalama.net/examples). |
+| [Metalama.Documentation](https://github.com/metalama/Metalama.Documentation) | MIT              | Source for documentation hosted on [Metalama Docs](https://doc.postsharp.net/metalama/). |
+| [Metalama.Samples](https://github.com/metalama/Metalama.Samples)          | MIT              | Illustrative samples available at [Metalama Examples](https://doc.postsharp.net/metalama/examples). |
 | [Metalama.Premium](https://github.com/metalama/Metalama.Premium)  💎       | Proprietary      | Extensions available to customers with a commercial license.                      |
 
 ## Dependencies
