@@ -1,4 +1,4 @@
-![Metalama Logo](https://raw.githubusercontent.com/metalama/.github/HEAD/images/metalama.svg)
+![Metalama by PostSharp](https://raw.githubusercontent.com/metalama/.github/HEAD/images/metalama.svg)
 
 This repo contains PostSharp API annotated for migration to Metalama.
 

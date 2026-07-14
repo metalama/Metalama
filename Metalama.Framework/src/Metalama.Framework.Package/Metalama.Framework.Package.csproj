@@ -5,7 +5,7 @@
 
         <!-- Packaging -->
         <PackageId>Metalama.Framework</PackageId>
-        <PackageDescription>A Roslyn-based meta-programming framework for code generation, architecture validation and aspect-oriented programming in C#.</PackageDescription>
+        <PackageDescription>An open-source patterns &amp; architecture toolkit for C#. Define your team's patterns once: the compiler writes the repetitive parts at build time and enforces your rules as you type.</PackageDescription>
         
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddAnalyzersToOutput</TargetsForTfmSpecificContentInPackage>

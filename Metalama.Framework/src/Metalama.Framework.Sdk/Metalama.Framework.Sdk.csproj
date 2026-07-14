@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <PackageDescription>
-            Metalama SDK. A tool for custom source code modifying extensions using the Roslyn API. More powerful than source generators.
+            Metalama SDK. Lets you extend Metalama with the Roslyn API. Unlike source generators, which can only add code, an SDK-based aspect weaver can modify existing syntax trees.
         </PackageDescription>
         
         <RootNamespace>Metalama.Framework.Engine</RootNamespace>
