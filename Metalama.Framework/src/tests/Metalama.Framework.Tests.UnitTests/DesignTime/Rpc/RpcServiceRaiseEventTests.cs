@@ -6,6 +6,7 @@
 
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
+using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -617,14 +618,22 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     /// happens only after <c>rpc.StartListening</c>. Disposing while <c>ConnectCoreAsync</c> was
     /// still in flight was a silent no-op: the OS pipe stayed open, the server's <c>JsonRpc</c>
     /// never raised <c>Disconnected</c>, and any code waiting for <c>OnRpcDisconnected</c> hung
-    /// forever. This test pauses client2 at <c>ClientEndpoint.AfterGetsServer</c> (pipe accepted,
-    /// rpc not yet created), disposes the endpoint, and asserts that the server observes the
-    /// disconnect.
+    /// forever. This test pauses the client at <c>ClientEndpoint.AfterGetsServer</c> (pipe connected,
+    /// rpc not yet created), waits for the server to accept it and start listening, then disposes the
+    /// client and asserts that the server observes the disconnect.
     /// </summary>
+    /// <remarks>
+    /// The wait for <c>ServerEndpoint.AfterStartsListening</c> is essential: the server can only observe
+    /// EOF (and raise <c>Disconnected</c>) once its own <c>JsonRpc</c> is listening. Disposing the client
+    /// before that point exercises a different interleaving — the client connects and disconnects before
+    /// the server accepts it — which is covered by
+    /// <see cref="ServerRecoversWhenClientDisconnectsBeforeBeingAccepted"/>. Not synchronizing on the
+    /// server here is what made this test intermittently hang (issue #1724).
+    /// </remarks>
     [Fact]
     public async Task ClientEndpointDispose_MidConnect_ClosesPendingPipe_ServerSeesDisconnect()
     {
-        using var testContext = this.CreateRpcTestContext();
+        using var testContext = this.CreateRpcTestContext( new TestContextOptions { Timeout = TimeSpan.FromSeconds( 30 ) } );
 
         var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
 
@@ -633,25 +642,36 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
         var clientDisconnectedTcs = new TaskCompletionSource<bool>();
         serverEndpoint.ClientDisconnected += () => clientDisconnectedTcs.TrySetResult( true );
 
-        serverEndpoint.Start();
-
         // Pause the client right after the OS pipe handshake but before rpc is constructed: only
         // the NamedPipeClientStream exists and it has not yet been added to _connectionByStream.
-        var syncPointName = $"ClientEndpoint.AfterGetsServer:{pipeName}";
-        testContext.SyncProvider.EnableSyncPoint( syncPointName );
+        var clientSyncPointName = $"ClientEndpoint.AfterGetsServer:{pipeName}";
+        testContext.SyncProvider.EnableSyncPoint( clientSyncPointName );
+
+        // Pause the server right after it has accepted the client and started listening, so that disposing
+        // the client below deterministically hits the "server is already listening" interleaving that #1624
+        // is about.
+        var serverListeningSyncPointName = $"ServerEndpoint.AfterStartsListening:{pipeName}";
+        testContext.SyncProvider.EnableSyncPoint( serverListeningSyncPointName );
+
+        serverEndpoint.Start();
 
         var clientEndpoint = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
 
         // Fire-and-forget connect: the test disposes before the connect can finish.
         var connectTask = clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
-        await testContext.SyncProvider.WaitForSyncPointReachedAsync( syncPointName, testContext.CancellationToken );
+        // Wait for the client to complete the OS handshake (its pipe is now connected and open)...
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync( clientSyncPointName, testContext.CancellationToken );
+
+        // ...and for the server to accept that still-connected client and start listening on it.
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync( serverListeningSyncPointName, testContext.CancellationToken );
 
         // Dispose mid-connect. With the fix, the pending pipe is closed and the server's JsonRpc
         // detects EOF and raises Disconnected (which fires ClientDisconnected).
         clientEndpoint.Dispose();
 
-        testContext.SyncProvider.ReleaseSyncPoint( syncPointName );
+        testContext.SyncProvider.ReleaseSyncPoint( clientSyncPointName );
+        testContext.SyncProvider.ReleaseSyncPoint( serverListeningSyncPointName );
 
         try
         {
@@ -665,6 +685,85 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
 
         // The real assertion: without the fix, this hangs until the test cancellation token cancels.
         await clientDisconnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+    }
+
+    /// <summary>
+    /// Regression test for issue #1724. A <see cref="System.IO.Pipes.NamedPipeServerStream"/> is connectable
+    /// the moment it is created, before the server reaches <c>WaitForConnectionAsync</c>. If a client connects
+    /// into that window and disconnects before being accepted (e.g. a <c>ClientEndpoint</c> disposed
+    /// mid-connect), <c>WaitForConnectionAsync</c> throws <see cref="System.IO.IOException"/> on the now-broken
+    /// pipe instance.
+    /// Before the fix this exception tore down the accept loop and the endpoint stopped accepting any
+    /// further client on that pipe for the rest of the session. This test forces that interleaving via the
+    /// <c>ServerEndpoint.BeforeWaitForConnection</c> sync point and asserts that the server recovers: it
+    /// discards the broken instance, loops back to <c>BeforeWaitForConnection</c>, and goes on to accept a
+    /// subsequent well-behaved client.
+    /// </summary>
+    [Fact]
+    public async Task ServerRecoversWhenClientDisconnectsBeforeBeingAccepted()
+    {
+        // A short timeout keeps the test fast: without the fix the accept loop dies and the waits below fail
+        // via cancellation in a few seconds instead of the 240s default.
+        using var testContext = this.CreateRpcTestContext( new TestContextOptions { Timeout = TimeSpan.FromSeconds( 30 ) } );
+
+        var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
+
+        using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
+
+        var clientConnectedTcs = new TaskCompletionSource<bool>();
+        serverEndpoint.ClientConnected += () => clientConnectedTcs.TrySetResult( true );
+
+        // Park the server AFTER it creates the pipe but BEFORE it calls WaitForConnectionAsync.
+        var serverSyncPointName = $"ServerEndpoint.BeforeWaitForConnection:{pipeName}";
+        testContext.SyncProvider.EnableSyncPoint( serverSyncPointName );
+
+        // Park clients right after the OS pipe handshake but before rpc is constructed.
+        var clientSyncPointName = $"ClientEndpoint.AfterGetsServer:{pipeName}";
+        testContext.SyncProvider.EnableSyncPoint( clientSyncPointName );
+
+        serverEndpoint.Start();
+
+        // First accept iteration: parked before WaitForConnectionAsync. The pipe now exists, so a client can
+        // connect to it even though the server has not accepted yet.
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync( serverSyncPointName, testContext.CancellationToken );
+
+        // Phantom client: connect the OS pipe, then dispose mid-connect so it disconnects before the server
+        // accepts it.
+        var phantom = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+        var phantomConnect = phantom.ConnectAsync( testContext.CancellationToken );
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync( clientSyncPointName, testContext.CancellationToken );
+        phantom.Dispose();
+        testContext.SyncProvider.ReleaseSyncPoint( clientSyncPointName );
+
+        try
+        {
+            await phantomConnect.WithCancellation( testContext.CancellationToken );
+        }
+        catch
+        {
+            // Expected: the phantom's connect faults because it was disposed mid-connect.
+        }
+
+        // Release the first accept iteration: WaitForConnectionAsync throws IOException on the phantom-broken
+        // instance. The fix must catch it, discard the instance, and loop back to BeforeWaitForConnection.
+        testContext.SyncProvider.ReleaseSyncPoint( serverSyncPointName );
+
+        // Proof of recovery: the accept loop reached BeforeWaitForConnection a SECOND time. Without the fix
+        // the loop dies at the throw above and this wait times out.
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync( serverSyncPointName, testContext.CancellationToken );
+        testContext.SyncProvider.ReleaseSyncPoint( serverSyncPointName );
+
+        // End-to-end: a fresh, well-behaved client now connects and the server accepts it. Its own
+        // AfterGetsServer sync point parks it after the OS handshake, but the server accepts as soon as that
+        // handshake completes, so ClientConnected fires without the client having to be released first.
+        using var client2 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+        var client2Connect = client2.ConnectAsync( testContext.CancellationToken );
+
+        await clientConnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+        // Let client2 finish connecting cleanly.
+        testContext.SyncProvider.ReleaseSyncPoint( clientSyncPointName );
+        await client2Connect.WithCancellation( testContext.CancellationToken );
     }
 
     /// <summary>

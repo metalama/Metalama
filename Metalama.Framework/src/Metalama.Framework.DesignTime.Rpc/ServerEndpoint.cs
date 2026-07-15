@@ -6,6 +6,7 @@ using Metalama.Backstage.Diagnostics;
 using StreamJsonRpc;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.IO;
 using System.IO.Pipes;
 
 namespace Metalama.Framework.DesignTime.Rpc;
@@ -158,18 +159,58 @@ public abstract class ServerEndpoint : BaseEndpoint
 
     private async Task AcceptNewClientAsync( string pipeName, ImmutableArray<RpcService> services, CancellationToken cancellationToken )
     {
-        var pipe = new NamedPipeServerStream(
-            pipeName,
-            PipeDirection.InOut,
-            NamedPipeServerStream.MaxAllowedServerInstances,
-            PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous );
+        NamedPipeServerStream pipe;
 
-        await this.OnServerPipeCreatedAsync( cancellationToken ).WarnIfLongAsync( this.Logger, nameof(this.OnServerPipeCreatedAsync), cancellationToken );
+        // Accept loop with recovery. A newly-created NamedPipeServerStream is connectable the moment it
+        // exists — before we reach WaitForConnectionAsync. If a client connects into that window and then
+        // disconnects before we accept it (e.g. a ClientEndpoint that is disposed mid-connect), that pipe
+        // instance is broken and WaitForConnectionAsync throws IOException ("The pipe is being closed").
+        // We must discard the broken instance and create a fresh one, otherwise the exception would tear
+        // down this accept task and the endpoint would silently stop accepting ANY further client on this
+        // pipe for the rest of the session (leaving design-time features permanently unresponsive).
+        while ( true )
+        {
+            // Bail out promptly if the endpoint is being disposed, rather than creating a fresh pipe instance
+            // and running OnServerPipeCreatedAsync only to unwind at the next await.
+            cancellationToken.ThrowIfCancellationRequested();
 
-        this.Logger.Trace?.Log( $"Endpoint '{pipeName}': wait for a client (currently has {this.ClientCount})." );
+            pipe = new NamedPipeServerStream(
+                pipeName,
+                PipeDirection.InOut,
+                NamedPipeServerStream.MaxAllowedServerInstances,
+                PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous );
 
-        await pipe.WaitForConnectionAsync( cancellationToken );
+            await this.OnServerPipeCreatedAsync( cancellationToken ).WarnIfLongAsync( this.Logger, nameof(this.OnServerPipeCreatedAsync), cancellationToken );
+
+            this.Logger.Trace?.Log( $"Endpoint '{pipeName}': wait for a client (currently has {this.ClientCount})." );
+
+            if ( this.TestSyncProvider != null )
+            {
+                // Sync point placed AFTER the server pipe is created (so a client can already connect to it)
+                // but BEFORE WaitForConnectionAsync. Tests use this to force the interleaving where a client
+                // connects and disconnects while the server is still parked here.
+                await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.BeforeWaitForConnection:{pipeName}", cancellationToken );
+            }
+
+            try
+            {
+                await pipe.WaitForConnectionAsync( cancellationToken );
+
+                break;
+            }
+            catch ( IOException e )
+            {
+                // A client connected to this instance and disconnected before we accepted it. The instance is
+                // now unusable; dispose it and loop to create a fresh one and keep accepting. Cancellation
+                // (endpoint disposal) surfaces as OperationCanceledException, not IOException, and is handled
+                // by the ThrowIfCancellationRequested at the top of the loop.
+                this.Logger.Trace?.Log(
+                    $"Endpoint '{pipeName}': a client disconnected before it could be accepted ('{e.Message}'); discarding the pipe instance and retrying." );
+
+                pipe.Dispose();
+            }
+        }
 
         if ( this.TestSyncProvider != null )
         {
@@ -178,45 +219,82 @@ public abstract class ServerEndpoint : BaseEndpoint
 
         this.Logger.Trace?.Log( $"Endpoint '{pipeName}': got a client (now has {this.ClientCount + 1})." );
 
-        var rpc = CreateRpc( pipe );
+        JsonRpc? rpc = null;
+        var ownershipTransferred = false;
 
-        this.Logger.Trace?.Log( $"Endpoint '{pipeName}': adding services {string.Join( ", ", services.Select( s => s.GetType().Name ) )}." );
-
-        foreach ( var i in services )
+        try
         {
-            i.ConfigureRpc( rpc );
+            rpc = CreateRpc( pipe );
+
+            this.Logger.Trace?.Log( $"Endpoint '{pipeName}': adding services {string.Join( ", ", services.Select( s => s.GetType().Name ) )}." );
+
+            foreach ( var i in services )
+            {
+                i.ConfigureRpc( rpc );
+            }
+
+            rpc.Disconnected += this.OnRpcDisconnected;
+
+            // From this point the pipe and rpc are owned by _pipes: Dispose() and OnRpcDisconnected release them.
+            this._pipes.TryAdd( rpc, pipe );
+            ownershipTransferred = true;
+
+            if ( this.TestSyncProvider != null )
+            {
+                await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.AfterConfiguresRpc:{pipeName}", cancellationToken );
+            }
+
+            this.Logger.Trace?.Log( $"Endpoint '{pipeName}': start listening." );
+            rpc.StartListening();
+
+            if ( this.TestSyncProvider != null )
+            {
+                await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.AfterStartsListening:{pipeName}", cancellationToken );
+            }
+
+            // Promote the rpc into each service's callback bookkeeping AFTER StartListening so that any
+            // concurrent broadcast (RaiseEventAsync) cannot pick up a rpc that would throw
+            // "This operation is not allowed before listening for messages has started."
+            foreach ( var i in services )
+            {
+                i.OnRpcStarted( rpc );
+            }
+
+            this.Logger.Trace?.Log( $"The server endpoint '{pipeName}' is ready." );
+
+            // Listen to another client.
+            this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ), nameof(this.AcceptNewClientAsync), false );
+
+            this.OnConnected( services );
         }
-
-        rpc.Disconnected += this.OnRpcDisconnected;
-        this._pipes.TryAdd( rpc, pipe );
-
-        if ( this.TestSyncProvider != null )
+        catch
         {
-            await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.AfterConfiguresRpc:{pipeName}", cancellationToken );
+            // If ownership was never transferred to _pipes (e.g. CreateRpc/ConfigureRpc threw, or the accepted
+            // client disconnected before we finished setting it up), nothing else will dispose the pipe or rpc,
+            // so release them here to avoid leaking the OS pipe handle. Once in _pipes, Dispose() handles them.
+            if ( !ownershipTransferred )
+            {
+                try
+                {
+                    rpc?.Dispose();
+                }
+                catch ( Exception disposeException )
+                {
+                    this.Logger.Warning?.Log( $"Disposing rpc after a failed accept threw: {disposeException}" );
+                }
+
+                try
+                {
+                    pipe.Dispose();
+                }
+                catch ( Exception disposeException )
+                {
+                    this.Logger.Warning?.Log( $"Disposing pipe after a failed accept threw: {disposeException}" );
+                }
+            }
+
+            throw;
         }
-
-        this.Logger.Trace?.Log( $"Endpoint '{pipeName}': start listening." );
-        rpc.StartListening();
-
-        if ( this.TestSyncProvider != null )
-        {
-            await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.AfterStartsListening:{pipeName}", cancellationToken );
-        }
-
-        // Promote the rpc into each service's callback bookkeeping AFTER StartListening so that any
-        // concurrent broadcast (RaiseEventAsync) cannot pick up a rpc that would throw
-        // "This operation is not allowed before listening for messages has started."
-        foreach ( var i in services )
-        {
-            i.OnRpcStarted( rpc );
-        }
-
-        this.Logger.Trace?.Log( $"The server endpoint '{pipeName}' is ready." );
-
-        // Listen to another client.
-        this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ), nameof(this.AcceptNewClientAsync), false );
-
-        this.OnConnected( services );
     }
 
     private void OnRpcDisconnected( object? sender, JsonRpcDisconnectedEventArgs e )
