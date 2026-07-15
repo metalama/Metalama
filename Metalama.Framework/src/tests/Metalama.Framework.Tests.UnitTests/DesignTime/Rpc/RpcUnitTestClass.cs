@@ -22,18 +22,23 @@ public abstract class RpcUnitTestClass : UnitTestClass
     /// <summary>
     /// Creates an RPC test context with synchronization provider pre-configured.
     /// </summary>
+    /// <param name="contextOptions">Optional non-default <see cref="TestContextOptions"/> (e.g. a shorter
+    /// <see cref="TestContextOptions.Timeout"/>). When <c>null</c>, the default options are used.</param>
     /// <param name="callerFile">Automatically populated by the compiler.</param>
     /// <param name="callerMemberName">Automatically populated by the compiler.</param>
     /// <returns>An <see cref="RpcTestContext"/> that must be disposed after the test.</returns>
     [MustDisposeResource]
-    private protected RpcTestContext CreateRpcTestContext( [CallerFilePath] string? callerFile = null, [CallerMemberName] string? callerMemberName = null )
+    private protected RpcTestContext CreateRpcTestContext(
+        TestContextOptions? contextOptions = null,
+        [CallerFilePath] string? callerFile = null,
+        [CallerMemberName] string? callerMemberName = null )
     {
         var syncProvider = new TestSynchronizationProvider( this.TestOutput );
 
         var additionalServices = new AdditionalServiceCollection();
         additionalServices.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), syncProvider );
 
-        var testContext = this.CreateTestContext( additionalServices, callerFile, callerMemberName );
+        var testContext = this.CreateTestContext( contextOptions, additionalServices, callerFile, callerMemberName );
 
         return new RpcTestContext( testContext, syncProvider );
     }
