@@ -159,72 +159,72 @@ public abstract class ServerEndpoint : BaseEndpoint
 
     private async Task AcceptNewClientAsync( string pipeName, ImmutableArray<RpcService> services, CancellationToken cancellationToken )
     {
-        NamedPipeServerStream pipe;
-
-        // Accept loop with recovery. A newly-created NamedPipeServerStream is connectable the moment it
-        // exists — before we reach WaitForConnectionAsync. If a client connects into that window and then
-        // disconnects before we accept it (e.g. a ClientEndpoint that is disposed mid-connect), that pipe
-        // instance is broken and WaitForConnectionAsync throws IOException ("The pipe is being closed").
-        // We must discard the broken instance and create a fresh one, otherwise the exception would tear
-        // down this accept task and the endpoint would silently stop accepting ANY further client on this
-        // pipe for the rest of the session (leaving design-time features permanently unresponsive).
-        while ( true )
-        {
-            // Bail out promptly if the endpoint is being disposed, rather than creating a fresh pipe instance
-            // and running OnServerPipeCreatedAsync only to unwind at the next await.
-            cancellationToken.ThrowIfCancellationRequested();
-
-            pipe = new NamedPipeServerStream(
-                pipeName,
-                PipeDirection.InOut,
-                NamedPipeServerStream.MaxAllowedServerInstances,
-                PipeTransmissionMode.Byte,
-                PipeOptions.Asynchronous );
-
-            await this.OnServerPipeCreatedAsync( cancellationToken ).WarnIfLongAsync( this.Logger, nameof(this.OnServerPipeCreatedAsync), cancellationToken );
-
-            this.Logger.Trace?.Log( $"Endpoint '{pipeName}': wait for a client (currently has {this.ClientCount})." );
-
-            if ( this.TestSyncProvider != null )
-            {
-                // Sync point placed AFTER the server pipe is created (so a client can already connect to it)
-                // but BEFORE WaitForConnectionAsync. Tests use this to force the interleaving where a client
-                // connects and disconnects while the server is still parked here.
-                await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.BeforeWaitForConnection:{pipeName}", cancellationToken );
-            }
-
-            try
-            {
-                await pipe.WaitForConnectionAsync( cancellationToken );
-
-                break;
-            }
-            catch ( IOException e )
-            {
-                // A client connected to this instance and disconnected before we accepted it. The instance is
-                // now unusable; dispose it and loop to create a fresh one and keep accepting. Cancellation
-                // (endpoint disposal) surfaces as OperationCanceledException, not IOException, and is handled
-                // by the ThrowIfCancellationRequested at the top of the loop.
-                this.Logger.Trace?.Log(
-                    $"Endpoint '{pipeName}': a client disconnected before it could be accepted ('{e.Message}'); discarding the pipe instance and retrying." );
-
-                pipe.Dispose();
-            }
-        }
-
-        if ( this.TestSyncProvider != null )
-        {
-            await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.AfterGetsClient:{pipeName}", cancellationToken );
-        }
-
-        this.Logger.Trace?.Log( $"Endpoint '{pipeName}': got a client (now has {this.ClientCount + 1})." );
-
+        NamedPipeServerStream? pipe = null;
         JsonRpc? rpc = null;
-        var ownershipTransferred = false;
+        var pipeOwnershipTransferred = false;
 
         try
         {
-            rpc = CreateRpc( pipe );
+            // Accept loop with recovery. A newly-created NamedPipeServerStream is connectable the moment it
+            // exists — before we reach WaitForConnectionAsync. If a client connects into that window and then
+            // disconnects before we accept it (e.g. a ClientEndpoint that is disposed mid-connect), that pipe
+            // instance is broken and WaitForConnectionAsync throws IOException ("The pipe is being closed").
+            // We must discard the broken instance and create a fresh one, otherwise the exception would tear
+            // down this accept task and the endpoint would silently stop accepting ANY further client on this
+            // pipe for the rest of the session (leaving design-time features permanently unresponsive).
+            while ( true )
+            {
+                // Bail out promptly if the endpoint is being disposed, rather than creating a fresh pipe instance
+                // and running OnServerPipeCreatedAsync only to unwind at the next await.
+                cancellationToken.ThrowIfCancellationRequested();
+
+                pipe = new NamedPipeServerStream(
+                    pipeName,
+                    PipeDirection.InOut,
+                    NamedPipeServerStream.MaxAllowedServerInstances,
+                    PipeTransmissionMode.Byte,
+                    PipeOptions.Asynchronous );
+
+                await this.OnServerPipeCreatedAsync( cancellationToken )
+                    .WarnIfLongAsync( this.Logger, nameof(this.OnServerPipeCreatedAsync), cancellationToken );
+
+                this.Logger.Trace?.Log( $"Endpoint '{pipeName}': wait for a client (currently has {this.ClientCount})." );
+
+                if ( this.TestSyncProvider != null )
+                {
+                    // Sync point placed AFTER the server pipe is created (so a client can already connect to it)
+                    // but BEFORE WaitForConnectionAsync. Tests use this to force the interleaving where a client
+                    // connects and disconnects while the server is still parked here.
+                    await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.BeforeWaitForConnection:{pipeName}", cancellationToken );
+                }
+
+                try
+                {
+                    await pipe.WaitForConnectionAsync( cancellationToken );
+
+                    break;
+                }
+                catch ( IOException e )
+                {
+                    // A client connected to this instance and disconnected before we accepted it. The instance is
+                    // now unusable; dispose it and loop to create a fresh one and keep accepting. Cancellation
+                    // (endpoint disposal) surfaces as OperationCanceledException, not IOException, and is handled
+                    // by the ThrowIfCancellationRequested at the top of the loop.
+                    this.Logger.Trace?.Log(
+                        $"Endpoint '{pipeName}': a client disconnected before it could be accepted ('{e.Message}'); discarding the pipe instance and retrying." );
+
+                    pipe.Dispose();
+                }
+            }
+
+            if ( this.TestSyncProvider != null )
+            {
+                await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.AfterGetsClient:{pipeName}", cancellationToken );
+            }
+
+            this.Logger.Trace?.Log( $"Endpoint '{pipeName}': got a client (now has {this.ClientCount + 1})." );
+
+            rpc = this.CreateRpc( pipe );
 
             this.Logger.Trace?.Log( $"Endpoint '{pipeName}': adding services {string.Join( ", ", services.Select( s => s.GetType().Name ) )}." );
 
@@ -237,7 +237,7 @@ public abstract class ServerEndpoint : BaseEndpoint
 
             // From this point the pipe and rpc are owned by _pipes: Dispose() and OnRpcDisconnected release them.
             this._pipes.TryAdd( rpc, pipe );
-            ownershipTransferred = true;
+            pipeOwnershipTransferred = true;
 
             if ( this.TestSyncProvider != null )
             {
@@ -272,7 +272,7 @@ public abstract class ServerEndpoint : BaseEndpoint
             // If ownership was never transferred to _pipes (e.g. CreateRpc/ConfigureRpc threw, or the accepted
             // client disconnected before we finished setting it up), nothing else will dispose the pipe or rpc,
             // so release them here to avoid leaking the OS pipe handle. Once in _pipes, Dispose() handles them.
-            if ( !ownershipTransferred )
+            if ( !pipeOwnershipTransferred )
             {
                 try
                 {
@@ -285,7 +285,7 @@ public abstract class ServerEndpoint : BaseEndpoint
 
                 try
                 {
-                    pipe.Dispose();
+                    pipe?.Dispose();
                 }
                 catch ( Exception disposeException )
                 {
