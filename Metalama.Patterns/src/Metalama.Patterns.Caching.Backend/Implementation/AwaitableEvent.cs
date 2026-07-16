@@ -281,7 +281,7 @@ internal sealed class AwaitableEvent
                     }
                     else
                     {
-                        this.SyncPoint( "Operation activated, move tot he next one." );
+                        this.SyncPoint( "Operation activated, move to the next one." );
                     }
                 }
             }

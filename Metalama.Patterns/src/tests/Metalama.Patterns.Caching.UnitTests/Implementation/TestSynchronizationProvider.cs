@@ -32,12 +32,39 @@ internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
 {
     private readonly ConcurrentDictionary<string, SyncPoint> _syncPoints = new( StringComparer.Ordinal );
 
+    /// <summary>
+    /// Gets a value indicating whether any synchronization point was reached on this instance.
+    /// </summary>
+    public bool AnySyncPointReached { get; private set; }
+
     void ITestSynchronizationProvider.SyncPoint( string name )
     {
+        this.AnySyncPointReached = true;
+
         if ( this._syncPoints.TryGetValue( name, out var syncPoint ) )
         {
             syncPoint.Trip();
         }
+    }
+
+    /// <summary>
+    /// Determines, by probing, whether the assembly containing <see cref="AwaitableEvent"/> was built with the
+    /// <c>DEBUG</c> symbol and therefore actually reaches its synchronization points.
+    /// </summary>
+    /// <remarks>
+    /// Tests that drive sync points must skip when this returns <c>false</c>, otherwise they would fail waiting
+    /// for a point that can never be reached. This probes the real behaviour rather than testing <c>#if DEBUG</c>
+    /// in the test assembly: the two do not necessarily agree, because the test project defines <c>DEBUG</c> in the
+    /// <c>LamaDebug</c> configuration while <c>Metalama.Patterns.Caching.Backend</c> does not.
+    /// </remarks>
+    public static bool AreSyncPointsEnabled()
+    {
+        using var probe = new TestSynchronizationProvider();
+
+        // Set() reaches several sync points; none of them are armed, so this cannot block.
+        new AwaitableEvent( EventResetMode.ManualReset, probe ).Set();
+
+        return probe.AnySyncPointReached;
     }
 
     /// <summary>

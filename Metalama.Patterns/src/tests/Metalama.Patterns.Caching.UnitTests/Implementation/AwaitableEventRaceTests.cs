@@ -35,10 +35,16 @@ public sealed class AwaitableEventRaceTests
     /// which throws "attempt to transition a task to a final state when it had already completed" on a
     /// thread-pool thread (and can leave the dispose wait hung).
     /// </summary>
-    [Fact( Timeout = 30000 )]
+    [SkippableFact( Timeout = 30000 )]
     public Task ManualReset_SetRacesScheduleContinuation_ActivatesContinuationOnce()
+    {
+        Skip.IfNot(
+            TestSynchronizationProvider.AreSyncPointsEnabled(),
+            "The back-end was not built with DEBUG, so its synchronization points are compiled away." );
+
         // Run the blocking orchestration off the test thread so the xunit Timeout can abort a hang (lost wakeup).
-        => Task.Run( this.ManualReset_SetRacesScheduleContinuation_Core );
+        return Task.Run( this.ManualReset_SetRacesScheduleContinuation_Core );
+    }
 
     private void ManualReset_SetRacesScheduleContinuation_Core()
     {

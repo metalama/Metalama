@@ -23,11 +23,15 @@ public sealed class AwaitableEventCancellationTests
     // these purely synchronous tests never exercise).
     private const string _autoPreBlock = "Signal not taken, wait.";
 
-    [Theory( Timeout = 30000 )]
+    [SkippableTheory( Timeout = 30000 )]
     [InlineData( EventResetMode.ManualReset, _manualPreBlock )]
     [InlineData( EventResetMode.AutoReset, _autoPreBlock )]
     public async Task Wait_CancelledWhileBlocked_ThrowsAndLeavesEventUsable( EventResetMode mode, string preBlockMessage )
     {
+        Skip.IfNot(
+            TestSynchronizationProvider.AreSyncPointsEnabled(),
+            "The back-end was not built with DEBUG, so its synchronization points are compiled away." );
+
         using var syncProvider = new TestSynchronizationProvider();
 
         var awaitableEvent = new AwaitableEvent( mode, syncProvider );
