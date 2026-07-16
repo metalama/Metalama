@@ -4,6 +4,7 @@
 
 using Metalama.Patterns.Caching.Implementation;
 using System.Collections;
+using System.Globalization;
 using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
@@ -61,7 +62,15 @@ public sealed class AwaitableEventHangDiagnostic
                         var st = (int) op.GetType().GetField( "State", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance )!
                             .GetValue( op )!;
 
-                        states.Add( st switch { 0 => "CREATED", 1 => "WAITING", 2 => "SUCCESS", 3 => "TIMEOUT", _ => st.ToString() } );
+                        states.Add(
+                            st switch
+                            {
+                                0 => "CREATED",
+                                1 => "WAITING",
+                                2 => "SUCCESS",
+                                3 => "TIMEOUT",
+                                _ => st.ToString( CultureInfo.InvariantCulture )
+                            } );
                     }
 
                     return string.Join( ",", states );
