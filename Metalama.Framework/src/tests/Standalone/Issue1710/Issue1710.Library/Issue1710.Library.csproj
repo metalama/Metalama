@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        Reproduction for https://github.com/metalama/Metalama/issues/1710.
+
+        This project targets netstandard2.0, so NuGet resolves Metalama.Patterns.Contracts to
+        lib/netstandard2.0. Metalama therefore builds/loads the *netstandard2.0* compile-time copy of
+        Contracts for this project (ml!Metalama.Patterns.Contracts_<hashA>).
+
+        Issue1710.App targets net472 and therefore gets the *net472* copy (ml!..._<hashB>).
+        The two copies are distinct CLR types with the same full name.
+    -->
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Patterns.Contracts" />
+    </ItemGroup>
+
+</Project>
