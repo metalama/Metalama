@@ -32,13 +32,13 @@ internal sealed class DesignTimeProjectVersion : ITransitiveAspectManifestProvid
         this._references = references.ToImmutableDictionary( x => x.ProjectKey, x => x );
     }
 
-    public ITransitiveAspectsManifest? GetTransitiveAspectsManifest( Compilation compilation )
+    public ImmutableArray<byte> GetSerializedTransitiveAspectsManifest( Compilation compilation )
     {
         if ( this._references.TryGetValue( compilation.GetProjectKey(), out var reference ) )
         {
-            return reference.TransitiveAspectsManifest;
+            return reference.SerializedTransitiveAspectManifest;
         }
 
-        return null;
+        return default;
     }
 }

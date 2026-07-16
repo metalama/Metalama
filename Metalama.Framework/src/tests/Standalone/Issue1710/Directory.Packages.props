@@ -1,0 +1,7 @@
+<Project>
+  <!-- Imports Directory.Packages.props of the upper directory. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Packages.props', '$(MSBuildThisFileDirectory)../'))" />
+  <ItemGroup>
+    <PackageVersion Include="Metalama.Patterns.Contracts" Version="$(MetalamaVersion)" />
+  </ItemGroup>
+</Project>

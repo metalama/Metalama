@@ -46,10 +46,21 @@ into a `CompileTimeDomain`, which owns a `MetalamaAssemblyLoadContext` (a .NET `
 
 5. **Multiple copies can — and are expected to — coexist in one `CompileTimeDomain`.** When a solution contains
    projects on different TFMs, each project's pipeline builds/loads its own per-TFM copy of a shared library's
-   compile-time assembly. In IDEs that run one shared analysis process across all projects regardless of TFM —
-   notably **JetBrains Rider** (`JetBrains.Roslyn.Worker`) — those copies are loaded side by side into the same
-   `AssemblyLoadContext`. (Visual Studio isolates analysis differently, so the copies do not meet.) This is a
-   normal, expected state, **not** a bug.
+   compile-time assembly. `AspectPipeline` obtains its domain via `ICompileTimeDomainFactory.GetOrCreateDomain`,
+   which **reuses** an existing domain whenever `CompileTimeDomain.IsCompatibleWithAssemblies` passes. That check
+   compares assemblies by simple name + version + public key token, and the per-TFM copies have *distinct simple
+   names* (`ml!<name>_<hash>`), so they never look conflicting: the domain is reused and both copies are loaded
+   side by side into the same `AssemblyLoadContext`. This is a normal, expected state, **not** a bug.
+
+   This is **host-independent**: the code path has no IDE-specific branch. It has been verified experimentally
+   (see `src/tests/Standalone/Issue1710`) that **both JetBrains Rider and Visual Studio** load the two copies into
+   one domain and hit the resulting failure. Rider merely *surfaces* the error while Visual Studio's Roslyn
+   out-of-process host (`ServiceHub.RoslynCodeAnalysisService`) logs it without surfacing it — a reporting
+   difference, not a behavioural one. The underlying mismatch also reproduces with no IDE at all, in
+   `Metalama.Framework.Tests.UnitTests/DesignTime/Pipeline/CrossTfmInheritedOptionsTests`.
+
+   It is, however, **design-time only**: at build time each project is compiled in its own process, so each gets
+   its own `CompileTimeDomain` and the copies never meet. (`dotnet build` on the Issue1710 solution succeeds.)
 
 6. **The consumer must resolve to the *right* copy.** Because several copies with the same logical identity may
    be loaded, every place that maps a symbol/name to a compile-time `Type` must resolve to the copy that belongs
@@ -66,33 +77,78 @@ The delicate case is inheritance across a project boundary between two different
 project `U` (e.g. `net472`, using copy `A` of a shared library) and a downstream project `D` (e.g. `net8.0`,
 using copy `B`) where `D` references `U` and inherits an aspect or hierarchical options from it.
 
-- `D`'s own compile-time closure resolves the shared library to copy `B` (by run-time identity, via its
-  repository).
-- The inherited artifacts arrive **bound to copy `A`**:
-  - As a `CompilationReference` (design time), `D` reads `U`'s live in-memory transitive manifest
-    (`ITransitiveAspectManifestProvider.GetTransitiveAspectsManifest`), whose objects are copy-`A`-typed.
-  - As a `PortableExecutableReference` (built assembly), `D` deserializes `U`'s embedded manifest anchored to
-    `U`'s `CompileTimeProject` (issue #1611), which resolves types through `U`'s closure — again copy `A`.
-  - Reuse of the upstream's already-built `CompileTimeProject` for a `CompilationReference`
-    (`IUpstreamCompileTimeProjectProvider`, issue #1611) further ensures copy `A` is the one brought into `D`'s
-    domain for `U`'s content.
+`D`'s own compile-time closure resolves the shared library to copy `B` (by run-time identity, via its
+repository). The inherited artifacts, however, originate from `U` and are therefore naturally bound to copy `A`.
+Resolving them "to the right copy" — i.e. to `D`'s copy `B` — is the crux of the doctrine, and is what the
+resolution below implements.
 
-Resolving "to the right copy" for these inherited artifacts is the crux of the doctrine.
+Note that a consumer cannot re-materialize a producer-copy object on its own: to *serialize* an object the
+binder must be able to name the copy its type comes from, and only the producing project's closure can name its
+own copy. This is why the conversion is a producer-serializes / consumer-deserializes handshake rather than
+something `D` can do after the fact.
 
-## Known violation — issue #1710
+## Past violation — issue #1710 (fixed)
 
-Hierarchical options currently violate point 6 at the inheritance boundary. `HierarchicalOptionsManager`
-maintains one `OptionTypeNode` per option type **keyed by `Type.FullName`** (copy-agnostic), whose canonical
-`Type` is the **downstream** project's copy (`B`). When `D` evaluates options for a declaration that inherits
-from `U`, the base-declaration options are provided by `TransitivePipelineContributorSource.TryGetOptions` from
-`U`'s manifest — i.e. **copy-`A`-typed** — and are merged against `D`'s copy-`B`-typed default/namespace options
-in `OptionTypeNode.MergeOptions`. The user-defined `ApplyChanges` casts its argument to its own copy's type
-(`(ContractOptions) changes`) and throws `InvalidCastException`, because copy `A` and copy `B` are distinct CLR
-types. In other words, the inherited options are **not resolved/normalized to the downstream project's copy**
+Hierarchical options used to violate point 6 at the inheritance boundary. `HierarchicalOptionsManager` maintains
+one `OptionTypeNode` per option type **keyed by `Type.FullName`** (copy-agnostic), whose canonical `Type` is the
+**downstream** project's copy (`B`). When `D` evaluated options for a declaration inheriting from `U`, the
+base-declaration options were provided by `TransitivePipelineContributorSource.TryGetOptions` from `U`'s manifest
+— i.e. **copy-`A`-typed** — and were merged against `D`'s copy-`B`-typed default/namespace options in
+`OptionTypeNode.MergeOptions`. The user-defined `ApplyChanges` casts its argument to its own copy's type
+(`(ContractOptions) changes`) and threw `InvalidCastException`, because copy `A` and copy `B` are distinct CLR
+types. In other words, the inherited options were **not resolved/normalized to the downstream project's copy**
 before the merge.
 
-This is observed only at design time in Rider, because that is where two copies of the shared library's
-compile-time assembly are loaded into a single `AssemblyLoadContext` (see point 5).
+This was a **design-time** failure, because that is where two copies of the shared library's compile-time assembly
+are loaded into a single `AssemblyLoadContext` (see point 5); at build time each project gets its own domain. It
+was **not** specific to an IDE: it was observed in both Rider and Visual Studio, and reproduces with no IDE at all
+in `CrossTfmInheritedOptionsTests`. It was originally reported only from Rider because Rider surfaces the error,
+whereas Visual Studio logs it in `ServiceHub.RoslynCodeAnalysisService` without surfacing it — measured on the
+`Issue1710` solution, the Visual Studio log contained 8396 occurrences of the cast failure while the IDE showed
+nothing.
+
+### Resolution
+
+The inherited manifest is now **deserialized into the consuming project's copy** (point 6), rather than kept
+bound to the producer's copy. The serialized form is compilation-neutral by definition — compile-time types are
+always written as their run-time names — so the resolution to a particular copy happens entirely on the two ends:
+who names the type when writing, and whose closure resolves the name when reading. The producer must serialize
+with its own service provider, because only its closure can *name* (resolve) its own compile-time copy; a consumer
+cannot serialize a producer-copy object, since that copy is not in its closure. The consumer then deserializes
+those bytes with its own service provider, whose binder resolves each run-time name to the **consumer's**
+compile-time copy. The whole manifest (inherited aspects and options) is thereby bound to the consumer's copy, so
+an inherited aspect's `IsInheritable`/`BuildAspect` runs in the consumer's copy, its option query resolves to the
+consumer's option type, and the merge no longer crosses copies.
+
+- **Project references (`CompilationReference`)**: `DesignTimeAspectPipeline.GetDesignTimeProjectVersionAsync`
+  serializes the referenced project's manifest using that project's own service provider — read from
+  `DesignTimeAspectPipeline.CurrentConfiguration` rather than by requesting a fresh configuration, so a *paused*
+  reference pipeline still yields a manifest — and carries it on
+  `DesignTimeProjectReference.SerializedTransitiveAspectManifest`.
+  `TransitivePipelineContributorSource.Create` then deserializes it with the **consuming** project's service
+  provider.
+- **Package references (`PortableExecutableReference`)**: also deserialized with the consuming project's service
+  provider. This replaces the upstream anchoring introduced by issue #1611, which is no longer needed here: the
+  consumer's closure already contains the canonical upstream projection (via
+  `IUpstreamCompileTimeProjectProvider`), so an inherited aspect deserialized in the consumer's copy still matches
+  the consumer's `IAspectClass.Type`.
+
+`DesignTimeProjectReference` carries both the live manifest and its serialized form. They are always both present
+or both absent, and are not interchangeable: the serialized form feeds the engine (above), while the live object
+is required by `DesignTimeProjectVersion.ReferencedExtensions`, which needs the concrete
+`DesignTimeAspectPipelineResult` to read its design-time extension collections — a shape the serialized manifest
+does not carry.
+
+**Validation.** On the `Issue1710` solution in Visual Studio, the `ServiceHub.RoslynCodeAnalysisService` log went
+from **8396** cast failures (before) to **0** (after), with no `ERROR` lines at all — while **both** per-TFM copies
+were still loaded, confirming the fix corrects the *merge* rather than suppressing the (expected) coexistence.
+
+**Known cost.** The manifest is serialized and deserialized for every cross-project reference on every design-time
+pipeline execution, including the common case where the producer's and consumer's copies are identical and the
+round-trip is pure overhead. A "pay only when the copies differ" fast path is the natural follow-up: comparing the
+producer's and consumer's `CompileTimeProject` copies depends only on configuration-scoped state, so unlike the
+deserialized graph — which binds to the compilation via generic `CompileTimeType` (`SerializationReader`) and is
+therefore *not* configuration-scoped — that decision can legitimately be cached in the pipeline configuration.
 
 ## Observations and potential issues (to revisit, not yet fixed)
 
@@ -118,7 +174,15 @@ compile-time assembly are loaded into a single `AssemblyLoadContext` (see point 
 - `OutputPathHelper.GetOutputPaths` — builds the `ml!<name>_<hash>` compile-time assembly name.
 - `CompileTimeProjectRepository` — one copy per run-time `AssemblyIdentity` within a pipeline.
 - `ProjectSpecificCompileTimeTypeResolver.GetCompileTimeNamedTypeCore` — resolves types via the repository.
+- `ICompileTimeDomainFactory.GetOrCreateDomain` / `CompileTimeDomain.IsCompatibleWithAssemblies` — domain reuse;
+  why the per-TFM copies end up in one `AssemblyLoadContext` (see point 5).
 - `IUpstreamCompileTimeProjectProvider` / `DesignTimeUpstreamCompileTimeProjectProvider` — reuse of the upstream
-  copy for `CompilationReference` (issue #1611).
+  project's own projection for `CompilationReference` (issue #1611).
 - `HierarchicalOptionsManager` / `HierarchicalOptionsManager.OptionTypeNode` — option merge; site of issue #1710.
-- `TransitivePipelineContributorSource.TryGetOptions` — supplies upstream-copy-typed inherited options.
+- `ITransitiveAspectManifestProvider.GetSerializedTransitiveAspectsManifest` — supplies the referenced project's
+  manifest in serialized form, for deserialization into the consumer's copy (issue #1710).
+- `TransitivePipelineContributorSource.TryGetOptions` — supplies inherited options; consumer-copy-typed since the
+  manifest is deserialized with the consuming project's service provider.
+- `src/tests/Standalone/Issue1710` — IDE reproduction (open in an IDE; `dotnet build` succeeds by design).
+- `Metalama.Framework.Tests.UnitTests/DesignTime/Pipeline/CrossTfmInheritedOptionsTests` — in-process regression
+  test, no IDE required.

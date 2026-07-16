@@ -554,10 +554,26 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                             $"The pipeline for the reference '{reference.ProjectKey}' failed: {referenceResult.DebugReason}" );
                     }
 
+                    // Serialize the referenced project's transitive manifest. The serialized form is
+                    // compilation-neutral by definition: compile-time types are always written as their run-time
+                    // names. We must use the *referenced* project's service provider because only its closure can
+                    // name (resolve) that project's own compile-time copy of a shared, possibly multi-targeted
+                    // assembly; the consuming project's provider would fail to serialize types bound to a copy that
+                    // is not in its closure. The consumer then deserializes these bytes with its own service
+                    // provider, which binds the run-time names to the consumer's own compile-time copy (issue #1710).
+                    // The successful result always carries the reference pipeline's configuration (even when the
+                    // pipeline is paused), so the serialized manifest is always available alongside the live one.
+                    var serializedManifest = referenceResult.Value.Result
+                        .GetSerializedTransitiveAspectManifest(
+                            referenceResult.Value.Configuration.ServiceProvider,
+                            reference.Compilation.GetCompilationContext() )
+                        .ToImmutableArray();
+
                     compilationReferences.Add(
                         new DesignTimeProjectReference(
                             referenceResult.Value.ProjectVersion.ProjectKey,
-                            referenceResult.Value.Result ) );
+                            referenceResult.Value.Result,
+                            serializedManifest ) );
 
                     if ( referenceResult.Value.Status == DesignTimeAspectPipelineStatus.Paused )
                     {
@@ -620,10 +636,13 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                             compilation.GetCompilationContext(),
                             reference.Compilation.AssemblyName );
 
+                        // Also carry the raw serialized manifest (produced by the referenced project) so the consumer
+                        // can deserialize inherited aspects and options into its own compile-time copy (issue #1710).
                         compilationReferences.Add(
                             new DesignTimeProjectReference(
                                 reference.ProjectKey,
-                                manifest ) );
+                                manifest,
+                                result.Manifest!.ToImmutableArray() ) );
 
                         if ( result.IsPipelinePaused )
                         {

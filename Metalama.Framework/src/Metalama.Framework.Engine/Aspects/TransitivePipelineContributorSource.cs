@@ -53,7 +53,6 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         var pipelineExtensions = serviceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
 
         var inheritableAspectProvider = serviceProvider.GetService<ITransitiveAspectManifestProvider>();
-        var compileTimeProjectRepository = serviceProvider.GetService<CompileTimeProjectRepository>();
 
         var inheritedAspectsBuilder = ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance>.CreateBuilder();
         var contributorsBuilder = ImmutableArray.CreateBuilder<IPipelineContributor>();
@@ -76,28 +75,43 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                         {
                             assemblyIdentity = metadataInfo.AssemblyIdentity;
 
-                            // Look up the upstream's CompileTimeProject by AssemblyIdentity so the deserialiser is
-                            // anchored to the canonical project for this identity (issue #1611). This is the
-                            // architectural fix that prevents two physically distinct CompileTimeProject instances
-                            // for the same logical upstream from being chosen by the deserialiser and the aspect-
-                            // class loader independently.
-                            CompileTimeProject? upstreamProject = null;
-                            compileTimeProjectRepository?.TryGetCompileTimeProject( assemblyIdentity, out upstreamProject );
-
+                            // Deserialize the referenced assembly's manifest into THIS (consuming) project's
+                            // compile-time copy of each type. The manifest stores run-time type names; deserializing
+                            // with the current serviceProvider resolves them through the consumer's project closure,
+                            // so both the inherited aspect and its options bind to the consumer's copy of shared
+                            // (e.g. multi-targeted) compile-time assemblies (issue #1710). The consumer's closure
+                            // already contains the canonical upstream projection (issue #1611's upstream-project
+                            // reuse), so the inherited aspect's type still matches the consumer's IAspectClass.Type.
                             manifest = TransitiveAspectsManifest.Deserialize(
                                 new MemoryStream( bytes ),
                                 serviceProvider,
                                 compilationContext,
-                                filePath,
-                                upstreamProject );
+                                filePath );
                         }
                     }
 
                     break;
 
                 case CompilationReference compilationReference:
-                    manifest = inheritableAspectProvider?.GetTransitiveAspectsManifest( compilationReference.Compilation );
                     assemblyIdentity = compilationReference.Compilation.Assembly.Identity;
+
+                    var serializedManifest =
+                        inheritableAspectProvider?.GetSerializedTransitiveAspectsManifest( compilationReference.Compilation ) ?? default;
+
+                    if ( !serializedManifest.IsDefaultOrEmpty )
+                    {
+                        // Deserialize the referenced project's manifest into THIS (consuming) project's compile-time
+                        // copy of shared types. The bytes were serialized with the referenced project's service
+                        // provider (run-time type names); deserializing with the current serviceProvider resolves
+                        // those names to the consumer's own compile-time copy, so inherited aspects and options are
+                        // bound to the consumer's copy and merge/cast correctly against the consumer's own options
+                        // (issue #1710).
+                        manifest = TransitiveAspectsManifest.Deserialize(
+                            new MemoryStream( serializedManifest.ToArray() ),
+                            serviceProvider,
+                            compilationContext,
+                            compilationReference.Compilation.AssemblyName );
+                    }
 
                     break;
 

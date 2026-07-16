@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        Reproduction for https://github.com/metalama/Metalama/issues/1710.
+
+        This project targets net472, so NuGet resolves Metalama.Patterns.Contracts to lib/net472 and Metalama
+        builds/loads the *net472* compile-time copy of Contracts. Issue1710.Library targets netstandard2.0 and
+        gets the *netstandard2.0* copy. Because the compile-time assembly name embeds a hash of the target
+        framework (CompileTimeCompilationBuilder.ComputeSourceHash), the two copies are distinct assemblies
+        (ml!Metalama.Patterns.Contracts_<hashA> and _<hashB>) whose ContractOptions types have the same full name
+        but different identity.
+
+        This project derives from Issue1710.Library.Base and overrides the member carrying the [Positive]
+        contract, so the contract is inherited across the project boundary. Evaluating its inheritability calls
+        GetContractOptions() on the derived declaration, which merges the netstandard2.0-copy options coming from
+        Library with this project's net472-copy options -> InvalidCastException.
+    -->
+    <PropertyGroup>
+        <TargetFramework>net472</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Patterns.Contracts" />
+        <ProjectReference Include="..\Issue1710.Library\Issue1710.Library.csproj" />
+    </ItemGroup>
+
+</Project>
