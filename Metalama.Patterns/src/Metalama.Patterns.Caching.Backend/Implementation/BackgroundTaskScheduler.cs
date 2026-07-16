@@ -64,7 +64,11 @@ namespace Metalama.Patterns.Caching.Implementation;
 public sealed class BackgroundTaskScheduler : IAsyncDisposable, ITestableCachingComponent
 {
     private readonly FlashtraceSource _logger;
-    private readonly AwaitableEvent _backgroundTasksFinishedEvent = new( EventResetMode.ManualReset, true );
+
+    // Initialized in the constructor (not inline) so that it receives the service provider, from which it resolves
+    // the optional ITestSynchronizationProvider.
+    private readonly AwaitableEvent _backgroundTasksFinishedEvent;
+
     private readonly CancellationTokenSource _disposeCancellationTokenSource = new();
     private readonly bool _sequential;
     private readonly object _sync = new();
@@ -114,6 +118,7 @@ public sealed class BackgroundTaskScheduler : IAsyncDisposable, ITestableCaching
         this._maxConcurrency = maxConcurrency;
         this._overloadThreshold = overloadThreshold;
         this._semaphore = new SemaphoreSlim( maxConcurrency );
+        this._backgroundTasksFinishedEvent = new AwaitableEvent( EventResetMode.ManualReset, true, serviceProvider );
         this._exceptionObserver = serviceProvider?.GetService<ICachingExceptionObserver>();
         this._backgroundTaskSchedulerObserver = serviceProvider?.GetService<IBackgroundTaskSchedulerObserver>();
         this._logger = serviceProvider.GetFlashtraceSource( this.GetType(), FlashtraceRole.Caching );
