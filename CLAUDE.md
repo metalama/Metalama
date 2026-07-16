@@ -79,6 +79,7 @@ When starting work on a GitHub issue:
 - when you start working on an issue, mark the status as In Progress and make sure it is assigned to me
 - in tests never use hardcoded delays, always use other sync mechanims such as barriers, taskcompletionsource, sync points
 - Never await without cancellation token - ever
+- For assertions, use `Invariant.Assert` / `Invariant.AssertNotNull` (`Metalama.Framework.Engine`) instead of the `System.Diagnostics.Debug` assert methods, so the compiler and the `MetalamaAssertionAnalyzer` can track control flow. In projects that don't reference the engine (e.g. `Metalama.Patterns.Caching.Backend`), throw `CachingAssertionFailedException` instead; `System.Diagnostics.Debug` is only acceptable there in already-ported code that uses it throughout.
 - Github comments and issues and PRs must be signed by Claude - not commits. No ad link, just the signature `— Claude for @gfraiteur`.
 - don't loose time solving cosmetic warnings (such as redundant usings) until the finalizing stage of a commit
 - `Build.ps1 build` does not build test projects, only packable projects.
