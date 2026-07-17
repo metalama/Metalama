@@ -667,23 +667,28 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
     // consumer reads this at compile time, it could miss required WithInitialize wrapping.
     bool ITransitiveAspectsManifest.ContainsInitializableTypes => true;
 
-    [Memo]
-    internal ImmutableArray<byte> SerializedTransitiveAspectManifest
-    {
-        get
-        {
+    private TransitiveAspectsManifest CreateTransitiveManifest()
+        =>
+
             // ContainsInitializableTypes is set to the safe default `true` here for the same reason as in
             // ITransitiveAspectsManifest.ContainsInitializableTypes above: DesignTimeAspectPipelineResult does
             // not track the flag, and `true` only causes consumers to run the walker unnecessarily, while
             // `false` would risk missing required WithInitialize wrapping.
-            var manifest = TransitiveAspectsManifest.Create(
+            TransitiveAspectsManifest.Create(
                 this._inheritableAspects.SelectMany( g => g ).ToImmutableArray(),
                 this.Extensions.ToTransitiveValidatorInstances( true ),
                 this.InheritableOptions,
                 this.Annotations,
                 containsInitializableTypes: true );
 
-            return manifest.ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider );
-        }
-    }
+    // Consumed in-process by the current-version design-time pipeline, so serialized uncompressed: the bytes are
+    // produced and consumed in the same process and discarded, and compression would be pure overhead.
+    [Memo]
+    internal ImmutableArray<byte> SerializedTransitiveAspectManifest
+        => this.CreateTransitiveManifest().ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false );
+
+    // Shipped over RPC to a potentially different (possibly older) Metalama version, which may only understand the
+    // legacy compressed format, so this one is compressed.
+    internal byte[] SerializeTransitiveAspectManifestForRpc()
+        => this.CreateTransitiveManifest().ToBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: true );
 }

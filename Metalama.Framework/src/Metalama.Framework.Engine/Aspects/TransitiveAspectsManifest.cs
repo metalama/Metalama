@@ -75,36 +75,49 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
             annotations,
             containsInitializableTypes );
 
-    private void Serialize( Stream stream, in ProjectServiceProvider serviceProvider )
+    // Compression makes sense only when the manifest is embedded in a PE binary (a persisted artifact). For the
+    // design-time in-process path, where the bytes are produced and consumed in the same process and thrown away
+    // immediately, it is pure overhead, so that path serializes uncompressed. The two formats are distinguished on
+    // read by a leading marker (see Deserialize); the compressed format is unchanged and markerless, so already-built
+    // assemblies and cross-version peers keep working.
+    private void Serialize( Stream stream, in ProjectServiceProvider serviceProvider, bool compress )
     {
         using ( UserCodeExecutionContext.WithContext(
                    UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( "Serializing" ) ) ) )
         {
-            using var deflate = new DeflateStream( stream, CompressionLevel.Optimal, true );
             var formatter = new CompileTimeSerializer( serviceProvider );
-            formatter.Serialize( this, deflate );
-            deflate.Flush();
+
+            if ( compress )
+            {
+                using var deflate = new DeflateStream( stream, CompressionLevel.Optimal, true );
+                formatter.Serialize( this, deflate );
+                deflate.Flush();
+            }
+            else
+            {
+                stream.WriteByte( SerializationProtocol.UncompressedStreamMarker );
+                formatter.Serialize( this, stream );
+            }
+
             stream.Flush();
         }
     }
 
-    public byte[] ToBytes( in ProjectServiceProvider serviceProvider )
+    public byte[] ToBytes( in ProjectServiceProvider serviceProvider, bool compress )
     {
         var stream = new MemoryStream();
-        this.Serialize( stream, serviceProvider );
+        this.Serialize( stream, serviceProvider, compress );
 
         return stream.ToArray();
     }
-    
-    public ImmutableArray<byte> ToImmutableBytes( in ProjectServiceProvider serviceProvider )
-    {
-        var bytes = this.ToBytes( serviceProvider );
-        return ImmutableCollectionsMarshal.AsImmutableArray( bytes );
-    }
+
+    public ImmutableArray<byte> ToImmutableBytes( in ProjectServiceProvider serviceProvider, bool compress )
+        => ImmutableCollectionsMarshal.AsImmutableArray( this.ToBytes( serviceProvider, compress ) );
 
     internal ManagedResource ToResource( in ProjectServiceProvider serviceProvider )
     {
-        var bytes = this.ToBytes( serviceProvider );
+        // Embedded in the PE binary, so compressed.
+        var bytes = this.ToBytes( serviceProvider, compress: true );
 
         return new ManagedResource(
             CompileTimeConstants.InheritableAspectManifestResourceName,
@@ -124,9 +137,24 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         using ( UserCodeExecutionContext.WithContext(
                    UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( description ) ) ) )
         {
-            using var deflate = new DeflateStream( stream, CompressionMode.Decompress );
-
             var formatter = new CompileTimeSerializer( serviceProvider );
+
+            // Peek the first byte: the uncompressed format starts with a marker that can never begin a DEFLATE stream.
+            // Consume it and read the raw graph if it is present; otherwise leave it in place and treat the whole stream
+            // as a legacy DEFLATE stream. The callers pass a seekable MemoryStream, so the byte can be un-peeked.
+            var firstByte = stream.ReadByte();
+
+            if ( firstByte == SerializationProtocol.UncompressedStreamMarker )
+            {
+                return (TransitiveAspectsManifest) formatter.Deserialize( stream, assemblyName ).AssertNotNull();
+            }
+
+            if ( firstByte >= 0 )
+            {
+                stream.Position -= 1;
+            }
+
+            using var deflate = new DeflateStream( stream, CompressionMode.Decompress );
 
             return (TransitiveAspectsManifest) formatter.Deserialize( deflate, assemblyName ).AssertNotNull();
         }
