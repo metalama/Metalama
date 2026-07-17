@@ -2,6 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Caching;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -14,7 +16,8 @@ using System.Threading;
 namespace Metalama.Framework.Engine.CompileTime;
 
 /// <summary>
-/// Provides the <see cref="GetCompileTimeType"/> method, which maps a Roslyn <see cref="ITypeSymbol"/> to a reflection <see cref="Type"/>.
+/// Provides the <see cref="GetCompileTimeType(ITypeSymbol, bool, CancellationToken)"/> method, which maps a Roslyn <see cref="ITypeSymbol"/>
+/// to a reflection <see cref="Type"/>.
 /// </summary>
 internal abstract class CompileTimeTypeResolver : ICompilationService
 {
@@ -47,6 +50,46 @@ internal abstract class CompileTimeTypeResolver : ICompilationService
         {
             return type;
         }
+    }
+
+    /// <summary>
+    /// Finds a named type by its metadata name in a given assembly of the compilation, and maps it to a reflection <see cref="Type"/>
+    /// (falling back to a mock <see cref="CompileTimeType"/> if it cannot be mapped to a real, loadable <see cref="Type"/>).
+    /// </summary>
+    public Type GetCompileTimeType( string typeName, string assemblyName )
+    {
+        var assemblySymbol = this._compilationContext.Compilation.GetAssembly( assemblyName )
+                             ?? throw new InvalidOperationException( $"Could not locate assembly {assemblyName} in compilation." );
+
+        var typeSymbol = assemblySymbol.GetTypeByMetadataName( typeName )
+                         ?? throw new InvalidOperationException( $"Could not locate type {typeName} in assembly {assemblyName} in compilation." );
+
+        return this.GetCompileTimeType( typeSymbol, true ).AssertNotNull();
+    }
+
+    /// <summary>
+    /// Constructs the reflection <see cref="Type"/> (or mock <see cref="CompileTimeType"/>) of an array of a given element type and rank.
+    /// </summary>
+    public Type GetCompileTimeArrayType( CompileTimeType elementType, int rank )
+    {
+        var compilation = this._compilationContext.Compilation;
+        var elementTypeSymbol = (INamedTypeSymbol) elementType.Target.GetSymbol( compilation ).AssertNotNull();
+        var arrayTypeSymbol = compilation.CreateArrayTypeSymbol( elementTypeSymbol, rank );
+
+        return this.GetCompileTimeType( arrayTypeSymbol, true ).AssertNotNull();
+    }
+
+    /// <summary>
+    /// Constructs the reflection <see cref="Type"/> (or mock <see cref="CompileTimeType"/>) of a generic type given its (open)
+    /// generic type definition and a set of type arguments.
+    /// </summary>
+    public Type GetCompileTimeGenericType( Type genericTypeDefinition, Type[] genericArguments )
+    {
+        var mapper = this._compilationContext.ReflectionMapper;
+        var genericTypeSymbol = (INamedTypeSymbol) mapper.GetTypeSymbol( genericTypeDefinition );
+        var constructedTypeSymbol = genericTypeSymbol.Construct( genericArguments.SelectAsArray( mapper.GetTypeSymbol ) );
+
+        return this.GetCompileTimeType( constructedTypeSymbol, true ).AssertNotNull();
     }
 
     private Type? GetCompileTimeTypeCore( ITypeSymbol typeSymbol, CancellationToken cancellationToken = default )

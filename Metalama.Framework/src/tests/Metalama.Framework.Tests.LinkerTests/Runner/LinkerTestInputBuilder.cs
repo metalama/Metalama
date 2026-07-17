@@ -143,8 +143,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 return builderData.ToFullRef();
             }
 
-            var symbolId = SymbolId.Create( overriddenDeclarationSymbol );
-            var durableRef = DurableRefFactory.FromSymbolId<IDeclaration>( symbolId );
+            var durableRef = DurableRefFactory.FromDeclarationId<IDeclaration>( overriddenDeclarationSymbol.GetSerializableId() );
 
             return durableRef.ToFullRef<IDeclaration>( this._initialCompilationModel.AssertNotNull().RefFactory );
         }

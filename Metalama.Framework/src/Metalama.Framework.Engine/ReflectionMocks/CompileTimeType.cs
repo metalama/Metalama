@@ -167,15 +167,15 @@ namespace Metalama.Framework.Engine.ReflectionMocks
 
         public override string ToString() => this._toStringName;
 
-        public bool IsAssignable => false;
+        bool IExpression.IsAssignable => false;
 
-        public IType Type => TypeFactory.GetType( typeof(Type) );
+        IType IHasType.Type => TypeFactory.GetType( typeof(Type) );
 
-        public Type ReflectionType => typeof(Type);
+        Type ICompileTimeReflectionObject<IType>.ReflectionType => typeof(Type);
 
-        public RefKind RefKind => RefKind.None;
+        RefKind IHasType.RefKind => RefKind.None;
 
-        public ref object? Value => ref RefHelper.Wrap( this );
+        ref object? IExpression.Value => ref RefHelper.Wrap( this );
 
         public TypedExpressionSyntax ToTypedExpressionSyntax( ISyntaxGenerationContext syntaxGenerationContext, IType? targetType = null )
         {
@@ -185,7 +185,7 @@ namespace Metalama.Framework.Engine.ReflectionMocks
                 this.Target.GetSymbol( compilation.RoslynCompilation )
                     .AssertCast<ITypeSymbol>()
                     .AssertSymbolNullNotImplemented( UnsupportedFeatures.IntroducedTypeSerialization ),
-                this.ReflectionType,
+                typeof(Type),
                 TypeSerializationHelper.SerializeTypeSymbolRecursive,
                 syntaxGenerationContext );
         }

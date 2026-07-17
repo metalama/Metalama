@@ -4,8 +4,10 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.CompileTime.Serialization;
+using Metalama.Framework.Engine.ReflectionMocks;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -73,6 +75,60 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
             this.TestSerialization( typeof(void) );
             this.TestSerialization( typeof(Type) );
             this.TestSerialization( typeof(ValueType) );
+        }
+
+        // These represent System.Type values whose type cannot be bound to a real, loadable Type in the reading process
+        // (here, because the type only exists in the ad-hoc test compilation, never emitted or loaded as an assembly) -
+        // the same situation as a run-time type of the writing process that is incompatible with the reading process
+        // (e.g. across TFMs or assembly versions). Deserialization must fall back to a symbolic CompileTimeType instead
+        // of throwing or resolving to the wrong type.
+        [Fact]
+        public void TestTypeValue_UnresolvableSimpleType()
+        {
+            using var testContext = this.CreateTestContextWithCode( "public class MyRuntimeType { }" );
+
+            Type mockType = CompileTimeType.Create( testContext.Compilation.Types.OfName( "MyRuntimeType" ).Single() );
+
+            var deserialized = TestSerialization( testContext, mockType, testEquality: false );
+
+            var deserializedMock = Assert.IsType<CompileTimeType>( deserialized );
+            Assert.Equal( mockType.Namespace, deserializedMock.Namespace );
+            Assert.Equal( mockType.Name, deserializedMock.Name );
+            Assert.Equal( mockType.FullName, deserializedMock.FullName );
+        }
+
+        [Fact]
+        public void TestTypeValue_UnresolvableGenericType()
+        {
+            using var testContext = this.CreateTestContextWithCode(
+                "public class MyGenericRuntimeType<T> { } "
+                + "public class MyRuntimeHolder { public MyGenericRuntimeType<int> ClosedGenericField; }" );
+
+            var holderType = testContext.Compilation.Types.OfName( "MyRuntimeHolder" ).Single();
+            var fieldType = holderType.Fields.OfName( "ClosedGenericField" ).Single().Type;
+            Type mockType = CompileTimeType.Create( fieldType );
+
+            var deserialized = TestSerialization( testContext, mockType, testEquality: false );
+
+            var deserializedMock = Assert.IsType<CompileTimeType>( deserialized );
+            Assert.Equal( mockType.FullName, deserializedMock.FullName );
+        }
+
+        [Fact]
+        public void TestTypeValue_UnresolvableArrayType()
+        {
+            using var testContext = this.CreateTestContextWithCode(
+                "public class MyRuntimeType { } "
+                + "public class MyRuntimeHolder { public MyRuntimeType[] ArrayField; }" );
+
+            var holderType = testContext.Compilation.Types.OfName( "MyRuntimeHolder" ).Single();
+            var fieldType = holderType.Fields.OfName( "ArrayField" ).Single().Type;
+            Type mockType = CompileTimeType.Create( fieldType );
+
+            var deserialized = TestSerialization( testContext, mockType, testEquality: false );
+
+            var deserializedMock = Assert.IsType<CompileTimeType>( deserialized );
+            Assert.Equal( mockType.FullName, deserializedMock.FullName );
         }
 
         [UsedImplicitly]

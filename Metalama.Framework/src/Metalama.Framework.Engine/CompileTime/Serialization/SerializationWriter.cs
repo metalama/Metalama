@@ -25,6 +25,7 @@ internal sealed class SerializationWriter
 
     private readonly ProjectServiceProvider _serviceProvider;
     private readonly CompileTimeSerializer _formatter;
+    private readonly CompilationContext? _compilationContext;
     private readonly bool _shouldReportExceptionCause;
 
     private readonly Dictionary<Type, AssemblyTypeName> _typeNameCache = new();
@@ -33,10 +34,16 @@ internal sealed class SerializationWriter
 
     private readonly UserCodeInvoker _userCodeInvoker;
 
-    public SerializationWriter( in ProjectServiceProvider serviceProvider, Stream stream, CompileTimeSerializer formatter, bool shouldReportExceptionCause )
+    public SerializationWriter(
+        in ProjectServiceProvider serviceProvider,
+        Stream stream,
+        CompileTimeSerializer formatter,
+        CompilationContext? compilationContext,
+        bool shouldReportExceptionCause )
     {
         this._serviceProvider = serviceProvider;
         this._formatter = formatter;
+        this._compilationContext = compilationContext;
         this._shouldReportExceptionCause = shouldReportExceptionCause;
         this._binaryWriter = new SerializationBinaryWriter( new BinaryWriter( stream ) );
         this._userCodeInvoker = serviceProvider.GetRequiredService<UserCodeInvoker>();
@@ -86,7 +93,7 @@ internal sealed class SerializationWriter
 
             var serializer = type.IsArray ? null : this._formatter.SerializerProvider.GetSerializer( type, cause );
 
-            objectInfo = new ObjectInfo( this._formatter, obj, this._objects.Count + 1 );
+            objectInfo = new ObjectInfo( this._compilationContext, obj, this._objects.Count + 1 );
 
             if ( !type.IsArray )
             {
@@ -124,7 +131,7 @@ internal sealed class SerializationWriter
     {
         if ( type is CompileTimeType compileTimeType )
         {
-            var typeSymbol = (ITypeSymbol) compileTimeType.Target.GetSymbol( this._formatter.Compilation.AssertNotNull() ).AssertNotNull();
+            var typeSymbol = (ITypeSymbol) compileTimeType.Target.GetSymbol( this._compilationContext.AssertNotNull().Compilation ).AssertNotNull();
             this.WriteType( typeSymbol, cause, intrinsicType );
 
             return;
@@ -560,7 +567,7 @@ internal sealed class SerializationWriter
     {
         var type = value.GetType();
         var serializer = this._formatter.SerializerProvider.GetSerializer( type, cause );
-        var arguments = new Arguments( this._formatter );
+        var arguments = new Arguments( this._compilationContext );
 
         this.TrySerialize( serializer, value, arguments, ThrowingArguments.Instance, cause );
 
@@ -716,10 +723,10 @@ internal sealed class SerializationWriter
 
         public bool InitializationArgumentsWritten { get; set; }
 
-        public ObjectInfo( CompileTimeSerializer serializer, object o, int objectId )
+        public ObjectInfo( CompilationContext? compilationContext, object o, int objectId )
         {
-            this.InitializationArguments = new Arguments( serializer );
-            this.ConstructorArguments = new Arguments( serializer );
+            this.InitializationArguments = new Arguments( compilationContext );
+            this.ConstructorArguments = new Arguments( compilationContext );
             this.Object = o;
             this.ObjectId = objectId;
         }
@@ -734,13 +741,12 @@ internal sealed class SerializationWriter
 
     private sealed class Arguments : IArgumentsWriter, ISerializationContext
     {
-        private readonly CompileTimeSerializer _serializer;
         private Dictionary<string, object?>? _values;
         private Dictionary<string, object?>? _contextProperties;
 
-        public Arguments( CompileTimeSerializer serializer )
+        public Arguments( CompilationContext? compilationContext )
         {
-            this._serializer = serializer;
+            this.CompilationContext = compilationContext;
         }
 
         public void SetValue( string name, object? value, string? scope = null )
@@ -762,7 +768,7 @@ internal sealed class SerializationWriter
         public IReadOnlyDictionary<string, object?> Values
             => (IReadOnlyDictionary<string, object?>?) this._values ?? ImmutableDictionary<string, object?>.Empty;
 
-        public CompilationContext CompilationContext => this._serializer.CompilationContext;
+        public CompilationContext? CompilationContext { get; }
 
         public Dictionary<string, object?> ContextProperties => this._contextProperties ??= new Dictionary<string, object?>( StringComparer.Ordinal );
     }

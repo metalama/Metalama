@@ -387,7 +387,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
                 TestTransformationBase CreateTransformation( CompilationModel compilationModel )
                 {
-                    var declaringTypeRef = DurableRefFactory.FromSymbolId<INamedType>( SymbolId.Create( symbol.ContainingType ) );
+                    var declaringTypeRef = DurableRefFactory.FromTypeId<INamedType>( symbol.ContainingType.GetSerializableTypeId() );
                     var declaringType = declaringTypeRef.GetTarget( compilationModel );
                     var aspectLayerInstance = CreateTestAspectLayerInstance( declaringType, aspectLayer );
 

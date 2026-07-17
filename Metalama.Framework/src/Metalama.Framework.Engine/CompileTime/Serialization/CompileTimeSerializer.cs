@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
-using Microsoft.CodeAnalysis;
 using System.IO;
 
 namespace Metalama.Framework.Engine.CompileTime.Serialization;
@@ -22,30 +21,29 @@ internal sealed class CompileTimeSerializer
     /// </summary>
     internal BaseCompileTimeSerializationBinder Binder { get; }
 
-    internal Compilation Compilation => this.CompilationContext.Compilation;
-
-    internal CompilationContext CompilationContext { get; }
+    private CompileTimeTypeResolver CompileTimeTypeResolver { get; }
 
     internal SerializerProvider SerializerProvider { get; }
-
-    private CompileTimeSerializer( CompileTimeProject? project, in ProjectServiceProvider serviceProvider, CompilationContext compilationContext ) : this(
-        serviceProvider,
-        new CompileTimeSerializationBinder( project?.Domain, serviceProvider, project ),
-        compilationContext ) { }
-
-    public static CompileTimeSerializer CreateInstance( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
-        => new( serviceProvider.GetService<CompileTimeProject>(), serviceProvider, compilationContext );
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CompileTimeSerializer"/> class.
     /// </summary>
     /// <param name="serviceProvider"></param>
     /// <param name="binder">A <see cref="BaseCompileTimeSerializationBinder"/> customizing bindings between types and type names, or <c>null</c> to use the default implementation.</param>
-    private CompileTimeSerializer( in ProjectServiceProvider serviceProvider, BaseCompileTimeSerializationBinder binder, CompilationContext compilationContext )
+    public CompileTimeSerializer( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
     {
+        var project = serviceProvider.GetService<CompileTimeProject>();
         this._serviceProvider = serviceProvider;
-        this.Binder = binder;
-        this.CompilationContext = compilationContext;
+        this.Binder = new CompileTimeSerializationBinder( project?.Domain, serviceProvider, project );
+
+        // The project-specific resolver is only registered once a compile-time project pipeline is available. When it is not
+        // (e.g. serializing plain intrinsic values with no compile-time project in scope), fall back to the system resolver,
+        // which is always registered and still resolves well-known and current-AppDomain-loaded system types correctly.
+        this.CompileTimeTypeResolver =
+            (CompileTimeTypeResolver?) serviceProvider.GetService<CompilationServiceProvider<ProjectSpecificCompileTimeTypeResolver>>()
+                ?.Get( compilationContext )
+            ?? serviceProvider.GetRequiredService<SystemTypeResolver.Provider>().Get( compilationContext );
+
         this.SerializerProvider = new SerializerProvider( serviceProvider.GetRequiredService<ISerializerFactoryProvider>() );
     }
 
@@ -54,16 +52,16 @@ internal sealed class CompileTimeSerializer
     /// </summary>
     /// <param name="obj">The object to serialize.</param>
     /// <param name="stream">The stream where <paramref name="obj"/> needs to be serialized.</param>
-    public void Serialize( object? obj, Stream stream )
+    public void Serialize( object? obj, Stream stream, CompilationContext? compilationContext = null )
     {
         try
         {
-            var serializationWriter = new SerializationWriter( this._serviceProvider, stream, this, false );
+            var serializationWriter = new SerializationWriter( this._serviceProvider, stream, this, compilationContext, false );
             serializationWriter.Serialize( obj );
         }
         catch ( CompileTimeSerializationException )
         {
-            var serializationWriter = new SerializationWriter( this._serviceProvider, Stream.Null, this, true );
+            var serializationWriter = new SerializationWriter( this._serviceProvider, Stream.Null, this, compilationContext, true );
             serializationWriter.Serialize( obj );
         }
     }
@@ -93,9 +91,9 @@ internal sealed class CompileTimeSerializer
             var serializationReader = new SerializationReader(
                 stream,
                 this,
+                this.CompileTimeTypeResolver,
                 shouldReportExceptionCause,
-                assemblyName,
-                this.CompilationContext );
+                assemblyName );
 
             return serializationReader.Deserialize();
         }

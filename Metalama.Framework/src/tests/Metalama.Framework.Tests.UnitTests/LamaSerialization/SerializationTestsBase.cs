@@ -68,7 +68,7 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
             bool testEquality = true )
         {
             var memoryStream = new MemoryStream();
-            testContext.Serializer.Serialize( instance, memoryStream );
+            testContext.Serializer.Serialize( instance, memoryStream, testContext.Compilation.CompilationContext );
             memoryStream.Seek( 0, SeekOrigin.Begin );
             var deserializedObject = (T?) testContext.Serializer.Deserialize( memoryStream );
 

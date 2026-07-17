@@ -80,8 +80,8 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
                    UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( "Serializing" ), compilationContext ) ) )
         {
             using var deflate = new DeflateStream( stream, CompressionLevel.Optimal, true );
-            var formatter = CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext );
-            formatter.Serialize( this, deflate );
+            var formatter = new CompileTimeSerializer( serviceProvider, compilationContext );
+            formatter.Serialize( this, deflate, compilationContext );
             deflate.Flush();
             stream.Flush();
         }
@@ -127,7 +127,7 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         {
             using var deflate = new DeflateStream( stream, CompressionMode.Decompress );
 
-            var formatter = CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext );
+            var formatter = new CompileTimeSerializer( serviceProvider, compilationContext );
 
             return (TransitiveAspectsManifest) formatter.Deserialize( deflate, assemblyName ).AssertNotNull();
         }
@@ -173,8 +173,8 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
                 ?? ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions>.Empty;
 
             if ( initializationArguments.TryGetValue<ImmutableDictionary<SerializableDeclarationId, ImmutableArray<IAnnotation>>>(
-                    nameof(instance.Annotations),
-                    out var annotations )
+                     nameof(instance.Annotations),
+                     out var annotations )
                  && annotations != null )
             {
                 instance.Annotations = new ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>( annotations );

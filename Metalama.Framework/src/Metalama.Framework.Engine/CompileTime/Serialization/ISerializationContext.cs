@@ -9,7 +9,7 @@ namespace Metalama.Framework.Engine.CompileTime.Serialization;
 
 internal interface ISerializationContext
 {
-    CompilationContext CompilationContext { get; }
+    CompilationContext? CompilationContext { get; }
 
     Dictionary<string, object?> ContextProperties { get; }
 }

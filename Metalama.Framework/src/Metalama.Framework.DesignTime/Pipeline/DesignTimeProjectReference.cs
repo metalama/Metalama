@@ -46,7 +46,7 @@ internal readonly struct DesignTimeProjectReference : IEquatable<DesignTimeProje
     {
         // Both manifest representations are either both present or both absent: a reference either has a
         // transitive aspect manifest (in both its live and its serialized form) or is not a Metalama project.
-        Invariant.Assert( (transitiveAspectsManifest != null) == !serializedTransitiveAspectManifest.IsDefault );
+        Invariant.Assert( transitiveAspectsManifest != null == !serializedTransitiveAspectManifest.IsDefault );
 
         this.TransitiveAspectsManifest = transitiveAspectsManifest;
         this.SerializedTransitiveAspectManifest = serializedTransitiveAspectManifest;
