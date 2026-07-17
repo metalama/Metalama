@@ -1,13 +1,10 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Serialization;
-using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -25,11 +22,9 @@ internal sealed class SerializationWriter
 
     private readonly ProjectServiceProvider _serviceProvider;
     private readonly CompileTimeSerializer _formatter;
-    private readonly CompilationContext? _compilationContext;
     private readonly bool _shouldReportExceptionCause;
 
     private readonly Dictionary<Type, AssemblyTypeName> _typeNameCache = new();
-    private readonly Dictionary<ITypeSymbol, AssemblyTypeName> _typeSymbolNameCache = new();
     private readonly Dictionary<object, ObjectInfo> _objects = new( new CanonicalComparer() );
 
     private readonly UserCodeInvoker _userCodeInvoker;
@@ -38,12 +33,10 @@ internal sealed class SerializationWriter
         in ProjectServiceProvider serviceProvider,
         Stream stream,
         CompileTimeSerializer formatter,
-        CompilationContext? compilationContext,
         bool shouldReportExceptionCause )
     {
         this._serviceProvider = serviceProvider;
         this._formatter = formatter;
-        this._compilationContext = compilationContext;
         this._shouldReportExceptionCause = shouldReportExceptionCause;
         this._binaryWriter = new SerializationBinaryWriter( new BinaryWriter( stream ) );
         this._userCodeInvoker = serviceProvider.GetRequiredService<UserCodeInvoker>();
@@ -93,7 +86,7 @@ internal sealed class SerializationWriter
 
             var serializer = type.IsArray ? null : this._formatter.SerializerProvider.GetSerializer( type, cause );
 
-            objectInfo = new ObjectInfo( this._compilationContext, obj, this._objects.Count + 1 );
+            objectInfo = new ObjectInfo( obj, this._objects.Count + 1 );
 
             if ( !type.IsArray )
             {
@@ -129,14 +122,6 @@ internal sealed class SerializationWriter
 
     private void WriteType( Type type, SerializationCause? cause, SerializationIntrinsicType intrinsicType = SerializationIntrinsicType.None )
     {
-        if ( type is CompileTimeType compileTimeType )
-        {
-            var typeSymbol = (ITypeSymbol) compileTimeType.Target.GetSymbol( this._compilationContext.AssertNotNull().Compilation ).AssertNotNull();
-            this.WriteType( typeSymbol, cause, intrinsicType );
-
-            return;
-        }
-
         if ( intrinsicType == SerializationIntrinsicType.None )
         {
             intrinsicType = type.GetIntrinsicType();
@@ -219,94 +204,6 @@ internal sealed class SerializationWriter
         }
     }
 
-    private void WriteType( ITypeSymbol typeSymbol, SerializationCause? cause, SerializationIntrinsicType intrinsicType = SerializationIntrinsicType.None )
-    {
-        if ( intrinsicType == SerializationIntrinsicType.None )
-        {
-            intrinsicType = typeSymbol.GetIntrinsicType();
-        }
-
-        switch ( intrinsicType )
-        {
-            case SerializationIntrinsicType.None:
-            case SerializationIntrinsicType.Boolean:
-            case SerializationIntrinsicType.Char:
-            case SerializationIntrinsicType.SByte:
-            case SerializationIntrinsicType.Byte:
-            case SerializationIntrinsicType.Int16:
-            case SerializationIntrinsicType.UInt16:
-            case SerializationIntrinsicType.Int32:
-            case SerializationIntrinsicType.UInt32:
-            case SerializationIntrinsicType.Int64:
-            case SerializationIntrinsicType.UInt64:
-            case SerializationIntrinsicType.Single:
-            case SerializationIntrinsicType.Double:
-            case SerializationIntrinsicType.String:
-            case SerializationIntrinsicType.ObjRef:
-            case SerializationIntrinsicType.DottedString:
-            case SerializationIntrinsicType.Type:
-                this._binaryWriter.WriteByte( (byte) intrinsicType );
-
-                break;
-
-            case SerializationIntrinsicType.Enum:
-                this._binaryWriter.WriteByte( (byte) intrinsicType );
-
-                this._binaryWriter.WriteByte( (byte) SerializationIntrinsicTypeFlags.Default );
-                this.WriteTypeName( typeSymbol );
-
-                break;
-
-            case SerializationIntrinsicType.Array when typeSymbol.Kind == SymbolKind.ArrayType && typeSymbol is IArrayTypeSymbol arrayTypeSymbol:
-                {
-                    this._binaryWriter.WriteByte( (byte) intrinsicType );
-                    this._binaryWriter.WriteCompressedInteger( arrayTypeSymbol.Rank );
-                    this.WriteType( arrayTypeSymbol.ElementType, cause );
-
-                    break;
-                }
-
-            case SerializationIntrinsicType.Struct:
-            case SerializationIntrinsicType.Class:
-                {
-                    var genericTypeDefinition = typeSymbol.OriginalDefinition;
-                    this._binaryWriter.WriteByte( (byte) intrinsicType );
-
-                    if ( typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol
-                                                                 && namedTypeSymbol.OriginalDefinition != namedTypeSymbol )
-                    {
-                        this._binaryWriter.WriteByte( (byte) SerializationIntrinsicTypeFlags.Generic );
-                        this.WriteTypeName( genericTypeDefinition );
-
-                        var genericTypeArguments = namedTypeSymbol.TypeArguments;
-
-                        this._binaryWriter.WriteCompressedInteger( genericTypeArguments.Length );
-
-                        foreach ( var genericTypeArgument in genericTypeArguments )
-                        {
-                            this.WriteType( genericTypeArgument, cause );
-                        }
-                    }
-                    else
-                    {
-                        this._binaryWriter.WriteByte( (byte) SerializationIntrinsicTypeFlags.Default );
-                        this.WriteTypeName( genericTypeDefinition );
-                    }
-                }
-
-                break;
-
-            case SerializationIntrinsicType.GenericTypeParameter
-                when typeSymbol.Kind == SymbolKind.TypeParameter && typeSymbol is ITypeParameterSymbol typeParameterSymbol:
-                this.WriteGenericTypeParameter( typeParameterSymbol, cause );
-
-                break;
-
-            default:
-                throw new ArgumentOutOfRangeException( nameof(typeSymbol) );
-        }
-    }
-
     private void WriteTypeName( Type type )
     {
         if ( type is { IsGenericType: true, IsGenericTypeDefinition: false } )
@@ -326,25 +223,6 @@ internal sealed class SerializationWriter
             assemblyTypeName = new AssemblyTypeName( typeName, assemblyName );
 
             this._typeNameCache.Add( type, assemblyTypeName );
-        }
-
-        this.WriteTypeName( assemblyTypeName );
-    }
-
-    private void WriteTypeName( ITypeSymbol typeSymbol )
-    {
-        if ( typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol
-                                                     && namedTypeSymbol.ConstructedFrom != namedTypeSymbol )
-        {
-            throw new ArgumentOutOfRangeException( nameof(typeSymbol) );
-        }
-
-        if ( !this._typeSymbolNameCache.TryGetValue( typeSymbol, out var assemblyTypeName ) )
-        {
-            this._formatter.Binder.BindToName( typeSymbol, out var typeName, out var assemblyName );
-            assemblyTypeName = new AssemblyTypeName( typeName, assemblyName );
-
-            this._typeSymbolNameCache.Add( typeSymbol, assemblyTypeName );
         }
 
         this.WriteTypeName( assemblyTypeName );
@@ -533,13 +411,6 @@ internal sealed class SerializationWriter
         this._binaryWriter.WriteCompressedInteger( type.GenericParameterPosition );
     }
 
-    private void WriteGenericTypeParameter( ITypeParameterSymbol typeParameterSymbol, SerializationCause? cause )
-    {
-        this._binaryWriter.WriteByte( (byte) SerializationIntrinsicType.GenericTypeParameter );
-        this.WriteType( typeParameterSymbol.ContainingType, cause );
-        this._binaryWriter.WriteCompressedInteger( typeParameterSymbol.Ordinal );
-    }
-
     private void WriteObjectReference( object value, bool writeInitializationDataInline, SerializationCause? cause )
     {
         var objectInfo = this.GetObjectInfo( value, cause );
@@ -567,7 +438,7 @@ internal sealed class SerializationWriter
     {
         var type = value.GetType();
         var serializer = this._formatter.SerializerProvider.GetSerializer( type, cause );
-        var arguments = new Arguments( this._compilationContext );
+        var arguments = new Arguments();
 
         this.TrySerialize( serializer, value, arguments, ThrowingArguments.Instance, cause );
 
@@ -723,10 +594,10 @@ internal sealed class SerializationWriter
 
         public bool InitializationArgumentsWritten { get; set; }
 
-        public ObjectInfo( CompilationContext? compilationContext, object o, int objectId )
+        public ObjectInfo( object o, int objectId )
         {
-            this.InitializationArguments = new Arguments( compilationContext );
-            this.ConstructorArguments = new Arguments( compilationContext );
+            this.InitializationArguments = new Arguments();
+            this.ConstructorArguments = new Arguments();
             this.Object = o;
             this.ObjectId = objectId;
         }
@@ -743,11 +614,6 @@ internal sealed class SerializationWriter
     {
         private Dictionary<string, object?>? _values;
         private Dictionary<string, object?>? _contextProperties;
-
-        public Arguments( CompilationContext? compilationContext )
-        {
-            this.CompilationContext = compilationContext;
-        }
 
         public void SetValue( string name, object? value, string? scope = null )
         {
@@ -767,8 +633,6 @@ internal sealed class SerializationWriter
 
         public IReadOnlyDictionary<string, object?> Values
             => (IReadOnlyDictionary<string, object?>?) this._values ?? ImmutableDictionary<string, object?>.Empty;
-
-        public CompilationContext? CompilationContext { get; }
 
         public Dictionary<string, object?> ContextProperties => this._contextProperties ??= new Dictionary<string, object?>( StringComparer.Ordinal );
     }

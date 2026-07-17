@@ -10,7 +10,6 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
-using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
@@ -80,12 +79,8 @@ public class UserCodeExecutionContext : IExecutionContextInternal
 
         // Build metadata from the resolved IType.
         var ns = GetNamespaceForType( resolvedType );
-        var name = resolvedType.GetReflectionName( bypassSymbols: true );
-        var fullName = resolvedType.GetReflectionFullName( bypassSymbols: true );
-        var toStringName = resolvedType.GetReflectionToStringName( bypassSymbols: true );
-        var metadata = new CompileTimeTypeMetadata( ns, name, fullName, toStringName );
 
-        return Current.CompilationContext!.CompileTimeTypeFactory.Get( resolvedTypeId, metadata );
+        return Current.CompilationContext!.CompileTimeTypeFactory.Get( resolvedTypeId );
     }
 
     /// <summary>
@@ -121,7 +116,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
     {
         return Current.CompilationContext.AssertNotNull()
             .CompileTimeTypeFactory
-            .Get( new SerializableTypeId( typeId ), new CompileTimeTypeMetadata( ns, name, fullName, toString ) );
+            .Get( new SerializableTypeId( typeId ) );
     }
 
     IDisposable IExecutionContext.WithoutDependencyCollection() => this.WithoutDependencyCollection();

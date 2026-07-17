@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.SerializableIds;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,6 @@ internal sealed class ResolvingCompileTimeTypeFactory : CompileTimeTypeFactory
         this._serializableTypeIdResolver = serializableTypeIdResolver;
     }
 
-    public Type Get( SerializableTypeId typeId, IReadOnlyDictionary<string, IType>? substitutions )
+    public Type Get( SerializableTypeId typeId, IReadOnlyDictionary<string, IType>? substitutions = null )
         => this.Get( this._serializableTypeIdResolver.ResolveId( typeId, substitutions ) );
 }

@@ -187,34 +187,34 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
         [Fact]
         public void TestRunTimeTypes()
         {
-            Assert.IsType<CompileTimeType>(
+            Assert.IsAssignableFrom<CompileTimeType>(
                 this.GetDeserializedProperty(
                     nameof(TestAttribute.TypeProperty),
                     "typeof(RunTimeEnum)" ) );
 
-            Assert.IsType<CompileTimeType>(
+            Assert.IsAssignableFrom<CompileTimeType>(
                 this.GetDeserializedProperty(
                     nameof(TestAttribute.TypeProperty),
                     "typeof(RunTimeEnum[])" ) );
 
-            Assert.IsType<CompileTimeType>(
+            Assert.IsAssignableFrom<CompileTimeType>(
                 this.GetDeserializedProperty(
                     nameof(TestAttribute.TypeProperty),
                     "typeof(System.Collections.Generic.List<RunTimeEnum>)" ) );
 
-            Assert.IsType<CompileTimeType>(
+            Assert.IsAssignableFrom<CompileTimeType>(
                 this.GetDeserializedProperty(
                     nameof(TestAttribute.TypeProperty),
                     "typeof(GenericRunTimeType<int>)" ) );
 
-            Assert.IsType<CompileTimeType>(
+            Assert.IsAssignableFrom<CompileTimeType>(
                 this.GetDeserializedProperty(
                     nameof(TestAttribute.TypeProperty),
                     "typeof(GenericStruct*)" ) );
 
             const string dependentCode = "public class MyExternClass {} public enum MyExternEnum { A, B }";
             var typeValue = this.GetDeserializedProperty( nameof(TestAttribute.TypeProperty), "typeof(MyExternClass)", dependentCode );
-            Assert.Equal( "MyExternClass", Assert.IsType<CompileTimeType>( typeValue ).FullName );
+            Assert.Equal( "MyExternClass", Assert.IsAssignableFrom<CompileTimeType>( typeValue ).FullName );
 
             // When assigning to a run-time-only enum, the enum primitive value is used. 
             var objectValue = this.GetDeserializedProperty( nameof(TestAttribute.ObjectProperty), "MyExternEnum.B", dependentCode );

@@ -1,7 +1,8 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Services;
 using System;
 
@@ -27,6 +28,15 @@ internal sealed class CompileTimeSerializationBinder : BaseCompileTimeSerializat
 
     public override void BindToName( Type type, out string typeName, out string assemblyName )
     {
+        if ( type is CompileTimeType )
+        {
+            // A mock cannot be asked for its Assembly, and never stands for a type of a compile-time assembly anyway,
+            // so none of the mapping below applies. The base reads the run-time assembly name the mock carries.
+            base.BindToName( type, out typeName, out assemblyName );
+
+            return;
+        }
+
         var typeAssemblyName = type.Assembly.GetName().Name;
 
         if ( typeAssemblyName != null && CompileTimeCompilationBuilder.IsCompileTimeAssemblyName( typeAssemblyName ) )

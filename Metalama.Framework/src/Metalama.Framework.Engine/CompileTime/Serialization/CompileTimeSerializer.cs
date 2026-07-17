@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -42,16 +42,16 @@ internal sealed class CompileTimeSerializer
     /// </summary>
     /// <param name="obj">The object to serialize.</param>
     /// <param name="stream">The stream where <paramref name="obj"/> needs to be serialized.</param>
-    public void Serialize( object? obj, Stream stream, CompilationContext? compilationContext = null )
+    public void Serialize( object? obj, Stream stream )
     {
         try
         {
-            var serializationWriter = new SerializationWriter( this._serviceProvider, stream, this, compilationContext, false );
+            var serializationWriter = new SerializationWriter( this._serviceProvider, stream, this, false );
             serializationWriter.Serialize( obj );
         }
         catch ( CompileTimeSerializationException )
         {
-            var serializationWriter = new SerializationWriter( this._serviceProvider, Stream.Null, this, compilationContext, true );
+            var serializationWriter = new SerializationWriter( this._serviceProvider, Stream.Null, this, true );
             serializationWriter.Serialize( obj );
         }
     }
@@ -79,6 +79,7 @@ internal sealed class CompileTimeSerializer
         object? Try( bool shouldReportExceptionCause )
         {
             var serializationReader = new SerializationReader(
+                this._serviceProvider,
                 stream,
                 this,
                 shouldReportExceptionCause,

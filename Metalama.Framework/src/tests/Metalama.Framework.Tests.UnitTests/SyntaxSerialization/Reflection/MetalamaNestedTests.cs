@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -33,7 +33,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             var compilation = testContext.Compilation;
             IType single = compilation.Types.Single( t => t.Name == "Target" ).Types.Single( nt => nt.Name == "Sub" );
 
-            return testContext.Serialize<Type>( CompileTimeType.Create( single ) ).ToString();
+            return testContext.Serialize<Type>( CompileTimeTypeTestHelper.Create( single ) ).ToString();
         }
 
         public MetalamaNestedTests( ITestOutputHelper helper ) : base( helper ) { }

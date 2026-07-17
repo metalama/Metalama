@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -87,11 +87,11 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
         {
             using var testContext = this.CreateTestContextWithCode( "public class MyRuntimeType { }" );
 
-            Type mockType = CompileTimeType.Create( testContext.Compilation.Types.OfName( "MyRuntimeType" ).Single() );
+            Type mockType = CompileTimeTypeTestHelper.Create( testContext.Compilation.Types.OfName( "MyRuntimeType" ).Single() );
 
             var deserialized = TestSerialization( testContext, mockType, testEquality: false );
 
-            var deserializedMock = Assert.IsType<CompileTimeType>( deserialized );
+            var deserializedMock = Assert.IsAssignableFrom<CompileTimeType>( deserialized );
             Assert.Equal( mockType.Namespace, deserializedMock.Namespace );
             Assert.Equal( mockType.Name, deserializedMock.Name );
             Assert.Equal( mockType.FullName, deserializedMock.FullName );
@@ -106,11 +106,11 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
 
             var holderType = testContext.Compilation.Types.OfName( "MyRuntimeHolder" ).Single();
             var fieldType = holderType.Fields.OfName( "ClosedGenericField" ).Single().Type;
-            Type mockType = CompileTimeType.Create( fieldType );
+            Type mockType = CompileTimeTypeTestHelper.Create( fieldType );
 
             var deserialized = TestSerialization( testContext, mockType, testEquality: false );
 
-            var deserializedMock = Assert.IsType<CompileTimeType>( deserialized );
+            var deserializedMock = Assert.IsAssignableFrom<CompileTimeType>( deserialized );
             Assert.Equal( mockType.FullName, deserializedMock.FullName );
         }
 
@@ -123,11 +123,11 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
 
             var holderType = testContext.Compilation.Types.OfName( "MyRuntimeHolder" ).Single();
             var fieldType = holderType.Fields.OfName( "ArrayField" ).Single().Type;
-            Type mockType = CompileTimeType.Create( fieldType );
+            Type mockType = CompileTimeTypeTestHelper.Create( fieldType );
 
             var deserialized = TestSerialization( testContext, mockType, testEquality: false );
 
-            var deserializedMock = Assert.IsType<CompileTimeType>( deserialized );
+            var deserializedMock = Assert.IsAssignableFrom<CompileTimeType>( deserialized );
             Assert.Equal( mockType.FullName, deserializedMock.FullName );
         }
 

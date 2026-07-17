@@ -81,7 +81,7 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         {
             using var deflate = new DeflateStream( stream, CompressionLevel.Optimal, true );
             var formatter = new CompileTimeSerializer( serviceProvider );
-            formatter.Serialize( this, deflate, compilationContext );
+            formatter.Serialize( this, deflate );
             deflate.Flush();
             stream.Flush();
         }

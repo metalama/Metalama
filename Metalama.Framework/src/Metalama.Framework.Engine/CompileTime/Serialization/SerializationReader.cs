@@ -2,11 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Code;
-using Metalama.Framework.Engine.CodeModel.Factories;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Serialization;
 using System;
 using System.Collections.Generic;
@@ -29,11 +26,12 @@ internal sealed class SerializationReader
     // Represents types that cannot be bound to a real, loadable Type in this process (e.g. a run-time type of the
     // writing process, incompatible across TFMs or assembly versions). Building a symbolic CompileTimeType from the
     // wire data directly, without a compilation, avoids resolving it to the wrong type.
-    private readonly CompileTimeTypeFactory _symbolicTypeFactory = new();
+    private readonly CompileTimeTypeFactory _compileTimeTypeFactory;
 
     private readonly InstanceFields _emptyInstanceFields;
 
     internal SerializationReader(
+        in ProjectServiceProvider serviceProvider,
         Stream stream,
         CompileTimeSerializer formatter,
         bool shouldReportExceptionCause,
@@ -42,6 +40,7 @@ internal sealed class SerializationReader
         this._formatter = formatter;
         this._shouldReportExceptionCause = shouldReportExceptionCause;
         this._assemblyName = assemblyName;
+        this._compileTimeTypeFactory = serviceProvider.GetRequiredService<CompileTimeTypeFactory>();
         this._binaryReader = new SerializationBinaryReader( new BinaryReader( stream ) );
         this._emptyInstanceFields = new InstanceFields( formatter );
     }
@@ -264,7 +263,7 @@ internal sealed class SerializationReader
                 break;
 
             case SerializationIntrinsicType.Enum:
-                type = this.ReadNamedType();
+                type = this.ReadNamedType( true, true );
 
                 // IsEnum throws on CompileTimeType. Similarly for the checks below.
                 if ( type is not CompileTimeType && !type.IsEnum )
@@ -276,12 +275,12 @@ internal sealed class SerializationReader
                 break;
 
             case SerializationIntrinsicType.Struct:
-                type = this.ReadNamedType();
+                type = this.ReadNamedType( true, false );
 
                 break;
 
             case SerializationIntrinsicType.Class:
-                type = this.ReadNamedType();
+                type = this.ReadNamedType( false, false );
 
                 break;
 
@@ -289,15 +288,7 @@ internal sealed class SerializationReader
                 int rank = this._binaryReader.ReadCompressedInteger();
                 this.ReadType( out var elementType, out _ );
 
-                if ( elementType is CompileTimeType compileTimeType )
-                {
-                    // The element type could not be bound to a real Type (see GetType), so neither can the array.
-                    type = this.CreateSymbolicArrayType( compileTimeType, rank );
-                }
-                else
-                {
-                    type = rank == 1 ? elementType.AssertNotNull().MakeArrayType() : elementType.AssertNotNull().MakeArrayType( rank );
-                }
+                type = rank == 1 ? elementType.AssertNotNull().MakeArrayType() : elementType.AssertNotNull().MakeArrayType( rank );
 
                 break;
 
@@ -326,7 +317,7 @@ internal sealed class SerializationReader
         }
     }
 
-    private Type ReadNamedType()
+    private Type ReadNamedType( bool isValueType, bool isEnum )
     {
         var flags = (SerializationIntrinsicTypeFlags) this._binaryReader.ReadByte();
 
@@ -336,13 +327,13 @@ internal sealed class SerializationReader
                 {
                     var typeName = this.ReadTypeName();
 
-                    return this.GetType( typeName );
+                    return this.GetType( typeName, isValueType, isEnum );
                 }
 
             case SerializationIntrinsicTypeFlags.Generic:
                 {
                     var typeName = this.ReadTypeName();
-                    var genericType = this.GetType( typeName );
+                    var genericType = this.GetType( typeName, isValueType, isEnum );
                     int arity = this._binaryReader.ReadCompressedInteger();
 
                     if ( arity > 0 )
@@ -355,11 +346,9 @@ internal sealed class SerializationReader
                             genericArguments[i] = this.ReadType().AssertNotNull();
                         }
 
-                        if ( genericType is CompileTimeType || genericArguments.OfType<CompileTimeType>().Any() )
+                        if ( genericArguments.OfType<CompileTimeType>().Any() && genericType is not CompileTimeType )
                         {
-                            // The generic type definition, or one of its arguments, could not be bound to a real Type
-                            // (see GetType), so neither can the constructed type.
-                            return this.CreateSymbolicGenericType( genericType, genericArguments );
+                            genericType = this._compileTimeTypeFactory.CreateNamedType( genericType );
                         }
 
                         return genericType.MakeGenericType( genericArguments );
@@ -518,108 +507,24 @@ internal sealed class SerializationReader
         return declaringType.GetGenericArguments()[position];
     }
 
-    private Type GetType( AssemblyTypeName typeName )
+    private Type GetType( AssemblyTypeName typeName, bool isValueType, bool isEnum )
     {
         // Binding is pure reflection and needs no compilation. The binder resolves the stored run-time assembly name
         // against *this* project's compile-time closure (CompileTimeProject.TryGetType), so it already yields the
         // consumer's own copy of a shared type, then falls back to the domain and to Type.GetType for system types.
-        var result = this._formatter.Binder.BindToType( typeName.TypeName, typeName.AssemblyName );
+        var clrType = this._formatter.Binder.BindToType( typeName.TypeName, typeName.AssemblyName );
+
+        if ( clrType != null )
+        {
+            return clrType;
+        }
 
         // The type is not in this project's closure and is not loadable here (e.g. a run-time type of the writing
         // process, incompatible across TFMs or assembly versions). Represent it symbolically. There is nothing a
         // compilation could add: resolving the name through one would only reach the same closure by a longer route,
         // and would otherwise yield a mock — which is what we build here directly.
-        return result ?? this.CreateSymbolicType( typeName );
-    }
 
-    // Builds a CompileTimeType purely from the wire-encoded type signature (name, generic arguments, array rank),
-    // without attempting to resolve a real Type and without needing any compilation.
-    //
-    // The SerializableTypeId is deliberately built WITHOUT the assembly name: it identifies a type *within a
-    // compilation* by contract, and SerializableTypeIdResolver resolves it by parsing the part after the "Y:" prefix
-    // as C# type syntax (`<id> M();`). Anything that is not valid C# type syntax -- an appended assembly name, a
-    // reflection-style nested-type separator, a generic arity backtick -- makes the id unresolvable.
-    private CompileTimeType CreateSymbolicType( AssemblyTypeName typeName )
-    {
-        var (ns, name) = SplitNamespaceAndName( typeName.TypeName );
-        var metadata = new CompileTimeTypeMetadata( ns, name, typeName.TypeName, typeName.TypeName );
-
-        return this._symbolicTypeFactory.Get( CreateTypeId( ToTypeSyntax( typeName.TypeName ) ), metadata );
-    }
-
-    private CompileTimeType CreateSymbolicArrayType( Type elementType, int rank )
-    {
-        var brackets = rank == 1 ? "[]" : "[" + new string( ',', rank - 1 ) + "]";
-        var fullName = elementType.FullName + brackets;
-        var metadata = new CompileTimeTypeMetadata( elementType.Namespace, elementType.Name + brackets, fullName, fullName );
-
-        return this._symbolicTypeFactory.Get( CreateTypeId( ToTypeSyntax( elementType.FullName.AssertNotNull() ) + brackets ), metadata );
-    }
-
-    private CompileTimeType CreateSymbolicGenericType( Type genericTypeDefinition, Type[] genericArguments )
-    {
-        var fullName = genericTypeDefinition.FullName + "[" + string.Join( ",", genericArguments.SelectAsArray( a => a.FullName ) ) + "]";
-        var (ns, name) = SplitNamespaceAndName( genericTypeDefinition.FullName.AssertNotNull() );
-        var metadata = new CompileTimeTypeMetadata( ns, name, fullName, fullName );
-
-        // C# syntax for a constructed generic type is `Ns.Foo<A, B>`, not the reflection form ``Ns.Foo`2[A,B]``. The arity
-        // suffix is dropped here -- unlike in CreateSymbolicType -- because the type argument list already carries it.
-        var syntax = StripArity( ToTypeSyntax( genericTypeDefinition.FullName.AssertNotNull() ) )
-                     + "<" + string.Join( ", ", genericArguments.SelectAsArray( a => StripArity( ToTypeSyntax( a.FullName.AssertNotNull() ) ) ) ) + ">";
-
-        return this._symbolicTypeFactory.Get( CreateTypeId( syntax ), metadata );
-    }
-
-    private static SerializableTypeId CreateTypeId( string typeSyntax ) => new( SerializableTypeId.Prefix + typeSyntax );
-
-    /// <summary>
-    /// Converts a reflection full name into C# type syntax, i.e. separates nested types by <c>.</c> rather than <c>+</c>.
-    /// </summary>
-    /// <remarks>
-    /// The generic arity suffix (<c>`n</c>) is deliberately <em>kept</em>. It is not valid C# syntax, so an id retaining
-    /// it cannot be resolved — but a symbolic type is by definition one we could not resolve anyway, and the arity is
-    /// what distinguishes <c>Foo</c> from <c>Foo`1</c>. Dropping it would collide the two in the id-keyed
-    /// <see cref="CompileTimeTypeFactory"/> cache, so one would be silently served for the other.
-    /// </remarks>
-    private static string ToTypeSyntax( string reflectionFullName ) => reflectionFullName.Replace( '+', '.' );
-
-    /// <summary>
-    /// Removes the generic arity suffix (<c>`n</c>) from each part of a name, e.g. <c>Ns.Foo`2.Bar`1</c> to
-    /// <c>Ns.Foo.Bar</c>. Only valid where a type argument list supplies the arity instead.
-    /// </summary>
-    private static string StripArity( string name )
-    {
-        while ( true )
-        {
-            var backtick = name.IndexOfOrdinal( '`' );
-
-            if ( backtick < 0 )
-            {
-                return name;
-            }
-
-            var end = backtick + 1;
-
-            while ( end < name.Length && char.IsDigit( name[end] ) )
-            {
-                end++;
-            }
-
-            name = name.Remove( backtick, end - backtick );
-        }
-    }
-
-    private static (string? Namespace, string Name) SplitNamespaceAndName( string reflectionFullName )
-    {
-        var firstNestedTypeSeparator = reflectionFullName.IndexOfOrdinal( '+' );
-        var namespaceScope = firstNestedTypeSeparator >= 0 ? reflectionFullName[..firstNestedTypeSeparator] : reflectionFullName;
-        var namespaceEnd = namespaceScope.LastIndexOf( '.' );
-        var lastSeparator = reflectionFullName.LastIndexOfAny( ['.', '+'] );
-
-        var ns = namespaceEnd >= 0 ? namespaceScope[..namespaceEnd] : null;
-        var name = lastSeparator >= 0 ? reflectionFullName[(lastSeparator + 1)..] : reflectionFullName;
-
-        return (ns, name);
+        return this._compileTimeTypeFactory.CreateNamedType( typeName.TypeName, typeName.AssemblyName, isEnum, isValueType );
     }
 
     private void ReadArray( Array array, SerializationCause? cause )
@@ -892,8 +797,6 @@ internal sealed class SerializationReader
 
             return value;
         }
-
-        CompilationContext ISerializationContext.CompilationContext => throw new NotSupportedException();
 
         public Dictionary<string, object?> ContextProperties => this._contextProperties ??= new Dictionary<string, object?>( StringComparer.Ordinal );
     }
