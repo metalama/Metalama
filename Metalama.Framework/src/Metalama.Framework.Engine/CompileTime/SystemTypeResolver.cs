@@ -1,7 +1,8 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel.Factories;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using System;
@@ -21,8 +22,8 @@ internal class SystemTypeResolver : CurrentAppDomainTypeResolver
 
     private readonly CompileTimeAssemblyLocator _compileTimeAssemblyLocator;
 
-    protected SystemTypeResolver( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
-        : base( serviceProvider, compilationContext )
+    protected SystemTypeResolver( in ProjectServiceProvider serviceProvider, CompileTimeTypeFactory compileTimeTypeFactory )
+        : base( serviceProvider, compileTimeTypeFactory )
     {
         this._compileTimeAssemblyLocator = serviceProvider.GetReferenceAssemblyLocator();
     }
@@ -47,10 +48,15 @@ internal class SystemTypeResolver : CurrentAppDomainTypeResolver
         }
     }
 
+    /// <summary>
+    /// Caches one <see cref="SystemTypeResolver"/> per <see cref="CompilationContext"/>. The resolver itself does not
+    /// depend on the compilation; the keying only scopes the lifetime of its caches.
+    /// </summary>
     public class Provider : CompilationServiceProvider<SystemTypeResolver>
     {
         public Provider( in ProjectServiceProvider serviceProvider ) : base( serviceProvider ) { }
 
-        protected override SystemTypeResolver Create( CompilationContext compilationContext ) => new( this.ServiceProvider, compilationContext );
+        protected override SystemTypeResolver Create( CompilationContext compilationContext )
+            => new( this.ServiceProvider, compilationContext.CompileTimeTypeFactory );
     }
 }

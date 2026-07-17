@@ -1,7 +1,8 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel.Factories;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -15,11 +16,14 @@ internal sealed class ProjectSpecificCompileTimeTypeResolver : CompileTimeTypeRe
     private readonly CompileTimeTypeResolver _systemTypeResolver;
     private readonly CompileTimeProjectRepository _projectRepository;
 
-    private ProjectSpecificCompileTimeTypeResolver( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext ) :
-        base( compilationContext )
+    private ProjectSpecificCompileTimeTypeResolver(
+        in ProjectServiceProvider serviceProvider,
+        CompileTimeTypeResolver systemTypeResolver,
+        CompileTimeTypeFactory compileTimeTypeFactory )
+        : base( compileTimeTypeFactory )
     {
         this._projectRepository = serviceProvider.GetRequiredService<CompileTimeProjectRepository>();
-        this._systemTypeResolver = serviceProvider.GetRequiredService<SystemTypeResolver.Provider>().Get( compilationContext );
+        this._systemTypeResolver = systemTypeResolver;
     }
 
     /// <summary>
@@ -56,11 +60,18 @@ internal sealed class ProjectSpecificCompileTimeTypeResolver : CompileTimeTypeRe
         return compileTimeProject?.GetTypeOrNull( reflectionName );
     }
 
+    /// <summary>
+    /// Caches one <see cref="ProjectSpecificCompileTimeTypeResolver"/> per <see cref="CompilationContext"/>. The resolver
+    /// itself does not depend on the compilation; the keying only scopes the lifetime of its caches.
+    /// </summary>
     public sealed class Provider : CompilationServiceProvider<ProjectSpecificCompileTimeTypeResolver>
     {
         public Provider( in ProjectServiceProvider serviceProvider ) : base( in serviceProvider ) { }
 
         protected override ProjectSpecificCompileTimeTypeResolver Create( CompilationContext compilationContext )
-            => new( this.ServiceProvider, compilationContext );
+            => new(
+                this.ServiceProvider,
+                this.ServiceProvider.GetRequiredService<SystemTypeResolver.Provider>().Get( compilationContext ),
+                compilationContext.CompileTimeTypeFactory );
     }
 }

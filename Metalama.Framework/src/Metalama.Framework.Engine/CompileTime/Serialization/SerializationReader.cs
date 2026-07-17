@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -25,19 +25,17 @@ internal sealed class SerializationReader
     private readonly bool _shouldReportExceptionCause;
     private readonly string _assemblyName;
     private readonly SerializationBinaryReader _binaryReader;
-    private readonly CompileTimeTypeResolver _compileTimeTypeResolver;
 
-    // Used to represent the values of System.Type fields when they cannot be bound to a real, loadable Type in this process
-    // (e.g. a run-time type of the writing process, incompatible across TFMs or assembly versions). Building a symbolic
-    // CompileTimeType from the wire data directly, without a compilation, avoids resolving it to the wrong type.
-    private readonly CompileTimeTypeFactory _runtimeTypeFactory = new();
+    // Represents types that cannot be bound to a real, loadable Type in this process (e.g. a run-time type of the
+    // writing process, incompatible across TFMs or assembly versions). Building a symbolic CompileTimeType from the
+    // wire data directly, without a compilation, avoids resolving it to the wrong type.
+    private readonly CompileTimeTypeFactory _symbolicTypeFactory = new();
 
     private readonly InstanceFields _emptyInstanceFields;
 
     internal SerializationReader(
         Stream stream,
         CompileTimeSerializer formatter,
-        CompileTimeTypeResolver compileTimeTypeResolver,
         bool shouldReportExceptionCause,
         string assemblyName )
     {
@@ -45,7 +43,6 @@ internal sealed class SerializationReader
         this._shouldReportExceptionCause = shouldReportExceptionCause;
         this._assemblyName = assemblyName;
         this._binaryReader = new SerializationBinaryReader( new BinaryReader( stream ) );
-        this._compileTimeTypeResolver = compileTimeTypeResolver;
         this._emptyInstanceFields = new InstanceFields( formatter );
     }
 
@@ -190,7 +187,7 @@ internal sealed class SerializationReader
         return fields;
     }
 
-    private void ReadType( out Type? type, out SerializationIntrinsicType intrinsicType, bool typeValue = false )
+    private void ReadType( out Type? type, out SerializationIntrinsicType intrinsicType )
     {
         intrinsicType = (SerializationIntrinsicType) this._binaryReader.ReadByte();
 
@@ -267,7 +264,7 @@ internal sealed class SerializationReader
                 break;
 
             case SerializationIntrinsicType.Enum:
-                type = this.ReadNamedType( typeValue );
+                type = this.ReadNamedType();
 
                 // IsEnum throws on CompileTimeType. Similarly for the checks below.
                 if ( type is not CompileTimeType && !type.IsEnum )
@@ -279,30 +276,23 @@ internal sealed class SerializationReader
                 break;
 
             case SerializationIntrinsicType.Struct:
-                type = this.ReadNamedType( typeValue );
+                type = this.ReadNamedType();
 
                 break;
 
             case SerializationIntrinsicType.Class:
-                type = this.ReadNamedType( typeValue );
+                type = this.ReadNamedType();
 
                 break;
 
             case SerializationIntrinsicType.Array:
                 int rank = this._binaryReader.ReadCompressedInteger();
-                this.ReadType( out var elementType, out _, typeValue );
+                this.ReadType( out var elementType, out _ );
 
                 if ( elementType is CompileTimeType compileTimeType )
                 {
-                    if ( typeValue )
-                    {
-                        // The element type could not be resolved to a real Type (see GetType). Build the array mock without a compilation.
-                        type = this.CreateRuntimeArrayType( compileTimeType, rank );
-                    }
-                    else
-                    {
-                        type = this._compileTimeTypeResolver.GetCompileTimeArrayType( compileTimeType, rank );
-                    }
+                    // The element type could not be bound to a real Type (see GetType), so neither can the array.
+                    type = this.CreateSymbolicArrayType( compileTimeType, rank );
                 }
                 else
                 {
@@ -327,7 +317,7 @@ internal sealed class SerializationReader
                 break;
 
             case SerializationIntrinsicType.GenericTypeParameter:
-                type = this.ReadGenericTypeParameter( typeValue );
+                type = this.ReadGenericTypeParameter();
 
                 break;
 
@@ -336,7 +326,7 @@ internal sealed class SerializationReader
         }
     }
 
-    private Type ReadNamedType( bool typeValue = false )
+    private Type ReadNamedType()
     {
         var flags = (SerializationIntrinsicTypeFlags) this._binaryReader.ReadByte();
 
@@ -346,13 +336,13 @@ internal sealed class SerializationReader
                 {
                     var typeName = this.ReadTypeName();
 
-                    return this.GetType( typeName, typeValue );
+                    return this.GetType( typeName );
                 }
 
             case SerializationIntrinsicTypeFlags.Generic:
                 {
                     var typeName = this.ReadTypeName();
-                    var genericType = this.GetType( typeName, typeValue );
+                    var genericType = this.GetType( typeName );
                     int arity = this._binaryReader.ReadCompressedInteger();
 
                     if ( arity > 0 )
@@ -362,19 +352,14 @@ internal sealed class SerializationReader
                         for ( var i = 0; i < arity; i++ )
                         {
                             // Assertion on nullability was added after the code import from PostSharp.
-                            genericArguments[i] = this.ReadType( typeValue ).AssertNotNull();
+                            genericArguments[i] = this.ReadType().AssertNotNull();
                         }
 
                         if ( genericType is CompileTimeType || genericArguments.OfType<CompileTimeType>().Any() )
                         {
-                            if ( typeValue )
-                            {
-                                // The generic type or one of its arguments could not be resolved to a real Type (see GetType).
-                                // Build the generic type mock without a compilation.
-                                return this.CreateRuntimeGenericType( genericType, genericArguments );
-                            }
-
-                            return this._compileTimeTypeResolver.GetCompileTimeGenericType( genericType, genericArguments );
+                            // The generic type definition, or one of its arguments, could not be bound to a real Type
+                            // (see GetType), so neither can the constructed type.
+                            return this.CreateSymbolicGenericType( genericType, genericArguments );
                         }
 
                         return genericType.MakeGenericType( genericArguments );
@@ -390,9 +375,9 @@ internal sealed class SerializationReader
         }
     }
 
-    private Type? ReadType( bool typeValue = false )
+    private Type? ReadType()
     {
-        this.ReadType( out var type, out _, typeValue );
+        this.ReadType( out var type, out _ );
 
         return type;
     }
@@ -505,7 +490,7 @@ internal sealed class SerializationReader
             case SerializationIntrinsicType.Type:
                 // The value is itself a System.Type, which almost always captures a run-time type of the writing process.
                 // Read it as a symbolic CompileTimeType instead of trying to resolve it to a real, loadable Type.
-                value = this.ReadType( true );
+                value = this.ReadType();
 
                 break;
 
@@ -524,67 +509,104 @@ internal sealed class SerializationReader
         return value;
     }
 
-    private Type ReadGenericTypeParameter( bool typeValue = false )
+    private Type ReadGenericTypeParameter()
     {
         // Assertion on nullability was added after the code import from PostSharp.
-        var declaringType = this.ReadType( typeValue ).AssertNotNull();
+        var declaringType = this.ReadType().AssertNotNull();
         int position = this._binaryReader.ReadCompressedInteger();
 
         return declaringType.GetGenericArguments()[position];
     }
 
-    private Type GetType( AssemblyTypeName typeName, bool typeValue = false )
+    private Type GetType( AssemblyTypeName typeName )
     {
-        // Binding is pure reflection (Type.GetType / assembly lookup by name) and needs no compilation, so it is always
-        // attempted first, whether we are reading an object header or the value of a System.Type-typed field.
+        // Binding is pure reflection and needs no compilation. The binder resolves the stored run-time assembly name
+        // against *this* project's compile-time closure (CompileTimeProject.TryGetType), so it already yields the
+        // consumer's own copy of a shared type, then falls back to the domain and to Type.GetType for system types.
         var result = this._formatter.Binder.BindToType( typeName.TypeName, typeName.AssemblyName );
 
-        if ( result == null )
-        {
-            if ( typeValue )
-            {
-                // The type cannot be bound via reflection in this process (e.g. a run-time type of the writing process that
-                // is not loadable here, possibly due to a cross-TFM or cross-version mismatch). Represent it symbolically,
-                // without resorting to compilation-based resolution, which would be meaningless for a run-time type.
-                return this.CreateRuntimeTypeReference( typeName );
-            }
-
-            result = this._compileTimeTypeResolver.GetCompileTimeType( typeName.TypeName, typeName.AssemblyName );
-        }
-
-        return result;
+        // The type is not in this project's closure and is not loadable here (e.g. a run-time type of the writing
+        // process, incompatible across TFMs or assembly versions). Represent it symbolically. There is nothing a
+        // compilation could add: resolving the name through one would only reach the same closure by a longer route,
+        // and would otherwise yield a mock — which is what we build here directly.
+        return result ?? this.CreateSymbolicType( typeName );
     }
 
-    // Builds a CompileTimeType purely from the wire-encoded type signature (name, assembly, generic arguments, array rank),
-    // without attempting to resolve a real Type and without needing any compilation. Used only for System.Type-typed values,
-    // which represent a run-time type of the writing process that may not be loadable (or even meaningful) in this process.
-    private CompileTimeType CreateRuntimeTypeReference( AssemblyTypeName typeName )
+    // Builds a CompileTimeType purely from the wire-encoded type signature (name, generic arguments, array rank),
+    // without attempting to resolve a real Type and without needing any compilation.
+    //
+    // The SerializableTypeId is deliberately built WITHOUT the assembly name: it identifies a type *within a
+    // compilation* by contract, and SerializableTypeIdResolver resolves it by parsing the part after the "Y:" prefix
+    // as C# type syntax (`<id> M();`). Anything that is not valid C# type syntax -- an appended assembly name, a
+    // reflection-style nested-type separator, a generic arity backtick -- makes the id unresolvable.
+    private CompileTimeType CreateSymbolicType( AssemblyTypeName typeName )
     {
         var (ns, name) = SplitNamespaceAndName( typeName.TypeName );
         var metadata = new CompileTimeTypeMetadata( ns, name, typeName.TypeName, typeName.TypeName );
-        var id = new SerializableTypeId( SerializableTypeId.Prefix + typeName.TypeName + ", " + typeName.AssemblyName );
 
-        return this._runtimeTypeFactory.Get( id, metadata );
+        return this._symbolicTypeFactory.Get( CreateTypeId( ToTypeSyntax( typeName.TypeName ) ), metadata );
     }
 
-    private CompileTimeType CreateRuntimeArrayType( Type elementType, int rank )
+    private CompileTimeType CreateSymbolicArrayType( Type elementType, int rank )
     {
         var brackets = rank == 1 ? "[]" : "[" + new string( ',', rank - 1 ) + "]";
         var fullName = elementType.FullName + brackets;
         var metadata = new CompileTimeTypeMetadata( elementType.Namespace, elementType.Name + brackets, fullName, fullName );
-        var id = new SerializableTypeId( SerializableTypeId.Prefix + fullName );
 
-        return this._runtimeTypeFactory.Get( id, metadata );
+        return this._symbolicTypeFactory.Get( CreateTypeId( ToTypeSyntax( elementType.FullName.AssertNotNull() ) + brackets ), metadata );
     }
 
-    private CompileTimeType CreateRuntimeGenericType( Type genericTypeDefinition, Type[] genericArguments )
+    private CompileTimeType CreateSymbolicGenericType( Type genericTypeDefinition, Type[] genericArguments )
     {
         var fullName = genericTypeDefinition.FullName + "[" + string.Join( ",", genericArguments.SelectAsArray( a => a.FullName ) ) + "]";
         var (ns, name) = SplitNamespaceAndName( genericTypeDefinition.FullName.AssertNotNull() );
         var metadata = new CompileTimeTypeMetadata( ns, name, fullName, fullName );
-        var id = new SerializableTypeId( SerializableTypeId.Prefix + fullName );
 
-        return this._runtimeTypeFactory.Get( id, metadata );
+        // C# syntax for a constructed generic type is `Ns.Foo<A, B>`, not the reflection form ``Ns.Foo`2[A,B]``. The arity
+        // suffix is dropped here -- unlike in CreateSymbolicType -- because the type argument list already carries it.
+        var syntax = StripArity( ToTypeSyntax( genericTypeDefinition.FullName.AssertNotNull() ) )
+                     + "<" + string.Join( ", ", genericArguments.SelectAsArray( a => StripArity( ToTypeSyntax( a.FullName.AssertNotNull() ) ) ) ) + ">";
+
+        return this._symbolicTypeFactory.Get( CreateTypeId( syntax ), metadata );
+    }
+
+    private static SerializableTypeId CreateTypeId( string typeSyntax ) => new( SerializableTypeId.Prefix + typeSyntax );
+
+    /// <summary>
+    /// Converts a reflection full name into C# type syntax, i.e. separates nested types by <c>.</c> rather than <c>+</c>.
+    /// </summary>
+    /// <remarks>
+    /// The generic arity suffix (<c>`n</c>) is deliberately <em>kept</em>. It is not valid C# syntax, so an id retaining
+    /// it cannot be resolved — but a symbolic type is by definition one we could not resolve anyway, and the arity is
+    /// what distinguishes <c>Foo</c> from <c>Foo`1</c>. Dropping it would collide the two in the id-keyed
+    /// <see cref="CompileTimeTypeFactory"/> cache, so one would be silently served for the other.
+    /// </remarks>
+    private static string ToTypeSyntax( string reflectionFullName ) => reflectionFullName.Replace( '+', '.' );
+
+    /// <summary>
+    /// Removes the generic arity suffix (<c>`n</c>) from each part of a name, e.g. <c>Ns.Foo`2.Bar`1</c> to
+    /// <c>Ns.Foo.Bar</c>. Only valid where a type argument list supplies the arity instead.
+    /// </summary>
+    private static string StripArity( string name )
+    {
+        while ( true )
+        {
+            var backtick = name.IndexOfOrdinal( '`' );
+
+            if ( backtick < 0 )
+            {
+                return name;
+            }
+
+            var end = backtick + 1;
+
+            while ( end < name.Length && char.IsDigit( name[end] ) )
+            {
+                end++;
+            }
+
+            name = name.Remove( backtick, end - backtick );
+        }
     }
 
     private static (string? Namespace, string Name) SplitNamespaceAndName( string reflectionFullName )

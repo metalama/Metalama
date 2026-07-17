@@ -21,29 +21,19 @@ internal sealed class CompileTimeSerializer
     /// </summary>
     internal BaseCompileTimeSerializationBinder Binder { get; }
 
-    private CompileTimeTypeResolver CompileTimeTypeResolver { get; }
-
     internal SerializerProvider SerializerProvider { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CompileTimeSerializer"/> class.
+    /// Initializes a new instance of the <see cref="CompileTimeSerializer"/> class. Note that no <see cref="CompilationContext"/>
+    /// is required: deserialization is compilation-neutral by definition, since compile-time types are always stored as their
+    /// run-time names and the <see cref="Binder"/> resolves those names against this project's own compile-time closure.
+    /// A <see cref="CompilationContext"/> is needed only to <em>write</em>, and is therefore passed to <see cref="Serialize"/>.
     /// </summary>
-    /// <param name="serviceProvider"></param>
-    /// <param name="binder">A <see cref="BaseCompileTimeSerializationBinder"/> customizing bindings between types and type names, or <c>null</c> to use the default implementation.</param>
-    public CompileTimeSerializer( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    public CompileTimeSerializer( in ProjectServiceProvider serviceProvider )
     {
         var project = serviceProvider.GetService<CompileTimeProject>();
         this._serviceProvider = serviceProvider;
         this.Binder = new CompileTimeSerializationBinder( project?.Domain, serviceProvider, project );
-
-        // The project-specific resolver is only registered once a compile-time project pipeline is available. When it is not
-        // (e.g. serializing plain intrinsic values with no compile-time project in scope), fall back to the system resolver,
-        // which is always registered and still resolves well-known and current-AppDomain-loaded system types correctly.
-        this.CompileTimeTypeResolver =
-            (CompileTimeTypeResolver?) serviceProvider.GetService<CompilationServiceProvider<ProjectSpecificCompileTimeTypeResolver>>()
-                ?.Get( compilationContext )
-            ?? serviceProvider.GetRequiredService<SystemTypeResolver.Provider>().Get( compilationContext );
-
         this.SerializerProvider = new SerializerProvider( serviceProvider.GetRequiredService<ISerializerFactoryProvider>() );
     }
 
@@ -91,7 +81,6 @@ internal sealed class CompileTimeSerializer
             var serializationReader = new SerializationReader(
                 stream,
                 this,
-                this.CompileTimeTypeResolver,
                 shouldReportExceptionCause,
                 assemblyName );
 

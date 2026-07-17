@@ -25,7 +25,7 @@ public abstract partial class SerializationTestsBase
             var compilation = this.CreateCompilationModel( specializedOptions?.Code ?? "" );
             this.Compilation = compilation;
             this._disposeAction = UserCodeExecutionContext.WithContext( this.ServiceProvider, compilation );
-            this.Serializer = new CompileTimeSerializer( this.ServiceProvider, compilation.CompilationContext );
+            this.Serializer = new CompileTimeSerializer( this.ServiceProvider );
         }
 
         public CompilationModel Compilation { get; }

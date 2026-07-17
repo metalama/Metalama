@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.CodeModel.Factories;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.ReflectionMocks;
@@ -633,12 +634,9 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
 
         private sealed class HackedSystemTypeResolver : SystemTypeResolver
         {
-            // We provide a non-standard CompileTimeTypeFactory to break a conflict in the initialization of dependencies.
-            // Another CompileTimeTypeFactory instance is created by the ServiceProviderFactory. It should not matter for this test.
-
-            private HackedSystemTypeResolver( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext ) : base(
+            private HackedSystemTypeResolver( in ProjectServiceProvider serviceProvider, CompileTimeTypeFactory compileTimeTypeFactory ) : base(
                 serviceProvider,
-                compilationContext ) { }
+                compileTimeTypeFactory ) { }
 
             protected override bool IsSupportedAssembly( string assemblyName )
                 => base.IsSupportedAssembly( assemblyName ) || assemblyName == this.GetType().Assembly.GetName().Name;
@@ -649,7 +647,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
 
                 protected override SystemTypeResolver Create( CompilationContext compilationContext )
                 {
-                    return new HackedSystemTypeResolver( this.ServiceProvider, compilationContext );
+                    return new HackedSystemTypeResolver( this.ServiceProvider, compilationContext.CompileTimeTypeFactory );
                 }
             }
         }

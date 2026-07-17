@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -80,7 +80,7 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
                    UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( "Serializing" ), compilationContext ) ) )
         {
             using var deflate = new DeflateStream( stream, CompressionLevel.Optimal, true );
-            var formatter = new CompileTimeSerializer( serviceProvider, compilationContext );
+            var formatter = new CompileTimeSerializer( serviceProvider );
             formatter.Serialize( this, deflate, compilationContext );
             deflate.Flush();
             stream.Flush();
@@ -110,13 +110,6 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         in ProjectServiceProvider serviceProvider,
         CompilationContext compilationContext,
         string? assemblyName )
-        => DeserializeCore( stream, serviceProvider, compilationContext, assemblyName );
-
-    private static TransitiveAspectsManifest DeserializeCore(
-        Stream stream,
-        in ProjectServiceProvider serviceProvider,
-        CompilationContext compilationContext,
-        string? assemblyName )
     {
         var description = assemblyName != null
             ? $"Deserializing transitive aspects from '{assemblyName}'."
@@ -127,7 +120,7 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         {
             using var deflate = new DeflateStream( stream, CompressionMode.Decompress );
 
-            var formatter = new CompileTimeSerializer( serviceProvider, compilationContext );
+            var formatter = new CompileTimeSerializer( serviceProvider );
 
             return (TransitiveAspectsManifest) formatter.Deserialize( deflate, assemblyName ).AssertNotNull();
         }
