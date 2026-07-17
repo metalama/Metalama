@@ -47,10 +47,20 @@ into a `CompileTimeDomain`, which owns a `MetalamaAssemblyLoadContext` (a .NET `
 5. **Multiple copies can — and are expected to — coexist in one `CompileTimeDomain`.** When a solution contains
    projects on different TFMs, each project's pipeline builds/loads its own per-TFM copy of a shared library's
    compile-time assembly. `AspectPipeline` obtains its domain via `ICompileTimeDomainFactory.GetOrCreateDomain`,
-   which **reuses** an existing domain whenever `CompileTimeDomain.IsCompatibleWithAssemblies` passes. That check
-   compares assemblies by simple name + version + public key token, and the per-TFM copies have *distinct simple
-   names* (`ml!<name>_<hash>`), so they never look conflicting: the domain is reused and both copies are loaded
-   side by side into the same `AssemblyLoadContext`. This is a normal, expected state, **not** a bug.
+   which **reuses** an existing domain whenever `CompileTimeDomain.IsCompatibleWithAssemblies` passes.
+
+   Note what that check actually receives: `AspectPipeline.TryInitialize` passes only the **extension assembly**
+   paths (`IExtensionLoader.GetExtensionAssemblyPaths`), never the compile-time assemblies — which do not exist yet
+   at that point, since the domain is chosen *before* `CompileTimeProjectRepository.Create` runs. So the per-TFM
+   copies are not judged compatible; they are never compared at all. For a project with no extension assemblies
+   (the common case) the collection is **empty**, the check returns `true` trivially, and the first live domain is
+   reused unconditionally. Both copies therefore load side by side into the same `AssemblyLoadContext`. This is a
+   normal, expected state, **not** a bug — and, per the rejected alternative below, not the cause of #1710 either.
+
+   Independently of #1710, `IsCompatibleWithAssemblies` would not separate the copies even if it were given them:
+   it compares by simple name, and `ml!<name>_<hashA>` and `ml!<name>_<hashB>` have *distinct simple names*, so
+   they never look conflicting. Segregating on the underlying **run-time** identity would be a correctness
+   improvement in its own right, but it is not a fix for #1710.
 
    This is **host-independent**: the code path has no IDE-specific branch. It has been verified experimentally
    (see `src/tests/Standalone/Issue1710`) that **both JetBrains Rider and Visual Studio** load the two copies into
@@ -142,6 +152,28 @@ does not carry.
 **Validation.** On the `Issue1710` solution in Visual Studio, the `ServiceHub.RoslynCodeAnalysisService` log went
 from **8396** cast failures (before) to **0** (after), with no `ERROR` lines at all — while **both** per-TFM copies
 were still loaded, confirming the fix corrects the *merge* rather than suppressing the (expected) coexistence.
+
+### Rejected alternative: segregating the `CompileTimeDomain`s
+
+A natural intuition is that the bug is caused by the two copies being loaded into the *same* domain (point 5), and
+that segregating domains would fix it. **It would not, and this was verified experimentally.**
+
+Substituting an `ICompileTimeDomainFactory` that never reuses a domain — a stronger segregation than any real
+implementation, since it is unconditional — and rerunning the `CrossTfmInheritedOptionsTests` scenario produced
+**4 distinct domains**, with the two copies in genuinely different `MetalamaAssemblyLoadContext`s (`#6` for
+`.netframework4.7.2`, `#4` for `.netstandard2.0`, versus both in `#4` when domains are shared). The
+`InvalidCastException` still occurred, unchanged. Rerunning the same experiment *with* the fix above gave no error
+and a successful pipeline, still across 4 domains — so the outcome tracks the fix, not the domain topology.
+
+The reason is that the cast does not care which `AssemblyLoadContext` a type lives in — only that copy `A` and copy
+`B` are two different `Type`s, which is already true when they share a domain. Separating them cannot make them the
+same type; it only makes unification more impossible. Domain sharing is a *sibling consequence* of the per-TFM
+hash, not the cause: the causal chain is `ComputeSourceHash` folds in the TFM → two copies exist → `U`'s pipeline
+binds its options to copy `A` → those objects flow into `D`'s pipeline → they meet `D`'s copy-`B` options in
+`MergeOptions` → the cast fails. No link in that chain is a domain.
+
+Only two levers cut that chain: re-materialize the inherited artifacts in the consumer's copy (the resolution
+above), or make the two copies one (see the `ComputeSourceHash` observation below).
 
 **Known cost.** The manifest is serialized and deserialized for every cross-project reference on every design-time
 pipeline execution, including the common case where the producer's and consumer's copies are identical and the

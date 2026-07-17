@@ -40,8 +40,13 @@ Then **open `Issue1710.sln` in the IDE** (this is a *design-time* issue).
 `dotnet build Issue1710.sln` **succeeds**. Each project is compiled in its own process, so each gets its own
 `CompileTimeDomain` and the two copies never meet. At design time a single process serves the whole solution, and
 `AspectPipeline` obtains its domain via `ICompileTimeDomainFactory.GetOrCreateDomain(...)`, which **reuses** a
-domain whenever `CompileTimeDomain.IsCompatibleWithAssemblies` passes. Since the copies have distinct simple names
-(`ml!…_<hash>`), they never look conflicting, the domain is reused, and both copies end up loaded together.
+domain whenever `CompileTimeDomain.IsCompatibleWithAssemblies` passes. That check only ever receives the project's
+*extension* assembly paths — never the compile-time assemblies — so for these projects, which have none, it is
+handed an empty collection, returns `true` trivially, and both copies end up in one domain.
+
+Note this is *not* why the cast fails: domains were segregated experimentally and the failure was unchanged. See
+"Rejected alternative" in `docs/compile-time-target-frameworks.md`. The copies meeting in one domain and the cast
+failing are both consequences of the per-TFM hash, not of each other.
 
 A useful sanity signal that the setup is correct even when it does not crash: the build emits `LAMA5007` for
 `Derived.SetValue(int)/value` in **Issue1710.App**, for a contract declared in **Issue1710.Library** — proving the
