@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.CodeModel.Factories;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Services;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Reflection;
@@ -15,7 +16,7 @@ namespace Metalama.Framework.Engine.CompileTime;
 /// <summary>
 /// An implementation of <see cref="CompileTimeTypeResolver"/> that cannot be used for user-code attributes.
 /// </summary>
-internal class SystemTypeResolver : CurrentAppDomainTypeResolver
+internal class SystemTypeResolver : CurrentAppDomainTypeResolver, IProjectService
 {
     // Avoid initializing from a static member because it is more difficult to debug.
     private readonly Assembly _netStandardAssembly = Assembly.Load( "netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51" );
@@ -48,15 +49,6 @@ internal class SystemTypeResolver : CurrentAppDomainTypeResolver
         }
     }
 
-    /// <summary>
-    /// Caches one <see cref="SystemTypeResolver"/> per <see cref="CompilationContext"/>. The resolver itself does not
-    /// depend on the compilation; the keying only scopes the lifetime of its caches.
-    /// </summary>
-    public class Provider : CompilationServiceProvider<SystemTypeResolver>
-    {
-        public Provider( in ProjectServiceProvider serviceProvider ) : base( serviceProvider ) { }
-
-        protected override SystemTypeResolver Create( CompilationContext compilationContext )
-            => new( this.ServiceProvider, compilationContext.CompileTimeTypeFactory );
-    }
+    public SystemTypeResolver( in ProjectServiceProvider serviceProvider )
+        : this( serviceProvider, serviceProvider.GetRequiredService<CompileTimeTypeFactory>() ) { }
 }

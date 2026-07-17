@@ -21,10 +21,16 @@ namespace Metalama.Framework.Engine.CompileTime;
 /// Provides the <see cref="GetCompileTimeType"/> method, which maps a Roslyn <see cref="ITypeSymbol"/> to a reflection
 /// <see cref="Type"/>. The mapping is compilation-independent: the symbol carries everything needed, and the
 /// implementations resolve through the current <c>AppDomain</c> and the project's <see cref="CompileTimeProjectRepository"/>.
-/// Instances are still obtained per <see cref="CompilationContext"/> via a <see cref="CompilationServiceProvider{T}"/>,
-/// which scopes the lifetime of their caches — not because the resolution itself depends on a compilation.
+/// Nothing here is scoped to a compilation: the concrete resolvers are plain <see cref="IProjectService"/>s. The caches are
+/// keyed by <see cref="ITypeSymbol"/> and held weakly, so entries for a given compilation are collected along with it.
 /// </summary>
-internal abstract class CompileTimeTypeResolver : ICompilationService
+/// <remarks>
+/// This base class deliberately does <em>not</em> implement <see cref="IProjectService"/>; only the concrete resolvers do.
+/// <see cref="ServiceProvider{TBase}"/> indexes a service under every base type that is assignable to the service interface,
+/// so marking this class would index <see cref="SystemTypeResolver"/> and <see cref="ProjectSpecificCompileTimeTypeResolver"/>
+/// under it and make the two conflict.
+/// </remarks>
+internal abstract class CompileTimeTypeResolver
 {
     // Only used to produce a mock for symbols that cannot be mapped to a real, loadable Type. The factory does not depend
     // on any compilation; it is a cache whose lifetime is scoped to the project.

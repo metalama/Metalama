@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -33,8 +33,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
         {
             base.ConfigureServices( services );
 
-            // services.AddProjectService<CompilationServiceProvider<CompileTimeTypeResolver>>( sp => new ProjectSpecificCompileTimeTypeResolver.Provider( sp ) );
-            services.AddProjectService<SystemTypeResolver.Provider>( sp => new HackedSystemTypeResolver.Provider( sp ) );
+            services.AddProjectService<SystemTypeResolver>( sp => new HackedSystemTypeResolver( sp ) );
         }
 
         private object? GetDeserializedProperty(
@@ -634,22 +633,10 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
 
         private sealed class HackedSystemTypeResolver : SystemTypeResolver
         {
-            private HackedSystemTypeResolver( in ProjectServiceProvider serviceProvider, CompileTimeTypeFactory compileTimeTypeFactory ) : base(
-                serviceProvider,
-                compileTimeTypeFactory ) { }
+            public HackedSystemTypeResolver( in ProjectServiceProvider serviceProvider ) : base( serviceProvider ) { }
 
             protected override bool IsSupportedAssembly( string assemblyName )
                 => base.IsSupportedAssembly( assemblyName ) || assemblyName == this.GetType().Assembly.GetName().Name;
-
-            public new sealed class Provider : SystemTypeResolver.Provider
-            {
-                public Provider( in ProjectServiceProvider serviceProvider ) : base( in serviceProvider ) { }
-
-                protected override SystemTypeResolver Create( CompilationContext compilationContext )
-                {
-                    return new HackedSystemTypeResolver( this.ServiceProvider, compilationContext.CompileTimeTypeFactory );
-                }
-            }
         }
     }
 }

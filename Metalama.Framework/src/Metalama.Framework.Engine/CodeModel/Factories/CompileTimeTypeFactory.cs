@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.SerializableIds;
+using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
@@ -14,10 +15,13 @@ namespace Metalama.Framework.Engine.CodeModel.Factories
     /// <summary>
     /// Creates and ensures uniqueness of instances of the <see cref="CompileTimeType"/> class.
     /// </summary>
-    internal class CompileTimeTypeFactory
+    /// <remarks>
+    /// The class does not depend on the project (nor on any compilation): the instances it creates are symbolic, holding
+    /// only strings and a durable <c>TypeIdRef</c>. It is registered as an <see cref="IProjectService"/> because we want
+    /// the lifetime and scope of its dictionary to be project-scoped, not because it needs anything from the project.
+    /// </remarks>
+    internal class CompileTimeTypeFactory : IProjectService
     {
-        // The class is intentionally project-scoped even if does not depend on the project because
-        // we want the lifetime and scope of this dictionary to be project-scoped.
         // Key is SerializableTypeId for most types. Only type parameters can't be represented using just that, so they use SymbolId.
         private readonly ConcurrentDictionary<string, CompileTimeType> _instances = new( StringComparer.Ordinal );
 

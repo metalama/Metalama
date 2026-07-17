@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.CodeModel.Factories;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
@@ -11,19 +12,16 @@ using System.Threading;
 
 namespace Metalama.Framework.Engine.CompileTime;
 
-internal sealed class ProjectSpecificCompileTimeTypeResolver : CompileTimeTypeResolver
+internal sealed class ProjectSpecificCompileTimeTypeResolver : CompileTimeTypeResolver, IProjectService
 {
     private readonly CompileTimeTypeResolver _systemTypeResolver;
     private readonly CompileTimeProjectRepository _projectRepository;
 
-    private ProjectSpecificCompileTimeTypeResolver(
-        in ProjectServiceProvider serviceProvider,
-        CompileTimeTypeResolver systemTypeResolver,
-        CompileTimeTypeFactory compileTimeTypeFactory )
-        : base( compileTimeTypeFactory )
+    public ProjectSpecificCompileTimeTypeResolver( in ProjectServiceProvider serviceProvider )
+        : base( serviceProvider.GetRequiredService<CompileTimeTypeFactory>() )
     {
         this._projectRepository = serviceProvider.GetRequiredService<CompileTimeProjectRepository>();
-        this._systemTypeResolver = systemTypeResolver;
+        this._systemTypeResolver = serviceProvider.GetRequiredService<SystemTypeResolver>();
     }
 
     /// <summary>
@@ -60,18 +58,4 @@ internal sealed class ProjectSpecificCompileTimeTypeResolver : CompileTimeTypeRe
         return compileTimeProject?.GetTypeOrNull( reflectionName );
     }
 
-    /// <summary>
-    /// Caches one <see cref="ProjectSpecificCompileTimeTypeResolver"/> per <see cref="CompilationContext"/>. The resolver
-    /// itself does not depend on the compilation; the keying only scopes the lifetime of its caches.
-    /// </summary>
-    public sealed class Provider : CompilationServiceProvider<ProjectSpecificCompileTimeTypeResolver>
-    {
-        public Provider( in ProjectServiceProvider serviceProvider ) : base( in serviceProvider ) { }
-
-        protected override ProjectSpecificCompileTimeTypeResolver Create( CompilationContext compilationContext )
-            => new(
-                this.ServiceProvider,
-                this.ServiceProvider.GetRequiredService<SystemTypeResolver.Provider>().Get( compilationContext ),
-                compilationContext.CompileTimeTypeFactory );
-    }
 }
