@@ -18,6 +18,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Metalama.Framework.Engine.Aspects;
 
@@ -74,10 +75,10 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
             annotations,
             containsInitializableTypes );
 
-    private void Serialize( Stream stream, in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    private void Serialize( Stream stream, in ProjectServiceProvider serviceProvider )
     {
         using ( UserCodeExecutionContext.WithContext(
-                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( "Serializing" ), compilationContext ) ) )
+                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( "Serializing" ) ) ) )
         {
             using var deflate = new DeflateStream( stream, CompressionLevel.Optimal, true );
             var formatter = new CompileTimeSerializer( serviceProvider );
@@ -87,17 +88,23 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         }
     }
 
-    public byte[] ToBytes( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    public byte[] ToBytes( in ProjectServiceProvider serviceProvider )
     {
         var stream = new MemoryStream();
-        this.Serialize( stream, serviceProvider, compilationContext );
+        this.Serialize( stream, serviceProvider );
 
         return stream.ToArray();
     }
-
-    internal ManagedResource ToResource( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    
+    public ImmutableArray<byte> ToImmutableBytes( in ProjectServiceProvider serviceProvider )
     {
-        var bytes = this.ToBytes( serviceProvider, compilationContext );
+        var bytes = this.ToBytes( serviceProvider );
+        return ImmutableCollectionsMarshal.AsImmutableArray( bytes );
+    }
+
+    internal ManagedResource ToResource( in ProjectServiceProvider serviceProvider )
+    {
+        var bytes = this.ToBytes( serviceProvider );
 
         return new ManagedResource(
             CompileTimeConstants.InheritableAspectManifestResourceName,
@@ -108,7 +115,6 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
     public static TransitiveAspectsManifest Deserialize(
         Stream stream,
         in ProjectServiceProvider serviceProvider,
-        CompilationContext compilationContext,
         string? assemblyName )
     {
         var description = assemblyName != null
@@ -116,7 +122,7 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
             : "Deserializing transitive aspects from a referenced assembly.";
 
         using ( UserCodeExecutionContext.WithContext(
-                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( description ), compilationContext ) ) )
+                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( description ) ) ) )
         {
             using var deflate = new DeflateStream( stream, CompressionMode.Decompress );
 

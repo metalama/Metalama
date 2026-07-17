@@ -195,7 +195,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
     public static UserCodeExecutionContext CreateInstance(
         ProjectServiceProvider serviceProvider,
         UserCodeDescription description,
-        CompilationContext? compilationContext,
+        CompilationContext? compilationContext = null,
         IDiagnosticAdder? diagnostics = null )
         => new( serviceProvider, description, compilationContext, diagnostics: diagnostics );
 

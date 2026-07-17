@@ -4,10 +4,12 @@
 
 using Metalama.Framework.DesignTime.Contracts.Pipeline;
 using Metalama.Framework.DesignTime.Pipeline;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace Metalama.Framework.DesignTime.VersionNeutral;
 
@@ -44,12 +46,9 @@ internal sealed class TransitiveCompilationService : ITransitiveCompilationServi
         }
         else
         {
-            var pipelineConfiguration = pipelineResult.Value.Configuration;
-            var projectServiceProvider = pipelineConfiguration.ServiceProvider;
-
             result[0] = TransitiveCompilationResult.Success(
                 pipelineResult.Value.Status == DesignTimeAspectPipelineStatus.Paused,
-                pipelineResult.Value.Result.GetSerializedTransitiveAspectManifest( projectServiceProvider, compilation.GetCompilationContext() ) );
+                ImmutableCollectionsMarshal.AsArray( pipelineResult.Value.Result.SerializedTransitiveAspectManifest ).AssertNotNull() );
         }
     }
 }

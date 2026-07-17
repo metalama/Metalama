@@ -74,8 +74,6 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
 
     internal ulong AspectInstancesHashCode { get; }
 
-    private byte[]? _serializedTransitiveAspectManifest;
-
     private DesignTimeAspectPipelineResult(
         AspectPipelineConfiguration? configuration,
         ImmutableDictionary<string, SyntaxTreePipelineResult> syntaxTreeResults,
@@ -669,9 +667,10 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
     // consumer reads this at compile time, it could miss required WithInitialize wrapping.
     bool ITransitiveAspectsManifest.ContainsInitializableTypes => true;
 
-    internal byte[] GetSerializedTransitiveAspectManifest( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    [Memo]
+    internal ImmutableArray<byte> SerializedTransitiveAspectManifest
     {
-        if ( this._serializedTransitiveAspectManifest == null )
+        get
         {
             // ContainsInitializableTypes is set to the safe default `true` here for the same reason as in
             // ITransitiveAspectsManifest.ContainsInitializableTypes above: DesignTimeAspectPipelineResult does
@@ -684,9 +683,7 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
                 this.Annotations,
                 containsInitializableTypes: true );
 
-            this._serializedTransitiveAspectManifest = manifest.ToBytes( serviceProvider, compilationContext );
+            return manifest.ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider );
         }
-
-        return this._serializedTransitiveAspectManifest;
     }
 }

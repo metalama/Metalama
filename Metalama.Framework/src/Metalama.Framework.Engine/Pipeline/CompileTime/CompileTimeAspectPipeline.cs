@@ -312,7 +312,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
                     annotations,
                     containsInitializableTypes );
 
-                var resource = inheritedAspectsManifest.ToResource( configuration.ServiceProvider, resultPartialCompilation.CompilationContext );
+                var resource = inheritedAspectsManifest.ToResource( configuration.ServiceProvider );
                 additionalResources = additionalResources.Add( resource );
             }
 

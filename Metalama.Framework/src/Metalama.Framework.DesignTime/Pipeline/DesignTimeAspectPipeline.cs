@@ -563,10 +563,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     // provider, which binds the run-time names to the consumer's own compile-time copy (issue #1710).
                     // The successful result always carries the reference pipeline's configuration (even when the
                     // pipeline is paused), so the serialized manifest is always available alongside the live one.
-                    var serializedManifest = referenceResult.Value.Result
-                        .GetSerializedTransitiveAspectManifest(
-                            referenceResult.Value.Configuration.ServiceProvider,
-                            reference.Compilation.GetCompilationContext() )
+                    var serializedManifest = referenceResult.Value.Result.SerializedTransitiveAspectManifest
                         .ToImmutableArray();
 
                     compilationReferences.Add(
@@ -633,7 +630,6 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                         var manifest = TransitiveAspectsManifest.Deserialize(
                             new MemoryStream( result.Manifest! ),
                             configuration.Value.ServiceProvider,
-                            compilation.GetCompilationContext(),
                             reference.Compilation.AssemblyName );
 
                         // Also carry the raw serialized manifest (produced by the referenced project) so the consumer

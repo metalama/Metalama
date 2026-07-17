@@ -85,7 +85,6 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                             manifest = TransitiveAspectsManifest.Deserialize(
                                 new MemoryStream( bytes ),
                                 serviceProvider,
-                                compilationContext,
                                 filePath );
                         }
                     }
@@ -109,7 +108,6 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                         manifest = TransitiveAspectsManifest.Deserialize(
                             new MemoryStream( serializedManifest.ToArray() ),
                             serviceProvider,
-                            compilationContext,
                             compilationReference.Compilation.AssemblyName );
                     }
 
