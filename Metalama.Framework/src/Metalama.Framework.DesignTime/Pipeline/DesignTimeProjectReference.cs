@@ -12,7 +12,7 @@ namespace Metalama.Framework.DesignTime.Pipeline;
 /// <summary>
 /// Associates a <see cref="ProjectKey"/> and a <see cref="TransitiveAspectsManifest"/>.
 /// </summary>
-internal readonly struct DesignTimeProjectReference : IEquatable<DesignTimeProjectReference>
+internal readonly struct DesignTimeProjectReference
 {
     // The two manifest representations below are always both set or both null: a reference carries them when it is
     // a Metalama project that exports something to inherit (an inheritable aspect, option, annotation, or validator),
@@ -39,8 +39,6 @@ internal readonly struct DesignTimeProjectReference : IEquatable<DesignTimeProje
 
     public ProjectKey ProjectKey { get; }
 
-    private readonly int _hashCode;
-
     public DesignTimeProjectReference(
         ProjectKey projectKey,
         ITransitiveAspectsManifest? transitiveAspectsManifest = null,
@@ -53,20 +51,27 @@ internal readonly struct DesignTimeProjectReference : IEquatable<DesignTimeProje
         this.TransitiveAspectsManifest = transitiveAspectsManifest;
         this.SerializedTransitiveAspectManifest = serializedTransitiveAspectManifest;
         this.ProjectKey = projectKey;
-        this._hashCode = HashCode.Combine( transitiveAspectsManifest, projectKey );
     }
 
-    /// <summary>
-    /// Compares two references. The serialized manifest is not compared (nor hashed): it is derived from, and
-    /// cached on, the same <c>DesignTimeAspectPipelineResult</c> as <see cref="TransitiveAspectsManifest"/>, so an
-    /// equal <see cref="TransitiveAspectsManifest"/> implies an equal
-    /// <see cref="SerializedTransitiveAspectManifest"/>.
-    /// </summary>
-    public bool Equals( DesignTimeProjectReference other )
-        => Equals( this.TransitiveAspectsManifest, other.TransitiveAspectsManifest )
-           && this.ProjectKey.Equals( other.ProjectKey );
+    // Comparing two references is not supported, and the overrides below exist to stop the default value equality
+    // of a struct from silently doing it anyway.
+    //
+    // The only reason to compare these is change detection, and every equality one could define here is wrong for
+    // that. TransitiveAspectsManifest is a DesignTimeAspectPipelineResult, a class with no value equality, so any
+    // comparison is by reference; every pipeline run produces a new result, so it would report "different" even
+    // when the exported surface is byte-identical. Comparing SerializedTransitiveAspectManifest instead would
+    // compare two ImmutableArray<byte> by reference, with the same flaw. A caller that needs to know whether a
+    // reference's manifest changed has to compare the content deliberately, for example by hashing the bytes.
+    //
+    // Nothing compares these today: an earlier implementation compared the manifest by reference and was unused,
+    // which the compiler confirmed by reporting its precomputed hash code as dead.
 
-    public override bool Equals( object? obj ) => obj is DesignTimeProjectReference other && this.Equals( other );
+    private const string _comparisonNotSupported =
+        "Comparing " + nameof(DesignTimeProjectReference) + " is not supported, because any equality defined on it "
+        + "compares the transitive manifest by reference and so reports a change on every pipeline run. Compare the "
+        + "manifest content explicitly instead.";
 
-    public override int GetHashCode() => this._hashCode;
+    public override bool Equals( object? obj ) => throw new NotSupportedException( _comparisonNotSupported );
+
+    public override int GetHashCode() => throw new NotSupportedException( _comparisonNotSupported );
 }
