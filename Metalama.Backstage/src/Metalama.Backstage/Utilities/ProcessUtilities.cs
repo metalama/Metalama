@@ -145,63 +145,106 @@ public static class ProcessUtilities
         return _isCurrentProcessUnattended;
     }
 
+    /// <summary>
+    /// Parent process names that indicate an unattended (CI / build server) environment.
+    /// </summary>
+    private static readonly HashSet<string> _unattendedParentProcesses = new()
+    {
+        "services",
+        "java",               // TeamCity, Atlassian Bamboo (can also be "bamboo"), Jenkins, GoCD
+        "bamboo",             // Atlassian Bamboo
+        "agent.worker",       // Azure Pipelines
+        "runner.worker",      // GitHub Actions
+        "buildkite-agent",    // BuildKite
+        "circleci-agent",     // CircleCI (Docker, but has specific process name)
+        "agent",              // Semaphore CI (Linux)
+        "sshd: travis [priv]" // Travis CI (Linux)
+    };
+
+    /// <summary>
+    /// Parent process names that indicate an attended environment even when a parent process would otherwise suggest
+    /// an unattended one.
+    /// </summary>
+    private static readonly HashSet<string> _notUnattendedParentProcesses = new()
+    {
+        "rider" // Rider needs to be checked, because it can have Java as its parent process.
+    };
+
+    /// <summary>
+    /// Gets a value indicating whether the given <paramref name="processKind"/> is an interactive Visual Studio host
+    /// process. This includes the main Visual Studio process (<c>devenv</c>) and its out-of-process Roslyn analysis
+    /// host (<c>ServiceHub.RoslynCodeAnalysisService</c>, <c>DevHub</c>).
+    /// </summary>
+    /// <remarks>
+    /// These processes are always part of an interactive user session, even though the operating system reports the
+    /// out-of-process analysis host as non-interactive (it runs in a non-interactive window station / session 0).
+    /// They must therefore not be classified as unattended, otherwise telemetry (including exception reports) is
+    /// silently disabled in them. See issue #1729.
+    /// </remarks>
+    internal static bool IsInteractiveIdeProcess( ProcessKind processKind )
+        => processKind is ProcessKind.DevEnv or ProcessKind.RoslynCodeAnalysisService;
+
     private static bool IsCurrentProcessUnattendedCore( ILoggerFactory loggerFactory )
     {
         var logger = loggerFactory.GetLogger( nameof(ProcessUtilities) );
 
+        var processKind = ProcessKind;
+
+        // Determine whether the current process runs in a non-interactive session. This is intentionally evaluated the
+        // same way as before (the checks are mutually exclusive and short-circuit): a non-GUI session, a Linux Docker
+        // container, or session 0 on Windows.
+        var isNonInteractiveSession = false;
+
         if ( !Environment.UserInteractive )
         {
-            logger.Trace?.Log( "Unattended mode detected because Environment.UserInteractive = false." );
+            logger.Trace?.Log( "Non-interactive session detected because Environment.UserInteractive = false." );
 
-            return true;
+            isNonInteractiveSession = true;
         }
-
-        // Check the parent processes.
-        var unattendedProcesses = new HashSet<string>
-        {
-            "services",
-            "java",               // TeamCity, Atlassian Bamboo (can also be "bamboo"), Jenkins, GoCD
-            "bamboo",             // Atlassian Bamboo
-            "agent.worker",       // Azure Pipelines
-            "runner.worker",      // GitHub Actions
-            "buildkite-agent",    // BuildKite
-            "circleci-agent",     // CircleCI (Docker, but has specific process name)
-            "agent",              // Semaphore CI (Linux)
-            "sshd: travis [priv]" // Travis CI (Linux)
-        };
-
-        if ( RuntimeInformation.IsOSPlatform( OSPlatform.Linux ) )
+        else if ( RuntimeInformation.IsOSPlatform( OSPlatform.Linux ) )
         {
             if ( IsRunningInDockerContainer( logger ) )
             {
-                logger.Trace?.Log( "Unattended mode detected because of Docker containerized environment." );
+                logger.Trace?.Log( "Non-interactive session detected because of Docker containerized environment." );
 
-                return true;
+                isNonInteractiveSession = true;
             }
         }
         else if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
         {
             if ( Environment.OSVersion.Version.Major >= 6 && Process.GetCurrentProcess().SessionId == 0 )
             {
-                logger.Trace?.Log( "Unattended mode detected because SessionId = 0 on Windows." );
+                logger.Trace?.Log( "Non-interactive session detected because SessionId = 0 on Windows." );
 
-                return true;
+                isNonInteractiveSession = true;
             }
         }
 
-        var notUnattendedProcesses = new HashSet<string>
+        // The parent-process heuristics are only meaningful for interactive sessions (to detect a CI agent, or to
+        // whitelist Rider). When the session itself is non-interactive there is no need to enumerate the parents, and
+        // skipping it preserves the previous behavior of returning immediately without the enumeration (which could
+        // otherwise fail). Interactive IDE host processes short-circuit to attended inside IsProcessUnattended.
+        if ( isNonInteractiveSession )
         {
-            "rider" // Rider needs to be checked, because it can have Java as its parent process.
-        };
+            return IsProcessUnattended( processKind, isNonInteractiveSession: true, Array.Empty<string>(), logger );
+        }
 
         IReadOnlyList<ProcessInfo> parentProcesses;
 
         try
         {
-            parentProcesses = GetParentProcesses( logger, unattendedProcesses );
+            parentProcesses = GetParentProcesses( logger, _unattendedParentProcesses );
         }
         catch ( Exception e )
         {
+            // An interactive IDE host is attended regardless of whether parent enumeration succeeded.
+            if ( IsInteractiveIdeProcess( processKind ) )
+            {
+                logger.Trace?.Log( $"Attended mode assumed for the interactive IDE host process '{processKind}'." );
+
+                return false;
+            }
+
             if ( RuntimeInformation.IsOSPlatform( OSPlatform.Linux ) || RuntimeInformation.IsOSPlatform( OSPlatform.OSX ) )
             {
                 logger.Warning?.Log( $"Unattended mode detected because the detection was not successful: {e}" );
@@ -228,7 +271,42 @@ public static class ProcessUtilities
 
         var parentProcessNames = parentProcesses.Where( p => p.ProcessName != null ).Select( p => p.ProcessName! ).ToArray();
 
-        var notUnattendedProcessName = parentProcessNames.FirstOrDefault( p => notUnattendedProcesses.Contains( p ) );
+        return IsProcessUnattended( processKind, isNonInteractiveSession: false, parentProcessNames, logger );
+    }
+
+    /// <summary>
+    /// Determines whether a process is unattended, given its <paramref name="processKind"/>, whether it runs in a
+    /// non-interactive session, and the names of its parent processes.
+    /// </summary>
+    /// <remarks>
+    /// This is the testable core of the unattended detection: <see cref="IsCurrentProcessUnattendedCore"/> gathers
+    /// these inputs from the current process and delegates to this method. An interactive Visual Studio host process
+    /// (see <see cref="IsInteractiveIdeProcess"/>) is always attended, even when it runs in a non-interactive session,
+    /// which is why the out-of-process Roslyn analysis host must be handled here. See issue #1729.
+    /// </remarks>
+    internal static bool IsProcessUnattended(
+        ProcessKind processKind,
+        bool isNonInteractiveSession,
+        IReadOnlyList<string> parentProcessNames,
+        ILogger? logger = null )
+    {
+        logger ??= NullLogger.Instance;
+
+        if ( IsInteractiveIdeProcess( processKind ) )
+        {
+            logger.Trace?.Log( $"Attended mode assumed for the interactive IDE host process '{processKind}'." );
+
+            return false;
+        }
+
+        if ( isNonInteractiveSession )
+        {
+            logger.Trace?.Log( "Unattended mode detected because the process runs in a non-interactive session." );
+
+            return true;
+        }
+
+        var notUnattendedProcessName = parentProcessNames.FirstOrDefault( p => _notUnattendedParentProcesses.Contains( p ) );
 
         if ( notUnattendedProcessName != null )
         {
@@ -237,7 +315,7 @@ public static class ProcessUtilities
             return false;
         }
 
-        var unattendedProcessName = parentProcessNames.FirstOrDefault( p => unattendedProcesses.Contains( p ) );
+        var unattendedProcessName = parentProcessNames.FirstOrDefault( p => _unattendedParentProcesses.Contains( p ) );
 
         if ( unattendedProcessName != null )
         {
