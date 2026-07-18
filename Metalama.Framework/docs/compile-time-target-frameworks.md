@@ -136,7 +136,7 @@ consumer's option type, and the merge no longer crosses copies.
   reference pipeline still yields a manifest — and carries it on
   `DesignTimeProjectReference.SerializedTransitiveAspectManifest`.
   `TransitivePipelineContributorSource.Create` then deserializes it with the **consuming** project's service
-  provider.
+  provider — *unless* it can reuse the producer's live manifest instead (see the fast path below).
 - **Package references (`PortableExecutableReference`)**: also deserialized with the consuming project's service
   provider. This replaces the upstream anchoring introduced by issue #1611, which is no longer needed here: the
   consumer's closure already contains the canonical upstream projection (via
@@ -148,6 +148,24 @@ or both absent, and are not interchangeable: the serialized form feeds the engin
 is required by `DesignTimeProjectVersion.ReferencedExtensions`, which needs the concrete
 `DesignTimeAspectPipelineResult` to read its design-time extension collections — a shape the serialized manifest
 does not carry.
+
+Both are present only when the referenced project has something to inherit — an inheritable aspect, option,
+annotation, or validator (`DesignTimeAspectPipelineResult.HasTransitiveAspectManifestContent`). When it exports
+nothing, the manifest is not serialized at all (`SerializedTransitiveAspectManifest` is `default`) and the
+reference carries neither form, so the consumer skips deserialization entirely. Dropping the live object then is
+safe: an empty manifest also has an empty `Extensions` collection, so `ReferencedExtensions` loses nothing.
+
+**Fast path — reusing the live manifest.** Deserialization exists to rebind the producer's option and aspect
+objects to the consumer's compile-time copy. When the two projects already resolve every shared assembly to the
+*same* copy, that rebinding is a no-op, so the consumer can consume the producer's in-memory manifest
+(`DesignTimeAspectPipelineResult.LiveTransitiveAspectManifest`, content-identical to the serialized form) directly
+and skip the round-trip. `TransitivePipelineContributorSource.CanReuseLiveManifest` decides this: it requires the
+same `CompileTimeDomain` (so the CLR types are reference-identical) and that the consumer resolve every run-time
+assembly in the producer's closure to exactly **one** compile-time (`ml!`) copy, equal to the producer's. The
+single-copy requirement is what makes it safe under this issue: a consumer that has *two* copies of a
+multi-targeted assembly (the crash scenario) is ambiguous, so reuse is declined and the manifest is deserialized
+(rebound) as before. The test is coarse — it may deserialize when reuse would in fact be safe — but never reuses
+unsafely.
 
 **Validation.** On the `Issue1710` solution in Visual Studio, the `ServiceHub.RoslynCodeAnalysisService` log went
 from **8396** cast failures (before) to **0** (after), with no `ERROR` lines at all — while **both** per-TFM copies

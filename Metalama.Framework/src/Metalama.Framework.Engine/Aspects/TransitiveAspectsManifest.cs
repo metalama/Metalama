@@ -75,11 +75,14 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
             annotations,
             containsInitializableTypes );
 
-    // Compression makes sense only when the manifest is embedded in a PE binary (a persisted artifact). For the
-    // design-time in-process path, where the bytes are produced and consumed in the same process and thrown away
-    // immediately, it is pure overhead, so that path serializes uncompressed. The two formats are distinguished on
-    // read by a leading marker (see Deserialize); the compressed format is unchanged and markerless, so already-built
-    // assemblies and cross-version peers keep working.
+    /// <summary>
+    /// Serializes this manifest, optionally compressed. Compression makes sense only when the manifest is embedded
+    /// in a PE binary (a persisted artifact). For the design-time in-process path, where the bytes are produced and
+    /// consumed in the same process and thrown away immediately, it is pure overhead, so that path serializes
+    /// uncompressed. The two formats are distinguished on read by a leading marker (see <see cref="Deserialize"/>);
+    /// the compressed format is unchanged and markerless, so already-built assemblies and cross-version peers keep
+    /// working.
+    /// </summary>
     private void Serialize( Stream stream, in ProjectServiceProvider serviceProvider, bool compress )
     {
         using ( UserCodeExecutionContext.WithContext(
@@ -134,8 +137,7 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
             ? $"Deserializing transitive aspects from '{assemblyName}'."
             : "Deserializing transitive aspects from a referenced assembly.";
 
-        using ( UserCodeExecutionContext.WithContext(
-                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( description ) ) ) )
+        using ( UserCodeExecutionContext.WithContext( UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( description ) ) ) )
         {
             var formatter = new CompileTimeSerializer( serviceProvider );
 
@@ -146,17 +148,17 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
 
             if ( firstByte == SerializationProtocol.UncompressedStreamMarker )
             {
-                return (TransitiveAspectsManifest) formatter.Deserialize( stream, assemblyName ).AssertNotNull();
+                return DeserializeStream( stream );
             }
-
-            if ( firstByte >= 0 )
+            else
             {
                 stream.Position -= 1;
+                using var deflateStream = new DeflateStream( stream, CompressionMode.Decompress );
+
+                return DeserializeStream( deflateStream );
             }
 
-            using var deflate = new DeflateStream( stream, CompressionMode.Decompress );
-
-            return (TransitiveAspectsManifest) formatter.Deserialize( deflate, assemblyName ).AssertNotNull();
+            TransitiveAspectsManifest DeserializeStream( Stream s ) => (TransitiveAspectsManifest) formatter.Deserialize( s, assemblyName ).AssertNotNull();
         }
     }
 

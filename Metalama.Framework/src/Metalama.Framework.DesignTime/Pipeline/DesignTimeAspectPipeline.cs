@@ -563,14 +563,20 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     // provider, which binds the run-time names to the consumer's own compile-time copy (issue #1710).
                     // The successful result always carries the reference pipeline's configuration (even when the
                     // pipeline is paused), so the serialized manifest is always available alongside the live one.
-                    var serializedManifest = referenceResult.Value.Result.SerializedTransitiveAspectManifest
-                        .ToImmutableArray();
+                    var serializedManifest = referenceResult.Value.Result.SerializedTransitiveAspectManifest;
 
+                    // When the reference exports nothing to inherit, its serialized manifest is `default`. We then
+                    // carry neither the live nor the serialized manifest, keeping the both-or-neither invariant of
+                    // DesignTimeProjectReference and letting the consumer skip deserialization entirely. Dropping the
+                    // live manifest is safe here: an empty manifest also has an empty Extensions collection, so
+                    // DesignTimeProjectVersion.ReferencedExtensions loses nothing.
                     compilationReferences.Add(
-                        new DesignTimeProjectReference(
-                            referenceResult.Value.ProjectVersion.ProjectKey,
-                            referenceResult.Value.Result,
-                            serializedManifest ) );
+                        serializedManifest.IsDefault
+                            ? new DesignTimeProjectReference( referenceResult.Value.ProjectVersion.ProjectKey )
+                            : new DesignTimeProjectReference(
+                                referenceResult.Value.ProjectVersion.ProjectKey,
+                                referenceResult.Value.Result,
+                                serializedManifest ) );
 
                     if ( referenceResult.Value.Status == DesignTimeAspectPipelineStatus.Paused )
                     {
