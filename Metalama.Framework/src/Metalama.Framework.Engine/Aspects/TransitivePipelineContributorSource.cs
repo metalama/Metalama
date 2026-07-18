@@ -56,7 +56,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
 
         var inheritableAspectProvider = serviceProvider.GetService<ITransitiveAspectManifestProvider>();
 
-        var inheritedAspectsBuilder = ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance>.CreateBuilder();
+        var inheritedAspects = new DictionaryOfList<IAspectClass, InheritableAspectInstance>();
         var contributorsBuilder = ImmutableArray.CreateBuilder<IPipelineContributor>();
         var manifestDictionaryBuilder = ImmutableDictionary.CreateBuilder<AssemblyIdentity, ITransitiveAspectsManifest>();
 
@@ -157,7 +157,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                     var targets = manifest.GetInheritableAspects( aspectClassName )
                         .WhereNotNull();
 
-                    inheritedAspectsBuilder.AddRange( aspectClass, targets );
+                    inheritedAspects.AddRange( aspectClass, targets );
                 }
 
                 // Process manifest extensions.
@@ -171,7 +171,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
             }
         }
 
-        contributorsBuilder.Add( new InheritedAspectSourceImpl( serviceProvider, inheritedAspectsBuilder.ToImmutable() ) );
+        contributorsBuilder.Add( new InheritedAspectSourceImpl( serviceProvider, inheritedAspects.Freeze() ) );
 
         return new TransitivePipelineContributorSource( manifestDictionaryBuilder.ToImmutable(), contributorsBuilder.ToImmutable() );
     }

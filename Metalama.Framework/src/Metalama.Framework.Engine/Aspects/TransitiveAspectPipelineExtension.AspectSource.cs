@@ -14,9 +14,9 @@ internal sealed partial class TransitiveAspectPipelineExtension
 {
     private sealed class AspectSource : IAspectSource
     {
-        private readonly ImmutableDictionaryOfArray<IAspectClass, AspectInstance> _transitiveAspects;
+        private readonly IReadOnlyDictionaryOfList<IAspectClass, AspectInstance> _transitiveAspects;
 
-        public AspectSource( ImmutableDictionaryOfArray<IAspectClass, AspectInstance> transitiveAspects )
+        public AspectSource( IReadOnlyDictionaryOfList<IAspectClass, AspectInstance> transitiveAspects )
         {
             this._transitiveAspects = transitiveAspects;
         }

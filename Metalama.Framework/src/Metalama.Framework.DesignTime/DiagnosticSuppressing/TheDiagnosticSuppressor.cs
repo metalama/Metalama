@@ -178,10 +178,11 @@ namespace Metalama.Framework.DesignTime.DiagnosticSuppressing
                     var semanticModel = compilation.GetCachedSemanticModel( syntaxTree );
 
                     var suppressionsBySymbol =
-                        ImmutableDictionaryOfArray<SerializableDeclarationId, ISuppression>.Create(
-                            supportedPipelineSuppressions,
-                            s => s.DeclarationId,
-                            s => s.Suppression );
+                        DictionaryOfList<SerializableDeclarationId, ISuppression>.Create(
+                                supportedPipelineSuppressions,
+                                s => s.DeclarationId,
+                                s => s.Suppression )
+                            .Freeze();
 
                     foreach ( var diagnostic in diagnosticGroup )
                     {

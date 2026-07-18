@@ -119,8 +119,8 @@ internal sealed class CompileTimeProject : IProjectService
     /// on them), so more than one entry always means genuinely distinct copies.
     /// </remarks>
     [Memo]
-    internal ImmutableDictionaryOfArray<string, CompileTimeProject> ClosureProjectsGroupedByRunTimeAssemblyName
-        => this.ClosureProjects.ToMultiValueDictionary( p => p.RunTimeIdentity.Name, p => p );
+    internal IReadOnlyDictionaryOfList<string, CompileTimeProject> ClosureProjectsGroupedByRunTimeAssemblyName
+        => this.ClosureProjects.ToDictionaryOfList( p => p.RunTimeIdentity.Name, p => p ).Freeze();
 
     private bool TryGetProjectByRunTimeAssemblyName( string runTimeName, [NotNullWhen( true )] out CompileTimeProject? project )
         => this.ClosureProjectsByRunTimeAssemblyName.TryGetValue( runTimeName, out project );
@@ -134,9 +134,10 @@ internal sealed class CompileTimeProject : IProjectService
     internal IReadOnlyList<CompileTimeFileManifest> CodeFiles => this.Manifest?.Files ?? Array.Empty<CompileTimeFileManifest>();
 
     [Memo]
-    private ImmutableDictionaryOfArray<string, (CompileTimeFileManifest File, CompileTimeProject Project)> ClosureCodeFiles
+    private IReadOnlyDictionaryOfList<string, (CompileTimeFileManifest File, CompileTimeProject Project)> ClosureCodeFiles
         => this.ClosureProjects.SelectMany( p => p.CodeFiles.SelectAsReadOnlyList( f => (f, p) ) )
-            .ToMultiValueDictionary( f => f.f.TransformedPath, f => f );
+            .ToDictionaryOfList( f => f.f.TransformedPath, f => f )
+            .Freeze();
 
     [Memo]
     public IReadOnlyList<string> ClosureOptionTypes

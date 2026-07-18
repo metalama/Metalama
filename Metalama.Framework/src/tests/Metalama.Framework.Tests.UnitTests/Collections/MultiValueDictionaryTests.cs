@@ -31,7 +31,7 @@ namespace Metalama.Framework.Tests.UnitTests.Collections
         public void ExtensionMethod1()
         {
             List<(int, string)> list = new() { (1, "a"), (2, "b"), (1, "c") };
-            var dictionary = list.ToMultiValueDictionary( i => i.Item1 );
+            var dictionary = list.ToImmutableDictionaryOfArray( i => i.Item1 );
             Assert.Equal( new[] { 1, 2 }, dictionary.Keys );
             Assert.Equal( new[] { (1, "a"), (1, "c") }, dictionary[1] );
         }
@@ -40,7 +40,7 @@ namespace Metalama.Framework.Tests.UnitTests.Collections
         public void ExtensionMethod2()
         {
             List<(int, string)> list = new() { (1, "a"), (2, "b"), (1, "c") };
-            var dictionary = list.ToMultiValueDictionary( i => i.Item1, i => i.Item2 );
+            var dictionary = list.ToImmutableDictionaryOfArray( i => i.Item1, i => i.Item2 );
             Assert.Equal( new[] { 1, 2 }, dictionary.Keys );
             Assert.Equal( new[] { "a", "c" }, dictionary[1] );
         }

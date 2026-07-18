@@ -15,19 +15,19 @@ public static partial class JsonSerializationHelper
     private sealed class AnnotationWriter : SafeSyntaxRewriter
     {
         private readonly CancellationToken _cancellationToken;
-        private readonly ImmutableDictionaryOfArray<int, SerializableAnnotation> _annotations;
+        private readonly IReadOnlyDictionaryOfList<int, SerializableAnnotation> _annotations;
 
         public AnnotationWriter( SerializableSyntaxTree parent, CancellationToken cancellationToken )
         {
             this._cancellationToken = cancellationToken;
-            this._annotations = parent.Annotations.ToMultiValueDictionary( a => a.SpanStart );
+            this._annotations = parent.Annotations.ToDictionaryOfList( a => a.SpanStart ).Freeze();
         }
 
         public override SyntaxToken VisitToken( SyntaxToken token )
         {
             var annotations = this._annotations[token.SpanStart];
 
-            if ( annotations.IsDefaultOrEmpty )
+            if ( annotations.Count == 0 )
             {
                 return token;
             }
@@ -52,7 +52,7 @@ public static partial class JsonSerializationHelper
 
             var annotations = this._annotations[node.SpanStart];
 
-            if ( annotations.IsDefaultOrEmpty )
+            if ( annotations.Count == 0 )
             {
                 return rewrittenNode;
             }

@@ -28,7 +28,7 @@ internal sealed partial class TransitiveAspectPipelineExtension : PipelineExtens
     {
         var serializableInstances = extensions.OfKind( ContributorKind.SerializableTransitiveAspectInstance );
 
-        var transitiveAspectInstancesBuilder = ImmutableDictionaryOfArray<IAspectClass, AspectInstance>.CreateBuilder();
+        var transitiveAspectInstances = new DictionaryOfList<IAspectClass, AspectInstance>();
 
         foreach ( var instance in serializableInstances )
         {
@@ -36,7 +36,7 @@ internal sealed partial class TransitiveAspectPipelineExtension : PipelineExtens
 
             if ( aspectInstance != null )
             {
-                transitiveAspectInstancesBuilder.Add( aspectInstance.AspectClass, aspectInstance );
+                transitiveAspectInstances.Add( aspectInstance.AspectClass, aspectInstance );
             }
             else
             {
@@ -47,7 +47,7 @@ internal sealed partial class TransitiveAspectPipelineExtension : PipelineExtens
             }
         }
 
-        yield return new AspectSource( transitiveAspectInstancesBuilder.ToImmutable() );
+        yield return new AspectSource( transitiveAspectInstances.Freeze() );
     }
 
     public override Task<ExtensionPipelineContributorsResult> ExecutePipelineContributorsAsync(
