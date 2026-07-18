@@ -522,7 +522,7 @@ internal sealed class SerializationReader
         // The type is not in this project's closure and is not loadable here (e.g. a run-time type of the writing
         // process, incompatible across TFMs or assembly versions). Represent it symbolically. There is nothing a
         // compilation could add: resolving the name through one would only reach the same closure by a longer route,
-        // and would otherwise yield a mock — which is what we build here directly.
+        // and would otherwise yield a mock, which is what we build here directly.
 
         return this._compileTimeTypeFactory.CreateNamedType( typeName.TypeName, typeName.AssemblyName, isEnum, isValueType );
     }

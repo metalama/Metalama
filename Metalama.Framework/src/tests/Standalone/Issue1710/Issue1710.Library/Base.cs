@@ -7,7 +7,7 @@ using Metalama.Patterns.Contracts;
 namespace Issue1710.Library
 {
     /// <summary>
-    /// Declares a contract on a virtual member, so that the contract is inherited by overrides — including
+    /// Declares a contract on a virtual member, so that the contract is inherited by overrides, including
     /// overrides declared in a referencing project that targets a different framework (see Issue1710.App).
     /// </summary>
     public class Base

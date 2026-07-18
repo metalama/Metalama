@@ -18,7 +18,7 @@ namespace Metalama.Framework.Engine.ReflectionMocks
 {
     /// <summary>
     /// The base class of the reflection mocks that stand for a type that cannot be represented by a real, loadable
-    /// <see cref="Type"/> — typically a run-time type of the compiled project, which is never loaded at compile time.
+    /// <see cref="Type"/>, typically a run-time type of the compiled project, which is never loaded at compile time.
     /// </summary>
     /// <remarks>
     /// <para>

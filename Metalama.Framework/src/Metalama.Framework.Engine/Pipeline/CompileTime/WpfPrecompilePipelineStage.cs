@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
 {
     /// <summary>
     /// A <see cref="HighLevelPipelineStage"/> for the WPF MarkupCompilePass1 temporary assembly. Reuses the full compile-time
-    /// front-end (aspect discovery, eligibility, advice, template expansion of observable members) but skips the linker —
+    /// front-end (aspect discovery, eligibility, advice, template expansion of observable members) but skips the linker:
     /// the temp assembly only needs aspect-introduced member signatures so the XAML compiler can resolve type references.
     /// Emits the same partial-class stubs the design-time source generator produces.
     /// </summary>

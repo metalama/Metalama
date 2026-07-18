@@ -18,8 +18,13 @@ namespace Metalama.Framework.Engine.ReflectionMocks
     /// The type stores its arity-marked metadata name (e.g. <c>List`1</c>), its namespace, its declaring type (when
     /// nested), its generic definition (when constructed) and its generic arguments; from those it computes
     /// <see cref="Name"/>, <see cref="Namespace"/>, <see cref="FullName"/> and <see cref="ToString"/> rather than
-    /// storing them. For an open definition the arguments are the type <em>parameters</em>, exactly as reflection
-    /// reports them (<c>typeof(List&lt;&gt;).GetGenericArguments()</c> is <c>[T]</c>).
+    /// storing them.
+    /// <para>
+    /// Only a <em>constructed</em> type carries generic arguments. An open definition keeps an empty argument list,
+    /// unlike reflection, where <c>typeof(List&lt;&gt;).GetGenericArguments()</c> is <c>[T]</c>: a type parameter's
+    /// own declaring type is the definition, so populating them would re-enter the factory for the definition that is
+    /// still being built. See <c>CompileTimeTypeFactory.CreateFromSymbol</c>.
+    /// </para>
     /// </remarks>
     internal sealed class CompileTimeNamedType : CompileTimeType
     {
@@ -93,8 +98,9 @@ namespace Metalama.Framework.Engine.ReflectionMocks
         {
             var qualifiedName = this.GetQualifiedName( static t => t.ToString() );
 
-            // Unlike FullName, ToString renders the argument list of BOTH a constructed type ('List`1[System.Int32]')
-            // and an open definition ('List`1[T]'), because for an open definition the arguments are its type parameters.
+            // Unlike FullName, ToString renders the argument list of a constructed type ('List`1[System.Int32]').
+            // An open definition has no arguments here (see the remarks on this class), so it renders as 'List`1',
+            // where the CLR would append '[T]'.
             return this._genericArguments.IsEmpty
                 ? qualifiedName
                 : qualifiedName + "[" + string.Join( ",", this._genericArguments.SelectAsArray( a => a.ToString() ) ) + "]";

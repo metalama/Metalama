@@ -89,8 +89,8 @@ public static class SerializableTypeIdGenerator
     {
         // The id must be byte-identical to the one the ITypeSymbol/IType overloads produce (via the syntax generator),
         // because CompileTimeType equality and the CompileTimeTypeFactory cache key on this string. That form is C# type
-        // syntax: 'global::'-qualified names, '<...>' generics separated by ', ', Nullable<T> written as 'T?', with a
-        // trailing '!' for a non-nullable reference type.
+        // syntax: 'global::'-qualified names, '<...>' generics whose arguments are separated by ',' with no space,
+        // Nullable<T> written as 'T?', with a trailing '!' for a non-nullable reference type.
         var stringBuilder = new StringBuilder();
         stringBuilder.Append( SerializableTypeId.Prefix );
         AppendType( type );

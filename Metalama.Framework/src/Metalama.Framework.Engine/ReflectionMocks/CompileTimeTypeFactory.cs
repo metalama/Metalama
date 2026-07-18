@@ -33,7 +33,8 @@ namespace Metalama.Framework.Engine.ReflectionMocks
     /// </remarks>
     internal class CompileTimeTypeFactory : IProjectService
     {
-        // Key is SerializableTypeId for most types. Only type parameters can't be represented using just that, so they use SymbolId.
+        // Keyed by SerializableTypeId, including for type parameters: Get() asks for the id with the generic context
+        // included, which embeds the declaring type and so distinguishes the 'T' of one type from the 'T' of another.
         private readonly ConcurrentDictionary<string, CompileTimeType> _instances = new( StringComparer.Ordinal );
 
         public CompileTimeType Get( ITypeSymbol symbol )
