@@ -56,6 +56,12 @@ namespace Metalama.Framework.Engine.ReflectionMocks
         /// Only the innermost type's kind is known from the wire, so the declaring types are reconstructed with their
         /// enum-ness and value-type-ness left unknown rather than guessed.
         /// </remarks>
+
+        // These two overloads do not consult the instance cache (the wire gives no SerializableTypeId to key on), so
+        // they could be static. They are deliberately kept as instance members: creating a mock must go through the
+        // project-scoped factory, which is the invariant the whole class exists to enforce. Making them static would
+        // also strip the factory dependency from SerializationReader, its only caller.
+#pragma warning disable CA1822
         public CompileTimeType CreateNamedType( string fullName, string assemblyName, bool? isEnum, bool? isValueType )
         {
             var lastNestedSeparator = fullName.LastIndexOf( '+' );
@@ -97,6 +103,7 @@ namespace Metalama.Framework.Engine.ReflectionMocks
                 default,
                 mockDeclaringType );
         }
+#pragma warning restore CA1822
 
         private CompileTimeType GetOrAdd<TState>(
             SerializableTypeId typeId,
@@ -111,22 +118,25 @@ namespace Metalama.Framework.Engine.ReflectionMocks
         {
             var name = symbol.GetReflectionName().AssertNotNull();
 
-            switch ( symbol )
+            // Switching on Kind before the type test: a Kind comparison is cheaper than an interface type check.
+            // ErrorType is included with NamedType because IErrorTypeSymbol derives from INamedTypeSymbol, so it was
+            // matched by the previous `case INamedTypeSymbol` too.
+            switch ( symbol.Kind )
             {
-                case IArrayTypeSymbol arrayType:
+                case SymbolKind.ArrayType when symbol is IArrayTypeSymbol arrayType:
                     return new CompileTimeArrayType( typeId, this.Get( arrayType.ElementType ), arrayType.Rank );
 
-                case IPointerTypeSymbol pointerType:
+                case SymbolKind.PointerType when symbol is IPointerTypeSymbol pointerType:
                     return new CompileTimePointerType( typeId, this.Get( pointerType.PointedAtType ) );
 
-                case ITypeParameterSymbol typeParameter:
+                case SymbolKind.TypeParameter when symbol is ITypeParameterSymbol typeParameter:
                     return new CompileTimeGenericParameterType(
                         typeId,
                         name,
                         typeParameter.DeclaringType == null ? null : this.Get( typeParameter.DeclaringType ),
                         typeParameter.Ordinal );
 
-                case INamedTypeSymbol namedType:
+                case SymbolKind.NamedType or SymbolKind.ErrorType when symbol is INamedTypeSymbol namedType:
                     {
                         var isConstructed = namedType is { IsGenericType: true } && !namedType.IsGenericTypeDefinition();
 

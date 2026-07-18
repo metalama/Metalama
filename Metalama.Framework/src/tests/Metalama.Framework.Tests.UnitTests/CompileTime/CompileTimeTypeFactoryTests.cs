@@ -51,7 +51,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
                                  }
                                  """;
 
-    private CompilationModel CreateCompilation( TestContext testContext ) => testContext.CreateCompilationModel( _code );
+    private static CompilationModel CreateCompilation( TestContext testContext ) => testContext.CreateCompilationModel( _code );
 
     private static CompileTimeTypeFactory GetFactory( CompilationModel compilation ) => compilation.CompilationContext.CompileTimeTypeFactory;
 
@@ -67,7 +67,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_Class_IsNamedTypeAndCarriesItsAssembly()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var mock = GetMock( compilation, GetType( compilation, "SimpleClass" ) );
 
@@ -87,7 +87,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_Struct_IsValueTypeButNotEnum()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var named = Assert.IsType<CompileTimeNamedType>( GetMock( compilation, GetType( compilation, "SimpleStruct" ) ) );
 
@@ -99,7 +99,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_Enum_IsEnumAndValueType()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var named = Assert.IsType<CompileTimeNamedType>( GetMock( compilation, GetType( compilation, "SimpleEnum" ) ) );
 
@@ -113,7 +113,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_Interface_IsNeitherEnumNorValueType()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var named = Assert.IsType<CompileTimeNamedType>( GetMock( compilation, GetType( compilation, "ISimpleInterface" ) ) );
 
@@ -125,7 +125,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_Array_ExposesElementTypeAndRank()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var mock = GetMock( compilation, GetFieldType( compilation, "Holder", "Array1D" ) );
 
@@ -143,7 +143,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_MultiDimensionalArray_ExposesRank()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var array = Assert.IsType<CompileTimeArrayType>( GetMock( compilation, GetFieldType( compilation, "Holder", "Array2D" ) ) );
 
@@ -154,7 +154,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_JaggedArray_NestsArrayMocks()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var outer = Assert.IsType<CompileTimeArrayType>( GetMock( compilation, GetFieldType( compilation, "Holder", "JaggedArray" ) ) );
         var inner = Assert.IsType<CompileTimeArrayType>( outer.GetElementType() );
@@ -168,7 +168,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_Array_InheritsAssemblyNameFromElement()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var array = Assert.IsType<CompileTimeArrayType>( GetMock( compilation, GetFieldType( compilation, "Holder", "Array1D" ) ) );
 
@@ -180,7 +180,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_ArrayOfEnum_ElementIsEnum()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var array = Assert.IsType<CompileTimeArrayType>( GetMock( compilation, GetFieldType( compilation, "Holder", "EnumArray" ) ) );
         var element = Assert.IsType<CompileTimeNamedType>( array.GetElementType() );
@@ -193,7 +193,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_ConstructedGeneric_ExposesDefinitionAndArguments()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var mock = GetMock( compilation, GetFieldType( compilation, "Holder", "ConstructedGeneric" ) );
 
@@ -212,7 +212,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_NestedConstructedGeneric_NestsArgumentMocks()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var outer = Assert.IsType<CompileTimeNamedType>( GetMock( compilation, GetFieldType( compilation, "Holder", "NestedConstructedGeneric" ) ) );
         var inner = Assert.IsType<CompileTimeNamedType>( Assert.Single( outer.GetGenericArguments() ) );
@@ -225,7 +225,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_OpenGenericDefinition_IsDistinctFromNonGenericOfSameName()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var definition = Assert.IsType<CompileTimeNamedType>( GetMock( compilation, GetType( compilation, "Generic" ) ) );
         var simple = Assert.IsType<CompileTimeNamedType>( GetMock( compilation, GetType( compilation, "SimpleClass" ) ) );
@@ -241,7 +241,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_GenericParameter_ExposesDeclaringTypeAndPosition()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var mock = GetMock( compilation, GetFieldType( compilation, "GenericHolder", "Field" ) );
 
@@ -256,7 +256,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_NestedType_IsNamedType()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var named = Assert.IsType<CompileTimeNamedType>( GetMock( compilation, GetFieldType( compilation, "Holder", "NestedType" ) ) );
 
@@ -268,7 +268,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_NestedType_MatchesReflectionShape()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var nested = Assert.IsType<CompileTimeNamedType>( GetMock( compilation, GetFieldType( compilation, "Holder", "NestedType" ) ) );
 
@@ -290,7 +290,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_NonNestedType_HasNoDeclaringType()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var named = Assert.IsType<CompileTimeNamedType>( GetMock( compilation, GetType( compilation, "SimpleClass" ) ) );
 
@@ -302,7 +302,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_NestedType_DeclaringTypeIsTheCachedMock()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var nestedSymbol = GetFieldType( compilation, "Holder", "NestedType" ).GetSymbol().AssertSymbolNotNull();
         var nested = (CompileTimeNamedType) GetFactory( compilation ).Get( nestedSymbol );
@@ -316,7 +316,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_NullabilityIsPartOfTheTypeId()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var nestedSymbol = GetFieldType( compilation, "Holder", "NestedType" ).GetSymbol().AssertSymbolNotNull();
 
@@ -336,7 +336,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void CreateNamedType_FromWireName_RebuildsTheNesting()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         // This is what deserialization gets: a reflection full name and an assembly name, and no compilation.
         var mock = (CompileTimeNamedType) GetFactory( compilation ).CreateNamedType( "Ns.Outer+Nested", "SomeAssembly", false, false );
@@ -356,7 +356,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void CreateNamedType_FromDeeplyNestedWireName_RebuildsEveryLevel()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var mock = (CompileTimeNamedType) GetFactory( compilation ).CreateNamedType( "Ns.A+B+C", "SomeAssembly", false, false );
 
@@ -376,7 +376,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void CreateNamedType_FromNonNestedWireName_HasNoDeclaringType()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var mock = (CompileTimeNamedType) GetFactory( compilation ).CreateNamedType( "Ns.SimpleClass", "SomeAssembly", false, false );
 
@@ -390,13 +390,13 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void TypeId_OfNestedType_UsesDotSeparatorAndNoDuplicateNamespace()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var nested = GetMock( compilation, GetFieldType( compilation, "Holder", "NestedType" ) );
 
         // A type id is C# syntax, so nesting is '.', not the reflection '+'. The namespace belongs to the outermost type
         // only: emitting it again for the nested type would give `Ns.OuterNs.Nested`.
-        var id = ((Type) nested).GetSerializableTypeId().Id;
+        var id = nested.GetSerializableTypeId().Id;
 
         Assert.Equal( SerializableTypeId.Prefix + "global::Ns.Outer.Nested!", id );
     }
@@ -405,18 +405,18 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void TypeId_OfNestedGenericType_StripsArityAndKeepsNesting()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var mock = GetFactory( compilation ).CreateNamedType( "Ns.Outer+Nested", "SomeAssembly", false, false );
 
-        Assert.Equal( SerializableTypeId.Prefix + "global::Ns.Outer.Nested!", ((Type) mock).GetSerializableTypeId().Id );
+        Assert.Equal( SerializableTypeId.Prefix + "global::Ns.Outer.Nested!", mock.GetSerializableTypeId().Id );
     }
 
     [Fact]
     public void GetType_SameTypeTwice_ReturnsSameInstance()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
         var type = GetType( compilation, "SimpleClass" );
 
         // Instance identity is the factory's contract: production code compares mocks by reference in places.
@@ -427,7 +427,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_DifferentTypes_ReturnDifferentInstances()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         Assert.NotSame( GetMock( compilation, GetType( compilation, "SimpleClass" ) ), GetMock( compilation, GetType( compilation, "SimpleStruct" ) ) );
     }
@@ -436,7 +436,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_ArrayAndItsElement_AreDistinctCacheEntries()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var array = GetMock( compilation, GetFieldType( compilation, "Holder", "Array1D" ) );
         var element = GetMock( compilation, GetType( compilation, "SimpleClass" ) );
@@ -451,7 +451,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetType_Equality_IsByTypeId()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
         var type = GetType( compilation, "SimpleClass" );
 
         var a = GetMock( compilation, type );
@@ -468,7 +468,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void TypeId_IsTheWholeIdentity_AndDistinguishesEveryKind()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         var simple = GetMock( compilation, GetType( compilation, "SimpleClass" ) );
         var array = GetMock( compilation, GetFieldType( compilation, "Holder", "Array1D" ) );
@@ -486,7 +486,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void ToRef_RoundTripsThroughTheTypeId()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
         var type = GetType( compilation, "SimpleClass" );
 
         var mock = GetMock( compilation, type );
@@ -501,7 +501,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetTypeCode_IsObject_AndDoesNotThrow()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         // Type.GetTypeCode calls GetTypeCodeImpl, whose default reads UnderlyingSystemType -- which a mock cannot
         // provide. GetIntrinsicType calls it for every type, so this must not throw.
@@ -512,7 +512,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void UnsupportedMembers_StillThrow()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
         var mock = GetMock( compilation, GetType( compilation, "SimpleClass" ) );
 
         // The hierarchy answers structural questions only. Anything requiring a loaded assembly must still fail loudly
@@ -526,7 +526,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void UnderlyingSystemType_IsSelf()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
         var mock = GetMock( compilation, GetType( compilation, "SimpleClass" ) );
 
         // A mock *is* the type it stands for. This must not throw: RuntimeType.IsAssignableFrom reads it, and
@@ -539,7 +539,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
     public void GetElementType_OnNamedType_Throws()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = this.CreateCompilation( testContext );
+        var compilation = CreateCompilation( testContext );
 
         Assert.ThrowsAny<Exception>( () => GetMock( compilation, GetType( compilation, "SimpleClass" ) ).GetElementType() );
     }

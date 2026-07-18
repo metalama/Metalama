@@ -52,7 +52,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
                                               public class Local { }
                                               """;
 
-    private DesignTimeAspectPipelineResult Execute( TestContext testContext, TestDesignTimeAspectPipelineFactory factory, string code )
+    private static DesignTimeAspectPipelineResult Execute( TestContext testContext, TestDesignTimeAspectPipelineFactory factory, string code )
     {
         var compilation = testContext.CreateCSharpCompilation( code );
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var result ) );
@@ -66,7 +66,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        var result = this.Execute( testContext, factory, _producerCode );
+        var result = Execute( testContext, factory, _producerCode );
 
         Assert.True( result.HasTransitiveAspectManifestContent );
 
@@ -83,7 +83,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        var result = this.Execute( testContext, factory, _emptyProducerCode );
+        var result = Execute( testContext, factory, _emptyProducerCode );
 
         // Gate: nothing to inherit, so the manifest is not serialized at all. The reference-construction site then
         // carries neither the live nor the serialized manifest, and the consumer skips deserialization entirely.
@@ -97,7 +97,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        var result = this.Execute( testContext, factory, _producerCode );
+        var result = Execute( testContext, factory, _producerCode );
         var serviceProvider = result.Configuration!.ServiceProvider;
 
         // The in-process format is uncompressed (marked); the RPC/PE format is a bare DEFLATE stream (no marker).

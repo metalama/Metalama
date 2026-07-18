@@ -5,7 +5,6 @@
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.ReflectionMocks;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -140,7 +139,7 @@ public sealed class CompileTimeTypeClrParityTests : UnitTestClass
             var mockArgs = mock.GetGenericArguments();
 
             Assert.Equal( clrArgs.Length, mockArgs.Length );
-            Assert.Equal( clrArgs.Select( a => a.Name ), mockArgs.Select( a => a.Name ) );
+            Assert.Equal( clrArgs.SelectAsArray( a => a.Name ), mockArgs.SelectAsArray( a => a.Name ) );
         }
         else
         {
