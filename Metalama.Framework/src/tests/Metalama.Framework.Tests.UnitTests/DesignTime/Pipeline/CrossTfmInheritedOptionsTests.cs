@@ -60,7 +60,9 @@ public sealed class CrossTfmInheritedOptionsTests : UnitTestClass
              {
                  public sealed class ContractOptions : IHierarchicalOptions<INamedType>
                  {
-                     public bool? IsInheritable { get; init; }
+                     // A settable property rather than an init-only one: this code is compiled against reference
+                     // assemblies only, and 'init' needs IsExternalInit, which net48 does not define.
+                     public bool? IsInheritable { get; set; }
 
                      public object ApplyChanges( object changes, in ApplyChangesContext context )
                      {

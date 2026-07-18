@@ -223,11 +223,14 @@ public sealed class CompileTimeTypeClrParityTests : UnitTestClass
         var compilation = testContext.CreateCompilationModel( "" );
         var mock = Mock( compilation, typeof(List<int>) );
 
-        // The CLR assembly-qualifies the arguments (List`1[[System.Int32, System.Private.CoreLib, Version=...]]). The
-        // mock deliberately uses the assembly-neutral form, because the serialized id must be version-independent.
+        // The CLR assembly-qualifies the arguments (List`1[[System.Int32, <corlib>, Version=...]]). The mock
+        // deliberately uses the assembly-neutral form, because the serialized id must be version-independent.
+        //
+        // The assertion is on the qualification itself rather than on the corlib name, which differs per target
+        // framework (System.Private.CoreLib on .NET, mscorlib on .NET Framework).
         Assert.Equal( "System.Collections.Generic.List`1[System.Int32]", mock.FullName );
-        Assert.Contains( "System.Private.CoreLib", typeof(List<int>).FullName!, StringComparison.Ordinal );
-        Assert.DoesNotContain( "System.Private.CoreLib", mock.FullName, StringComparison.Ordinal );
+        Assert.Contains( ", Version=", typeof(List<int>).FullName!, StringComparison.Ordinal );
+        Assert.DoesNotContain( ", Version=", mock.FullName, StringComparison.Ordinal );
     }
 
     [Fact]
