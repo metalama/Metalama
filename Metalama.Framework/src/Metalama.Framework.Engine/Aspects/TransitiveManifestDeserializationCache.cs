@@ -38,6 +38,7 @@ internal sealed class TransitiveManifestDeserializationCache : IProjectService
     private readonly object _sync = new();
 
     private ConcurrentDictionary<(string Path, DateTime LastWrite), ITransitiveAspectsManifest> _manifests = new();
+    private ConcurrentDictionary<long, ITransitiveAspectsManifest> _manifestsByHash = new();
     private CompileTimeProject? _boundTo;
 
     /// <summary>
@@ -57,13 +58,36 @@ internal sealed class TransitiveManifestDeserializationCache : IProjectService
             return deserialize();
         }
 
-        var manifests = this.GetManifestsFor( consumerProject );
+        this.EnsureBoundTo( consumerProject );
 
-        return manifests.GetOrAdd( (path, lastWrite), _ => deserialize() );
+        return this._manifests.GetOrAdd( (path, lastWrite), _ => deserialize() );
     }
 
-    private ConcurrentDictionary<(string Path, DateTime LastWrite), ITransitiveAspectsManifest> GetManifestsFor(
-        CompileTimeProject consumerProject )
+    /// <summary>
+    /// Gets the manifest deserialized from the given bytes, calling <paramref name="deserialize"/> only when a
+    /// manifest with the same content is not already cached for <paramref name="consumerProject"/>.
+    /// </summary>
+    /// <remarks>
+    /// This serves project references, which have no file to key on. The key is the content hash, which
+    /// <see cref="SerializedTransitiveAspectManifest"/> treats as an identity; see its remarks for why a collision
+    /// is discounted at this scale.
+    /// </remarks>
+    public ITransitiveAspectsManifest GetOrAdd(
+        in SerializedTransitiveAspectManifest serialized,
+        CompileTimeProject? consumerProject,
+        Func<ITransitiveAspectsManifest> deserialize )
+    {
+        if ( consumerProject == null || serialized.IsDefaultOrEmpty )
+        {
+            return deserialize();
+        }
+
+        this.EnsureBoundTo( consumerProject );
+
+        return this._manifestsByHash.GetOrAdd( serialized.Hash, _ => deserialize() );
+    }
+
+    private void EnsureBoundTo( CompileTimeProject consumerProject )
     {
         lock ( this._sync )
         {
@@ -71,9 +95,9 @@ internal sealed class TransitiveManifestDeserializationCache : IProjectService
             {
                 this._boundTo = consumerProject;
                 this._manifests = new ConcurrentDictionary<(string, DateTime), ITransitiveAspectsManifest>();
-            }
 
-            return this._manifests;
+                this._manifestsByHash = new ConcurrentDictionary<long, ITransitiveAspectsManifest>();
+            }
         }
     }
 }

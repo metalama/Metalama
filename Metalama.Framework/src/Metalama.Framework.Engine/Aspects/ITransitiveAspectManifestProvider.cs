@@ -5,7 +5,6 @@
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.Aspects
@@ -35,8 +34,9 @@ namespace Metalama.Framework.Engine.Aspects
         /// names to the consumer's own compile-time copy of each type, so inherited aspects and options are bound
         /// to the consuming project's copy of a shared (e.g. multi-targeted) compile-time assembly rather than the
         /// producer's copy (issue #1710). Returns a default (or empty) array if the reference has no transitive
-        /// aspect manifest (e.g. it is not a Metalama project).
+        /// aspect manifest (e.g. it is not a Metalama project). The returned value carries a hash of the bytes, so a
+        /// consumer can tell an unchanged manifest from a merely re-produced one.
         /// </summary>
-        ImmutableArray<byte> GetSerializedTransitiveAspectsManifest( Compilation compilationReferenceCompilation );
+        SerializedTransitiveAspectManifest GetSerializedTransitiveAspectsManifest( Compilation compilationReferenceCompilation );
     }
 }

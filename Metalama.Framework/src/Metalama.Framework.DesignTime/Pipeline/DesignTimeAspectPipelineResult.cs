@@ -715,9 +715,10 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
     /// exporting no inheritable aspects, options, annotations, or validators.
     /// </summary>
     [Memo]
-    internal ImmutableArray<byte> SerializedTransitiveAspectManifest
+    internal SerializedTransitiveAspectManifest SerializedTransitiveAspectManifest
         => this.HasTransitiveAspectManifestContent
-            ? this.CreateTransitiveManifest().ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false )
+            ? SerializedTransitiveAspectManifest.Create(
+                this.CreateTransitiveManifest().ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false ) )
             : default;
 
     /// <summary>

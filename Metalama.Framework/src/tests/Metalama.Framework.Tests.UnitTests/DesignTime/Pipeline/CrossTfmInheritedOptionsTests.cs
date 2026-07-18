@@ -175,6 +175,17 @@ public sealed class CrossTfmInheritedOptionsTests : UnitTestClass
             || (!diagnostics.IsDefault && diagnostics.Any( d => d.ToString().Contains( "cannot be cast", StringComparison.Ordinal ) ));
 
         Assert.False( castErrorObserved, "The cross-TFM ContractOptions merge threw InvalidCastException (issue #1710)." );
+
+        // The pipeline must also actually succeed, which is what covers the aspect-welding side of issue #1611.
+        // Two compile-time copies of Contracts are loaded here, and the contract on Base is genuinely inherited and
+        // welded onto Derived, so if the inherited aspect resolved to Library's copy instead of App's it would not
+        // match App's IAspectClass.Type. That surfaces as the InvalidOperationException raised by
+        // SerializableTransitiveAspectInstance, or as a TargetException from TemplateDriver, and never as a cast
+        // failure, so the assertion above would pass straight through it. #1611 had a dedicated test for the
+        // deserializer's upstream anchoring; that anchoring is gone (the consumer's closure already holds the
+        // canonical upstream projection), and this is what now guards the behaviour that replaced it.
+        Assert.True( thrown == null, $"App's pipeline threw: {thrown}" );
+        Assert.True( success, "App's pipeline did not succeed." );
     }
 
     /// <summary>

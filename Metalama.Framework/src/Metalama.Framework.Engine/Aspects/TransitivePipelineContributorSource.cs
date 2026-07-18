@@ -134,10 +134,18 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
 
                         if ( !serializedManifest.IsDefaultOrEmpty )
                         {
-                            manifest = TransitiveAspectsManifest.Deserialize(
-                                new MemoryStream( serializedManifest.ToArray() ),
-                                serviceProvider,
-                                compilationReference.Compilation.AssemblyName );
+                            ITransitiveAspectsManifest DeserializeProjectManifest()
+                                => TransitiveAspectsManifest.Deserialize(
+                                    new MemoryStream( serializedManifest.Bytes.ToArray() ),
+                                    serviceProvider,
+                                    compilationReference.Compilation.AssemblyName );
+
+                            // Keyed by the content hash rather than by the producing result, so that a producer
+                            // edit which leaves the exported surface untouched, the common case, does not force a
+                            // deserialization here.
+                            manifest = deserializationCache == null
+                                ? DeserializeProjectManifest()
+                                : deserializationCache.GetOrAdd( serializedManifest, consumerProject, DeserializeProjectManifest );
                         }
                     }
 

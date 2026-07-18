@@ -5,7 +5,6 @@
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Aspects;
-using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
@@ -35,18 +34,18 @@ internal readonly struct DesignTimeProjectReference
     /// only that project's closure can name (resolve) its own compile-time copy of a shared assembly; the
     /// consuming project's provider could not serialize types bound to a copy that is not in its closure.
     /// </summary>
-    public ImmutableArray<byte> SerializedTransitiveAspectManifest { get; }
+    public SerializedTransitiveAspectManifest SerializedTransitiveAspectManifest { get; }
 
     public ProjectKey ProjectKey { get; }
 
     public DesignTimeProjectReference(
         ProjectKey projectKey,
         ITransitiveAspectsManifest? transitiveAspectsManifest = null,
-        ImmutableArray<byte> serializedTransitiveAspectManifest = default )
+        SerializedTransitiveAspectManifest serializedTransitiveAspectManifest = default )
     {
         // Both manifest representations are either both present or both absent: a reference either has a
         // transitive aspect manifest (in both its live and its serialized form) or is not a Metalama project.
-        Invariant.Assert( transitiveAspectsManifest != null == !serializedTransitiveAspectManifest.IsDefault );
+        Invariant.Assert( transitiveAspectsManifest != null == !serializedTransitiveAspectManifest.IsDefaultOrEmpty );
 
         this.TransitiveAspectsManifest = transitiveAspectsManifest;
         this.SerializedTransitiveAspectManifest = serializedTransitiveAspectManifest;
@@ -56,20 +55,21 @@ internal readonly struct DesignTimeProjectReference
     // Comparing two references is not supported, and the overrides below exist to stop the default value equality
     // of a struct from silently doing it anyway.
     //
-    // The only reason to compare these is change detection, and every equality one could define here is wrong for
-    // that. TransitiveAspectsManifest is a DesignTimeAspectPipelineResult, a class with no value equality, so any
-    // comparison is by reference; every pipeline run produces a new result, so it would report "different" even
-    // when the exported surface is byte-identical. Comparing SerializedTransitiveAspectManifest instead would
-    // compare two ImmutableArray<byte> by reference, with the same flaw. A caller that needs to know whether a
-    // reference's manifest changed has to compare the content deliberately, for example by hashing the bytes.
+    // The only reason to compare these is change detection, and a whole-struct equality is wrong for that.
+    // TransitiveAspectsManifest is a DesignTimeAspectPipelineResult, a class with no value equality, so comparing it
+    // is comparing references; every pipeline run produces a new result, so the comparison would report "different"
+    // even when the exported surface is byte-identical.
+    //
+    // A caller that needs to know whether a reference's manifest changed should compare
+    // SerializedTransitiveAspectManifest instead, which compares by content hash.
     //
     // Nothing compares these today: an earlier implementation compared the manifest by reference and was unused,
     // which the compiler confirmed by reporting its precomputed hash code as dead.
 
     private const string _comparisonNotSupported =
-        "Comparing " + nameof(DesignTimeProjectReference) + " is not supported, because any equality defined on it "
-        + "compares the transitive manifest by reference and so reports a change on every pipeline run. Compare the "
-        + "manifest content explicitly instead.";
+        "Comparing " + nameof(DesignTimeProjectReference) + " is not supported, because it would compare the live "
+        + "transitive manifest by reference and so report a change on every pipeline run. To compare content, "
+        + "compare the " + nameof(SerializedTransitiveAspectManifest) + " values instead.";
 
     public override bool Equals( object? obj ) => throw new NotSupportedException( _comparisonNotSupported );
 

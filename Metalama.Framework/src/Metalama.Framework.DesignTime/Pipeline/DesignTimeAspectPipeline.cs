@@ -571,7 +571,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     // live manifest is safe here: an empty manifest also has an empty Extensions collection, so
                     // DesignTimeProjectVersion.ReferencedExtensions loses nothing.
                     compilationReferences.Add(
-                        serializedManifest.IsDefault
+                        serializedManifest.IsDefaultOrEmpty
                             ? new DesignTimeProjectReference( referenceResult.Value.ProjectVersion.ProjectKey )
                             : new DesignTimeProjectReference(
                                 referenceResult.Value.ProjectVersion.ProjectKey,
@@ -644,7 +644,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                             new DesignTimeProjectReference(
                                 reference.ProjectKey,
                                 manifest,
-                                result.Manifest!.ToImmutableArray() ) );
+                                SerializedTransitiveAspectManifest.Create( result.Manifest!.ToImmutableArray() ) ) );
 
                         if ( result.IsPipelinePaused )
                         {
