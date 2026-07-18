@@ -3,12 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.SerializableIds;
 using System;
 using System.Collections.Generic;
 
-namespace Metalama.Framework.Engine.CodeModel.Factories;
+namespace Metalama.Framework.Engine.ReflectionMocks;
 
 internal sealed class ResolvingCompileTimeTypeFactory : CompileTimeTypeFactory
 {

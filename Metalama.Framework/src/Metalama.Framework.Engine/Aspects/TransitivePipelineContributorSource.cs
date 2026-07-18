@@ -62,6 +62,11 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
 
         var aspectClassesByName = aspectClasses.Dictionary;
 
+        // Both are resolved once for the whole walk: the consuming project's compile-time project scopes the
+        // deserialization cache below and decides whether a producer's live manifest can be reused.
+        var consumerProject = serviceProvider.GetService<CompileTimeProjectRepository>()?.RootProject;
+        var deserializationCache = serviceProvider.GetService<TransitiveManifestDeserializationCache>();
+
         foreach ( var reference in compilationContext.Compilation.References )
         {
             // Get the manifest of the reference.
@@ -84,10 +89,17 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                             // (e.g. multi-targeted) compile-time assemblies (issue #1710). The consumer's closure
                             // already contains the canonical upstream projection (issue #1611's upstream-project
                             // reuse), so the inherited aspect's type still matches the consumer's IAspectClass.Type.
-                            manifest = TransitiveAspectsManifest.Deserialize(
-                                new MemoryStream( bytes ),
-                                serviceProvider,
-                                filePath );
+                            //
+                            // The result is cached per consuming project, because this method runs on every pipeline
+                            // execution while the referenced assembly rarely changes. The cache is keyed by path and
+                            // last-write time, and is scoped to the consumer, since the manifest is bound to the
+                            // consumer's compile-time copy and must not be shared with a differently bound project.
+                            ITransitiveAspectsManifest Deserialize()
+                                => TransitiveAspectsManifest.Deserialize( new MemoryStream( bytes ), serviceProvider, filePath );
+
+                            manifest = deserializationCache == null
+                                ? Deserialize()
+                                : deserializationCache.GetOrAdd( filePath, metadataInfo.LastFileWrite, consumerProject, Deserialize );
                         }
                     }
 
