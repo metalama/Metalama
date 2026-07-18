@@ -318,9 +318,15 @@ internal sealed partial class CompileTimeCompilationBuilder
                     // PERF: only do this if the node actually contains preprocessor directives.
                     compileTimeSyntaxRoot = new RemovePreprocessorDirectivesRewriter().Visit( compileTimeSyntaxRoot ).AssertNotNull();
 
+                    // Copy the preprocessor symbols of the run-time source tree (see issue #1727). Dead code has already
+                    // been stripped according to the run-time TFM, so this is mostly for consistency, but it avoids
+                    // conflating the compile-time reference set with a user-visible preprocessor symbol: unlike the
+                    // predefined (polyfill) trees, user trees must not define NETSTANDARD_2_0.
+                    var runTimePreprocessorSymbols = ((CSharpParseOptions) t.SyntaxTree.Options).PreprocessorSymbolNames;
+
                     return CSharpSyntaxTree.Create(
                         (CSharpSyntaxNode) compileTimeSyntaxRoot,
-                        new CSharpParseOptions( languageVersion ),
+                        new CSharpParseOptions( languageVersion, preprocessorSymbols: runTimePreprocessorSymbols ),
                         path,
                         Encoding.UTF8 );
                 } )
@@ -388,6 +394,9 @@ internal sealed partial class CompileTimeCompilationBuilder
         var assemblyLocator = this._serviceProvider.GetReferenceAssemblyLocator();
         var preprocessorServiceProvider = this._serviceProvider.GetService<ICompileTimePreprocessorSymbolProvider>();
 
+        // These parse options are used only for the predefined (polyfill) system-types trees. Those trees are compiled
+        // against the netstandard2.0 reference set, so NETSTANDARD_2_0 is defined here on purpose (see issue #1727).
+        // User compile-time trees are parsed separately and copy the run-time compilation's preprocessor symbols instead.
         var preprocessorSymbols =
             (preprocessorServiceProvider?.PreprocessorSymbols ?? []).Concat( ["NETSTANDARD_2_0"] );
 
