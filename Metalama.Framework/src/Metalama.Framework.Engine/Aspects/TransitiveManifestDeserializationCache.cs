@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Services;
+using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
 
@@ -27,8 +28,9 @@ namespace Metalama.Framework.Engine.Aspects;
 /// deserialized for.
 /// </para>
 /// <para>
-/// Entries are keyed by assembly path and last-write time, which is how <c>MetadataReader</c> already decides its
-/// own bytes are stale. They are additionally scoped to the consuming project's <see cref="CompileTimeProject"/>:
+/// A package reference is keyed by assembly path and last-write time, which is how <c>MetadataReader</c> already
+/// decides its own bytes are stale. A project reference has no file, so it is keyed by the producing assembly and
+/// the content hash of its manifest. Both are scoped to the consuming project's <see cref="CompileTimeProject"/>:
 /// should the project be re-projected (its compile-time closure changed), previously deserialized manifests are
 /// bound to the superseded copy, so the cache is dropped rather than reused.
 /// </para>
@@ -38,7 +40,7 @@ internal sealed class TransitiveManifestDeserializationCache : IProjectService
     private readonly object _sync = new();
 
     private ConcurrentDictionary<(string Path, DateTime LastWrite), ITransitiveAspectsManifest> _manifests = new();
-    private ConcurrentDictionary<long, ITransitiveAspectsManifest> _manifestsByHash = new();
+    private ConcurrentDictionary<(AssemblyIdentity Producer, long Hash), ITransitiveAspectsManifest> _manifestsByHash = new();
     private CompileTimeProject? _boundTo;
 
     /// <summary>
@@ -68,11 +70,20 @@ internal sealed class TransitiveManifestDeserializationCache : IProjectService
     /// manifest with the same content is not already cached for <paramref name="consumerProject"/>.
     /// </summary>
     /// <remarks>
-    /// This serves project references, which have no file to key on. The key is the content hash, which
-    /// <see cref="SerializedTransitiveAspectManifest"/> treats as an identity; see its remarks for why a collision
-    /// is discounted at this scale.
+    /// <para>
+    /// This serves project references, which have no file to key on. The key pairs the producing assembly with the
+    /// content hash, so an entry means "this project's manifest, at this content". Including the producer is not
+    /// what makes the key safe, since a hash collision is already discounted at this scale (see the remarks on
+    /// <see cref="SerializedTransitiveAspectManifest"/>); it is what makes the key say what it means, and it keeps
+    /// two projects that happen to emit identical manifests in separate entries.
+    /// </para>
+    /// <para>
+    /// The property that actually prevents a manifest reaching a consumer it was not deserialized for is the
+    /// scoping of this cache to the consuming project, not the producer in the key.
+    /// </para>
     /// </remarks>
     public ITransitiveAspectsManifest GetOrAdd(
+        AssemblyIdentity producer,
         in SerializedTransitiveAspectManifest serialized,
         CompileTimeProject? consumerProject,
         Func<ITransitiveAspectsManifest> deserialize )
@@ -84,7 +95,7 @@ internal sealed class TransitiveManifestDeserializationCache : IProjectService
 
         this.EnsureBoundTo( consumerProject );
 
-        return this._manifestsByHash.GetOrAdd( serialized.Hash, _ => deserialize() );
+        return this._manifestsByHash.GetOrAdd( (producer, serialized.Hash), _ => deserialize() );
     }
 
     private void EnsureBoundTo( CompileTimeProject consumerProject )
@@ -96,7 +107,7 @@ internal sealed class TransitiveManifestDeserializationCache : IProjectService
                 this._boundTo = consumerProject;
                 this._manifests = new ConcurrentDictionary<(string, DateTime), ITransitiveAspectsManifest>();
 
-                this._manifestsByHash = new ConcurrentDictionary<long, ITransitiveAspectsManifest>();
+                this._manifestsByHash = new ConcurrentDictionary<(AssemblyIdentity, long), ITransitiveAspectsManifest>();
             }
         }
     }

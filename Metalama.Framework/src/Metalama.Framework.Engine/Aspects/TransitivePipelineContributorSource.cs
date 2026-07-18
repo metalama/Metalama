@@ -145,7 +145,11 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                             // deserialization here.
                             manifest = deserializationCache == null
                                 ? DeserializeProjectManifest()
-                                : deserializationCache.GetOrAdd( serializedManifest, consumerProject, DeserializeProjectManifest );
+                                : deserializationCache.GetOrAdd(
+                                    assemblyIdentity.AssertNotNull(),
+                                    serializedManifest,
+                                    consumerProject,
+                                    DeserializeProjectManifest );
                         }
                     }
 
