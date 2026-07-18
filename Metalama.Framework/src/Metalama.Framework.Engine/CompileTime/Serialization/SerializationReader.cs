@@ -1,14 +1,10 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.CodeModel.Factories;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Serialization;
-using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -26,21 +22,26 @@ internal sealed class SerializationReader
     private readonly bool _shouldReportExceptionCause;
     private readonly string _assemblyName;
     private readonly SerializationBinaryReader _binaryReader;
-    private readonly CompileTimeTypeFactory? _compileTimeTypeFactory;
+
+    // Represents types that cannot be bound to a real, loadable Type in this process (e.g. a run-time type of the
+    // writing process, incompatible across TFMs or assembly versions). Building a symbolic CompileTimeType from the
+    // wire data directly, without a compilation, avoids resolving it to the wrong type.
+    private readonly CompileTimeTypeFactory _compileTimeTypeFactory;
+
     private readonly InstanceFields _emptyInstanceFields;
 
     internal SerializationReader(
+        in ProjectServiceProvider serviceProvider,
         Stream stream,
         CompileTimeSerializer formatter,
         bool shouldReportExceptionCause,
-        string assemblyName,
-        CompilationContext compilationContext )
+        string assemblyName )
     {
         this._formatter = formatter;
         this._shouldReportExceptionCause = shouldReportExceptionCause;
         this._assemblyName = assemblyName;
+        this._compileTimeTypeFactory = serviceProvider.GetRequiredService<CompileTimeTypeFactory>();
         this._binaryReader = new SerializationBinaryReader( new BinaryReader( stream ) );
-        this._compileTimeTypeFactory = compilationContext.CompileTimeTypeFactory;
         this._emptyInstanceFields = new InstanceFields( formatter );
     }
 
@@ -262,7 +263,7 @@ internal sealed class SerializationReader
                 break;
 
             case SerializationIntrinsicType.Enum:
-                type = this.ReadNamedType();
+                type = this.ReadNamedType( true, true );
 
                 // IsEnum throws on CompileTimeType. Similarly for the checks below.
                 if ( type is not CompileTimeType && !type.IsEnum )
@@ -274,12 +275,12 @@ internal sealed class SerializationReader
                 break;
 
             case SerializationIntrinsicType.Struct:
-                type = this.ReadNamedType();
+                type = this.ReadNamedType( true, false );
 
                 break;
 
             case SerializationIntrinsicType.Class:
-                type = this.ReadNamedType();
+                type = this.ReadNamedType( false, false );
 
                 break;
 
@@ -287,19 +288,7 @@ internal sealed class SerializationReader
                 int rank = this._binaryReader.ReadCompressedInteger();
                 this.ReadType( out var elementType, out _ );
 
-                if ( elementType is CompileTimeType compileTimeType )
-                {
-                    var compilation = this._formatter.Compilation.AssertNotNull();
-                    var elementTypeSymbol = (INamedTypeSymbol) compileTimeType.Target.GetSymbol( compilation ).AssertNotNull();
-
-                    var arrayTypeSymbol = compilation.CreateArrayTypeSymbol( elementTypeSymbol, rank );
-
-                    type = this._compileTimeTypeFactory.AssertNotNull().Get( arrayTypeSymbol );
-                }
-                else
-                {
-                    type = rank == 1 ? elementType.AssertNotNull().MakeArrayType() : elementType.AssertNotNull().MakeArrayType( rank );
-                }
+                type = rank == 1 ? elementType.AssertNotNull().MakeArrayType() : elementType.AssertNotNull().MakeArrayType( rank );
 
                 break;
 
@@ -328,7 +317,7 @@ internal sealed class SerializationReader
         }
     }
 
-    private Type ReadNamedType()
+    private Type ReadNamedType( bool isValueType, bool isEnum )
     {
         var flags = (SerializationIntrinsicTypeFlags) this._binaryReader.ReadByte();
 
@@ -338,13 +327,13 @@ internal sealed class SerializationReader
                 {
                     var typeName = this.ReadTypeName();
 
-                    return this.GetType( typeName );
+                    return this.GetType( typeName, isValueType, isEnum );
                 }
 
             case SerializationIntrinsicTypeFlags.Generic:
                 {
                     var typeName = this.ReadTypeName();
-                    var genericType = this.GetType( typeName );
+                    var genericType = this.GetType( typeName, isValueType, isEnum );
                     int arity = this._binaryReader.ReadCompressedInteger();
 
                     if ( arity > 0 )
@@ -357,16 +346,9 @@ internal sealed class SerializationReader
                             genericArguments[i] = this.ReadType().AssertNotNull();
                         }
 
-                        if ( genericType is CompileTimeType || genericArguments.OfType<CompileTimeType>().Any() )
+                        if ( genericArguments.OfType<CompileTimeType>().Any() && genericType is not CompileTimeType )
                         {
-                            var compilation = this._formatter.Compilation.AssertNotNull();
-                            var mapper = compilation.GetCompilationContext().ReflectionMapper;
-
-                            var genericTypeSymbol = (INamedTypeSymbol) mapper.GetTypeSymbol( genericType );
-
-                            var constructedTypeSymbol = genericTypeSymbol.Construct( genericArguments.SelectAsArray( mapper.GetTypeSymbol ) );
-
-                            return this._compileTimeTypeFactory.AssertNotNull().Get( constructedTypeSymbol );
+                            genericType = this._compileTimeTypeFactory.CreateNamedType( genericType );
                         }
 
                         return genericType.MakeGenericType( genericArguments );
@@ -495,6 +477,8 @@ internal sealed class SerializationReader
                 break;
 
             case SerializationIntrinsicType.Type:
+                // The value is itself a System.Type, which almost always captures a run-time type of the writing process.
+                // Read it as a symbolic CompileTimeType instead of trying to resolve it to a real, loadable Type.
                 value = this.ReadType();
 
                 break;
@@ -523,23 +507,24 @@ internal sealed class SerializationReader
         return declaringType.GetGenericArguments()[position];
     }
 
-    private Type GetType( AssemblyTypeName typeName )
+    private Type GetType( AssemblyTypeName typeName, bool isValueType, bool isEnum )
     {
-        var result = this._formatter.Binder.BindToType( typeName.TypeName, typeName.AssemblyName );
+        // Binding is pure reflection and needs no compilation. The binder resolves the stored run-time assembly name
+        // against *this* project's compile-time closure (CompileTimeProject.TryGetType), so it already yields the
+        // consumer's own copy of a shared type, then falls back to the domain and to Type.GetType for system types.
+        var clrType = this._formatter.Binder.BindToType( typeName.TypeName, typeName.AssemblyName );
 
-        if ( result == null )
+        if ( clrType != null )
         {
-            var assemblySymbol = this._formatter.Compilation.AssertNotNull().GetAssembly( typeName.AssemblyName )
-                                 ?? throw new InvalidOperationException( $"Could not locate assembly {typeName.AssemblyName} in compilation." );
-
-            var typeSymbol = assemblySymbol.GetTypeByMetadataName( typeName.TypeName )
-                             ?? throw new InvalidOperationException(
-                                 $"Could not locate type {typeName.TypeName} in assembly {typeName.AssemblyName} in compilation." );
-
-            result = this._compileTimeTypeFactory.AssertNotNull().Get( typeSymbol );
+            return clrType;
         }
 
-        return result;
+        // The type is not in this project's closure and is not loadable here (e.g. a run-time type of the writing
+        // process, incompatible across TFMs or assembly versions). Represent it symbolically. There is nothing a
+        // compilation could add: resolving the name through one would only reach the same closure by a longer route,
+        // and would otherwise yield a mock, which is what we build here directly.
+
+        return this._compileTimeTypeFactory.CreateNamedType( typeName.TypeName, typeName.AssemblyName, isEnum, isValueType );
     }
 
     private void ReadArray( Array array, SerializationCause? cause )
@@ -812,8 +797,6 @@ internal sealed class SerializationReader
 
             return value;
         }
-
-        public CompilationContext CompilationContext => this._formatter.CompilationContext;
 
         public Dictionary<string, object?> ContextProperties => this._contextProperties ??= new Dictionary<string, object?>( StringComparer.Ordinal );
     }

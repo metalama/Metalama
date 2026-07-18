@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -22,7 +22,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
     {
         private readonly Compilation _compilation;
         private readonly ConcurrentDictionary<Type, ITypeSymbol> _symbolCache = new();
-        private ImmutableDictionaryOfArray<string, IAssemblySymbol>? _referencedAssemblies;
+        private IReadOnlyDictionaryOfList<string, IAssemblySymbol>? _referencedAssemblies;
 
         internal ReflectionMapper( Compilation compilation )
         {
@@ -42,7 +42,9 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
                 // and display a better error message. We may also be able to resolve version conflicts.
 
                 // This field cannot be set in the constructor because of linker tests.
-                this._referencedAssemblies ??= this._compilation.SourceModule.ReferencedAssemblySymbols.ToMultiValueDictionary( a => a.Identity.Name, a => a );
+                this._referencedAssemblies ??= this._compilation.SourceModule.ReferencedAssemblySymbols
+                    .ToDictionaryOfList( a => a.Identity.Name, a => a )
+                    .Freeze();
 
                 var assemblyShortName = assemblyName?.Name;
 
@@ -50,7 +52,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
                 {
                     var assemblies = this._referencedAssemblies[assemblyShortName];
 
-                    if ( assemblies.IsEmpty )
+                    if ( assemblies.Count == 0 )
                     {
                         // Don't imply that the a reference to Metalama.Framework.Engine should be added to the project,
                         // the error is in attempting to resolve such a type in the first place.
@@ -63,7 +65,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
 
                     var assembly = assemblies[0];
 
-                    if ( assemblies.Length > 1 )
+                    if ( assemblies.Count > 1 )
                     {
                         // At design time we may have some mess and have many versions of the same assembly. Take the highest version.
                         assembly = assemblies.OrderByDescending( a => a.Identity.Version ).First();
@@ -89,7 +91,8 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
             switch ( type )
             {
                 case CompileTimeType compileTimeType:
-                    return (ITypeSymbol) compileTimeType.Target.GetSymbol( this._compilation, true )
+                    return (ITypeSymbol) compileTimeType.ToRef()
+                        .GetSymbol( this._compilation, true )
                         .AssertNotNull( Justifications.SerializersNotImplementedForIntroductions );
 
                 default:
@@ -106,7 +109,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
 
             if ( type is CompileTimeType compileTimeType )
             {
-                return (ITypeSymbol) compileTimeType.Target.GetSymbol( this._compilation, true ).AssertNotNull( Justifications.TypesAlwaysHaveSymbol );
+                return (ITypeSymbol) compileTimeType.ToRef().GetSymbol( this._compilation, true ).AssertNotNull( Justifications.TypesAlwaysHaveSymbol );
             }
 
             if ( type.IsByRef )

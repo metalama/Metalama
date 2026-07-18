@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -32,8 +32,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
         {
             base.ConfigureServices( services );
 
-            // services.AddProjectService<CompilationServiceProvider<CompileTimeTypeResolver>>( sp => new ProjectSpecificCompileTimeTypeResolver.Provider( sp ) );
-            services.AddProjectService<SystemTypeResolver.Provider>( sp => new HackedSystemTypeResolver.Provider( sp ) );
+            services.AddProjectService<SystemTypeResolver>( sp => new HackedSystemTypeResolver( sp ) );
         }
 
         private object? GetDeserializedProperty(
@@ -187,34 +186,34 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
         [Fact]
         public void TestRunTimeTypes()
         {
-            Assert.IsType<CompileTimeType>(
+            Assert.IsAssignableFrom<CompileTimeType>(
                 this.GetDeserializedProperty(
                     nameof(TestAttribute.TypeProperty),
                     "typeof(RunTimeEnum)" ) );
 
-            Assert.IsType<CompileTimeType>(
+            Assert.IsAssignableFrom<CompileTimeType>(
                 this.GetDeserializedProperty(
                     nameof(TestAttribute.TypeProperty),
                     "typeof(RunTimeEnum[])" ) );
 
-            Assert.IsType<CompileTimeType>(
+            Assert.IsAssignableFrom<CompileTimeType>(
                 this.GetDeserializedProperty(
                     nameof(TestAttribute.TypeProperty),
                     "typeof(System.Collections.Generic.List<RunTimeEnum>)" ) );
 
-            Assert.IsType<CompileTimeType>(
+            Assert.IsAssignableFrom<CompileTimeType>(
                 this.GetDeserializedProperty(
                     nameof(TestAttribute.TypeProperty),
                     "typeof(GenericRunTimeType<int>)" ) );
 
-            Assert.IsType<CompileTimeType>(
+            Assert.IsAssignableFrom<CompileTimeType>(
                 this.GetDeserializedProperty(
                     nameof(TestAttribute.TypeProperty),
                     "typeof(GenericStruct*)" ) );
 
             const string dependentCode = "public class MyExternClass {} public enum MyExternEnum { A, B }";
             var typeValue = this.GetDeserializedProperty( nameof(TestAttribute.TypeProperty), "typeof(MyExternClass)", dependentCode );
-            Assert.Equal( "MyExternClass", Assert.IsType<CompileTimeType>( typeValue ).FullName );
+            Assert.Equal( "MyExternClass", Assert.IsAssignableFrom<CompileTimeType>( typeValue ).FullName );
 
             // When assigning to a run-time-only enum, the enum primitive value is used. 
             var objectValue = this.GetDeserializedProperty( nameof(TestAttribute.ObjectProperty), "MyExternEnum.B", dependentCode );
@@ -633,25 +632,10 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
 
         private sealed class HackedSystemTypeResolver : SystemTypeResolver
         {
-            // We provide a non-standard CompileTimeTypeFactory to break a conflict in the initialization of dependencies.
-            // Another CompileTimeTypeFactory instance is created by the ServiceProviderFactory. It should not matter for this test.
-
-            private HackedSystemTypeResolver( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext ) : base(
-                serviceProvider,
-                compilationContext ) { }
+            public HackedSystemTypeResolver( in ProjectServiceProvider serviceProvider ) : base( serviceProvider ) { }
 
             protected override bool IsSupportedAssembly( string assemblyName )
                 => base.IsSupportedAssembly( assemblyName ) || assemblyName == this.GetType().Assembly.GetName().Name;
-
-            public new sealed class Provider : SystemTypeResolver.Provider
-            {
-                public Provider( in ProjectServiceProvider serviceProvider ) : base( in serviceProvider ) { }
-
-                protected override SystemTypeResolver Create( CompilationContext compilationContext )
-                {
-                    return new HackedSystemTypeResolver( this.ServiceProvider, compilationContext );
-                }
-            }
         }
     }
 }

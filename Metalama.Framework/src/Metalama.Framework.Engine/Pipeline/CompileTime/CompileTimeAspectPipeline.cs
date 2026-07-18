@@ -286,7 +286,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
 
             // Use CompilationModel.GetDerivedTypes, which resolves to an O(1) DerivedTypeIndex lookup,
             // instead of walking every type in the compilation and checking AllInterfaces.
-            // We use the IFullRef-based overload to avoid materializing each derived type's symbol —
+            // We use the IFullRef-based overload to avoid materializing each derived type's symbol,
             // some derived types live in referenced assemblies and resolving them through GetTarget(LastCompilationModel)
             // throws because the cross-compilation symbol-mapping check fails. We only need .Any() here.
             var initializableType = (INamedType) result.Value.LastCompilationModel.Factory
@@ -312,7 +312,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
                     annotations,
                     containsInitializableTypes );
 
-                var resource = inheritedAspectsManifest.ToResource( configuration.ServiceProvider, resultPartialCompilation.CompilationContext );
+                var resource = inheritedAspectsManifest.ToResource( configuration.ServiceProvider );
                 additionalResources = additionalResources.Add( resource );
             }
 

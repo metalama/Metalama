@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -18,6 +18,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Metalama.Framework.Engine.Aspects;
 
@@ -74,30 +75,52 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
             annotations,
             containsInitializableTypes );
 
-    private void Serialize( Stream stream, in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    /// <summary>
+    /// Serializes this manifest, optionally compressed. Compression makes sense only when the manifest is embedded
+    /// in a PE binary (a persisted artifact). For the design-time in-process path, where the bytes are produced and
+    /// consumed in the same process and thrown away immediately, it is pure overhead, so that path serializes
+    /// uncompressed. The two formats are distinguished on read by a leading marker (see <see cref="Deserialize"/>);
+    /// the compressed format is unchanged and markerless, so already-built assemblies and cross-version peers keep
+    /// working.
+    /// </summary>
+    private void Serialize( Stream stream, in ProjectServiceProvider serviceProvider, bool compress )
     {
         using ( UserCodeExecutionContext.WithContext(
-                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( "Serializing" ), compilationContext ) ) )
+                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( "Serializing" ) ) ) )
         {
-            using var deflate = new DeflateStream( stream, CompressionLevel.Optimal, true );
-            var formatter = CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext );
-            formatter.Serialize( this, deflate );
-            deflate.Flush();
+            var formatter = new CompileTimeSerializer( serviceProvider );
+
+            if ( compress )
+            {
+                using var deflate = new DeflateStream( stream, CompressionLevel.Optimal, true );
+                formatter.Serialize( this, deflate );
+                deflate.Flush();
+            }
+            else
+            {
+                stream.WriteByte( SerializationProtocol.UncompressedStreamMarker );
+                formatter.Serialize( this, stream );
+            }
+
             stream.Flush();
         }
     }
 
-    public byte[] ToBytes( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    public byte[] ToBytes( in ProjectServiceProvider serviceProvider, bool compress )
     {
         var stream = new MemoryStream();
-        this.Serialize( stream, serviceProvider, compilationContext );
+        this.Serialize( stream, serviceProvider, compress );
 
         return stream.ToArray();
     }
 
-    internal ManagedResource ToResource( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    public ImmutableArray<byte> ToImmutableBytes( in ProjectServiceProvider serviceProvider, bool compress )
+        => ImmutableCollectionsMarshal.AsImmutableArray( this.ToBytes( serviceProvider, compress ) );
+
+    internal ManagedResource ToResource( in ProjectServiceProvider serviceProvider )
     {
-        var bytes = this.ToBytes( serviceProvider, compilationContext );
+        // Embedded in the PE binary, so compressed.
+        var bytes = this.ToBytes( serviceProvider, compress: true );
 
         return new ManagedResource(
             CompileTimeConstants.InheritableAspectManifestResourceName,
@@ -108,47 +131,34 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
     public static TransitiveAspectsManifest Deserialize(
         Stream stream,
         in ProjectServiceProvider serviceProvider,
-        CompilationContext compilationContext,
         string? assemblyName )
-        => DeserializeCore( stream, serviceProvider, compilationContext, assemblyName, null );
-
-    /// <summary>
-    /// Anchored deserialisation: pass the upstream's <see cref="CompileTimeProject"/> so the binder
-    /// resolves types through the upstream's closure rather than the current root project's closure.
-    /// This is the architectural fix for the cross-binding scenario in issue #1611.
-    /// </summary>
-    internal static TransitiveAspectsManifest Deserialize(
-        Stream stream,
-        in ProjectServiceProvider serviceProvider,
-        CompilationContext compilationContext,
-        string? assemblyName,
-        CompileTimeProject? upstreamProject )
-        => DeserializeCore( stream, serviceProvider, compilationContext, assemblyName, upstreamProject );
-
-    private static TransitiveAspectsManifest DeserializeCore(
-        Stream stream,
-        in ProjectServiceProvider serviceProvider,
-        CompilationContext compilationContext,
-        string? assemblyName,
-        CompileTimeProject? upstreamProject )
     {
         var description = assemblyName != null
             ? $"Deserializing transitive aspects from '{assemblyName}'."
             : "Deserializing transitive aspects from a referenced assembly.";
 
-        using ( UserCodeExecutionContext.WithContext(
-                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( description ), compilationContext ) ) )
+        using ( UserCodeExecutionContext.WithContext( UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( description ) ) ) )
         {
-            using var deflate = new DeflateStream( stream, CompressionMode.Decompress );
+            var formatter = new CompileTimeSerializer( serviceProvider );
 
-            // When the upstream's CompileTimeProject is known, anchor the serializer to it so the binder
-            // resolves types through the upstream's closure (issue #1611). Otherwise fall back to the
-            // service-provider-resolved CompileTimeProject.
-            var formatter = upstreamProject != null
-                ? CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext, upstreamProject )
-                : CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext );
+            // Peek the first byte: the uncompressed format starts with a marker that can never begin a DEFLATE stream.
+            // Consume it and read the raw graph if it is present; otherwise leave it in place and treat the whole stream
+            // as a legacy DEFLATE stream. The callers pass a seekable MemoryStream, so the byte can be un-peeked.
+            var firstByte = stream.ReadByte();
 
-            return (TransitiveAspectsManifest) formatter.Deserialize( deflate, assemblyName ).AssertNotNull();
+            if ( firstByte == SerializationProtocol.UncompressedStreamMarker )
+            {
+                return DeserializeStream( stream );
+            }
+            else
+            {
+                stream.Position -= 1;
+                using var deflateStream = new DeflateStream( stream, CompressionMode.Decompress );
+
+                return DeserializeStream( deflateStream );
+            }
+
+            TransitiveAspectsManifest DeserializeStream( Stream s ) => (TransitiveAspectsManifest) formatter.Deserialize( s, assemblyName ).AssertNotNull();
         }
     }
 
@@ -192,8 +202,8 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
                 ?? ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions>.Empty;
 
             if ( initializationArguments.TryGetValue<ImmutableDictionary<SerializableDeclarationId, ImmutableArray<IAnnotation>>>(
-                    nameof(instance.Annotations),
-                    out var annotations )
+                     nameof(instance.Annotations),
+                     out var annotations )
                  && annotations != null )
             {
                 instance.Annotations = new ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>( annotations );

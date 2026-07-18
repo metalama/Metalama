@@ -295,7 +295,7 @@ public partial class DeclarationFactory
     internal IDeclaration? GetDeclarationOrNull( ISymbol symbol, RefTargetKind kind = RefTargetKind.Default )
         => this.GetCompilationElement( symbol, kind ) as IDeclaration;
 
-    public IDeclaration GetDeclaration( SymbolDictionaryKey key ) => this.GetDeclaration( key.GetSymbolId().Resolve( this.Compilation ).AssertSymbolNotNull() );
+    public IDeclaration GetDeclaration( SymbolDictionaryKey key ) => this.GetDeclaration( key.GetSymbol( this.CompilationContext ) );
 
     public IDeclaration GetDeclaration( ISymbol symbol, GenericContext? genericContext = null )
         => this.GetDeclaration( symbol, RefTargetKind.Default, genericContext );

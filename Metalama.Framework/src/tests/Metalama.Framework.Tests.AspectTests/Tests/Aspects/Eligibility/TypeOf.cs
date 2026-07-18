@@ -40,25 +40,27 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Eligibility.TypeOf
                     a => a.ConstructorArguments is { Length: 1 } && (a.ConstructorArguments.Single().Value as string) == compileTimeClass.Name ),
                 method => $"{method} must have a an attribute with {compileTimeClass} argument" );
 
-            AssertEqual( "CompileTimeType", typeof(RunTimeClass).GetType().Name );
+            AssertEqual( "CompileTimeNamedType", typeof(RunTimeClass).GetType().Name );
             AssertEqual( "RunTimeClass", typeof(RunTimeClass).Name );
             AssertEqual( "Metalama.Framework.Tests.AspectTests.Aspects.Eligibility.TypeOf", typeof(RunTimeClass).Namespace );
             AssertEqual( "Metalama.Framework.Tests.AspectTests.Aspects.Eligibility.TypeOf.RunTimeClass", typeof(RunTimeClass).FullName );
             AssertEqual( "Metalama.Framework.Tests.AspectTests.Aspects.Eligibility.TypeOf.RunTimeClass", typeof(RunTimeClass).ToString() );
 
-            AssertEqual( "CompileTimeType", typeof(GlobalNamespaceRuntimeClass).GetType().Name );
+            AssertEqual( "CompileTimeNamedType", typeof(GlobalNamespaceRuntimeClass).GetType().Name );
             AssertEqual( "GlobalNamespaceRuntimeClass", typeof(GlobalNamespaceRuntimeClass).Name );
             AssertEqual( null, typeof(GlobalNamespaceRuntimeClass).Namespace );
             AssertEqual( "GlobalNamespaceRuntimeClass", typeof(GlobalNamespaceRuntimeClass).FullName );
             AssertEqual( "GlobalNamespaceRuntimeClass", typeof(GlobalNamespaceRuntimeClass).ToString() );
 
-            AssertEqual( "CompileTimeType", typeof(GenericRunTimeClass<>).GetType().Name );
+            AssertEqual( "CompileTimeNamedType", typeof(GenericRunTimeClass<>).GetType().Name );
             AssertEqual( "GenericRunTimeClass`1", typeof(GenericRunTimeClass<>).Name );
             AssertEqual( "Metalama.Framework.Tests.AspectTests.Aspects.Eligibility.TypeOf", typeof(GenericRunTimeClass<>).Namespace );
             AssertEqual( "Metalama.Framework.Tests.AspectTests.Aspects.Eligibility.TypeOf.GenericRunTimeClass`1", typeof(GenericRunTimeClass<>).FullName );
-            AssertEqual( "Metalama.Framework.Tests.AspectTests.Aspects.Eligibility.TypeOf.GenericRunTimeClass`1[T]", typeof(GenericRunTimeClass<>).ToString() );
+            // A mock of an open generic definition does not carry its type-parameter names, so ToString() omits the
+            // '[T]' the CLR would append. (This is consistent across all ways a mock is built, unlike the CLR.)
+            AssertEqual( "Metalama.Framework.Tests.AspectTests.Aspects.Eligibility.TypeOf.GenericRunTimeClass`1", typeof(GenericRunTimeClass<>).ToString() );
 
-            AssertEqual( "CompileTimeType", typeof(GenericRunTimeClass<int>).GetType().Name );
+            AssertEqual( "CompileTimeNamedType", typeof(GenericRunTimeClass<int>).GetType().Name );
             AssertEqual( "GenericRunTimeClass`1", typeof(GenericRunTimeClass<int>).Name );
             AssertEqual( "Metalama.Framework.Tests.AspectTests.Aspects.Eligibility.TypeOf", typeof(GenericRunTimeClass<int>).Namespace );
 

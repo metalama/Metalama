@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -48,8 +48,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
         this._typeCache = new Cache<ISymbol, IType>( compilation.CompilationContext.SymbolComparerIncludingNullability );
         this._tupleTypeCache = new Cache<TupleTypeKey, ITupleType>( EqualityComparer<TupleTypeKey>.Default );
 
-        this._systemTypeResolver = compilation.Project.ServiceProvider.GetRequiredService<SystemTypeResolver.Provider>()
-            .Get( compilation.CompilationContext );
+        this._systemTypeResolver = compilation.Project.ServiceProvider.GetRequiredService<SystemTypeResolver>();
     }
 
     private Compilation RoslynCompilation => this._compilationModel.RoslynCompilation;

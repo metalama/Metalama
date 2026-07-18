@@ -104,6 +104,24 @@ internal sealed class CompileTimeProject : IProjectService
     private IReadOnlyDictionary<string, CompileTimeProject> ClosureProjectsByCompileTimeAssemblyName
         => this.ClosureProjects.ToDictionary( p => p.CompileTimeIdentity.Name, p => p );
 
+    /// <summary>
+    /// Gets every compile-time project in <see cref="ClosureProjects"/> grouped by run-time assembly name, so a
+    /// caller can see <em>all</em> the compile-time copies this closure holds for a given run-time assembly.
+    /// </summary>
+    /// <remarks>
+    /// This differs from <see cref="ClosureProjectsByRunTimeAssemblyName"/>, which resolves duplicates by picking
+    /// the higher run-time version. That is the wrong answer for a caller that needs to know whether the closure is
+    /// <em>unambiguous</em>, because the per-TFM copies of a multi-targeted assembly share a run-time version and
+    /// differ only in their compile-time (<c>ml!</c>) name, so version-based resolution would silently hide the
+    /// ambiguity. A caller that must know the closure maps an assembly to exactly one compile-time copy (see
+    /// <c>TransitivePipelineContributorSource.CanReuseLiveManifest</c>) checks for a single entry here instead.
+    /// Compile-time names are unique within a closure (<see cref="ClosureProjectsByCompileTimeAssemblyName"/> keys
+    /// on them), so more than one entry always means genuinely distinct copies.
+    /// </remarks>
+    [Memo]
+    internal IReadOnlyDictionaryOfList<string, CompileTimeProject> ClosureProjectsGroupedByRunTimeAssemblyName
+        => this.ClosureProjects.ToDictionaryOfList( p => p.RunTimeIdentity.Name, p => p ).Freeze();
+
     private bool TryGetProjectByRunTimeAssemblyName( string runTimeName, [NotNullWhen( true )] out CompileTimeProject? project )
         => this.ClosureProjectsByRunTimeAssemblyName.TryGetValue( runTimeName, out project );
 
@@ -116,9 +134,10 @@ internal sealed class CompileTimeProject : IProjectService
     internal IReadOnlyList<CompileTimeFileManifest> CodeFiles => this.Manifest?.Files ?? Array.Empty<CompileTimeFileManifest>();
 
     [Memo]
-    private ImmutableDictionaryOfArray<string, (CompileTimeFileManifest File, CompileTimeProject Project)> ClosureCodeFiles
+    private IReadOnlyDictionaryOfList<string, (CompileTimeFileManifest File, CompileTimeProject Project)> ClosureCodeFiles
         => this.ClosureProjects.SelectMany( p => p.CodeFiles.SelectAsReadOnlyList( f => (f, p) ) )
-            .ToMultiValueDictionary( f => f.f.TransformedPath, f => f );
+            .ToDictionaryOfList( f => f.f.TransformedPath, f => f )
+            .Freeze();
 
     [Memo]
     public IReadOnlyList<string> ClosureOptionTypes

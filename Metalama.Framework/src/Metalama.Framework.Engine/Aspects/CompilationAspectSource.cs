@@ -28,7 +28,7 @@ internal sealed class CompilationAspectSource : IAspectSource
     private readonly UserCodeAttributeDeserializer.Provider _attributeDeserializerProvider;
     private readonly IConcurrentTaskRunner _concurrentTaskRunner;
     private readonly HashSet<AspectClass> _aspectClasses;
-    private ImmutableDictionaryOfArray<IType, IRef<IDeclaration>>? _exclusions;
+    private IReadOnlyDictionaryOfList<IType, IRef<IDeclaration>>? _exclusions;
 
     public CompilationAspectSource( in ProjectServiceProvider serviceProvider, AspectClassCollection aspectClasses )
     {
@@ -41,7 +41,7 @@ internal sealed class CompilationAspectSource : IAspectSource
 
     public IEnumerable<IAspectClass> AspectClasses => this._aspectClasses;
 
-    private ImmutableDictionaryOfArray<IType, IRef<IDeclaration>> DiscoverExclusions( CompilationModel compilation )
+    private IReadOnlyDictionaryOfList<IType, IRef<IDeclaration>> DiscoverExclusions( CompilationModel compilation )
     {
         if ( this._exclusions == null )
         {
@@ -62,7 +62,8 @@ internal sealed class CompilationAspectSource : IAspectSource
 
             this._exclusions =
                 attributes
-                    .ToMultiValueDictionary( x => x.AspectType, x => x.TargetDeclaration.ToRef() );
+                    .ToDictionaryOfList( x => x.AspectType, x => x.TargetDeclaration.ToRef() )
+                    .Freeze();
         }
 
         return this._exclusions;

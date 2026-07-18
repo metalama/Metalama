@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -40,8 +40,7 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
     {
         // We get the type resolver lazily because several tests do not supply it.
 
-        this._typeResolver ??= this._serviceProvider.GetRequiredService<CompilationServiceProvider<ProjectSpecificCompileTimeTypeResolver>>()
-            .Get( compilationModel.CompilationContext );
+        this._typeResolver ??= this._serviceProvider.GetRequiredService<ProjectSpecificCompileTimeTypeResolver>();
 
         var type = compilationModel.Factory.GetTypeByReflectionName( typeName );
 

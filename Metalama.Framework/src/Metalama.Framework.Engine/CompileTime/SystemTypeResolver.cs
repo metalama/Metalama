@@ -1,8 +1,10 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Services;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Reflection;
@@ -14,15 +16,15 @@ namespace Metalama.Framework.Engine.CompileTime;
 /// <summary>
 /// An implementation of <see cref="CompileTimeTypeResolver"/> that cannot be used for user-code attributes.
 /// </summary>
-internal class SystemTypeResolver : CurrentAppDomainTypeResolver
+internal class SystemTypeResolver : CurrentAppDomainTypeResolver, IProjectService
 {
     // Avoid initializing from a static member because it is more difficult to debug.
     private readonly Assembly _netStandardAssembly = Assembly.Load( "netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51" );
 
     private readonly CompileTimeAssemblyLocator _compileTimeAssemblyLocator;
 
-    protected SystemTypeResolver( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
-        : base( serviceProvider, compilationContext )
+    protected SystemTypeResolver( in ProjectServiceProvider serviceProvider, CompileTimeTypeFactory compileTimeTypeFactory )
+        : base( serviceProvider, compileTimeTypeFactory )
     {
         this._compileTimeAssemblyLocator = serviceProvider.GetReferenceAssemblyLocator();
     }
@@ -47,10 +49,6 @@ internal class SystemTypeResolver : CurrentAppDomainTypeResolver
         }
     }
 
-    public class Provider : CompilationServiceProvider<SystemTypeResolver>
-    {
-        public Provider( in ProjectServiceProvider serviceProvider ) : base( serviceProvider ) { }
-
-        protected override SystemTypeResolver Create( CompilationContext compilationContext ) => new( this.ServiceProvider, compilationContext );
-    }
+    public SystemTypeResolver( in ProjectServiceProvider serviceProvider )
+        : this( serviceProvider, serviceProvider.GetRequiredService<CompileTimeTypeFactory>() ) { }
 }

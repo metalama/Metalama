@@ -1,10 +1,12 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Caching;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -14,15 +16,27 @@ using System.Threading;
 namespace Metalama.Framework.Engine.CompileTime;
 
 /// <summary>
-/// Provides the <see cref="GetCompileTimeType"/> method, which maps a Roslyn <see cref="ITypeSymbol"/> to a reflection <see cref="Type"/>.
+/// Provides the <see cref="GetCompileTimeType"/> method, which maps a Roslyn <see cref="ITypeSymbol"/> to a reflection
+/// <see cref="Type"/>. The mapping is compilation-independent: the symbol carries everything needed, and the
+/// implementations resolve through the current <c>AppDomain</c> and the project's <see cref="CompileTimeProjectRepository"/>.
+/// Nothing here is scoped to a compilation: the concrete resolvers are plain <see cref="IProjectService"/>s. The caches are
+/// keyed by <see cref="ITypeSymbol"/> and held weakly, so entries for a given compilation are collected along with it.
 /// </summary>
-internal abstract class CompileTimeTypeResolver : ICompilationService
+/// <remarks>
+/// This base class deliberately does <em>not</em> implement <see cref="IProjectService"/>; only the concrete resolvers do.
+/// <see cref="ServiceProvider{TBase}"/> indexes a service under every base type that is assignable to the service interface,
+/// so marking this class would index <see cref="SystemTypeResolver"/> and <see cref="ProjectSpecificCompileTimeTypeResolver"/>
+/// under it and make the two conflict.
+/// </remarks>
+internal abstract class CompileTimeTypeResolver
 {
-    private readonly CompilationContext _compilationContext;
+    // Only used to produce a mock for symbols that cannot be mapped to a real, loadable Type. The factory does not depend
+    // on any compilation; it is a cache whose lifetime is scoped to the project.
+    private readonly CompileTimeTypeFactory _compileTimeTypeFactory;
 
-    protected CompileTimeTypeResolver( CompilationContext compilationContext )
+    protected CompileTimeTypeResolver( CompileTimeTypeFactory compileTimeTypeFactory )
     {
-        this._compilationContext = compilationContext;
+        this._compileTimeTypeFactory = compileTimeTypeFactory;
     }
 
     protected WeakCache<ITypeSymbol, Type?> Cache { get; } = new();
@@ -41,7 +55,7 @@ internal abstract class CompileTimeTypeResolver : ICompilationService
 
         if ( type == null && fallbackToMock )
         {
-            return this._compilationContext.CompileTimeTypeFactory.Get( typeSymbol );
+            return this._compileTimeTypeFactory.Get( typeSymbol );
         }
         else
         {

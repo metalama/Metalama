@@ -22,15 +22,16 @@ namespace Metalama.Framework.Engine.CompileTime
     {
         private const string _unknownAssemblyName = "*";
 
-        private readonly ImmutableDictionaryOfArray<string, PortableExecutableReference> _referencesByName;
+        private readonly IReadOnlyDictionaryOfList<string, PortableExecutableReference> _referencesByName;
         private readonly ILogger _logger;
 
         public AssemblyLocator( IServiceProvider serviceProvider, IEnumerable<PortableExecutableReference> references )
         {
-            this._referencesByName = references.ToMultiValueDictionary(
-                x => GetAssemblyShortName( x ) ?? _unknownAssemblyName,
-                x => x,
-                StringComparer.OrdinalIgnoreCase );
+            this._referencesByName = references.ToDictionaryOfList(
+                    x => GetAssemblyShortName( x ) ?? _unknownAssemblyName,
+                    x => x,
+                    StringComparer.OrdinalIgnoreCase )
+                .Freeze();
 
             this._logger = serviceProvider.GetLoggerFactory().GetLogger( "AssemblyLocator" );
         }

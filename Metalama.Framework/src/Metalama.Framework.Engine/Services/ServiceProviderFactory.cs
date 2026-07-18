@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -19,6 +19,7 @@ using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Queries.Aspects;
 using Metalama.Framework.Engine.Queries.Options;
+using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -156,7 +157,9 @@ public static class ServiceProviderFactory
             .WithServiceConditional<IDeserializationSurrogateProvider>( _ => new DeserializationSurrogateProvider() )
             .WithServiceConditional<IAssemblyLocator>( sp => new AssemblyLocator( sp, metadataReferences ) )
             .WithService( _ => new SyntaxSerializationService() )
-            .WithServiceConditional( sp => new SystemTypeResolver.Provider( sp ) )
+            .WithServiceConditional( _ => new CompileTimeTypeFactory() )
+            .WithServiceConditional( _ => new TransitiveManifestDeserializationCache() )
+            .WithServiceConditional( sp => new SystemTypeResolver( sp ) )
             .WithServiceConditional( sp => new SystemAttributeDeserializer.Provider( sp ) )
             .WithService( provider => new ClassifyingCompilationContextFactory( provider ) )
             .WithService( provider => new ProjectIntrospectionService( provider ) )
@@ -183,7 +186,7 @@ public static class ServiceProviderFactory
         return serviceProvider.Underlying
             .WithService( repository )
             .WithService( new UserDiagnosticRegistry( repository.RootProject, extensionDiagnostics ) )
-            .WithService<CompilationServiceProvider<ProjectSpecificCompileTimeTypeResolver>>( sp => new ProjectSpecificCompileTimeTypeResolver.Provider( sp ) )
+            .WithService( sp => new ProjectSpecificCompileTimeTypeResolver( sp ) )
             .WithServiceConditional<UserCodeAttributeDeserializer.Provider>( sp => new UserCodeAttributeDeserializer.Provider( sp ) )
             .WithService<SymbolClassificationService>( _ => new SymbolClassificationService( repository ) )
             .WithServiceConditional<TemplateAttributeFactory>( sp => new TemplateAttributeFactory( sp ) )

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -76,13 +76,13 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
             using var testContext = this.CreateSerializationTestContext( code );
 
             var serialized = testContext
-                .Serialize<Type>( CompileTimeType.Create( testContext.Compilation.Types.Single( t => t.Name == "User" ).BaseType! ) )
+                .Serialize<Type>( CompileTimeTypeTestHelper.Create( testContext.Compilation.Types.Single( t => t.Name == "User" ).BaseType! ) )
                 .ToString();
 
             this.TestExpression<Type>( code, serialized, info => Assert.Equal( "Target`1[T2]", info.ToString() ) );
 
             var serialized2 = testContext
-                .Serialize<Type>( CompileTimeType.Create( testContext.Compilation.Types.Single( t => t.Name == "Target" ) ) )
+                .Serialize<Type>( CompileTimeTypeTestHelper.Create( testContext.Compilation.Types.Single( t => t.Name == "Target" ) ) )
                 .ToString();
 
             this.TestExpression<Type>( code, serialized2, info => Assert.Equal( "Target`1[T1]", info.ToString() ) );

@@ -74,8 +74,6 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
 
     internal ulong AspectInstancesHashCode { get; }
 
-    private byte[]? _serializedTransitiveAspectManifest;
-
     private DesignTimeAspectPipelineResult(
         AspectPipelineConfiguration? configuration,
         ImmutableDictionary<string, SyntaxTreePipelineResult> syntaxTreeResults,
@@ -656,37 +654,87 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
 
     public IEnumerable<InheritableAspectInstance> GetInheritableAspects( string aspectType ) => this._inheritableAspects[aspectType];
 
-    // At design time, cross-project reference validators are not added to the main pipeline. Instead, the validator provider recursively includes
-    // the providers of referenced projects. However, cross-project references are still used for PE references.
+    /// <summary>
+    /// At design time, cross-project reference validators are not added to the main pipeline. Instead, the validator
+    /// provider recursively includes the providers of referenced projects. However, cross-project references are
+    /// still used for PE references.
+    /// </summary>
     ImmutableArray<ITransitiveAspectsManifestExtension> ITransitiveAspectsManifest.Extensions => this.Extensions.ToTransitiveValidatorInstances( false );
 
-    // DesignTimeAspectPipelineResult does not track whether the compilation contains IInitializable
-    // implementers (the tracking would be useless at design time, where LinkerAnalysisStep force-runs
-    // the OnInitialized walker because the partial compilation may exclude trees declaring implementers).
-    // We therefore report the safe default `true` here: the flag is consumed by LinkerAnalysisStep to
-    // skip the walker, and returning `true` just forces the walker to run — which is a performance
-    // pessimization at worst, never a correctness bug. Returning `false` would be unsafe: if any
-    // consumer reads this at compile time, it could miss required WithInitialize wrapping.
+    /// <summary>
+    /// Gets a value indicating whether the compilation contains <c>IInitializable</c> implementers.
+    /// <see cref="DesignTimeAspectPipelineResult"/> does not track this (the tracking would be useless at design
+    /// time, where <c>LinkerAnalysisStep</c> force-runs the <c>OnInitialized</c> walker because the partial
+    /// compilation may exclude trees declaring implementers). We therefore report the safe default <c>true</c>: the
+    /// flag is consumed by <c>LinkerAnalysisStep</c> to skip the walker, and returning <c>true</c> just forces the
+    /// walker to run, which is a performance pessimization at worst, never a correctness bug. Returning
+    /// <c>false</c> would be unsafe: if any consumer reads this at compile time, it could miss required
+    /// <c>WithInitialize</c> wrapping.
+    /// </summary>
     bool ITransitiveAspectsManifest.ContainsInitializableTypes => true;
 
-    internal byte[] GetSerializedTransitiveAspectManifest( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
-    {
-        if ( this._serializedTransitiveAspectManifest == null )
-        {
+    /// <summary>
+    /// Gets a value indicating whether this project exports something a referencing project could inherit: an
+    /// inheritable aspect, an inheritable option, an exported annotation, or a transitive validator (carried by
+    /// <see cref="Extensions"/>). When it is <c>false</c> there is nothing to serialize and nothing for a consumer
+    /// to merge, so the manifest is not produced at all. See <see cref="SerializedTransitiveAspectManifest"/> and
+    /// the reference-construction site in <c>DesignTimeAspectPipeline</c>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Extensions"/> is the design-time collection, a superset of the transitive validators; testing it
+    /// (rather than the narrower transitive projection) keeps this conservative and keeps
+    /// <c>DesignTimeProjectVersion.ReferencedExtensions</c> correct: whenever the live manifest is dropped, its
+    /// <see cref="Extensions"/> collection is necessarily empty here.
+    /// </remarks>
+    internal bool HasTransitiveAspectManifestContent
+        => !this._inheritableAspects.IsEmpty
+           || !this.InheritableOptions.IsEmpty
+           || !this.Annotations.IsEmpty
+           || !this.Extensions.IsEmpty;
+
+    private TransitiveAspectsManifest CreateTransitiveManifest()
+        =>
+
             // ContainsInitializableTypes is set to the safe default `true` here for the same reason as in
             // ITransitiveAspectsManifest.ContainsInitializableTypes above: DesignTimeAspectPipelineResult does
             // not track the flag, and `true` only causes consumers to run the walker unnecessarily, while
             // `false` would risk missing required WithInitialize wrapping.
-            var manifest = TransitiveAspectsManifest.Create(
+            TransitiveAspectsManifest.Create(
                 this._inheritableAspects.SelectMany( g => g ).ToImmutableArray(),
                 this.Extensions.ToTransitiveValidatorInstances( true ),
                 this.InheritableOptions,
                 this.Annotations,
                 containsInitializableTypes: true );
 
-            this._serializedTransitiveAspectManifest = manifest.ToBytes( serviceProvider, compilationContext );
-        }
+    /// <summary>
+    /// Gets the transitive manifest serialized for in-process consumption by the current-version design-time
+    /// pipeline. It is serialized uncompressed: the bytes are produced and consumed in the same process and
+    /// discarded, so compression would be pure overhead. Returns <c>default</c> when there is nothing to inherit
+    /// (see <see cref="HasTransitiveAspectManifestContent"/>), so a referencing project neither serializes here nor
+    /// deserializes and merges an empty manifest on the other side. That is the common case for a Metalama project
+    /// exporting no inheritable aspects, options, annotations, or validators.
+    /// </summary>
+    [Memo]
+    internal SerializedTransitiveAspectManifest SerializedTransitiveAspectManifest
+        => this.HasTransitiveAspectManifestContent
+            ? SerializedTransitiveAspectManifest.Create(
+                this.CreateTransitiveManifest().ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false ) )
+            : default;
 
-        return this._serializedTransitiveAspectManifest;
-    }
+    /// <summary>
+    /// Gets the live, in-memory manifest. It is content-identical to what
+    /// <see cref="SerializedTransitiveAspectManifest"/> encodes, since both are built from the same
+    /// <see cref="CreateTransitiveManifest"/> call. A consumer whose compile-time copies match this producer's can
+    /// consume this object directly and skip the serialize/deserialize round-trip (issue #1710 fast path); see
+    /// <c>TransitivePipelineContributorSource</c>. Memoized so repeated consumer runs share one instance.
+    /// </summary>
+    [Memo]
+    internal TransitiveAspectsManifest LiveTransitiveAspectManifest => this.CreateTransitiveManifest();
+
+    /// <summary>
+    /// Serializes the transitive manifest for shipping over RPC to a potentially different (possibly older)
+    /// Metalama version, which may only understand the legacy compressed format, so this one is compressed.
+    /// </summary>
+    internal byte[] SerializeTransitiveAspectManifestForRpc()
+        => this.CreateTransitiveManifest().ToBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: true );
 }

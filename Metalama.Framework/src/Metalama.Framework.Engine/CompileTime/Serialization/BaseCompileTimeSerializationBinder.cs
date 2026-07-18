@@ -1,8 +1,9 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
+using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -93,6 +94,17 @@ internal class BaseCompileTimeSerializationBinder
     /// <param name="assemblyName">At output, the name of the assembly containing the <paramref name="type"/>.</param>
     public virtual void BindToName( Type type, out string typeName, out string assemblyName )
     {
+        if ( type is CompileTimeType compileTimeType )
+        {
+            // A mock has no loadable assembly to ask, so it carries the name of the run-time assembly that declares the
+            // type it stands for. That is already what we store: the name is never a compile-time ('ml!') one, so this
+            // needs none of the mapping that the compile-time binder does for real types.
+            typeName = compileTimeType.FullName;
+            assemblyName = compileTimeType.AssemblyName.AssertNotNull();
+
+            return;
+        }
+
         typeName = type.FullName!;
 
         // #31016

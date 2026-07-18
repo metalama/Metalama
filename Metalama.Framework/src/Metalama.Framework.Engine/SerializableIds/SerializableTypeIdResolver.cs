@@ -235,7 +235,18 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
                 return elementTypeResult;
             }
 
-            return ResolverResult.Success( this._parent.CreateArrayType( elementTypeResult.Type, node.RankSpecifiers.Count, this._isNullOblivious ) );
+            // A rank specifier is a `[...]` group, and its rank is the number of commas in it plus one -- so `int[,]` is
+            // ONE specifier of rank 2, not two specifiers. A type can carry several groups (`int[][]` is a 1-D array of
+            // 1-D arrays, `int[,][]` a 2-D array of 1-D arrays), and the leftmost group is the outermost array, so the
+            // groups are applied to the element type from right to left.
+            var type = elementTypeResult.Type;
+
+            for ( var i = node.RankSpecifiers.Count - 1; i >= 0; i-- )
+            {
+                type = this._parent.CreateArrayType( type, node.RankSpecifiers[i].Sizes.Count, this._isNullOblivious );
+            }
+
+            return ResolverResult.Success( type );
         }
 
         public override ResolverResult VisitPointerType( PointerTypeSyntax node )

@@ -29,7 +29,7 @@ namespace Metalama.Framework.Engine.Collections
         /// <summary>
         /// Builds an <see cref="ImmutableDictionaryOfArray{TKey,TValue}"/> from a collection, with a different value type than the input item type.
         /// </summary>
-        public static ImmutableDictionaryOfArray<TKey, TValue> ToMultiValueDictionary<TItem, TKey, TValue>(
+        public static ImmutableDictionaryOfArray<TKey, TValue> ToImmutableDictionaryOfArray<TItem, TKey, TValue>(
             this IEnumerable<TItem> enumerable,
             Func<TItem, TKey> getKey,
             Func<TItem, TValue> getValue,
@@ -43,12 +43,37 @@ namespace Metalama.Framework.Engine.Collections
         /// <summary>
         /// Builds an <see cref="ImmutableDictionaryOfArray{TKey,TValue}"/> from a collection.
         /// </summary>
-        public static ImmutableDictionaryOfArray<TKey, TItem> ToMultiValueDictionary<TItem, TKey>(
+        public static ImmutableDictionaryOfArray<TKey, TItem> ToImmutableDictionaryOfArray<TItem, TKey>(
             this IEnumerable<TItem> enumerable,
             Func<TItem, TKey> getKey,
             IEqualityComparer<TKey>? keyComparer = null )
             where TKey : notnull
-            => enumerable.ToMultiValueDictionary( getKey, i => i, keyComparer );
+            => enumerable.ToImmutableDictionaryOfArray( getKey, i => i, keyComparer );
+
+        /// <summary>
+        /// Builds a <see cref="DictionaryOfList{TKey,TValue}"/> from a collection, with a different value type than
+        /// the input item type. Prefer this over <see cref="ToImmutableDictionaryOfArray{TItem,TKey,TValue}"/> when
+        /// the result is built once and thereafter only read.
+        /// </summary>
+        public static DictionaryOfList<TKey, TValue> ToDictionaryOfList<TItem, TKey, TValue>(
+            this IEnumerable<TItem> enumerable,
+            Func<TItem, TKey> getKey,
+            Func<TItem, TValue> getValue,
+            IEqualityComparer<TKey>? keyComparer = null )
+            where TKey : notnull
+            => DictionaryOfList<TKey, TValue>.Create( enumerable, getKey, getValue, keyComparer );
+
+        /// <summary>
+        /// Builds a <see cref="DictionaryOfList{TKey,TValue}"/> from a collection, with the same value type as the
+        /// input item type. Prefer this over <see cref="ToImmutableDictionaryOfArray{TItem,TKey}"/> when the result
+        /// is built once and thereafter only read.
+        /// </summary>
+        public static DictionaryOfList<TKey, TItem> ToDictionaryOfList<TItem, TKey>(
+            this IEnumerable<TItem> enumerable,
+            Func<TItem, TKey> getKey,
+            IEqualityComparer<TKey>? keyComparer = null )
+            where TKey : notnull
+            => enumerable.ToDictionaryOfList( getKey, i => i, keyComparer );
 
         public static IReadOnlyCollection<T> Concat<T>( params IReadOnlyCollection<T>[] collections )
         {

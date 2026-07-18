@@ -5,12 +5,10 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
-using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
@@ -78,50 +76,14 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         // Get the serializable type ID for the resolved type (for caching in CompileTimeTypeFactory).
         var resolvedTypeId = resolvedType.GetSerializableTypeId( bypassSymbols: true );
 
-        // Build metadata from the resolved IType.
-        var ns = GetNamespaceForType( resolvedType );
-        var name = resolvedType.GetReflectionName( bypassSymbols: true );
-        var fullName = resolvedType.GetReflectionFullName( bypassSymbols: true );
-        var toStringName = resolvedType.GetReflectionToStringName( bypassSymbols: true );
-        var metadata = new CompileTimeTypeMetadata( ns, name, fullName, toStringName );
-
-        return Current.CompilationContext!.CompileTimeTypeFactory.Get( resolvedTypeId, metadata );
-    }
-
-    /// <summary>
-    /// Emulates <see cref="Type.Namespace"/>: unwraps arrays, pointers, etc. to find the innermost named type's namespace.
-    /// </summary>
-    private static string? GetNamespaceForType( IType type )
-    {
-        while ( true )
-        {
-            switch ( type )
-            {
-                case INamedType namedType:
-                    return namedType.ContainingNamespace.FullName;
-
-                case IArrayType arrayType:
-                    type = arrayType.ElementType;
-
-                    continue;
-
-                case IPointerType pointerType:
-                    type = pointerType.PointedAtType;
-
-                    continue;
-
-                default:
-                    // For other non-named types (e.g., dynamic), no namespace is available.
-                    return null;
-            }
-        }
+        return Current.CompilationContext!.CompileTimeTypeFactory.Get( resolvedTypeId );
     }
 
     internal static Type ResolveCompileTimeTypeOf( string typeId, string? ns, string name, string fullName, string toString )
     {
         return Current.CompilationContext.AssertNotNull()
             .CompileTimeTypeFactory
-            .Get( new SerializableTypeId( typeId ), new CompileTimeTypeMetadata( ns, name, fullName, toString ) );
+            .Get( new SerializableTypeId( typeId ) );
     }
 
     IDisposable IExecutionContext.WithoutDependencyCollection() => this.WithoutDependencyCollection();
@@ -200,7 +162,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
     public static UserCodeExecutionContext CreateInstance(
         ProjectServiceProvider serviceProvider,
         UserCodeDescription description,
-        CompilationContext? compilationContext,
+        CompilationContext? compilationContext = null,
         IDiagnosticAdder? diagnostics = null )
         => new( serviceProvider, description, compilationContext, diagnostics: diagnostics );
 

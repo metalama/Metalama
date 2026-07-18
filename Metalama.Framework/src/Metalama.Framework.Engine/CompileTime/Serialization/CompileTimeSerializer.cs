@@ -1,9 +1,8 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
-using Microsoft.CodeAnalysis;
 using System.IO;
 
 namespace Metalama.Framework.Engine.CompileTime.Serialization;
@@ -22,45 +21,19 @@ internal sealed class CompileTimeSerializer
     /// </summary>
     internal BaseCompileTimeSerializationBinder Binder { get; }
 
-    internal Compilation Compilation => this.CompilationContext.Compilation;
-
-    internal CompilationContext CompilationContext { get; }
-
     internal SerializerProvider SerializerProvider { get; }
 
-    private CompileTimeSerializer( CompileTimeProject? project, in ProjectServiceProvider serviceProvider, CompilationContext compilationContext ) : this(
-        serviceProvider,
-        new CompileTimeSerializationBinder( project?.Domain, serviceProvider, project ),
-        compilationContext ) { }
-
-    public static CompileTimeSerializer CreateInstance( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
-        => new( serviceProvider.GetService<CompileTimeProject>(), serviceProvider, compilationContext );
-
     /// <summary>
-    /// Creates a <see cref="CompileTimeSerializer"/> anchored to a specific <see cref="CompileTimeProject"/>.
-    /// Used when deserialising the transitive manifest of a referenced upstream project, to ensure the
-    /// binder resolves types through that upstream's project (and its closure) rather than the current
-    /// root project's closure. This avoids the pairing bug in issue #1611 where two physically distinct
-    /// <see cref="CompileTimeProject"/> instances for the same logical upstream could be reachable
-    /// through the root project's closure, and the deserialiser and the aspect-class loader could each
-    /// pick a different one.
+    /// Initializes a new instance of the <see cref="CompileTimeSerializer"/> class. Note that no <see cref="CompilationContext"/>
+    /// is required: deserialization is compilation-neutral by definition, since compile-time types are always stored as their
+    /// run-time names and the <see cref="Binder"/> resolves those names against this project's own compile-time closure.
+    /// A <see cref="CompilationContext"/> is needed only to <em>write</em>, and is therefore passed to <see cref="Serialize"/>.
     /// </summary>
-    public static CompileTimeSerializer CreateInstance(
-        in ProjectServiceProvider serviceProvider,
-        CompilationContext compilationContext,
-        CompileTimeProject? upstreamProject )
-        => new( upstreamProject, serviceProvider, compilationContext );
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="CompileTimeSerializer"/> class.
-    /// </summary>
-    /// <param name="serviceProvider"></param>
-    /// <param name="binder">A <see cref="BaseCompileTimeSerializationBinder"/> customizing bindings between types and type names, or <c>null</c> to use the default implementation.</param>
-    private CompileTimeSerializer( in ProjectServiceProvider serviceProvider, BaseCompileTimeSerializationBinder binder, CompilationContext compilationContext )
+    public CompileTimeSerializer( in ProjectServiceProvider serviceProvider )
     {
+        var project = serviceProvider.GetService<CompileTimeProject>();
         this._serviceProvider = serviceProvider;
-        this.Binder = binder;
-        this.CompilationContext = compilationContext;
+        this.Binder = new CompileTimeSerializationBinder( project?.Domain, serviceProvider, project );
         this.SerializerProvider = new SerializerProvider( serviceProvider.GetRequiredService<ISerializerFactoryProvider>() );
     }
 
@@ -106,11 +79,11 @@ internal sealed class CompileTimeSerializer
         object? Try( bool shouldReportExceptionCause )
         {
             var serializationReader = new SerializationReader(
+                this._serviceProvider,
                 stream,
                 this,
                 shouldReportExceptionCause,
-                assemblyName,
-                this.CompilationContext );
+                assemblyName );
 
             return serializationReader.Deserialize();
         }

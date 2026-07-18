@@ -44,7 +44,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
 
             Assert.Equal( expectedTypeName, compileTimeType.FullName );
 
-            var resolvedType = compileTimeType.Target.GetTarget( compilation );
+            var resolvedType = compileTimeType.ToRef().GetTarget( compilation );
 
             Assert.NotNull( resolvedType );
         }

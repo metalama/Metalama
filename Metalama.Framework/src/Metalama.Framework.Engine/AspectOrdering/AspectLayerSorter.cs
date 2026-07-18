@@ -54,9 +54,10 @@ internal static class AspectLayerSorter
         var aspectNameToIndicesMapping =
             unsortedAspectLayers
                 .Select( ( t, i ) => (t.AspectName, Index: i) )
-                .ToMultiValueDictionary( p => p.AspectName, p => p.Index );
+                .ToDictionaryOfList( p => p.AspectName, p => p.Index )
+                .Freeze();
 
-        var aspectLayerNameToLocationsMappingBuilder = ImmutableDictionaryOfArray<string, AspectOrderSpecification>.CreateBuilder();
+        var aspectLayerNameToLocationsMapping = new DictionaryOfList<string, AspectOrderSpecification>();
 
         DirectedGraph directedGraph = new( n );
         var hasPredecessor = new bool[n];
@@ -123,7 +124,7 @@ internal static class AspectLayerSorter
                     if ( !previousIndices.IsEmpty )
                     {
                         // Index the relationship so we can later resolve locations.
-                        aspectLayerNameToLocationsMappingBuilder.AddRange(
+                        aspectLayerNameToLocationsMapping.AddRange(
                             currentIndices,
                             i => unsortedAspectLayers[i].AspectLayerId.FullName,
                             _ => relationship );
@@ -144,7 +145,8 @@ internal static class AspectLayerSorter
             }
         }
 
-        var aspectLayerNameToLocationsMapping = aspectLayerNameToLocationsMappingBuilder.ToImmutable();
+        // The relationship index is complete: freeze it so it is only read from here on.
+        aspectLayerNameToLocationsMapping.Freeze();
 
         // Perform a breadth-first search on the graph.
         var distances = directedGraph.GetInitialVector();

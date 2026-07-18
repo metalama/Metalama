@@ -34,8 +34,6 @@ internal abstract class BaseRef<T> : IRefImpl, IRef<T>
 
     public abstract SerializableDeclarationId ToSerializableId();
 
-    public virtual SerializableDeclarationId ToSerializableId( CompilationContext compilationContext ) => this.ToSerializableId();
-
     protected abstract IDurableRef<T> ToDurable();
 
     public abstract bool IsDurable { get; }

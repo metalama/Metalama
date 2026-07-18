@@ -12,10 +12,12 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
+using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -53,13 +55,17 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         var pipelineExtensions = serviceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
 
         var inheritableAspectProvider = serviceProvider.GetService<ITransitiveAspectManifestProvider>();
-        var compileTimeProjectRepository = serviceProvider.GetService<CompileTimeProjectRepository>();
 
-        var inheritedAspectsBuilder = ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance>.CreateBuilder();
+        var inheritedAspects = new DictionaryOfList<IAspectClass, InheritableAspectInstance>();
         var contributorsBuilder = ImmutableArray.CreateBuilder<IPipelineContributor>();
         var manifestDictionaryBuilder = ImmutableDictionary.CreateBuilder<AssemblyIdentity, ITransitiveAspectsManifest>();
 
         var aspectClassesByName = aspectClasses.Dictionary;
+
+        // Both are resolved once for the whole walk: the consuming project's compile-time project scopes the
+        // deserialization cache below and decides whether a producer's live manifest can be reused.
+        var consumerProject = serviceProvider.GetService<CompileTimeProjectRepository>()?.RootProject;
+        var deserializationCache = serviceProvider.GetService<TransitiveManifestDeserializationCache>();
 
         foreach ( var reference in compilationContext.Compilation.References )
         {
@@ -76,28 +82,76 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                         {
                             assemblyIdentity = metadataInfo.AssemblyIdentity;
 
-                            // Look up the upstream's CompileTimeProject by AssemblyIdentity so the deserialiser is
-                            // anchored to the canonical project for this identity (issue #1611). This is the
-                            // architectural fix that prevents two physically distinct CompileTimeProject instances
-                            // for the same logical upstream from being chosen by the deserialiser and the aspect-
-                            // class loader independently.
-                            CompileTimeProject? upstreamProject = null;
-                            compileTimeProjectRepository?.TryGetCompileTimeProject( assemblyIdentity, out upstreamProject );
+                            // Deserialize the referenced assembly's manifest into THIS (consuming) project's
+                            // compile-time copy of each type. The manifest stores run-time type names; deserializing
+                            // with the current serviceProvider resolves them through the consumer's project closure,
+                            // so both the inherited aspect and its options bind to the consumer's copy of shared
+                            // (e.g. multi-targeted) compile-time assemblies (issue #1710). The consumer's closure
+                            // already contains the canonical upstream projection (issue #1611's upstream-project
+                            // reuse), so the inherited aspect's type still matches the consumer's IAspectClass.Type.
+                            //
+                            // The result is cached per consuming project, because this method runs on every pipeline
+                            // execution while the referenced assembly rarely changes. The cache is keyed by path and
+                            // last-write time, and is scoped to the consumer, since the manifest is bound to the
+                            // consumer's compile-time copy and must not be shared with a differently bound project.
+                            ITransitiveAspectsManifest Deserialize()
+                                => TransitiveAspectsManifest.Deserialize( new MemoryStream( bytes ), serviceProvider, filePath );
 
-                            manifest = TransitiveAspectsManifest.Deserialize(
-                                new MemoryStream( bytes ),
-                                serviceProvider,
-                                compilationContext,
-                                filePath,
-                                upstreamProject );
+                            manifest = deserializationCache == null
+                                ? Deserialize()
+                                : deserializationCache.GetOrAdd( filePath, metadataInfo.LastFileWrite, consumerProject, Deserialize );
                         }
                     }
 
                     break;
 
                 case CompilationReference compilationReference:
-                    manifest = inheritableAspectProvider?.GetTransitiveAspectsManifest( compilationReference.Compilation );
                     assemblyIdentity = compilationReference.Compilation.Assembly.Identity;
+
+                    // Fast path (issue #1710): when the referenced project's compile-time copies match ours, its live
+                    // manifest objects are already instances of the very same compile-time types we use, so we can
+                    // consume them directly and skip the serialize/deserialize round-trip.
+                    if ( inheritableAspectProvider != null
+                         && inheritableAspectProvider.TryGetReusableTransitiveAspectsManifest(
+                             compilationReference.Compilation,
+                             out var reusableManifest,
+                             out var producerConfiguration )
+                         && CanReuseLiveManifest( producerConfiguration, serviceProvider ) )
+                    {
+                        manifest = reusableManifest;
+                    }
+                    else if ( inheritableAspectProvider != null )
+                    {
+                        // The copies differ (e.g. a multi-targeted assembly built per TFM), so we cannot reuse the
+                        // producer's objects. Deserialize the referenced project's manifest into THIS (consuming)
+                        // project's compile-time copy of shared types. The bytes were serialized with the referenced
+                        // project's service provider (run-time type names); deserializing with the current
+                        // serviceProvider resolves those names to the consumer's own compile-time copy, so inherited
+                        // aspects and options are bound to the consumer's copy and merge/cast correctly against the
+                        // consumer's own options (issue #1710).
+                        var serializedManifest =
+                            inheritableAspectProvider.GetSerializedTransitiveAspectsManifest( compilationReference.Compilation );
+
+                        if ( !serializedManifest.IsDefaultOrEmpty )
+                        {
+                            ITransitiveAspectsManifest DeserializeProjectManifest()
+                                => TransitiveAspectsManifest.Deserialize(
+                                    new MemoryStream( serializedManifest.Bytes.ToArray() ),
+                                    serviceProvider,
+                                    compilationReference.Compilation.AssemblyName );
+
+                            // Keyed by the content hash rather than by the producing result, so that a producer
+                            // edit which leaves the exported surface untouched, the common case, does not force a
+                            // deserialization here.
+                            manifest = deserializationCache == null
+                                ? DeserializeProjectManifest()
+                                : deserializationCache.GetOrAdd(
+                                    assemblyIdentity.AssertNotNull(),
+                                    serializedManifest,
+                                    consumerProject,
+                                    DeserializeProjectManifest );
+                        }
+                    }
 
                     break;
 
@@ -127,7 +181,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                     var targets = manifest.GetInheritableAspects( aspectClassName )
                         .WhereNotNull();
 
-                    inheritedAspectsBuilder.AddRange( aspectClass, targets );
+                    inheritedAspects.AddRange( aspectClass, targets );
                 }
 
                 // Process manifest extensions.
@@ -141,9 +195,71 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
             }
         }
 
-        contributorsBuilder.Add( new InheritedAspectSourceImpl( serviceProvider, inheritedAspectsBuilder.ToImmutable() ) );
+        contributorsBuilder.Add( new InheritedAspectSourceImpl( serviceProvider, inheritedAspects.Freeze() ) );
 
         return new TransitivePipelineContributorSource( manifestDictionaryBuilder.ToImmutable(), contributorsBuilder.ToImmutable() );
+    }
+
+    /// <summary>
+    /// Determines whether the producer's live manifest can be consumed as-is instead of being deserialized into the
+    /// consumer's compile-time copy. It is safe if and only if, for every run-time assembly the manifest could
+    /// reference, the consumer resolves that assembly to the exact same compile-time (<c>ml!</c>) copy the producer
+    /// used, so the producer's option and aspect objects are instances of the very CLR types the consumer uses for
+    /// its own defaults, and no merge crosses copies.
+    /// </summary>
+    /// <remarks>
+    /// The crucial subtlety (issue #1710) is that the consumer's compile-time closure may contain <em>several</em>
+    /// copies of the same run-time assembly: a multi-targeted library whose per-TFM projections are both loaded, for
+    /// example the <c>net472</c> copy the consumer references directly and the <c>netstandard2.0</c> copy pulled in
+    /// through a project reference. When a run-time assembly the producer touches is ambiguous like that on the
+    /// consumer side, we cannot know the producer's objects match the copy the consumer uses for its own defaults,
+    /// so we must take the safe path and deserialize. This test is coarse, since it also declines when the ambiguity
+    /// is in an assembly the manifest never touches, but it never accepts an unsafe reuse.
+    /// </remarks>
+    internal static bool CanReuseLiveManifest( AspectPipelineConfiguration producerConfiguration, ProjectServiceProvider consumerServiceProvider )
+    {
+        var producerProject = producerConfiguration.CompileTimeProject;
+
+        if ( producerProject == null )
+        {
+            return false;
+        }
+
+        var consumerProject = consumerServiceProvider.GetService<CompileTimeProjectRepository>()?.RootProject;
+
+        if ( consumerProject == null )
+        {
+            return false;
+        }
+
+        // Reference-identical CLR types require the same domain (assembly load context). Without it, even matching
+        // ml! names denote distinct types in distinct load contexts, so the producer's objects could not be merged.
+        if ( !ReferenceEquals( producerProject.Domain, consumerProject.Domain ) )
+        {
+            return false;
+        }
+
+        // The consumer must resolve every run-time assembly the producer's closure covers to exactly one compile-time
+        // copy, and that copy must be the producer's. More than one entry means the consumer holds several copies of
+        // that assembly (the multi-targeted case above), so we cannot tell which one its own defaults use. (The ml!
+        // name's hash already folds in the transitive reference identities, so name equality implies the same source
+        // and reference closure, i.e. the same physical copy.) The grouping is memoized on the consumer's project,
+        // so it is built once per project rather than once per reference.
+        var consumerProjectsByRunTimeName = consumerProject.ClosureProjectsGroupedByRunTimeAssemblyName;
+
+        foreach ( var producerClosureProject in producerProject.ClosureProjects )
+        {
+            if ( consumerProjectsByRunTimeName[producerClosureProject.RunTimeIdentity.Name] is not [var consumerCopy]
+                 || !string.Equals(
+                     consumerCopy.CompileTimeIdentity.Name,
+                     producerClosureProject.CompileTimeIdentity.Name,
+                     StringComparison.Ordinal ) )
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public IEnumerable<string> GetOptionTypes()

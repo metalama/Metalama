@@ -85,6 +85,12 @@ When starting work on a GitHub issue:
 - `Build.ps1 build` does not build test projects, only packable projects.
 - `Build.ps1 test` implicitly does a clean rebuild (not incremental), so do NOT chain it after `Build.ps1 build` — they overlap. After `Build.ps1 build`, run individual test projects with `dotnet test <project> --no-build`. Only re-run `Build.ps1 build` when you need a cross-solution rebuild.
 
+## Code Style
+
+- **Never use em dashes (`—`) in code comments**, including XML doc comments. Use a colon, parentheses, or a separate sentence instead.
+- **Document members with `///` XML doc comments, not `//`** - this applies to all members (including `private`/`internal` ones) and to test classes. Put the rationale in `<remarks>` rather than growing `<summary>`, and use `<see cref="..."/>`/`<c>` markup. Plain `//` comments are for statements inside method bodies, and for tool directives such as `// ReSharper disable ...`.
+- **Cache derived closure lookups on the owning type.** When a computation is derived purely from immutable state (e.g. `CompileTimeProject.ClosureProjects`), expose it as a `[Memo]` member on that type instead of recomputing it in the caller. Prefer a multi-valued `ImmutableDictionaryOfArray` (via `ToMultiValueDictionary`) over encoding "ambiguous" as a `null` value - build cost is irrelevant once memoized.
+
 ## Nested Types in Separate Files
 
 When a class has nested types that are large enough to warrant their own file, use the **partial class** pattern:

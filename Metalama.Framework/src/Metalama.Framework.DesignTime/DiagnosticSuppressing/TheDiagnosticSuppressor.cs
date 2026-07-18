@@ -143,7 +143,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticSuppressing
                 // NOTE: We intentionally do NOT merge suppression descriptors from the DiagnosticManifest here.
                 // Roslyn's DiagnosticSuppressor contract requires that SupportedSuppressions declares all
                 // diagnostic IDs the suppressor can handle. Roslyn filters diagnostics BEFORE calling
-                // ReportSuppressions — it will not pass diagnostics whose IDs are not in SupportedSuppressions.
+                // ReportSuppressions: it will not pass diagnostics whose IDs are not in SupportedSuppressions.
                 // Since SupportedSuppressions is [Memo]-cached from the user profile at IDE startup, newly
                 // registered suppressions won't take effect until the IDE is restarted. In this case,
                 // TheDiagnosticAnalyzer reports LAMA0306 to inform the user that a restart is needed.
@@ -178,10 +178,11 @@ namespace Metalama.Framework.DesignTime.DiagnosticSuppressing
                     var semanticModel = compilation.GetCachedSemanticModel( syntaxTree );
 
                     var suppressionsBySymbol =
-                        ImmutableDictionaryOfArray<SerializableDeclarationId, ISuppression>.Create(
-                            supportedPipelineSuppressions,
-                            s => s.DeclarationId,
-                            s => s.Suppression );
+                        DictionaryOfList<SerializableDeclarationId, ISuppression>.Create(
+                                supportedPipelineSuppressions,
+                                s => s.DeclarationId,
+                                s => s.Suppression )
+                            .Freeze();
 
                     foreach ( var diagnostic in diagnosticGroup )
                     {

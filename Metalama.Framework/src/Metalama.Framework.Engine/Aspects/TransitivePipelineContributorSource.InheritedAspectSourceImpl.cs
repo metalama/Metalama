@@ -19,11 +19,11 @@ internal sealed partial class TransitivePipelineContributorSource
     private sealed class InheritedAspectSourceImpl : IAspectSource
     {
         private readonly IConcurrentTaskRunner _concurrentTaskRunner;
-        private readonly ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance> _inheritedAspects;
+        private readonly IReadOnlyDictionaryOfList<IAspectClass, InheritableAspectInstance> _inheritedAspects;
 
         public InheritedAspectSourceImpl(
             ProjectServiceProvider serviceProvider,
-            ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance> inheritedAspects )
+            IReadOnlyDictionaryOfList<IAspectClass, InheritableAspectInstance> inheritedAspects )
         {
             this._inheritedAspects = inheritedAspects;
             this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
