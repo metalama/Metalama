@@ -749,16 +749,18 @@ public sealed partial class DesignTimeAspectPipelineResult
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Compressed, unlike <see cref="SerializedTransitiveAspectManifest"/>, and not because these bytes are stored
-    /// anywhere: they are consumed in this same process and discarded, exactly like the same-version ones. The
-    /// reason is compatibility. These bytes are read by the <em>other</em> version's deserializer, and the
-    /// uncompressed format is recognized by peeking a marker byte that was only introduced in 2026.1 (issue #1710).
-    /// A peer older than that has no such peek: it would treat the marker as the first byte of a DEFLATE stream and
-    /// fail. The compressed format is the one every peer understands, so it is what we emit outwards.
+    /// Compressed, unlike <see cref="SerializedTransitiveAspectManifest"/>, following the rule that the compressed
+    /// form is the <em>interchange</em> format, read by a Metalama build that may not be this one, while the
+    /// uncompressed form is the <em>private</em> format, read by this same build in this same process and then
+    /// discarded. The other user of the interchange format is <c>TransitiveAspectsManifest.ToResource</c>, embedded
+    /// in the PE binary and read later by whichever version compiles against that assembly.
     /// </para>
     /// <para>
-    /// This is therefore the one place that compresses without storing. Everything stored compresses too
-    /// (<c>TransitiveAspectsManifest.ToResource</c>, embedded in the PE binary), but the converse does not hold.
+    /// Concretely, these bytes are read by the other version's deserializer, and the uncompressed form is recognized
+    /// by peeking a marker byte introduced in 2026.1 (issue #1710). A peer older than that has no such peek: it
+    /// would treat the marker as the first byte of a DEFLATE stream and fail. Once pre-2026.1 interop is dropped
+    /// this can stop compressing, tracked by issue #1737. The path is cold (mixed-version solutions only, once per
+    /// cross-version reference per pipeline run), so there is nothing to gain by removing it sooner.
     /// </para>
     /// </remarks>
     internal byte[] SerializeTransitiveAspectManifestForOtherVersion()
