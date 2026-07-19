@@ -42,10 +42,12 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
             using ( var testContext = (SerializationTestContext) this.CreateTestContext( new SerializationTestContextOptions(), services ) )
             {
                 // Round-trip System.Type values that reference corlib types. Deserialization resolves each referenced
-                // type through the binder, which is where the spurious warning was produced under .NET Core.
-                SerializeDeserialize( typeof(DateTime), testContext );
-                SerializeDeserialize( typeof(int), testContext );
-                SerializeDeserialize( typeof(object), testContext );
+                // type through the binder, which is where the spurious warning was produced under .NET Core. The
+                // equality assertions also confirm the corlib types still resolve correctly (the fix must not break
+                // resolution, only silence the warning).
+                Assert.Equal( typeof(DateTime), SerializeDeserialize( typeof(DateTime), testContext ) );
+                Assert.Equal( typeof(int), SerializeDeserialize( typeof(int), testContext ) );
+                Assert.Equal( typeof(object), SerializeDeserialize( typeof(object), testContext ) );
             }
 
             var unknownAssemblyWarnings = loggerFactory.Entries
