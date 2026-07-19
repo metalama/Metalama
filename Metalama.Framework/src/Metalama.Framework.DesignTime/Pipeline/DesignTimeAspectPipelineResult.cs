@@ -698,16 +698,17 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
     /// them, <see cref="DesignTimeProjectVersion.ReferencedExtensions"/>:
     /// <list type="bullet">
     /// <item>
-    /// <c>false</c> for the in-process, same-version consumer. Its reference carries this very result as its live
+    /// <c>false</c> for a consumer built against the same version of Metalama. Its reference carries this very result as its live
     /// <c>TransitiveAspectsManifest</c>, so <c>ReferencedExtensions</c> reads the validators out of the design-time
     /// extension collection, which deduplicates diamond-shaped reference graphs. Putting them in the manifest as
     /// well would deliver each validator twice (once per channel), and more than twice across a diamond, because
     /// the manifest channel is walked once per direct reference and is not deduplicated.
     /// </item>
     /// <item>
-    /// <c>true</c> for the cross-version (RPC) consumer. Its reference carries a deserialized
-    /// <see cref="TransitiveAspectsManifest"/> rather than a <see cref="DesignTimeAspectPipelineResult"/>, so
-    /// <c>ReferencedExtensions</c> skips it and the manifest is the only channel available.
+    /// <c>true</c> for a consumer built against a different version of Metalama. Such a reference carries no live
+    /// result — the producer's result is an object of the other version's <c>Metalama.Framework.Engine</c> and
+    /// cannot cross — so <c>ReferencedExtensions</c> contributes nothing for it and the manifest is the only
+    /// channel available. See <see cref="SerializeTransitiveAspectManifestForOtherVersion"/>.
     /// </item>
     /// </list>
     /// </summary>
@@ -726,9 +727,12 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
                 containsInitializableTypes: true );
 
     /// <summary>
-    /// Gets the transitive manifest serialized for in-process consumption by the current-version design-time
-    /// pipeline. It is serialized uncompressed: the bytes are produced and consumed in the same process and
-    /// discarded, so compression would be pure overhead. Returns <c>default</c> when there is nothing to inherit
+    /// Gets the transitive manifest serialized for a consumer built against the <em>same</em> version of Metalama.
+    /// It exists because the consumer must bind the manifest to its own compile-time copy of each type, which a
+    /// round-trip through the serialized form is what achieves (issue #1710); it is not a version bridge. Serialized
+    /// uncompressed, unlike <see cref="SerializeTransitiveAspectManifestForOtherVersion"/>: producer and consumer
+    /// are the same version, so no legacy format has to be honoured and compression would be pure overhead on bytes
+    /// that are produced, consumed and discarded immediately. Returns <c>default</c> when there is nothing to inherit
     /// (see <see cref="HasTransitiveAspectManifestContent"/>), so a referencing project neither serializes here nor
     /// deserializes and merges an empty manifest on the other side. That is the common case for a Metalama project
     /// exporting no inheritable aspects, options, annotations, or validators.
@@ -743,19 +747,28 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
 
     /// <summary>
     /// Gets the live, in-memory manifest. It is content-identical to what
-    /// <see cref="SerializedTransitiveAspectManifest"/> encodes, since both are built from the same
-    /// <see cref="CreateTransitiveManifest"/> call. A consumer whose compile-time copies match this producer's can
-    /// consume this object directly and skip the serialize/deserialize round-trip (issue #1710 fast path); see
-    /// <c>TransitivePipelineContributorSource</c>. Memoized so repeated consumer runs share one instance.
+    /// <see cref="SerializedTransitiveAspectManifest"/> encodes, since both come from
+    /// <see cref="CreateTransitiveManifest"/> with the same argument. A same-version consumer whose compile-time
+    /// copies match this producer's can consume this object directly and skip the serialize/deserialize round-trip
+    /// (issue #1710 fast path); see <c>TransitivePipelineContributorSource</c>. Memoized so repeated consumer runs
+    /// share one instance.
     /// </summary>
     [Memo]
     internal TransitiveAspectsManifest LiveTransitiveAspectManifest => this.CreateTransitiveManifest( includeValidators: false );
 
     /// <summary>
-    /// Serializes the transitive manifest for shipping over RPC to a potentially different (possibly older)
-    /// Metalama version, which may only understand the legacy compressed format, so this one is compressed.
+    /// Serializes the transitive manifest for a consumer built against a <em>different</em> version of Metalama:
+    /// two projects of the same solution, one referencing the other, each referencing its own Metalama version.
+    /// Both versions are loaded in the same process and reach each other through the version-neutral
+    /// <c>Metalama.Framework.DesignTime.Contracts</c> assembly, but their <c>Metalama.Framework.Engine</c> types have
+    /// distinct identities, so no manifest object can be passed across. Serializing here and deserializing on the
+    /// other side is what converts the manifest into the consuming version's object model.
     /// </summary>
-    internal byte[] SerializeTransitiveAspectManifestForRpc()
+    /// <remarks>
+    /// Compressed, unlike <see cref="SerializedTransitiveAspectManifest"/>: the consumer may be an older version
+    /// that only understands the legacy compressed format.
+    /// </remarks>
+    internal byte[] SerializeTransitiveAspectManifestForOtherVersion()
         => this.CreateTransitiveManifest( includeValidators: true )
             .ToBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: true );
 }

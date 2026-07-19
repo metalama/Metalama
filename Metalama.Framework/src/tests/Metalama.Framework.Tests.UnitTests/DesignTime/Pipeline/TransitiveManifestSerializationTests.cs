@@ -156,9 +156,10 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         var result = Execute( testContext, factory, _producerCode );
         var serviceProvider = result.Configuration!.ServiceProvider;
 
-        // The in-process format is uncompressed (marked); the RPC/PE format is a bare DEFLATE stream (no marker).
+        // The same-version format is uncompressed (marked); the cross-version format, which an older consumer may
+        // require, is a bare DEFLATE stream (no marker).
         var uncompressed = result.SerializedTransitiveAspectManifest;
-        var compressed = result.SerializeTransitiveAspectManifestForRpc();
+        var compressed = result.SerializeTransitiveAspectManifestForOtherVersion();
 
         Assert.Equal( SerializationProtocol.UncompressedStreamMarker, uncompressed.Bytes[0] );
         Assert.NotEqual( SerializationProtocol.UncompressedStreamMarker, compressed[0] );

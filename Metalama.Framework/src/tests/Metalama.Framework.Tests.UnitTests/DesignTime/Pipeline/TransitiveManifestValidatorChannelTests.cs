@@ -41,15 +41,16 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 /// the manifest channel, which walks each direct reference's transitive manifest and is <em>not</em> deduplicated.
 /// </item>
 /// </list>
-/// A same-version, in-process consumer always has channel 1 (its reference carries the live result; see the
-/// both-or-neither invariant on <c>DesignTimeProjectReference</c>), so the in-process manifests must not carry
-/// validators. A cross-version (RPC) consumer has only channel 2, so its manifest must.
+/// A consumer built against the same version of Metalama always has channel 1, because its reference carries the
+/// producer's live result, so the same-version manifests must not carry validators. A consumer built against a
+/// different version of Metalama has only channel 2: the producer's result is an object of the other version's
+/// <c>Metalama.Framework.Engine</c> and cannot be handed across, so its manifest must carry them.
 /// </summary>
 /// <remarks>
-/// This regressed once already (issue #1710): the design-time reference path was rerouted from the live result,
-/// whose <c>ITransitiveAspectsManifest.Extensions</c> filters validators out, onto the manifest built for RPC,
-/// which keeps them. Both channels then fired, and a downstream consumer reported every cross-project reference
-/// diagnostic twice — six times across a diamond, where the undeduplicated manifest channel compounds.
+/// This regressed once already (issue #1710): the same-version reference path was rerouted from the live result,
+/// which filtered validators out, onto the manifest built for the cross-version consumer, which keeps them. Both
+/// channels then fired, and a downstream consumer reported every cross-project reference diagnostic twice — six
+/// times across a diamond, where the undeduplicated manifest channel compounds.
 /// </remarks>
 public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
 {

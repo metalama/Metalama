@@ -608,8 +608,13 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     }
                     else
                     {
-                        // To deserialize the manifest, we need a service provider with the CompileTimeProject of the referenced project, compiled
-                        // for the current Metalama version.
+                        // The referenced project must be compilable by the *current* Metalama version, because the
+                        // consuming project binds the manifest against its own compile-time closure, which contains
+                        // this reference. Obtaining the configuration is what gates that, so a failure here aborts
+                        // rather than surfacing later as a binding error attributed to the consumer.
+                        //
+                        // Note that we deliberately do not deserialize the manifest here. See the comment on the
+                        // DesignTimeProjectReference constructed below.
 
                         var pipelineResult = await this._pipelineFactory.GetOrCreatePipelineAsync( reference, cancellationToken );
 
@@ -633,18 +638,16 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                                 $"Cannot get configuration: {configuration.DebugReason}" );
                         }
 
-                        var manifest = TransitiveAspectsManifest.Deserialize(
-                            new MemoryStream( result.Manifest! ),
-                            configuration.Value.ServiceProvider,
-                            reference.Compilation.AssemblyName );
-
-                        // Also carry the raw serialized manifest (produced by the referenced project) so the consumer
-                        // can deserialize inherited aspects and options into its own compile-time copy (issue #1710).
+                        // Carry only the serialized manifest. The consumer deserializes it into its own compile-time
+                        // copy (issue #1710), so there is nothing for a live manifest to do here: a live manifest is
+                        // read exclusively by DesignTimeProjectVersion.ReferencedExtensions and
+                        // TryGetReusableTransitiveAspectsManifest, both of which need the producer's concrete
+                        // DesignTimeAspectPipelineResult, and a cross-version producer cannot supply one — its
+                        // result is an object of the *other* version's Metalama.Framework.Engine.
                         compilationReferences.Add(
                             new DesignTimeProjectReference(
                                 reference.ProjectKey,
-                                manifest,
-                                SerializedTransitiveAspectManifest.Create( result.Manifest!.ToImmutableArray() ) ) );
+                                serializedTransitiveAspectManifest: SerializedTransitiveAspectManifest.Create( result.Manifest!.ToImmutableArray() ) ) );
 
                         if ( result.IsPipelinePaused )
                         {
