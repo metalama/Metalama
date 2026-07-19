@@ -692,7 +692,26 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
            || !this.Annotations.IsEmpty
            || !this.Extensions.IsEmpty;
 
-    private TransitiveAspectsManifest CreateTransitiveManifest()
+    /// <summary>
+    /// Creates the transitive manifest. <paramref name="includeValidators"/> selects whether the design-time
+    /// validators travel in the manifest, and must match whether the consumer has the other channel that carries
+    /// them, <see cref="DesignTimeProjectVersion.ReferencedExtensions"/>:
+    /// <list type="bullet">
+    /// <item>
+    /// <c>false</c> for the in-process, same-version consumer. Its reference carries this very result as its live
+    /// <c>TransitiveAspectsManifest</c>, so <c>ReferencedExtensions</c> reads the validators out of the design-time
+    /// extension collection, which deduplicates diamond-shaped reference graphs. Putting them in the manifest as
+    /// well would deliver each validator twice (once per channel), and more than twice across a diamond, because
+    /// the manifest channel is walked once per direct reference and is not deduplicated.
+    /// </item>
+    /// <item>
+    /// <c>true</c> for the cross-version (RPC) consumer. Its reference carries a deserialized
+    /// <see cref="TransitiveAspectsManifest"/> rather than a <see cref="DesignTimeAspectPipelineResult"/>, so
+    /// <c>ReferencedExtensions</c> skips it and the manifest is the only channel available.
+    /// </item>
+    /// </list>
+    /// </summary>
+    private TransitiveAspectsManifest CreateTransitiveManifest( bool includeValidators )
         =>
 
             // ContainsInitializableTypes is set to the safe default `true` here for the same reason as in
@@ -701,7 +720,7 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
             // `false` would risk missing required WithInitialize wrapping.
             TransitiveAspectsManifest.Create(
                 this._inheritableAspects.SelectMany( g => g ).ToImmutableArray(),
-                this.Extensions.ToTransitiveValidatorInstances( true ),
+                this.Extensions.ToTransitiveValidatorInstances( includeValidators ),
                 this.InheritableOptions,
                 this.Annotations,
                 containsInitializableTypes: true );
@@ -718,7 +737,8 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
     internal SerializedTransitiveAspectManifest SerializedTransitiveAspectManifest
         => this.HasTransitiveAspectManifestContent
             ? SerializedTransitiveAspectManifest.Create(
-                this.CreateTransitiveManifest().ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false ) )
+                this.CreateTransitiveManifest( includeValidators: false )
+                    .ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false ) )
             : default;
 
     /// <summary>
@@ -729,12 +749,13 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
     /// <c>TransitivePipelineContributorSource</c>. Memoized so repeated consumer runs share one instance.
     /// </summary>
     [Memo]
-    internal TransitiveAspectsManifest LiveTransitiveAspectManifest => this.CreateTransitiveManifest();
+    internal TransitiveAspectsManifest LiveTransitiveAspectManifest => this.CreateTransitiveManifest( includeValidators: false );
 
     /// <summary>
     /// Serializes the transitive manifest for shipping over RPC to a potentially different (possibly older)
     /// Metalama version, which may only understand the legacy compressed format, so this one is compressed.
     /// </summary>
     internal byte[] SerializeTransitiveAspectManifestForRpc()
-        => this.CreateTransitiveManifest().ToBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: true );
+        => this.CreateTransitiveManifest( includeValidators: true )
+            .ToBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: true );
 }
