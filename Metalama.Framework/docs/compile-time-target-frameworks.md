@@ -203,24 +203,6 @@ producer's and consumer's `CompileTimeProject` copies depends only on configurat
 deserialized graph — which binds to the compilation via generic `CompileTimeType` (`SerializationReader`) and is
 therefore *not* configuration-scoped — that decision can legitimately be cached in the pipeline configuration.
 
-## Past observation — issue #1727 (`NETSTANDARD_2_0`, fixed)
-
-Earlier revisions force-defined `NETSTANDARD_2_0` in the parse options that
-`CompileTimeCompilationBuilder.CreateEmptyCompileTimeCompilation` builds. This was misleading: the fact that the
-compile-time compilation is built against the netstandard2.0 *reference assemblies* is a property of the reference
-set, not something that should be surfaced as a user-visible preprocessor symbol. It conflated "compiled against
-netstandard2.0 references" with "the consumer targets netstandard2.0", and it meant any code that reached this
-compilation with a live `#if NETSTANDARD_2_0` would be forced into its netstandard2.0 branch regardless of the
-consuming project's real TFM, contradicting point 3 (dead-code removal follows the *consuming* project's TFM).
-
-The symbol is now scoped correctly. It is defined only for the predefined (polyfill) system-types trees, which are
-genuinely compiled against the netstandard2.0 reference set. User compile-time trees copy the run-time compilation's
-own preprocessor symbols (in `CompileTimeCompilationBuilder.TryCreateCompileTimeCompilation`) and never define
-`NETSTANDARD_2_0`. In practice the user trees have already had their directives stripped by
-`RemovePreprocessorDirectivesRewriter` before they are created, so this is primarily a correctness and clarity
-change; note that it alters the compile-time source hash (cache key), so a full compile-time rebuild is expected on
-first run. Covered by `CompileTimeCompilationBuilderTests.UserTreesCopyRunTimePreprocessorSymbols`.
-
 ## Key code references
 
 - `CompileTimeCompilationBuilder.CreateEmptyCompileTimeCompilation` — always compiles against netstandard2.0.

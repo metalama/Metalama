@@ -321,7 +321,8 @@ internal sealed partial class CompileTimeCompilationBuilder
                     // Copy the preprocessor symbols of the run-time source tree (see issue #1727). Dead code has already
                     // been stripped according to the run-time TFM, so this is mostly for consistency, but it avoids
                     // conflating the compile-time reference set with a user-visible preprocessor symbol: unlike the
-                    // predefined (polyfill) trees, user trees must not define NETSTANDARD_2_0.
+                    // predefined (polyfill) trees, the user syntax tree is not expected to define NETSTANDARD_2_0,
+                    // except if the run-time TFM is netstandard2.0 indeed.
                     var runTimePreprocessorSymbols = ((CSharpParseOptions) t.SyntaxTree.Options).PreprocessorSymbolNames;
 
                     return CSharpSyntaxTree.Create(
