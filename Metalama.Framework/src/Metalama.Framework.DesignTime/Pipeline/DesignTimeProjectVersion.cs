@@ -22,10 +22,24 @@ internal sealed class DesignTimeProjectVersion : ITransitiveAspectManifestProvid
     public IProjectVersion ProjectVersion { get; }
 
     /// <summary>
-    /// Gets the design-time extension collections of the referenced projects. Cross-version references contribute
-    /// nothing here, because they carry no live result; their contribution travels in the serialized manifest
-    /// instead, which the engine deserializes into this project's own compile-time copy.
+    /// Gets the design-time extension collections of the referenced projects. This is one of the two channels by
+    /// which a reference's design-time validators reach this project, and it serves same-version references only.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A reference built against a different version of Metalama contributes nothing here, because it carries no
+    /// live result to read the collection from. It is not lost: it travels instead through the serialized manifest,
+    /// which <c>TransitivePipelineContributorSource</c> deserializes into this project's own compile-time copy. That
+    /// is why <c>DesignTimeAspectPipelineResult.CreateTransitiveManifest</c> puts validators in the manifest for a
+    /// cross-version consumer and keeps them out for a same-version one: whichever channel is unavailable, exactly
+    /// one carries them.
+    /// </para>
+    /// <para>
+    /// The split is not merely an optimization. This channel deduplicates diamond-shaped reference graphs, whereas
+    /// the manifest channel is walked once per direct reference and does not, so routing a same-version reference
+    /// through both delivers its validators more than once.
+    /// </para>
+    /// </remarks>
     public IEnumerable<DesignTimeAspectPipelineResultExtensionCollection> ReferencedExtensions
         => this._references.Values.Select( r => r.TransitiveAspectsManifest?.Extensions ).WhereNotNull();
 

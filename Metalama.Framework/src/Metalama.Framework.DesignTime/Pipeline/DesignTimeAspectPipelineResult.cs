@@ -687,19 +687,21 @@ public sealed partial class DesignTimeAspectPipelineResult
     /// </item>
     /// <item>
     /// <c>true</c> for a consumer built against a different version of Metalama. Such a reference carries no live
-    /// result — the producer's result is an object of the other version's <c>Metalama.Framework.Engine</c> and
-    /// cannot cross — so <c>ReferencedExtensions</c> contributes nothing for it and the manifest is the only
-    /// channel available. See <see cref="SerializeTransitiveAspectManifestForOtherVersion"/>.
+    /// result (the producer's result is an object of the other version's <c>Metalama.Framework.Engine</c> and cannot
+    /// cross), so <c>ReferencedExtensions</c> contributes nothing for it and the manifest is the only channel
+    /// available. See <see cref="SerializeTransitiveAspectManifestForOtherVersion"/>.
     /// </item>
     /// </list>
     /// </summary>
     private TransitiveAspectsManifest CreateTransitiveManifest( bool includeValidators )
         =>
 
-            // ContainsInitializableTypes is set to the safe default `true` here for the same reason as in
-            // ITransitiveAspectsManifest.ContainsInitializableTypes above: DesignTimeAspectPipelineResult does
-            // not track the flag, and `true` only causes consumers to run the walker unnecessarily, while
-            // `false` would risk missing required WithInitialize wrapping.
+            // ContainsInitializableTypes is set to the safe default `true`: DesignTimeAspectPipelineResult does not
+            // track the flag (the tracking would be useless at design time, where LinkerAnalysisStep force-runs the
+            // OnInitialized walker because the partial compilation may exclude trees declaring implementers).
+            // LinkerAnalysisStep consumes the flag to skip that walker, so `true` only makes a consumer run it
+            // unnecessarily, a performance pessimization at worst. `false` would be unsafe: a consumer reading it at
+            // compile time could miss required WithInitialize wrapping.
             TransitiveAspectsManifest.Create(
                 this._inheritableAspects.SelectMany( g => g ).ToImmutableArray(),
                 this.Extensions.ToTransitiveValidatorInstances( includeValidators ),
@@ -746,8 +748,18 @@ public sealed partial class DesignTimeAspectPipelineResult
     /// other side is what converts the manifest into the consuming version's object model.
     /// </summary>
     /// <remarks>
-    /// Compressed, unlike <see cref="SerializedTransitiveAspectManifest"/>: the consumer may be an older version
-    /// that only understands the legacy compressed format.
+    /// <para>
+    /// Compressed, unlike <see cref="SerializedTransitiveAspectManifest"/>, and not because these bytes are stored
+    /// anywhere: they are consumed in this same process and discarded, exactly like the same-version ones. The
+    /// reason is compatibility. These bytes are read by the <em>other</em> version's deserializer, and the
+    /// uncompressed format is recognized by peeking a marker byte that was only introduced in 2026.1 (issue #1710).
+    /// A peer older than that has no such peek: it would treat the marker as the first byte of a DEFLATE stream and
+    /// fail. The compressed format is the one every peer understands, so it is what we emit outwards.
+    /// </para>
+    /// <para>
+    /// This is therefore the one place that compresses without storing. Everything stored compresses too
+    /// (<c>TransitiveAspectsManifest.ToResource</c>, embedded in the PE binary), but the converse does not hold.
+    /// </para>
     /// </remarks>
     internal byte[] SerializeTransitiveAspectManifestForOtherVersion()
         => this.CreateTransitiveManifest( includeValidators: true )

@@ -20,6 +20,7 @@ using Metalama.Framework.Options;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -49,7 +50,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 /// <remarks>
 /// This regressed once already (issue #1710): the same-version reference path was rerouted from the live result,
 /// which filtered validators out, onto the manifest built for the cross-version consumer, which keeps them. Both
-/// channels then fired, and a downstream consumer reported every cross-project reference diagnostic twice — six
+/// channels then fired, and a downstream consumer reported every cross-project reference diagnostic twice, and six
 /// times across a diamond, where the undeduplicated manifest channel compounds.
 /// </remarks>
 public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
@@ -69,10 +70,16 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
     private static DesignTimeAspectPipelineResult CreateResultWithExtensions(
         TestContext testContext,
         TestDesignTimeAspectPipelineFactory factory,
-        params ITransitivePipelineContributor[] extensions )
+        Func<SymbolDictionaryKey, ITransitivePipelineContributor[]> createExtensions )
     {
         var compilation = testContext.CreateCSharpCompilation( _code );
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var executed ) );
+
+        // A real key for the validated declaration. The fixture never looks a validator up by symbol, but the key
+        // indexes the validator dictionary that Update populates, so a default (identity-less) one would be a
+        // hazard the moment anything compared keys.
+        var validatedType = compilation.GetTypeByMetadataName( "C" ).AssertNotNull();
+        var extensions = createExtensions( SymbolDictionaryKey.CreatePersistentKey( validatedType ) );
 
         var partialCompilation = PartialCompilation.CreateComplete( compilation );
 
@@ -110,19 +117,28 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        var validator = new FakeContributor( isValidator: true );
-        var other = new FakeContributor( isValidator: false );
+        FakeContributor? validator = null;
+        FakeContributor? other = null;
 
-        var result = CreateResultWithExtensions( testContext, factory, validator, other );
+        var result = CreateResultWithExtensions(
+            testContext,
+            factory,
+            key =>
+            {
+                validator = new FakeContributor( key, isValidator: true );
+                other = new FakeContributor( key, isValidator: false );
+
+                return [validator, other];
+            } );
 
         // Channel 1 has the validator: this is the channel the consumer actually reads it from, so the validator
         // must not be lost, only kept out of the manifest.
-        Assert.Contains( validator, result.Extensions.Extensions );
+        Assert.Contains( validator.AssertNotNull(), result.Extensions.Extensions );
 
         var manifestExtensions = result.LiveTransitiveAspectManifest.Extensions;
 
-        Assert.DoesNotContain( validator.ManifestExtension, manifestExtensions );
-        Assert.Contains( other.ManifestExtension, manifestExtensions );
+        Assert.DoesNotContain( validator.AssertNotNull().ManifestExtension, manifestExtensions );
+        Assert.Contains( other.AssertNotNull().ManifestExtension, manifestExtensions );
     }
 
     /// <summary>
@@ -135,9 +151,7 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        var validator = new FakeContributor( isValidator: true );
-
-        var result = CreateResultWithExtensions( testContext, factory, validator );
+        var result = CreateResultWithExtensions( testContext, factory, key => [new FakeContributor( key, isValidator: true )] );
 
         // The gate is deliberately computed from the unfiltered collection: were it to go false here, the reference
         // would carry no live manifest either, and channel 1 would lose the validator along with the manifest.
@@ -162,8 +176,10 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
     /// </summary>
     private sealed class FakeContributor : ITransitivePipelineContributor, IDesignTimeValidatorExtension
     {
-        public FakeContributor( bool isValidator )
+        public FakeContributor( SymbolDictionaryKey validatedDeclaration, bool isValidator )
         {
+            this.ValidatedDeclaration = validatedDeclaration;
+
             this.ContributorKind = new ContributorKind<FakeContributor>( isValidator ? "FakeValidator" : "FakeExtension" )
             {
                 IsDesignTimeValidator = isValidator
@@ -186,7 +202,7 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
 
         public ReferenceIndexerRequirements? ReferenceIndexerRequirements => null;
 
-        public SymbolDictionaryKey ValidatedDeclaration => default;
+        public SymbolDictionaryKey ValidatedDeclaration { get; }
     }
 
     private sealed class FakeManifestExtension : ITransitiveAspectsManifestExtension

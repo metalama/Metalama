@@ -9,7 +9,9 @@ using Metalama.Framework.Engine.Aspects;
 namespace Metalama.Framework.DesignTime.Pipeline;
 
 /// <summary>
-/// Associates a <see cref="ProjectKey"/> and a <see cref="TransitiveAspectsManifest"/>.
+/// A referenced project, as seen by the referencing project's design-time pipeline: a <see cref="ProjectKey"/>, the
+/// serialized transitive manifest when the reference exports anything to inherit, and, for a reference built against
+/// the same version of Metalama, that project's live pipeline result as well.
 /// </summary>
 internal readonly struct DesignTimeProjectReference
 {
@@ -26,7 +28,7 @@ internal readonly struct DesignTimeProjectReference
     /// against a different version of Metalama. Used only by
     /// <see cref="DesignTimeProjectVersion.ReferencedExtensions"/> and
     /// <see cref="DesignTimeProjectVersion.TryGetReusableTransitiveAspectsManifest"/>, both of which need the
-    /// concrete <see cref="DesignTimeAspectPipelineResult"/> — the first to read its design-time extension
+    /// concrete <see cref="DesignTimeAspectPipelineResult"/>: the first to read its design-time extension
     /// collections (a shape the serialized manifest does not carry), the second to reuse the producer's live objects
     /// and its configuration.
     /// </summary>
