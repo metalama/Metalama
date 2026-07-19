@@ -76,6 +76,35 @@ public sealed class TelemetryContextTests : TestsBase
     }
 
     [Fact]
+    public void GetPolicy_DirectoryOutsideRepository_AllScenariosDisabled()
+    {
+        // The project directory is known but is not inside a git repository (no .git found while walking up). Just like
+        // the tooling policy, GetPolicy must disable telemetry because there is no repository context. See #1715.
+        var policy = this.TelemetryService.GetPolicy( _projectDirectory );
+
+        Assert.Equal( TelemetryConsent.No, policy.GetConsent( TelemetryScenario.Usage ) );
+        Assert.Equal( TelemetryConsent.No, policy.GetConsent( TelemetryScenario.Exception ) );
+        Assert.Equal( TelemetryConsent.No, policy.GetConsent( TelemetryScenario.Performance ) );
+    }
+
+    [Fact]
+    public void GetPolicy_DirectoryOutsideRepository_PerformsNoTelemetryAndNeverActivates()
+    {
+        // A known project directory outside any git repository collects/sends no telemetry and never activates telemetry
+        // (no device identifier is ever written), mirroring the repository opt-out guarantee. See #1715.
+        var context = this.TelemetryService.OpenContext( this.TelemetryService.GetPolicy( _projectDirectory ) );
+
+        using ( var session = context.StartUsageSession( "TestUsage", "Project1" ) )
+        {
+            Assert.False( session.ShouldCollectMetrics );
+        }
+
+        context.ReportException( new InvalidOperationException( "test" ) );
+
+        Assert.Null( this.DeviceId );
+    }
+
+    [Fact]
     public void RepositoryOptOut_PerformsNoTelemetryAndNeverActivates()
     {
         // This is the critical guarantee: a repository-wide opt-out collects/sends no telemetry and never even
@@ -323,6 +352,17 @@ public sealed class TelemetryContextTests : TestsBase
     public void Reason_GetPolicyWithoutDirectory_IsNoRepositoryContext()
     {
         var (consent, reason) = this.TelemetryService.GetPolicy( null ).GetConsentAndReason( TelemetryScenario.Usage );
+
+        Assert.Equal( TelemetryConsent.No, consent );
+        Assert.Equal( TelemetryDisabledReason.NoRepositoryContext, reason );
+    }
+
+    [Fact]
+    public void Reason_GetPolicyDirectoryOutsideRepository_IsNoRepositoryContext()
+    {
+        // A known project directory outside any git repository has no repository context, so GetPolicy must report the
+        // same reason as the tooling policy and as GetPolicy(null). See #1715.
+        var (consent, reason) = this.TelemetryService.GetPolicy( _projectDirectory ).GetConsentAndReason( TelemetryScenario.Usage );
 
         Assert.Equal( TelemetryConsent.No, consent );
         Assert.Equal( TelemetryDisabledReason.NoRepositoryContext, reason );

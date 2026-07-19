@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using System;
 
 namespace Metalama.Framework.Engine.CompileTime.Serialization;
@@ -71,9 +72,13 @@ internal sealed class CompileTimeSerializationBinder : BaseCompileTimeSerializat
         if ( assemblyName.Equals( "mscorlib", StringComparison.Ordinal )
              || assemblyName.Equals( "System.Private.CoreLib", StringComparison.Ordinal ) )
         {
-            // We have a reference to a system assembly, which is different under .NET Framework and .NET Core.
-            // Replace by the current system assembly.
-            assemblyName = _systemAssemblyName;
+            // We have a reference to a system assembly, whose simple name differs between .NET Framework (mscorlib)
+            // and .NET Core (System.Private.CoreLib). Resolve the type against the corlib currently loaded in this
+            // process. We resolve it directly here rather than delegating to the base binder: the base binder looks up
+            // assembly names in a dictionary keyed by simple name, so the full corlib name would always miss and log a
+            // spurious "is not a known assembly name" warning (#1732). This short-circuit reproduces the resolution the
+            // base binder would have performed anyway (the corlib is never a compile-time domain assembly).
+            return Type.GetType( ReflectionHelper.GetAssemblyQualifiedTypeName( typeName, _systemAssemblyName ) );
         }
 
         if ( this._project != null && this._project.TryGetType( typeName, assemblyName, out var type ) )
