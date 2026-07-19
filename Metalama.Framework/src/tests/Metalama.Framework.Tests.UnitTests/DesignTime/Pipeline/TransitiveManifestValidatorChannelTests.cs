@@ -62,11 +62,16 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
                                  """;
 
     /// <summary>
-    /// Builds a pipeline result whose design-time extension collection holds <paramref name="extensions"/>, by
-    /// executing a trivial pipeline (which supplies a real <c>AspectPipelineConfiguration</c>, required by the
-    /// result's non-empty invariant) and then updating it with a fabricated execution result. Going through
-    /// <c>Update</c> exercises the real routing into <c>DesignTimeAspectPipelineResultExtensionCollection</c>.
+    /// Builds a pipeline result whose design-time extension collection holds the contributors returned by
+    /// <paramref name="createExtensions"/>, by executing a trivial pipeline (which supplies a real
+    /// <c>AspectPipelineConfiguration</c>, required by the result's non-empty invariant) and then updating it with a
+    /// fabricated execution result. Going through <c>Update</c> exercises the real routing into
+    /// <c>DesignTimeAspectPipelineResultExtensionCollection</c>.
     /// </summary>
+    /// <param name="createExtensions">
+    /// Builds the contributors, given a <see cref="SymbolDictionaryKey"/> for a type of the test compilation, which
+    /// only exists once the compilation does.
+    /// </param>
     private static DesignTimeAspectPipelineResult CreateResultWithExtensions(
         TestContext testContext,
         TestDesignTimeAspectPipelineFactory factory,
