@@ -675,7 +675,7 @@ public sealed partial class DesignTimeAspectPipelineResult
 
     /// <summary>
     /// Creates the transitive manifest. <paramref name="includeValidators"/> selects whether the design-time
-    /// validators travel in the manifest, and must match whether the consumer has the other channel that carries
+    /// validators are included in the manifest, and must match whether the consumer has the other channel that carries
     /// them, <see cref="DesignTimeProjectVersion.ReferencedExtensions"/>:
     /// <list type="bullet">
     /// <item>
@@ -710,16 +710,36 @@ public sealed partial class DesignTimeAspectPipelineResult
                 containsInitializableTypes: true );
 
     /// <summary>
-    /// Gets the transitive manifest serialized for a consumer built against the <em>same</em> version of Metalama.
-    /// It exists because the consumer must bind the manifest to its own compile-time copy of each type, which a
-    /// round-trip through the serialized form is what achieves (issue #1710); it is not a version bridge. Serialized
-    /// uncompressed, unlike <see cref="SerializeTransitiveAspectManifestForOtherVersion"/>: producer and consumer
-    /// are the same version, so no legacy format has to be honoured and compression would be pure overhead on bytes
-    /// that are produced, consumed and discarded immediately. Returns <c>default</c> when there is nothing to inherit
-    /// (see <see cref="HasTransitiveAspectManifestContent"/>), so a referencing project neither serializes here nor
+    /// Gets the transitive manifest serialized for the design-time pipeline of a referencing project running the
+    /// same version of Metalama in this same process.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A manifest is serialized in exactly three places, and they differ only in which boundary the bytes have to
+    /// cross. <see cref="SerializeTransitiveAspectManifestForOtherVersion"/> crosses a Metalama version.
+    /// <c>TransitiveAspectsManifest.ToResource</c> crosses a process and an arbitrary amount of time, being embedded
+    /// in the PE binary and read by whichever version later compiles against that assembly. This one crosses
+    /// neither: it is produced and consumed by this build, in this process, and then discarded.
+    /// </para>
+    /// <para>
+    /// It exists because a boundary remains even so. The consuming project has to bind the manifest to <em>its own</em>
+    /// compile-time copy of each type, and the round-trip through run-time type names is what rebinds them (issue
+    /// #1710). Two projects of the same Metalama version can hold different compile-time copies, typically when a
+    /// shared assembly is multi-targeted, so what this crosses is a compile-time copy, not a version. When the copies
+    /// do match, the consumer skips it and reuses <see cref="LiveTransitiveAspectManifest"/> instead.
+    /// </para>
+    /// <para>
+    /// Having no version to cross is separately what lets it stay uncompressed: the only reader is this build, which
+    /// understands the uncompressed marker. That is the sole reason the cross-version form still compresses, so the
+    /// two are not inconsistent. See the remarks there, and issue #1737.
+    /// </para>
+    /// <para>
+    /// Returns <c>default</c> when there is nothing to inherit (see
+    /// <see cref="HasTransitiveAspectManifestContent"/>), so a referencing project neither serializes here nor
     /// deserializes and merges an empty manifest on the other side. That is the common case for a Metalama project
     /// exporting no inheritable aspects, options, annotations, or validators.
-    /// </summary>
+    /// </para>
+    /// </remarks>
     [Memo]
     internal SerializedTransitiveAspectManifest SerializedTransitiveAspectManifest
         => this.HasTransitiveAspectManifestContent
