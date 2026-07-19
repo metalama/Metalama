@@ -32,7 +32,9 @@ public sealed class WelcomePageServiceTests : TestsBase
 
     private async Task OpenTelemetrySession()
     {
-        this.FileSystem.CreateDirectory( "C:\\Src" );
+        // Create a .git folder so the directory is a git repository: telemetry is only enabled when there is a
+        // repository context (see #1715).
+        this.FileSystem.CreateDirectory( "C:\\Src\\.git" );
         var telemetryService = this.ServiceProvider.GetRequiredBackstageService<ITelemetryService>();
         var telemetryContext = telemetryService.OpenContext( telemetryService.GetPolicy( "C:\\Src" ) );
         telemetryContext.StartUsageSession( "Test" );

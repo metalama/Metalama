@@ -39,6 +39,14 @@ internal sealed class TelemetryService : ITelemetryService
         // directory is non-null here (guarded above), but string.IsNullOrEmpty is not annotated on all target frameworks.
         var repositoryConfigurationResult = this._repositoryConfigurationService.GetRepositoryConfiguration( directory! );
 
+        if ( !repositoryConfigurationResult.IsRepository )
+        {
+            // The directory is known but is not inside a git repository, so there is no repository context to consult:
+            // disable telemetry, exactly like GetToolingPolicy does for the process working directory. The local crash
+            // report is still written. See #1715.
+            return NullTelemetryPolicy.NoContext;
+        }
+
         // The repository opts out when metalama.json explicitly sets telemetry.enabled = false. An explicit true (or an
         // absent setting) does not override the process-level / per-category gates: those are evaluated per scenario by
         // the policy through ITelemetryConfigurationService.GetEffectiveReportingAction.
