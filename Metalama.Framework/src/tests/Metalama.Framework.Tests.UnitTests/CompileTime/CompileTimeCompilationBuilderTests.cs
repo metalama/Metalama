@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
@@ -1287,6 +1288,89 @@ RemainingNamespace
 ";
 
             AssertEx.EolInvariantEqual( expected, compileTimeCode );
+        }
+
+        /// <summary>
+        /// An <see cref="ICompileTimeCompilationBuilderObserver"/> that captures the compile-time <see cref="Compilation"/>
+        /// so that a test can inspect the parse options of its syntax trees.
+        /// </summary>
+        private sealed class CapturingObserver : ICompileTimeCompilationBuilderObserver
+        {
+            /// <summary>
+            /// Gets the compile-time compilation captured by the last call to <see cref="OnCompileTimeCompilation"/>.
+            /// </summary>
+            public Compilation? CompileTimeCompilation { get; private set; }
+
+            public void OnCompileTimeCompilation( Compilation compilation, IReadOnlyDictionary<string, string> compileTimeToSourceMap )
+                => this.CompileTimeCompilation = compilation;
+
+            public void OnCompileTimeCompilationEmit( ImmutableArray<Diagnostic> diagnostics ) { }
+        }
+
+        /// <summary>
+        /// Regression test for issue #1727. Verifies that user (non-predefined) compile-time syntax trees are parsed
+        /// with the run-time compilation's preprocessor symbols, and are not forced to define <c>NETSTANDARD_2_0</c>,
+        /// while predefined (polyfill/system) syntax trees keep the <c>NETSTANDARD_2_0</c> symbol they are compiled against.
+        /// </summary>
+        [Fact]
+        public void UserTreesCopyRunTimePreprocessorSymbols()
+        {
+            var observer = new CapturingObserver();
+            var mocks = new AdditionalServiceCollection();
+            mocks.AddProjectService<ICompileTimeCompilationBuilderObserver>( observer );
+
+            using var testContext = this.CreateTestContext( mocks );
+
+            const string code = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+[assembly: CompileTime]
+public class ReferencedClass
+{
+}
+";
+
+            var roslynCompilation = testContext.CreateCSharpCompilation( code, preprocessorSymbols: ["METALAMA", "MY_RUNTIME_SYMBOL"] );
+            var domain = testContext.Domain;
+            var builder = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+            DiagnosticBag diagnosticBag = new();
+
+            Assert.True(
+                builder.TryGetCompileTimeProjectFromCompilation(
+                    roslynCompilation,
+                    null,
+                    diagnosticBag,
+                    false,
+                    testContext.CancellationToken,
+                    out _ ) );
+
+            Assert.NotNull( observer.CompileTimeCompilation );
+
+            var userTrees = observer.CompileTimeCompilation.SyntaxTrees
+                .Where( t => !CompileTimeConstants.IsPredefinedSyntaxTree( t.FilePath ) )
+                .ToReadOnlyList();
+
+            var systemTrees = observer.CompileTimeCompilation.SyntaxTrees
+                .Where( t => CompileTimeConstants.IsPredefinedSyntaxTree( t.FilePath ) )
+                .ToReadOnlyList();
+
+            Assert.NotEmpty( userTrees );
+            Assert.NotEmpty( systemTrees );
+
+            // User trees copy the run-time compilation's preprocessor symbols and must not force NETSTANDARD_2_0.
+            foreach ( var tree in userTrees )
+            {
+                var symbols = ((CSharpParseOptions) tree.Options).PreprocessorSymbolNames;
+                Assert.Contains( "MY_RUNTIME_SYMBOL", symbols );
+                Assert.DoesNotContain( "NETSTANDARD_2_0", symbols );
+            }
+
+            // Predefined (polyfill) trees keep NETSTANDARD_2_0 because they are compiled against the netstandard2.0 reference set.
+            foreach ( var tree in systemTrees )
+            {
+                var symbols = ((CSharpParseOptions) tree.Options).PreprocessorSymbolNames;
+                Assert.Contains( "NETSTANDARD_2_0", symbols );
+            }
         }
 
         [Fact]
