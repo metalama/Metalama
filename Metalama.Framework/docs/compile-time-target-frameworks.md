@@ -22,9 +22,12 @@ into a `CompileTimeDomain`, which owns a `MetalamaAssemblyLoadContext` (a .NET `
 
 2. **The compile-time compilation always targets `netstandard2.0`.** Regardless of the consuming project's
    run-time TFM, the compile-time assembly is compiled against the `netstandard2.0` reference assemblies
-   (`CompileTimeAssemblyLocator` reads `assemblies-netstandard2.0.txt`) and with the `NETSTANDARD_2_0`
-   preprocessor symbol defined (`CompileTimeCompilationBuilder.CreateEmptyCompileTimeCompilation`). There is only
-   ever one *flavor* of compiled compile-time IL: netstandard2.0.
+   (`CompileTimeAssemblyLocator` reads `assemblies-netstandard2.0.txt`). There is only ever one *flavor* of compiled
+   compile-time IL: netstandard2.0. The `NETSTANDARD_2_0` preprocessor symbol is defined **only** for the predefined
+   (polyfill) system-types trees, which are genuinely compiled against the netstandard2.0 reference set
+   (`CompileTimeCompilationBuilder.CreateEmptyCompileTimeCompilation`). User compile-time trees do **not** define
+   `NETSTANDARD_2_0`; they copy the run-time compilation's own preprocessor symbols, so that (per point 3) any
+   preprocessor logic follows the consuming project's real TFM rather than being forced into a netstandard2.0 branch.
 
 3. **Metalama builds one compile-time assembly per run-time TFM.** Even though the compilation targets
    netstandard2.0, the compile-time *source* can differ per run-time TFM, because the compile-time code is
@@ -199,21 +202,6 @@ round-trip is pure overhead. A "pay only when the copies differ" fast path is th
 producer's and consumer's `CompileTimeProject` copies depends only on configuration-scoped state, so unlike the
 deserialized graph — which binds to the compilation via generic `CompileTimeType` (`SerializationReader`) and is
 therefore *not* configuration-scoped — that decision can legitimately be cached in the pipeline configuration.
-
-## Observations and potential issues (to revisit, not yet fixed)
-
-- **Force-defining `NETSTANDARD_2_0` is confusing and probably wrong.**
-  `CompileTimeCompilationBuilder.CreateEmptyCompileTimeCompilation` appends `"NETSTANDARD_2_0"` to the
-  preprocessor symbols of the parse options it builds (around line 392). This is misleading: the fact that the
-  compile-time compilation is built against the netstandard2.0 *reference assemblies* is a property of the
-  reference set, not something that should be surfaced as a user-visible preprocessor symbol. It conflates
-  "compiled against netstandard2.0 references" with "the consumer targets netstandard2.0", and it means any code
-  that reaches this compilation with a live `#if NETSTANDARD_2_0` would be forced into its netstandard2.0 branch
-  regardless of the consuming project's real TFM — which contradicts point 3 (dead-code removal is supposed to
-  follow the *consuming* project's TFM). The compile-time code trees themselves are parsed separately with no
-  preprocessor symbols and have already had their directives stripped, so in practice the symbol currently only
-  affects the predefined-types trees; but the symbol should most likely not be defined at all. Flagged for
-  removal/clarification; not changed here.
 
 ## Key code references
 
