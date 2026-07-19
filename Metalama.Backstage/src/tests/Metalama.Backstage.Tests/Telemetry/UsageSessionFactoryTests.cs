@@ -75,7 +75,10 @@ public sealed class UsageSessionFactoryTests : TestsBase
     private IUsageSession CreateUsageSession( string kind = "TestSession" )
     {
         var telemetryService = this.ServiceProvider.GetRequiredBackstageService<ITelemetryService>();
-        this.FileSystem.CreateDirectory( "C:\\src" );
+
+        // Create a .git folder so the directory is a git repository: telemetry is only enabled when there is a
+        // repository context (see #1715).
+        this.FileSystem.CreateDirectory( "C:\\src\\.git" );
         var telemetryPolicy = telemetryService.GetPolicy( "C:\\src" );
         var telemetryContext = telemetryService.OpenContext( telemetryPolicy );
         var session = telemetryContext.StartUsageSession( kind );

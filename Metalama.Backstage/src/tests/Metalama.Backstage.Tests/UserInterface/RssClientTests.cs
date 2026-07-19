@@ -61,7 +61,10 @@ public sealed class RssClientTests : TestsBase
         base.OnAfterServicesCreated( services );
         
         var telemetryService = services.ServiceProvider.GetRequiredBackstageService<ITelemetryService>();
-        services.FileSystem.CreateDirectory( "C:\\src" );
+
+        // Create a .git folder so the directory is a git repository: telemetry is only enabled when there is a
+        // repository context (see #1715).
+        services.FileSystem.CreateDirectory( "C:\\src\\.git" );
         this._telemetryContext = telemetryService.OpenContext( telemetryService.GetPolicy( "C:\\src" ) );
     }
 
