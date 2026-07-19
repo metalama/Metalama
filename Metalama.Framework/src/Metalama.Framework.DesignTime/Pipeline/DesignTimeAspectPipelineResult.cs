@@ -28,7 +28,7 @@ namespace Metalama.Framework.DesignTime.Pipeline;
 /// <summary>
 /// Caches the pipeline results for each syntax tree.
 /// </summary>
-public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsManifest
+public sealed partial class DesignTimeAspectPipelineResult
 {
     private static readonly ImmutableDictionary<string, SyntaxTreePipelineResult> _emptySyntaxTreeResults =
         ImmutableDictionary.Create<string, SyntaxTreePipelineResult>( StringComparer.Ordinal );
@@ -653,25 +653,6 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
     public IEnumerable<string> InheritableAspectTypes => this._inheritableAspects.Keys;
 
     public IEnumerable<InheritableAspectInstance> GetInheritableAspects( string aspectType ) => this._inheritableAspects[aspectType];
-
-    /// <summary>
-    /// At design time, cross-project reference validators are not added to the main pipeline. Instead, the validator
-    /// provider recursively includes the providers of referenced projects. However, cross-project references are
-    /// still used for PE references.
-    /// </summary>
-    ImmutableArray<ITransitiveAspectsManifestExtension> ITransitiveAspectsManifest.Extensions => this.Extensions.ToTransitiveValidatorInstances( false );
-
-    /// <summary>
-    /// Gets a value indicating whether the compilation contains <c>IInitializable</c> implementers.
-    /// <see cref="DesignTimeAspectPipelineResult"/> does not track this (the tracking would be useless at design
-    /// time, where <c>LinkerAnalysisStep</c> force-runs the <c>OnInitialized</c> walker because the partial
-    /// compilation may exclude trees declaring implementers). We therefore report the safe default <c>true</c>: the
-    /// flag is consumed by <c>LinkerAnalysisStep</c> to skip the walker, and returning <c>true</c> just forces the
-    /// walker to run, which is a performance pessimization at worst, never a correctness bug. Returning
-    /// <c>false</c> would be unsafe: if any consumer reads this at compile time, it could miss required
-    /// <c>WithInitialize</c> wrapping.
-    /// </summary>
-    bool ITransitiveAspectsManifest.ContainsInitializableTypes => true;
 
     /// <summary>
     /// Gets a value indicating whether this project exports something a referencing project could inherit: an
