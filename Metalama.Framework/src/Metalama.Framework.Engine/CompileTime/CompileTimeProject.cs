@@ -243,10 +243,15 @@ internal sealed class CompileTimeProject : IProjectService
 
         this._assembly = assembly;
 
-        // In design-time scenarios, we might have duplicated projects for dependencies. For instance, with the project graph `ProjectA -> { ProjectB, Metalama.Framework }; ProjectB -> Metalama.Framework`, 
-        // the project (or dependency) `Metalama.Framework` will be referenced twice. We need to remove the duplicates.
-        var closure = this.SelectManyRecursive( p => p.References, true );
-        this.ClosureProjects = closure.GroupBy( p => p.UniqueKey ).Select( g => g.First() ).ToImmutableArray();
+        // In design-time scenarios, we might have duplicated projects for dependencies. For instance, with the project
+        // graph `ProjectA -> { ProjectB, Metalama.Framework }; ProjectB -> Metalama.Framework`, the project (or
+        // dependency) `Metalama.Framework` will be referenced twice. We need to remove the duplicates. The
+        // deduplication happens during the walk and not afterwards, because a walk that does not prune already-visited
+        // projects enumerates every distinct path through the reference graph, and that count grows exponentially with
+        // the number of diamonds in it.
+        this.ClosureProjects = new[] { this }
+            .SelectManyRecursiveDistinct( p => p.References, UniqueKeyComparer.Instance )
+            .ToImmutableArray();
         this.DiagnosticManifest = diagnosticManifest ?? this.GetDiagnosticManifest( serviceProvider );
         this.ClosureDiagnosticManifest = new DiagnosticManifest( this.ClosureProjects.SelectAsImmutableArray( p => p.DiagnosticManifest ) );
 
@@ -578,11 +583,28 @@ internal sealed class CompileTimeProject : IProjectService
         }
     }
 
+    /// <summary>
+    /// Gets a key that identifies the project within a closure. It combines both identities because a closure can
+    /// legitimately contain several compile-time copies of the same run-time assembly (one per target framework),
+    /// which share a <see cref="RunTimeIdentity"/> and differ only in their <see cref="CompileTimeIdentity"/>.
+    /// </summary>
     [Memo]
     public string UniqueKey => $"{this.RunTimeIdentity} -> {this.CompileTimeIdentity}";
 
-
     public override string ToString() => this.UniqueKey;
+
+    /// <summary>
+    /// Compares projects by <see cref="UniqueKey"/>, so that the several instances a design-time closure can hold
+    /// for the same project collapse into one.
+    /// </summary>
+    private sealed class UniqueKeyComparer : IEqualityComparer<CompileTimeProject>
+    {
+        public static UniqueKeyComparer Instance { get; } = new();
+
+        public bool Equals( CompileTimeProject? x, CompileTimeProject? y ) => string.Equals( x?.UniqueKey, y?.UniqueKey, StringComparison.Ordinal );
+
+        public int GetHashCode( CompileTimeProject obj ) => StringComparer.Ordinal.GetHashCode( obj.UniqueKey );
+    }
 
     /// <summary>
     /// Gets a <see cref="TextMapFile"/> given a the path of the transformed code file.

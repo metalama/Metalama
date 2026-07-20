@@ -252,6 +252,14 @@ internal sealed partial class CompileTimeProjectRepository
                         out referencedProject );
 
                 case CompilationReference compilationReference:
+                    // The same assembly identity can be reached through more than one reference, so serve a project
+                    // this Builder has already resolved from the cache, as the PortableExecutableReference path does.
+                    // This also keeps the Add below from throwing on a duplicate key.
+                    if ( this._projects.TryGetValue( compilationReference.Compilation.Assembly.Identity, out referencedProject ) )
+                    {
+                        return true;
+                    }
+
                     // Issue #1611: at design time, when the upstream's pipeline is already running and has a built
                     // CompileTimeProject, reuse it rather than recursively building a fresh projection. This ensures
                     // both pipelines share the same physical loaded assembly for the upstream and prevents the
