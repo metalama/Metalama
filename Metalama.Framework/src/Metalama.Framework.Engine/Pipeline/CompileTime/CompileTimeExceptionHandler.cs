@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
@@ -23,12 +24,14 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
         private readonly ITelemetryService? _telemetryService;
         private readonly IStandardDirectories? _standardDirectories;
         private readonly IProjectOptions? _projectOptions;
+        private readonly ILogger _logger;
 
         public CompileTimeExceptionHandler( IServiceProvider serviceProvider )
         {
             this._telemetryService = serviceProvider.GetBackstageService<ITelemetryService>();
             this._standardDirectories = serviceProvider.GetBackstageService<IStandardDirectories>();
             this._projectOptions = (IProjectOptions?) serviceProvider.GetService( typeof(IProjectOptions) );
+            this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(CompileTimeExceptionHandler) );
         }
 
         // Writes the rich crash report. Returns <c>true</c> and sets <paramref name="reportFile"/> to the written path on
@@ -119,6 +122,18 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                 var exceptionToString = exception.ToString();
                 exceptionText.AppendLine( "===== Exception ===== " );
                 exceptionText.AppendLine( exceptionToString );
+
+                // ReflectionTypeLoadException.ToString does not render LoaderExceptions, so without this section the
+                // report says only that some types could not be loaded, never which assembly failed to bind.
+                var loaderExceptionsText = LoaderExceptionsHelper.GetLoaderExceptionsText( exception );
+
+                if ( loaderExceptionsText != null )
+                {
+                    exceptionText.AppendLine( "===== Loader Exceptions =====" );
+                    exceptionText.AppendLine( loaderExceptionsText );
+
+                    this._logger.Error?.Log( $"Loader exceptions of {exception.GetType().Name}:{Environment.NewLine}{loaderExceptionsText}" );
+                }
 
                 if ( node != null )
                 {
