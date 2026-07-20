@@ -55,25 +55,25 @@ namespace Metalama.Framework.Engine.Collections
         /// the input item type. Prefer this over <see cref="ToImmutableDictionaryOfArray{TItem,TKey,TValue}"/> when
         /// the result is built once and thereafter only read.
         /// </summary>
-        public static DictionaryOfList<TKey, TValue> ToDictionaryOfList<TItem, TKey, TValue>(
+        public static IReadOnlyDictionaryOfList<TKey, TValue> ToReadOnlyDictionaryOfList<TItem, TKey, TValue>(
             this IEnumerable<TItem> enumerable,
             Func<TItem, TKey> getKey,
             Func<TItem, TValue> getValue,
             IEqualityComparer<TKey>? keyComparer = null )
             where TKey : notnull
-            => DictionaryOfList<TKey, TValue>.Create( enumerable, getKey, getValue, keyComparer );
+            => DictionaryOfList<TKey, TValue>.Create( enumerable, getKey, getValue, keyComparer ).Freeze();
 
         /// <summary>
         /// Builds a <see cref="DictionaryOfList{TKey,TValue}"/> from a collection, with the same value type as the
         /// input item type. Prefer this over <see cref="ToImmutableDictionaryOfArray{TItem,TKey}"/> when the result
         /// is built once and thereafter only read.
         /// </summary>
-        public static DictionaryOfList<TKey, TItem> ToDictionaryOfList<TItem, TKey>(
+        public static IReadOnlyDictionaryOfList<TKey, TItem> ToReadOnlyDictionaryOfList<TItem, TKey>(
             this IEnumerable<TItem> enumerable,
             Func<TItem, TKey> getKey,
             IEqualityComparer<TKey>? keyComparer = null )
             where TKey : notnull
-            => enumerable.ToDictionaryOfList( getKey, i => i, keyComparer );
+            => enumerable.ToReadOnlyDictionaryOfList( getKey, i => i, keyComparer );
 
         public static IReadOnlyCollection<T> Concat<T>( params IReadOnlyCollection<T>[] collections )
         {

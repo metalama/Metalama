@@ -20,7 +20,7 @@ public static partial class JsonSerializationHelper
         public AnnotationWriter( SerializableSyntaxTree parent, CancellationToken cancellationToken )
         {
             this._cancellationToken = cancellationToken;
-            this._annotations = parent.Annotations.ToDictionaryOfList( a => a.SpanStart ).Freeze();
+            this._annotations = parent.Annotations.ToReadOnlyDictionaryOfList( a => a.SpanStart );
         }
 
         public override SyntaxToken VisitToken( SyntaxToken token )

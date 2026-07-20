@@ -261,10 +261,10 @@ internal sealed partial class CompileTimeProjectRepository
                          && upstreamProvider.TryGetUpstreamConfiguration( compilationReference.Compilation, out var upstreamConfig )
                          && upstreamConfig.CompileTimeProject is { } upstreamProject )
                     {
-                        // Cache by AssemblyIdentity so subsequent identity-keyed lookups within this Builder
-                        // hit the same instance.
-                        this._projects[upstreamProject.RunTimeIdentity] = upstreamProject;
+                        // Cache by AssemblyIdentity so subsequent identity-keyed lookups within this Builder hit the same instance.
+                        this._projects.Add( upstreamProject.RunTimeIdentity, upstreamProject );
                         referencedProject = upstreamProject;
+
                         this._logger.Trace?.Log(
                             $"Reusing upstream pipeline's CompileTimeProject for '{compilationReference.Compilation.AssemblyName}' (issue #1611)." );
 

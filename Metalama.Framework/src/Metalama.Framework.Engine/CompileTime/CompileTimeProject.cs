@@ -120,7 +120,7 @@ internal sealed class CompileTimeProject : IProjectService
     /// </remarks>
     [Memo]
     internal IReadOnlyDictionaryOfList<string, CompileTimeProject> ClosureProjectsGroupedByRunTimeAssemblyName
-        => this.ClosureProjects.ToDictionaryOfList( p => p.RunTimeIdentity.Name, p => p ).Freeze();
+        => this.ClosureProjects.ToReadOnlyDictionaryOfList( p => p.RunTimeIdentity.Name, p => p );
 
     private bool TryGetProjectByRunTimeAssemblyName( string runTimeName, [NotNullWhen( true )] out CompileTimeProject? project )
         => this.ClosureProjectsByRunTimeAssemblyName.TryGetValue( runTimeName, out project );
@@ -136,8 +136,7 @@ internal sealed class CompileTimeProject : IProjectService
     [Memo]
     private IReadOnlyDictionaryOfList<string, (CompileTimeFileManifest File, CompileTimeProject Project)> ClosureCodeFiles
         => this.ClosureProjects.SelectMany( p => p.CodeFiles.SelectAsReadOnlyList( f => (f, p) ) )
-            .ToDictionaryOfList( f => f.f.TransformedPath, f => f )
-            .Freeze();
+            .ToReadOnlyDictionaryOfList( f => f.f.TransformedPath, f => f );
 
     [Memo]
     public IReadOnlyList<string> ClosureOptionTypes
@@ -243,7 +242,11 @@ internal sealed class CompileTimeProject : IProjectService
         this.References = references;
 
         this._assembly = assembly;
-        this.ClosureProjects = this.SelectManyRecursiveDistinct( p => p.References ).ToImmutableArray();
+
+        // In design-time scenarios, we might have duplicated projects for dependencies. For instance, with the project graph `ProjectA -> { ProjectB, Metalama.Framework }; ProjectB -> Metalama.Framework`, 
+        // the project (or dependency) `Metalama.Framework` will be referenced twice. We need to remove the duplicates.
+        var closure = this.SelectManyRecursive( p => p.References, true );
+        this.ClosureProjects = closure.GroupBy( p => p.UniqueKey ).Select( g => g.First() ).ToImmutableArray();
         this.DiagnosticManifest = diagnosticManifest ?? this.GetDiagnosticManifest( serviceProvider );
         this.ClosureDiagnosticManifest = new DiagnosticManifest( this.ClosureProjects.SelectAsImmutableArray( p => p.DiagnosticManifest ) );
 
@@ -575,7 +578,11 @@ internal sealed class CompileTimeProject : IProjectService
         }
     }
 
-    public override string ToString() => this.RunTimeIdentity.ToString();
+    [Memo]
+    public string UniqueKey => $"{this.RunTimeIdentity} -> {this.CompileTimeIdentity}";
+
+
+    public override string ToString() => this.UniqueKey;
 
     /// <summary>
     /// Gets a <see cref="TextMapFile"/> given a the path of the transformed code file.

@@ -54,8 +54,7 @@ internal static class AspectLayerSorter
         var aspectNameToIndicesMapping =
             unsortedAspectLayers
                 .Select( ( t, i ) => (t.AspectName, Index: i) )
-                .ToDictionaryOfList( p => p.AspectName, p => p.Index )
-                .Freeze();
+                .ToReadOnlyDictionaryOfList( p => p.AspectName, p => p.Index );
 
         var aspectLayerNameToLocationsMapping = new DictionaryOfList<string, AspectOrderSpecification>();
 
