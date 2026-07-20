@@ -245,7 +245,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
         bool firstConnection,
         CancellationToken cancellationToken = default )
     {
-        ImmutableArray<RpcClient> newClients = ImmutableArray<RpcClient>.Empty;
+        var newClients = ImmutableArray<RpcClient>.Empty;
 
         // Tracked outside the try so the catch can dispose them on any failure between
         // RegisterPending and the publish handoff to _connectionByStream.

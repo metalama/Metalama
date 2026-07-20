@@ -27,11 +27,10 @@ namespace Metalama.Framework.Engine.CompileTime
 
         public AssemblyLocator( IServiceProvider serviceProvider, IEnumerable<PortableExecutableReference> references )
         {
-            this._referencesByName = references.ToDictionaryOfList(
-                    x => GetAssemblyShortName( x ) ?? _unknownAssemblyName,
-                    x => x,
-                    StringComparer.OrdinalIgnoreCase )
-                .Freeze();
+            this._referencesByName = references.ToReadOnlyDictionaryOfList(
+                x => GetAssemblyShortName( x ) ?? _unknownAssemblyName,
+                x => x,
+                StringComparer.OrdinalIgnoreCase );
 
             this._logger = serviceProvider.GetLoggerFactory().GetLogger( "AssemblyLocator" );
         }

@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections;
+using System.Reflection;
 using System.Xml;
 using JetBrains.Annotations;
 
@@ -116,6 +117,28 @@ namespace Metalama.Backstage.Telemetry
                 writer.WriteStartElement( "InnerException" );
                 WriteException( writer, e.InnerException, scrubber );
                 writer.WriteEndElement();
+            }
+
+            // A ReflectionTypeLoadException says only that some types could not be loaded; the loader exceptions name the
+            // assembly that failed to bind, which is the only actionable part of the report. They are written as regular
+            // nested exceptions so that the same scrubbing rules apply to them.
+            if ( e is ReflectionTypeLoadException reflectionTypeLoadException )
+            {
+                var loaderExceptions = LoaderExceptionsHelper.GetDirectLoaderExceptions( reflectionTypeLoadException );
+
+                if ( !loaderExceptions.IsEmpty )
+                {
+                    writer.WriteStartElement( "LoaderExceptions" );
+
+                    foreach ( var loaderException in loaderExceptions )
+                    {
+                        writer.WriteStartElement( "Exception" );
+                        WriteException( writer, loaderException, scrubber );
+                        writer.WriteEndElement();
+                    }
+
+                    writer.WriteEndElement();
+                }
             }
 
             if ( e is AggregateException aggregate )

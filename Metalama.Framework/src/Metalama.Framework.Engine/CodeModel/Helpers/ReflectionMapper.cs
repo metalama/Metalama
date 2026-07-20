@@ -43,8 +43,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
 
                 // This field cannot be set in the constructor because of linker tests.
                 this._referencedAssemblies ??= this._compilation.SourceModule.ReferencedAssemblySymbols
-                    .ToDictionaryOfList( a => a.Identity.Name, a => a )
-                    .Freeze();
+                    .ToReadOnlyDictionaryOfList( a => a.Identity.Name, a => a );
 
                 var assemblyShortName = assemblyName?.Name;
 

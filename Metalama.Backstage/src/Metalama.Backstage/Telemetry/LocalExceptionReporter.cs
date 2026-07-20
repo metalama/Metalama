@@ -100,6 +100,26 @@ internal sealed class LocalExceptionReporter : IBackstageService
             // ReSharper disable once EmptyGeneralCatchClause
             catch { }
 
+            // ReflectionTypeLoadException.ToString does not render LoaderExceptions, so without this section the report
+            // says only that some types could not be loaded, never which assembly failed to bind.
+            try
+            {
+                var loaderExceptionsText = LoaderExceptionsHelper.GetLoaderExceptionsText(
+                    exception,
+                    ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData );
+
+                if ( loaderExceptionsText != null )
+                {
+                    exceptionText.AppendLine( "===== Loader Exceptions =====" );
+                    exceptionText.AppendLine( loaderExceptionsText );
+
+                    this._logger.Error?.Log( $"Loader exceptions of {exception.GetType().Name}:{Environment.NewLine}{loaderExceptionsText}" );
+                }
+            }
+
+            // ReSharper disable once EmptyGeneralCatchClause
+            catch { }
+
             // Include the call stack at the point where the exception is being reported.
             // This is essential for async exceptions where the exception's own StackTrace
             // only shows the throw-to-catch chain, but not the broader context of the entry

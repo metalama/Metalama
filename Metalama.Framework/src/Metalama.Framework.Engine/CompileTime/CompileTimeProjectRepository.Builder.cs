@@ -252,6 +252,14 @@ internal sealed partial class CompileTimeProjectRepository
                         out referencedProject );
 
                 case CompilationReference compilationReference:
+                    // The same assembly identity can be reached through more than one reference, so serve a project
+                    // this Builder has already resolved from the cache, as the PortableExecutableReference path does.
+                    // This also keeps the Add below from throwing on a duplicate key.
+                    if ( this._projects.TryGetValue( compilationReference.Compilation.Assembly.Identity, out referencedProject ) )
+                    {
+                        return true;
+                    }
+
                     // Issue #1611: at design time, when the upstream's pipeline is already running and has a built
                     // CompileTimeProject, reuse it rather than recursively building a fresh projection. This ensures
                     // both pipelines share the same physical loaded assembly for the upstream and prevents the
@@ -261,10 +269,10 @@ internal sealed partial class CompileTimeProjectRepository
                          && upstreamProvider.TryGetUpstreamConfiguration( compilationReference.Compilation, out var upstreamConfig )
                          && upstreamConfig.CompileTimeProject is { } upstreamProject )
                     {
-                        // Cache by AssemblyIdentity so subsequent identity-keyed lookups within this Builder
-                        // hit the same instance.
-                        this._projects[upstreamProject.RunTimeIdentity] = upstreamProject;
+                        // Cache by AssemblyIdentity so subsequent identity-keyed lookups within this Builder hit the same instance.
+                        this._projects.Add( upstreamProject.RunTimeIdentity, upstreamProject );
                         referencedProject = upstreamProject;
+
                         this._logger.Trace?.Log(
                             $"Reusing upstream pipeline's CompileTimeProject for '{compilationReference.Compilation.AssemblyName}' (issue #1611)." );
 

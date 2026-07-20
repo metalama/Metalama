@@ -142,7 +142,7 @@ namespace Metalama.Framework.Tests.UnitTests.Collections
         {
             List<(int, string)> list = [(1, "a"), (2, "b"), (1, "c")];
 
-            var dictionary = list.ToDictionaryOfList( i => i.Item1 );
+            var dictionary = list.ToReadOnlyDictionaryOfList( i => i.Item1 );
 
             Assert.Equal( [1, 2], dictionary.Keys );
             Assert.Equal( [(1, "a"), (1, "c")], dictionary[1] );
@@ -153,7 +153,7 @@ namespace Metalama.Framework.Tests.UnitTests.Collections
         {
             List<(int, string)> list = [(1, "a"), (2, "b"), (1, "c")];
 
-            var dictionary = list.ToDictionaryOfList( i => i.Item1, i => i.Item2 );
+            var dictionary = list.ToReadOnlyDictionaryOfList( i => i.Item1, i => i.Item2 );
 
             Assert.Equal( [1, 2], dictionary.Keys );
             Assert.Equal( ["a", "c"], dictionary[1] );
@@ -199,7 +199,7 @@ namespace Metalama.Framework.Tests.UnitTests.Collections
         public void Freeze_IsFluentAndReturnsTheInterface()
         {
             var published =
-                new[] { (1, "a") }.ToDictionaryOfList( i => i.Item1, i => i.Item2 ).Freeze();
+                new[] { (1, "a") }.ToReadOnlyDictionaryOfList( i => i.Item1, i => i.Item2 );
 
             Assert.Equal( ["a"], published[1] );
         }

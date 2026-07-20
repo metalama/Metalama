@@ -62,8 +62,7 @@ internal sealed class CompilationAspectSource : IAspectSource
 
             this._exclusions =
                 attributes
-                    .ToDictionaryOfList( x => x.AspectType, x => x.TargetDeclaration.ToRef() )
-                    .Freeze();
+                    .ToReadOnlyDictionaryOfList( x => x.AspectType, x => x.TargetDeclaration.ToRef() );
         }
 
         return this._exclusions;
