@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CompileTime.Serialization;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -16,9 +17,9 @@ using Xunit.Abstractions;
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
 /// <summary>
-/// Covers the transitive-manifest serialization used by the design-time cross-project inheritance path:
-/// the "gate" that skips serializing a manifest with nothing to inherit (issue #1710 performance follow-up),
-/// and the round-trip through both the uncompressed (in-process) and the compressed (RPC/PE) formats.
+/// Covers the transitive-manifest serialization used by the design-time cross-project inheritance path: the
+/// condition on which a caller skips carrying a manifest with nothing to inherit (issue #1710 performance
+/// follow-up), and the round-trip through both the uncompressed and the legacy compressed formats.
 /// </summary>
 public sealed class TransitiveManifestSerializationTests : UnitTestClass
 {
@@ -29,15 +30,15 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
     /// has transitive content a referencing project could inherit.
     /// </summary>
     private const string _producerCode = """
-                                          using Metalama.Framework.Aspects;
-                                          using Metalama.Framework.Code;
+                                         using Metalama.Framework.Aspects;
+                                         using Metalama.Framework.Code;
 
-                                          [Inheritable]
-                                          public class MyInheritableAspect : TypeAspect { }
+                                         [Inheritable]
+                                         public class MyInheritableAspect : TypeAspect { }
 
-                                          [MyInheritableAspect]
-                                          public class Base { }
-                                          """;
+                                         [MyInheritableAspect]
+                                         public class Base { }
+                                         """;
 
     /// <summary>
     /// A non-inheritable aspect: it does real design-time work but exports nothing to inherit (no inheritable
@@ -71,25 +72,25 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
 
         Assert.True( result.HasTransitiveAspectManifestContent );
 
-        var serialized = result.SerializedTransitiveAspectManifest;
-        Assert.False( serialized.IsDefaultOrEmpty );
+        var serialized = result.SerializedTransitiveAspectManifestWithoutValidators;
+        Assert.NotEmpty( serialized.Bytes );
 
         // The in-process (design-time) manifest is serialized uncompressed, so it begins with the marker byte.
         Assert.Equal( SerializationProtocol.UncompressedStreamMarker, serialized.Bytes[0] );
     }
 
     [Fact]
-    public void ProjectWithoutInheritableContent_SkipsSerialization()
+    public void ProjectWithoutInheritableContent_ReportsNothingToInherit()
     {
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
         var result = Execute( testContext, factory, _emptyProducerCode );
 
-        // Gate: nothing to inherit, so the manifest is not serialized at all. The reference-construction site then
-        // carries neither the live nor the serialized manifest, and the consumer skips deserialization entirely.
+        // The gate itself lives on the caller: DesignTimeAspectPipeline builds a DesignTimeProjectReference carrying
+        // neither the live nor the serialized manifest when this is false, so the consumer skips deserialization
+        // entirely. The property below would serialize on demand; nobody asks it to.
         Assert.False( result.HasTransitiveAspectManifestContent );
-        Assert.True( result.SerializedTransitiveAspectManifest.IsDefaultOrEmpty );
     }
 
     /// <summary>
@@ -102,7 +103,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        var serialized = Execute( testContext, factory, _producerCode ).SerializedTransitiveAspectManifest;
+        var serialized = Execute( testContext, factory, _producerCode ).SerializedTransitiveAspectManifestWithoutValidators;
 
         Assert.NotEqual( 0, serialized.Hash );
 
@@ -111,14 +112,6 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
 
         Assert.Equal( serialized.Hash, recreated.Hash );
         Assert.Equal( serialized, recreated );
-    }
-
-    [Fact]
-    public void SerializedManifest_OfEmptyBytes_IsDefault()
-    {
-        Assert.True( SerializedTransitiveAspectManifest.Create( default ).IsDefaultOrEmpty );
-        Assert.True( SerializedTransitiveAspectManifest.Create( ImmutableArray<byte>.Empty ).IsDefaultOrEmpty );
-        Assert.Equal( 0, SerializedTransitiveAspectManifest.Create( default ).Hash );
     }
 
     /// <summary>
@@ -143,8 +136,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         Assert.NotEqual( a, c );
         Assert.True( a != c );
 
-        Assert.Equal( default, default( SerializedTransitiveAspectManifest ) );
-        Assert.NotEqual( a, default );
+        Assert.NotNull( a );
     }
 
     [Fact]
@@ -156,11 +148,15 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         var result = Execute( testContext, factory, _producerCode );
         var serviceProvider = result.Configuration!.ServiceProvider;
 
-        // The in-process format is uncompressed (marked); the RPC/PE format is a bare DEFLATE stream (no marker).
-        var uncompressed = result.SerializedTransitiveAspectManifest;
-        var compressed = result.SerializeTransitiveAspectManifestForRpc();
+        // Both design-time manifests are uncompressed (marked). The compressed form is written only by ToResource
+        // now, but a reader must still accept it: this project can reference an older one, whose manifest predates
+        // the marker and arrives as a bare DEFLATE stream. That legacy shape is what `compressed` stands in for.
+        var uncompressed = result.SerializedTransitiveAspectManifestWithoutValidators;
+        var crossVersion = result.SerializedTransitiveAspectManifestWithValidators;
+        var compressed = result.LiveTransitiveAspectManifest.ToBytes( serviceProvider, compress: true );
 
         Assert.Equal( SerializationProtocol.UncompressedStreamMarker, uncompressed.Bytes[0] );
+        Assert.Equal( SerializationProtocol.UncompressedStreamMarker, crossVersion.Bytes[0] );
         Assert.NotEqual( SerializationProtocol.UncompressedStreamMarker, compressed[0] );
 
         // Both formats are auto-detected on read (peek of the first byte) and must decode to the same content.
@@ -168,8 +164,8 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         var fromCompressed = TransitiveAspectsManifest.Deserialize( new MemoryStream( compressed ), serviceProvider, "Producer" );
 
         Assert.Equal(
-            fromUncompressed.InheritableAspectTypes.OrderBy( x => x, System.StringComparer.Ordinal ),
-            fromCompressed.InheritableAspectTypes.OrderBy( x => x, System.StringComparer.Ordinal ) );
+            fromUncompressed.InheritableAspectTypes.OrderBy( x => x, StringComparer.Ordinal ),
+            fromCompressed.InheritableAspectTypes.OrderBy( x => x, StringComparer.Ordinal ) );
 
         Assert.Contains( "MyInheritableAspect", fromUncompressed.InheritableAspectTypes );
     }

@@ -33,10 +33,10 @@ namespace Metalama.Framework.Engine.Aspects
         /// shared assembly. The consumer deserializes it with its own service provider, which binds the run-time
         /// names to the consumer's own compile-time copy of each type, so inherited aspects and options are bound
         /// to the consuming project's copy of a shared (e.g. multi-targeted) compile-time assembly rather than the
-        /// producer's copy (issue #1710). Returns a default (or empty) array if the reference has no transitive
-        /// aspect manifest (e.g. it is not a Metalama project). The returned value carries a hash of the bytes, so a
-        /// consumer can tell an unchanged manifest from a merely re-produced one.
+        /// producer's copy (issue #1710). Returns <c>null</c> if the reference has no transitive aspect manifest,
+        /// for instance because it is not a Metalama project or exports nothing to inherit. The returned value
+        /// carries a hash of the bytes, so a consumer can tell an unchanged manifest from a merely re-produced one.
         /// </summary>
-        SerializedTransitiveAspectManifest GetSerializedTransitiveAspectsManifest( Compilation compilationReferenceCompilation );
+        SerializedTransitiveAspectManifest? GetSerializedTransitiveAspectsManifest( Compilation compilationReferenceCompilation );
     }
 }

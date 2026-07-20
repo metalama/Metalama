@@ -21,8 +21,27 @@ internal sealed class DesignTimeProjectVersion : ITransitiveAspectManifestProvid
 
     public IProjectVersion ProjectVersion { get; }
 
+    /// <summary>
+    /// Gets the design-time extension collections of the referenced projects. This is one of the two channels by
+    /// which a reference's design-time validators reach this project, and it serves same-version references only.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A reference built against a different version of Metalama contributes nothing here, because it carries no
+    /// live result to read the collection from. It is not lost: it travels instead through the serialized manifest,
+    /// which <c>TransitivePipelineContributorSource</c> deserializes into this project's own compile-time copy. That
+    /// is why <c>DesignTimeAspectPipelineResult.CreateTransitiveManifest</c> puts validators in the manifest for a
+    /// cross-version consumer and keeps them out for a same-version one: whichever channel is unavailable, exactly
+    /// one carries them.
+    /// </para>
+    /// <para>
+    /// The split is not merely an optimization. This channel deduplicates diamond-shaped reference graphs, whereas
+    /// the manifest channel is walked once per direct reference and does not, so routing a same-version reference
+    /// through both delivers its validators more than once.
+    /// </para>
+    /// </remarks>
     public IEnumerable<DesignTimeAspectPipelineResultExtensionCollection> ReferencedExtensions
-        => this._references.Values.Select( r => (r.TransitiveAspectsManifest as DesignTimeAspectPipelineResult)?.Extensions ).WhereNotNull();
+        => this._references.Values.Select( r => r.TransitiveAspectsManifest?.Extensions ).WhereNotNull();
 
     public DesignTimeProjectVersion(
         IProjectVersion projectVersion,
@@ -34,14 +53,14 @@ internal sealed class DesignTimeProjectVersion : ITransitiveAspectManifestProvid
         this._references = references.ToImmutableDictionary( x => x.ProjectKey, x => x );
     }
 
-    public SerializedTransitiveAspectManifest GetSerializedTransitiveAspectsManifest( Compilation compilation )
+    public SerializedTransitiveAspectManifest? GetSerializedTransitiveAspectsManifest( Compilation compilation )
     {
         if ( this._references.TryGetValue( compilation.GetProjectKey(), out var reference ) )
         {
             return reference.SerializedTransitiveAspectManifest;
         }
 
-        return default;
+        return null;
     }
 
     public bool TryGetReusableTransitiveAspectsManifest(
@@ -49,11 +68,11 @@ internal sealed class DesignTimeProjectVersion : ITransitiveAspectManifestProvid
         [NotNullWhen( true )] out ITransitiveAspectsManifest? manifest,
         [NotNullWhen( true )] out AspectPipelineConfiguration? producerConfiguration )
     {
-        // Only a same-version project reference carries a live DesignTimeAspectPipelineResult (a cross-version
-        // reference carries a deserialized manifest, which cannot be reused). We also need the producer's
-        // configuration to compare compile-time copies, so require it to be present.
+        // Only a same-version project reference carries a live result; a cross-version reference carries the
+        // serialized manifest alone, and there is nothing to reuse. We also need the producer's configuration to
+        // compare compile-time copies, so require it to be present.
         if ( this._references.TryGetValue( compilation.GetProjectKey(), out var reference )
-             && reference.TransitiveAspectsManifest is DesignTimeAspectPipelineResult { HasTransitiveAspectManifestContent: true, Configuration: { } configuration } result )
+             && reference.TransitiveAspectsManifest is { HasTransitiveAspectManifestContent: true, Configuration: { } configuration } result )
         {
             producerConfiguration = configuration;
             manifest = result.LiveTransitiveAspectManifest;

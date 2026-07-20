@@ -28,7 +28,7 @@ namespace Metalama.Framework.DesignTime.Pipeline;
 /// <summary>
 /// Caches the pipeline results for each syntax tree.
 /// </summary>
-public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsManifest
+public sealed partial class DesignTimeAspectPipelineResult
 {
     private static readonly ImmutableDictionary<string, SyntaxTreePipelineResult> _emptySyntaxTreeResults =
         ImmutableDictionary.Create<string, SyntaxTreePipelineResult>( StringComparer.Ordinal );
@@ -655,29 +655,10 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
     public IEnumerable<InheritableAspectInstance> GetInheritableAspects( string aspectType ) => this._inheritableAspects[aspectType];
 
     /// <summary>
-    /// At design time, cross-project reference validators are not added to the main pipeline. Instead, the validator
-    /// provider recursively includes the providers of referenced projects. However, cross-project references are
-    /// still used for PE references.
-    /// </summary>
-    ImmutableArray<ITransitiveAspectsManifestExtension> ITransitiveAspectsManifest.Extensions => this.Extensions.ToTransitiveValidatorInstances( false );
-
-    /// <summary>
-    /// Gets a value indicating whether the compilation contains <c>IInitializable</c> implementers.
-    /// <see cref="DesignTimeAspectPipelineResult"/> does not track this (the tracking would be useless at design
-    /// time, where <c>LinkerAnalysisStep</c> force-runs the <c>OnInitialized</c> walker because the partial
-    /// compilation may exclude trees declaring implementers). We therefore report the safe default <c>true</c>: the
-    /// flag is consumed by <c>LinkerAnalysisStep</c> to skip the walker, and returning <c>true</c> just forces the
-    /// walker to run, which is a performance pessimization at worst, never a correctness bug. Returning
-    /// <c>false</c> would be unsafe: if any consumer reads this at compile time, it could miss required
-    /// <c>WithInitialize</c> wrapping.
-    /// </summary>
-    bool ITransitiveAspectsManifest.ContainsInitializableTypes => true;
-
-    /// <summary>
     /// Gets a value indicating whether this project exports something a referencing project could inherit: an
     /// inheritable aspect, an inheritable option, an exported annotation, or a transitive validator (carried by
     /// <see cref="Extensions"/>). When it is <c>false</c> there is nothing to serialize and nothing for a consumer
-    /// to merge, so the manifest is not produced at all. See <see cref="SerializedTransitiveAspectManifest"/> and
+    /// to merge, so the manifest is not produced at all. See <see cref="SerializedTransitiveAspectManifestWithoutValidators"/> and
     /// the reference-construction site in <c>DesignTimeAspectPipeline</c>.
     /// </summary>
     /// <remarks>
@@ -692,49 +673,118 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
            || !this.Annotations.IsEmpty
            || !this.Extensions.IsEmpty;
 
-    private TransitiveAspectsManifest CreateTransitiveManifest()
+    /// <summary>
+    /// Creates the transitive manifest. <paramref name="includeValidators"/> selects whether the design-time
+    /// validators are included in the manifest, and must match whether the consumer has the other channel that carries
+    /// them, <see cref="DesignTimeProjectVersion.ReferencedExtensions"/>:
+    /// <list type="bullet">
+    /// <item>
+    /// <c>false</c> for a consumer built against the same version of Metalama. Its reference carries this very result as its live
+    /// <c>TransitiveAspectsManifest</c>, so <c>ReferencedExtensions</c> reads the validators out of the design-time
+    /// extension collection, which deduplicates diamond-shaped reference graphs. Putting them in the manifest as
+    /// well would deliver each validator twice (once per channel), and more than twice across a diamond, because
+    /// the manifest channel is walked once per direct reference and is not deduplicated.
+    /// </item>
+    /// <item>
+    /// <c>true</c> for a consumer built against a different version of Metalama. Such a reference carries no live
+    /// result (the producer's result is an object of the other version's <c>Metalama.Framework.Engine</c> and cannot
+    /// cross), so <c>ReferencedExtensions</c> contributes nothing for it and the manifest is the only channel
+    /// available. See <see cref="SerializedTransitiveAspectManifestWithValidators"/>.
+    /// </item>
+    /// </list>
+    /// </summary>
+    private TransitiveAspectsManifest CreateTransitiveManifest( bool includeValidators )
         =>
 
-            // ContainsInitializableTypes is set to the safe default `true` here for the same reason as in
-            // ITransitiveAspectsManifest.ContainsInitializableTypes above: DesignTimeAspectPipelineResult does
-            // not track the flag, and `true` only causes consumers to run the walker unnecessarily, while
-            // `false` would risk missing required WithInitialize wrapping.
+            // ContainsInitializableTypes is set to the safe default `true`: DesignTimeAspectPipelineResult does not
+            // track the flag (the tracking would be useless at design time, where LinkerAnalysisStep force-runs the
+            // OnInitialized walker because the partial compilation may exclude trees declaring implementers).
+            // LinkerAnalysisStep consumes the flag to skip that walker, so `true` only makes a consumer run it
+            // unnecessarily, a performance pessimization at worst. `false` would be unsafe: a consumer reading it at
+            // compile time could miss required WithInitialize wrapping.
             TransitiveAspectsManifest.Create(
                 this._inheritableAspects.SelectMany( g => g ).ToImmutableArray(),
-                this.Extensions.ToTransitiveValidatorInstances( true ),
+                this.Extensions.ToTransitiveValidatorInstances( includeValidators ),
                 this.InheritableOptions,
                 this.Annotations,
                 containsInitializableTypes: true );
 
     /// <summary>
-    /// Gets the transitive manifest serialized for in-process consumption by the current-version design-time
-    /// pipeline. It is serialized uncompressed: the bytes are produced and consumed in the same process and
-    /// discarded, so compression would be pure overhead. Returns <c>default</c> when there is nothing to inherit
-    /// (see <see cref="HasTransitiveAspectManifestContent"/>), so a referencing project neither serializes here nor
-    /// deserializes and merges an empty manifest on the other side. That is the common case for a Metalama project
-    /// exporting no inheritable aspects, options, annotations, or validators.
+    /// Gets the transitive manifest serialized for the design-time pipeline of a referencing project running the
+    /// same version of Metalama in this same process.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A manifest is serialized in exactly three places, and they differ only in which boundary the bytes have to
+    /// cross. <see cref="SerializedTransitiveAspectManifestWithValidators"/> crosses a Metalama version.
+    /// <c>TransitiveAspectsManifest.ToResource</c> crosses a process and an arbitrary amount of time, being embedded
+    /// in the PE binary and read by whichever version later compiles against that assembly. This one crosses
+    /// neither: it is produced and consumed by this build, in this process, and then discarded.
+    /// </para>
+    /// <para>
+    /// It exists because a boundary remains even so. The consuming project has to bind the manifest to <em>its own</em>
+    /// compile-time copy of each type, and the round-trip through run-time type names is what rebinds them (issue
+    /// #1710). Two projects of the same Metalama version can hold different compile-time copies, typically when a
+    /// shared assembly is multi-targeted, so what this crosses is a compile-time copy, not a version. When the copies
+    /// do match, the consumer skips it and reuses <see cref="LiveTransitiveAspectManifest"/> instead.
+    /// </para>
+    /// <para>
+    /// Uncompressed, as is <see cref="SerializedTransitiveAspectManifestWithValidators"/>: nothing that reads either
+    /// of them predates the uncompressed marker. Only <c>TransitiveAspectsManifest.ToResource</c> still compresses,
+    /// and for a reason that does not apply here, namely keeping the PE binary small.
+    /// </para>
+    /// <para>
+    /// Serializes unconditionally. Whether it is worth serializing at all is the caller's question, answered by
+    /// <see cref="HasTransitiveAspectManifestContent"/>: a project exporting nothing to inherit, which is the common
+    /// case, carries no manifest on its reference, so nothing is deserialized or merged on the other side either.
+    /// </para>
+    /// </remarks>
     [Memo]
-    internal SerializedTransitiveAspectManifest SerializedTransitiveAspectManifest
-        => this.HasTransitiveAspectManifestContent
-            ? SerializedTransitiveAspectManifest.Create(
-                this.CreateTransitiveManifest().ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false ) )
-            : default;
+    internal SerializedTransitiveAspectManifest SerializedTransitiveAspectManifestWithoutValidators
+        => SerializedTransitiveAspectManifest.Create(
+            this.LiveTransitiveAspectManifest
+                .ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false ) );
 
     /// <summary>
-    /// Gets the live, in-memory manifest. It is content-identical to what
-    /// <see cref="SerializedTransitiveAspectManifest"/> encodes, since both are built from the same
-    /// <see cref="CreateTransitiveManifest"/> call. A consumer whose compile-time copies match this producer's can
-    /// consume this object directly and skip the serialize/deserialize round-trip (issue #1710 fast path); see
-    /// <c>TransitivePipelineContributorSource</c>. Memoized so repeated consumer runs share one instance.
+    /// Gets the transitive manifest serialized for a consumer built against a <em>different</em> version of Metalama:
+    /// two projects of the same solution, one referencing the other, each referencing its own Metalama version.
+    /// Both versions are loaded in the same process and reach each other through the version-neutral
+    /// <c>Metalama.Framework.DesignTime.Contracts</c> assembly, but their <c>Metalama.Framework.Engine</c> types have
+    /// distinct identities, so no manifest object can be passed across. Serializing here and deserializing on the
+    /// other side is what converts the manifest into the consuming version's object model.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Uncompressed, like <see cref="SerializedTransitiveAspectManifestWithoutValidators"/>, even though the reader is a different
+    /// build than the one that wrote these bytes. The uncompressed form is recognized by peeking a marker byte
+    /// introduced in 2026.1 (issue #1710), so a reader older than that would fail on it, but no such reader can
+    /// receive these bytes: a project only consumes this manifest if it has a project reference to this one, and a
+    /// referencing project's Metalama version is never older than the referenced project's. Every possible reader is
+    /// therefore at least this version.
+    /// </para>
+    /// <para>
+    /// That bound applies to what we <em>write</em>, not to what we read. The converse case is ordinary: this
+    /// project may reference an older one, whose manifest arrives in the legacy compressed form. That is why
+    /// <c>TransitiveAspectsManifest.Deserialize</c> keeps accepting both formats even though nothing writes the
+    /// compressed one any more except <c>ToResource</c>, which compresses to keep the PE binary small.
+    /// </para>
+    /// <para>
+    /// Serializes unconditionally, as <see cref="SerializedTransitiveAspectManifestWithoutValidators"/> does, and for the same
+    /// reason: whether there is anything worth sending is <see cref="HasTransitiveAspectManifestContent"/>, which
+    /// belongs to the caller.
+    /// </para>
+    /// </remarks>
     [Memo]
-    internal TransitiveAspectsManifest LiveTransitiveAspectManifest => this.CreateTransitiveManifest();
+    internal SerializedTransitiveAspectManifest SerializedTransitiveAspectManifestWithValidators
+        => SerializedTransitiveAspectManifest.Create(
+            this.CreateTransitiveManifest( includeValidators: true )
+                .ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false ) );
 
     /// <summary>
-    /// Serializes the transitive manifest for shipping over RPC to a potentially different (possibly older)
-    /// Metalama version, which may only understand the legacy compressed format, so this one is compressed.
+    /// Gets the live, in-memory manifest. A same-version consumer whose compile-time
+    /// copies match this producer's can consume this object directly and skip the serialize/deserialize round-trip
+    /// (issue #1710 fast path); see <c>TransitivePipelineContributorSource</c>. 
     /// </summary>
-    internal byte[] SerializeTransitiveAspectManifestForRpc()
-        => this.CreateTransitiveManifest().ToBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: true );
+    [Memo]
+    internal TransitiveAspectsManifest LiveTransitiveAspectManifest => this.CreateTransitiveManifest( includeValidators: false );
 }

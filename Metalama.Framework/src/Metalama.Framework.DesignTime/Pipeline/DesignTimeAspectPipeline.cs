@@ -554,29 +554,28 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                             $"The pipeline for the reference '{reference.ProjectKey}' failed: {referenceResult.DebugReason}" );
                     }
 
-                    // Serialize the referenced project's transitive manifest. The serialized form is
-                    // compilation-neutral by definition: compile-time types are always written as their run-time
-                    // names. We must use the *referenced* project's service provider because only its closure can
-                    // name (resolve) that project's own compile-time copy of a shared, possibly multi-targeted
-                    // assembly; the consuming project's provider would fail to serialize types bound to a copy that
-                    // is not in its closure. The consumer then deserializes these bytes with its own service
-                    // provider, which binds the run-time names to the consumer's own compile-time copy (issue #1710).
-                    // The successful result always carries the reference pipeline's configuration (even when the
-                    // pipeline is paused), so the serialized manifest is always available alongside the live one.
-                    var serializedManifest = referenceResult.Value.Result.SerializedTransitiveAspectManifest;
-
-                    // When the reference exports nothing to inherit, its serialized manifest is `default`. We then
-                    // carry neither the live nor the serialized manifest, keeping the both-or-neither invariant of
-                    // DesignTimeProjectReference and letting the consumer skip deserialization entirely. Dropping the
-                    // live manifest is safe here: an empty manifest also has an empty Extensions collection, so
-                    // DesignTimeProjectVersion.ReferencedExtensions loses nothing.
+                    // Carry the reference's manifest only when it exports something to inherit, which is what makes
+                    // this the common fast path: a Metalama project exporting no inheritable aspect, option,
+                    // annotation or validator carries neither the live nor the serialized form, so nothing is
+                    // serialized here and nothing is deserialized or merged on the consumer's side. Dropping the live
+                    // manifest along with it is safe, because a project with nothing to inherit also has an empty
+                    // Extensions collection, so DesignTimeProjectVersion.ReferencedExtensions loses nothing.
+                    //
+                    // The serialized form is compilation-neutral by definition: compile-time types are always written
+                    // as their run-time names. It is produced by the *referenced* project's service provider because
+                    // only its closure can name (resolve) that project's own compile-time copy of a shared, possibly
+                    // multi-targeted assembly; the consuming project's provider would fail to serialize types bound
+                    // to a copy that is not in its closure. The consumer then deserializes those bytes with its own
+                    // provider, which binds the run-time names to its own compile-time copy (issue #1710). A
+                    // successful result always carries the reference pipeline's configuration, even when the pipeline
+                    // is paused, so the serialized manifest is always available alongside the live one.
                     compilationReferences.Add(
-                        serializedManifest.IsDefaultOrEmpty
-                            ? new DesignTimeProjectReference( referenceResult.Value.ProjectVersion.ProjectKey )
-                            : new DesignTimeProjectReference(
+                        referenceResult.Value.Result.HasTransitiveAspectManifestContent
+                            ? new DesignTimeProjectReference(
                                 referenceResult.Value.ProjectVersion.ProjectKey,
                                 referenceResult.Value.Result,
-                                serializedManifest ) );
+                                referenceResult.Value.Result.SerializedTransitiveAspectManifestWithoutValidators )
+                            : new DesignTimeProjectReference( referenceResult.Value.ProjectVersion.ProjectKey ) );
 
                     if ( referenceResult.Value.Status == DesignTimeAspectPipelineStatus.Paused )
                     {
@@ -608,8 +607,11 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     }
                     else
                     {
-                        // To deserialize the manifest, we need a service provider with the CompileTimeProject of the referenced project, compiled
-                        // for the current Metalama version.
+                        // Require the referenced project to have a valid configuration for the current Metalama
+                        // version before accepting its manifest. The consuming project resolves the manifest's
+                        // run-time type names through its own compile-time closure, which contains this reference,
+                        // so a reference the current version cannot configure would fail later as a binding error
+                        // reported against the consumer. Failing here reports it against the reference instead.
 
                         var pipelineResult = await this._pipelineFactory.GetOrCreatePipelineAsync( reference, cancellationToken );
 
@@ -633,18 +635,12 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                                 $"Cannot get configuration: {configuration.DebugReason}" );
                         }
 
-                        var manifest = TransitiveAspectsManifest.Deserialize(
-                            new MemoryStream( result.Manifest! ),
-                            configuration.Value.ServiceProvider,
-                            reference.Compilation.AssemblyName );
-
-                        // Also carry the raw serialized manifest (produced by the referenced project) so the consumer
-                        // can deserialize inherited aspects and options into its own compile-time copy (issue #1710).
+                        // A cross-version reference carries the serialized manifest alone: the producer's live
+                        // result is an object of the other version's Metalama.Framework.Engine and cannot cross.
                         compilationReferences.Add(
                             new DesignTimeProjectReference(
                                 reference.ProjectKey,
-                                manifest,
-                                SerializedTransitiveAspectManifest.Create( result.Manifest!.ToImmutableArray() ) ) );
+                                serializedTransitiveAspectManifest: GetCrossVersionManifest( result ) ) );
 
                         if ( result.IsPipelinePaused )
                         {
@@ -664,6 +660,29 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         }
 
         return new DesignTimeProjectVersion( compilationVersion, compilationReferences, pipelineStatus );
+    }
+
+    /// <summary>
+    /// Wraps the manifest received from a cross-version reference, taking the content hash from the producer when it
+    /// reports one.
+    /// </summary>
+    /// <remarks>
+    /// The hash is what <c>TransitiveManifestDeserializationCache</c> keys on downstream, so supplying it here is
+    /// what lets an unchanged reference skip being deserialized again. A producer older than
+    /// <see cref="ITransitiveCompilationResult2"/> reports none, and the bytes are hashed on first use as before.
+    /// That is the only case in which the ordering rule, a referencing project never being older than the project it
+    /// references, puts the older Metalama on the producing side.
+    /// </remarks>
+    private static SerializedTransitiveAspectManifest? GetCrossVersionManifest( ITransitiveCompilationResult result )
+    {
+        if ( result.Manifest is not { Length: > 0 } bytes )
+        {
+            return null;
+        }
+
+        return SerializedTransitiveAspectManifest.Create(
+            bytes.ToImmutableArray(),
+            result is ITransitiveCompilationResult2 { ManifestHash: var hash } ? hash : null );
     }
 
     public ValueTask<FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>> ExecuteAsync(

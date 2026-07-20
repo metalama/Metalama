@@ -129,13 +129,13 @@ public sealed class TransitiveManifestDeserializationCacheTests : UnitTestClass
     }
 
     [Fact]
-    public void EmptyManifest_IsNeverCached()
+    public void AbsentManifest_IsNeverCached()
     {
         var cache = new TransitiveManifestDeserializationCache();
         var deserializer = new CountingDeserializer();
 
-        cache.GetOrAdd( _producerA, default, CompileTimeProject.Empty, deserializer.Deserialize );
-        cache.GetOrAdd( _producerA, default, CompileTimeProject.Empty, deserializer.Deserialize );
+        cache.GetOrAdd( _producerA, null, CompileTimeProject.Empty, deserializer.Deserialize );
+        cache.GetOrAdd( _producerA, null, CompileTimeProject.Empty, deserializer.Deserialize );
 
         Assert.Equal( 2, deserializer.CallCount );
     }

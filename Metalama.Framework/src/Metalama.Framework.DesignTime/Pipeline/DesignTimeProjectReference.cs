@@ -9,22 +9,37 @@ using Metalama.Framework.Engine.Aspects;
 namespace Metalama.Framework.DesignTime.Pipeline;
 
 /// <summary>
-/// Associates a <see cref="ProjectKey"/> and a <see cref="TransitiveAspectsManifest"/>.
+/// A referenced project, as seen by the referencing project's design-time pipeline: a <see cref="ProjectKey"/>, the
+/// serialized transitive manifest when the reference exports anything to inherit, and, for a reference built against
+/// the same version of Metalama, that project's live pipeline result as well.
 /// </summary>
 internal readonly struct DesignTimeProjectReference
 {
-    // The two manifest representations below are always both set or both null: a reference carries them when it is
-    // a Metalama project that exports something to inherit (an inheritable aspect, option, annotation, or validator),
-    // and carries neither when it is not a Metalama project or is one that exports nothing (see gate in
-    // DesignTimeAspectPipelineResult.HasTransitiveAspectManifestContent). They are not interchangeable: they serve
-    // different consumers and neither can be derived from the other at the point where it is needed.
+    // A reference carries a serialized manifest when it is a Metalama project that exports something to inherit (an
+    // inheritable aspect, option, annotation, or validator), and carries none when it is not a Metalama project or is
+    // one that exports nothing (see gate in DesignTimeAspectPipelineResult.HasTransitiveAspectManifestContent).
+    //
+    // The live result below is carried in addition, but only for a same-version reference. The two are not
+    // interchangeable: they serve different consumers and neither can be derived from the other at the point where
+    // it is needed.
 
     /// <summary>
-    /// Gets the referenced project's live manifest. Used only by <see cref="DesignTimeProjectVersion.ReferencedExtensions"/>,
-    /// which needs the concrete <c>DesignTimeAspectPipelineResult</c> to read its design-time extension collections
-    /// (a shape the serialized manifest does not carry).
+    /// Gets the referenced project's live pipeline result, or <c>null</c> when the reference is to a project built
+    /// against a different version of Metalama. Used only by
+    /// <see cref="DesignTimeProjectVersion.ReferencedExtensions"/> and
+    /// <see cref="DesignTimeProjectVersion.TryGetReusableTransitiveAspectsManifest"/>, both of which need the
+    /// concrete <see cref="DesignTimeAspectPipelineResult"/>: the first to read its design-time extension
+    /// collections (a shape the serialized manifest does not carry), the second to reuse the producer's live objects
+    /// and its configuration.
     /// </summary>
-    public ITransitiveAspectsManifest? TransitiveAspectsManifest { get; }
+    /// <remarks>
+    /// This is deliberately typed as the concrete result rather than <c>ITransitiveAspectsManifest</c>. A
+    /// cross-version producer cannot supply one at all: its pipeline result is an object of the *other* version's
+    /// <c>Metalama.Framework.Engine</c>, so the only thing that can cross is the serialized manifest. Typing it
+    /// concretely states that, instead of accepting any manifest here and having both readers narrow to this type
+    /// and silently ignore anything else.
+    /// </remarks>
+    public DesignTimeAspectPipelineResult? TransitiveAspectsManifest { get; }
 
     /// <summary>
     /// Gets the transitive aspect manifest in its serialized (compilation-neutral) form: compile-time types are
@@ -34,18 +49,19 @@ internal readonly struct DesignTimeProjectReference
     /// only that project's closure can name (resolve) its own compile-time copy of a shared assembly; the
     /// consuming project's provider could not serialize types bound to a copy that is not in its closure.
     /// </summary>
-    public SerializedTransitiveAspectManifest SerializedTransitiveAspectManifest { get; }
+    public SerializedTransitiveAspectManifest? SerializedTransitiveAspectManifest { get; }
 
     public ProjectKey ProjectKey { get; }
 
     public DesignTimeProjectReference(
         ProjectKey projectKey,
-        ITransitiveAspectsManifest? transitiveAspectsManifest = null,
-        SerializedTransitiveAspectManifest serializedTransitiveAspectManifest = default )
+        DesignTimeAspectPipelineResult? transitiveAspectsManifest = null,
+        SerializedTransitiveAspectManifest? serializedTransitiveAspectManifest = null )
     {
-        // Both manifest representations are either both present or both absent: a reference either has a
-        // transitive aspect manifest (in both its live and its serialized form) or is not a Metalama project.
-        Invariant.Assert( transitiveAspectsManifest != null == !serializedTransitiveAspectManifest.IsDefaultOrEmpty );
+        // A live result is only ever carried alongside a serialized manifest, never on its own: it comes from a
+        // same-version reference that exports something to inherit, and such a reference always serializes too. The
+        // converse does not hold, because a cross-version reference carries the serialized manifest alone.
+        Invariant.Assert( transitiveAspectsManifest == null || serializedTransitiveAspectManifest != null );
 
         this.TransitiveAspectsManifest = transitiveAspectsManifest;
         this.SerializedTransitiveAspectManifest = serializedTransitiveAspectManifest;
