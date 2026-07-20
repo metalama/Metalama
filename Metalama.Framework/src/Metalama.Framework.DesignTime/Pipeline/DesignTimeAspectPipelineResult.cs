@@ -729,9 +729,9 @@ public sealed partial class DesignTimeAspectPipelineResult
     /// do match, the consumer skips it and reuses <see cref="LiveTransitiveAspectManifest"/> instead.
     /// </para>
     /// <para>
-    /// Having no version to cross is separately what lets it stay uncompressed: the only reader is this build, which
-    /// understands the uncompressed marker. That is the sole reason the cross-version form still compresses, so the
-    /// two are not inconsistent. See the remarks there, and issue #1737.
+    /// Uncompressed, as is <see cref="SerializeTransitiveAspectManifestForOtherVersion"/>: nothing that reads either
+    /// of them predates the uncompressed marker. Only <c>TransitiveAspectsManifest.ToResource</c> still compresses,
+    /// and for a reason that does not apply here, namely keeping the PE binary small.
     /// </para>
     /// <para>
     /// Returns <c>default</c> when there is nothing to inherit (see
@@ -769,21 +769,21 @@ public sealed partial class DesignTimeAspectPipelineResult
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Compressed, unlike <see cref="SerializedTransitiveAspectManifest"/>, following the rule that the compressed
-    /// form is the <em>interchange</em> format, read by a Metalama build that may not be this one, while the
-    /// uncompressed form is the <em>private</em> format, read by this same build in this same process and then
-    /// discarded. The other user of the interchange format is <c>TransitiveAspectsManifest.ToResource</c>, embedded
-    /// in the PE binary and read later by whichever version compiles against that assembly.
+    /// Uncompressed, like <see cref="SerializedTransitiveAspectManifest"/>, even though the reader is a different
+    /// build than the one that wrote these bytes. The uncompressed form is recognized by peeking a marker byte
+    /// introduced in 2026.1 (issue #1710), so a reader older than that would fail on it, but no such reader can
+    /// receive these bytes: a project only consumes this manifest if it has a project reference to this one, and a
+    /// referencing project's Metalama version is never older than the referenced project's. Every possible reader is
+    /// therefore at least this version.
     /// </para>
     /// <para>
-    /// Concretely, these bytes are read by the other version's deserializer, and the uncompressed form is recognized
-    /// by peeking a marker byte introduced in 2026.1 (issue #1710). A peer older than that has no such peek: it
-    /// would treat the marker as the first byte of a DEFLATE stream and fail. Once pre-2026.1 interop is dropped
-    /// this can stop compressing, tracked by issue #1737. The path is cold (mixed-version solutions only, once per
-    /// cross-version reference per pipeline run), so there is nothing to gain by removing it sooner.
+    /// That bound applies to what we <em>write</em>, not to what we read. The converse case is ordinary: this
+    /// project may reference an older one, whose manifest arrives in the legacy compressed form. That is why
+    /// <c>TransitiveAspectsManifest.Deserialize</c> keeps accepting both formats even though nothing writes the
+    /// compressed one any more except <c>ToResource</c>, which compresses to keep the PE binary small.
     /// </para>
     /// </remarks>
     internal byte[] SerializeTransitiveAspectManifestForOtherVersion()
         => this.CreateTransitiveManifest( includeValidators: true )
-            .ToBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: true );
+            .ToBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false );
 }

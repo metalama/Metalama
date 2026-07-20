@@ -156,12 +156,15 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         var result = Execute( testContext, factory, _producerCode );
         var serviceProvider = result.Configuration!.ServiceProvider;
 
-        // The same-version format is uncompressed (marked); the cross-version format, which an older consumer may
-        // require, is a bare DEFLATE stream (no marker).
+        // Both design-time manifests are uncompressed (marked). The compressed form is written only by ToResource
+        // now, but a reader must still accept it: this project can reference an older one, whose manifest predates
+        // the marker and arrives as a bare DEFLATE stream. That legacy shape is what `compressed` stands in for.
         var uncompressed = result.SerializedTransitiveAspectManifest;
-        var compressed = result.SerializeTransitiveAspectManifestForOtherVersion();
+        var crossVersion = result.SerializeTransitiveAspectManifestForOtherVersion();
+        var compressed = result.LiveTransitiveAspectManifest.ToBytes( serviceProvider, compress: true );
 
         Assert.Equal( SerializationProtocol.UncompressedStreamMarker, uncompressed.Bytes[0] );
+        Assert.Equal( SerializationProtocol.UncompressedStreamMarker, crossVersion[0] );
         Assert.NotEqual( SerializationProtocol.UncompressedStreamMarker, compressed[0] );
 
         // Both formats are auto-detected on read (peek of the first byte) and must decode to the same content.
