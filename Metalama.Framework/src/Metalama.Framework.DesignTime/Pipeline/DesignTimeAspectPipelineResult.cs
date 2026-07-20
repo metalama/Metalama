@@ -775,9 +775,10 @@ public sealed partial class DesignTimeAspectPipelineResult
     /// </para>
     /// </remarks>
     [Memo]
-    internal ImmutableArray<byte> SerializedTransitiveAspectManifestWithValidators
-        => this.CreateTransitiveManifest( includeValidators: true )
-            .ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false );
+    internal SerializedTransitiveAspectManifest SerializedTransitiveAspectManifestWithValidators
+        => SerializedTransitiveAspectManifest.Create(
+            this.CreateTransitiveManifest( includeValidators: true )
+                .ToImmutableBytes( this.Configuration.AssertNotNull().ServiceProvider, compress: false ) );
 
     /// <summary>
     /// Gets the live, in-memory manifest. A same-version consumer whose compile-time

@@ -84,11 +84,11 @@ internal sealed class TransitiveManifestDeserializationCache : IProjectService
     /// </remarks>
     public ITransitiveAspectsManifest GetOrAdd(
         AssemblyIdentity producer,
-        in SerializedTransitiveAspectManifest serialized,
+        SerializedTransitiveAspectManifest? serialized,
         CompileTimeProject? consumerProject,
         Func<ITransitiveAspectsManifest> deserialize )
     {
-        if ( consumerProject == null || serialized.IsDefaultOrEmpty )
+        if ( consumerProject == null || serialized == null )
         {
             return deserialize();
         }

@@ -163,7 +163,7 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
         Assert.True( result.HasTransitiveAspectManifestContent );
 
         var serialized = result.SerializedTransitiveAspectManifestWithoutValidators;
-        Assert.False( serialized.IsDefaultOrEmpty );
+        Assert.NotEmpty( serialized.Bytes );
 
         var deserialized = TransitiveAspectsManifest.Deserialize(
             new MemoryStream( serialized.Bytes.ToArray() ),

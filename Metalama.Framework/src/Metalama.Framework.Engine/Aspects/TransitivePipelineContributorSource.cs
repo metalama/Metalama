@@ -132,7 +132,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                         var serializedManifest =
                             inheritableAspectProvider.GetSerializedTransitiveAspectsManifest( compilationReference.Compilation );
 
-                        if ( !serializedManifest.IsDefaultOrEmpty )
+                        if ( serializedManifest != null )
                         {
                             ITransitiveAspectsManifest DeserializeProjectManifest()
                                 => TransitiveAspectsManifest.Deserialize(

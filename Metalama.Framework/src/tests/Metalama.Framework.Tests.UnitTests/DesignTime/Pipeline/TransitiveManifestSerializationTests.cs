@@ -72,7 +72,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         Assert.True( result.HasTransitiveAspectManifestContent );
 
         var serialized = result.SerializedTransitiveAspectManifestWithoutValidators;
-        Assert.False( serialized.IsDefaultOrEmpty );
+        Assert.NotEmpty( serialized.Bytes );
 
         // The in-process (design-time) manifest is serialized uncompressed, so it begins with the marker byte.
         Assert.Equal( SerializationProtocol.UncompressedStreamMarker, serialized.Bytes[0] );
@@ -111,14 +111,6 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
 
         Assert.Equal( serialized.Hash, recreated.Hash );
         Assert.Equal( serialized, recreated );
-    }
-
-    [Fact]
-    public void SerializedManifest_OfEmptyBytes_IsDefault()
-    {
-        Assert.True( SerializedTransitiveAspectManifest.Create( default ).IsDefaultOrEmpty );
-        Assert.True( SerializedTransitiveAspectManifest.Create( ImmutableArray<byte>.Empty ).IsDefaultOrEmpty );
-        Assert.Equal( 0, SerializedTransitiveAspectManifest.Create( default ).Hash );
     }
 
     /// <summary>
@@ -164,7 +156,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         var compressed = result.LiveTransitiveAspectManifest.ToBytes( serviceProvider, compress: true );
 
         Assert.Equal( SerializationProtocol.UncompressedStreamMarker, uncompressed.Bytes[0] );
-        Assert.Equal( SerializationProtocol.UncompressedStreamMarker, crossVersion[0] );
+        Assert.Equal( SerializationProtocol.UncompressedStreamMarker, crossVersion.Bytes[0] );
         Assert.NotEqual( SerializationProtocol.UncompressedStreamMarker, compressed[0] );
 
         // Both formats are auto-detected on read (peek of the first byte) and must decode to the same content.

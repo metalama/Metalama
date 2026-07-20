@@ -49,19 +49,19 @@ internal readonly struct DesignTimeProjectReference
     /// only that project's closure can name (resolve) its own compile-time copy of a shared assembly; the
     /// consuming project's provider could not serialize types bound to a copy that is not in its closure.
     /// </summary>
-    public SerializedTransitiveAspectManifest SerializedTransitiveAspectManifest { get; }
+    public SerializedTransitiveAspectManifest? SerializedTransitiveAspectManifest { get; }
 
     public ProjectKey ProjectKey { get; }
 
     public DesignTimeProjectReference(
         ProjectKey projectKey,
         DesignTimeAspectPipelineResult? transitiveAspectsManifest = null,
-        SerializedTransitiveAspectManifest serializedTransitiveAspectManifest = default )
+        SerializedTransitiveAspectManifest? serializedTransitiveAspectManifest = null )
     {
         // A live result is only ever carried alongside a serialized manifest, never on its own: it comes from a
         // same-version reference that exports something to inherit, and such a reference always serializes too. The
         // converse does not hold, because a cross-version reference carries the serialized manifest alone.
-        Invariant.Assert( transitiveAspectsManifest == null || !serializedTransitiveAspectManifest.IsDefaultOrEmpty );
+        Invariant.Assert( transitiveAspectsManifest == null || serializedTransitiveAspectManifest != null );
 
         this.TransitiveAspectsManifest = transitiveAspectsManifest;
         this.SerializedTransitiveAspectManifest = serializedTransitiveAspectManifest;

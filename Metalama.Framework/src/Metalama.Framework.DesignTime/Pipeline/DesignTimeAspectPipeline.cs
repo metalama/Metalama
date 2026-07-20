@@ -640,7 +640,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                         compilationReferences.Add(
                             new DesignTimeProjectReference(
                                 reference.ProjectKey,
-                                serializedTransitiveAspectManifest: SerializedTransitiveAspectManifest.Create( result.Manifest!.ToImmutableArray() ) ) );
+                                serializedTransitiveAspectManifest: GetCrossVersionManifest( result ) ) );
 
                         if ( result.IsPipelinePaused )
                         {
@@ -660,6 +660,29 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         }
 
         return new DesignTimeProjectVersion( compilationVersion, compilationReferences, pipelineStatus );
+    }
+
+    /// <summary>
+    /// Wraps the manifest received from a cross-version reference, taking the content hash from the producer when it
+    /// reports one.
+    /// </summary>
+    /// <remarks>
+    /// The hash is what <c>TransitiveManifestDeserializationCache</c> keys on downstream, so supplying it here is
+    /// what lets an unchanged reference skip being deserialized again. A producer older than
+    /// <see cref="ITransitiveCompilationResult2"/> reports none, and the bytes are hashed on first use as before.
+    /// That is the only case in which the ordering rule, a referencing project never being older than the project it
+    /// references, puts the older Metalama on the producing side.
+    /// </remarks>
+    private static SerializedTransitiveAspectManifest? GetCrossVersionManifest( ITransitiveCompilationResult result )
+    {
+        if ( result.Manifest is not { Length: > 0 } bytes )
+        {
+            return null;
+        }
+
+        return SerializedTransitiveAspectManifest.Create(
+            bytes.ToImmutableArray(),
+            result is ITransitiveCompilationResult2 { ManifestHash: var hash } ? hash : null );
     }
 
     public ValueTask<FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>> ExecuteAsync(
