@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CompileTime.Serialization;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -29,15 +30,15 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
     /// has transitive content a referencing project could inherit.
     /// </summary>
     private const string _producerCode = """
-                                          using Metalama.Framework.Aspects;
-                                          using Metalama.Framework.Code;
+                                         using Metalama.Framework.Aspects;
+                                         using Metalama.Framework.Code;
 
-                                          [Inheritable]
-                                          public class MyInheritableAspect : TypeAspect { }
+                                         [Inheritable]
+                                         public class MyInheritableAspect : TypeAspect { }
 
-                                          [MyInheritableAspect]
-                                          public class Base { }
-                                          """;
+                                         [MyInheritableAspect]
+                                         public class Base { }
+                                         """;
 
     /// <summary>
     /// A non-inheritable aspect: it does real design-time work but exports nothing to inherit (no inheritable
@@ -135,8 +136,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         Assert.NotEqual( a, c );
         Assert.True( a != c );
 
-        Assert.Equal( default, default( SerializedTransitiveAspectManifest ) );
-        Assert.NotEqual( a, default );
+        Assert.NotNull( a );
     }
 
     [Fact]
@@ -164,8 +164,8 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         var fromCompressed = TransitiveAspectsManifest.Deserialize( new MemoryStream( compressed ), serviceProvider, "Producer" );
 
         Assert.Equal(
-            fromUncompressed.InheritableAspectTypes.OrderBy( x => x, System.StringComparer.Ordinal ),
-            fromCompressed.InheritableAspectTypes.OrderBy( x => x, System.StringComparer.Ordinal ) );
+            fromUncompressed.InheritableAspectTypes.OrderBy( x => x, StringComparer.Ordinal ),
+            fromCompressed.InheritableAspectTypes.OrderBy( x => x, StringComparer.Ordinal ) );
 
         Assert.Contains( "MyInheritableAspect", fromUncompressed.InheritableAspectTypes );
     }

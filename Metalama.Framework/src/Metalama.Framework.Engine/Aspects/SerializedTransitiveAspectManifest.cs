@@ -92,8 +92,9 @@ public sealed class SerializedTransitiveAspectManifest : IEquatable<SerializedTr
 
     public override int GetHashCode() => this.Hash.GetHashCode();
 
+    // ReSharper disable once ArrangeRedundantParentheses
     public static bool operator ==( SerializedTransitiveAspectManifest? left, SerializedTransitiveAspectManifest? right )
-        => left?.Equals( right ) ?? right is null;
+        => left?.Equals( right ) ?? (right is null);
 
     public static bool operator !=( SerializedTransitiveAspectManifest? left, SerializedTransitiveAspectManifest? right )
         => !(left == right);
