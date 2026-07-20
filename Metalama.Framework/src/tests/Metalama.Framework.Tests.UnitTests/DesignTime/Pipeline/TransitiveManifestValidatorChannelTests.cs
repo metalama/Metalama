@@ -162,7 +162,7 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
         // would carry no live manifest either, and channel 1 would lose the validator along with the manifest.
         Assert.True( result.HasTransitiveAspectManifestContent );
 
-        var serialized = result.SerializedTransitiveAspectManifest;
+        var serialized = result.SerializedTransitiveAspectManifestWithoutValidators;
         Assert.False( serialized.IsDefaultOrEmpty );
 
         var deserialized = TransitiveAspectsManifest.Deserialize(

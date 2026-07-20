@@ -16,9 +16,9 @@ using Xunit.Abstractions;
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
 /// <summary>
-/// Covers the transitive-manifest serialization used by the design-time cross-project inheritance path:
-/// the "gate" that skips serializing a manifest with nothing to inherit (issue #1710 performance follow-up),
-/// and the round-trip through both the uncompressed (in-process) and the compressed (RPC/PE) formats.
+/// Covers the transitive-manifest serialization used by the design-time cross-project inheritance path: the
+/// condition on which a caller skips carrying a manifest with nothing to inherit (issue #1710 performance
+/// follow-up), and the round-trip through both the uncompressed and the legacy compressed formats.
 /// </summary>
 public sealed class TransitiveManifestSerializationTests : UnitTestClass
 {
@@ -71,7 +71,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
 
         Assert.True( result.HasTransitiveAspectManifestContent );
 
-        var serialized = result.SerializedTransitiveAspectManifest;
+        var serialized = result.SerializedTransitiveAspectManifestWithoutValidators;
         Assert.False( serialized.IsDefaultOrEmpty );
 
         // The in-process (design-time) manifest is serialized uncompressed, so it begins with the marker byte.
@@ -79,17 +79,17 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
     }
 
     [Fact]
-    public void ProjectWithoutInheritableContent_SkipsSerialization()
+    public void ProjectWithoutInheritableContent_ReportsNothingToInherit()
     {
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
         var result = Execute( testContext, factory, _emptyProducerCode );
 
-        // Gate: nothing to inherit, so the manifest is not serialized at all. The reference-construction site then
-        // carries neither the live nor the serialized manifest, and the consumer skips deserialization entirely.
+        // The gate itself lives on the caller: DesignTimeAspectPipeline builds a DesignTimeProjectReference carrying
+        // neither the live nor the serialized manifest when this is false, so the consumer skips deserialization
+        // entirely. The property below would serialize on demand; nobody asks it to.
         Assert.False( result.HasTransitiveAspectManifestContent );
-        Assert.True( result.SerializedTransitiveAspectManifest.IsDefaultOrEmpty );
     }
 
     /// <summary>
@@ -102,7 +102,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        var serialized = Execute( testContext, factory, _producerCode ).SerializedTransitiveAspectManifest;
+        var serialized = Execute( testContext, factory, _producerCode ).SerializedTransitiveAspectManifestWithoutValidators;
 
         Assert.NotEqual( 0, serialized.Hash );
 
@@ -159,8 +159,8 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
         // Both design-time manifests are uncompressed (marked). The compressed form is written only by ToResource
         // now, but a reader must still accept it: this project can reference an older one, whose manifest predates
         // the marker and arrives as a bare DEFLATE stream. That legacy shape is what `compressed` stands in for.
-        var uncompressed = result.SerializedTransitiveAspectManifest;
-        var crossVersion = result.SerializeTransitiveAspectManifestForOtherVersion();
+        var uncompressed = result.SerializedTransitiveAspectManifestWithoutValidators;
+        var crossVersion = result.SerializedTransitiveAspectManifestWithValidators;
         var compressed = result.LiveTransitiveAspectManifest.ToBytes( serviceProvider, compress: true );
 
         Assert.Equal( SerializationProtocol.UncompressedStreamMarker, uncompressed.Bytes[0] );
