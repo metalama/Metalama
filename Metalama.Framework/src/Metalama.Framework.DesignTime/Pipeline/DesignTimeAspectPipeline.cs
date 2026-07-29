@@ -47,16 +47,6 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
     private static readonly string _sourceGeneratorAssemblyName = typeof(DesignTimeAspectPipelineFactory).Assembly.GetName().Name.AssertNotNull();
 
     /// <summary>
-    /// How long a reference to another Metalama version waits for that version's design-time entry point to register
-    /// in the current process before the reference is reported as incompatible.
-    /// </summary>
-    /// <remarks>
-    /// Generous, because the other version's analyzer may legitimately still be initializing, but bounded, because it
-    /// may never register at all. See the call site for why that happens.
-    /// </remarks>
-    private static readonly TimeSpan _crossVersionEntryPointTimeout = TimeSpan.FromSeconds( 30 );
-
-    /// <summary>
     /// The lowest Metalama version that uses the current generation of <c>Metalama.Framework.DesignTime.Contracts</c>.
     /// </summary>
     /// <remarks>
@@ -65,22 +55,6 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
     /// never be reached from this process, however long it is waited for.
     /// </remarks>
     private static readonly Version _minimumCompatibleMetalamaVersion = new( 2026, 1 );
-
-    /// <summary>
-    /// The Metalama versions whose design-time entry point has been found unreachable in this process.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Static, because the entry point registry it reflects is itself process-wide.
-    /// </para>
-    /// <para>
-    /// Without this, a version that times out once is waited for again on every subsequent request:
-    /// <c>GetServiceProviderAsync</c> caches the pending task per version, so cancelling one wait abandons that
-    /// caller but leaves the shared task pending for the next one. That turns the original deadlock into a livelock
-    /// of one timeout per request, each holding the project lock (issue #1757).
-    /// </para>
-    /// </remarks>
-    private static readonly ConcurrentDictionary<Version, bool> _unavailableEntryPointVersions = new();
 
     private readonly WeakCache<Compilation, FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>> _compilationResultCache = new();
     private readonly RecursiveFileSystemWatcher? _fileSystemWatcher;
@@ -539,16 +513,14 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
     /// the reference.
     /// </summary>
     /// <remarks>
-    /// The version is remembered, so that a version found unreachable once is not waited for again. The diagnostic is
-    /// <c>LAMA0061</c>, the same one the compile-time pipeline reports for a reference that must be recompiled, which
-    /// is exactly the action the user has to take.
+    /// The diagnostic is <c>LAMA0061</c>, the same one the compile-time pipeline reports for a reference that must be
+    /// recompiled, which is exactly the action the user has to take. The condition is decided from the version alone,
+    /// so it costs nothing to re-derive on a later request and is deliberately not cached.
     /// </remarks>
     private FallibleResultWithDiagnostics<DesignTimeProjectVersion> ReportIncompatibleReference(
         IProjectVersion reference,
         Version metalamaVersion )
     {
-        _unavailableEntryPointVersions.TryAdd( metalamaVersion, true );
-
         this.Logger.Warning?.Log(
             $"Failed to process the reference to '{reference.ProjectKey}': it was compiled with Metalama {metalamaVersion}, "
             + $"which is not compatible with the current version." );
@@ -660,34 +632,19 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     // what must not happen is the unbounded wait that used to follow, because this method holds the
                     // lock on the current project and would therefore hang its design-time experience for good
                     // (issue #1757).
-                    if ( metalamaVersion < _minimumCompatibleMetalamaVersion || _unavailableEntryPointVersions.ContainsKey( metalamaVersion ) )
+                    if ( metalamaVersion < _minimumCompatibleMetalamaVersion )
                     {
                         return this.ReportIncompatibleReference( reference, metalamaVersion );
                     }
 
-                    ICompilerServiceProvider? serviceProvider;
-                    CancellationToken outerCancellationToken = cancellationToken;
-
-                    using ( var entryPointTimeout = CancellationTokenSource.CreateLinkedTokenSource( outerCancellationToken ) )
-                    {
-                        entryPointTimeout.CancelAfter( _crossVersionEntryPointTimeout );
-
-                        try
-                        {
-                            // Same generation, so the entry point is expected to register, but possibly not yet: the
-                            // other version's analyzer may still be initializing. Hence a bounded wait rather than
-                            // none at all.
-                            serviceProvider = await entryPointConsumer.GetServiceProviderAsync( metalamaVersion, entryPointTimeout.Token );
-                        }
-                        catch ( OperationCanceledException ) when ( !outerCancellationToken.IsCancellationRequested )
-                        {
-                            this.Logger.Warning?.Log(
-                                $"The design-time entry point of Metalama {metalamaVersion} did not register within "
-                                + $"{_crossVersionEntryPointTimeout.TotalSeconds} seconds." );
-
-                            return this.ReportIncompatibleReference( reference, metalamaVersion );
-                        }
-                    }
+                    // Same contracts generation, so the entry point is expected to register, but possibly not yet:
+                    // the other version's analyzer may still be initializing. How long that legitimately takes is not
+                    // something this code can know, since a large solution under an IDE that loads projects in the
+                    // background and on demand can take arbitrarily long, so the wait is governed by the caller's
+                    // cancellation token rather than by a timeout chosen here. A design-time request that is
+                    // abandoned cancels that token and is retried later, by which time the entry point has usually
+                    // registered.
+                    var serviceProvider = await entryPointConsumer.GetServiceProviderAsync( metalamaVersion, cancellationToken );
 
                     // InvalidCompilerServiceProvider, which the entry point manager returns when the contract
                     // versions of a same-generation peer do not match, answers null for every service.
