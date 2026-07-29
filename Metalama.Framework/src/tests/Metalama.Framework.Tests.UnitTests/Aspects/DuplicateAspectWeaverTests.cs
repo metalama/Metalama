@@ -10,7 +10,10 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.Collections.Immutable;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -72,10 +75,84 @@ namespace TestNamespace
         // Two distinct instances of the same weaver type, simulating the same weaver assembly loaded twice.
         var plugIns = ImmutableArray.Create<object>( new TestWeaver(), new TestWeaver() );
 
+        var diagnostics = new DiagnosticBag();
+
         // Before the fix, this threw ArgumentException from ToImmutableDictionary.
-        var aspectDriverFactory = new AspectDriverFactory( compilation, plugIns, serviceProvider );
+        var aspectDriverFactory = new AspectDriverFactory( compilation, plugIns, serviceProvider, diagnostics );
 
         Assert.NotNull( aspectDriverFactory );
+
+        // Both plug-ins have the same assembly identity, so they are interchangeable and no diagnostic is warranted.
+        Assert.Empty( diagnostics );
+    }
+
+    /// <summary>
+    /// Tests that when two assemblies of a different identity contribute a weaver of the same type name,
+    /// <see cref="AspectDriverFactory"/> reports <c>LAMA0077</c> and keeps the first weaver instead of throwing.
+    /// </summary>
+    [Fact]
+    public void DuplicateWeaverPlugInFromDifferentAssemblies_ReportsDiagnostic()
+    {
+        const string code = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+namespace TestNamespace
+{
+    public class MyAspect : TypeAspect { }
+}
+";
+
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( code );
+
+        var serviceProvider = testContext.ServiceProvider;
+
+        var compileTimeProjectRepository = CompileTimeProjectRepository.Create(
+                testContext.Domain,
+                serviceProvider,
+                compilation.RoslynCompilation,
+                NullDiagnosticAdder.Instance )
+            .AssertNotNull();
+
+        serviceProvider = serviceProvider.WithCompileTimeProjectServices( compileTimeProjectRepository );
+
+        // Two assemblies of a different identity providing the same weaver type name, which is what two versions
+        // of the same aspect library in the reference graph produce.
+        var plugIns = ImmutableArray.Create<object>(
+            CreateWeaverInDynamicAssembly( "DuplicateWeaverTestAssembly1" ),
+            CreateWeaverInDynamicAssembly( "DuplicateWeaverTestAssembly2" ) );
+
+        var diagnostics = new DiagnosticBag();
+
+        var aspectDriverFactory = new AspectDriverFactory( compilation, plugIns, serviceProvider, diagnostics );
+
+        Assert.NotNull( aspectDriverFactory );
+
+        Assert.Contains(
+            diagnostics,
+            d => d.Id == "LAMA0077" );
+    }
+
+    /// <summary>
+    /// Creates an <see cref="IAspectDriver"/> whose type has a fixed full name but belongs to an assembly of the
+    /// given name, so that several instances can share a type name while having different assembly identities.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="IAspectDriver"/> has no members, so the emitted type needs no method body and no IL.
+    /// </remarks>
+    private static IAspectDriver CreateWeaverInDynamicAssembly( string assemblyName )
+    {
+        var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly( new AssemblyName( assemblyName ), AssemblyBuilderAccess.Run );
+        var moduleBuilder = assemblyBuilder.DefineDynamicModule( assemblyName );
+
+        var typeBuilder = moduleBuilder.DefineType(
+            "TestNamespace.DuplicatedWeaver",
+            TypeAttributes.Public | TypeAttributes.Class,
+            typeof(object),
+            new[] { typeof(IAspectDriver) } );
+
+        return (IAspectDriver) Activator.CreateInstance( typeBuilder.CreateTypeInfo().AssertNotNull().AsType() ).AssertNotNull();
     }
 
     /// <summary>

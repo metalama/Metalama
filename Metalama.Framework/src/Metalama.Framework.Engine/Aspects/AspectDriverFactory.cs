@@ -4,7 +4,10 @@
 
 using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Aspects;
@@ -18,13 +21,55 @@ internal sealed class AspectDriverFactory
     private readonly ProjectServiceProvider _serviceProvider;
     private readonly ImmutableDictionary<string, IAspectDriver> _weaverTypes;
 
-    public AspectDriverFactory( CompilationModel compilation, ImmutableArray<object> plugins, in ProjectServiceProvider serviceProvider )
+    public AspectDriverFactory(
+        CompilationModel compilation,
+        ImmutableArray<object> plugins,
+        in ProjectServiceProvider serviceProvider,
+        IDiagnosticAdder diagnosticAdder )
     {
         this._compilation = compilation;
         this._serviceProvider = serviceProvider;
 
-        this._weaverTypes = plugins.OfType<IAspectDriver>()
-            .ToImmutableDictionary( weaver => weaver.GetType().FullName.AssertNotNull() );
+        var weaverTypesBuilder = ImmutableDictionary.CreateBuilder<string, IAspectDriver>();
+
+        foreach ( var weaver in plugins.OfType<IAspectDriver>() )
+        {
+            var weaverType = weaver.GetType();
+            var weaverTypeName = weaverType.FullName.AssertNotNull();
+
+            if ( !weaverTypesBuilder.TryGetValue( weaverTypeName, out var existingWeaver ) )
+            {
+                weaverTypesBuilder.Add( weaverTypeName, weaver );
+
+                continue;
+            }
+
+            // The same weaver name was contributed twice, which happens when the same aspect library reaches the
+            // compilation through two routes, for instance as a package and through a project reference (issue #1743).
+            // We keep the first weaver in both branches below, because the dictionary is keyed by the name that
+            // RequireAspectWeaverAttribute stores, so there is nothing left to tell the two entries apart afterwards.
+            var existingAssembly = existingWeaver.GetType().Assembly.FullName;
+            var duplicateAssembly = weaverType.Assembly.FullName;
+
+            if ( string.Equals( existingAssembly, duplicateAssembly, StringComparison.Ordinal ) )
+            {
+                // The two weavers come from the same assembly identity, so they are interchangeable and the
+                // duplication is not worth a user-visible diagnostic.
+                this._serviceProvider.GetLoggerFactory()
+                    .GetLogger( nameof(AspectDriverFactory) )
+                    .Warning?.Log( $"The aspect weaver '{weaverTypeName}' was provided twice by '{existingAssembly}'. Keeping the first one." );
+            }
+            else
+            {
+                // Two different assemblies claim the same weaver, so we cannot know which one the user means.
+                diagnosticAdder.Report(
+                    GeneralDiagnosticDescriptors.DuplicateAspectWeaver.CreateRoslynDiagnostic(
+                        Location.None,
+                        (weaverTypeName, existingAssembly ?? existingWeaver.GetType().Name, duplicateAssembly ?? weaverType.Name) ) );
+            }
+        }
+
+        this._weaverTypes = weaverTypesBuilder.ToImmutable();
     }
 
     public IAspectDriver GetAspectDriver( AspectClass aspectClass )

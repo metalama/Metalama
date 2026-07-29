@@ -162,7 +162,27 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
             // Process the manifest.
             if ( manifest != null )
             {
-                manifestDictionaryBuilder.Add( assemblyIdentity.AssertNotNull(), manifest );
+                var identity = assemblyIdentity.AssertNotNull();
+
+                if ( manifestDictionaryBuilder.TryGetValue( identity, out var existingManifest ) )
+                {
+                    // Two references of the compilation have the same assembly identity, which happens when the same
+                    // library reaches the project through two routes, for instance as a package and as a project
+                    // reference (issue #1743). We must ignore the duplicate rather than abort the whole pipeline:
+                    // manifests are looked up by assembly identity, so a second entry could never be reached, and
+                    // processing its aspects again would apply every inherited aspect of that assembly twice.
+                    if ( !ReferenceEquals( existingManifest, manifest ) )
+                    {
+                        diagnosticSink.Report(
+                            GeneralDiagnosticDescriptors.DuplicateAssemblyIdentityInReferences.CreateRoslynDiagnostic(
+                                Location.None,
+                                identity.ToString() ) );
+                    }
+
+                    continue;
+                }
+
+                manifestDictionaryBuilder.Add( identity, manifest );
 
                 // Process inherited aspects.
                 foreach ( var aspectClassName in manifest.InheritableAspectTypes )
