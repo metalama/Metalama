@@ -440,7 +440,7 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split inheritable aspects by syntax tree.
         foreach ( var inheritableAspectInstance in pipelineResults.InheritableAspects )
         {
-            var syntaxTree = inheritableAspectInstance.TargetDeclaration.GetPrimarySyntaxTree();
+            var syntaxTree = inheritableAspectInstance.TargetDeclaration.GetPrimarySyntaxTree( compilationContext );
 
             if ( syntaxTree == null )
             {
@@ -501,7 +501,7 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split aspect instances by syntax tree.
         foreach ( var aspectInstance in pipelineResults.AspectInstances )
         {
-            var syntaxTree = aspectInstance.TargetDeclaration.GetPrimarySyntaxTree();
+            var syntaxTree = aspectInstance.TargetDeclaration.GetPrimarySyntaxTree( compilationContext );
 
             // No continue here to handle even aspect instances without a syntax tree.
             if ( syntaxTree == null && !resultBuilders.ContainsKey( string.Empty ) )
@@ -607,7 +607,7 @@ public sealed partial class DesignTimeAspectPipelineResult
                 continue;
             }
 
-            var syntaxTree = annotationsOnDeclaration.Key.GetPrimarySyntaxTree();
+            var syntaxTree = annotationsOnDeclaration.Key.GetPrimarySyntaxTree( compilationContext );
 
             SyntaxTreePipelineResult.Builder builder;
 

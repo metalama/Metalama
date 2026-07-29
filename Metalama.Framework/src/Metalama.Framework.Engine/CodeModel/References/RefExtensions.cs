@@ -5,7 +5,9 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Source;
+using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -74,7 +76,22 @@ public static class RefExtensions
     internal static bool IsConvertibleTo( this IFullRef<IType> type, IType otherType, ConversionKind conversionKind = ConversionKind.Default )
         => type.ConstructedDeclaration.IsConvertibleTo( otherType, conversionKind );
 
-    public static SyntaxTree? GetPrimarySyntaxTree( this IRef reference ) => ((IFullRef) reference).PrimarySyntaxTree;
+    /// <summary>
+    /// Gets the syntax tree in which the target of a reference is primarily declared, or <c>null</c> if the target is
+    /// not declared in source.
+    /// </summary>
+    /// <remarks>
+    /// Most references are bound to a compilation (see <see cref="IFullRef"/>) and answer on their own. A durable
+    /// reference is not bound to any compilation: it reaches the design-time results through a deserialized transitive
+    /// manifest, so it has to be resolved against <paramref name="compilationContext"/> first. Resolution goes through
+    /// the symbol rather than through the declaration, because only the symbol lookup sees referenced assemblies,
+    /// which is where the target of such a reference lives. That gives the same answer a full reference to the same
+    /// declaration would give, so both channels file their results identically.
+    /// </remarks>
+    public static SyntaxTree? GetPrimarySyntaxTree( this IRef reference, CompilationContext compilationContext )
+        => reference is IFullRef fullRef
+            ? fullRef.PrimarySyntaxTree
+            : reference.ToSerializableId().ResolveToSymbolOrNull( compilationContext )?.GetClosestPrimaryDeclarationSyntax()?.SyntaxTree;
 
 #if DEBUG
     internal static Type[] GetPossibleDeclarationInterfaceTypes( this DeclarationKind declarationKind, RefTargetKind refTargetKind = RefTargetKind.Default )
