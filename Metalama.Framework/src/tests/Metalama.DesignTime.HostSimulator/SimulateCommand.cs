@@ -29,6 +29,8 @@ internal sealed class SimulateCommand : AsyncCommand<SimulateCommandSettings>
 
     protected override async Task<int> ExecuteAsync( CommandContext context, SimulateCommandSettings settings, CancellationToken cancellationToken )
     {
+        ConfigureMetalamaEnvironment( settings );
+
         if ( settings.UseMSBuildLocator )
         {
             MSBuildEnvironment.Register();
@@ -69,6 +71,41 @@ internal sealed class SimulateCommand : AsyncCommand<SimulateCommandSettings>
             AnsiConsole.MarkupLine( "[yellow]Cancelled.[/]" );
 
             return 130;
+        }
+    }
+
+    /// <summary>
+    /// Sets the environment variables that configure Metalama in this process, before any analyzer assembly is
+    /// loaded.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Metalama.Backstage reads these variables the first time an analyzer resolves its logger factory, which
+    /// happens well after this point, so setting them here is early enough. A variable that the caller has already
+    /// set is left alone, so both can still be overridden from the outside.
+    /// </para>
+    /// <para>
+    /// This is done with environment variables rather than by teaching Backstage about this process, because both
+    /// switches already exist and a process can set its own environment. Child processes started for
+    /// <c>--permutations</c> inherit them.
+    /// </para>
+    /// </remarks>
+    private static void ConfigureMetalamaEnvironment( SimulateCommandSettings settings )
+    {
+        // Without this, Backstage writes to a log file in a temporary directory, which is of no use for a process
+        // that exists to be read, and useless altogether on a build agent.
+        SetEnvironmentVariableIfAbsent( "METALAMA_CONSOLE_TRACE", settings.TraceCategories );
+
+        // This process reproduces crashes on purpose, so its telemetry would be indistinguishable from a real
+        // user's crash in the reports that these scenarios are written from.
+        SetEnvironmentVariableIfAbsent( "METALAMA_TELEMETRY_OPT_OUT", "1" );
+    }
+
+    private static void SetEnvironmentVariableIfAbsent( string name, string value )
+    {
+        if ( string.IsNullOrEmpty( Environment.GetEnvironmentVariable( name ) ) )
+        {
+            Environment.SetEnvironmentVariable( name, value );
         }
     }
 
@@ -181,6 +218,11 @@ internal sealed class SimulateCommand : AsyncCommand<SimulateCommandSettings>
         {
             startInfo.ArgumentList.Add( "--verbose" );
         }
+
+        startInfo.ArgumentList.Add( "--trace" );
+        startInfo.ArgumentList.Add( settings.TraceCategories );
+        startInfo.ArgumentList.Add( "--timeout" );
+        startInfo.ArgumentList.Add( settings.TimeoutSeconds.ToString( System.Globalization.CultureInfo.InvariantCulture ) );
 
         if ( settings.UseMSBuildLocator )
         {

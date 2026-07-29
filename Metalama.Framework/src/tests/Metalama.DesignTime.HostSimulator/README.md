@@ -95,20 +95,23 @@ Two distinct assemblies both named `Contract` collapse to a single `ProjectKey`,
 `ProjectVersionProvider.Implementation` builds an `ImmutableDictionary` keyed on it with a plain `Add`. This site
 is unreachable from a batch build, and it is a further instance of the family in #1743 and #1749.
 
-## Logging
+## Logging and telemetry
 
-Metalama.Backstage logs to the **console** in this process instead of to a log file. `ProcessKind` gained a
-`DesignTimeHostSimulator` member, detected in `ProcessUtilities.GetProcessKind` either from the process name (the
-apphost) or from `metalama.designtime.hostsimulator.dll` on the command line (`dotnet <dll>`), and
-`RegisterServiceExtensions.AddDiagnostics` selects the existing `ConsoleLoggerFactory` for it. A log file left in
-the temporary directory of a build agent would be of no use, and the whole point of this process is to be read.
+Metalama.Backstage logs to the **console** in this process instead of to a log file, and does not report telemetry.
+Both are configured by setting the environment variables Backstage already honours, in `SimulateCommand`, before
+any analyzer assembly is loaded:
 
-Records go to the **error** stream, not the output stream: the output stream carries the diagnostics in canonical
-MSBuild format, which the build engineering parses line by line, and interleaving trace records there would
-corrupt them.
+| Variable | Value | Why |
+|---|---|---|
+| `METALAMA_CONSOLE_TRACE` | `--trace`, default `none` | Selects `ConsoleLoggerFactory`. A log file in a temporary directory is of no use for a process that exists to be read, and useless on a build agent. |
+| `METALAMA_TELEMETRY_OPT_OUT` | `1` | This process reproduces crashes on purpose, so its telemetry would be indistinguishable from a real user's crash in the very reports these scenarios are written from. |
 
-Errors, warnings and infos are logged unconditionally. Traces are logged for the categories enabled in the
-diagnostics configuration, and `METALAMA_CONSOLE_TRACE` still overrides everything, as it does for any process.
+Nothing in Metalama.Backstage knows about this process. A variable already set by the caller is left alone, so both
+can be overridden from outside, and child processes started for `--permutations` inherit them.
+
+The value of `METALAMA_CONSOLE_TRACE` is a trace-category filter, and it selects the console logger by being
+non-empty, so it cannot be left empty to mean "no trace". The default, `none`, names no category that any Metalama
+component logs under: errors, warnings and infos appear, traces do not. Pass `--trace "*"` for everything.
 
 ## What it does not simulate
 

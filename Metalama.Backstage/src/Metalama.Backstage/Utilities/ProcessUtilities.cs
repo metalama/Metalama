@@ -84,11 +84,6 @@ public static class ProcessUtilities
             case "testhost":
                 return ProcessKind.TestHost;
 
-            // The simulator is multi-targeted and has an apphost, so it is seen either under this name or as
-            // 'dotnet <path>\Metalama.DesignTime.HostSimulator.dll', which the 'dotnet' case below covers.
-            case "metalama.designtime.hostsimulator":
-                return ProcessKind.DesignTimeHostSimulator;
-
             case "dotnet":
                 {
                     var commandLine = Environment.CommandLine.ToLowerInvariant();
@@ -122,10 +117,6 @@ public static class ProcessUtilities
                     else if ( commandLine.Contains( "dotnet-format.dll" ) )
                     {
                         return ProcessKind.Format;
-                    }
-                    else if ( commandLine.Contains( "metalama.designtime.hostsimulator.dll" ) )
-                    {
-                        return ProcessKind.DesignTimeHostSimulator;
                     }
                     else
                     {
