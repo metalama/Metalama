@@ -127,6 +127,8 @@ internal sealed partial class CompileTimeProjectRepository
                 throw new AssertionFailedException( $"Metalama is not enabled for the project '{compilation.AssemblyName}'." );
             }
 
+            this.ReportAmbiguousCompileTimeAssemblyNames( compileTimeProject, diagnosticSink );
+
             loader = new CompileTimeProjectRepository(
                 this._domain,
                 this._serviceProvider,
@@ -134,6 +136,71 @@ internal sealed partial class CompileTimeProjectRepository
                 compileTimeProject );
 
             return true;
+        }
+
+        /// <summary>
+        /// Reports a warning for every compile-time assembly name that is claimed by more than one project of the
+        /// closure of <paramref name="rootProject"/>, naming the run-time assemblies of all the projects that claim it.
+        /// </summary>
+        /// <remarks>
+        /// This is the only place where the whole closure is known and a diagnostic sink is available. Without it,
+        /// the condition surfaces much later, as a failed lookup by compile-time assembly name (typically while
+        /// serializing a type name), from where the offending references can no longer be named. See #1749.
+        /// </remarks>
+        internal void ReportAmbiguousCompileTimeAssemblyNames( CompileTimeProject rootProject, IDiagnosticAdder diagnosticSink )
+        {
+            foreach ( var group in rootProject.ClosureProjectsGroupedByCompileTimeAssemblyName )
+            {
+                if ( group.Value.Count <= 1 )
+                {
+                    continue;
+                }
+
+                var runTimeAssemblies = string.Join( ", ", group.Value.SelectAsReadOnlyList( p => $"'{p.RunTimeIdentity}'" ) );
+
+                this._logger.Warning?.Log( $"Several compile-time projects have the compile-time assembly name '{group.Key}': {runTimeAssemblies}." );
+
+                diagnosticSink.Report(
+                    GeneralDiagnosticDescriptors.DuplicateCompileTimeAssemblyName.CreateRoslynDiagnostic(
+                        null,
+                        (group.Key, runTimeAssemblies) ) );
+            }
+        }
+
+        /// <summary>
+        /// Registers the compile-time project of a run-time assembly identity, and returns the project that is
+        /// registered for that identity afterwards.
+        /// </summary>
+        /// <remarks>
+        /// Resolving the references of a project can register the identity of that project before the project itself
+        /// is registered, so a plain <c>Add</c> threw <c>ArgumentException: An item with the same key has already been
+        /// added</c> (issue #1749). The instance registered first wins, because it is the one already handed to other
+        /// callers, so that a single compile-time projection is used for a given run-time assembly.
+        /// </remarks>
+        private CompileTimeProject? RegisterProject( AssemblyIdentity runTimeIdentity, CompileTimeProject? project )
+        {
+            if ( !this._projects.TryGetValue( runTimeIdentity, out var registeredProject ) )
+            {
+                this._projects.Add( runTimeIdentity, project );
+
+                return project;
+            }
+
+            if ( registeredProject == null )
+            {
+                // The assembly was known to have no compile-time code, so anything we resolved since then is better.
+                this._projects[runTimeIdentity] = project;
+
+                return project;
+            }
+
+            if ( !ReferenceEquals( registeredProject, project ) )
+            {
+                this._logger.Warning?.Log(
+                    $"Two compile-time projects were resolved for '{runTimeIdentity}': keeping '{registeredProject}' and discarding '{project}'." );
+            }
+
+            return registeredProject;
         }
 
         // This method is only used in tests.
@@ -227,7 +294,7 @@ internal sealed partial class CompileTimeProjectRepository
                 return false;
             }
 
-            this._projects.Add( runTimeCompilation.Assembly.Identity, compileTimeProject );
+            compileTimeProject = this.RegisterProject( runTimeCompilation.Assembly.Identity, compileTimeProject );
 
             this._logger.Trace?.Log( $"TryGetCompileTimeProjectFromCompilation('{compilationContext.SourceCompilation.AssemblyName}'): successful." );
 
@@ -270,8 +337,7 @@ internal sealed partial class CompileTimeProjectRepository
                          && upstreamConfig.CompileTimeProject is { } upstreamProject )
                     {
                         // Cache by AssemblyIdentity so subsequent identity-keyed lookups within this Builder hit the same instance.
-                        this._projects.Add( upstreamProject.RunTimeIdentity, upstreamProject );
-                        referencedProject = upstreamProject;
+                        referencedProject = this.RegisterProject( upstreamProject.RunTimeIdentity, upstreamProject );
 
                         this._logger.Trace?.Log(
                             $"Reusing upstream pipeline's CompileTimeProject for '{compilationReference.Compilation.AssemblyName}' (issue #1611)." );
@@ -402,7 +468,7 @@ internal sealed partial class CompileTimeProjectRepository
             }
 
         finish:
-            this._projects.Add( assemblyIdentity, compileTimeProject );
+            compileTimeProject = this.RegisterProject( assemblyIdentity, compileTimeProject );
 
             return true;
         }

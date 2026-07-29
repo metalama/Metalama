@@ -3,8 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using System;
+using System.Globalization;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -34,7 +37,7 @@ public sealed class DuplicateCompileTimeAssemblyNameTests : UnitTestClass
     /// <summary>
     /// Builds a closure in which <c>ml!Ambiguous_0</c> is claimed by two projects and <c>ml!Unique_0</c> by one.
     /// </summary>
-    private CompileTimeProject CreateAmbiguousClosure( TestContext testContext )
+    private static CompileTimeProject CreateAmbiguousClosure( TestContext testContext )
     {
         var first = CompileTimeProject.CreateEmpty(
             testContext.ServiceProvider,
@@ -71,7 +74,7 @@ public sealed class DuplicateCompileTimeAssemblyNameTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
 
-        var root = this.CreateAmbiguousClosure( testContext );
+        var root = CreateAmbiguousClosure( testContext );
 
         Assert.False( root.TryGetProjectByCompileTimeAssemblyName( "ml!Ambiguous_0", out _ ) );
     }
@@ -84,7 +87,7 @@ public sealed class DuplicateCompileTimeAssemblyNameTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
 
-        var root = this.CreateAmbiguousClosure( testContext );
+        var root = CreateAmbiguousClosure( testContext );
 
         Assert.True( root.TryGetProjectByCompileTimeAssemblyName( "ml!Unique_0", out var unique ) );
         Assert.Equal( "Unique", unique!.RunTimeIdentity.Name );
@@ -101,8 +104,51 @@ public sealed class DuplicateCompileTimeAssemblyNameTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
 
-        var root = this.CreateAmbiguousClosure( testContext );
+        var root = CreateAmbiguousClosure( testContext );
 
         Assert.False( root.TryGetProjectByCompileTimeAssemblyName( "ml!Missing_0", out _ ) );
+    }
+
+    /// <summary>
+    /// The map backing the lookup is derived from the immutable closure, so it must be computed once and not on
+    /// every access.
+    /// </summary>
+    [Fact]
+    public void ClosureProjectsGroupedByCompileTimeAssemblyName_IsComputedOnce()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var root = CreateAmbiguousClosure( testContext );
+
+        Assert.Same( root.ClosureProjectsGroupedByCompileTimeAssemblyName, root.ClosureProjectsGroupedByCompileTimeAssemblyName );
+    }
+
+    /// <summary>
+    /// The ambiguity must be reported where the closure and a diagnostic sink are both available, and the diagnostic
+    /// must name the run-time assemblies of all the projects claiming the name, which is what lets a user fix their
+    /// reference graph.
+    /// </summary>
+    [Fact]
+    public void AmbiguousCompileTimeAssemblyName_IsReported()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var root = CreateAmbiguousClosure( testContext );
+
+        var builder = new CompileTimeProjectRepository.Builder( testContext.Domain, testContext.ServiceProvider );
+        DiagnosticBag diagnostics = new();
+
+        builder.ReportAmbiguousCompileTimeAssemblyNames( root, diagnostics );
+
+        var diagnostic = Assert.Single( diagnostics );
+        Assert.Equal( "LAMA0077", diagnostic.Id );
+
+        var message = diagnostic.GetMessage( CultureInfo.InvariantCulture );
+        Assert.Contains( "ml!Ambiguous_0", message, StringComparison.Ordinal );
+        Assert.Contains( "First", message, StringComparison.Ordinal );
+        Assert.Contains( "Second", message, StringComparison.Ordinal );
+
+        // The unambiguous projects of the same closure are not reported.
+        Assert.DoesNotContain( "ml!Unique_0", message, StringComparison.Ordinal );
     }
 }

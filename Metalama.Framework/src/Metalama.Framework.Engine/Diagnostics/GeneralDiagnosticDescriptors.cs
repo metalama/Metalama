@@ -413,6 +413,22 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Warning,
                 "The repository configuration file (metalama.json) was not fully applied." );
 
+        // Reported when the compile-time closure holds several projects claiming the same compile-time assembly
+        // name, which is what a reference graph pulling in two versions of the same assembly produces. Naming both
+        // projects is the point of this diagnostic: the condition used to surface as an ArgumentException thrown by
+        // the dictionary that maps compile-time names to projects, typically while serializing a type name, where
+        // nothing identified the offending references. See #1749.
+        internal static readonly DiagnosticDefinition<(string CompileTimeAssemblyName, string RunTimeAssemblies)>
+            DuplicateCompileTimeAssemblyName =
+                new(
+                    "LAMA0077",
+                    _category,
+                    "Several compile-time projects have the compile-time assembly name '{0}': {1}. This typically means that the reference graph "
+                    + "contains several versions of the same assembly. Types of these assemblies cannot be used in compile-time code that requires "
+                    + "serialization. Fix the references of the project so that a single version of each assembly is referenced.",
+                    Warning,
+                    "Several compile-time projects have the same compile-time assembly name." );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(

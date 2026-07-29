@@ -100,9 +100,20 @@ internal sealed class CompileTimeProject : IProjectService
     [Memo]
     private IReadOnlyDictionary<string, CompileTimeProject> ClosureProjectsByRunTimeAssemblyName => this.CreateClosureProjectsByRuntimeAssemblyName();
 
+    /// <summary>
+    /// Gets every compile-time project in <see cref="ClosureProjects"/> grouped by compile-time assembly name, so a
+    /// caller can see <em>all</em> the projects that claim a given compile-time assembly name.
+    /// </summary>
+    /// <remarks>
+    /// A closure can hold two distinct projects claiming the same compile-time assembly name, which is what a
+    /// reference graph pulling in two versions of the same assembly produces (issue #1749). A single-valued
+    /// dictionary therefore cannot represent this map: building one threw <see cref="ArgumentException"/> from
+    /// <c>Dictionary.Add</c>, and because the map is consumed by a lookup, it threw for every name of the closure
+    /// and not only for the ambiguous one.
+    /// </remarks>
     [Memo]
-    private IReadOnlyDictionary<string, CompileTimeProject> ClosureProjectsByCompileTimeAssemblyName
-        => this.ClosureProjects.ToDictionary( p => p.CompileTimeIdentity.Name, p => p );
+    internal IReadOnlyDictionaryOfList<string, CompileTimeProject> ClosureProjectsGroupedByCompileTimeAssemblyName
+        => this.ClosureProjects.ToReadOnlyDictionaryOfList( p => p.CompileTimeIdentity.Name, p => p );
 
     /// <summary>
     /// Gets every compile-time project in <see cref="ClosureProjects"/> grouped by run-time assembly name, so a
@@ -114,9 +125,8 @@ internal sealed class CompileTimeProject : IProjectService
     /// <em>unambiguous</em>, because the per-TFM copies of a multi-targeted assembly share a run-time version and
     /// differ only in their compile-time (<c>ml!</c>) name, so version-based resolution would silently hide the
     /// ambiguity. A caller that must know the closure maps an assembly to exactly one compile-time copy (see
-    /// <c>TransitivePipelineContributorSource.CanReuseLiveManifest</c>) checks for a single entry here instead.
-    /// Compile-time names are unique within a closure (<see cref="ClosureProjectsByCompileTimeAssemblyName"/> keys
-    /// on them), so more than one entry always means genuinely distinct copies.
+    /// <c>TransitivePipelineContributorSource.CanReuseLiveManifest</c>) checks for a single entry here instead. The
+    /// closure walk keys on <see cref="UniqueKey"/>, so more than one entry always means genuinely distinct copies.
     /// </remarks>
     [Memo]
     internal IReadOnlyDictionaryOfList<string, CompileTimeProject> ClosureProjectsGroupedByRunTimeAssemblyName
@@ -125,8 +135,31 @@ internal sealed class CompileTimeProject : IProjectService
     private bool TryGetProjectByRunTimeAssemblyName( string runTimeName, [NotNullWhen( true )] out CompileTimeProject? project )
         => this.ClosureProjectsByRunTimeAssemblyName.TryGetValue( runTimeName, out project );
 
-    public bool TryGetProjectByCompileTimeAssemblyName( string runTimeName, [NotNullWhen( true )] out CompileTimeProject? project )
-        => this.ClosureProjectsByCompileTimeAssemblyName.TryGetValue( runTimeName, out project );
+    /// <summary>
+    /// Gets the single project of the closure that claims a given compile-time assembly name, and returns
+    /// <c>false</c> if no project claims it or if several do.
+    /// </summary>
+    /// <remarks>
+    /// An ambiguous name is a failed lookup and not an exception, so that an ill-formed reference graph does not
+    /// crash a caller that has no way to explain the failure, and so that the other names of the same closure
+    /// remain resolvable. Callers that need to explain the ambiguity read
+    /// <see cref="ClosureProjectsGroupedByCompileTimeAssemblyName"/> to name the offending projects.
+    /// </remarks>
+    public bool TryGetProjectByCompileTimeAssemblyName( string compileTimeName, [NotNullWhen( true )] out CompileTimeProject? project )
+    {
+        var projects = this.ClosureProjectsGroupedByCompileTimeAssemblyName[compileTimeName];
+
+        if ( projects.Count != 1 )
+        {
+            project = null;
+
+            return false;
+        }
+
+        project = projects[0];
+
+        return true;
+    }
 
     /// <summary>
     /// Gets the list of transformed code files in the current project. 

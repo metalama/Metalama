@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using System;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.CompileTime.Serialization;
 
@@ -53,6 +54,19 @@ internal sealed class CompileTimeSerializationBinder : BaseCompileTimeSerializat
             }
             else
             {
+                // An ambiguous name gets its own message: it means the reference graph pulls in several versions of
+                // the same assembly, which the caller cannot guess from a "not a part of the current project"
+                // message, and which naming the offending assemblies makes actionable (#1749).
+                var candidates = this._project?.ClosureProjectsGroupedByCompileTimeAssemblyName[typeAssemblyName];
+
+                if ( candidates is { Count: > 1 } )
+                {
+                    throw new AssertionFailedException(
+                        $"Several compile-time projects have the compile-time assembly name '{typeAssemblyName}': "
+                        + $"{string.Join( ", ", candidates.SelectAsReadOnlyList( p => $"'{p.RunTimeIdentity}'" ) )}. "
+                        + "The type cannot be serialized because it is not known which of them defines it." );
+                }
+
                 throw new AssertionFailedException( $"'{typeAssemblyName}' is a compile-time assembly but it is not a part of the current project." );
             }
         }
