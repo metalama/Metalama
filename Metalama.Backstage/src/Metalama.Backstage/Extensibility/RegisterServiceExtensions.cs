@@ -77,6 +77,19 @@ public static class RegisterServiceExtensions
                     var traceCategories = consoleTracing.Split( ' ', ',', ';' ).ToImmutableHashSet();
                     loggerFactory = new ConsoleLoggerFactory( Console.Out, traceCategories );
                 }
+                else if ( processKind == ProcessKind.DesignTimeHostSimulator )
+                {
+                    // This process exists to be read, so a log file left in a temporary directory would be of no use.
+                    // Writing to the error stream rather than to the output stream is deliberate: the simulator writes
+                    // its diagnostics to the output stream in the canonical MSBuild format, and the build engineering
+                    // parses them line by line, so interleaving trace records there would corrupt them.
+                    var traceCategories = configuration.Logging.TraceCategories
+                        .Where( c => c.Value )
+                        .Select( c => c.Key )
+                        .ToImmutableHashSet();
+
+                    loggerFactory = new ConsoleLoggerFactory( Console.Error, traceCategories );
+                }
                 else if ( options.TraceAction != null )
                 {
                     loggerFactory = new DelegateLoggerFactory( options.TraceAction, ImmutableHashSet.Create( "*" ) );

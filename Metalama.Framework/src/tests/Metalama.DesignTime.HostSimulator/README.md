@@ -95,6 +95,21 @@ Two distinct assemblies both named `Contract` collapse to a single `ProjectKey`,
 `ProjectVersionProvider.Implementation` builds an `ImmutableDictionary` keyed on it with a plain `Add`. This site
 is unreachable from a batch build, and it is a further instance of the family in #1743 and #1749.
 
+## Logging
+
+Metalama.Backstage logs to the **console** in this process instead of to a log file. `ProcessKind` gained a
+`DesignTimeHostSimulator` member, detected in `ProcessUtilities.GetProcessKind` either from the process name (the
+apphost) or from `metalama.designtime.hostsimulator.dll` on the command line (`dotnet <dll>`), and
+`RegisterServiceExtensions.AddDiagnostics` selects the existing `ConsoleLoggerFactory` for it. A log file left in
+the temporary directory of a build agent would be of no use, and the whole point of this process is to be read.
+
+Records go to the **error** stream, not the output stream: the output stream carries the diagnostics in canonical
+MSBuild format, which the build engineering parses line by line, and interleaving trace records there would
+corrupt them.
+
+Errors, warnings and infos are logged unconditionally. Traces are logged for the categories enabled in the
+diagnostics configuration, and `METALAMA_CONSOLE_TRACE` still overrides everything, as it does for any process.
+
 ## What it does not simulate
 
 Stated explicitly, because the gap matters when interpreting a green run:

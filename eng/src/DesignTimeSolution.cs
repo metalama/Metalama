@@ -109,6 +109,28 @@ internal sealed class DesignTimeSolution : TestableSolution
             return false;
         }
 
+        // A scenario can reference an assembly by file path rather than by project reference, which is the only way
+        // to express some of the reference graphs these scenarios exist for. Those files have to exist before the
+        // workspace evaluates the projects, so the scenario is built first.
+        //
+        // The result is deliberately ignored: a design-time scenario is allowed to be one that does not compile,
+        // which is exactly what the scenario for #1749 is. What matters is the output that a partial build produces,
+        // not its exit code.
+        _ = DotNetHelper.Run(
+            context,
+            settings,
+            this.GetFinalSolutionPath( context ),
+            "build",
+            // Each project is compiled in its own process. Loading two versions of one compile-time assembly into a
+            // shared compiler server fails on the second one, which would stop the scenario before it produces the
+            // assemblies the simulator needs.
+            "-p:UseSharedCompilation=false",
+            true,
+            out _,
+            out _,
+            this.CreateInvocationOptions(),
+            logName + ".prepare" );
+
         var commandLine = $"\"{simulator}\" \"{this.GetFinalSolutionPath( context )}\"";
 
         if ( this.AllPermutations )

@@ -96,5 +96,15 @@ public enum ProcessKind
     /// <summary>
     /// The <c>dotnet format</c> command.
     /// </summary>
-    Format
+    Format,
+
+    /// <summary>
+    /// <c>Metalama.DesignTime.HostSimulator</c>, which reproduces design-time defects outside an IDE.
+    /// </summary>
+    /// <remarks>
+    /// This process logs to the console rather than to a file, because it exists to be read: it is run
+    /// interactively while diagnosing a defect, or by the build, where a log file left in the temporary directory
+    /// of an agent is of no use.
+    /// </remarks>
+    DesignTimeHostSimulator
 }
