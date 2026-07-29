@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using BuildMetalama;
 using Metalama.Framework.GenerateMetaSyntaxRewriter;
 using PostSharp.Engineering.BuildTools;
 using PostSharp.Engineering.BuildTools.BillOfMaterials;
@@ -94,6 +95,10 @@ var product = new Product( MetalamaDependencies.Metalama )
             IsTestOnly = true, TestMethod = BuildMethod.Build
         },
         new ManyDotNetSolutions( "Metalama.Framework/src/Tests/Standalone" ) { IsTestOnly = true },
+
+        // Scenarios that only fail at design time. They are exercised by Metalama.DesignTime.HostSimulator, which
+        // hosts Metalama the way an IDE does, instead of by 'dotnet build'.
+        new ManyDesignTimeSolutions( "Metalama.Framework/src/Tests/DesignTimeStandalone" ) { IsTestOnly = true },
         new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
         new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
         new DotNetSolution( "Metalama.Migration/Metalama.Migration.sln" ) { CanFormatCode = true },

@@ -34,11 +34,35 @@ internal sealed class SimulateCommand : AsyncCommand<SimulateCommandSettings>
             MSBuildEnvironment.Register();
         }
 
+        // A design-time defect can be a deadlock as easily as an exception, so an unbounded run would turn a
+        // reportable failure into a hung build. The timeout is enforced by racing the work against a delay rather
+        // than by a cancellation token alone, because a deadlocked call never observes the token.
+        var work = settings.AllPermutations
+            ? RunAllPermutationsAsync( settings, cancellationToken )
+            : RunOnceAsync( settings, cancellationToken );
+
+        if ( settings.TimeoutSeconds > 0 )
+        {
+            var completed = await Task.WhenAny( work, Task.Delay( TimeSpan.FromSeconds( settings.TimeoutSeconds ), cancellationToken ) );
+
+            if ( completed != work )
+            {
+                // Written in the canonical MSBuild format, so that the build engineering sees it as a diagnostic.
+                Console.Out.WriteLine(
+                    $"{Path.GetFileName( settings.FullSolutionPath )}: error SIM0002: "
+                    + $"The simulation did not complete within {settings.TimeoutSeconds} seconds." );
+
+                Console.Out.Flush();
+                AnsiConsole.MarkupLine( "[red]Result: TIMED OUT.[/]" );
+
+                // The process is left with threads blocked in the deadlock, so it cannot be shut down gracefully.
+                Environment.Exit( _failureExitCode );
+            }
+        }
+
         try
         {
-            return settings.AllPermutations
-                ? await RunAllPermutationsAsync( settings, cancellationToken )
-                : await RunOnceAsync( settings, cancellationToken );
+            return await work;
         }
         catch ( OperationCanceledException )
         {

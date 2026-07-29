@@ -51,8 +51,23 @@ Metalama.DesignTime.HostSimulator <solution> [options]
   --msbuild-locator   Register an MSBuild instance with Microsoft.Build.Locator. Off by default: the workspace
                       uses an out-of-process build host that locates MSBuild itself, and registering the locator
                       prevents that host from starting, which hangs the workspace.
+  --timeout <SECONDS> Abandon the simulation and report a failure after this long. Defaults to 600. Zero disables.
   --verbose, -v       Print every diagnostic, not only the ones that indicate a failure.
 ```
+
+The timeout is enforced by racing the work against a delay and then killing the process, not by a cancellation
+token, because a deadlocked call never observes the token. A design-time defect can be a deadlock as easily as an
+exception, and without this a scenario that deadlocks would hang CI instead of failing it.
+
+## How it is run by the build
+
+Scenarios live under `Metalama.Framework/src/tests/DesignTimeStandalone` and are run by `ManyDesignTimeSolutions`,
+declared in `eng/src`. It is the design-time counterpart of `ManyDotNetSolutions`: discovery, scheduling and
+reporting are inherited from `ManySolutions`, and only the engine differs. Each scenario is restored but never
+built, because a scenario is allowed to be one that does not compile.
+
+Diagnostics are written to standard output in the canonical MSBuild format, one per line, which is what lets a
+scenario assert on them with the same `test.json` syntax as a compile-time scenario.
 
 The command line is built on Spectre.Console.Cli, so `--help` lists the options with their descriptions.
 

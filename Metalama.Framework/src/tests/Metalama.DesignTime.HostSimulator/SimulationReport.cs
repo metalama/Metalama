@@ -131,26 +131,49 @@ internal sealed class SimulationReport
 
         AnsiConsole.Write( table );
 
+        this.WriteDiagnostics( verbose );
+    }
+
+    /// <summary>
+    /// Writes every diagnostic in the canonical MSBuild format, the way a build writes it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is written straight to <see cref="Console.Out"/> rather than through <see cref="AnsiConsole"/>, because
+    /// Spectre wraps its output to the console width, and a wrapped diagnostic is no longer one line. The build
+    /// engineering asserts on these lines with the regular expressions of a <c>test.json</c> file, and it splits the
+    /// output by line, so a wrapped line would silently fail to match.
+    /// </para>
+    /// <para>
+    /// <see cref="Diagnostic.ToString"/> already produces the canonical
+    /// <c>path(line,column): severity ID: message</c> format, which is what makes a design-time scenario assertable
+    /// with exactly the same <c>test.json</c> syntax as a compile-time one.
+    /// </para>
+    /// </remarks>
+    private void WriteDiagnostics( bool verbose )
+    {
         foreach ( var project in this.Projects )
         {
+            // Failures that are not diagnostics still have to reach the assertion machinery, which only looks at
+            // lines containing ': error ' or ': warning '.
             foreach ( var error in project.Errors )
             {
-                AnsiConsole.MarkupLineInterpolated( $"[red]FAIL[/] {project.ProjectName}: {error}" );
+                Console.Out.WriteLine( $"{project.ProjectName}: error SIM0001: {SingleLine( error )}" );
             }
 
-            foreach ( var diagnostic in project.InfrastructureFailures )
+            foreach ( var diagnostic in project.Diagnostics )
             {
-                AnsiConsole.MarkupLineInterpolated( $"[red]FAIL[/] {project.ProjectName}: {diagnostic.Id}: {diagnostic.GetMessage()}" );
-            }
-
-            if ( verbose )
-            {
-                foreach ( var diagnostic in project.Diagnostics )
+                if ( verbose || diagnostic.Severity >= DiagnosticSeverity.Warning )
                 {
-                    AnsiConsole.MarkupLineInterpolated(
-                        $"  {project.ProjectName}: {diagnostic.Severity} {diagnostic.Id}: {diagnostic.GetMessage()}" );
+                    Console.Out.WriteLine( SingleLine( diagnostic.ToString() ) );
                 }
             }
         }
     }
+
+    /// <summary>
+    /// Collapses a message onto a single line, so that a multi-line message such as a stack trace stays matchable.
+    /// </summary>
+    private static string SingleLine( string message )
+        => message.Replace( "\r\n", " ", StringComparison.Ordinal ).Replace( '\n', ' ' ).Replace( '\r', ' ' );
 }

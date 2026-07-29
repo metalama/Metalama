@@ -60,6 +60,15 @@ internal sealed class SimulateCommandSettings : CommandSettings
     public bool UseMSBuildLocator { get; init; }
 
     [UsedImplicitly]
+    [Description(
+        "Abandon the simulation after this many seconds and report a failure. A design-time defect can be a "
+        + "deadlock as easily as an exception, and an unbounded run turns that into a hung build instead of a "
+        + "reported failure. Zero disables the timeout." )]
+    [CommandOption( "--timeout <SECONDS>" )]
+    [DefaultValue( 600 )]
+    public int TimeoutSeconds { get; init; }
+
+    [UsedImplicitly]
     [Description( "Print every diagnostic, not only the ones that indicate a failure." )]
     [CommandOption( "-v|--verbose" )]
     public bool Verbose { get; init; }
