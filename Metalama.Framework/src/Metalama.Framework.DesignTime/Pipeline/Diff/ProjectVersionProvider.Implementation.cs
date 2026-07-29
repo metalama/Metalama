@@ -129,10 +129,8 @@ internal sealed partial class ProjectVersionProvider
             var changeListBuilder = ImmutableDictionary.CreateBuilder<ProjectKey, ReferencedProjectChange>();
             var referenceListBuilder = ImmutableDictionary.CreateBuilder<ProjectKey, IProjectVersion>();
 
-            var oldProjectReferences = oldCompilation?.ExternalReferences.OfType<CompilationReference>()
-                .ToDictionary( x => x.Compilation.GetProjectKey(), x => x.Compilation );
-
-            var newProjectReferences = newCompilation.ExternalReferences.OfType<CompilationReference>().ToReadOnlyList();
+            var oldProjectReferences = oldCompilation == null ? null : GetProjectReferencesByKey( oldCompilation );
+            var newProjectReferences = GetProjectReferencesByKey( newCompilation );
 
             foreach ( var reference in newProjectReferences )
             {
@@ -141,23 +139,24 @@ internal sealed partial class ProjectVersionProvider
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var assemblyIdentity = reference.Compilation.GetProjectKey();
+                var projectKey = reference.Key;
+                var newReferenceCompilation = reference.Value;
 
-                if ( oldCompilation != null && oldProjectReferences!.TryGetValue( assemblyIdentity, out var oldReferenceCompilation ) )
+                if ( oldProjectReferences != null && oldProjectReferences.TryGetValue( projectKey, out var oldReferenceCompilation ) )
                 {
                     var compilationChanges = await this.GetCompilationChangesAsyncCoreAsync(
                         oldReferenceCompilation,
-                        reference.Compilation,
+                        newReferenceCompilation,
                         cancellationToken );
 
                     projectVersion = compilationChanges.NewProjectVersion;
 
-                    if ( oldReferenceCompilation != reference.Compilation )
+                    if ( oldReferenceCompilation != newReferenceCompilation )
                     {
                         // We store the changes object even if there is no change, because of project versions.
                         changes = new ReferencedProjectChange(
                             oldReferenceCompilation,
-                            reference.Compilation,
+                            newReferenceCompilation,
                             compilationChanges.HasChange ? ReferenceChangeKind.Modified : ReferenceChangeKind.None,
                             compilationChanges );
                     }
@@ -172,27 +171,24 @@ internal sealed partial class ProjectVersionProvider
                 else
                 {
                     // If there is no old compilation, the reference is new.
-                    changes = new ReferencedProjectChange( null, reference.Compilation, ReferenceChangeKind.Added );
-                    projectVersion = await this.GetCompilationVersionCoreAsync( null, reference.Compilation, cancellationToken );
+                    changes = new ReferencedProjectChange( null, newReferenceCompilation, ReferenceChangeKind.Added );
+                    projectVersion = await this.GetCompilationVersionCoreAsync( null, newReferenceCompilation, cancellationToken );
                 }
 
                 if ( changes != null )
                 {
-                    changeListBuilder.Add( assemblyIdentity, changes.Value );
+                    changeListBuilder.Add( projectKey, changes.Value );
                 }
 
-                referenceListBuilder.Add( assemblyIdentity, projectVersion );
+                referenceListBuilder.Add( projectKey, projectVersion );
             }
 
             // Check removed references.
-            if ( oldCompilation != null )
+            if ( oldProjectReferences != null )
             {
-                var referencedAssemblyIdentifies =
-                    new HashSet<ProjectKey>( newProjectReferences.SelectAsImmutableArray( x => x.Compilation.GetProjectKey() ) );
-
-                foreach ( var reference in oldProjectReferences! )
+                foreach ( var reference in oldProjectReferences )
                 {
-                    if ( !referencedAssemblyIdentifies.Contains( reference.Key ) )
+                    if ( !newProjectReferences.ContainsKey( reference.Key ) )
                     {
                         changeListBuilder.Add(
                             reference.Key,
@@ -202,6 +198,40 @@ internal sealed partial class ProjectVersionProvider
             }
 
             return (changeListBuilder.ToImmutable(), referenceListBuilder.ToImmutable());
+        }
+
+        /// <summary>
+        /// Gets the project references of a <see cref="Compilation"/>, indexed by <see cref="ProjectKey"/>.
+        /// </summary>
+        /// <remarks>
+        /// A <see cref="ProjectKey"/> is not guaranteed to be unique within a compilation: the same assembly name can be
+        /// reached through several paths of the reference graph. Since the diff cannot tell such references apart, the
+        /// first one wins and the next ones are ignored. References whose compilation has no assembly name have no
+        /// identity at all, so they are ignored too.
+        /// </remarks>
+        private static Dictionary<ProjectKey, Compilation> GetProjectReferencesByKey( Compilation compilation )
+        {
+            var references = new Dictionary<ProjectKey, Compilation>();
+
+            foreach ( var reference in compilation.ExternalReferences )
+            {
+                if ( reference is not CompilationReference compilationReference )
+                {
+                    continue;
+                }
+
+                if ( !compilationReference.Compilation.TryGetProjectKey( out var projectKey ) )
+                {
+                    continue;
+                }
+
+                if ( !references.ContainsKey( projectKey ) )
+                {
+                    references.Add( projectKey, compilationReference.Compilation );
+                }
+            }
+
+            return references;
         }
 
         private static (ImmutableDictionary<string, ReferenceChangeKind> Changes, ImmutableHashSet<string> References)
