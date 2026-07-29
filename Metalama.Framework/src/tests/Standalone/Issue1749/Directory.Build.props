@@ -1,0 +1,10 @@
+﻿<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')" />
+
+  <PropertyGroup>
+    <!-- The point of this test is a reference graph that MSBuild considers ill-formed. -->
+    <NoWarn>$(NoWarn);MSB3277;CS1591;CA1822</NoWarn>
+  </PropertyGroup>
+
+</Project>
