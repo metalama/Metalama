@@ -46,6 +46,42 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 {
     private static readonly string _sourceGeneratorAssemblyName = typeof(DesignTimeAspectPipelineFactory).Assembly.GetName().Name.AssertNotNull();
 
+    /// <summary>
+    /// How long a reference to another Metalama version waits for that version's design-time entry point to register
+    /// in the current process before the reference is reported as incompatible.
+    /// </summary>
+    /// <remarks>
+    /// Generous, because the other version's analyzer may legitimately still be initializing, but bounded, because it
+    /// may never register at all. See the call site for why that happens.
+    /// </remarks>
+    private static readonly TimeSpan _crossVersionEntryPointTimeout = TimeSpan.FromSeconds( 30 );
+
+    /// <summary>
+    /// The lowest Metalama version that uses the current generation of <c>Metalama.Framework.DesignTime.Contracts</c>.
+    /// </summary>
+    /// <remarks>
+    /// #1605 rotated every GUID of that assembly and the <see cref="AppDomain"/> slot through which
+    /// <c>DesignTimeEntryPointManager</c> rendezvouses, so a version below this one is a different generation and can
+    /// never be reached from this process, however long it is waited for.
+    /// </remarks>
+    private static readonly Version _minimumCompatibleMetalamaVersion = new( 2026, 1 );
+
+    /// <summary>
+    /// The Metalama versions whose design-time entry point has been found unreachable in this process.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Static, because the entry point registry it reflects is itself process-wide.
+    /// </para>
+    /// <para>
+    /// Without this, a version that times out once is waited for again on every subsequent request:
+    /// <c>GetServiceProviderAsync</c> caches the pending task per version, so cancelling one wait abandons that
+    /// caller but leaves the shared task pending for the next one. That turns the original deadlock into a livelock
+    /// of one timeout per request, each holding the project lock (issue #1757).
+    /// </para>
+    /// </remarks>
+    private static readonly ConcurrentDictionary<Version, bool> _unavailableEntryPointVersions = new();
+
     private readonly WeakCache<Compilation, FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>> _compilationResultCache = new();
     private readonly RecursiveFileSystemWatcher? _fileSystemWatcher;
     private readonly ConcurrentQueue<Func<AsyncExecutionContext, ValueTask>> _jobQueue = new();
@@ -498,6 +534,34 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         }
     }
 
+    /// <summary>
+    /// Reports that a reference was produced by a Metalama version that cannot be served in this process, and fails
+    /// the reference.
+    /// </summary>
+    /// <remarks>
+    /// The version is remembered, so that a version found unreachable once is not waited for again. The diagnostic is
+    /// <c>LAMA0061</c>, the same one the compile-time pipeline reports for a reference that must be recompiled, which
+    /// is exactly the action the user has to take.
+    /// </remarks>
+    private FallibleResultWithDiagnostics<DesignTimeProjectVersion> ReportIncompatibleReference(
+        IProjectVersion reference,
+        Version metalamaVersion )
+    {
+        _unavailableEntryPointVersions.TryAdd( metalamaVersion, true );
+
+        this.Logger.Warning?.Log(
+            $"Failed to process the reference to '{reference.ProjectKey}': it was compiled with Metalama {metalamaVersion}, "
+            + $"which is not compatible with the current version." );
+
+        var diagnostic = GeneralDiagnosticDescriptors.DependencyMustBeRecompiled.CreateRoslynDiagnostic(
+            null,
+            (reference.Compilation.Assembly.Identity, metalamaVersion.ToString()) );
+
+        return FallibleResultWithDiagnostics<DesignTimeProjectVersion>.Failed(
+            ImmutableArray.Create( diagnostic ),
+            $"The reference '{reference.ProjectKey}' was compiled with the incompatible Metalama {metalamaVersion}." );
+    }
+
     internal async ValueTask<FallibleResultWithDiagnostics<DesignTimeProjectVersion>> GetDesignTimeProjectVersionAsync(
         Compilation compilation,
         bool autoResumePipeline,
@@ -587,10 +651,54 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     // We have a reference to a different version of Metalama.
 
                     var entryPointConsumer = this._entryPointConsumer.AssertNotNull();
-                    var serviceProvider = (await entryPointConsumer.GetServiceProviderAsync( metalamaVersion, cancellationToken )).AssertNotNull();
 
-                    var transitiveCompilationService =
-                        (ITransitiveCompilationService) serviceProvider.GetService( typeof(ITransitiveCompilationService) ).AssertNotNull();
+                    // A reference produced by a Metalama of a different design-time contracts generation can never be
+                    // served in this process, so it must not be waited for. #1605 rotated every GUID of
+                    // Metalama.Framework.DesignTime.Contracts and the AppDomain slot through which
+                    // DesignTimeEntryPointManager rendezvouses, which means generation v1 (up to 2026.0.x) and
+                    // generation v2 (2026.1 and later) cannot observe each other's registrations. That is by design;
+                    // what must not happen is the unbounded wait that used to follow, because this method holds the
+                    // lock on the current project and would therefore hang its design-time experience for good
+                    // (issue #1757).
+                    if ( metalamaVersion < _minimumCompatibleMetalamaVersion || _unavailableEntryPointVersions.ContainsKey( metalamaVersion ) )
+                    {
+                        return this.ReportIncompatibleReference( reference, metalamaVersion );
+                    }
+
+                    ICompilerServiceProvider? serviceProvider;
+                    CancellationToken outerCancellationToken = cancellationToken;
+
+                    using ( var entryPointTimeout = CancellationTokenSource.CreateLinkedTokenSource( outerCancellationToken ) )
+                    {
+                        entryPointTimeout.CancelAfter( _crossVersionEntryPointTimeout );
+
+                        try
+                        {
+                            // Same generation, so the entry point is expected to register, but possibly not yet: the
+                            // other version's analyzer may still be initializing. Hence a bounded wait rather than
+                            // none at all.
+                            serviceProvider = await entryPointConsumer.GetServiceProviderAsync( metalamaVersion, entryPointTimeout.Token );
+                        }
+                        catch ( OperationCanceledException ) when ( !outerCancellationToken.IsCancellationRequested )
+                        {
+                            this.Logger.Warning?.Log(
+                                $"The design-time entry point of Metalama {metalamaVersion} did not register within "
+                                + $"{_crossVersionEntryPointTimeout.TotalSeconds} seconds." );
+
+                            return this.ReportIncompatibleReference( reference, metalamaVersion );
+                        }
+                    }
+
+                    // InvalidCompilerServiceProvider, which the entry point manager returns when the contract
+                    // versions of a same-generation peer do not match, answers null for every service.
+                    if ( serviceProvider?.GetService( typeof(ITransitiveCompilationService) ) is not ITransitiveCompilationService
+                        transitiveCompilationService )
+                    {
+                        this.Logger.Warning?.Log(
+                            $"The design-time entry point of Metalama {metalamaVersion} does not provide {nameof(ITransitiveCompilationService)}." );
+
+                        return this.ReportIncompatibleReference( reference, metalamaVersion );
+                    }
 
                     var resultArray = new ITransitiveCompilationResult?[1];
                     await transitiveCompilationService.GetTransitiveAspectManifestAsync( reference.Compilation, resultArray, cancellationToken );

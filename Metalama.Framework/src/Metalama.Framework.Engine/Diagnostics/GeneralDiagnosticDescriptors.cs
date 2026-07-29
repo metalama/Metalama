@@ -299,7 +299,9 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "'ref' members cannot be used as templates.",
                 _category );
 
-        internal static readonly DiagnosticDefinition<(AssemblyIdentity AssemblyIdentity, string Version)>
+        // Public because Metalama.Framework.DesignTime reports it too, for a reference whose Metalama version cannot
+        // be served at design time (issue #1757).
+        public static readonly DiagnosticDefinition<(AssemblyIdentity AssemblyIdentity, string Version)>
             DependencyMustBeRecompiled =
                 new(
                     "LAMA0061",
