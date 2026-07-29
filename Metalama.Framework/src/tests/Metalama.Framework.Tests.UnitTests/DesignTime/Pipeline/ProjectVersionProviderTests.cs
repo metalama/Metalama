@@ -8,6 +8,7 @@ using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -236,6 +237,94 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
         Assert.Equal( ReferenceChangeKind.Added, level2ReferencedCompilationChange.ChangeKind );
         Assert.Same( compilationLevel1, level2ReferencedCompilationChange.NewCompilation );
     }
+
+    /// <summary>
+    /// Tests that two project references that share the same identity do not crash the diff.
+    /// </summary>
+    /// <remarks>
+    /// A solution can reach the same assembly name through two different paths of the reference graph, so the
+    /// identity derived from a project reference is not guaranteed to be unique within a compilation. See
+    /// issue #1750.
+    /// </remarks>
+    [Fact]
+    public async Task DuplicateCompilationReferenceIdentity()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilationVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
+
+        var masterCompilationA = testContext.CreateCSharpCompilation(
+            new Dictionary<string, string> { ["a.cs"] = "class D {}" },
+            assemblyName: "Master" );
+
+        var masterCompilationB = testContext.CreateCSharpCompilation(
+            new Dictionary<string, string> { ["b.cs"] = "class E {}" },
+            assemblyName: "Master" );
+
+        var dependentCode = new Dictionary<string, string> { ["code.cs"] = "class C {}" };
+
+        var compilation1 = testContext.CreateCSharpCompilation(
+            dependentCode,
+            assemblyName: "Dependent",
+            additionalReferences: new[] { masterCompilationA.ToMetadataReference(), masterCompilationB.ToMetadataReference() },
+            ignoreErrors: true );
+
+        var compilation2 = testContext.CreateCSharpCompilation( dependentCode, assemblyName: "Dependent", ignoreErrors: true )
+            .WithReferences( compilation1.References );
+
+        // Non-incremental path.
+        var changes1 = await compilationVersionProvider.GetCompilationChangesAsync( null, compilation1 );
+        Assert.False( changes1.IsIncremental );
+
+        // Incremental path, i.e. the one that throws in the crash reports.
+        var changes2 = await compilationVersionProvider.GetCompilationChangesAsync( compilation1, compilation2 );
+        Assert.True( changes2.IsIncremental );
+        Assert.False( changes2.HasChange );
+    }
+
+    /// <summary>
+    /// Tests that project references whose compilation has no assembly name do not crash the diff.
+    /// </summary>
+    /// <remarks>
+    /// Such references produce a degenerate, empty identity, and two of them therefore collide with each
+    /// other. This is the <c>Key: ', 0'</c> signature of issue #1750.
+    /// </remarks>
+    [Fact]
+    public async Task CompilationReferenceWithoutAssemblyName()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilationVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
+
+        var unnamedCompilationA = CreateUnnamedCompilation( testContext, "class D {}", "a.cs" );
+        var unnamedCompilationB = CreateUnnamedCompilation( testContext, "class E {}", "b.cs" );
+
+        var dependentCode = new Dictionary<string, string> { ["code.cs"] = "class C {}" };
+
+        var compilation1 = testContext.CreateCSharpCompilation(
+            dependentCode,
+            assemblyName: "Dependent",
+            additionalReferences: new[] { unnamedCompilationA.ToMetadataReference(), unnamedCompilationB.ToMetadataReference() },
+            ignoreErrors: true );
+
+        var compilation2 = testContext.CreateCSharpCompilation( dependentCode, assemblyName: "Dependent", ignoreErrors: true )
+            .WithReferences( compilation1.References );
+
+        var changes1 = await compilationVersionProvider.GetCompilationChangesAsync( null, compilation1 );
+        Assert.False( changes1.IsIncremental );
+
+        var changes2 = await compilationVersionProvider.GetCompilationChangesAsync( compilation1, compilation2 );
+        Assert.True( changes2.IsIncremental );
+        Assert.False( changes2.HasChange );
+    }
+
+    /// <summary>
+    /// Creates a compilation whose assembly name is <c>null</c>, which Roslyn allows.
+    /// </summary>
+    private static CSharpCompilation CreateUnnamedCompilation( TestContext testContext, string code, string path )
+        => CSharpCompilation.Create( null )
+            .AddReferences( testContext.GetMetadataReferences() )
+            .AddSyntaxTrees( CSharpSyntaxTree.ParseText( code, path: path ) );
 
     [Fact]
     public async Task IntermediateCompilationCanBeCollected()
