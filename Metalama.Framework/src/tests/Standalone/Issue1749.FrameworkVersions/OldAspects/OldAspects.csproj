@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <!-- The Metalama.Compiler that ships with the old Metalama.Framework predates the language version that the
+             current .NET SDK defaults to. -->
+        <LangVersion>12.0</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- A publicly released version, from a different lineage than the one built by this repository. The
+             compile-time project embedded in this assembly therefore references that version of
+             Metalama.Framework, while the consumer is compiled by the version built here. -->
+        <PackageReference Include="Metalama.Framework" VersionOverride="$(OldMetalamaVersion)" />
+    </ItemGroup>
+
+</Project>

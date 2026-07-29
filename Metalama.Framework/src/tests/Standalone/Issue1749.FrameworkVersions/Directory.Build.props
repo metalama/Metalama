@@ -1,0 +1,12 @@
+﻿<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')" />
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);MSB3277;CS1591;CA1822</NoWarn>
+    <!-- The publicly released version of Metalama.Framework that OldAspects is compiled against. It must belong to
+         a different lineage than the version built by this repository, so that the two assembly versions differ. -->
+    <OldMetalamaVersion>2025.1.18</OldMetalamaVersion>
+  </PropertyGroup>
+
+</Project>
