@@ -111,9 +111,11 @@ An issue with no terminal decision is captured and prompted again once `Exceptio
 | Snooze | user action | `ManualSnoozePeriod` |
 | Mute | user action, sets `Disabled` | forever, and there is no un-mute in the product |
 
-Mute is permanent and cannot be undone from the product, so it is unacceptable on a notification that is the only way to take an action. `ToastNotificationKind.CanBeMuted` expresses this: for such a kind the notification offers no Mute button, `Mute` is a no-op, and a `Disabled` flag written by an older version is **ignored** on read, so users who muted before the button was removed start seeing the notification again.
+Mute is permanent and cannot be undone from the product, so it is unacceptable on a notification that is the only way to take an action. `ToastNotificationKind.CanBeMuted` expresses this: for such a kind the notification offers no Mute button, `Mute` is a no-op, and a `Disabled` flag is ignored on read.
 
-`ToastNotificationKinds.Exception` is shared by the exception and performance channels.
+`ToastNotificationKinds.ExceptionReport` is shared by the exception and performance channels, and cannot be muted.
+
+> **Migration.** Per-kind state is keyed by `kind.Name`, so **renaming a kind discards everything stored for it**. That is how the mutes written by 2026.1.18 to 2026.1.21, when the error-report notification still had a Mute button, were cleared: the kind was renamed from `Exception` to `ExceptionReport` in 2026.1.22. Renaming a kind is therefore a deliberate, one-time reset of its snooze and mute state, never a cosmetic change.
 
 ## Uploading
 

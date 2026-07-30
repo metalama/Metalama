@@ -285,7 +285,7 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
         // path itself. The category is stored inside the report, so it is not passed here. See #1674.
         this._toastNotificationService.Show(
             new ToastNotification(
-                ToastNotificationKinds.Exception,
+                ToastNotificationKinds.ExceptionReport,
                 Text: $"The process {applicationName} encountered an unexpected {category}. {callToAction}",
                 Uri: reportFileName ) );
     }

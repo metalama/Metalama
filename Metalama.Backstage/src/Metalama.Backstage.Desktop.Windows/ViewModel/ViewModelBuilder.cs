@@ -76,7 +76,7 @@ internal static class ViewModelBuilder
 
             return true;
         }
-        else if ( settings.Kind == ToastNotificationKinds.Exception.Name )
+        else if ( settings.Kind == ToastNotificationKinds.ExceptionReport.Name )
         {
             // Open the worker review page (formatted report + Report button + per-category auto-report checkbox)
             // instead of opening the raw report file. See #1674.

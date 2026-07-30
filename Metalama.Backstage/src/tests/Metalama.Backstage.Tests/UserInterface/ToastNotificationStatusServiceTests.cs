@@ -47,22 +47,32 @@ public sealed class ToastNotificationStatusServiceTests : TestsBase
     }
 
     [Fact]
-    public void MuteStoredByAnEarlierVersionIsIgnoredForAKindThatCannotBeMuted()
+    public void MuteStoredByAnEarlierVersionNoLongerSilencesErrorReports()
     {
-        // #1751: the exception notification is the only way to approve an error report, so it can no longer be muted.
-        // Versions up to 2026.1.21 offered a Mute button on it, and the mutes they stored would otherwise keep error
-        // reporting silenced for good on those machines.
-        Assert.False( ToastNotificationKinds.Exception.CanBeMuted );
+        // #1751: versions up to 2026.1.21 offered a Mute button on the error-report notification, which is the only way
+        // to approve a report. A mute stored by one of them would keep error reporting silenced for good, so the kind
+        // was renamed: per-kind state is keyed by the kind name, and the state stored under the old name no longer
+        // applies to the renamed kind.
+        Assert.Equal( "ExceptionReport", ToastNotificationKinds.ExceptionReport.Name );
 
         this.ConfigurationManager!.Update<ToastNotificationsConfiguration>(
-            c => c with
-            {
-                Notifications = c.Notifications.SetItem( ToastNotificationKinds.Exception.Name, new ToastNotificationConfiguration { Disabled = true } )
-            } );
+            c => c with { Notifications = c.Notifications.SetItem( "Exception", new ToastNotificationConfiguration { Disabled = true } ) } );
 
-        Assert.True( this._toastService.TryAcquire( ToastNotificationKinds.Exception ) );
+        Assert.True( this._toastService.TryAcquire( ToastNotificationKinds.ExceptionReport ) );
+    }
 
-        // A kind that can be muted still honours a stored mute.
+    [Fact]
+    public void MuteIsIgnoredForAKindThatCannotBeMuted()
+    {
+        // #1751: the rename above is a one-time migration. This is the invariant that keeps the notification alive
+        // afterwards: the kind cannot be muted at all, so a 'Disabled' flag written by any means (including a hand-edited
+        // toastNotifications.json) is ignored.
+        Assert.False( ToastNotificationKinds.ExceptionReport.CanBeMuted );
+
+        this._toastService.Mute( ToastNotificationKinds.ExceptionReport );
+        Assert.True( this._toastService.TryAcquire( ToastNotificationKinds.ExceptionReport ) );
+
+        // A kind that can be muted still honours a mute.
         this._toastService.Mute( ToastNotificationKinds.LicenseExpiring );
         Assert.False( this._toastService.TryAcquire( ToastNotificationKinds.LicenseExpiring ) );
     }

@@ -100,13 +100,22 @@ public sealed class ToastNotificationStatusService : IToastNotificationStatusSer
             } );
 
     public void Mute( ToastNotificationKind kind )
-        => this._configurationManager.Update<ToastNotificationsConfiguration>(
+    {
+        if ( !kind.CanBeMuted )
+        {
+            this._logger.Trace?.Log( $"The notification kind {kind.Name} cannot be muted." );
+
+            return;
+        }
+
+        this._configurationManager.Update<ToastNotificationsConfiguration>(
             config => config with
             {
                 Notifications = config.Notifications.SetItem(
                     kind.Name,
                     new ToastNotificationConfiguration { Disabled = true } )
             } );
+    }
 
     public IDisposable PauseAll( TimeSpan timeSpan )
     {

@@ -277,7 +277,7 @@ public sealed class ReportExceptionTests : TestsBase
         this.RecordException( kind: exceptionReportingKind );
 
         var toast = Assert.Single( this.UserInterface.Notifications );
-        Assert.Equal( ToastNotificationKinds.Exception.Name, toast.Kind.Name );
+        Assert.Equal( ToastNotificationKinds.ExceptionReport.Name, toast.Kind.Name );
         Assert.NotNull( toast.Uri );
         Assert.StartsWith( "exception-", toast.Uri, StringComparison.Ordinal );
         Assert.EndsWith( ".xml", toast.Uri, StringComparison.Ordinal );

@@ -25,12 +25,24 @@ public static class ToastNotificationKinds
     public static ToastNotificationKind LicenseExpiring { get; } =
         new( nameof(LicenseExpiring) ) { AutoSnoozePeriod = TimeSpan.FromDays( 1 ), ManualSnoozePeriod = TimeSpan.FromDays( 3 ) };
 
-    // The exception notification is the only way to approve an error report, so it cannot be muted: muting it silenced
-    // error reporting altogether, permanently and with no way back from the product. The review page offers the
-    // per-issue equivalent ("never report this error") and the privacy page remains the visible, reversible way to turn
-    // the whole channel off. See #1751.
-    public static ToastNotificationKind Exception { get; } =
-        new( nameof(Exception) )
+    /// <summary>
+    /// The review notification for exception and performance reports.
+    /// </summary>
+    /// <remarks>
+    /// This notification is the only way to approve an error report, so it cannot be muted: muting it silenced error
+    /// reporting altogether, permanently and with no way back from the product. The review page offers the per-issue
+    /// equivalent ("never report this error") and the privacy page remains the visible, reversible way to turn the whole
+    /// channel off.
+    /// <para>
+    /// The kind was renamed from <c>Exception</c> to <c>ExceptionReport</c> in 2026.1.22. Per-kind state in
+    /// <c>toastNotifications.json</c> is keyed by this name, so the rename discards whatever was stored under the old
+    /// name: users who muted the notification while earlier versions still offered a Mute button start seeing it again,
+    /// instead of staying silenced for good. <see cref="ToastNotificationKind.CanBeMuted"/> then keeps it that way.
+    /// See #1751.
+    /// </para>
+    /// </remarks>
+    public static ToastNotificationKind ExceptionReport { get; } =
+        new( nameof(ExceptionReport) )
         {
             AutoSnoozePeriod = TimeSpan.FromSeconds( 5 ), ManualSnoozePeriod = TimeSpan.FromHours( 1 ), CanBeMuted = false
         };
@@ -43,7 +55,7 @@ public static class ToastNotificationKinds
 
     // Must be last.
     public static ImmutableDictionary<string, ToastNotificationKind> All { get; } =
-        new[] { RequiresLicense, VsxNotInstalled, SubscriptionExpiring, TrialExpiring, LicenseExpiring, Exception, News, TelemetryNotice }
+        new[] { RequiresLicense, VsxNotInstalled, SubscriptionExpiring, TrialExpiring, LicenseExpiring, ExceptionReport, News, TelemetryNotice }
             .ToImmutableDictionary(
                 i => i.Name,
                 i => i );
