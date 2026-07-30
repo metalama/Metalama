@@ -61,7 +61,7 @@ internal sealed class AspectDriverFactory
                 // duplication is not worth a user-visible diagnostic.
                 this._serviceProvider.GetLoggerFactory()
                     .GetLogger( nameof(AspectDriverFactory) )
-                    .Warning?.Log( $"The aspect weaver '{weaverTypeName}' was provided twice by '{existingAssembly}'. Keeping the first one." );
+                    .Trace?.Log( $"The aspect weaver '{weaverTypeName}' was provided twice by '{existingAssembly}'. Keeping the first one." );
             }
             else
             {
