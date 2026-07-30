@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        Reproduction for https://github.com/metalama/Metalama/issues/1743.
+
+        Declares the aspect that requires the weaver duplicated by Issue1743.Weaver1 and Issue1743.Weaver2. The
+        aspect is declared here, and not in the weaver projects, so that referencing both weavers does not make the
+        aspect attribute itself ambiguous.
+    -->
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
