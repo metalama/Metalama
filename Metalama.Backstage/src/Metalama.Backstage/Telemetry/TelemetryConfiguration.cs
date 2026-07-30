@@ -87,8 +87,11 @@ public sealed record TelemetryConfiguration : ConfigurationFile
     /// See #1751.
     /// </remarks>
     [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<ReportingStatus>) )]
-    public ImmutableDictionary<string, ReportingStatus> Issues { get; init; } =
-        ImmutableDictionary<string, ReportingStatus>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
+    public ImmutableDictionary<string, ReportingStatus> Issues
+    {
+        get => this._issues;
+        init => this._issues = value ?? _emptyIssues;
+    }
 
     /// <summary>
     /// Gets the UTC time at which the user was last prompted to review the report of an issue, keyed by its invariant
@@ -101,12 +104,32 @@ public sealed record TelemetryConfiguration : ConfigurationFile
     /// issues. See #1751.
     /// </remarks>
     [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<DateTime>) )]
-    public ImmutableDictionary<string, DateTime> IssuePrompts { get; init; } =
-        ImmutableDictionary<string, DateTime>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
+    public ImmutableDictionary<string, DateTime> IssuePrompts
+    {
+        get => this._issuePrompts;
+        init => this._issuePrompts = value ?? _emptyDates;
+    }
 
     [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<DateTime>) )]
-    public ImmutableDictionary<string, DateTime> Sessions { get; init; } =
+    public ImmutableDictionary<string, DateTime> Sessions
+    {
+        get => this._sessions;
+        init => this._sessions = value ?? _emptyDates;
+    }
+
+    // A property that is absent from the JSON file deserializes to null rather than to its initializer, so every
+    // dictionary normalizes null in its 'init' accessor (which 'with' expressions also go through). Without this, a
+    // configuration file written before one of these properties existed - or one the user edited through
+    // 'metalama config edit telemetry' - makes the consumers throw a NullReferenceException. See #1751.
+    private static readonly ImmutableDictionary<string, ReportingStatus> _emptyIssues =
+        ImmutableDictionary<string, ReportingStatus>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
+
+    private static readonly ImmutableDictionary<string, DateTime> _emptyDates =
         ImmutableDictionary<string, DateTime>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
+
+    private readonly ImmutableDictionary<string, ReportingStatus> _issues = _emptyIssues;
+    private readonly ImmutableDictionary<string, DateTime> _issuePrompts = _emptyDates;
+    private readonly ImmutableDictionary<string, DateTime> _sessions = _emptyDates;
 
     public DateTime? LastMatomoPostTime { get; init; }
 

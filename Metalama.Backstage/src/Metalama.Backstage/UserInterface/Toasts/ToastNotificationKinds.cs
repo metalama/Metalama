@@ -25,8 +25,15 @@ public static class ToastNotificationKinds
     public static ToastNotificationKind LicenseExpiring { get; } =
         new( nameof(LicenseExpiring) ) { AutoSnoozePeriod = TimeSpan.FromDays( 1 ), ManualSnoozePeriod = TimeSpan.FromDays( 3 ) };
 
+    // The exception notification is the only way to approve an error report, so it cannot be muted: muting it silenced
+    // error reporting altogether, permanently and with no way back from the product. The review page offers the
+    // per-issue equivalent ("never report this error") and the privacy page remains the visible, reversible way to turn
+    // the whole channel off. See #1751.
     public static ToastNotificationKind Exception { get; } =
-        new( nameof(Exception) ) { AutoSnoozePeriod = TimeSpan.FromSeconds( 5 ), ManualSnoozePeriod = TimeSpan.FromHours( 1 ) };
+        new( nameof(Exception) )
+        {
+            AutoSnoozePeriod = TimeSpan.FromSeconds( 5 ), ManualSnoozePeriod = TimeSpan.FromHours( 1 ), CanBeMuted = false
+        };
 
     // Auto-snooze for RSS news is redundant because we are checking once per day anyway. Setting this to zero eases testing through the `rss notify` CLI command.
     public static ToastNotificationKind News { get; } = new( nameof(News) ) { AutoSnoozePeriod = TimeSpan.Zero };

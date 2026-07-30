@@ -47,6 +47,27 @@ public sealed class ToastNotificationStatusServiceTests : TestsBase
     }
 
     [Fact]
+    public void MuteStoredByAnEarlierVersionIsIgnoredForAKindThatCannotBeMuted()
+    {
+        // #1751: the exception notification is the only way to approve an error report, so it can no longer be muted.
+        // Versions up to 2026.1.21 offered a Mute button on it, and the mutes they stored would otherwise keep error
+        // reporting silenced for good on those machines.
+        Assert.False( ToastNotificationKinds.Exception.CanBeMuted );
+
+        this.ConfigurationManager!.Update<ToastNotificationsConfiguration>(
+            c => c with
+            {
+                Notifications = c.Notifications.SetItem( ToastNotificationKinds.Exception.Name, new ToastNotificationConfiguration { Disabled = true } )
+            } );
+
+        Assert.True( this._toastService.TryAcquire( ToastNotificationKinds.Exception ) );
+
+        // A kind that can be muted still honours a stored mute.
+        this._toastService.Mute( ToastNotificationKinds.LicenseExpiring );
+        Assert.False( this._toastService.TryAcquire( ToastNotificationKinds.LicenseExpiring ) );
+    }
+
+    [Fact]
     public void Snooze()
     {
         // Snooze before anything.

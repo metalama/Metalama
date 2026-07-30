@@ -43,6 +43,15 @@ public sealed class ToastNotificationStatusService : IToastNotificationStatusSer
 
         if ( kindConfiguration.Disabled )
         {
+            // A kind that cannot be muted ignores a stored mute. Such a mute can only have been written by a version
+            // that still offered the Mute button, and it would otherwise keep the notification silenced for good. See #1751.
+            if ( !kind.CanBeMuted )
+            {
+                this._logger.Trace?.Log( $"The notification kind {kind.Name} is marked as disabled, but this kind cannot be muted." );
+
+                return true;
+            }
+
             this._logger.Trace?.Log( $"The notification kind {kind.Name} is disabled." );
 
             return false;
