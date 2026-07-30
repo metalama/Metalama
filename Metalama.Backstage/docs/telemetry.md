@@ -59,29 +59,55 @@ An exception report is rendered twice, by `ExceptionReporter.BuildReport`:
 
 ## The life of an exception report
 
-```
-ITelemetryContext.ReportException
-  └─ consent != No ──> IExceptionCapturer.Capture
-        ├─ ShouldReportIssue(hash)?            <- decision + 1 h prompt throttle
-        ├─ write exception-<hash>.xml (+ .local.xml)
-        ├─ consent == Yes ──> enqueue + mark Reported
-        └─ show the review notification
-                            │
-                            v  (user clicks Review)
-              worker web server, /ExceptionReport
-                            │
-        ┌───────────────────┼────────────────────┐
-        v                   v                    v
-   SendReport         SendReport +          IgnoreReport
-   (mark Reported)    consent = Yes         (mark Ignored,
-        │                                    delete files)
-        v
-   TelemetryQueue.EnqueueFile  ──> Telemetry\UploadQueue
-        │
-        v
-   ITelemetryUploader.StartUpload(force: true)
-        └─ worker process `upload` ──> UploadAsync
-              └─ zip + RSA/AES encrypt ──> PUT https://bits.postsharp.net:44301/upload
+```mermaid
+flowchart TD
+    Report["ITelemetryContext.ReportException"]
+    Capture["IExceptionCapturer.Capture"]
+    LocalOnly["Local crash report only,<br/>no telemetry"]
+    Should{"ShouldReportIssue"}
+    Drop["Nothing"]
+    Write["Write exception-hash.xml<br/>and .local.xml,<br/>record the prompt"]
+    Consent{"Consent"}
+    Auto["Mark Reported"]
+    Pending["Leave pending"]
+    Notify["Show the review notification"]
+    Page["Worker web server,<br/>/ExceptionReport"]
+    Send["Report"]
+    SendAlways["Report, plus<br/>automatically report all"]
+    Ignore["Never report this error"]
+    MarkSent["Mark Reported"]
+    MarkSentAlways["Mark Reported,<br/>consent = Yes"]
+    MarkIgnored["Mark Ignored,<br/>delete the local files"]
+    Queue["TelemetryQueue.EnqueueFile<br/>into Telemetry/UploadQueue"]
+    Start["ITelemetryUploader.StartUpload"]
+    Worker["Worker process, upload command"]
+    Encrypt["Zip, then AES with an<br/>RSA-encrypted key"]
+    Put["PUT bits.postsharp.net/upload"]
+
+    Report -->|"consent is No"| LocalOnly
+    Report -->|"consent is not No"| Capture
+    Capture --> Should
+    Should -->|"already decided, or prompted<br/>less than 1 h ago"| Drop
+    Should -->|"ask"| Write
+    Write --> Consent
+    Consent -->|"Yes"| Auto
+    Consent -->|"Default"| Pending
+    Auto --> Notify
+    Auto --> Queue
+    Pending --> Notify
+    Notify -->|"user clicks Review"| Page
+    Page --> Send
+    Page --> SendAlways
+    Page --> Ignore
+    Send --> MarkSent
+    SendAlways --> MarkSentAlways
+    Ignore --> MarkIgnored
+    MarkSent --> Queue
+    MarkSentAlways --> Queue
+    Queue --> Start
+    Start --> Worker
+    Worker --> Encrypt
+    Encrypt --> Put
 ```
 
 ### The issue signature
