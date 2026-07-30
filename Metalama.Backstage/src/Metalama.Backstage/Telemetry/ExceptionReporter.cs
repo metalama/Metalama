@@ -232,26 +232,30 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
 
         this.SetIssueStatus( ParseHash( this._fileSystem.ReadAllText( fullPath ) ), ReportingStatus.Ignored );
 
-        // The user asked never to report this issue, so there is nothing left to review: delete the local renderings. A
-        // report that is already in the upload queue is left alone, because it has already been sent.
-        if ( !isQueued )
-        {
-            this.DeleteReportFiles( reportFileName, fullPath );
-        }
+        // The user asked never to report this issue, so there is nothing left to review. The full local rendering always
+        // lives under the exceptions directory and is always deleted. The scrubbed report is deleted too, unless it is
+        // already in the upload queue: there it is on its way out, and deleting it would only break the upload.
+        this.DeleteReportFiles( reportFileName, isQueued ? null : fullPath );
 
         return true;
     }
 
     /// <summary>
-    /// Deletes a captured report and its full local rendering. Best-effort: failing to delete a review artefact must not
-    /// turn the user's decision into an error, because the decision itself has already been recorded.
+    /// Deletes the full local rendering of a report, and the scrubbed report itself when <paramref name="scrubbedReportPath"/>
+    /// is given. Best-effort: failing to delete a review artefact must not turn the user's decision into an error,
+    /// because the decision itself has already been recorded.
     /// </summary>
-    private void DeleteReportFiles( string reportFileName, string scrubbedReportPath )
+    private void DeleteReportFiles( string reportFileName, string? scrubbedReportPath )
     {
         var localRenderingPath = Path.Combine( this._directories.TelemetryExceptionsDirectory, GetLocalRenderingFileName( reportFileName ) );
 
         foreach ( var path in new[] { scrubbedReportPath, localRenderingPath } )
         {
+            if ( path == null )
+            {
+                continue;
+            }
+
             try
             {
                 if ( this._fileSystem.FileExists( path ) )

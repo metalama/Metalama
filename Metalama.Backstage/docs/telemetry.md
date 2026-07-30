@@ -136,7 +136,7 @@ An issue with no terminal decision is captured and prompted again once `Exceptio
 
 | Control | Effect | Duration |
 |---|---|---|
-| auto-snooze | applied by `TryAcquire` when a notification is shown | `AutoSnoozePeriod` (5 s for `Exception`) |
+| auto-snooze | applied by `TryAcquire` when a notification is shown | `AutoSnoozePeriod` (5 s for `ExceptionReport`) |
 | Snooze | user action | `ManualSnoozePeriod` |
 | Mute | user action, sets `Disabled` | forever, and there is no un-mute in the product |
 

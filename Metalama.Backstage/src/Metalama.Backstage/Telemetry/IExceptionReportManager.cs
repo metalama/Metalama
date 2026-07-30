@@ -35,8 +35,10 @@ public interface IExceptionReportManager : IBackstageService
 
     /// <summary>
     /// Records that the issue described by the report identified by <paramref name="reportFileName"/> must never be
-    /// reported, and deletes the locally-captured renderings. The user is not prompted about that issue again, while
-    /// other issues keep prompting normally. Returns <c>false</c> if the name is invalid or the report does not exist.
+    /// reported, and deletes what remains to be reviewed: always the full local rendering, and the scrubbed report
+    /// itself unless it is already in the upload queue, where it is on its way out. The user is not prompted about that
+    /// issue again, while other issues keep prompting normally. Returns <c>false</c> if the name is invalid or the
+    /// report does not exist.
     /// </summary>
     /// <remarks>
     /// This is the per-issue counterpart of the notification's former Mute button, which disabled every error-report

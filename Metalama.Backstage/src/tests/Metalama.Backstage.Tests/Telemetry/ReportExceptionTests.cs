@@ -540,6 +540,30 @@ public sealed class ReportExceptionTests : TestsBase
     }
 
     [Fact]
+    public void IgnoreReportDeletesTheLocalRenderingOfAnAlreadyQueuedReport()
+    {
+        // Copilot review: ignoring a report that is already in the upload queue must still delete the full local
+        // rendering, which is never enqueued and would otherwise sit under the exceptions directory until the retention
+        // sweep. The queued scrubbed report itself is left alone: it is on its way out, and deleting it would only break
+        // the upload.
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Yes );
+        this.RecordException();
+
+        var enqueued = this.GetScrubbedReportFile();
+        Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), enqueued, StringComparison.Ordinal );
+        Assert.Contains( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) );
+
+        var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
+        Assert.True( reporter.IgnoreReport( Path.GetFileName( enqueued ) ) );
+
+        Assert.Equal( ReportingStatus.Ignored, Assert.Single( this.GetIssues() ).Value );
+        Assert.DoesNotContain( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) );
+
+        // The report that was already enqueued is still there and will still be uploaded.
+        Assert.Equal( enqueued, this.GetScrubbedReportFile() );
+    }
+
+    [Fact]
     public void AllExceptionsWithDistinctStackTraceOfInnerExceptionAreReportedOnce()
     {
         var stackTrace1 = CreateStackFrame( "Method1", 1 );
