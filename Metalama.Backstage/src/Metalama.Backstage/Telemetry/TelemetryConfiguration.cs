@@ -76,9 +76,33 @@ public sealed record TelemetryConfiguration : ConfigurationFile
     /// </summary>
     public DateTime? LastSaltChangeTime { get; init; }
 
+    /// <summary>
+    /// Gets the terminal decision taken for an issue, keyed by its invariant hash: <see cref="ReportingStatus.Reported"/>
+    /// once the report has actually been sent, and <see cref="ReportingStatus.Ignored"/> once the user has asked never to
+    /// report that issue. An issue on which no decision has been taken yet is absent.
+    /// </summary>
+    /// <remarks>
+    /// Only decisions are recorded here. Merely capturing a report does not add an entry, otherwise an issue the user
+    /// never approved would be silenced forever. The state of the pending question lives in <see cref="IssuePrompts"/>.
+    /// See #1751.
+    /// </remarks>
     [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<ReportingStatus>) )]
     public ImmutableDictionary<string, ReportingStatus> Issues { get; init; } =
         ImmutableDictionary<string, ReportingStatus>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
+
+    /// <summary>
+    /// Gets the UTC time at which the user was last prompted to review the report of an issue, keyed by its invariant
+    /// hash. An issue on which no decision has been taken yet is prompted again once the retry period has elapsed.
+    /// </summary>
+    /// <remarks>
+    /// The review notification is the only way to approve a report, so a notification the user missed or dismissed must
+    /// not silence the issue forever: the question is asked again the next time the issue occurs. Entries older than the
+    /// retry period are pruned as they are written, so this dictionary only ever holds the very recently prompted
+    /// issues. See #1751.
+    /// </remarks>
+    [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<DateTime>) )]
+    public ImmutableDictionary<string, DateTime> IssuePrompts { get; init; } =
+        ImmutableDictionary<string, DateTime>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
 
     [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<DateTime>) )]
     public ImmutableDictionary<string, DateTime> Sessions { get; init; } =

@@ -54,6 +54,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                       "LicenseAuditSalt": null,
                                       "LastSaltChangeTime": "2025-01-01T00:00:00Z",
                                       "Issues": {},
+                                      "IssuePrompts": {},
                                       "Sessions": {},
                                       "LastMatomoPostTime": "2025-01-10T12:00:00Z",
                                       "RetentionPeriodInDays": null,
@@ -78,6 +79,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             ExceptionConsent = TelemetryConsent.Default,
             Issues = ImmutableDictionary<string, ReportingStatus>.Empty
                 .Add( "ISSUE001", ReportingStatus.Reported ),
+            IssuePrompts = ImmutableDictionary<string, DateTime>.Empty
+                .Add( "ISSUE002", new DateTime( 2025, 1, 15, 9, 0, 0, DateTimeKind.Utc ) ),
             Sessions = ImmutableDictionary<string, DateTime>.Empty
                 .Add( "session1", new DateTime( 2025, 1, 15, 10, 0, 0, DateTimeKind.Utc ) )
         };
@@ -96,6 +99,9 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                       "LastSaltChangeTime": null,
                                       "Issues": {
                                         "ISSUE001": 1
+                                      },
+                                      "IssuePrompts": {
+                                        "ISSUE002": "2025-01-15T09:00:00Z"
                                       },
                                       "Sessions": {
                                         "session1": "2025-01-15T10:00:00Z"

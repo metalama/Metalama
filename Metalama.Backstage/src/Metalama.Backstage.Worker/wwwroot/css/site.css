@@ -362,3 +362,14 @@ body:has(.exception-report) {
   margin-top: 10px;
   flex: 0 0 auto; /* keep the checkbox and Report button at their natural height, always visible */
 }
+
+/* "Never report this error" is a real button and a peer of Report, not a de-emphasised link: it is one of the three
+   ways out of the review, and the user must be able to find it. It is only toned down in colour so that Report stays
+   the primary action. See #1751. */
+.exception-report .discard-button {
+  background-color: #5a5a66;
+}
+
+.exception-report .discard-button:hover {
+  background-color: #6d6d7a;
+}

@@ -32,4 +32,16 @@ public interface IExceptionReportManager : IBackstageService
     /// (including the full <c>.local.xml</c> rendering, which must never be uploaded) or the report does not exist. See #1674.
     /// </summary>
     bool SendReport( string reportFileName );
+
+    /// <summary>
+    /// Records that the issue described by the report identified by <paramref name="reportFileName"/> must never be
+    /// reported, and deletes the locally-captured renderings. The user is not prompted about that issue again, while
+    /// other issues keep prompting normally. Returns <c>false</c> if the name is invalid or the report does not exist.
+    /// </summary>
+    /// <remarks>
+    /// This is the per-issue counterpart of the notification's former Mute button, which disabled every error-report
+    /// notification on the machine, silently and irreversibly. The only way to stop error reporting altogether is now
+    /// the privacy page, where the setting is visible and reversible. See #1751.
+    /// </remarks>
+    bool IgnoreReport( string reportFileName );
 }

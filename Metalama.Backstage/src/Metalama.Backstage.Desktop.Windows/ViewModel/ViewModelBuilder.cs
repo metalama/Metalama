@@ -80,11 +80,18 @@ internal static class ViewModelBuilder
         {
             // Open the worker review page (formatted report + Report button + per-category auto-report checkbox)
             // instead of opening the raw report file. See #1674.
+            //
+            // This is the only notification kind without Snooze and Mute. Both act on the whole kind, so on this
+            // notification they silenced every error report on the machine: Mute permanently and irreversibly from the
+            // product, Snooze for an hour. Since the notification is the only way to approve a report, that turned a
+            // single click into the end of error reporting. The review page offers the per-issue equivalent ("never
+            // report this error"), and the privacy page remains the visible, reversible way to turn the whole channel
+            // off. Every other notification kind keeps both buttons. See #1751.
             viewModel = new NotificationViewModel(
                 settings.Kind,
                 settings.Title ?? "Metalama failed",
                 settings.Text ?? "Metalama encountered an unhandled exception.",
-                new CommandActionViewModel( "Review", activationArguments.OpenExceptionReport ) );
+                new CommandActionViewModel( "Review", activationArguments.OpenExceptionReport ) ) { CanMute = false, CanSnooze = false };
 
             return true;
         }

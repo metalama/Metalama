@@ -11,10 +11,12 @@ using Metalama.Backstage.UserInterface.Toasts;
 using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -155,21 +157,32 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
     // Reads the self-contained <Category> element from a captured report. Defaults to Exception if absent or unparsable.
     private static TelemetryScenario ParseCategory( string reportContent )
     {
-        try
-        {
-            var category = XDocument.Parse( reportContent ).Root?.Element( "Category" )?.Value;
+        var category = ParseElement( reportContent, "Category" );
 
-            if ( !string.IsNullOrEmpty( category ) && Enum.TryParse<TelemetryScenario>( category, out var scenario ) )
-            {
-                return scenario;
-            }
-        }
-        catch ( XmlException )
+        if ( !string.IsNullOrEmpty( category ) && Enum.TryParse<TelemetryScenario>( category, out var scenario ) )
         {
-            // Fall through to the default.
+            return scenario;
         }
 
         return TelemetryScenario.Exception;
+    }
+
+    /// <summary>
+    /// Reads the invariant hash of the issue from a captured report, so that a decision taken on the report (sent, or
+    /// never report) can be recorded against the issue. Returns <c>null</c> if the report cannot be parsed.
+    /// </summary>
+    private static string? ParseHash( string reportContent ) => ParseElement( reportContent, "InvariantHash" );
+
+    private static string? ParseElement( string reportContent, string elementName )
+    {
+        try
+        {
+            return XDocument.Parse( reportContent ).Root?.Element( elementName )?.Value;
+        }
+        catch ( XmlException )
+        {
+            return null;
+        }
     }
 
     public bool SendReport( string reportFileName )
@@ -192,12 +205,65 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
 
         this._logger.Trace?.Log( $"Sending the exception report '{reportFileName}' upon user request." );
 
+        var hash = ParseHash( this._fileSystem.ReadAllText( fullPath ) );
+
         this._uploadManager.EnqueueFile( fullPath );
+
+        // The issue reaches its terminal 'Reported' state only now, when the report is actually on its way. Recording it
+        // at capture time would silence the issue even though nothing had been sent. See #1751.
+        this.SetIssueStatus( hash, ReportingStatus.Reported );
 
         // Force the upload now: the user explicitly asked to send this report, so we bypass the once-per-day throttling.
         this._serviceProvider.GetBackstageService<ITelemetryUploader>()?.StartUpload( force: true );
 
         return true;
+    }
+
+    public bool IgnoreReport( string reportFileName )
+    {
+        if ( !this.TryResolveReportPath( reportFileName, out var fullPath, out var isQueued ) )
+        {
+            this._logger.Warning?.Log( $"Cannot ignore the exception report '{reportFileName}' because it does not exist." );
+
+            return false;
+        }
+
+        this._logger.Trace?.Log( $"Ignoring the exception report '{reportFileName}' upon user request." );
+
+        this.SetIssueStatus( ParseHash( this._fileSystem.ReadAllText( fullPath ) ), ReportingStatus.Ignored );
+
+        // The user asked never to report this issue, so there is nothing left to review: delete the local renderings. A
+        // report that is already in the upload queue is left alone, because it has already been sent.
+        if ( !isQueued )
+        {
+            this.DeleteReportFiles( reportFileName, fullPath );
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Deletes a captured report and its full local rendering. Best-effort: failing to delete a review artefact must not
+    /// turn the user's decision into an error, because the decision itself has already been recorded.
+    /// </summary>
+    private void DeleteReportFiles( string reportFileName, string scrubbedReportPath )
+    {
+        var localRenderingPath = Path.Combine( this._directories.TelemetryExceptionsDirectory, GetLocalRenderingFileName( reportFileName ) );
+
+        foreach ( var path in new[] { scrubbedReportPath, localRenderingPath } )
+        {
+            try
+            {
+                if ( this._fileSystem.FileExists( path ) )
+                {
+                    this._fileSystem.DeleteFile( path );
+                }
+            }
+            catch ( Exception e )
+            {
+                this._logger.Warning?.Log( $"Cannot delete the exception report '{path}': {e.Message}" );
+            }
+        }
     }
 
     private void ShowToastNotification( string reportFileName, TelemetryScenario scenario, string applicationName, bool autoSent )
@@ -332,6 +398,28 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
         return HashUtilities.HashToString( signature.ToString().Normalize() );
     }
 
+    /// <summary>
+    /// The period after which an issue on which the user has taken no decision is captured again and the review
+    /// notification shown again.
+    /// </summary>
+    /// <remarks>
+    /// The review notification is the only way to approve a report, and it is easily missed (the user may be away from
+    /// the keyboard, or may dismiss it). Asking only once therefore silenced the issue forever. We instead keep asking,
+    /// at this interval, until the user sends the report, enables automatic reporting, or asks never to report this
+    /// particular issue. See #1751.
+    /// </remarks>
+    internal static readonly TimeSpan PromptRetryPeriod = TimeSpan.FromHours( 1 );
+
+    /// <summary>
+    /// Determines whether the issue identified by <paramref name="hash"/> should be captured and the user prompted to
+    /// review the report, and records the prompt when it should. Returns <c>false</c> when a decision has already been
+    /// taken on the issue (it was sent, or the user asked never to report it) and when the user was already prompted
+    /// less than <see cref="PromptRetryPeriod"/> ago.
+    /// </summary>
+    /// <remarks>
+    /// Capturing an issue no longer marks it as reported: <see cref="ReportingStatus.Reported"/> is written by
+    /// <see cref="SendReport"/>, when the report is actually on its way. See #1751.
+    /// </remarks>
     public bool ShouldReportIssue( string hash )
     {
         if ( !this._applicationInfoProvider.CurrentApplication.ShouldCreateLocalCrashReports )
@@ -342,32 +430,86 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
             return false;
         }
 
-        if ( this._configurationManager.Get<TelemetryConfiguration>().Issues.TryGetValue( hash, out var currentStatus )
-             && currentStatus is ReportingStatus.Ignored or ReportingStatus.Reported )
-        {
-            this._logger.Trace?.Log( $"The issue {hash} should not be reported because its status is {currentStatus}." );
+        var now = this._time.UtcNow;
 
+        if ( !this.ShouldPromptForIssue( this._configurationManager.Get<TelemetryConfiguration>(), hash, now, logReason: true ) )
+        {
             return false;
         }
 
         return this._configurationManager.UpdateIf<TelemetryConfiguration>(
-            c =>
-            {
-                if ( c.Issues.TryGetValue( hash, out var raceStatus ) && raceStatus is ReportingStatus.Ignored or ReportingStatus.Reported )
-                {
-                    this._logger.Trace?.Log( $"The issue {hash} should not be reported because another process is reporting it." );
-
-                    return false;
-                }
-
-                return true;
-            },
+            c => this.ShouldPromptForIssue( c, hash, now, logReason: false ),
             c =>
             {
                 this._logger.Trace?.Log( $"The issue {hash} should be reported." );
 
-                return c with { Issues = c.Issues.SetItem( hash, ReportingStatus.Reported ) };
+                return c with { IssuePrompts = PruneIssuePrompts( c.IssuePrompts, now ).SetItem( hash, now ) };
             } );
+    }
+
+    /// <summary>
+    /// Determines, against the given <paramref name="configuration"/>, whether the user should be prompted about the
+    /// issue identified by <paramref name="hash"/>. Evaluated twice: once optimistically, then again inside the
+    /// optimistic-concurrency update, where a concurrent process may have prompted in the meantime.
+    /// </summary>
+    private bool ShouldPromptForIssue( TelemetryConfiguration configuration, string hash, DateTime now, bool logReason )
+    {
+        if ( configuration.Issues.TryGetValue( hash, out var status ) && status is ReportingStatus.Ignored or ReportingStatus.Reported )
+        {
+            if ( logReason )
+            {
+                this._logger.Trace?.Log( $"The issue {hash} should not be reported because its status is {status}." );
+            }
+
+            return false;
+        }
+
+        if ( configuration.IssuePrompts.TryGetValue( hash, out var lastPrompt ) && lastPrompt + PromptRetryPeriod > now )
+        {
+            if ( logReason )
+            {
+                this._logger.Trace?.Log(
+                    $"The issue {hash} should not be reported because the user was already prompted on {lastPrompt} and has not decided yet." );
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Removes the prompts that are older than <see cref="PromptRetryPeriod"/>, i.e. those that no longer withhold a new
+    /// prompt, so that the dictionary does not grow with the issues seen over the lifetime of the installation.
+    /// </summary>
+    private static ImmutableDictionary<string, DateTime> PruneIssuePrompts( ImmutableDictionary<string, DateTime> prompts, DateTime now )
+    {
+        // A prompt no longer withholds a new one once 'PromptRetryPeriod' has elapsed, so it carries no information.
+        var threshold = now - PromptRetryPeriod;
+        var expired = prompts.Where( p => p.Value <= threshold ).Select( p => p.Key ).ToArray();
+
+        return expired.Length == 0 ? prompts : prompts.RemoveRange( expired );
+    }
+
+    /// <summary>
+    /// Records the terminal decision taken on an issue and drops its pending prompt, so the issue is never asked about
+    /// again (until a new version of the product changes its hash).
+    /// </summary>
+    private void SetIssueStatus( string? hash, ReportingStatus status )
+    {
+        if ( string.IsNullOrEmpty( hash ) )
+        {
+            // The hash is read back from the report being acted on. A report we cannot parse can still be sent or
+            // discarded; we simply cannot remember the decision, so the issue may be asked about again.
+            this._logger.Warning?.Log( $"Cannot record the '{status}' status of an exception report whose hash cannot be read." );
+
+            return;
+        }
+
+        this._logger.Trace?.Log( $"Setting the status of the issue {hash} to {status}." );
+
+        this._configurationManager.Update<TelemetryConfiguration>(
+            c => c with { Issues = c.Issues.SetItem( hash!, status ), IssuePrompts = c.IssuePrompts.Remove( hash! ) } );
     }
 
     private static void PopulateStackTraces( List<string?> stackTraces, Exception exception, IExceptionAdapter adapter )
@@ -466,7 +608,10 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
                 this._fileSystem.CreateDirectory( directory );
             }
 
-            var baseName = "exception-" + hash + "-" + Guid.NewGuid();
+            // The pending report is keyed by the issue hash alone. The same issue is captured again every time the user
+            // is prompted anew (see PromptRetryPeriod), so a per-occurrence name would accumulate one report per hour
+            // and leave the review page sending an arbitrary one of them. Re-capturing overwrites instead. See #1751.
+            var baseName = "exception-" + hash;
             var fileName = Path.Combine( directory, baseName + ".xml" );
 
             // The scrubbed report is the exact payload that would be uploaded.
@@ -501,6 +646,10 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
                 this._logger.Trace?.Log( $"Auto-sending the exception report because the category is set to '{TelemetryConsent.Yes}'." );
 
                 this._uploadManager.EnqueueFile( fileName );
+
+                // The report is on its way, so the issue reaches its terminal 'Reported' state right away and is never
+                // captured again. Only a review-first capture stays pending and is therefore prompted again. See #1751.
+                this.SetIssueStatus( hash, ReportingStatus.Reported );
             }
             else
             {
