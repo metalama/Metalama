@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -513,7 +513,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
     /// <para>
     /// Nothing is reported here. A diagnostic produced on this path never reaches the user, because design-time
     /// diagnostics surface through the analyzer, which reads a successful pipeline result. The user is warned by
-    /// <c>LAMA0077</c>, reported by the compile-time pipeline, where the diagnostic reliably surfaces.
+    /// <c>LAMA0081</c>, reported by the compile-time pipeline, where the diagnostic reliably surfaces.
     /// </para>
     /// </remarks>
     private void SkipReferenceUnsupportedAtDesignTime(
@@ -523,7 +523,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
     {
         this.Logger.Warning?.Log(
             $"The reference '{reference.ProjectKey}' was compiled with Metalama {metalamaVersion}, which the design-time support "
-            + $"cannot consume. Its aspects will not be available in the IDE. See LAMA0077." );
+            + $"cannot consume. Its aspects will not be available in the IDE. See LAMA0081." );
 
         compilationReferences.Add( new DesignTimeProjectReference( reference.ProjectKey ) );
     }

@@ -336,7 +336,8 @@ namespace Metalama.Framework.Engine.Diagnostics
         internal static readonly DiagnosticDefinition<(AssemblyIdentity AssemblyIdentity, string ReferenceVersion, string CurrentVersion)>
             MixedMetalamaVersionsInSolution =
                 new(
-                    "LAMA0077",
+                    // LAMA0081 and not LAMA0077: #1743 took 0077 for DuplicateAspectWeaver while this branch was open.
+                    "LAMA0081",
                     Warning,
                     "The project reference '{0}' has been compiled with Metalama {1}, but the current project uses Metalama {2}. Using several " +
                     "versions of Metalama in the same solution is not recommended: it makes the build and the IDE slower, and it exposes you to " +
@@ -479,6 +480,22 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "The Metalama repository configuration file 'metalama.json' was not fully applied: {0}",
                 Warning,
                 "The repository configuration file (metalama.json) was not fully applied." );
+
+        // Reported when two assemblies of a different identity contribute an aspect weaver under the same type name,
+        // which happens when two versions or two builds of the same aspect library reach the compilation. Metalama
+        // keeps one weaver and reports this error, because the type name is all that RequireAspectWeaverAttribute
+        // stores, so there is no way to tell which of the two assemblies the user means. Two instances coming from
+        // the same assembly identity are interchangeable and are deduplicated silently instead. See #1743.
+        internal static readonly DiagnosticDefinition<(string WeaverType, string FirstAssembly, string SecondAssembly)> DuplicateAspectWeaver =
+            new(
+                "LAMA0077",
+                _category,
+                "The aspect weaver '{0}' is provided by two different assemblies: '{1}' and '{2}'. "
+                + "Metalama will use the weaver from '{1}'. "
+                + "This typically happens when two versions of the same aspect library are loaded. "
+                + "Remove one of the conflicting assembly references.",
+                Error,
+                "An aspect weaver is provided by several assemblies." );
 
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>

@@ -1,15 +1,15 @@
-﻿# Issue 1757 — warnings when a solution mixes Metalama versions
+# Issue 1757 — warnings when a solution mixes Metalama versions
 
 ## What this solution builds
 
 | Project | Metalama | Referenced by `Consumer` as | Expected diagnostic |
 |---|---|---|---|
 | `OldAspects` | 2025.1.18, from nuget.org | `ProjectReference` | **LAMA0078** |
-| `MidAspects` | 2026.1.20, from nuget.org | `ProjectReference` | **LAMA0077** |
+| `MidAspects` | 2026.1.20, from nuget.org | `ProjectReference` | **LAMA0081** |
 | `Consumer` | the version built by this repository | — | — |
 
 `LAMA0078` is the specific case: 2025.1.18 belongs to the previous generation of the design-time contracts, the one
-that #1605 broke, so the IDE cannot consume the reference at all. `LAMA0077` is the general case: 2026.1.20 is the
+that #1605 broke, so the IDE cannot consume the reference at all. `LAMA0081` is the general case: 2026.1.20 is the
 same generation as the current version but not the same version, which works but is slower and invites trouble. The
 specific warning replaces the general one when both apply.
 
@@ -52,7 +52,7 @@ the build:
     "BuildOnly": true,
     "ExpectedDiagnosticsRegexes": [
         "warning LAMA0078.*OldAspects.*2025\\.1\\.18",
-        "warning LAMA0077.*MidAspects.*2026\\.1\\.20"
+        "warning LAMA0081.*MidAspects.*2026\\.1\\.20"
     ]
 }
 ```

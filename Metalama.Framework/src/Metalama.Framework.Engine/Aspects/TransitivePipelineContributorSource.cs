@@ -162,23 +162,22 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
             // Process the manifest.
             if ( manifest != null )
             {
-                // Two references can carry one assembly identity, which happens when two projects of a solution
-                // produce the same assembly name and version. Each then yields its own manifest object, and Add
-                // throws on the duplicate key (issue #1749). The first reference wins, which is what the compile-time
-                // project repository already does: its cache is keyed by AssemblyIdentity, so the second reference
-                // resolves to the first one's CompileTimeProject. Dropping silently is therefore consistent rather
-                // than a new loss of information, and the configuration is reported elsewhere.
-                if ( manifestDictionaryBuilder.ContainsKey( assemblyIdentity.AssertNotNull() ) )
-                {
-                    serviceProvider.GetLoggerFactory()
-                        .GetLogger( nameof(TransitivePipelineContributorSource) )
-                        .Warning?.Log(
-                            $"Two references have the assembly identity '{assemblyIdentity}'. Ignoring the manifest of '{reference.Display}'." );
+                var identity = assemblyIdentity.AssertNotNull();
 
+                if ( manifestDictionaryBuilder.ContainsKey( identity ) )
+                {
+                    // Two references of the compilation have the same assembly identity, which happens when the same
+                    // library reaches the project through two routes, for instance as a package and as a project
+                    // reference (issue #1743). We silently ignore the duplicate rather than abort the whole pipeline:
+                    // manifests are looked up by assembly identity, so a second entry could never be reached, and
+                    // processing its aspects again would apply every inherited aspect of that assembly twice.
+                    //
+                    // Two distinct projects of one solution that produce the same assembly name and version reach this
+                    // too, which is what Standalone/Issue1749.SameAssemblyIdentity and its design-time twin cover.
                     continue;
                 }
 
-                manifestDictionaryBuilder.Add( assemblyIdentity.AssertNotNull(), manifest );
+                manifestDictionaryBuilder.Add( identity, manifest );
 
                 // Process inherited aspects.
                 foreach ( var aspectClassName in manifest.InheritableAspectTypes )
