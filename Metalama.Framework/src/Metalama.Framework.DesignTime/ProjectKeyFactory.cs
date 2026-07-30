@@ -51,38 +51,21 @@ public static class ProjectKeyFactory
         using var hashHandle = HashUtilities.AllocateHasher();
         var hasher = hashHandle.Value;
 
-        var preprocessorSymbolNames = parseOptions.PreprocessorSymbolNames;
+        // Sorted, so that the key of a project does not depend on the order in which the symbols happen to be given.
+        // Without this, the same project could yield two different keys, which is as harmful as two projects yielding
+        // one key. CompileTimeCompilationBuilder.ComputeSourceHash already sorts them for the same reason.
+        var preprocessorSymbolNames = parseOptions.PreprocessorSymbolNames
+            .OrderBy( x => x, StringComparer.Ordinal )
+            .ToReadOnlyList();
 
-        if ( preprocessorSymbolNames is ImmutableArray<string> immutableArray )
+        if ( preprocessorSymbolNames.Count == 0 )
         {
-            // The Roslyn implementation of PreprocessorSymbolNames is an ImmutableArray, so we allocate less memory.
-
-            if ( immutableArray.IsDefaultOrEmpty )
-            {
-                return new StrongBox<ulong>( 0 );
-            }
-
-            foreach ( var symbol in immutableArray )
-            {
-                hasher.Append( symbol );
-            }
+            return new StrongBox<ulong>( 0 );
         }
-        else
+
+        foreach ( var symbol in preprocessorSymbolNames )
         {
-            // This is for forward compatibility.
-
-            var hasHashCode = false;
-
-            foreach ( var symbol in preprocessorSymbolNames )
-            {
-                hasHashCode = true;
-                hasher.Append( symbol );
-            }
-
-            if ( !hasHashCode )
-            {
-                return new StrongBox<ulong>( 0 );
-            }
+            hasher.Append( symbol );
         }
 
         var hashCode = hasher.GetCurrentHashAsUInt64();

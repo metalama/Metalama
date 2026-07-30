@@ -20,6 +20,34 @@ MSBuild unifies two references with the same assembly name to the highest versio
 `Contract` in the closure and defeat the test, so `Consumer` injects both files into `ReferencePath` after
 reference resolution.
 
+## Both `Contract` assemblies are signed, and that is load-bearing
+
+Two references of one simple name are a valid C# compilation only when at least one carries a public key, or their
+cultures differ. Two **weak-named** assemblies of one simple name at different versions is `error CS1704`, and that is
+what this scenario used to be.
+
+It passed anyway, for the wrong reason. Metalama reports `LAMA0079` and aborts before Roslyn surfaces its
+reference-manager diagnostics, so which error appeared depended on ordering the test did not control, and `test.json` set
+`IgnoreExitCode` without pinning `CS1704` out. The scenario could have been satisfied by an error it never meant to
+assert.
+
+Signing both with the **same** key, keeping the version difference, makes the configuration valid, so `LAMA0079` is the
+only error and it concerns something the user can act on. `test.json` now forbids `CS1704` so the premise cannot rot
+again silently.
+
+`FailOnUnexpectedDiagnostics` would be the blunt instrument here and is deliberately not used: it fires on incidental
+warnings too, such as the `CA1822` the generated code produces, which would make the scenario brittle.
+
+## Why `LAMA0079` is still right here, when `Issue1749.PublicKeyVariants` no longer reports it
+
+The two scenarios differ in the branch they take. These `Contract` assemblies are **untransformed**, so their
+compile-time name *is* their run-time name: two versions claim one name and one `AssemblyLoadContext` cannot hold both.
+That conflict is unavoidable, so an error is the only answer.
+
+`Issue1749.PublicKeyVariants` uses **transformed** projects, whose `ml!<name>_<hash>` names are unique per content once
+the hash covers the full assembly identity. Several projections of one run-time assembly in a closure are legitimate
+there, exactly as they are for the per-TFM copies of a multi-targeted library.
+
 ## How to build
 
 ```

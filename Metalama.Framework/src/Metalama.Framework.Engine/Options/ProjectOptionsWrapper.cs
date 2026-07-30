@@ -76,6 +76,8 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual ImmutableArray<string> ProjectReferenceNames => this.Wrapped.ProjectReferenceNames;
 
+    public virtual bool RequiresCompilationConstant => this.Wrapped.RequiresCompilationConstant;
+
     public virtual string? ProjectAssetsFile => this.Wrapped.ProjectAssetsFile;
 
     public virtual int? ReferenceAssemblyRestoreTimeout => this.Wrapped.ReferenceAssemblyRestoreTimeout;

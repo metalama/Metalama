@@ -355,9 +355,15 @@ internal sealed class CompileTimeProject : IProjectService
         var assemblyName = new AssemblyName( assemblyIdentity.ToString() );
 
         // Ignore collectible assemblies now, as they are not considered later when resolving.
-        var assembly = AppDomainUtility
-            .GetLoadedAssemblies( a => !domain.IsCollectible( a ) && AssemblyName.ReferenceMatchesDefinition( assemblyName, a.GetName() ) )
-            .FirstOrDefault();
+        var loadedCandidates = AppDomainUtility
+            .GetLoadedAssemblies( a => !domain.IsCollectible( a ) && AssemblyName.ReferenceMatchesDefinition( assemblyName, a.GetName() ) );
+
+        // Prefer an exact identity match. AssemblyName.ReferenceMatchesDefinition compares little more than the simple
+        // name, so taking the first match could bind this project to an already-loaded assembly of a different version,
+        // culture or public key. Two versions of one untransformed assembly cannot share a closure (LAMA0079), but they
+        // can be loaded in one process by two different projects of a solution. See #1749.
+        var assembly = loadedCandidates.FirstOrDefault( a => a.GetName().ToAssemblyIdentity().Equals( assemblyIdentity ) )
+                       ?? loadedCandidates.FirstOrDefault();
 
         if ( assembly == null )
         {

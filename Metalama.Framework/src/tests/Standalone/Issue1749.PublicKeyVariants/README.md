@@ -1,6 +1,7 @@
 # Issue 1749 — two compile-time projects with one compile-time assembly name
 
-**Passing.** It asserts `LAMA0079` on a configuration that used to crash with an unhandled `ArgumentException`.
+**Passing.** The build succeeds. This configuration used to crash with an unhandled `ArgumentException`, and it is now
+simply supported.
 
 It supersedes `Issue1749.SameCompileTimeName`, which attempted the same thing and concluded it was impossible. That
 conclusion was wrong on two separable, measurable counts. See the bottom of this file.
@@ -17,13 +18,7 @@ thrown by `Enumerable.ToDictionary` at
 `TryGetProjectByCompileTimeAssemblyName` → `CompileTimeSerializationBinder.BindToName` →
 `TransitiveAspectsManifest.ToResource`.
 
-It now reports, and the test asserts:
-
-```
-CSC : error LAMA0079: Two references provide the compile-time assembly 'Contract':
-'Contract, Version=0.0.0.0, Culture=neutral, PublicKeyToken=9f073587addbe099' and
-'Contract, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'. ...
-```
+It now builds, with the two assemblies projected to two distinct compile-time assemblies that coexist in the closure.
 
 ## Why the collision exists
 
@@ -62,22 +57,31 @@ Three details are load-bearing:
   assemblies. It does not need to: the dictionary is built for the whole closure on the first lookup of any key, so
   serializing the consumer's own inheritable aspect is enough to trigger it.
 
-## The fix
+## The fix, and why it is not a diagnostic
 
-`TryReserveCompileTimeAssemblyName`, which reports `LAMA0079`, used to be called only from the
-`HasCompileTimeAttribute` branch at `Builder.cs:401`. The transformed branch reserved nothing, which is why this
-configuration crashed instead of reporting the diagnostic that already existed for the sibling case. It now reserves
-after a successful `TryDeserializeCompileTimeProject`.
+`ComputeProjectHash` now hashes the **full** assembly identity rather than the name and version, so the compile-time name
+again means what it is supposed to mean: one `ml!` name per distinct content. The two `Contract` assemblies get two
+distinct compile-time names and the dictionary keyed on that name cannot collide.
 
-The diagnostic names the **run-time** assembly (`Contract`) rather than the compile-time one. `ml!Contract_<hash>` is
-the name that actually collides, but it means nothing outside Metalama, and nothing is lost: the compile-time name
-embeds the run-time name and its hash covers it, so two assemblies can claim one compile-time name only if they share a
-run-time name too.
+Reporting an error instead was the first thing tried here, by reserving the compile-time name on the transformed branch
+the way `Builder.cs:401` does on the untransformed one. That was wrong, and the reason is worth recording:
+
+- Several compile-time projections of one run-time assembly in a single closure are **legitimate and expected**. The
+  per-TFM copies of a multi-targeted library are exactly that: same run-time name, same version, different `ml!` names.
+  `ClosureProjectsGroupedByRunTimeAssemblyName` and `CanReuseLiveManifest` exist to detect the resulting ambiguity and
+  fall back to the safe path, not to forbid the situation.
+- So rejecting this configuration would have rejected a shape the design already supports, on the grounds of a hash that
+  was simply incomplete.
+
+The untransformed branch still reserves, and must. There the compile-time name **is** the run-time name, so two versions
+of such an assembly claim one name and a single `AssemblyLoadContext` cannot hold both. That conflict is unavoidable
+rather than an artefact of the hash, which is why `LAMA0079` remains the right answer for it and `Standalone/Issue1749`
+still asserts it.
 
 ## What `test.json` asserts
 
-`LAMA0079` must appear and `LAMA0001` must not. `IgnoreExitCode` is set because `LAMA0079` is an error, so the build
-correctly fails either way and the exit code cannot distinguish the two outcomes.
+Exit code 0, no `LAMA0001` duplicate-key crash, and no `LAMA0079` either: the point of the scenario is that the
+configuration is now supported rather than diagnosed.
 
 ## Why `Issue1749.SameCompileTimeName` concluded this was impossible
 

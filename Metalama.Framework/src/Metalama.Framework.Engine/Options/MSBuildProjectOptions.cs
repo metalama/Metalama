@@ -122,6 +122,12 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override ImmutableArray<string> ProjectReferenceNames
         => this.GetListOption( MSBuildPropertyNames.MetalamaProjectReferenceNames );
 
+    /// <summary>
+    /// Gets a value indicating that these options come from MSBuild, so <c>Metalama.Framework.targets</c> has run and
+    /// the <c>METALAMA_PROJECT_&lt;hash&gt;</c> symbol must be present.
+    /// </summary>
+    public override bool RequiresCompilationConstant => true;
+
     [Memo]
     public override string? ProjectAssetsFile => this.GetStringOption( MSBuildPropertyNames.ProjectAssetsFile );
 

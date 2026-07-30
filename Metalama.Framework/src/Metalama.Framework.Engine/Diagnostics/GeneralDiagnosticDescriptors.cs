@@ -258,6 +258,27 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "Metalama is enabled in this project, but the METALAMA preprocessor symbol is not defined.",
                 _category );
 
+        /// <summary>
+        /// Reported when the <c>METALAMA_PROJECT_&lt;hash&gt;</c> symbol that makes a <c>ProjectKey</c> identify a
+        /// project is missing.
+        /// </summary>
+        /// <remarks>
+        /// Reported at compile time although the consequence is a design-time one, because a diagnostic reported on the
+        /// design-time path does not reach the user (see #1758). Without the symbol, two projects of one solution that
+        /// produce the same assembly name share a <c>ProjectKey</c>, and the design-time pipeline of one is then served
+        /// to the other. The build itself is unaffected, which is exactly why this must be reported: the damage is
+        /// invisible from the build.
+        /// </remarks>
+        internal static readonly DiagnosticDefinition MissingMetalamaProjectPreprocessorSymbol =
+            new(
+                "LAMA0080",
+                Error,
+                "Metalama is enabled in this project, but no METALAMA_PROJECT_* preprocessor symbol is defined, so the design-time experience "
+                + "is silently broken. This symbol is defined by Metalama.Framework.targets and identifies the project uniquely. Check that "
+                + "DefineConstants is appended to and not overwritten, and that MetalamaDefineProjectDiscriminator is not set to False.",
+                "Metalama is enabled in this project, but no METALAMA_PROJECT_* preprocessor symbol is defined.",
+                _category );
+
         internal static readonly DiagnosticDefinition<(string[] SelectedVersions, string SupportedVersion)> MetalamaVersionNotSupported =
             new(
                 "LAMA0054",
@@ -350,7 +371,7 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "LAMA0079",
                     Error,
                     "Two references provide the compile-time assembly '{0}': '{1}' and '{2}'. Metalama cannot use two " +
-                    "copies of the same compile-time assembly. Fix the references of the project so that a single copy of " +
+                    "versions of the same compile-time assembly. Fix the references of the project so that a single version of " +
                     "'{0}' is referenced.",
                     "Two references provide the same compile-time assembly.",
                     _category );

@@ -528,6 +528,23 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         compilationReferences.Add( new DesignTimeProjectReference( reference.ProjectKey ) );
     }
 
+    /// <summary>
+    /// Records a reference whose design-time pipeline could not be obtained, so that it contributes no aspect instead of
+    /// failing the whole call.
+    /// </summary>
+    /// <remarks>
+    /// Reports nothing, for the same reason as <see cref="SkipReferenceUnsupportedAtDesignTime"/>: a diagnostic produced
+    /// on this path does not reach the user. The condition is not necessarily a defect either, since a host without a
+    /// workspace legitimately cannot resolve a project reference to a project.
+    /// </remarks>
+    private void SkipReferenceWithoutPipeline( List<DesignTimeProjectReference> compilationReferences, IProjectVersion reference )
+    {
+        this.Logger.Warning?.Log(
+            $"No design-time pipeline could be obtained for the reference '{reference.ProjectKey}'. Its aspects will not be available in the IDE." );
+
+        compilationReferences.Add( new DesignTimeProjectReference( reference.ProjectKey ) );
+    }
+
     internal async ValueTask<FallibleResultWithDiagnostics<DesignTimeProjectVersion>> GetDesignTimeProjectVersionAsync(
         Compilation compilation,
         bool autoResumePipeline,
@@ -562,7 +579,17 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
                         if ( !pipelineResult.IsSuccessful )
                         {
-                            return pipelineResult.CastFailure<DesignTimeProjectVersion>();
+                            // Degrade to a reference contributing no aspect rather than failing this project's whole
+                            // call. Failing propagated one unresolvable reference into the loss of every design-time
+                            // feature of the consuming project, including the diagnostics that would explain it. There
+                            // are ordinary reasons to land here: the host may have no workspace at all, which is the
+                            // case for a plain analyzer in an IDE without the Metalama extension, or the reference's
+                            // ProjectKey may be shared by several projects and therefore designate none of them. The
+                            // reference still travels through its serialized manifest, exactly as a cross-version
+                            // reference does. Same remedy as #1757, same reason.
+                            this.SkipReferenceWithoutPipeline( compilationReferences, reference );
+
+                            continue;
                         }
 
                         pipeline = pipelineResult.Value;

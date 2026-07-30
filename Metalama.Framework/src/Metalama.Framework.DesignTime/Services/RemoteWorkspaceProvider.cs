@@ -105,5 +105,5 @@ internal sealed class RemoteWorkspaceProvider : WorkspaceProvider
         this._workspace = Task.FromResult( workspace );
     }
 
-    protected override Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default ) => this._workspace;
+    protected override async Task<Workspace?> GetWorkspaceAsync( CancellationToken cancellationToken = default ) => await this._workspace;
 }

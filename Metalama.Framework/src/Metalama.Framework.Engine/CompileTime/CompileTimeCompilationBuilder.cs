@@ -180,9 +180,13 @@ internal sealed partial class CompileTimeCompilationBuilder
         h.Append( _buildId );
         this._logger.Trace?.Log( $"ProjectHash: BuildId='{_buildId}'" );
 
-        h.Append( assemblyIdentity.Name );
-        h.Append( assemblyIdentity.Version.ToString() );
-        this._logger.Trace?.Log( $"ProjectHash: AssemblyIdentity='{assemblyIdentity.Name}, {assemblyIdentity.Version}'" );
+        // The FULL identity, not just the name and version. Culture and the public key are exactly the two components
+        // that the C# compiler lets differ so that two assemblies of one simple name can be referenced side by side,
+        // so hashing only the name and the version let two genuinely distinct assemblies collapse onto one
+        // 'ml!<name>_<hash>' compile-time name. The compile-time name is supposed to identify the content it projects,
+        // and the identity of the assembly is part of that content. See #1749.
+        h.Append( assemblyIdentity.GetDisplayName() );
+        this._logger.Trace?.Log( $"ProjectHash: AssemblyIdentity='{assemblyIdentity.GetDisplayName()}'" );
 
         // We include each reference's full compile-time identity (its 'ml!<name>_<hash>' assembly name), not just
         // its source hash. The compiled assembly bakes a reference to exactly that name, so if a referenced

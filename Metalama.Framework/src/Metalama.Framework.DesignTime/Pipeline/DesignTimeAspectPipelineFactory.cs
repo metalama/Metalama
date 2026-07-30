@@ -36,6 +36,11 @@ namespace Metalama.Framework.DesignTime.Pipeline;
 public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfigurationProvider
 {
     private readonly ConcurrentDictionary<ProjectKey, DesignTimeAspectPipeline> _pipelinesByProjectKey = new();
+
+    /// <summary>
+    /// Gets every pipeline of every project.
+    /// </summary>
+    private IEnumerable<DesignTimeAspectPipeline> AllPipelines => this._pipelinesByProjectKey.Values;
     private readonly ILogger _logger;
     private readonly ConcurrentQueue<TaskCompletionSource<DesignTimeAspectPipeline>> _newPipelineListeners = new();
     private readonly CancellationToken _globalCancellationToken;
@@ -177,6 +182,26 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         {
             var pipelineOptions = pipeline.ServiceProvider.GetRequiredService<IProjectOptions>();
 
+            // A ProjectKey must identify a project. Since Metalama 2026.1 it does, because the MSBuild targets define a
+            // METALAMA_PROJECT_<hash> compilation symbol built from the project path, target framework, configuration
+            // and platform, and ProjectKey hashes the symbols. So two DIFFERENT projects arriving under one key means
+            // something is broken: the symbol was suppressed or overwritten, the project comes from a build that
+            // predates the symbol, or two projects collided on the 32-bit hash.
+            //
+            // This is reported rather than worked around. Serving one project's pipeline to another silently gives a
+            // consumer a compile-time projection that is not in its own closure, and the failure then surfaces far away
+            // and unrecognizably, while serializing a transitive manifest. See #1749.
+            if ( projectOptions.ProjectPath != null
+                 && pipelineOptions.ProjectPath != null
+                 && !string.Equals( projectOptions.ProjectPath, pipelineOptions.ProjectPath, StringComparison.OrdinalIgnoreCase ) )
+            {
+                throw new InvalidOperationException(
+                    $"Two different projects have the same Metalama project key '{projectKey}': '{pipelineOptions.ProjectPath}' and "
+                    + $"'{projectOptions.ProjectPath}'. A project key is an assembly name and a hash of the compilation symbols, and it must "
+                    + "identify a project uniquely. Check that the METALAMA_PROJECT_* compilation symbol defined by Metalama.Framework.targets "
+                    + "is present in both projects and has not been removed by a DefineConstants assignment." );
+            }
+
             static bool ReferencesAreEqual( ImmutableArray<PortableExecutableReference> x, ImmutableArray<PortableExecutableReference> y )
             {
                 if ( x.Equals( y ) )
@@ -264,7 +289,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         // Resuming all pipelines.
         var tasks = new List<Task>();
 
-        foreach ( var pipeline in this._pipelinesByProjectKey.Values )
+        foreach ( var pipeline in this.AllPipelines )
         {
             tasks.Add( pipeline.ResumeAsync( executionContext.Fork(), executePipelineNow, cancellationToken ) );
         }
@@ -276,7 +301,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     {
         // If a build has started, we have to invalidate the whole cache because we have allowed
         // our cache to become inconsistent when we started to have an outdated pipeline configuration.
-        foreach ( var pipeline in this._pipelinesByProjectKey.Values )
+        foreach ( var pipeline in this.AllPipelines )
         {
             // We don't do it concurrently because ResetCacheAsync is most likely synchronous.
 
@@ -366,7 +391,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
 
     public virtual void Dispose()
     {
-        foreach ( var designTimeAspectPipeline in this._pipelinesByProjectKey.Values )
+        foreach ( var designTimeAspectPipeline in this.AllPipelines )
         {
             designTimeAspectPipeline.Dispose();
         }

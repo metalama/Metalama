@@ -27,14 +27,14 @@ public sealed class LocalWorkspaceProvider : WorkspaceProvider, IWorkspaceReceiv
         this._designTimeExtensionManager = serviceProvider.GetService<DesignTimeExtensionManager>();
     }
 
-    protected override Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default )
+    protected override async Task<Workspace?> GetWorkspaceAsync( CancellationToken cancellationToken = default )
     {
         if ( !this._workspace.Task.IsCompleted )
         {
             this.Logger.Warning?.Log( $"The workspace is not yet available. Waiting." );
         }
 
-        return this._workspace.Task.WithCancellation( cancellationToken );
+        return await this._workspace.Task.WithCancellation( cancellationToken );
     }
 
     public bool TrySetWorkspace( Workspace workspace )

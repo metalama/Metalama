@@ -1,6 +1,7 @@
 {
     "BuildOnly": true,
-    "IgnoreExitCode": true,
-    "ExpectedDiagnosticsRegexes": [ "error LAMA0079.*Contract" ],
-    "ForbiddenDiagnosticsRegexes": [ "error LAMA0001.*same key has already been added.*ml!Contract_" ]
+    "ForbiddenDiagnosticsRegexes": [
+        "error LAMA0001.*same key has already been added.*ml!Contract_",
+        "error LAMA0079"
+    ]
 }

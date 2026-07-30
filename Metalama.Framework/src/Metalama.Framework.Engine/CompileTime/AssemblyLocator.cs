@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -79,7 +80,14 @@ namespace Metalama.Framework.Engine.CompileTime
             }
             else
             {
-                reference = candidates[0].MetadataReference;
+                // Prefer an exact identity match when there is one. AssemblyName.ReferenceMatchesDefinition compares
+                // little more than the simple name, so two references of one name that differ in version, culture or
+                // public key both match, and the version ordering above then picks between them without regard to the
+                // other two components. Now that two compile-time projections of one run-time name can legitimately
+                // coexist, that would resolve a manifest's reference to the wrong assembly. See #1749.
+                var exactMatch = candidates.FirstOrDefault( x => x.AssemblyName!.ToAssemblyIdentity().Equals( assemblyIdentity ) );
+
+                reference = exactMatch.MetadataReference ?? candidates[0].MetadataReference;
 
                 this._logger.Trace?.Log( $"Selecting '{reference}'." );
 

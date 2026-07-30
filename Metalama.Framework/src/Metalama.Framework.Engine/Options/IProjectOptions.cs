@@ -152,6 +152,21 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     ImmutableArray<string> ProjectReferenceNames { get; }
 
     /// <summary>
+    /// Gets a value indicating whether this host guarantees that <c>Metalama.Framework.targets</c> has run, and
+    /// therefore that the compilation carries the <c>METALAMA_PROJECT_&lt;hash&gt;</c> symbol.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// That symbol is what makes a <c>ProjectKey</c> identify a project rather than an (assembly name, target
+    /// framework, configuration) triple, so its absence silently breaks the design-time experience and the compile-time
+    /// pipeline reports <c>LAMA0080</c> for it. Only a host driven by MSBuild can promise it, which is why the check is
+    /// gated on this rather than applied unconditionally: a test harness, a workspace or an embedding host builds its
+    /// compilations itself and has no targets to run. See #1749.
+    /// </para>
+    /// </remarks>
+    bool RequiresCompilationConstant { get; }
+
+    /// <summary>
     /// Gets the path to <c>project.assets.json</c>.
     /// </summary>
     string? ProjectAssetsFile { get; }

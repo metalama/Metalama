@@ -7,6 +7,14 @@
         <!-- Metalama does not process this project, so the [assembly: CompileTime] attribute survives in the output
              assembly and the consumer resolves it through CompileTimeProject.TryCreateUntransformed. -->
         <MetalamaEnabled>false</MetalamaEnabled>
+        <!-- Signed with the SAME key as Contract2, and only the version differs. Two references of one simple name are
+             a valid C# compilation when at least one carries a public key; two weak-named ones are CS1704. Without this
+             the scenario would not be a valid compilation at all, and would pass only because Metalama reports LAMA0079
+             and aborts before Roslyn surfaces its reference-manager diagnostics. -->
+        <SignAssembly>True</SignAssembly>
+        <AssemblyOriginatorKeyFile>..\Contract.snk</AssemblyOriginatorKeyFile>
+        <!-- CS8002: a signed assembly referencing an unsigned Metalama.Framework. -->
+        <NoWarn>$(NoWarn);CS8002</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

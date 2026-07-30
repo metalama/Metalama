@@ -132,8 +132,16 @@ internal sealed partial class ProjectVersionProvider
             var changeListBuilder = ImmutableDictionary.CreateBuilder<ProjectKey, ReferencedProjectChange>();
             var referenceListBuilder = ImmutableDictionary.CreateBuilder<ProjectKey, IProjectVersion>();
 
+            // Grouped rather than added directly, for the same reason as the loop below: two referenced projects that
+            // produce one assembly name yield one ProjectKey, and a plain ToDictionary throws on the duplicate. The
+            // first reference wins here too, so both sides of the diff resolve a colliding key the same way (#1749).
+            //
+            // PR #1755 rewrites this whole method for #1750, routing both reference sets through one helper and also
+            // rejecting the identity-less ProjectKey that an empty Compilation.AssemblyName produces. Its version is
+            // better and should win the merge; this exists only so that this branch is not red in the meantime.
             var oldProjectReferences = oldCompilation?.ExternalReferences.OfType<CompilationReference>()
-                .ToDictionary( x => x.Compilation.GetProjectKey(), x => x.Compilation );
+                .GroupBy( x => x.Compilation.GetProjectKey() )
+                .ToDictionary( g => g.Key, g => g.First().Compilation );
 
             var newProjectReferences = newCompilation.ExternalReferences.OfType<CompilationReference>().ToReadOnlyList();
 

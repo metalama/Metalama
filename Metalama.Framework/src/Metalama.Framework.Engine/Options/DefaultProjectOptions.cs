@@ -86,6 +86,8 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual ImmutableArray<string> ProjectReferenceNames => ImmutableArray<string>.Empty;
 
+    public virtual bool RequiresCompilationConstant => false;
+
     public virtual string? ProjectAssetsFile => null;
 
     public virtual int? ReferenceAssemblyRestoreTimeout => null;

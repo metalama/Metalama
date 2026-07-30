@@ -71,11 +71,10 @@ internal sealed partial class CompileTimeProjectRepository
         private readonly IProjectOptions? _projectOptions;
 
         // The run-time identity that claimed each compile-time assembly name, used to detect two references providing
-        // the same compile-time assembly. Both kinds of project can collide, so both reserve their name. An
-        // untransformed project keeps the run-time name of the assembly it is built from, so two versions of it collide
-        // directly. A transformed one takes an 'ml!<name>_<hash>' name whose hash covers the assembly name and version
-        // but neither the culture nor the public key, which are precisely the components that let two assemblies of one
-        // simple name be referenced side by side. See #1749.
+        // the same compile-time assembly. Only an untransformed project can collide, because it keeps the run-time name
+        // of the assembly it is built from as its compile-time name, so two versions of it claim one name and a single
+        // AssemblyLoadContext cannot hold both. A transformed project takes an 'ml!<name>_<hash>' name that is unique
+        // per content, the hash covering the full assembly identity. See #1749.
         private readonly Dictionary<string, AssemblyIdentity> _runTimeIdentityByCompileTimeName = new( StringComparer.OrdinalIgnoreCase );
 
         private static Compilation CreateEmptyCompilation( in ProjectServiceProvider serviceProvider )
@@ -405,18 +404,13 @@ internal sealed partial class CompileTimeProjectRepository
                     return false;
                 }
 
-                // A transformed project takes an 'ml!<name>_<hash>' compile-time name, and the hash was long assumed to
-                // make that name unique per content. It does not: it covers the assembly name and version but neither
-                // the culture nor the public key, which are exactly the two components the C# compiler lets differ so
-                // that two assemblies of one simple name can be used side by side. Two such references therefore claim
-                // one compile-time name, which used to surface as an unhandled ArgumentException from
-                // CompileTimeProject.ClosureProjectsByCompileTimeAssemblyName (issue #1749).
-                if ( !this.TryReserveCompileTimeAssemblyName( compileTimeProject.CompileTimeIdentity.Name, assemblyIdentity, diagnosticSink ) )
-                {
-                    compileTimeProject = null;
-
-                    return false;
-                }
+                // No compile-time name is reserved on this branch, deliberately. A transformed project's
+                // 'ml!<name>_<hash>' name is unique per content, because ComputeProjectHash covers the full assembly
+                // identity, so two transformed projects cannot claim one name. Several projections of one run-time
+                // assembly in a closure are legitimate and expected: the per-TFM copies of a multi-targeted library are
+                // exactly that, and ClosureProjectsGroupedByRunTimeAssemblyName exists to detect the resulting
+                // ambiguity rather than to forbid it. See #1749 and the untransformed branch below, where the
+                // compile-time name IS the run-time name and a conflict is therefore unavoidable.
             }
             else if ( metadataInfo.HasCompileTimeAttribute )
             {
@@ -470,11 +464,8 @@ internal sealed partial class CompileTimeProjectRepository
         /// one reference is reached through several paths.
         /// </para>
         /// <para>
-        /// The diagnostic names the <em>run-time</em> assembly and not the compile-time one, because that is what the
-        /// user can act on. The two are the same for an untransformed project, but a transformed one is named
-        /// <c>ml!&lt;name&gt;_&lt;hash&gt;</c>, which means nothing outside Metalama. Nothing is lost by reporting the
-        /// run-time name: the compile-time name embeds the run-time name and its hash covers it, so two assemblies can
-        /// claim one compile-time name only if they share a run-time name too.
+        /// The diagnostic names the <em>run-time</em> assembly, which for the untransformed projects this method guards
+        /// is the same string as the compile-time name, and is the name the user can act on.
         /// </para>
         /// </remarks>
         private bool TryReserveCompileTimeAssemblyName(
