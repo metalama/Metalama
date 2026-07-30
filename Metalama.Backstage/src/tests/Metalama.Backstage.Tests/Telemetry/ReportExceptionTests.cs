@@ -529,14 +529,21 @@ public sealed class ReportExceptionTests : TestsBase
         this.AssertFilesCount( 0 );
         Assert.DoesNotContain( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".xml", StringComparison.Ordinal ) );
 
-        // The issue is never asked about again...
-        this.Time.AddTime( ExceptionReporter.PromptRetryPeriod + TimeSpan.FromMinutes( 1 ) );
-        this.RecordException( ignoredException );
-        Assert.Single( this.UserInterface.Notifications );
+        // The issue is never captured nor notified about again, however often it recurs and however much time passes.
+        var notificationsBefore = this.UserInterface.Notifications.Count;
+
+        for ( var i = 0; i < 3; i++ )
+        {
+            this.Time.AddTime( ExceptionReporter.PromptRetryPeriod + TimeSpan.FromMinutes( 1 ) );
+            this.RecordException( ignoredException );
+        }
+
+        Assert.Equal( notificationsBefore, this.UserInterface.Notifications.Count );
+        this.AssertFilesCount( 0 );
 
         // ...but every other issue keeps prompting normally.
         this.RecordException( new TestException( "Other", CreateStackFrame( "Other", 2 ) ) );
-        Assert.Equal( 2, this.UserInterface.Notifications.Count );
+        Assert.Equal( notificationsBefore + 1, this.UserInterface.Notifications.Count );
     }
 
     [Fact]

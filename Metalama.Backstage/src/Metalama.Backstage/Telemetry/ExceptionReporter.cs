@@ -582,8 +582,6 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
             // exist). Activation is lazy so that a process which never reports never creates a device identifier. See #1701.
             this._telemetryConfigurationService.EnsureActivated();
 
-            this._logger.Trace?.Log( $"Capturing the exception report." );
-
             adapter ??= DefaultExceptionAdapter.Instance;
             var applicationInfo = this._applicationInfoProvider.CurrentApplication;
 
@@ -603,6 +601,10 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
             {
                 return;
             }
+
+            // Logged only once the issue has passed the check, so that the trace of a suppressed issue does not claim a
+            // report was captured.
+            this._logger.Trace?.Log( $"Capturing the exception report." );
 
             // Create the exception report file.
             var directory = this._directories.TelemetryExceptionsDirectory;
