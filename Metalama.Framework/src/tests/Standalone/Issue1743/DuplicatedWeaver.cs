@@ -17,7 +17,7 @@ namespace Issue1743
     /// </summary>
     /// <remarks>
     /// This file is compiled into both <c>Issue1743.Weaver1</c> and <c>Issue1743.Weaver2</c>, so the compilation of
-    /// <c>Issue1743.Tests</c>, which references both, gets this plug-in type twice under the same full name. See the
+    /// <c>Issue1743.App</c>, which references both, gets this plug-in type twice under the same full name. See the
     /// README of this directory.
     /// </remarks>
     [MetalamaPlugIn]

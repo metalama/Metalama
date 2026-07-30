@@ -413,6 +413,22 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Warning,
                 "The repository configuration file (metalama.json) was not fully applied." );
 
+        // Reported when two assemblies of a different identity contribute an aspect weaver under the same type name,
+        // which happens when two versions or two builds of the same aspect library reach the compilation. Metalama
+        // keeps one weaver and reports this error, because the type name is all that RequireAspectWeaverAttribute
+        // stores, so there is no way to tell which of the two assemblies the user means. Two instances coming from
+        // the same assembly identity are interchangeable and are deduplicated silently instead. See #1743.
+        internal static readonly DiagnosticDefinition<(string WeaverType, string FirstAssembly, string SecondAssembly)> DuplicateAspectWeaver =
+            new(
+                "LAMA0077",
+                _category,
+                "The aspect weaver '{0}' is provided by two different assemblies: '{1}' and '{2}'. "
+                + "Metalama will use the weaver from '{1}'. "
+                + "This typically happens when two versions of the same aspect library are loaded. "
+                + "Remove one of the conflicting assembly references.",
+                Error,
+                "An aspect weaver is provided by several assemblies." );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(

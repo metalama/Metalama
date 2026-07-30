@@ -4,7 +4,7 @@
         Reproduction for https://github.com/metalama/Metalama/issues/1743.
 
         This project and Issue1743.Weaver1 compile the same weaver source file, so they contribute the plug-in type
-        'Issue1743.DuplicatedWeaver' under two different assembly identities. Issue1743.Tests references both.
+        'Issue1743.DuplicatedWeaver' under two different assembly identities. Issue1743.App references both.
     -->
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>

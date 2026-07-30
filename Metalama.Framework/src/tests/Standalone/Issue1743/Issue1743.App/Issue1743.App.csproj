@@ -1,12 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <!--
         Reproduction for https://github.com/metalama/Metalama/issues/1743.
 
         This project references two assemblies that both provide the plug-in type 'Issue1743.DuplicatedWeaver', so
-        AspectDriverFactory receives that weaver twice. Before the fix, indexing the weavers by type name threw
-        ArgumentException ("An element with the same key but a different value already exists") out of
-        AspectPipeline.TryInitialize, so this project failed to build.
+        AspectDriverFactory receives that weaver type name twice, from two assemblies of a different identity. Before
+        the fix, indexing the weavers by type name threw ArgumentException ("An element with the same key but a
+        different value already exists") out of AspectPipeline.TryInitialize. The expected outcome is now the
+        LAMA0077 error declared in the test.json of the parent directory, so this project is expected NOT to build.
     -->
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -21,12 +22,6 @@
 
     <ItemGroup>
         <PackageReference Include="Metalama.Framework" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" />
-        <PackageReference Include="xunit" />
-        <PackageReference Include="xunit.runner.visualstudio">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
     </ItemGroup>
 
 </Project>

@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Issue1743.Weaver1", "Issue1
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Issue1743.Weaver2", "Issue1743.Weaver2\Issue1743.Weaver2.csproj", "{2FF3269A-AF03-4872-A634-8BE1972A4295}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Issue1743.Tests", "Issue1743.Tests\Issue1743.Tests.csproj", "{27A307D3-D42E-4E77-9A40-CCFE21047240}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Issue1743.App", "Issue1743.App\Issue1743.App.csproj", "{27A307D3-D42E-4E77-9A40-CCFE21047240}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
