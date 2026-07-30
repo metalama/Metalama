@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <!-- The same assembly name and the same version as Contract2. Only the public key differs, and the public key
+             is the one part of the identity that the compile-time name hash does not cover. -->
+        <AssemblyName>Contract</AssemblyName>
+        <SignAssembly>True</SignAssembly>
+        <AssemblyOriginatorKeyFile>..\Contract.snk</AssemblyOriginatorKeyFile>
+        <!-- CS8002: a signed assembly referencing an unsigned Metalama.Framework. -->
+        <NoWarn>$(NoWarn);CS8002</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The include must be normalized. A project-relative '..\Shared\Helper.cs' keeps its '..' segment all the
+             way into SyntaxTree.FilePath, which ComputeSourceHash hashes, so the two projects would get two different
+             compile-time names and the test would pass while asserting nothing. -->
+        <Compile Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\Shared\Helper.cs'))" />
+    </ItemGroup>
+
+</Project>

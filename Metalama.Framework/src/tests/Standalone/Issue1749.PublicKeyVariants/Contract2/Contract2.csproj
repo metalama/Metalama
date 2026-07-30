@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <!-- The same assembly name and the same version as Contract1, but unsigned. -->
+        <AssemblyName>Contract</AssemblyName>
+        <SignAssembly>False</SignAssembly>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Must be the same normalized path as in Contract1. See the comment there. -->
+        <Compile Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\Shared\Helper.cs'))" />
+    </ItemGroup>
+
+</Project>
