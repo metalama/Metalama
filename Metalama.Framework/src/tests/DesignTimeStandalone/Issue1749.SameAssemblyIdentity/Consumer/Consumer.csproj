@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <NoWarn>$(NoWarn);MSB3243;MSB3277</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+            Plain project references, unlike the Standalone twin, which has to inject the two assemblies after
+            reference resolution. At design time the workspace turns each project reference into a
+            CompilationReference, so both variants reach the compilation without any injection and the reference
+            resolution that would have unified them never runs.
+        -->
+        <ProjectReference Include="..\VariantA\VariantA.csproj" />
+        <ProjectReference Include="..\VariantB\VariantB.csproj" />
+    </ItemGroup>
+
+</Project>
