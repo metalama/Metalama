@@ -64,8 +64,9 @@ flowchart TD
     Report["ITelemetryContext.ReportException"]
     Capture["IExceptionCapturer.Capture"]
     LocalOnly["Local crash report only,<br/>no telemetry"]
-    Should{"ShouldReportIssue"}
-    Drop["Nothing"]
+    Decided{"Already sent, or marked<br/>never report?"}
+    Throttled{"Asked about it less<br/>than 1 h ago?"}
+    Drop["Nothing: do not capture,<br/>do not ask"]
     Write["Write exception-hash.xml<br/>and .local.xml,<br/>record the prompt"]
     Consent{"Consent"}
     Auto["Mark Reported"]
@@ -86,9 +87,11 @@ flowchart TD
 
     Report -->|"consent is No"| LocalOnly
     Report -->|"consent is not No"| Capture
-    Capture --> Should
-    Should -->|"already decided, or prompted<br/>less than 1 h ago"| Drop
-    Should -->|"ask"| Write
+    Capture --> Decided
+    Decided -->|"yes: Issues holds<br/>Reported or Ignored"| Drop
+    Decided -->|"no decision yet"| Throttled
+    Throttled -->|"yes: IssuePrompts is<br/>within the retry period"| Drop
+    Throttled -->|"no"| Write
     Write --> Consent
     Consent -->|"Yes"| Auto
     Consent -->|"Default"| Pending
