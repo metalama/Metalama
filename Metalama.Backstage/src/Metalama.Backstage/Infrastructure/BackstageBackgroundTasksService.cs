@@ -47,9 +47,16 @@ public sealed class BackstageBackgroundTasksService : IBackstageService
     }
 
     /// <summary>
-    /// Prevents new tasks to be enqueued and awaits for the completion of previously enqueued tasks. 
+    /// Prevents new tasks to be enqueued and awaits for the completion of previously enqueued tasks.
     /// </summary>
-    internal Task CompleteAsync()
+    /// <remarks>
+    /// A short-lived process must await this before it exits, otherwise a task that has been enqueued but has not
+    /// started yet is killed. <see cref="ShutdownService"/> does it on <c>ProcessExit</c>, but a process that acts on a
+    /// user gesture and then exits immediately should await it explicitly rather than rely on the shutdown handler
+    /// having time to run. Calling it more than once is harmless. See #1751.
+    /// </remarks>
+    [PublicAPI]
+    public Task CompleteAsync()
     {
         lock ( this._lock )
         {

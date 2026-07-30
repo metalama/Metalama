@@ -99,6 +99,7 @@ flowchart TD
     Auto --> Queue
     Pending --> Notify
     Notify -->|"user clicks Review"| Page
+    Notify -->|"user clicks Report"| MarkSent
     Page --> Send
     Page --> SendAlways
     Page --> Ignore
@@ -129,6 +130,10 @@ Including the version means signatures do not survive an upgrade. That is delibe
 > **Rule.** Capturing a report is not a decision. `Reported` is written when the report is on its way: by `SendReport`, and by `Capture` when the consent is `Yes`. Writing it at capture time is precisely the bug that produced zero exception reports for four releases: a notification the user ignored silenced the issue forever.
 
 An issue with no terminal decision is captured and prompted again once `ExceptionReporter.PromptRetryPeriod` (1 hour) has elapsed, every time it recurs, until the user picks one of the three outcomes. The pending report file is keyed by hash alone and overwritten, so a recurring issue produces one report, not one per hour.
+
+The notification offers **Review** and **Report**. Report (`ReportExceptionCommand`) sends the same scrubbed report without opening the review page, so the fast path to yes costs one click while opting an issue out still costs a page visit.
+
+> **Rule.** A process that acts on a user gesture and then exits must await `BackstageBackgroundTasksService.Default.CompleteAsync()` first. Sending a report starts the upload through that queue, and `Environment.Exit` would kill a task that has not started yet. The desktop application does it in `App.RunAppAsync`.
 
 ## Notifications
 

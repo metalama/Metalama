@@ -13,11 +13,11 @@ namespace Metalama.Backstage.Desktop.Windows.Commands;
 // Opens the exception-report review page (formatted report + Report button + per-category auto-report checkbox) using
 // the worker-process web server. Activated when the user clicks the exception toast. See #1674.
 [UsedImplicitly( ImplicitUseTargetFlags.WithMembers )]
-internal sealed class OpenExceptionReportCommand : BaseAsyncCommand<OpenExceptionReportCommandSettings>
+internal sealed class OpenExceptionReportCommand : BaseAsyncCommand<ExceptionReportCommandSettings>
 {
     public const string Name = "exception-report";
 
-    protected override async Task<int> ExecuteAsync( ExtendedCommandContext context, OpenExceptionReportCommandSettings settings )
+    protected override async Task<int> ExecuteAsync( ExtendedCommandContext context, ExceptionReportCommandSettings settings )
     {
         var serviceProvider = App.GetBackstageServices( settings );
         var userInterfaceService = serviceProvider.GetRequiredBackstageService<IUserInterfaceService>();
