@@ -70,9 +70,28 @@ When starting work on a GitHub issue:
 ## Debugging Build Issues
 
 1. **Check troubleshooting files**: Look at `%TEMP%\Metalama\CompileTimeTroubleshooting\...\errors.txt` for actual errors
-2. **File locks**: After failed builds, run `Build.ps1 tools kill` before retrying
+2. **File locks**: After failed builds, run `Build.ps1 tools kill` before retrying. Use this instead of killing `dotnet`/`MSBuild`/`VBCSCompiler` processes by name or pattern: doing so also kills the nodes of any other build in flight and leaves worse locks behind.
 3. **Trace data flow**: For MSBuild issues, trace from `.csproj` → `.targets` → Engine code
-4. **Cross-solution changes**: Run `Build.ps1 build` early rather than discovering issues incrementally. Claude may run `Build.ps1 build` itself in this environment (this overrides the general `eng` skill guidance that says to ask the user). Because it is long-running, start it in the background (`run_in_background`) with a high timeout and continue with other work until it completes.
+4. **Reading Metalama's own trace during a build**: all three of these are required, and omitting any one produces no output at all.
+
+   ```powershell
+   $env:METALAMA_CONSOLE_TRACE="*"
+   dotnet build <project> -t:rebuild --disable-build-servers -v:detailed
+   ```
+
+   `METALAMA_CONSOLE_TRACE` makes Backstage log to the console instead of a file; `--disable-build-servers` stops the
+   compiler running in a persistent server whose output MSBuild discards; `-v:detailed` makes MSBuild relay the
+   compiler's output. Trace records look like `# Metalama TRACE <project>, Thread <n>, <Category>: <message>`, so
+   grep for `# Metalama`. Pipe to a file, because the log is large.
+
+   Do **not** try to get these logs by enabling `logging.processes.Compiler` in
+   `%LOCALAPPDATA%\Metalama\diagnostics.json` — Metalama rewrites that file and resets the flag, so it does not stick.
+
+5. **Do not filter build output when checking whether a build succeeded**: piping through `Select-String`/`grep` for
+   error patterns hides both the failure summary and the exit code, which reads as success. Capture the whole log
+   (`Tee-Object`) and inspect it.
+
+6. **Cross-solution changes**: Run `Build.ps1 build` early rather than discovering issues incrementally. Claude may run `Build.ps1 build` itself in this environment (this overrides the general `eng` skill guidance that says to ask the user). Because it is long-running, start it in the background (`run_in_background`) with a high timeout and continue with other work until it completes.
 - When working on an issue creat a file called <Isse-number>-TODO.md to track progress.
 - don't include *-TODO.md in commits
 - After a full build with `Build.ps1 build` (Claude may run it, preferably in the background), the msbuild binlogs are under artifacts/logs

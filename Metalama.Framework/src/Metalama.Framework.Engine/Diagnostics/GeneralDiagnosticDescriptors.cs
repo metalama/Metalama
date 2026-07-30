@@ -299,9 +299,7 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "'ref' members cannot be used as templates.",
                 _category );
 
-        // Public because Metalama.Framework.DesignTime reports it too, for a reference whose Metalama version cannot
-        // be served at design time (issue #1757).
-        public static readonly DiagnosticDefinition<(AssemblyIdentity AssemblyIdentity, string Version)>
+        internal static readonly DiagnosticDefinition<(AssemblyIdentity AssemblyIdentity, string Version)>
             DependencyMustBeRecompiled =
                 new(
                     "LAMA0061",
@@ -309,6 +307,36 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "The referenced assembly '{0}' has been compiled with Metalama {1}. It must be recompiled with the current version because " +
                     "backward compatibility of compiled assemblies has been broken.",
                     "The referenced assembly must be recompiled with a more recent version of Metalama.",
+                    _category );
+
+        // Both of the following are reported only for a ProjectReference, never for a package: consuming a package
+        // built with another version of Metalama is normal, whereas two projects of one solution on two versions is
+        // a configuration the user controls and should fix. Both are warnings, so both can be suppressed.
+        internal static readonly DiagnosticDefinition<(AssemblyIdentity AssemblyIdentity, string ReferenceVersion, string CurrentVersion)>
+            MixedMetalamaVersionsInSolution =
+                new(
+                    "LAMA0077",
+                    Warning,
+                    "The project reference '{0}' has been compiled with Metalama {1}, but the current project uses Metalama {2}. Using several " +
+                    "versions of Metalama in the same solution is not recommended: it makes the build and the IDE slower, and it exposes you to " +
+                    "compatibility issues. Align the version of Metalama across the projects of the solution.",
+                    "Several versions of Metalama are used in the same solution.",
+                    _category );
+
+        // A warning and not an error, and worded for the IDE only, because the build genuinely is not affected: the
+        // compile-time pipeline reads the embedded compile-time project of an older version and applies its aspects.
+        // Only the design-time pipeline cannot, because it additionally needs that version's design-time entry point,
+        // which belongs to a contracts generation the current one can never observe. See DesignTimeCompatibility and
+        // issue #1757.
+        internal static readonly DiagnosticDefinition<(AssemblyIdentity AssemblyIdentity, string ReferenceVersion, string MinimumVersion)>
+            ReferenceNotSupportedAtDesignTime =
+                new(
+                    "LAMA0078",
+                    Warning,
+                    "The project reference '{0}' has been compiled with Metalama {1}, which is older than {2}. The design-time (IDE) support of " +
+                    "the current version cannot consume it, so aspects inherited from it will not appear in the editor. The build is not " +
+                    "affected. Upgrade '{0}' to Metalama {2} or a later version to restore the design-time experience.",
+                    "The project reference has been compiled with a version of Metalama that the IDE support cannot consume.",
                     _category );
 
         internal static readonly DiagnosticDefinition<(IMember Member, INamedType TargetType, InvokerOptions InvokerOptions)>

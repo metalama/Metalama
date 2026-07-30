@@ -142,7 +142,30 @@
         </ItemGroup>
     </Target>
 
-    <Target Name="GatherCompilerVisibleProperties" BeforeTargets="GenerateMSBuildEditorConfigFileCore">
+    <!-- Exports the assembly names of the references that come from a ProjectReference, i.e. of the other projects
+         of the same solution. Metalama needs the distinction to warn about mixing Metalama versions within a
+         solution: a reference to an assembly built by another Metalama version is normal when it is a package, and is
+         only a problem when it is a sibling project. ProjectReference is a design-time concept, so by the time the
+         compiler runs every reference is a PortableExecutableReference and the distinction is lost;
+         ResolveAssemblyReferences has already computed it as %(ReferenceSourceTarget).
+
+         Assembly names and not paths: the consumer compares them against the assembly identity it reads from the
+         reference, which is robust, whereas a path has to match exactly across two subsystems. That comparison used
+         to fail silently, because when the referenced project produces a reference assembly (the default) the
+         compiler is given the reference assembly under 'obj\<config>\<tfm>
+ef' while @(ReferencePath) still holds
+         'bin\<config>\<tfm>\X.dll'. Names also cannot contain the ',' that separates the list items, so they need
+         no escaping. -->
+    <Target Name="ExportMetalamaProjectReferences" BeforeTargets="GenerateMSBuildEditorConfigFileCore" DependsOnTargets="ResolveAssemblyReferences">
+        <ItemGroup>
+            <_MetalamaProjectReference Include="@(ReferencePath)" Condition="'%(ReferencePath.ReferenceSourceTarget)'=='ProjectReference'"/>
+        </ItemGroup>
+        <PropertyGroup>
+            <MetalamaProjectReferenceNames>@(_MetalamaProjectReference->'%(Filename)', ',')</MetalamaProjectReferenceNames>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="GatherCompilerVisibleProperties" BeforeTargets="GenerateMSBuildEditorConfigFileCore" DependsOnTargets="ExportMetalamaProjectReferences">
         <!-- This is only required for Roslyn 4.0, which doesn't have AnalyzerConfigOptions.Keys. -->
         <PropertyGroup>
             <MetalamaCompilerVisiblePropertiesList>@(CompilerVisibleProperty, ',')</MetalamaCompilerVisiblePropertiesList>

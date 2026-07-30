@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
     <PropertyGroup>
         <MetalamaCompilerVisiblePropertiesTargetsImported>True</MetalamaCompilerVisiblePropertiesTargetsImported>
     </PropertyGroup>
@@ -19,6 +19,7 @@
         <CompilerVisibleProperty Include="MetalamaConcurrentBuildEnabled"/>
         <CompilerVisibleProperty Include="MetalamaCompileTimePackages"/>
         <CompilerVisibleProperty Include="MetalamaCompileTimeAssemblies"/>
+        <CompilerVisibleProperty Include="MetalamaProjectReferenceNames"/>
         <CompilerVisibleProperty Include="MetalamaWriteHtml"/>
         <CompilerVisibleProperty Include="MetalamaWriteLicenseCreditData" />
         <CompilerVisibleProperty Include="ProjectAssetsFile"/>

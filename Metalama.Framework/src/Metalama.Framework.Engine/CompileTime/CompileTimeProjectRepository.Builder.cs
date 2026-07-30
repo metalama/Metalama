@@ -1,10 +1,12 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating.Mapping;
 using Metalama.Framework.Engine.Utilities;
@@ -14,6 +16,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
@@ -65,6 +68,7 @@ internal sealed partial class CompileTimeProjectRepository
         private readonly IAssemblyLocator _runTimeAssemblyLocator;
         private readonly CacheableTemplateDiscoveryContextProvider _cacheableTemplateDiscoveryContextProvider;
         private readonly ClassifyingCompilationContextFactory _classifyingCompilationContextFactory;
+        private readonly IProjectOptions? _projectOptions;
 
         private static Compilation CreateEmptyCompilation( in ProjectServiceProvider serviceProvider )
         {
@@ -89,6 +93,7 @@ internal sealed partial class CompileTimeProjectRepository
             this._classifyingCompilationContextFactory = serviceProvider.GetRequiredService<ClassifyingCompilationContextFactory>();
 
             this._runTimeAssemblyLocator = serviceProvider.GetRequiredService<IAssemblyLocator>();
+            this._projectOptions = serviceProvider.GetService<IProjectOptions>();
             this._domain = domain;
             this._logger = serviceProvider.GetLoggerFactory().CompileTime();
 
@@ -407,6 +412,67 @@ internal sealed partial class CompileTimeProjectRepository
             return true;
         }
 
+        /// <summary>
+        /// Warns when a reference that comes from a <c>ProjectReference</c> was compiled by another version of
+        /// Metalama than the current one.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Restricted to project references on purpose. Consuming a package built with another version of Metalama is
+        /// normal and works, at build time and in the IDE alike, because a package is consumed statically, through the
+        /// compile-time project embedded in it. Two projects of the same solution on two versions is a different
+        /// matter: it is a configuration the user controls, it is slower, and above a generation boundary the IDE
+        /// cannot consume the reference at all.
+        /// </para>
+        /// <para>
+        /// The reference is matched by assembly name and not by path. Paths do not work: the compiler is given the
+        /// reference assembly under <c>obj</c>, whereas MSBuild's item holds the implementation assembly under
+        /// <c>bin</c>, so a path comparison fails for every project reference and reports nothing. A name is also
+        /// immune to normalization, casing and link resolution, and cannot contain the separator of the list.
+        /// </para>
+        /// <para>
+        /// When <see cref="IProjectOptions.ProjectReferenceNames"/> is empty, which is the case for a host that does
+        /// not supply it, nothing is reported rather than everything.
+        /// </para>
+        /// </remarks>
+        private void ReportMixedVersionWarnings(
+            AssemblyIdentity runTimeAssemblyIdentity,
+            CompileTimeProjectManifest manifest,
+            IDiagnosticAdder diagnosticAdder )
+        {
+            var projectReferenceNames = this._projectOptions?.ProjectReferenceNames ?? ImmutableArray<string>.Empty;
+
+            if ( projectReferenceNames.IsDefaultOrEmpty
+                 || !projectReferenceNames.Any( n => string.Equals( n, runTimeAssemblyIdentity.Name, StringComparison.OrdinalIgnoreCase ) ) )
+            {
+                return;
+            }
+
+            var currentVersion = AssemblyMetadataReader.GetInstance( typeof(CompileTimeProjectManifest).Assembly ).PackageVersion;
+
+            if ( string.Equals( manifest.MetalamaVersion, currentVersion, StringComparison.OrdinalIgnoreCase ) )
+            {
+                return;
+            }
+
+            // The generation boundary is the more specific and more actionable of the two, so it replaces the general
+            // warning rather than adding to it.
+            if ( !DesignTimeCompatibility.IsSupportedAtDesignTime( manifest.MetalamaVersion ) )
+            {
+                diagnosticAdder.Report(
+                    GeneralDiagnosticDescriptors.ReferenceNotSupportedAtDesignTime.CreateRoslynDiagnostic(
+                        null,
+                        (runTimeAssemblyIdentity, manifest.MetalamaVersion, DesignTimeCompatibility.MinimumSupportedVersion.ToString()) ) );
+            }
+            else
+            {
+                diagnosticAdder.Report(
+                    GeneralDiagnosticDescriptors.MixedMetalamaVersionsInSolution.CreateRoslynDiagnostic(
+                        null,
+                        (runTimeAssemblyIdentity, manifest.MetalamaVersion, currentVersion ?? "") ) );
+            }
+        }
+
         private bool TryDeserializeCompileTimeProject(
             AssemblyIdentity runTimeAssemblyIdentity,
             Stream resourceStream,
@@ -435,6 +501,8 @@ internal sealed partial class CompileTimeProjectRepository
 
                 return false;
             }
+
+            this.ReportMixedVersionWarnings( runTimeAssemblyIdentity, manifest, diagnosticAdder );
 
             // Read source files.
             var parseOptions = new CSharpParseOptions( manifest.LanguageVersion ?? SupportedCSharpVersions.Latest );

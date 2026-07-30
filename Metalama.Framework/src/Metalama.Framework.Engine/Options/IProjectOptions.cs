@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -135,6 +135,21 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// Gets the list of assemblies that should be included in the compile-time project.
     /// </summary>
     ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies { get; }
+
+    /// <summary>
+    /// Gets the assembly names of the references that come from a <c>ProjectReference</c>, i.e. of the other projects
+    /// of the same solution.
+    /// </summary>
+    /// <remarks>
+    /// A <c>ProjectReference</c> is a design-time concept. By the time the compiler runs, every reference is a
+    /// <c>PortableExecutableReference</c> and the distinction is lost, so it is supplied by MSBuild, which has already
+    /// computed it. Names and not paths, because the consumer compares them against the assembly identity it reads
+    /// from the reference: a path would have to match exactly across two subsystems, and does not, since the compiler
+    /// is given the reference assembly under <c>obj</c> while MSBuild holds the implementation assembly under
+    /// <c>bin</c>. Empty when the information is not available, in which case no consumer must infer that there are no
+    /// project references.
+    /// </remarks>
+    ImmutableArray<string> ProjectReferenceNames { get; }
 
     /// <summary>
     /// Gets the path to <c>project.assets.json</c>.

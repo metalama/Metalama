@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -16,6 +16,7 @@ using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
@@ -45,16 +46,6 @@ namespace Metalama.Framework.DesignTime.Pipeline;
 public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipeline
 {
     private static readonly string _sourceGeneratorAssemblyName = typeof(DesignTimeAspectPipelineFactory).Assembly.GetName().Name.AssertNotNull();
-
-    /// <summary>
-    /// The lowest Metalama version that uses the current generation of <c>Metalama.Framework.DesignTime.Contracts</c>.
-    /// </summary>
-    /// <remarks>
-    /// #1605 rotated every GUID of that assembly and the <see cref="AppDomain"/> slot through which
-    /// <c>DesignTimeEntryPointManager</c> rendezvouses, so a version below this one is a different generation and can
-    /// never be reached from this process, however long it is waited for.
-    /// </remarks>
-    private static readonly Version _minimumCompatibleMetalamaVersion = new( 2026, 1 );
 
     private readonly WeakCache<Compilation, FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>> _compilationResultCache = new();
     private readonly RecursiveFileSystemWatcher? _fileSystemWatcher;
@@ -509,29 +500,32 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
     }
 
     /// <summary>
-    /// Reports that a reference was produced by a Metalama version that cannot be served in this process, and fails
-    /// the reference.
+    /// Adds a reference whose Metalama version the design-time support cannot consume, as a reference that
+    /// contributes no aspect.
     /// </summary>
     /// <remarks>
-    /// The diagnostic is <c>LAMA0061</c>, the same one the compile-time pipeline reports for a reference that must be
-    /// recompiled, which is exactly the action the user has to take. The condition is decided from the version alone,
-    /// so it costs nothing to re-derive on a later request and is deliberately not cached.
+    /// <para>
+    /// Degrading rather than failing is deliberate. The build is unaffected: the compile-time pipeline reads the
+    /// embedded compile-time project of the older version and applies its aspects. Only the transitive aspects of
+    /// this one reference cannot be obtained in the IDE. Failing the whole call would instead abort the pipeline of
+    /// the consuming project, costing the user the design-time support of their own aspects as well (issue #1757).
+    /// </para>
+    /// <para>
+    /// Nothing is reported here. A diagnostic produced on this path never reaches the user, because design-time
+    /// diagnostics surface through the analyzer, which reads a successful pipeline result. The user is warned by
+    /// <c>LAMA0077</c>, reported by the compile-time pipeline, where the diagnostic reliably surfaces.
+    /// </para>
     /// </remarks>
-    private FallibleResultWithDiagnostics<DesignTimeProjectVersion> ReportIncompatibleReference(
+    private void SkipReferenceUnsupportedAtDesignTime(
+        List<DesignTimeProjectReference> compilationReferences,
         IProjectVersion reference,
         Version metalamaVersion )
     {
         this.Logger.Warning?.Log(
-            $"Failed to process the reference to '{reference.ProjectKey}': it was compiled with Metalama {metalamaVersion}, "
-            + $"which is not compatible with the current version." );
+            $"The reference '{reference.ProjectKey}' was compiled with Metalama {metalamaVersion}, which the design-time support "
+            + $"cannot consume. Its aspects will not be available in the IDE. See LAMA0077." );
 
-        var diagnostic = GeneralDiagnosticDescriptors.DependencyMustBeRecompiled.CreateRoslynDiagnostic(
-            null,
-            (reference.Compilation.Assembly.Identity, metalamaVersion.ToString()) );
-
-        return FallibleResultWithDiagnostics<DesignTimeProjectVersion>.Failed(
-            ImmutableArray.Create( diagnostic ),
-            $"The reference '{reference.ProjectKey}' was compiled with the incompatible Metalama {metalamaVersion}." );
+        compilationReferences.Add( new DesignTimeProjectReference( reference.ProjectKey ) );
     }
 
     internal async ValueTask<FallibleResultWithDiagnostics<DesignTimeProjectVersion>> GetDesignTimeProjectVersionAsync(
@@ -632,9 +626,11 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     // what must not happen is the unbounded wait that used to follow, because this method holds the
                     // lock on the current project and would therefore hang its design-time experience for good
                     // (issue #1757).
-                    if ( metalamaVersion < _minimumCompatibleMetalamaVersion )
+                    if ( !DesignTimeCompatibility.IsSupportedAtDesignTime( metalamaVersion ) )
                     {
-                        return this.ReportIncompatibleReference( reference, metalamaVersion );
+                        this.SkipReferenceUnsupportedAtDesignTime( compilationReferences, reference, metalamaVersion );
+
+                        continue;
                     }
 
                     // Same contracts generation, so the entry point is expected to register, but possibly not yet:
@@ -654,7 +650,9 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                         this.Logger.Warning?.Log(
                             $"The design-time entry point of Metalama {metalamaVersion} does not provide {nameof(ITransitiveCompilationService)}." );
 
-                        return this.ReportIncompatibleReference( reference, metalamaVersion );
+                        this.SkipReferenceUnsupportedAtDesignTime( compilationReferences, reference, metalamaVersion );
+
+                        continue;
                     }
 
                     var resultArray = new ITransitiveCompilationResult?[1];
