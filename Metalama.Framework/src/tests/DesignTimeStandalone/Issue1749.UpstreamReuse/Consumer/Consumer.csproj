@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <!-- MSB3243: reference resolution cannot unify two 'Shared' assemblies of different versions and warns that it
+             chose one arbitrarily. It only affects the preparatory build, whose result the harness ignores. -->
+        <NoWarn>$(NoWarn);MSB3243;MSB3277</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Both versions, as plain project references. At design time each arrives as a CompilationReference, so both
+             reach the compilation and Metalama's reference loop sees two references whose ProjectKey is the same. -->
+        <ProjectReference Include="..\SharedV2\SharedV2.csproj" />
+        <ProjectReference Include="..\SharedV1\SharedV1.csproj" />
+    </ItemGroup>
+
+</Project>

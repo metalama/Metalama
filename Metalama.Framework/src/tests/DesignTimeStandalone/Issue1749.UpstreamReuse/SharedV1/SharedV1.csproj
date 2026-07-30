@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <!-- The same assembly name and the same preprocessor symbols as SharedV2, so both projects have the same
+             Metalama ProjectKey and therefore share one slot in the design-time pipeline cache. -->
+        <AssemblyName>Shared</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
