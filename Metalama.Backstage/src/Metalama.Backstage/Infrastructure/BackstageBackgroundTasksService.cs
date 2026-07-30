@@ -97,9 +97,15 @@ public sealed class BackstageBackgroundTasksService : IBackstageService
     {
         lock ( this._lock )
         {
-            if ( !this._canEnqueue )
+            // A task that is still running may legitimately enqueue another one while completion is under way: the
+            // telemetry upload does exactly that, since the enqueued StartUpload itself enqueues the start of the
+            // upload process. Refusing it silently lost the nested task, because the exception is thrown inside a task
+            // nobody observes, so the upload process was never started and the queue was never uploaded. Completion
+            // waits for the nested task as well, since it is counted here before the outer one completes. See #1751.
+            if ( !this._canEnqueue && this._pendingTasks == 0 )
             {
-                throw new InvalidOperationException();
+                throw new InvalidOperationException(
+                    $"Cannot enqueue a background task after {nameof(this.CompleteAsync)} has completed." );
             }
 
             this._pendingTasks++;

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Infrastructure;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -58,5 +59,45 @@ public sealed class BackstageBackgroundTasksServiceTests
         await service.WhenNoPendingTaskAsync();
 
         Assert.Equal( n * m, completedTasks );
+    }
+
+    [Fact]
+    public async Task NestedEnqueueDuringCompletionIsNotLost()
+    {
+        // #1751: a background task that enqueues another one is exactly what the telemetry upload does. The services
+        // initializer enqueues StartUpload, and StartUpload enqueues the start of the upload process. If completion
+        // refuses that nested enqueue, the upload process is never started and the queue is never uploaded.
+        var service = new BackstageBackgroundTasksService();
+
+        var outerStarted = new TaskCompletionSource<bool>();
+        var releaseOuter = new TaskCompletionSource<bool>();
+        var nestedRan = 0;
+        Exception? nestedEnqueueException = null;
+
+        _ = service.Enqueue(
+            async () =>
+            {
+                outerStarted.SetResult( true );
+                await releaseOuter.Task;
+
+                try
+                {
+                    await service.Enqueue( () => Interlocked.Increment( ref nestedRan ) );
+                }
+                catch ( Exception e )
+                {
+                    nestedEnqueueException = e;
+                }
+            } );
+
+        // Start completing while the outer task is still running, exactly as the shutdown handler does.
+        await outerStarted.Task;
+        var completion = service.CompleteAsync();
+        releaseOuter.SetResult( true );
+
+        await completion;
+
+        Assert.Null( nestedEnqueueException );
+        Assert.Equal( 1, nestedRan );
     }
 }
