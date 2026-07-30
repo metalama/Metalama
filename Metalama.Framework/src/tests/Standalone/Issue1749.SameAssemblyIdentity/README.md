@@ -1,13 +1,13 @@
 # Issue 1749 — two references with one assembly identity, colliding in the manifest collector
 
-**This scenario is red until the defect is fixed.**
+**Passing.** The build succeeds, which is the assertion.
 
-A design-time twin lives at `DesignTimeStandalone/Issue1749.SameAssemblyIdentity`. Both are needed, and for a stronger
-reason than expected: the same configuration throws at **two different sites**, keyed on two different things. This one
-collides on the assembly identity; the design-time one collides on an aspect class full name, in
-`TransitiveAspectsManifest.cs:66`. Neither fix implies the other.
+A design-time twin lives at `DesignTimeStandalone/Issue1749.SameAssemblyIdentity`, and it is **still failing**, which
+vindicates having both. The same configuration throws at two different sites keyed on two different things: this one on
+the assembly identity, the design-time one on an aspect class full name in `TransitiveAspectsManifest.cs:66`. Fixing
+this one did not fix that one, and the design-time side has since moved on to a third failure.
 
-## What it reproduces
+## What it used to produce, before the fix
 
 ```
 CSC : error LAMA0001: Unexpected exception occurred in Metalama:
@@ -55,10 +55,17 @@ the collector walks every reference regardless of use. Each variant also declare
 (`ExportedBaseA`, `ExportedBaseB`) so that the two assemblies are not interchangeable and the scenario is not a
 degenerate one.
 
+## The fix
+
+`TransitivePipelineContributorSource` now checks `ContainsKey` before the `Add`, keeps the first reference and logs the
+one it drops. Keeping the first is consistent rather than a fresh loss of information: `CompileTimeProjectRepository`'s
+own cache is keyed by `AssemblyIdentity`, so the second reference already resolved to the first one's
+`CompileTimeProject` before this code ran.
+
 ## What `test.json` asserts
 
-Exit code 0 and no duplicate-key message. The compiler is content with the two references, so once the `Add` is guarded
-the build should simply succeed. `IgnoreExitCode` is deliberately **not** set: the exit code is the assertion.
+Exit code 0 and no duplicate-key message. The compiler is content with the two references, so with the `Add` guarded the
+build simply succeeds. `IgnoreExitCode` is deliberately **not** set: the exit code is the assertion.
 
 The forbidden pattern matches on the exception message rather than on a diagnostic id, so that the same `test.json`
 works for the design-time twin, where the same message arrives wrapped in `CS8785` instead of `LAMA0001`.

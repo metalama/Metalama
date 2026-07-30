@@ -63,10 +63,15 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> options,
         ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> annotations,
         bool containsInitializableTypes )
+        // Grouped by the aspect class NAME and not by the aspect class itself. Two references can each contribute
+        // their own IAspectClass instance for one type name, which happens when two projects of a solution produce
+        // the same assembly name: grouping by the instance then yields two groups that map to a single key, and
+        // ToImmutableDictionary throws (issue #1749). Merging them is the only meaningful answer here, because the
+        // manifest is keyed by name and a consumer resolves an inherited aspect by name.
         => new(
-            inheritedAspects.GroupBy( a => a.AspectClass )
+            inheritedAspects.GroupBy( a => a.AspectClass.FullName, StringComparer.Ordinal )
                 .ToImmutableDictionary(
-                    g => g.Key.FullName,
+                    g => g.Key,
                     g => g.Select( i => i )
                         .ToReadOnlyList(),
                     StringComparer.Ordinal ),

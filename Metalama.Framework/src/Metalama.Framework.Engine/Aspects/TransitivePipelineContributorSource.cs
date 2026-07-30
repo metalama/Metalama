@@ -162,6 +162,22 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
             // Process the manifest.
             if ( manifest != null )
             {
+                // Two references can carry one assembly identity, which happens when two projects of a solution
+                // produce the same assembly name and version. Each then yields its own manifest object, and Add
+                // throws on the duplicate key (issue #1749). The first reference wins, which is what the compile-time
+                // project repository already does: its cache is keyed by AssemblyIdentity, so the second reference
+                // resolves to the first one's CompileTimeProject. Dropping silently is therefore consistent rather
+                // than a new loss of information, and the configuration is reported elsewhere.
+                if ( manifestDictionaryBuilder.ContainsKey( assemblyIdentity.AssertNotNull() ) )
+                {
+                    serviceProvider.GetLoggerFactory()
+                        .GetLogger( nameof(TransitivePipelineContributorSource) )
+                        .Warning?.Log(
+                            $"Two references have the assembly identity '{assemblyIdentity}'. Ignoring the manifest of '{reference.Display}'." );
+
+                    continue;
+                }
+
                 manifestDictionaryBuilder.Add( assemblyIdentity.AssertNotNull(), manifest );
 
                 // Process inherited aspects.

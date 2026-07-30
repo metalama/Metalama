@@ -1,10 +1,10 @@
 # Issue 1749 — the upstream-reuse cache adds under a different key than its guard checks
 
-**This scenario is red until the defect is fixed.** Design-time only: `IUpstreamCompileTimeProjectProvider` is
+**Passing.** The simulator exits 0, which is the assertion. Design-time only: `IUpstreamCompileTimeProjectProvider` is
 registered by `DesignTimeAnalysisProcessServiceProviderFactory` and by nothing else, so no build configuration can
 reach this site.
 
-## What it reproduces
+## What it used to produce, before the fix
 
 ```
 warning CS8785: Generator 'MetalamaSourceGenerator' failed to generate source. ...
@@ -45,6 +45,16 @@ receives the other version's compile-time project.
 
 `TryReserveCompileTimeAssemblyName`, which reports `LAMA0079`, cannot help. It is called only on the
 `PortableExecutableReference` path at `:401`, and a design-time project reference never takes that path.
+
+## The fix
+
+The upstream project is now reused only when its `RunTimeIdentity` equals the identity of the reference being resolved.
+A mismatch means the provider handed back another project's work, so the code logs it and falls through to the recursive
+build, which is correct if slower.
+
+Guarding the `Add` alone would have been the wrong fix. It would have stopped the crash and left the silent
+mis-resolution in place, where the reference receives another version's compile-time project, which is what happens in
+the reference order that does not throw.
 
 ## Confirmed independent of declaration order
 

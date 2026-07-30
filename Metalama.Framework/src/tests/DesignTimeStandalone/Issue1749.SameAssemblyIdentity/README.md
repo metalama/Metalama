@@ -1,6 +1,7 @@
 # Issue 1749 at design time — two aspect classes with one full name
 
-**This scenario is red until the defect is fixed.**
+**Still red, and now for a third reason.** Two failures have been fixed underneath it and a third has surfaced. See
+"Where it stands" at the end.
 
 The same project configuration as `Standalone/Issue1749.SameAssemblyIdentity`, but it fails at a **different site**, and
 that is the whole reason both exist. Two projects with one assembly identity break the compile-time pipeline and the
@@ -65,6 +66,38 @@ too, and `eng/src/DesignTimeSolution.cs` invokes net9.0 anyway. Add `--trace "*"
 
 `test.json` matches on the exception message rather than a diagnostic id or a key, so it holds for both this site and the
 compile-time twin's.
+
+## Where it stands
+
+The `TransitiveAspectsManifest.cs:66` collision described above is fixed: the grouping is now by
+`AspectClass.FullName` rather than by the `AspectClass` object, so two instances of one name merge. The scenario still
+fails, now with
+
+```
+AssertionFailedException: 'ml!Aspects_<hash>' is a compile-time assembly but it is not a part of the current project.
+   at CompileTimeSerializationBinder.BindToName ... :56
+```
+
+while the consumer serializes its own transitive manifest. An inheritable aspect instance carries an aspect class that
+belongs to a compile-time projection absent from the consumer's closure, which is exactly the invariant
+`DesignTimeProjectReference.cs:50` states.
+
+Where that instance enters is **not** established. The obvious suspect is ruled out:
+`TransitivePipelineContributorSource.CanReuseLiveManifest` already requires every project in the producer's closure to
+resolve, on the consumer side, to exactly one compile-time copy carrying the same `ml!` name, so the live-manifest fast
+path should decline here.
+
+Two leads, in order:
+
+1. The `FullName` grouping may itself be the problem rather than the fix. Merging two groups merges instances from two
+   compile-time projections, and only one of them can be serialized. Reverting it restores the earlier crash instead of
+   fixing anything, so it is not a solution either way, but it is plausibly what turned one failure into this one.
+2. `ProjectKey` is version-blind and project-blind, and both `DesignTimeAspectPipelineFactory.TryGetPipeline` and
+   `DesignTimeProjectVersion.TryGetReusableTransitiveAspectsManifest` key on it alone. That is the deeper defect, and
+   the one `Issue1749.SameProjectKey` was written for.
+
+Instrument `DesignTimeAspectPipelineResult.CreateTransitiveManifest` and find which `InheritableAspectInstance` carries
+the foreign `AspectClass`. Do not guess.
 
 ## Observed and not diagnosed
 

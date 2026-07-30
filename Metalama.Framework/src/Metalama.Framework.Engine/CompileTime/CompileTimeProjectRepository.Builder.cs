@@ -71,9 +71,11 @@ internal sealed partial class CompileTimeProjectRepository
         private readonly IProjectOptions? _projectOptions;
 
         // The run-time identity that claimed each compile-time assembly name, used to detect two references providing
-        // the same compile-time assembly. Only an untransformed project can collide: a transformed one takes an
-        // 'ml!<name>_<hash>' compile-time name, whose hash makes it unique per content, whereas an untransformed one
-        // keeps the run-time name of the assembly it is built from. See #1749.
+        // the same compile-time assembly. Both kinds of project can collide, so both reserve their name. An
+        // untransformed project keeps the run-time name of the assembly it is built from, so two versions of it collide
+        // directly. A transformed one takes an 'ml!<name>_<hash>' name whose hash covers the assembly name and version
+        // but neither the culture nor the public key, which are precisely the components that let two assemblies of one
+        // simple name be referenced side by side. See #1749.
         private readonly Dictionary<string, AssemblyIdentity> _runTimeIdentityByCompileTimeName = new( StringComparer.OrdinalIgnoreCase );
 
         private static Compilation CreateEmptyCompilation( in ProjectServiceProvider serviceProvider )
@@ -280,14 +282,29 @@ internal sealed partial class CompileTimeProjectRepository
                          && upstreamProvider.TryGetUpstreamConfiguration( compilationReference.Compilation, out var upstreamConfig )
                          && upstreamConfig.CompileTimeProject is { } upstreamProject )
                     {
-                        // Cache by AssemblyIdentity so subsequent identity-keyed lookups within this Builder hit the same instance.
-                        this._projects.Add( upstreamProject.RunTimeIdentity, upstreamProject );
-                        referencedProject = upstreamProject;
+                        // The provider resolves the upstream pipeline by ProjectKey, which is an assembly name and a
+                        // hash of the preprocessor symbols and carries no version, so two projects that produce one
+                        // assembly name at two versions share a single pipeline slot. The project handed back is then
+                        // the wrong one: reusing it would give this reference another version's compile-time project,
+                        // and caching it under its own identity would collide with the entry the other reference
+                        // already made, which threw here (issue #1749). Reuse only what actually matches, and let a
+                        // mismatch fall through to the recursive build below, which is correct if slower.
+                        if ( upstreamProject.RunTimeIdentity.Equals( compilationReference.Compilation.Assembly.Identity ) )
+                        {
+                            // Cache by AssemblyIdentity so subsequent identity-keyed lookups within this Builder hit the same instance.
+                            this._projects.Add( upstreamProject.RunTimeIdentity, upstreamProject );
+                            referencedProject = upstreamProject;
 
-                        this._logger.Trace?.Log(
-                            $"Reusing upstream pipeline's CompileTimeProject for '{compilationReference.Compilation.AssemblyName}' (issue #1611)." );
+                            this._logger.Trace?.Log(
+                                $"Reusing upstream pipeline's CompileTimeProject for '{compilationReference.Compilation.AssemblyName}' (issue #1611)." );
 
-                        return true;
+                            return true;
+                        }
+
+                        this._logger.Warning?.Log(
+                            $"The upstream pipeline of '{compilationReference.Compilation.AssemblyName}' provides a compile-time project for "
+                            + $"'{upstreamProject.RunTimeIdentity}', which is not the identity of the reference "
+                            + $"('{compilationReference.Compilation.Assembly.Identity}'). Building the compile-time project instead of reusing it." );
                     }
 
                     return this.TryGetCompileTimeProjectFromCompilation(
@@ -387,6 +404,19 @@ internal sealed partial class CompileTimeProjectRepository
 
                     return false;
                 }
+
+                // A transformed project takes an 'ml!<name>_<hash>' compile-time name, and the hash was long assumed to
+                // make that name unique per content. It does not: it covers the assembly name and version but neither
+                // the culture nor the public key, which are exactly the two components the C# compiler lets differ so
+                // that two assemblies of one simple name can be used side by side. Two such references therefore claim
+                // one compile-time name, which used to surface as an unhandled ArgumentException from
+                // CompileTimeProject.ClosureProjectsByCompileTimeAssemblyName (issue #1749).
+                if ( !this.TryReserveCompileTimeAssemblyName( compileTimeProject.CompileTimeIdentity.Name, assemblyIdentity, diagnosticSink ) )
+                {
+                    compileTimeProject = null;
+
+                    return false;
+                }
             }
             else if ( metadataInfo.HasCompileTimeAttribute )
             {
@@ -435,8 +465,17 @@ internal sealed partial class CompileTimeProjectRepository
         /// assembly has already claimed the same name.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Returns <c>true</c> when the name was free, or when the same assembly claims it again, which happens when
         /// one reference is reached through several paths.
+        /// </para>
+        /// <para>
+        /// The diagnostic names the <em>run-time</em> assembly and not the compile-time one, because that is what the
+        /// user can act on. The two are the same for an untransformed project, but a transformed one is named
+        /// <c>ml!&lt;name&gt;_&lt;hash&gt;</c>, which means nothing outside Metalama. Nothing is lost by reporting the
+        /// run-time name: the compile-time name embeds the run-time name and its hash covers it, so two assemblies can
+        /// claim one compile-time name only if they share a run-time name too.
+        /// </para>
         /// </remarks>
         private bool TryReserveCompileTimeAssemblyName(
             string compileTimeAssemblyName,
@@ -461,7 +500,7 @@ internal sealed partial class CompileTimeProjectRepository
             diagnosticSink.Report(
                 GeneralDiagnosticDescriptors.DuplicateCompileTimeAssemblyName.CreateRoslynDiagnostic(
                     null,
-                    (compileTimeAssemblyName, claimant, runTimeIdentity) ) );
+                    (runTimeIdentity.Name, claimant, runTimeIdentity) ) );
 
             return false;
         }

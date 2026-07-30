@@ -1,6 +1,11 @@
 # Issue 1749 — one project's pipeline given another project's compilation
 
-**This scenario is red until the defect is fixed.** Design-time only.
+**Red. The fix for the site it names lives in another pull request**, not here: PR #1755 rewrites
+`GetProjectReferencesAsync` for issue #1750 and covers this `ToDictionary` along with the two other strict inserts in the
+same method. This scenario is the design-time integration counterpart of that PR's unit tests, and it should go green
+when #1755 merges. Design-time only.
+
+Note that a second, deeper failure sits behind this one. See "Where it stands" at the end.
 
 ## What it reproduces
 
@@ -73,16 +78,23 @@ configuration) while the harness prepares the build in the requested configurati
 point into `bin\Debug`. `Standalone/Issue1749` and `DesignTimeStandalone/Issue1749` carry the same exposure, so it has
 been verified in `Debug` only.
 
-## What the fix should do, and what is not yet verified
+## Where it stands
 
-Guard `:135` the way `:156` already is: keep the first reference for a given key and log the drop. The reasoning then
-says the diff reports the `Contract` reference as removed plus a compile-time syntax-tree change, `OnCompileTimeChange`
-pauses the `Aspects` pipeline, `Consumer` pauses with it and returns a silent failed result, and the simulator exits 0.
+Guarding `:135` was tried here and then reverted, because PR #1755 does it better: it routes both reference sets through
+one `GetProjectReferencesByKey` helper, so all three strict inserts in the method are covered rather than two, and it
+also fixes the root cause of #1750, which is that a null or empty `Compilation.AssemblyName` yields an identity-less
+`ProjectKey` (`Invariant.AssertNotNull` is a no-op outside `DEBUG`). Duplicating that here would only create a conflict.
 
-That post-fix behaviour was **not** verified, because verifying it needs a full build to reissue the analyzer package. If
-the degradation turns out to surface a `LAMA` error instead, the honest reading is that the residual defect is the
-wrong-pipeline reuse itself, and `test.json` should gain `"IgnoreExitCode": true` so that it pins only the duplicate-key
-crash named in `ForbiddenDiagnosticsRegexes`.
+With the guard applied locally, this scenario did **not** go green. It failed further on with
+
+```
+AssertionFailedException: 'ml!Aspects_<hash>' is a compile-time assembly but it is not a part of the current project.
+   at CompileTimeSerializationBinder.BindToName ... :56
+```
+
+which is the same second failure that `Issue1749.SameAssemblyIdentity` now shows, and which is not yet diagnosed. So
+expect this scenario to need the deeper `ProjectKey` fix as well as #1755, and treat a green run after #1755 merges as a
+result to verify rather than to assume.
 
 ## Running it by hand
 

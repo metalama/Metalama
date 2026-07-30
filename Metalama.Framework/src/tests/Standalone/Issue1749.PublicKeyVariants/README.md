@@ -1,12 +1,11 @@
 # Issue 1749 — two compile-time projects with one compile-time assembly name
 
-**This scenario is red until the defect is fixed.** It reproduces an unhandled `ArgumentException` and asserts the
-diagnostic that should replace it.
+**Passing.** It asserts `LAMA0079` on a configuration that used to crash with an unhandled `ArgumentException`.
 
 It supersedes `Issue1749.SameCompileTimeName`, which attempted the same thing and concluded it was impossible. That
 conclusion was wrong on two separable, measurable counts. See the bottom of this file.
 
-## What it reproduces
+## What it used to produce, before the fix
 
 ```
 CSC : error LAMA0001: Unexpected exception occurred in Metalama:
@@ -17,6 +16,14 @@ thrown by `Enumerable.ToDictionary` at
 `CompileTimeProject.ClosureProjectsByCompileTimeAssemblyName` (`CompileTimeProject.cs:105`), reached through
 `TryGetProjectByCompileTimeAssemblyName` → `CompileTimeSerializationBinder.BindToName` →
 `TransitiveAspectsManifest.ToResource`.
+
+It now reports, and the test asserts:
+
+```
+CSC : error LAMA0079: Two references provide the compile-time assembly 'Contract':
+'Contract, Version=0.0.0.0, Culture=neutral, PublicKeyToken=9f073587addbe099' and
+'Contract, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'. ...
+```
 
 ## Why the collision exists
 
@@ -55,12 +62,17 @@ Three details are load-bearing:
   assemblies. It does not need to: the dictionary is built for the whole closure on the first lookup of any key, so
   serializing the consumer's own inheritable aspect is enough to trigger it.
 
-## Why the fix is not on the untransformed branch
+## The fix
 
-`TryReserveCompileTimeAssemblyName`, which reports `LAMA0079`, is called only from the `HasCompileTimeAttribute` branch
-at `Builder.cs:401`. The transformed branch at `:375` reserves nothing, which is why this configuration crashes instead
-of reporting the diagnostic that already exists for the sibling case. Adding the reservation after a successful
-`TryDeserializeCompileTimeProject` is what makes this test pass.
+`TryReserveCompileTimeAssemblyName`, which reports `LAMA0079`, used to be called only from the
+`HasCompileTimeAttribute` branch at `Builder.cs:401`. The transformed branch reserved nothing, which is why this
+configuration crashed instead of reporting the diagnostic that already existed for the sibling case. It now reserves
+after a successful `TryDeserializeCompileTimeProject`.
+
+The diagnostic names the **run-time** assembly (`Contract`) rather than the compile-time one. `ml!Contract_<hash>` is
+the name that actually collides, but it means nothing outside Metalama, and nothing is lost: the compile-time name
+embeds the run-time name and its hash covers it, so two assemblies can claim one compile-time name only if they share a
+run-time name too.
 
 ## What `test.json` asserts
 

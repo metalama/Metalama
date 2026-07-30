@@ -350,7 +350,7 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "LAMA0079",
                     Error,
                     "Two references provide the compile-time assembly '{0}': '{1}' and '{2}'. Metalama cannot use two " +
-                    "versions of the same compile-time assembly. Fix the references of the project so that a single version of " +
+                    "copies of the same compile-time assembly. Fix the references of the project so that a single copy of " +
                     "'{0}' is referenced.",
                     "Two references provide the same compile-time assembly.",
                     _category );
