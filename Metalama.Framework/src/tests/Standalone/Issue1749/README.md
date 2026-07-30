@@ -54,8 +54,30 @@ there, exactly as they are for the per-TFM copies of a multi-targeted library.
 dotnet build Issue1749.sln /p:UseSharedCompilation=false
 ```
 
-`UseSharedCompilation=false` is not optional. With the shared compiler, `Middle1` and `Middle2` are compiled in
-the same process, and the second one already fails to load its own version of `Contract`.
+`UseSharedCompilation=false` is not optional, and `test.json` now passes it through its `Properties`, because the
+harness otherwise runs a plain `dotnet build` and the scenario fails for the wrong reason.
+
+## The separate defect the shared compiler exposes
+
+With the shared compiler, `Middle1` and `Middle2` are compiled **in the same process**, and the second fails:
+
+```
+CSC : error LAMA0001: Unexpected exception occurred in Metalama:
+Cannot load '...\Metalama\CompileTime\Contract\...\Contract.dll':
+Could not load file or assembly 'Contract, Version=1.1.0.0, ... PublicKeyToken=9f073587addbe099'.
+Assembly with same name is already loaded
+```
+
+This is a **different** collision from the one this scenario asserts, and it is not fixed. `LAMA0079` is reported by
+`CompileTimeProjectRepository.Builder`, whose reservation table is an instance field, so it sees the compile-time
+assembly names of **one** compilation's closure. Here each of `Middle1` and `Middle2` has exactly one `Contract` in its
+own closure and neither is in conflict; the two versions collide only when both are loaded into the `CompileTimeDomain`
+shared by the compiler process.
+
+That makes it the more realistic shape of #1749, since it needs nothing but an ordinary build of a solution where two
+projects reference two versions of one untransformed compile-time assembly. Fixing it means isolating compile-time
+assemblies per compilation rather than per process, or renaming them the way transformed projects are renamed, and it is
+tracked separately from this scenario.
 
 ## Result on `develop/2026.1` (2026.1.21)
 
