@@ -62,15 +62,14 @@ namespace TestNamespace
         var compileTimeProject = compileTimeProjectRepository.RootProject;
         serviceProvider = serviceProvider.WithCompileTimeProjectServices( compileTimeProjectRepository );
 
-        var diagnostics = new DiagnosticBag();
-
         var aspectTypeFactory = new AspectClassFactory(
-            new AspectDriverFactory( compilation, ImmutableArray<object>.Empty, serviceProvider, diagnostics ),
+            new AspectDriverFactory( compilation, ImmutableArray<object>.Empty, serviceProvider ),
             compilation.CompilationContext );
 
         var aspectTypeSymbol = compilation.Types.OfName( "MyAspect" ).Single().GetSymbol();
 
         // Pass the same type symbol twice to simulate duplicate entries (same reflection name from different assemblies).
+        var diagnostics = new DiagnosticBag();
 
         // Before the fix, this would throw ArgumentException from ToDictionary.
         // After the fix, it should report a diagnostic and continue.

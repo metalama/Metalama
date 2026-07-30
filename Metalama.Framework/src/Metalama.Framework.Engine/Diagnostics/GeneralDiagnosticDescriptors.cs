@@ -413,36 +413,6 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Warning,
                 "The repository configuration file (metalama.json) was not fully applied." );
 
-        // Reported when two plug-in assemblies contribute an aspect weaver under the same type name, which happens
-        // when the same aspect library reaches the compilation through two routes (for instance as a package and
-        // through a project reference). Metalama keeps the first weaver and reports this error, because the two
-        // assemblies have different identities and there is no way to tell which one the user means. See #1743.
-        internal static readonly DiagnosticDefinition<(string WeaverType, string FirstAssembly, string SecondAssembly)> DuplicateAspectWeaver =
-            new(
-                "LAMA0077",
-                _category,
-                "The aspect weaver '{0}' is provided by two different assemblies: '{1}' and '{2}'. "
-                + "Metalama will use the weaver from '{1}'. "
-                + "This typically happens when two versions of the same aspect library are loaded. "
-                + "Remove one of the conflicting assembly references.",
-                Error,
-                "An aspect weaver is provided by several assemblies." );
-
-        // Reported when two references of the compilation have the same assembly identity but different aspect
-        // manifests. Because inherited aspects and inheritable options are looked up by assembly identity, the
-        // duplicate cannot be told apart from the first one, so Metalama ignores it and reports this warning
-        // instead of aborting pipeline initialization. See #1743.
-        internal static readonly DiagnosticDefinition<string> DuplicateAssemblyIdentityInReferences =
-            new(
-                "LAMA0078",
-                _category,
-                "Several references of the project have the assembly identity '{0}'. "
-                + "Metalama uses the aspects and options of the first one and ignores the others. "
-                + "This typically happens when the same assembly is referenced both as a package and as a project. "
-                + "Remove one of the conflicting assembly references.",
-                Warning,
-                "Several references have the same assembly identity." );
-
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(

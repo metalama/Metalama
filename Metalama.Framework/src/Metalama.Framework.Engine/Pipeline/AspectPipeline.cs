@@ -221,7 +221,7 @@ public abstract class AspectPipeline : IDisposable
         var compilationModel = CompilationModel.CreateInitialInstance( projectModel, compilation );
 
         // Create aspect types.
-        var driverFactory = new AspectDriverFactory( compilationModel, plugIns, projectServiceProviderWithProject, diagnosticAdder );
+        var driverFactory = new AspectDriverFactory( compilationModel, plugIns, projectServiceProviderWithProject );
         var aspectTypeFactory = new AspectClassFactory( driverFactory, compilationModel.CompilationContext );
 
         var aspectClasses = aspectTypeFactory.GetClasses(

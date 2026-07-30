@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        Reproduction for https://github.com/metalama/Metalama/issues/1743.
+
+        This project references two assemblies that both provide the plug-in type 'Issue1743.DuplicatedWeaver', so
+        AspectDriverFactory receives that weaver twice. Before the fix, indexing the weavers by type name threw
+        ArgumentException ("An element with the same key but a different value already exists") out of
+        AspectPipeline.TryInitialize, so this project failed to build.
+    -->
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Issue1743.Aspect/Issue1743.Aspect.csproj" />
+        <ProjectReference Include="../Issue1743.Weaver1/Issue1743.Weaver1.csproj" />
+        <ProjectReference Include="../Issue1743.Weaver2/Issue1743.Weaver2.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.runner.visualstudio">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+</Project>

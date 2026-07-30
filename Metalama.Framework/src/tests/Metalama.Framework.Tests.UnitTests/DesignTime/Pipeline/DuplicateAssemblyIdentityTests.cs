@@ -63,7 +63,7 @@ public sealed class DuplicateAssemblyIdentityTests : UnitTestClass
 
     /// <summary>
     /// Tests that a project referencing two distinct builds of the same assembly identity, each exporting its own
-    /// transitive aspect manifest, initializes its pipeline and reports <c>LAMA0078</c>.
+    /// transitive aspect manifest, initializes its pipeline instead of throwing.
     /// </summary>
     [Fact]
     public async Task DuplicateAssemblyIdentityInReferences_DoesNotThrow()
@@ -108,14 +108,16 @@ public sealed class DuplicateAssemblyIdentityTests : UnitTestClass
         var diagnostics = new DiagnosticBag();
 
         // Before the fix, this threw ArgumentException from ImmutableDictionary.Builder.Add.
-        await pipeline.ExecuteAsync( diagnostics.Report, null, app, ImmutableArray<ManagedResource>.Empty );
+        var result = await pipeline.ExecuteAsync( diagnostics.Report, null, app, ImmutableArray<ManagedResource>.Empty );
 
         foreach ( var diagnostic in diagnostics )
         {
             this.TestOutput.WriteLine( diagnostic.ToString() );
         }
 
-        Assert.Contains( diagnostics.ToImmutableArray(), d => d.Id == "LAMA0078" );
+        // The duplicate reference is silently ignored, so the pipeline runs to completion and reports no error.
+        Assert.True( result.IsSuccessful );
+        Assert.DoesNotContain( diagnostics.ToImmutableArray(), d => d.Severity == DiagnosticSeverity.Error );
     }
 
     /// <summary>
