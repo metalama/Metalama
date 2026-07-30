@@ -70,6 +70,12 @@ internal sealed partial class CompileTimeProjectRepository
         private readonly ClassifyingCompilationContextFactory _classifyingCompilationContextFactory;
         private readonly IProjectOptions? _projectOptions;
 
+        // The run-time identity that claimed each compile-time assembly name, used to detect two references providing
+        // the same compile-time assembly. Only an untransformed project can collide: a transformed one takes an
+        // 'ml!<name>_<hash>' compile-time name, whose hash makes it unique per content, whereas an untransformed one
+        // keeps the run-time name of the assembly it is built from. See #1749.
+        private readonly Dictionary<string, AssemblyIdentity> _runTimeIdentityByCompileTimeName = new( StringComparer.OrdinalIgnoreCase );
+
         private static Compilation CreateEmptyCompilation( in ProjectServiceProvider serviceProvider )
         {
             var assemblyLocator = serviceProvider.GetReferenceAssemblyLocator();
@@ -387,6 +393,18 @@ internal sealed partial class CompileTimeProjectRepository
                 // We have an assembly that a [assembly: CompileTime] attribute but has no embedded compile-time project.
                 // This is typically the case of public assemblies of weaver-based aspects or services.
                 // These projects need to be included as compile-time projects. They typically have MetalamaRemoveCompileTimeOnlyCode=false.
+
+                // Such a project keeps the run-time name of its assembly as its compile-time name, so two versions of
+                // it claim the same compile-time assembly. Detected here rather than left to the assembly load, which
+                // fails with an unhandled FileLoadException because a single AssemblyLoadContext cannot hold two
+                // assemblies of one simple name (issue #1749).
+                if ( !this.TryReserveCompileTimeAssemblyName( assemblyIdentity.Name, assemblyIdentity, diagnosticSink ) )
+                {
+                    compileTimeProject = null;
+
+                    return false;
+                }
+
                 if ( !CompileTimeProject.TryCreateUntransformed(
                         this._serviceProvider,
                         this._domain,
@@ -410,6 +428,42 @@ internal sealed partial class CompileTimeProjectRepository
             this._projects.Add( assemblyIdentity, compileTimeProject );
 
             return true;
+        }
+
+        /// <summary>
+        /// Records that a run-time assembly claims a compile-time assembly name, and reports an error when another
+        /// assembly has already claimed the same name.
+        /// </summary>
+        /// <remarks>
+        /// Returns <c>true</c> when the name was free, or when the same assembly claims it again, which happens when
+        /// one reference is reached through several paths.
+        /// </remarks>
+        private bool TryReserveCompileTimeAssemblyName(
+            string compileTimeAssemblyName,
+            AssemblyIdentity runTimeIdentity,
+            IDiagnosticAdder diagnosticSink )
+        {
+            if ( !this._runTimeIdentityByCompileTimeName.TryGetValue( compileTimeAssemblyName, out var claimant ) )
+            {
+                this._runTimeIdentityByCompileTimeName.Add( compileTimeAssemblyName, runTimeIdentity );
+
+                return true;
+            }
+
+            if ( claimant.Equals( runTimeIdentity ) )
+            {
+                return true;
+            }
+
+            this._logger.Error?.Log(
+                $"Both '{claimant}' and '{runTimeIdentity}' provide the compile-time assembly '{compileTimeAssemblyName}'." );
+
+            diagnosticSink.Report(
+                GeneralDiagnosticDescriptors.DuplicateCompileTimeAssemblyName.CreateRoslynDiagnostic(
+                    null,
+                    (compileTimeAssemblyName, claimant, runTimeIdentity) ) );
+
+            return false;
         }
 
         /// <summary>

@@ -1,0 +1,5 @@
+{
+    "BuildOnly": true,
+    "IgnoreExitCode": true,
+    "ExpectedDiagnosticsRegexes": [ "error LAMA0079.*Contract" ]
+}

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -337,6 +337,22 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "the current version cannot consume it, so aspects inherited from it will not appear in the editor. The build is not " +
                     "affected. Upgrade '{0}' to Metalama {2} or a later version to restore the design-time experience.",
                     "The project reference has been compiled with a version of Metalama that the IDE support cannot consume.",
+                    _category );
+
+        // An error and not a warning: the situation has no usable outcome. The compile-time domain is a single
+        // AssemblyLoadContext, which can hold only one assembly per simple name, and the closure maps a compile-time
+        // assembly name to a single project, so neither of the two candidates can be chosen. Reported instead of
+        // letting the assembly load fail with an unhandled FileLoadException, which surfaced as LAMA0001 and a crash
+        // report that named neither reference. See #1749.
+        internal static readonly DiagnosticDefinition<(string CompileTimeAssemblyName, AssemblyIdentity First, AssemblyIdentity Second)>
+            DuplicateCompileTimeAssemblyName =
+                new(
+                    "LAMA0079",
+                    Error,
+                    "Two references provide the compile-time assembly '{0}': '{1}' and '{2}'. Metalama cannot use two " +
+                    "versions of the same compile-time assembly. Fix the references of the project so that a single version of " +
+                    "'{0}' is referenced.",
+                    "Two references provide the same compile-time assembly.",
                     _category );
 
         internal static readonly DiagnosticDefinition<(IMember Member, INamedType TargetType, InvokerOptions InvokerOptions)>

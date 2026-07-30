@@ -1,7 +1,8 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine;
@@ -25,6 +26,7 @@ internal sealed partial class ProjectVersionProvider
         private readonly DiffStrategy _nonMetalamaDiffStrategy;
         private readonly IMetalamaProjectClassifier _metalamaProjectClassifier;
         private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger _logger;
 
         public Implementation( GlobalServiceProvider serviceProvider, bool isTest )
         {
@@ -33,6 +35,7 @@ internal sealed partial class ProjectVersionProvider
             this._nonMetalamaDiffStrategy = new DiffStrategy( isTest, false, true, observer );
             this._metalamaProjectClassifier = serviceProvider.GetRequiredService<IMetalamaProjectClassifier>();
             this._serviceProvider = serviceProvider.Underlying;
+            this._logger = serviceProvider.GetLoggerFactory().GetLogger( "ProjectVersionProvider" );
         }
 
         /// <summary>
@@ -142,6 +145,21 @@ internal sealed partial class ProjectVersionProvider
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var assemblyIdentity = reference.Compilation.GetProjectKey();
+
+                // A ProjectKey is an assembly name and a hash of the preprocessor symbols, so two referenced projects
+                // that produce the same assembly name yield the same key. That configuration is rejected at compile
+                // time with LAMA0079, because two versions of one compile-time assembly cannot both be used, but the
+                // design-time pipeline still has to survive it long enough for the user to read that error: a plain
+                // Add here threw ArgumentException out of the source generator, which stopped all design-time support
+                // for the project (issue #1749). The first reference wins, which is arbitrary but consistent with the
+                // change list built below.
+                if ( referenceListBuilder.ContainsKey( assemblyIdentity ) )
+                {
+                    this._logger.Warning?.Log(
+                        $"Two referenced projects have the key '{assemblyIdentity}'. Ignoring '{reference.Compilation.Assembly.Identity}'." );
+
+                    continue;
+                }
 
                 if ( oldCompilation != null && oldProjectReferences!.TryGetValue( assemblyIdentity, out var oldReferenceCompilation ) )
                 {
