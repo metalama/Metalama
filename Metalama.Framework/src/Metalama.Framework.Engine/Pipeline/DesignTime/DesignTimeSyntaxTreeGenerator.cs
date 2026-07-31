@@ -87,6 +87,28 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
             void ProcessTransformationsOnTypeOrNamespace( KeyValuePair<IRef<INamespaceOrNamedType>, IEnumerable<ITransformation>> transformationGroup )
             {
+                try
+                {
+                    ProcessTransformationsOnTypeOrNamespaceCore( transformationGroup );
+                }
+                catch ( Exception e ) when ( e is not OperationCanceledException )
+                {
+                    // Each group is one future generated file, so an unexpected failure here must be contained to that
+                    // file: letting it escape aborts the whole design-time pipeline execution and the user sees the
+                    // generated source of the entire project disappear instead of losing a single type. See #1767.
+                    // ICompileTimeExceptionHandler, which would also write a crash report, is not registered at design
+                    // time, so the diagnostic is reported directly and carries the exception in its description.
+                    diagnostics.Report(
+                        GeneralDiagnosticDescriptors.IgnorableUnhandledException.CreateRoslynDiagnostic(
+                            null,
+                            (e.Message, "(crash report unavailable)"),
+                            description: e.ToString() ) );
+                }
+            }
+
+            void ProcessTransformationsOnTypeOrNamespaceCore(
+                KeyValuePair<IRef<INamespaceOrNamedType>, IEnumerable<ITransformation>> transformationGroup )
+            {
                 var target = transformationGroup.Key.GetTarget( finalCompilationModel );
 
                 switch ( target.DeclarationKind )
