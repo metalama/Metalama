@@ -274,7 +274,7 @@ public sealed class TelemetryUploaderTests : TestsBase, IDisposable
 
         // Nothing was started, so the claim must have been released rather than consume the day.
         Assert.Empty( this.ProcessExecutor.StartedProcesses );
-        Assert.Equal( uploadTimeBefore, this.ConfigurationManager.Get<TelemetryConfiguration>().LastUploadTime );
+        Assert.Equal( uploadTimeBefore, this.ConfigurationManager!.Get<TelemetryConfiguration>().LastUploadTime );
 
         // Which means the very next attempt may upload, instead of waiting until tomorrow.
         this.ProcessExecutor.ExceptionToThrow = null;

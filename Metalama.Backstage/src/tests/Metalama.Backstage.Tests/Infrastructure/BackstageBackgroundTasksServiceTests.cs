@@ -4,7 +4,6 @@
 
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Testing;
-using Metalama.Backstage.Utilities;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
