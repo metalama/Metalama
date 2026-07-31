@@ -3,7 +3,12 @@
 
 param(
     [string]$Prompt,
-    [int]$McpPort
+    [int]$McpPort,
+
+    # Where this build's work lands, when it does not land in git. Repeatable, and also settable as
+    # CLAUDE_PROGRESS_PATHS (comma or semicolon separated) so DockerBuild can forward it. Relative paths are
+    # resolved against the repository root.
+    [string[]]$ProgressPath
 )
 
 $ErrorActionPreference = "Stop"
@@ -261,7 +266,69 @@ function Invoke-ClaudeOnce {
         Sentinel      = $sentinel
         ResultIsError = $resultIsError
         ResultSubtype = $resultSubtype
+
+        # Returned so the resume loop can tell "the model ran and did nothing" from "the model could not run
+        # at all". Those look identical from outside the process and must not be treated the same way.
+        ResultText    = $scanText
     }
+}
+
+# Whether an iteration ended because the API could not serve it, rather than because the model did nothing
+# useful. A 429, a 5xx or an explicit overload is a condition to wait out, not evidence of a stuck loop: the
+# turn produced nothing because it never got to run.
+function Test-TransientApiFailure {
+    param([string]$Text)
+
+    if ([string]::IsNullOrEmpty($Text)) { return $false }
+
+    return ($Text -match 'API Error:\s*(429|5\d\d)') -or
+           ($Text -match 'overloaded_error') -or
+           ($Text -match 'rate_limit_error') -or
+           ($Text -match 'Service Unavailable')
+}
+
+# What counts as progress, as one comparable string.
+#
+# GIT ALONE IS NOT ENOUGH, and assuming it was cost a scheduled run two nights. A commit is the right signal
+# for an agent whose job is to change code and the wrong one for an agent whose job is anything else: the CEIP
+# triage build writes rows to a database and files under `artifacts`, never a commit, so every iteration of a
+# healthy run reported "no progress" and the run was stopped after two of them. A build whose work lands
+# somewhere else says where, with -ProgressPath.
+function Get-ProgressFingerprint {
+    param([string[]]$Repos, [string[]]$Paths, [string]$ExcludePath)
+
+    $parts = @()
+
+    $heads = Get-RepoHeads -Repos $Repos
+
+    foreach ($r in ($heads.Keys | Sort-Object)) {
+        $parts += "$r=$($heads[$r])"
+    }
+
+    foreach ($p in $Paths) {
+        try {
+            if (-not (Test-Path $p)) { $parts += "$p=absent"; continue }
+
+            # Count, newest write and total size. Between them they catch a file added, a file rewritten in
+            # place and a file truncated, which is every way a turn leaves a mark on a directory.
+            $files = @(Get-ChildItem -Path $p -Recurse -File -Force -ErrorAction SilentlyContinue)
+
+            # Never count our own output. This loop writes a fresh transcript under artifacts\logs on every
+            # iteration, so a build watching `artifacts` would see a change every time and the guard would
+            # silently never fire again, which is worse than the false negative it is here to fix.
+            if ($ExcludePath) {
+                $files = @($files | Where-Object { -not $_.FullName.StartsWith($ExcludePath, [StringComparison]::OrdinalIgnoreCase) })
+            }
+            $newest = ($files | Measure-Object -Property LastWriteTimeUtc -Maximum).Maximum
+            $bytes = ($files | Measure-Object -Property Length -Sum).Sum
+            $parts += "$p=$($files.Count):$($newest.Ticks):$bytes"
+        }
+        catch {
+            $parts += "$p=error"
+        }
+    }
+
+    return ($parts -join '|')
 }
 
 # Discover git repos to watch for progress (handles both the source-dependencies and sibling layouts).
@@ -394,13 +461,39 @@ if ($Prompt)
     # so give that condition a moment to clear instead of hammering an immediate retry.
     $retryDelaySeconds = if ($env:CLAUDE_RETRY_DELAY_SECONDS) { [int]$env:CLAUDE_RETRY_DELAY_SECONDS } else { 30 }
 
+    # How many consecutive iterations may die on a transient API failure before the run gives up. Higher than
+    # the no-progress cap on purpose: an outage is not the model's fault and is usually over in minutes, and
+    # the wall-clock budget bounds the whole thing anyway. Two 529s in a row ended two real runs.
+    $maxTransient = if ($env:CLAUDE_MAX_TRANSIENT_FAILURES) { [int]$env:CLAUDE_MAX_TRANSIENT_FAILURES } else { 5 }
+
     $gitRepos = @(Get-GitRepos -RepoRoot $repoRoot)
-    Write-Host "Monitoring $($gitRepos.Count) git repo(s) for progress between iterations." -ForegroundColor Cyan
+
+    $watchedPaths = @()
+
+    if ($ProgressPath) { $watchedPaths += $ProgressPath }
+
+    if ($env:CLAUDE_PROGRESS_PATHS) { $watchedPaths += ($env:CLAUDE_PROGRESS_PATHS -split '[;,]') }
+
+    $watchedPaths = @(
+        $watchedPaths |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ } |
+            ForEach-Object { if ([System.IO.Path]::IsPathRooted($_)) { $_ } else { Join-Path $repoRoot $_ } } |
+            Select-Object -Unique )
+
+    if ($watchedPaths.Count -gt 0) {
+        Write-Host "Monitoring $($gitRepos.Count) git repo(s) and $($watchedPaths.Count) path(s) for progress between iterations." -ForegroundColor Cyan
+        $watchedPaths | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
+    }
+    else {
+        Write-Host "Monitoring $($gitRepos.Count) git repo(s) for progress between iterations." -ForegroundColor Cyan
+    }
 
     $startTime = Get-Date
     $sessionId = $null
     $iteration = 0
     $noProgressStreak = 0
+    $transientStreak = 0
     $finalExitCode = 1
     $stopReason = "unknown"
 
@@ -412,8 +505,8 @@ if ($Prompt)
         Write-Host ""
         Write-Host "=== Claude iteration $iteration (elapsed ${elapsedMin}m, ~${remainingMin}m budget left) ===" -ForegroundColor Magenta
 
-        # Snapshot HEADs before the turn so we can detect whether it made any progress.
-        $headsBefore = Get-RepoHeads -Repos $gitRepos
+        # Snapshot before the turn so we can detect whether it made any progress.
+        $progressBefore = Get-ProgressFingerprint -Repos $gitRepos -Paths $watchedPaths -ExcludePath $logDir
 
         $timestamp = (Get-Date).ToString("yyyy-MM-dd-HHmmss")
         $logFile = Join-Path $logDir "claude-$timestamp.log.json"
@@ -461,19 +554,34 @@ Your previous turn ended without a completion sentinel, so your work is presumed
             $finalExitCode = 1; $stopReason = "max-iterations"; break
         }
 
-        # Guard: no-progress. If no watched repo's HEAD advanced, the turn committed nothing.
-        $headsAfter = Get-RepoHeads -Repos $gitRepos
-        $madeProgress = $false
-        foreach ($repo in $headsAfter.Keys) {
-            if (-not $headsBefore.ContainsKey($repo) -or $headsBefore[$repo] -ne $headsAfter[$repo]) { $madeProgress = $true; break }
+        # Guard: transient API failure. An iteration the API refused to serve says nothing about whether the
+        # model is stuck, so it is a retry rather than a strike, and it has its own budget. Checked BEFORE the
+        # no-progress guard, since such a turn is guaranteed to have produced no work.
+        if (Test-TransientApiFailure -Text $result.ResultText) {
+            $transientStreak++
+            Write-Host "Iteration $iteration was refused by the API (transient failure $transientStreak/$maxTransient); it does not count as a lack of progress." -ForegroundColor Yellow
+
+            if ($transientStreak -ge $maxTransient) {
+                Write-Host "The API refused $maxTransient consecutive iterations after ${elapsedMin}m; giving up on this run." -ForegroundColor Red
+                $finalExitCode = 1; $stopReason = "api-unavailable"; break
+            }
         }
-        if ($madeProgress) { $noProgressStreak = 0 } else { $noProgressStreak++ }
-        Write-Host "Progress this iteration: $madeProgress (no-progress streak: $noProgressStreak/$maxNoProgress)" -ForegroundColor Cyan
-        # Held off until the minimum runtime floor: a model that exits fast without committing
-        # (e.g. repeated crashes) still gets at least $minMinutes of retries before we give up.
-        if ($noProgressStreak -ge $maxNoProgress -and $elapsedMin -ge $minMinutes) {
-            Write-Host "No progress for $maxNoProgress consecutive iterations after ${elapsedMin}m; stopping to avoid a stuck loop." -ForegroundColor Red
-            $finalExitCode = 1; $stopReason = "stuck-no-progress"; break
+        else {
+            $transientStreak = 0
+
+            # Guard: no-progress. Nothing the build declared as a place where work lands has changed.
+            $progressAfter = Get-ProgressFingerprint -Repos $gitRepos -Paths $watchedPaths -ExcludePath $logDir
+            $madeProgress = $progressBefore -ne $progressAfter
+
+            if ($madeProgress) { $noProgressStreak = 0 } else { $noProgressStreak++ }
+            Write-Host "Progress this iteration: $madeProgress (no-progress streak: $noProgressStreak/$maxNoProgress)" -ForegroundColor Cyan
+
+            # Held off until the minimum runtime floor: a model that exits fast without committing
+            # (e.g. repeated crashes) still gets at least $minMinutes of retries before we give up.
+            if ($noProgressStreak -ge $maxNoProgress -and $elapsedMin -ge $minMinutes) {
+                Write-Host "No progress for $maxNoProgress consecutive iterations after ${elapsedMin}m; stopping to avoid a stuck loop." -ForegroundColor Red
+                $finalExitCode = 1; $stopReason = "stuck-no-progress"; break
+            }
         }
 
         # Pause before resuming -- claude exited for a reason, so let any transient condition clear.
