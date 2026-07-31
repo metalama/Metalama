@@ -448,7 +448,22 @@ public sealed partial class DesignTimeAspectPipelineResult
             }
 
             var filePath = syntaxTree.FilePath;
-            var builder = resultBuilders[filePath];
+
+            if ( !resultBuilders.TryGetValue( filePath, out var builder ) )
+            {
+                // An inheritable aspect instance is not bound to the tree the pipeline ran on, because an aspect can add one to
+                // a declaration it did not itself target, e.g. through RequireAspect or through the transitive instance exported
+                // by PullStrategy.IntroduceParameterAndPull. The target declaration can therefore be in a tree that is not dirty,
+                // hence not a part of the PartialCompilation. The instance is skipped instead of being filed under that tree,
+                // because the tree keeps the result of the run that did include it, and overwriting that result would drop the
+                // diagnostics and introductions it holds.
+                Logger.DesignTime.Trace?.Log(
+                    $"SplitResultsByTree: skipping the inheritable aspect of type '{inheritableAspectInstance.AspectClass.ShortName}' because its target "
+                    + $"declaration is in syntax tree '{filePath}', which is not a part of the partial compilation." );
+
+                continue;
+            }
+
             builder.InheritableAspects ??= ImmutableArray.CreateBuilder<InheritableAspectInstance>();
             builder.InheritableAspects.Add( inheritableAspectInstance );
         }
