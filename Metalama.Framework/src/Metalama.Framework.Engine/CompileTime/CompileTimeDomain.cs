@@ -392,10 +392,15 @@ namespace Metalama.Framework.Engine.CompileTime
         }
 
         /// <summary>
-        /// Determines whether two identities of one simple name cannot both be loaded into a single domain.
+        /// Determines whether two identities that share a simple name cannot both be loaded into a single domain.
         /// </summary>
-        private static bool Conflicts( AssemblyIdentity x, AssemblyIdentity y )
-            => x.Version != y.Version || !x.PublicKeyToken.SequenceEqual( y.PublicKeyToken );
+        /// <remarks>
+        /// The comparison covers every component of the identity except the simple name, which the caller has already
+        /// established to be equal. The version, the culture and the public key are precisely the components that the
+        /// C# compiler allows to differ so that two assemblies of a single simple name can be referenced side by side,
+        /// and a single load context cannot hold two of them.
+        /// </remarks>
+        private static bool Conflicts( AssemblyIdentity x, AssemblyIdentity y ) => !x.Equals( y );
 
         /// <summary>
         /// Determines whether an identity can be loaded into this domain, i.e. whether no assembly of the same simple

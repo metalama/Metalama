@@ -180,12 +180,19 @@ internal sealed partial class CompileTimeCompilationBuilder
         h.Append( _buildId );
         this._logger.Trace?.Log( $"ProjectHash: BuildId='{_buildId}'" );
 
-        // The FULL identity, not just the name and version. Culture and the public key are exactly the two components
-        // that the C# compiler lets differ so that two assemblies of one simple name can be referenced side by side,
-        // so hashing only the name and the version let two genuinely distinct assemblies collapse onto one
-        // 'ml!<name>_<hash>' compile-time name. The compile-time name is supposed to identify the content it projects,
-        // and the identity of the assembly is part of that content. See #1749.
-        h.Append( assemblyIdentity.GetDisplayName() );
+        // Every component of the identity is hashed, and not only the name and the version. The culture and the public
+        // key are precisely the two components that the C# compiler allows to differ so that two assemblies of a single
+        // simple name can be referenced side by side. Hashing only the name and the version therefore allowed two
+        // distinct assemblies to receive a single 'ml!<name>_<hash>' compile-time name, whereas that name is required to
+        // identify the content that it projects. The components are appended individually rather than through
+        // GetDisplayName, because the format of the display name is not part of the contract of AssemblyIdentity and
+        // must not influence the hash. See issue #1749.
+        h.Append( assemblyIdentity.Name );
+        h.Append( assemblyIdentity.Version.ToString() );
+        h.Append( assemblyIdentity.CultureName );
+        h.Append( assemblyIdentity.PublicKeyToken );
+        h.Append( assemblyIdentity.IsRetargetable );
+        h.Append( (int) assemblyIdentity.ContentType );
         this._logger.Trace?.Log( $"ProjectHash: AssemblyIdentity='{assemblyIdentity.GetDisplayName()}'" );
 
         // We include each reference's full compile-time identity (its 'ml!<name>_<hash>' assembly name), not just

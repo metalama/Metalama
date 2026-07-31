@@ -80,11 +80,11 @@ namespace Metalama.Framework.Engine.CompileTime
             }
             else
             {
-                // Prefer an exact identity match when there is one. AssemblyName.ReferenceMatchesDefinition compares
-                // little more than the simple name, so two references of one name that differ in version, culture or
-                // public key both match, and the version ordering above then picks between them without regard to the
-                // other two components. Now that two compile-time projections of one run-time name can legitimately
-                // coexist, that would resolve a manifest's reference to the wrong assembly. See #1749.
+                // AssemblyName.ReferenceMatchesDefinition matches on the simple name when the reference specifies no
+                // version, culture or public key, so the candidate list can contain several distinct identities. The
+                // ordering above is by version only, therefore selecting the first candidate can return an assembly
+                // whose culture or public key differs from the requested identity. An exact identity match is preferred
+                // when the candidate list contains one. See issue #1749.
                 var exactMatch = candidates.FirstOrDefault( x => x.AssemblyName!.ToAssemblyIdentity().Equals( assemblyIdentity ) );
 
                 reference = exactMatch.MetadataReference ?? candidates[0].MetadataReference;

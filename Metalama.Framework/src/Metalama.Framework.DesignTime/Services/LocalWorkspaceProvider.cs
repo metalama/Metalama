@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -16,7 +16,7 @@ namespace Metalama.Framework.DesignTime.Services;
 /// </summary>
 public sealed class LocalWorkspaceProvider : WorkspaceProvider, IWorkspaceReceiver
 {
-    private readonly TaskCompletionSource<Workspace> _workspace = new();
+    private readonly TaskCompletionSource<Workspace?> _workspace = new();
     private readonly IProjectOptionsFactory? _projectOptionsFactory;
     private readonly DesignTimeExtensionManager? _designTimeExtensionManager;
 
@@ -27,14 +27,14 @@ public sealed class LocalWorkspaceProvider : WorkspaceProvider, IWorkspaceReceiv
         this._designTimeExtensionManager = serviceProvider.GetService<DesignTimeExtensionManager>();
     }
 
-    protected override async Task<Workspace?> GetWorkspaceAsync( CancellationToken cancellationToken = default )
+    protected override Task<Workspace?> GetWorkspaceAsync( CancellationToken cancellationToken = default )
     {
         if ( !this._workspace.Task.IsCompleted )
         {
             this.Logger.Warning?.Log( $"The workspace is not yet available. Waiting." );
         }
 
-        return await this._workspace.Task.WithCancellation( cancellationToken );
+        return this._workspace.Task.WithCancellation( cancellationToken );
     }
 
     public bool TrySetWorkspace( Workspace workspace )

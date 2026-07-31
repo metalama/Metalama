@@ -1,40 +1,29 @@
 ﻿<Project>
 
-    <PropertyGroup Condition="'$(MetalamaEnabled)'!='False'">
-        <!-- Define a METALAMA compilation symbol (aka constant). -->
-        <DefineConstants>$(DefineConstants);METALAMA</DefineConstants>
+    <!--
+        Define a METALAMA_PROJECT_<hash> compilation symbol that identifies this project. Metalama identifies a project
+        by its assembly name and by a hash of its compilation symbols, because those are the only project-identifying
+        data available from a Compilation alone. Without this symbol, two projects that have the same assembly name and
+        the same target framework are indistinguishable. Set MetalamaDefineProjectDiscriminator to False to suppress the
+        symbol, at the cost of the LAMA0080 warning. See https://github.com/metalama/Metalama/issues/1749.
 
-        <!--
-            Define a compilation symbol that identifies this project uniquely within the solution.
-
-            A ProjectKey is an assembly name plus a hash of the compilation symbols, and it must be serializable and
-            computable from a bare Compilation, because it identifies a project across processes and a Compilation does
-            not know its project. The symbols stand in for the target framework and the build configuration, which
-            assumes that two projects sharing an assembly name are one logical project in two flavours. Two unrelated
-            projects that produce one assembly name at one target framework break that assumption, and nothing
-            downstream can detect it: a consumer is silently handed another project's pipeline. See #1749.
-
-            Compilation symbols are the only project-identifying data that travels inside a Compilation, which is why
-            the discriminator is one of them rather than a compiler-visible property: a property reaches an analyzer
-            through AnalyzerConfigOptions, which ProjectKeyFactory cannot see.
-
-            StableStringHash keeps the symbol short and well formed. It requires MSBuild 16.9, and the lowest supported
-            host is Visual Studio 2022 17.14, so it is always available. Its value is not guaranteed to be identical
-            across MSBuild versions, which does not matter: the symbol only has to be unique within one evaluation, and
-            ProjectKey values are only ever compared inside a single design-time host, all of whose processes are fed by
-            the same evaluation. The compile-time pipeline does not use ProjectKey at all.
-
-            The hash is signed, so a negative value would start the identifier with '-'. The 'N' stands for the minus.
-
-            Two projects could in principle collide on a 32-bit hash. That is not silently tolerated: the design-time
-            pipeline reports a duplicate ProjectKey as an error rather than working around it.
-        -->
+        This is defined even when MetalamaEnabled is False. The symbol has no effect on the compilation of the project
+        itself, and a project that Metalama does not process is still referenced by projects that it does process, which
+        identify it by the same key.
+    -->
+    <PropertyGroup>
         <_MetalamaProjectId>$(MSBuildProjectFullPath)|$(TargetFramework)|$(Configuration)|$(Platform)</_MetalamaProjectId>
-        <!-- Two steps, not one: MSBuild cannot parse a property function nested inside the quoted argument of another
-             one (MSB4186). -->
+        <!-- The hash is computed in two steps because MSBuild cannot parse a property function nested inside the quoted
+             argument of another one (MSB4186). The hash is signed, and 'N' replaces the minus sign so that the symbol
+             remains a valid identifier. -->
         <_MetalamaProjectIdHash>$([MSBuild]::StableStringHash('$(_MetalamaProjectId)'))</_MetalamaProjectIdHash>
         <_MetalamaProjectDiscriminator>$([System.String]::Copy('$(_MetalamaProjectIdHash)').Replace('-','N'))</_MetalamaProjectDiscriminator>
         <DefineConstants Condition="'$(MetalamaDefineProjectDiscriminator)'!='False'">$(DefineConstants);METALAMA_PROJECT_$(_MetalamaProjectDiscriminator)</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(MetalamaEnabled)'!='False'">
+        <!-- Define a METALAMA compilation symbol (aka constant). -->
+        <DefineConstants>$(DefineConstants);METALAMA</DefineConstants>
 
         <!-- Auxiliary files used at design time. -->
         <MetalamaAdditionalCompilationOutputDirectory Condition="'$(MetalamaDesignTimeEnabled)'=='False'">$(MSBuildProjectDirectory)/$(IntermediateOutputPath)/metalama-aux/</MetalamaAdditionalCompilationOutputDirectory>

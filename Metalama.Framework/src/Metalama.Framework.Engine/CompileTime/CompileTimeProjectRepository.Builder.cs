@@ -56,6 +56,12 @@ internal sealed partial class CompileTimeProjectRepository
     // This class is made internal for tests only.
     internal sealed class Builder
     {
+        /// <summary>
+        /// The version of the Metalama package that contains the currently executing engine.
+        /// </summary>
+        private static readonly string? _currentMetalamaVersion =
+            AssemblyMetadataReader.GetInstance( typeof(CompileTimeProjectManifest).Assembly ).PackageVersion;
+
         private readonly CompileTimeCompilationBuilder _builder;
         private readonly CompileTimeProject _frameworkProject;
         private readonly ILogger _logger;
@@ -526,15 +532,15 @@ internal sealed partial class CompileTimeProjectRepository
         {
             var projectReferenceNames = this._projectOptions?.ProjectReferenceNames ?? ImmutableArray<string>.Empty;
 
+            // The reference must be one of the project references of the current project. An empty list means that the
+            // host does not supply the property, in which case no reference can be recognized as a project reference.
             if ( projectReferenceNames.IsDefaultOrEmpty
                  || !projectReferenceNames.Any( n => string.Equals( n, runTimeAssemblyIdentity.Name, StringComparison.OrdinalIgnoreCase ) ) )
             {
                 return;
             }
 
-            var currentVersion = AssemblyMetadataReader.GetInstance( typeof(CompileTimeProjectManifest).Assembly ).PackageVersion;
-
-            if ( string.Equals( manifest.MetalamaVersion, currentVersion, StringComparison.OrdinalIgnoreCase ) )
+            if ( string.Equals( manifest.MetalamaVersion, _currentMetalamaVersion, StringComparison.OrdinalIgnoreCase ) )
             {
                 return;
             }
@@ -553,7 +559,7 @@ internal sealed partial class CompileTimeProjectRepository
                 diagnosticAdder.Report(
                     GeneralDiagnosticDescriptors.MixedMetalamaVersionsInSolution.CreateRoslynDiagnostic(
                         null,
-                        (runTimeAssemblyIdentity, manifest.MetalamaVersion, currentVersion ?? "") ) );
+                        (runTimeAssemblyIdentity, manifest.MetalamaVersion, _currentMetalamaVersion ?? "") ) );
             }
         }
 

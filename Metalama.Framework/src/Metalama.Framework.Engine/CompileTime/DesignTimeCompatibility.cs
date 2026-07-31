@@ -16,7 +16,7 @@ namespace Metalama.Framework.Engine.CompileTime;
 /// embedded compile-time project of an older version and applies its aspects, which is why a solution mixing versions
 /// builds correctly. The design-time pipeline additionally needs to reach that version's design-time entry point, and
 /// that is what breaks: #1605 rotated every GUID of <c>Metalama.Framework.DesignTime.Contracts</c> and the
-/// <see cref="AppDomain"/> slot through which its entry point manager rendezvouses, so a version below
+/// <see cref="AppDomain"/> slot through which its entry point manager registers itself, so a version below
 /// <see cref="MinimumSupportedVersion"/> belongs to a generation that the current one can never observe.
 /// </para>
 /// <para>

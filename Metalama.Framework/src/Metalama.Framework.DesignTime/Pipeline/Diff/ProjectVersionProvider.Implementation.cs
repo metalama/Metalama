@@ -122,6 +122,48 @@ internal sealed partial class ProjectVersionProvider
                 portableExecutableReferences.Changes );
         }
 
+        /// <summary>
+        /// Returns the single <see cref="Compilation"/> of a group of references that share a <see cref="ProjectKey"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Since Metalama 2026.1, the MSBuild targets define a <c>METALAMA_PROJECT_*</c> compilation symbol that makes
+        /// the key of a project unique. A collision between two projects that both reference Metalama therefore means
+        /// that the symbol was suppressed or that the two projects collided on its hash, and it is reported instead of
+        /// being resolved, because either resolution would silently give one project the identity of another.
+        /// </para>
+        /// <para>
+        /// The symbol is defined by the targets of the Metalama package, so a project that does not reference Metalama
+        /// at all does not carry it, and two such projects that produce a single assembly name still share a key. That
+        /// configuration is legitimate and must not fail the design-time pipeline of the consuming project. Such a
+        /// reference contributes no aspect in any case, therefore the first one is retained. See issue #1749.
+        /// </para>
+        /// </remarks>
+        private Compilation GetSingleCompilation( IGrouping<ProjectKey, CompilationReference> group )
+        {
+            var references = group.ToReadOnlyList();
+
+            if ( references.Count > 1 )
+            {
+                var identities = string.Join( ", ", references.Select( r => $"'{r.Compilation.Assembly.Identity}'" ) );
+
+                if ( group.Key.IsMetalamaEnabled )
+                {
+                    throw new InvalidOperationException(
+                        $"The referenced projects {identities} have the same Metalama project key '{group.Key}'. A project key must "
+                        + "identify a project uniquely. Verify that the METALAMA_PROJECT_* compilation symbol defined by "
+                        + "Metalama.Framework.targets is present in each of these projects and has not been removed by an "
+                        + "assignment to the DefineConstants property." );
+                }
+
+                this._logger.Warning?.Log(
+                    $"The referenced projects {identities} have the same key '{group.Key}'. None of them references Metalama, "
+                    + $"therefore the key cannot be made unique and the first project is retained." );
+            }
+
+            return references[0].Compilation;
+        }
+
         private async Task<(ImmutableDictionary<ProjectKey, ReferencedProjectChange> Changes, ImmutableDictionary<ProjectKey, IProjectVersion> References)>
             GetProjectReferencesAsync(
                 Compilation? oldCompilation,
@@ -132,58 +174,45 @@ internal sealed partial class ProjectVersionProvider
             var changeListBuilder = ImmutableDictionary.CreateBuilder<ProjectKey, ReferencedProjectChange>();
             var referenceListBuilder = ImmutableDictionary.CreateBuilder<ProjectKey, IProjectVersion>();
 
-            // Grouped rather than added directly, for the same reason as the loop below: two referenced projects that
-            // produce one assembly name yield one ProjectKey, and a plain ToDictionary throws on the duplicate. The
-            // first reference wins here too, so both sides of the diff resolve a colliding key the same way (#1749).
+            // Grouped rather than added directly, so that a duplicate key is reported with a message that names the
+            // colliding projects. A plain ToDictionary would throw an ArgumentException that names neither.
             //
-            // PR #1755 rewrites this whole method for #1750, routing both reference sets through one helper and also
-            // rejecting the identity-less ProjectKey that an empty Compilation.AssemblyName produces. Its version is
-            // better and should win the merge; this exists only so that this branch is not red in the meantime.
+            // Note that PR #1755 rewrites this method for #1750, routing both reference sets through a single helper and
+            // also rejecting the identity-less ProjectKey that an empty Compilation.AssemblyName produces. The version
+            // of PR #1755 is the better one and should win the merge.
             var oldProjectReferences = oldCompilation?.ExternalReferences.OfType<CompilationReference>()
                 .GroupBy( x => x.Compilation.GetProjectKey() )
-                .ToDictionary( g => g.Key, g => g.First().Compilation );
+                .ToDictionary( g => g.Key, this.GetSingleCompilation );
 
-            var newProjectReferences = newCompilation.ExternalReferences.OfType<CompilationReference>().ToReadOnlyList();
+            var newProjectReferences = newCompilation.ExternalReferences.OfType<CompilationReference>()
+                .GroupBy( x => x.Compilation.GetProjectKey() )
+                .ToDictionary( g => g.Key, this.GetSingleCompilation );
 
-            foreach ( var reference in newProjectReferences )
+            foreach ( var pair in newProjectReferences )
             {
                 ReferencedProjectChange? changes;
                 IProjectVersion projectVersion;
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var assemblyIdentity = reference.Compilation.GetProjectKey();
-
-                // A ProjectKey is an assembly name and a hash of the preprocessor symbols, so two referenced projects
-                // that produce the same assembly name yield the same key. That configuration is rejected at compile
-                // time with LAMA0079, because two versions of one compile-time assembly cannot both be used, but the
-                // design-time pipeline still has to survive it long enough for the user to read that error: a plain
-                // Add here threw ArgumentException out of the source generator, which stopped all design-time support
-                // for the project (issue #1749). The first reference wins, which is arbitrary but consistent with the
-                // change list built below.
-                if ( referenceListBuilder.ContainsKey( assemblyIdentity ) )
-                {
-                    this._logger.Warning?.Log(
-                        $"Two referenced projects have the key '{assemblyIdentity}'. Ignoring '{reference.Compilation.Assembly.Identity}'." );
-
-                    continue;
-                }
+                var assemblyIdentity = pair.Key;
+                var newReferenceCompilation = pair.Value;
 
                 if ( oldCompilation != null && oldProjectReferences!.TryGetValue( assemblyIdentity, out var oldReferenceCompilation ) )
                 {
                     var compilationChanges = await this.GetCompilationChangesAsyncCoreAsync(
                         oldReferenceCompilation,
-                        reference.Compilation,
+                        newReferenceCompilation,
                         cancellationToken );
 
                     projectVersion = compilationChanges.NewProjectVersion;
 
-                    if ( oldReferenceCompilation != reference.Compilation )
+                    if ( oldReferenceCompilation != newReferenceCompilation )
                     {
                         // We store the changes object even if there is no change, because of project versions.
                         changes = new ReferencedProjectChange(
                             oldReferenceCompilation,
-                            reference.Compilation,
+                            newReferenceCompilation,
                             compilationChanges.HasChange ? ReferenceChangeKind.Modified : ReferenceChangeKind.None,
                             compilationChanges );
                     }
@@ -198,8 +227,8 @@ internal sealed partial class ProjectVersionProvider
                 else
                 {
                     // If there is no old compilation, the reference is new.
-                    changes = new ReferencedProjectChange( null, reference.Compilation, ReferenceChangeKind.Added );
-                    projectVersion = await this.GetCompilationVersionCoreAsync( null, reference.Compilation, cancellationToken );
+                    changes = new ReferencedProjectChange( null, newReferenceCompilation, ReferenceChangeKind.Added );
+                    projectVersion = await this.GetCompilationVersionCoreAsync( null, newReferenceCompilation, cancellationToken );
                 }
 
                 if ( changes != null )
@@ -213,8 +242,7 @@ internal sealed partial class ProjectVersionProvider
             // Check removed references.
             if ( oldCompilation != null )
             {
-                var referencedAssemblyIdentifies =
-                    new HashSet<ProjectKey>( newProjectReferences.SelectAsImmutableArray( x => x.Compilation.GetProjectKey() ) );
+                var referencedAssemblyIdentifies = new HashSet<ProjectKey>( newProjectReferences.Keys );
 
                 foreach ( var reference in oldProjectReferences! )
                 {

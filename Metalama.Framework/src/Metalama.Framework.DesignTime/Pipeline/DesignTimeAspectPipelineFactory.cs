@@ -172,6 +172,28 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         }
     }
 
+    /// <summary>
+    /// Returns a description of the first property that differs between two sets of project options that are expected
+    /// to describe the same project, or <c>null</c> when the two sets are consistent.
+    /// </summary>
+    /// <remarks>
+    /// A property is compared only when both sets define it, because a host is not required to supply any of them. The
+    /// target framework and the configuration are compared in addition to the path, because a single project file
+    /// produces a distinct compilation for each combination of the three.
+    /// </remarks>
+    private static string? GetProjectIdentityMismatch( IProjectOptions expected, IProjectOptions actual )
+    {
+        static string? Compare( string propertyName, string? expectedValue, string? actualValue )
+            => expectedValue != null && actualValue != null
+               && !string.Equals( expectedValue, actualValue, StringComparison.OrdinalIgnoreCase )
+                ? $"the projects have a different {propertyName}, respectively '{expectedValue}' and '{actualValue}'"
+                : null;
+
+        return Compare( "path", expected.ProjectPath, actual.ProjectPath )
+               ?? Compare( "target framework", expected.TargetFramework, actual.TargetFramework )
+               ?? Compare( "configuration", expected.Configuration, actual.Configuration );
+    }
+
     private bool TryGetPipeline(
         ProjectKey projectKey,
         IProjectOptions projectOptions,
@@ -183,23 +205,22 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
             var pipelineOptions = pipeline.ServiceProvider.GetRequiredService<IProjectOptions>();
 
             // A ProjectKey must identify a project. Since Metalama 2026.1 it does, because the MSBuild targets define a
-            // METALAMA_PROJECT_<hash> compilation symbol built from the project path, target framework, configuration
-            // and platform, and ProjectKey hashes the symbols. So two DIFFERENT projects arriving under one key means
-            // something is broken: the symbol was suppressed or overwritten, the project comes from a build that
-            // predates the symbol, or two projects collided on the 32-bit hash.
+            // METALAMA_PROJECT_<hash> compilation symbol computed from the project path, the target framework, the
+            // configuration and the platform, and because ProjectKey hashes that symbol. Two different projects arriving
+            // under a single key therefore indicate that the symbol was suppressed or overwritten, that the project was
+            // built by a version of Metalama that predates the symbol, or that two projects collided on the hash.
             //
-            // This is reported rather than worked around. Serving one project's pipeline to another silently gives a
-            // consumer a compile-time projection that is not in its own closure, and the failure then surfaces far away
-            // and unrecognizably, while serializing a transitive manifest. See #1749.
-            if ( projectOptions.ProjectPath != null
-                 && pipelineOptions.ProjectPath != null
-                 && !string.Equals( projectOptions.ProjectPath, pipelineOptions.ProjectPath, StringComparison.OrdinalIgnoreCase ) )
+            // The condition is reported rather than worked around. Serving the pipeline of one project to another gives
+            // the consumer a compile-time projection that is absent from its own closure, and the resulting failure
+            // occurs much later, while a transitive manifest is being serialized. See issue #1749.
+            var mismatch = GetProjectIdentityMismatch( pipelineOptions, projectOptions );
+
+            if ( mismatch != null )
             {
                 throw new InvalidOperationException(
-                    $"Two different projects have the same Metalama project key '{projectKey}': '{pipelineOptions.ProjectPath}' and "
-                    + $"'{projectOptions.ProjectPath}'. A project key is an assembly name and a hash of the compilation symbols, and it must "
-                    + "identify a project uniquely. Check that the METALAMA_PROJECT_* compilation symbol defined by Metalama.Framework.targets "
-                    + "is present in both projects and has not been removed by a DefineConstants assignment." );
+                    $"Two different projects have the same Metalama project key '{projectKey}': {mismatch}. A project key must identify "
+                    + "a project uniquely. Verify that the METALAMA_PROJECT_* compilation symbol defined by Metalama.Framework.targets "
+                    + "is present in both projects and has not been removed by an assignment to the DefineConstants property." );
             }
 
             static bool ReferencesAreEqual( ImmutableArray<PortableExecutableReference> x, ImmutableArray<PortableExecutableReference> y )

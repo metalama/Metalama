@@ -358,12 +358,14 @@ internal sealed class CompileTimeProject : IProjectService
         var loadedCandidates = AppDomainUtility
             .GetLoadedAssemblies( a => !domain.IsCollectible( a ) && AssemblyName.ReferenceMatchesDefinition( assemblyName, a.GetName() ) );
 
-        // Prefer an exact identity match. AssemblyName.ReferenceMatchesDefinition compares little more than the simple
-        // name, so taking the first match could bind this project to an already-loaded assembly of a different version,
-        // culture or public key. Two versions of one untransformed assembly cannot share a closure (LAMA0079), but they
-        // can be loaded in one process by two different projects of a solution. See #1749.
+        // An exact identity match is preferred. AssemblyName.ReferenceMatchesDefinition matches on the simple name when
+        // the reference specifies no version, culture or public key, so the candidates can hold several distinct
+        // identities. Two versions of a single untransformed assembly cannot belong to one closure, which LAMA0079
+        // reports, but two projects of a solution can load one each into the same process. The fallback is ordered by
+        // descending version so that the selection does not depend on the order in which the assemblies were loaded.
+        // See issue #1749.
         var assembly = loadedCandidates.FirstOrDefault( a => a.GetName().ToAssemblyIdentity().Equals( assemblyIdentity ) )
-                       ?? loadedCandidates.FirstOrDefault();
+                       ?? loadedCandidates.MaxByOrNull( a => a.GetName().Version );
 
         if ( assembly == null )
         {

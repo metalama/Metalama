@@ -137,17 +137,25 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies { get; }
 
     /// <summary>
-    /// Gets the assembly names of the references that come from a <c>ProjectReference</c>, i.e. of the other projects
-    /// of the same solution.
+    /// Gets the assembly names of the references that originate from a <c>ProjectReference</c>, that is, the assembly
+    /// names of the other projects of the same solution.
     /// </summary>
     /// <remarks>
-    /// A <c>ProjectReference</c> is a design-time concept. By the time the compiler runs, every reference is a
-    /// <c>PortableExecutableReference</c> and the distinction is lost, so it is supplied by MSBuild, which has already
-    /// computed it. Names and not paths, because the consumer compares them against the assembly identity it reads
-    /// from the reference: a path would have to match exactly across two subsystems, and does not, since the compiler
-    /// is given the reference assembly under <c>obj</c> while MSBuild holds the implementation assembly under
-    /// <c>bin</c>. Empty when the information is not available, in which case no consumer must infer that there are no
-    /// project references.
+    /// <para>
+    /// A <c>ProjectReference</c> is a build-time concept. By the time the compiler runs, every reference is a
+    /// <c>PortableExecutableReference</c> and the distinction has been lost, therefore this property is supplied by
+    /// MSBuild, which has already computed it.
+    /// </para>
+    /// <para>
+    /// The property contains assembly names and not paths, because the consumer compares them against the assembly
+    /// identity that it reads from the reference. A path would have to match exactly across two subsystems, and it does
+    /// not, because the compiler receives the reference assembly under the <c>obj</c> directory whereas MSBuild holds
+    /// the implementation assembly under the <c>bin</c> directory.
+    /// </para>
+    /// <para>
+    /// The property is empty when the information is not available. A consumer must not conclude from an empty value
+    /// that the project has no project reference.
+    /// </para>
     /// </remarks>
     ImmutableArray<string> ProjectReferenceNames { get; }
 
@@ -157,11 +165,14 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// That symbol is what makes a <c>ProjectKey</c> identify a project rather than an (assembly name, target
-    /// framework, configuration) triple, so its absence silently breaks the design-time experience and the compile-time
-    /// pipeline reports <c>LAMA0080</c> for it. Only a host driven by MSBuild can promise it, which is why the check is
-    /// gated on this rather than applied unconditionally: a test harness, a workspace or an embedding host builds its
-    /// compilations itself and has no targets to run. See #1749.
+    /// That symbol is what causes a <c>ProjectKey</c> to identify a project instead of a combination of an assembly
+    /// name, a target framework and a configuration. Its absence breaks the design-time experience without any visible
+    /// symptom, therefore the compile-time pipeline reports <c>LAMA0080</c> when it is missing.
+    /// </para>
+    /// <para>
+    /// Only a host that is driven by MSBuild is able to guarantee the presence of the symbol, which is the reason why
+    /// the verification is gated on this property instead of being applied unconditionally. A test harness, a workspace
+    /// or an embedding host builds its compilations itself and runs no MSBuild targets. See issue #1749.
     /// </para>
     /// </remarks>
     bool RequiresCompilationConstant { get; }

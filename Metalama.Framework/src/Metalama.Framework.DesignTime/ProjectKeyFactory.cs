@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Caching;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
@@ -56,56 +57,115 @@ public static class ProjectKeyFactory
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Only the <c>METALAMA_PROJECT_*</c> symbols are hashed when the project has any. They already encode everything
-    /// that identifies the project, so hashing the other symbols would only make the key depend on things that do not
-    /// identify anything: adding or removing an unrelated <c>#define</c>, or a conditional <c>DefineConstants</c>,
-    /// would change the key of a project that has not otherwise changed. That churns the design-time pipeline cache and
-    /// makes a project unrecognizable to the processes that route by key.
+    /// Only the <c>METALAMA_PROJECT_*</c> symbols are hashed when the project defines at least one of them, because
+    /// those symbols already encode everything that identifies the project. Hashing the other symbols would make the
+    /// key depend on data that identifies nothing: the addition or the removal of an unrelated <c>#define</c>, or a
+    /// conditional assignment to <c>DefineConstants</c>, would change the key of a project that has not otherwise
+    /// changed. Such a change invalidates the design-time pipeline cache and makes the project unrecognizable to the
+    /// processes that route requests by key.
     /// </para>
     /// <para>
-    /// Every symbol is still hashed when no discriminator is present, which is the case for a project built by a
-    /// Metalama older than 2026.1 and for a host that builds its own compilations, such as a test harness. That
-    /// preserves the previous behaviour exactly where the discriminator cannot be relied on. See #1749.
+    /// Every symbol is hashed when no discriminator is present, which is the case for a project built by a version of
+    /// Metalama older than 2026.1 and for a host that builds its own compilations, such as a test harness. The previous
+    /// behavior is therefore preserved wherever the discriminator cannot be relied upon. See issue #1749.
     /// </para>
     /// </remarks>
     private static StrongBox<ulong> GetPreprocessorSymbolHashCode( ParseOptions parseOptions )
     {
-        // ProjectKey is a cross-process identifier so we have to use a robust hasher.
-        using var hashHandle = HashUtilities.AllocateHasher();
-        var hasher = hashHandle.Value;
+        var symbolNames = parseOptions.PreprocessorSymbolNames;
 
-        // Sorted, so that the key of a project does not depend on the order in which the symbols happen to be given.
-        // Without this, the same project could yield two different keys, which is as harmful as two projects yielding
-        // one key. CompileTimeCompilationBuilder.ComputeSourceHash already sorts them for the same reason.
-        var allSymbolNames = parseOptions.PreprocessorSymbolNames
-            .OrderBy( x => x, StringComparer.Ordinal )
-            .ToReadOnlyList();
+        // The Roslyn implementation of PreprocessorSymbolNames is an ImmutableArray, which can be enumerated as a span
+        // and therefore without any allocation. This method is on a performance-sensitive path.
+        if ( symbolNames is ImmutableArray<string> immutableArray )
+        {
+            return ComputeSymbolHashCode( immutableArray.AsSpan() );
+        }
 
-        var discriminatorSymbolNames = allSymbolNames
-            .Where( x => x.StartsWith( _projectDiscriminatorSymbolPrefix, StringComparison.Ordinal ) )
-            .ToReadOnlyList();
+        return ComputeSymbolHashCode( symbolNames as string[] ?? symbolNames.ToArray() );
+    }
 
-        var hashedSymbolNames = discriminatorSymbolNames.Count > 0 ? discriminatorSymbolNames : allSymbolNames;
+    /// <summary>
+    /// Computes the value returned by <see cref="GetPreprocessorSymbolHashCode"/> from the symbols of the project.
+    /// </summary>
+    private static StrongBox<ulong> ComputeSymbolHashCode( ReadOnlySpan<string> symbolNames )
+    {
+        var discriminatorCount = 0;
 
-        if ( hashedSymbolNames.Count == 0 )
+        foreach ( var symbolName in symbolNames )
+        {
+            if ( IsDiscriminator( symbolName ) )
+            {
+                discriminatorCount++;
+            }
+        }
+
+        var hashedCount = discriminatorCount > 0 ? discriminatorCount : symbolNames.Length;
+
+        if ( hashedCount == 0 )
         {
             return new StrongBox<ulong>( 0 );
         }
 
-        foreach ( var symbol in hashedSymbolNames )
+        // ProjectKey is a cross-process identifier, therefore the hasher must be a robust one.
+        using var hashHandle = HashUtilities.AllocateHasher();
+        var hasher = hashHandle.Value;
+
+        if ( hashedCount == 1 )
         {
-            hasher.Append( symbol );
+            // The usual case, in which the project defines exactly one discriminator symbol. Neither a buffer nor a
+            // sort is required.
+            foreach ( var symbolName in symbolNames )
+            {
+                if ( discriminatorCount == 0 || IsDiscriminator( symbolName ) )
+                {
+                    hasher.Append( symbolName );
+
+                    break;
+                }
+            }
+        }
+        else
+        {
+            var buffer = ArrayPool<string>.Shared.Rent( hashedCount );
+
+            try
+            {
+                var index = 0;
+
+                foreach ( var symbolName in symbolNames )
+                {
+                    if ( discriminatorCount == 0 || IsDiscriminator( symbolName ) )
+                    {
+                        buffer[index++] = symbolName;
+                    }
+                }
+
+                // The symbols are sorted so that the key of a project does not depend on the order in which they happen
+                // to be supplied. Without this, a single project could yield two different keys, which is as harmful as
+                // two projects yielding a single key. CompileTimeCompilationBuilder.ComputeSourceHash sorts them for the
+                // same reason.
+                Array.Sort( buffer, 0, hashedCount, StringComparer.Ordinal );
+
+                for ( var i = 0; i < hashedCount; i++ )
+                {
+                    hasher.Append( buffer[i] );
+                }
+            }
+            finally
+            {
+                // The array is cleared on return because it would otherwise keep the strings alive.
+                ArrayPool<string>.Shared.Return( buffer, clearArray: true );
+            }
         }
 
         var hashCode = hasher.GetCurrentHashAsUInt64();
 
-        if ( hashCode == 0 )
-        {
-            hashCode = 1;
-        }
-
-        return new StrongBox<ulong>( hashCode );
+        // Zero is reserved for the absence of a symbol.
+        return new StrongBox<ulong>( hashCode == 0 ? 1 : hashCode );
     }
+
+    private static bool IsDiscriminator( string symbolName )
+        => symbolName.StartsWith( _projectDiscriminatorSymbolPrefix, StringComparison.Ordinal );
 
     internal static ProjectKey FromCompilation( Compilation compilation ) => _compilationCache.GetOrAdd( compilation, FromCompilationCore );
 

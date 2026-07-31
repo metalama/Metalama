@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -15,7 +15,7 @@ namespace Metalama.Framework.DesignTime.Services;
 /// </summary>
 internal sealed class RemoteWorkspaceProvider : WorkspaceProvider
 {
-    private readonly Task<Workspace> _workspace;
+    private readonly Task<Workspace?> _workspace;
 
     public static bool TryCreate( GlobalServiceProvider serviceProvider, [NotNullWhen( true )] out RemoteWorkspaceProvider? workspaceProvider )
     {
@@ -102,8 +102,8 @@ internal sealed class RemoteWorkspaceProvider : WorkspaceProvider
 
     private RemoteWorkspaceProvider( GlobalServiceProvider serviceProvider, Workspace workspace ) : base( serviceProvider )
     {
-        this._workspace = Task.FromResult( workspace );
+        this._workspace = Task.FromResult<Workspace?>( workspace );
     }
 
-    protected override async Task<Workspace?> GetWorkspaceAsync( CancellationToken cancellationToken = default ) => await this._workspace;
+    protected override Task<Workspace?> GetWorkspaceAsync( CancellationToken cancellationToken = default ) => this._workspace;
 }

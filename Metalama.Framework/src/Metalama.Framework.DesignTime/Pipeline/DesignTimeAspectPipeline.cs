@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -585,8 +585,8 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                             // are ordinary reasons to land here: the host may have no workspace at all, which is the
                             // case for a plain analyzer in an IDE without the Metalama extension, or the reference's
                             // ProjectKey may be shared by several projects and therefore designate none of them. The
-                            // reference still travels through its serialized manifest, exactly as a cross-version
-                            // reference does. Same remedy as #1757, same reason.
+                            // reference is still consumed through its serialized manifest, exactly as a reference
+                            // built by another version of Metalama is. The remedy is the one of issue #1757.
                             this.SkipReferenceWithoutPipeline( compilationReferences, reference );
 
                             continue;
@@ -648,10 +648,10 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     // A reference produced by a Metalama of a different design-time contracts generation can never be
                     // served in this process, so it must not be waited for. #1605 rotated every GUID of
                     // Metalama.Framework.DesignTime.Contracts and the AppDomain slot through which
-                    // DesignTimeEntryPointManager rendezvouses, which means generation v1 (up to 2026.0.x) and
+                    // DesignTimeEntryPointManager registers itself, which means that generation v1 (up to 2026.0.x) and
                     // generation v2 (2026.1 and later) cannot observe each other's registrations. That is by design;
                     // what must not happen is the unbounded wait that used to follow, because this method holds the
-                    // lock on the current project and would therefore hang its design-time experience for good
+                    // lock on the current project and would therefore suspend its design-time experience indefinitely
                     // (issue #1757).
                     if ( !DesignTimeCompatibility.IsSupportedAtDesignTime( metalamaVersion ) )
                     {
