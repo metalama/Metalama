@@ -39,12 +39,22 @@ public sealed class NotifyCommand : BaseCommand<NotifyCommandSettings>
             builder.AddVisualChild( new AdaptiveText() { Text = notificationViewModel.Body, HintMinLines = 4, HintStyle = AdaptiveTextStyle.Body } );
         }
 
+        // AddArgument sets what happens when the user clicks the notification body rather than one of its buttons, so it
+        // must be set at most once. A notification with several command actions (the exception one offers Review and
+        // Report) takes the first as its body action. See #1751.
+        var hasBodyAction = false;
+
         foreach ( var action in notificationViewModel.Actions )
         {
             switch ( action )
             {
                 case CommandActionViewModel commandAction:
-                    builder.AddArgument( commandAction.Command );
+                    if ( !hasBodyAction )
+                    {
+                        builder.AddArgument( commandAction.Command );
+                        hasBodyAction = true;
+                    }
+
                     builder.AddButton( commandAction.Text, ToastActivationType.Foreground, commandAction.Command );
 
                     break;

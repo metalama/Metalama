@@ -399,7 +399,11 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             } );
     }
 
-    public void ResetReportedIssues() => this._configurationManager.Update<TelemetryConfiguration>( c => c with { Issues = c.Issues.Clear() } );
+    // Clears both the decisions taken on issues and the record of the questions already asked, so that every issue is
+    // captured and prompted again on its next occurrence. Forgetting the prompts here would leave an issue silent for up
+    // to an hour after a reset, which defeats the purpose of the command. See #1751.
+    public void ResetReportedIssues()
+        => this._configurationManager.Update<TelemetryConfiguration>( c => c with { Issues = c.Issues.Clear(), IssuePrompts = c.IssuePrompts.Clear() } );
 
     // Returns a cryptographically-secure salt.
     private long NextSalt() => this._randomNumberGenerator.NextCryptographicInt64();

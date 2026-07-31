@@ -28,7 +28,11 @@ public sealed class ExceptionReportPageModelTests : TestsBase
 
         public string? SentReport { get; private set; }
 
+        public string? IgnoredReport { get; private set; }
+
         public bool SendReportResult { get; set; } = true;
+
+        public bool IgnoreReportResult { get; set; } = true;
 
         public bool TryGetReport( string reportFileName, [NotNullWhen( true )] out CapturedExceptionReport? report )
         {
@@ -43,6 +47,13 @@ public sealed class ExceptionReportPageModelTests : TestsBase
             this.SentReport = reportFileName;
 
             return this.SendReportResult;
+        }
+
+        public bool IgnoreReport( string reportFileName )
+        {
+            this.IgnoredReport = reportFileName;
+
+            return this.IgnoreReportResult;
         }
     }
 
@@ -217,6 +228,49 @@ public sealed class ExceptionReportPageModelTests : TestsBase
         Assert.False( model.IsReported );
 
         // The report content is still loaded, so the page re-renders the report rather than a blank form.
+        Assert.True( model.HasReport );
+    }
+
+    [Fact]
+    public void OnPostIgnoreIgnoresThatReportOnly()
+    {
+        // #1751: "Never report this error" is the per-issue replacement for the notification's former Mute button. It
+        // acts on this report alone and must not change the consent of the whole category.
+        var reporter = new FakeExceptionReportManager { ReportToReturn = new CapturedExceptionReport( "<r/>", null, TelemetryScenario.Exception ) };
+
+        var model = this.CreateModel( reporter );
+        model.Report = "exception-abc.xml";
+
+        model.OnPostIgnore();
+
+        Assert.Equal( "exception-abc.xml", reporter.IgnoredReport );
+        Assert.True( model.IsIgnored );
+
+        // The report is gone, so the page confirms the choice instead of rendering the report again.
+        Assert.False( model.HasReport );
+
+        // Every category keeps its consent: silencing the whole channel is the privacy page's job, not this button's.
+        Assert.Equal( TelemetryConsent.Default, this.GetConsent( TelemetryScenario.Exception ) );
+        Assert.Equal( TelemetryConsent.Default, this.GetConsent( TelemetryScenario.Performance ) );
+        Assert.Equal( TelemetryConsent.Default, this.GetConsent( TelemetryScenario.Usage ) );
+    }
+
+    [Fact]
+    public void OnPostIgnoreKeepsRenderingTheReportWhenIgnoringFails()
+    {
+        // Symmetrical to OnPostReportDoesNotShowQueuedWhenSendFails: if the report vanished in the meantime, the page
+        // must not claim the issue was ignored.
+        var reporter = new FakeExceptionReportManager
+        {
+            ReportToReturn = new CapturedExceptionReport( "<r/>", "<r local/>", TelemetryScenario.Exception ), IgnoreReportResult = false
+        };
+
+        var model = this.CreateModel( reporter );
+        model.Report = "exception-abc.xml";
+
+        model.OnPostIgnore();
+
+        Assert.False( model.IsIgnored );
         Assert.True( model.HasReport );
     }
 }

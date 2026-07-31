@@ -15,8 +15,19 @@ public class TestProcessExecutor : IProcessExecutor
 {
     public List<ProcessStartInfo> StartedProcesses { get; } = [];
 
+    /// <summary>
+    /// Gets or sets an exception thrown instead of starting the process, so that a test can exercise what happens when
+    /// a process cannot be started, e.g. because the tools have not been extracted.
+    /// </summary>
+    public Exception? ExceptionToThrow { get; set; }
+
     public IProcess Start( ProcessStartInfo startInfo )
     {
+        if ( this.ExceptionToThrow != null )
+        {
+            throw this.ExceptionToThrow;
+        }
+
         this.StartedProcesses.Add( startInfo );
 
         return new TestProcess();

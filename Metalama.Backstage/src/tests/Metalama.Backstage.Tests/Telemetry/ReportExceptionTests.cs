@@ -11,6 +11,7 @@ using Metalama.Backstage.UserInterface.Toasts;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -276,7 +277,7 @@ public sealed class ReportExceptionTests : TestsBase
         this.RecordException( kind: exceptionReportingKind );
 
         var toast = Assert.Single( this.UserInterface.Notifications );
-        Assert.Equal( ToastNotificationKinds.Exception.Name, toast.Kind.Name );
+        Assert.Equal( ToastNotificationKinds.ExceptionReport.Name, toast.Kind.Name );
         Assert.NotNull( toast.Uri );
         Assert.StartsWith( "exception-", toast.Uri, StringComparison.Ordinal );
         Assert.EndsWith( ".xml", toast.Uri, StringComparison.Ordinal );
@@ -426,6 +427,147 @@ public sealed class ReportExceptionTests : TestsBase
         this.RecordException( exception );
         this.RecordException( exception );
         this.AssertFilesCount( 1 );
+    }
+
+    private ImmutableDictionary<string, ReportingStatus> GetIssues() => this.ConfigurationManager!.Get<TelemetryConfiguration>().Issues;
+
+    [Fact]
+    public void ReviewFirstCaptureDoesNotDecideOnTheIssue()
+    {
+        // #1751: capturing a report is not a decision. Recording the issue as 'Reported' at capture time (as we used to)
+        // silenced it forever even though nothing had been sent, which is why no exception report ever reached us.
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Default );
+        this.RecordException();
+
+        Assert.Empty( this.GetIssues() );
+    }
+
+    [Fact]
+    public void ReviewFirstIssueIsPromptedAgainAfterTheRetryPeriod()
+    {
+        // #1751: the review notification is the only way to approve a report, so an ignored notification must not
+        // silence the issue. The same issue is captured and prompted again once the retry period has elapsed.
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Default );
+
+        var exception = new TestException( "Test", "Test" );
+
+        this.RecordException( exception );
+        Assert.Single( this.UserInterface.Notifications );
+
+        // Within the retry period the user is not asked again: the pending report is still there to be reviewed.
+        this.Time.AddTime( ExceptionReporter.PromptRetryPeriod - TimeSpan.FromMinutes( 1 ) );
+        this.RecordException( exception );
+        Assert.Single( this.UserInterface.Notifications );
+
+        // Past the retry period the question is asked again.
+        this.Time.AddTime( TimeSpan.FromMinutes( 2 ) );
+        this.RecordException( exception );
+        Assert.Equal( 2, this.UserInterface.Notifications.Count );
+
+        // The pending report was overwritten rather than duplicated, so 'Report' cannot send an arbitrary one of
+        // several copies and the directory does not grow by one report per hour.
+        this.AssertFilesCount( 1 );
+    }
+
+    [Fact]
+    public void SendReportDecidesOnTheIssueAndStopsPrompting()
+    {
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Default );
+
+        var exception = new TestException( "Test", "Test" );
+        this.RecordException( exception );
+
+        var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
+        Assert.True( reporter.SendReport( Path.GetFileName( this.GetScrubbedReportFile() ) ) );
+
+        // Sending is the decision, so it is now (and only now) that the issue is recorded as reported.
+        Assert.Equal( ReportingStatus.Reported, Assert.Single( this.GetIssues() ).Value );
+
+        // The user is not asked about it again, even long after the retry period.
+        this.Time.AddTime( ExceptionReporter.PromptRetryPeriod + TimeSpan.FromMinutes( 1 ) );
+        this.RecordException( exception );
+
+        Assert.Single( this.UserInterface.Notifications );
+        this.AssertFilesCount( 1 );
+    }
+
+    [Fact]
+    public void AutoSentIssueIsNotCapturedAgain()
+    {
+        // An auto-sent report is on its way at capture time, so the issue is decided immediately. Without this, the
+        // hourly retry would upload a duplicate of the same report every hour.
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Yes );
+
+        var exception = new TestException( "Test", "Test" );
+        this.RecordException( exception );
+
+        Assert.Equal( ReportingStatus.Reported, Assert.Single( this.GetIssues() ).Value );
+
+        this.Time.AddTime( ExceptionReporter.PromptRetryPeriod + TimeSpan.FromMinutes( 1 ) );
+        this.RecordException( exception );
+
+        Assert.Single( this.UserInterface.Notifications );
+        this.AssertFilesCount( 1 );
+    }
+
+    [Fact]
+    public void IgnoreReportStopsPromptingForThatIssueOnly()
+    {
+        // #1751: "never report this error" is the per-issue replacement for the notification's Mute button, which used
+        // to disable every error-report notification on the machine.
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Default );
+
+        var ignoredException = new TestException( "Ignored", CreateStackFrame( "Ignored", 1 ) );
+        this.RecordException( ignoredException );
+
+        var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
+        Assert.True( reporter.IgnoreReport( Path.GetFileName( this.GetScrubbedReportFile() ) ) );
+
+        Assert.Equal( ReportingStatus.Ignored, Assert.Single( this.GetIssues() ).Value );
+
+        // There is nothing left to review, so both renderings are gone and nothing can be uploaded.
+        this.AssertFilesCount( 0 );
+        Assert.DoesNotContain( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".xml", StringComparison.Ordinal ) );
+
+        // The issue is never captured nor notified about again, however often it recurs and however much time passes.
+        var notificationsBefore = this.UserInterface.Notifications.Count;
+
+        for ( var i = 0; i < 3; i++ )
+        {
+            this.Time.AddTime( ExceptionReporter.PromptRetryPeriod + TimeSpan.FromMinutes( 1 ) );
+            this.RecordException( ignoredException );
+        }
+
+        Assert.Equal( notificationsBefore, this.UserInterface.Notifications.Count );
+        this.AssertFilesCount( 0 );
+
+        // ...but every other issue keeps prompting normally.
+        this.RecordException( new TestException( "Other", CreateStackFrame( "Other", 2 ) ) );
+        Assert.Equal( notificationsBefore + 1, this.UserInterface.Notifications.Count );
+    }
+
+    [Fact]
+    public void IgnoreReportDeletesTheLocalRenderingOfAnAlreadyQueuedReport()
+    {
+        // Copilot review: ignoring a report that is already in the upload queue must still delete the full local
+        // rendering, which is never enqueued and would otherwise sit under the exceptions directory until the retention
+        // sweep. The queued scrubbed report itself is left alone: it is on its way out, and deleting it would only break
+        // the upload.
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Yes );
+        this.RecordException();
+
+        var enqueued = this.GetScrubbedReportFile();
+        Assert.Contains( Path.Combine( "Telemetry", "UploadQueue" ), enqueued, StringComparison.Ordinal );
+        Assert.Contains( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) );
+
+        var reporter = new ExceptionReporter( new TelemetryQueue( this.ServiceProvider ), this.ServiceProvider );
+        Assert.True( reporter.IgnoreReport( Path.GetFileName( enqueued ) ) );
+
+        Assert.Equal( ReportingStatus.Ignored, Assert.Single( this.GetIssues() ).Value );
+        Assert.DoesNotContain( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".local.xml", StringComparison.Ordinal ) );
+
+        // The report that was already enqueued is still there and will still be uploaded.
+        Assert.Equal( enqueued, this.GetScrubbedReportFile() );
     }
 
     [Fact]

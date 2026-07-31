@@ -8,7 +8,7 @@ using Spectre.Console.Cli;
 namespace Metalama.Backstage.Desktop.Windows.Commands;
 
 [UsedImplicitly( ImplicitUseTargetFlags.WithMembers )]
-public class OpenExceptionReportCommandSettings : BaseSettings
+public class ExceptionReportCommandSettings : BaseSettings
 {
     /// <summary>
     /// Gets the bare file name of the captured exception report to review (e.g. <c>exception-….xml</c>). It is
