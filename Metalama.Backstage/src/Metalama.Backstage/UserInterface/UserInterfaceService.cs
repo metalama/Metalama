@@ -27,6 +27,8 @@ public abstract class UserInterfaceService : IUserInterfaceService
 
     private readonly IBackstageToolsExecutor _backstageToolExecutor;
     private readonly bool _canIgnoreRecoverableExceptions;
+    private readonly IStandardDirectories _standardDirectories;
+    private readonly RandomNumberGenerator _randomNumberGenerator;
 
     protected UserInterfaceService( IServiceProvider serviceProvider )
     {
@@ -34,6 +36,8 @@ public abstract class UserInterfaceService : IUserInterfaceService
         this.Logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
         this._backstageToolExecutor = serviceProvider.GetRequiredBackstageService<IBackstageToolsExecutor>();
         this._canIgnoreRecoverableExceptions = serviceProvider.GetRequiredBackstageService<IRecoverableExceptionService>().CanIgnore;
+        this._standardDirectories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
+        this._randomNumberGenerator = serviceProvider.GetRequiredBackstageService<RandomNumberGenerator>();
     }
 
     public abstract void ShowToastNotification( ToastNotification notification );
@@ -83,11 +87,25 @@ public abstract class UserInterfaceService : IUserInterfaceService
     {
         var port = GetFreePort();
 
+        // The server binds to loopback, which is reachable by every local user account, so the port is not what keeps
+        // other local users out: the per-session token is. See SetupWebServerToken.
+        var authenticationToken = SetupWebServerToken.GenerateToken( this._randomNumberGenerator );
+        var tokenFilePath = SetupWebServerToken.WriteTokenFile( this._standardDirectories.TempDirectory, authenticationToken );
+
         using var webServerProcess =
-            this._backstageToolExecutor.Start( BackstageTool.Worker, "web", "--port", port.ToString( CultureInfo.InvariantCulture ) );
+            this._backstageToolExecutor.Start(
+                BackstageTool.Worker,
+                "web",
+                "--port",
+                port.ToString( CultureInfo.InvariantCulture ),
+                "--token-file",
+                tokenFilePath );
 
         // Wait until the server has started.
         var baseAddress = new Uri( $"http://localhost:{port}/" );
+
+        // The readiness probe must carry the token too, otherwise it would be answered with 401 forever.
+        var pingAddress = new Uri( baseAddress, $"ping?{SetupWebServerToken.QueryParameterName}={authenticationToken}" );
 
         // ReSharper disable once ShortLivedHttpClient
         var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds( 1 ) };
@@ -107,7 +125,7 @@ public abstract class UserInterfaceService : IUserInterfaceService
                     return;
                 }
 
-                var response = await httpClient.GetAsync( baseAddress );
+                var response = await httpClient.GetAsync( pingAddress );
 
                 if ( response.IsSuccessStatusCode )
                 {
@@ -131,7 +149,15 @@ public abstract class UserInterfaceService : IUserInterfaceService
             }
         }
 
-        var url = new Uri( baseAddress, path ).ToString();
+        // Carry the token to the browser. The requested path may already have a query string (the exception report page
+        // takes a report id), so the separator depends on what is already there. The server sets a session cookie on
+        // the first request and redirects to the same page without the token, so the token does not stay in the
+        // address bar or in the browsing history.
+        var pageUri = new Uri( baseAddress, path );
+
+        var separator = string.IsNullOrEmpty( pageUri.Query ) ? "?" : "&";
+
+        var url = $"{pageUri}{separator}{SetupWebServerToken.QueryParameterName}={authenticationToken}";
 
         this.OpenExternalWebPage( url, BrowserMode.Application );
     }

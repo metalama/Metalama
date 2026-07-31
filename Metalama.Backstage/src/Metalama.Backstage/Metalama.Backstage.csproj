@@ -41,6 +41,8 @@
     <ItemGroup>
         <InternalsVisibleTo Include="Metalama.Backstage.Tests" />
         <InternalsVisibleTo Include="Metalama.Backstage.Testing" />
+        <!-- The worker hosts the setup web server, so it shares the SetupWebServerToken protocol with this assembly. -->
+        <InternalsVisibleTo Include="Metalama.Backstage.Worker" />
     </ItemGroup>
 
 
