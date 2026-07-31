@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Infrastructure;
 using System;
 using System.IO;
@@ -95,6 +96,23 @@ internal static class SetupWebServerToken
         File.Delete( path );
 
         return token;
+    }
+
+    /// <summary>
+    /// Deletes the token file if it still exists, on a best-effort basis. Called by the process that started the server
+    /// once it no longer needs the file, so that a token is not left on disk when the server failed to start and never
+    /// consumed it.
+    /// </summary>
+    public static void DeleteTokenFile( string path, ILogger logger )
+    {
+        try
+        {
+            File.Delete( path );
+        }
+        catch ( Exception e ) when ( e is IOException or UnauthorizedAccessException )
+        {
+            logger.Warning?.Log( $"Cannot delete the setup server token file '{path}': {e.Message}" );
+        }
     }
 
     /// <summary>
