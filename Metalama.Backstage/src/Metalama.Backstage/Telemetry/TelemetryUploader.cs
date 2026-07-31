@@ -302,7 +302,11 @@ namespace Metalama.Backstage.Telemetry
                         return c with { LastUploadTime = now };
                     } ) )
             {
-                this._logger.Trace?.Log( $"It's not time to upload the telemetry yet." );
+                // UpdateIf tells us that this call did not perform the transition, but not why: the throttle may not
+                // have elapsed, another process may have claimed the upload, or the write may have run out of
+                // contention retries (which UpdateIf logs as an error of its own). Claiming a single one of those in
+                // the message sends whoever reads the trace after it, as it did in #1764.
+                this._logger.Trace?.Log( "Not uploading the telemetry now: it is not time yet, or another process has claimed the upload." );
 
                 return false;
             }
