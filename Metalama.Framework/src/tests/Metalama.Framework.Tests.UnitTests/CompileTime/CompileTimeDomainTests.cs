@@ -283,13 +283,12 @@ public sealed class CompileTimeDomainTests : UnitTestClass
         using var cancellationTokenSource = new CancellationTokenSource( TimeSpan.FromMinutes( 2 ) );
         var cancellationToken = cancellationTokenSource.Token;
 
-        var firstHasSelected = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
-        var secondHasSelected = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
-
-        // Cancellation is wired into the sync points themselves rather than through Task.WaitAsync, which does not
-        // exist on the net48 target of this project. A hung test then fails on the timeout instead of blocking forever.
-        using var firstRegistration = cancellationToken.Register( () => firstHasSelected.TrySetCanceled() );
-        using var secondRegistration = cancellationToken.Register( () => secondHasSelected.TrySetCanceled() );
+        // SemaphoreSlim rather than TaskCompletionSource: WaitAsync takes a cancellation token on every target
+        // framework, including net48, where Task.WaitAsync does not exist, and it returns a task started by this code,
+        // which a TaskCompletionSource's Task is not. Awaiting the latter is VSTHRD003, a warning locally and an error
+        // under ContinuousIntegrationBuild.
+        using var firstHasSelected = new SemaphoreSlim( 0, 1 );
+        using var secondHasSelected = new SemaphoreSlim( 0, 1 );
 
         CompileTimeDomain? domain1 = null;
         CompileTimeDomain? domain2 = null;
@@ -303,11 +302,11 @@ public sealed class CompileTimeDomainTests : UnitTestClass
                 async () =>
                 {
                     domain1 = factory.GetOrCreateDomain( new[] { path1 } );
-                    firstHasSelected.SetResult( true );
+                    firstHasSelected.Release();
 
                     // Load only once the other side has also chosen its domain, which is the window that used to be
                     // unguarded.
-                    await secondHasSelected.Task;
+                    await secondHasSelected.WaitAsync( cancellationToken );
 
                     return domain1.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
                 },
@@ -316,10 +315,10 @@ public sealed class CompileTimeDomainTests : UnitTestClass
             var second = Task.Run(
                 async () =>
                 {
-                    await firstHasSelected.Task;
+                    await firstHasSelected.WaitAsync( cancellationToken );
 
                     domain2 = factory.GetOrCreateDomain( new[] { path2 } );
-                    secondHasSelected.SetResult( true );
+                    secondHasSelected.Release();
 
                     return domain2.LoadAssembly( path2, null, new LoadAssemblyOptions { IsShared = true } );
                 },
