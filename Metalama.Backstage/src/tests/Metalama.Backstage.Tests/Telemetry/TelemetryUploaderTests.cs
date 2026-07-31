@@ -20,11 +20,15 @@ using Xunit.Abstractions;
 
 namespace Metalama.Backstage.Tests.Telemetry;
 
-public sealed class TelemetryUploaderTests : TestsBase
+public sealed class TelemetryUploaderTests : TestsBase, IDisposable
 {
     private const string _feedbackDirectory = @"C:\feedback";
 
     private readonly ITelemetryUploader _uploader;
+
+    // Registered for every test in this class. A sync point that no test has enabled does not block, so this is inert
+    // except in the test that drives the shutdown race. See #1764.
+    private readonly TestSynchronizationProvider _synchronizationProvider = new();
 
     public TelemetryUploaderTests( ITestOutputHelper logger ) : base( logger, new TestApplicationInfo() { IsTelemetryEnabled = true } )
     {
@@ -39,10 +43,16 @@ public sealed class TelemetryUploaderTests : TestsBase
         this.TelemetryConfigurationService.EnsureActivated();
     }
 
+    /// <summary>
+    /// Releases every sync point, so that a test that failed while the code under test was blocked cannot hang the run.
+    /// </summary>
+    public void Dispose() => this._synchronizationProvider.Dispose();
+
     protected override void ConfigureServices( ServiceProviderBuilder services )
     {
         services.AddTelemetryServices();
         services.AddTools();
+        services.AddSingleton<ITestSynchronizationProvider>( this._synchronizationProvider );
     }
 
     protected override void OnAfterServicesCreated( Services services )
@@ -197,5 +207,47 @@ public sealed class TelemetryUploaderTests : TestsBase
         Assert.False( this._uploader.StartUpload() );
 
         Assert.Empty( this.ProcessExecutor.StartedProcesses );
+    }
+
+    [Fact]
+    public async Task BackstageWorkerIsStartedWhenTheProcessShutsDownDuringStartUpload()
+    {
+        // #1764: reproduces the interleaving that stopped every telemetry upload. StartUpload normally runs as a
+        // background task (BackstageServicesInitializer enqueues it), and it enqueues the start of the upload process.
+        // When the process began shutting down between the two, that nested enqueue was refused, the exception was
+        // raised inside a task nobody observes, and the upload process was silently never started.
+        //
+        // The sync point makes the interleaving deterministic instead of relying on timing: we hold StartUpload just
+        // before it enqueues, begin the shutdown, and only then let it continue.
+        this.Time.AddTime( TimeSpan.FromMinutes( 20 ) );
+
+        this._synchronizationProvider.EnableSyncPoint( TelemetryUploader.BeforeEnqueueUploadSyncPoint );
+
+        var startUploadResult = false;
+
+        try
+        {
+            // Start the upload the way the initializer does: as a background task, so the enqueue inside it is nested.
+            var startUpload = this.BackgroundTasks.Enqueue( () => startUploadResult = this._uploader.StartUpload() );
+
+            await this._synchronizationProvider.WaitForSyncPointReachedAsync( TelemetryUploader.BeforeEnqueueUploadSyncPoint );
+
+            // The process starts shutting down while StartUpload is still running, exactly as ShutdownService does on
+            // ProcessExit. This must not prevent the upload process from being started.
+            var completion = this.BackgroundTasks.CompleteAsync();
+
+            this._synchronizationProvider.ReleaseSyncPoint( TelemetryUploader.BeforeEnqueueUploadSyncPoint );
+
+            await startUpload;
+            await completion;
+        }
+        finally
+        {
+            // Never leave a thread blocked on a sync point, however the assertions go.
+            this._synchronizationProvider.ReleaseAll();
+        }
+
+        Assert.True( startUploadResult );
+        Assert.Single( this.ProcessExecutor.StartedProcesses );
     }
 }

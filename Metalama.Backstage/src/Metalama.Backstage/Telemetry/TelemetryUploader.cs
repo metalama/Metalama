@@ -39,6 +39,13 @@ namespace Metalama.Backstage.Telemetry
         private readonly TelemetryLogger _telemetryLogger;
         private readonly BackstageBackgroundTasksService _backgroundTasksService;
         private readonly RandomNumberGenerator _randomNumberGenerator;
+        private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
+
+        /// <summary>
+        /// The sync point reached by <see cref="StartUpload"/> after it has claimed the upload but before it enqueues
+        /// the start of the upload process. See #1764.
+        /// </summary>
+        internal const string BeforeEnqueueUploadSyncPoint = "TelemetryUploader.StartUpload:BeforeEnqueue";
 
         public TelemetryUploader( IServiceProvider serviceProvider )
         {
@@ -53,6 +60,9 @@ namespace Metalama.Backstage.Telemetry
             this._telemetryLogger = serviceProvider.GetRequiredBackstageService<TelemetryLogger>();
             this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
             this._randomNumberGenerator = serviceProvider.GetRequiredBackstageService<RandomNumberGenerator>();
+
+            // Never registered in production, so this stays null there.
+            this._testSynchronizationProvider = serviceProvider.GetBackstageService<ITestSynchronizationProvider>();
         }
 
         private static void CopyStream( Stream inputStream, Stream outputStream )
@@ -279,6 +289,13 @@ namespace Metalama.Backstage.Telemetry
 
                 return false;
             }
+
+            // This method usually runs as a background task itself, because BackstageServicesInitializer enqueues it, so
+            // the enqueue below is a nested one. It used to be refused when the process started shutting down in
+            // between, and since the resulting exception was raised in a task nobody observes, the upload process was
+            // simply never started. The sync point lets a test hold us exactly here while it begins shutdown, rather
+            // than hope for that interleaving. See #1764.
+            this._testSynchronizationProvider?.SyncPoint( BeforeEnqueueUploadSyncPoint );
 
             this._backgroundTasksService.Enqueue( () => toolExecutor.Start( BackstageTool.Worker, "upload" ) );
 
