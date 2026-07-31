@@ -76,15 +76,27 @@ internal static class ViewModelBuilder
 
             return true;
         }
-        else if ( settings.Kind == ToastNotificationKinds.Exception.Name )
+        else if ( settings.Kind == ToastNotificationKinds.ExceptionReport.Name )
         {
             // Open the worker review page (formatted report + Report button + per-category auto-report checkbox)
             // instead of opening the raw report file. See #1674.
+            //
+            // This is the only notification kind without Snooze and Mute. Both act on the whole kind, so on this
+            // notification they silenced every error report on the machine: Mute permanently and irreversibly from the
+            // product, Snooze for an hour. Since the notification is the only way to approve a report, that turned a
+            // single click into the end of error reporting. The review page offers the per-issue equivalent ("never
+            // report this error"), and the privacy page remains the visible, reversible way to turn the whole channel
+            // off. Every other notification kind keeps both buttons. See #1751.
+            // Review comes first and stays the primary action, so the default gesture is still to look before sending.
+            // Report is the one-click path for the user who is willing to report without inspecting the payload: it
+            // sends the very same scrubbed report. "Never report this error" deliberately stays on the review page, so
+            // that opting an issue out costs a page visit while opting in does not. See #1751.
             viewModel = new NotificationViewModel(
                 settings.Kind,
                 settings.Title ?? "Metalama failed",
                 settings.Text ?? "Metalama encountered an unhandled exception.",
-                new CommandActionViewModel( "Review", activationArguments.OpenExceptionReport ) );
+                new CommandActionViewModel( "Review", activationArguments.OpenExceptionReport ),
+                new CommandActionViewModel( "Report", activationArguments.ReportException ) ) { CanMute = false, CanSnooze = false };
 
             return true;
         }

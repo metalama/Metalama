@@ -5,6 +5,7 @@
 using Metalama.Backstage.Desktop.Windows.Commands;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Infrastructure;
 using Microsoft.Toolkit.Uwp.Notifications;
 using Spectre.Console.Cli;
 using System;
@@ -49,10 +50,10 @@ internal sealed partial class App
         return BackstageServiceFactory.ServiceProvider;
     }
 
-    private static Task RunAppAsync( IEnumerable<string> args )
+    private static async Task RunAppAsync( IEnumerable<string> args )
     {
         // Make sure to run the app in a background thread.
-        return Task.Run(
+        await Task.Run(
             () =>
             {
                 CommandApp commandApp = new();
@@ -67,10 +68,20 @@ internal sealed partial class App
                         configuration.AddCommand<OpenWorkerRssOptionsCommand>( OpenWorkerRssOptionsCommand.Name );
                         configuration.AddCommand<OpenWorkerPrivacyOptionsCommand>( OpenWorkerPrivacyOptionsCommand.Name );
                         configuration.AddCommand<OpenExceptionReportCommand>( OpenExceptionReportCommand.Name );
+                        configuration.AddCommand<ReportExceptionCommand>( ReportExceptionCommand.Name );
                     } );
 
                 return commandApp.RunAsync( args );
             } );
+
+        // A command returns as soon as it has done its work, but it may have enqueued background work: sending a report
+        // starts the upload process that way. This process exits immediately afterwards (through Environment.Exit for a
+        // toast activation), which would kill a task that has not started yet, so we wait for the queue to drain here
+        // rather than rely on the ProcessExit handler having time to run. See #1751.
+        if ( BackstageServiceFactory.IsInitialized )
+        {
+            await BackstageBackgroundTasksService.Default.CompleteAsync();
+        }
     }
 
     protected override void OnStartup( StartupEventArgs e )

@@ -59,6 +59,12 @@ internal class ExceptionReportPageModel : PageModel
     public bool IsReported { get; private set; }
 
     /// <summary>
+    /// Gets a value indicating whether the user has just asked never to report this particular issue. The page then
+    /// confirms the choice instead of showing the report again, which has been deleted. See #1751.
+    /// </summary>
+    public bool IsIgnored { get; private set; }
+
+    /// <summary>
     /// Gets a value indicating whether the report has already been sent (auto-reported, or sent on a previous review).
     /// The page then shows the report renderings for transparency but without offering the Report button again. See #1674.
     /// </summary>
@@ -101,6 +107,30 @@ internal class ExceptionReportPageModel : PageModel
             // Only report the report as queued if it was actually enqueued: SendReport can fail (e.g. the file was
             // removed). Keeping the report content set means the page still renders the report rather than a blank form.
             this.IsReported = this._exceptionReporter.SendReport( this.Report! );
+        }
+
+        return this.Page();
+    }
+
+    /// <summary>
+    /// Records that this particular issue must never be reported. The user is not prompted about it again, while other
+    /// issues keep prompting normally. See #1751.
+    /// </summary>
+    public IActionResult OnPostIgnore()
+    {
+        if ( !string.IsNullOrEmpty( this.Report ) && this._exceptionReporter.TryGetReport( this.Report!, out var capturedReport ) )
+        {
+            this.Scenario = capturedReport.Category;
+            this.IsIgnored = this._exceptionReporter.IgnoreReport( this.Report! );
+
+            if ( !this.IsIgnored )
+            {
+                // Ignoring failed (e.g. the report was removed in the meantime), so keep rendering the report rather
+                // than an empty form.
+                this.ScrubbedContent = capturedReport.ScrubbedContent;
+                this.LocalContent = capturedReport.LocalContent;
+                this.IsAlreadySent = capturedReport.IsQueued;
+            }
         }
 
         return this.Page();

@@ -76,13 +76,60 @@ public sealed record TelemetryConfiguration : ConfigurationFile
     /// </summary>
     public DateTime? LastSaltChangeTime { get; init; }
 
+    /// <summary>
+    /// Gets the terminal decision taken for an issue, keyed by its invariant hash: <see cref="ReportingStatus.Reported"/>
+    /// once the report has actually been sent, and <see cref="ReportingStatus.Ignored"/> once the user has asked never to
+    /// report that issue. An issue on which no decision has been taken yet is absent.
+    /// </summary>
+    /// <remarks>
+    /// Only decisions are recorded here. Merely capturing a report does not add an entry, otherwise an issue the user
+    /// never approved would be silenced forever. The state of the pending question lives in <see cref="IssuePrompts"/>.
+    /// See #1751.
+    /// </remarks>
     [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<ReportingStatus>) )]
-    public ImmutableDictionary<string, ReportingStatus> Issues { get; init; } =
-        ImmutableDictionary<string, ReportingStatus>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
+    public ImmutableDictionary<string, ReportingStatus> Issues
+    {
+        get => this._issues;
+        init => this._issues = value ?? _emptyIssues;
+    }
+
+    /// <summary>
+    /// Gets the UTC time at which the user was last prompted to review the report of an issue, keyed by its invariant
+    /// hash. An issue on which no decision has been taken yet is prompted again once the retry period has elapsed.
+    /// </summary>
+    /// <remarks>
+    /// The review notification is the only way to approve a report, so a notification the user missed or dismissed must
+    /// not silence the issue forever: the question is asked again the next time the issue occurs. Entries older than the
+    /// retry period are pruned as they are written, so this dictionary only ever holds the very recently prompted
+    /// issues. See #1751.
+    /// </remarks>
+    [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<DateTime>) )]
+    public ImmutableDictionary<string, DateTime> IssuePrompts
+    {
+        get => this._issuePrompts;
+        init => this._issuePrompts = value ?? _emptyDates;
+    }
 
     [JsonConverter( typeof(CaseInsensitiveImmutableDictionaryConverterFactory<DateTime>) )]
-    public ImmutableDictionary<string, DateTime> Sessions { get; init; } =
+    public ImmutableDictionary<string, DateTime> Sessions
+    {
+        get => this._sessions;
+        init => this._sessions = value ?? _emptyDates;
+    }
+
+    // A property that is absent from the JSON file deserializes to null rather than to its initializer, so every
+    // dictionary normalizes null in its 'init' accessor (which 'with' expressions also go through). Without this, a
+    // configuration file written before one of these properties existed - or one the user edited through
+    // 'metalama config edit telemetry' - makes the consumers throw a NullReferenceException. See #1751.
+    private static readonly ImmutableDictionary<string, ReportingStatus> _emptyIssues =
+        ImmutableDictionary<string, ReportingStatus>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
+
+    private static readonly ImmutableDictionary<string, DateTime> _emptyDates =
         ImmutableDictionary<string, DateTime>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
+
+    private readonly ImmutableDictionary<string, ReportingStatus> _issues = _emptyIssues;
+    private readonly ImmutableDictionary<string, DateTime> _issuePrompts = _emptyDates;
+    private readonly ImmutableDictionary<string, DateTime> _sessions = _emptyDates;
 
     public DateTime? LastMatomoPostTime { get; init; }
 

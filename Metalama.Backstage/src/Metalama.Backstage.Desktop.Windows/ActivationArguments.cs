@@ -32,4 +32,7 @@ internal sealed class ActivationArguments
     // The toast Uri carries only the bare exception-report id (token-safe, no spaces). The activation argument is later
     // split on spaces, so the report id stays a single argument; the command builds the review-page path itself. See #1674.
     public string OpenExceptionReport => $"{OpenExceptionReportCommand.Name} {this._uri} {this._options}";
+
+    // Sends the same report without opening the review page. See #1751.
+    public string ReportException => $"{ReportExceptionCommand.Name} {this._uri} {this._options}";
 }

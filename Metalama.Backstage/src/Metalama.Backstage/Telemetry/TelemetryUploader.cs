@@ -39,6 +39,13 @@ namespace Metalama.Backstage.Telemetry
         private readonly TelemetryLogger _telemetryLogger;
         private readonly BackstageBackgroundTasksService _backgroundTasksService;
         private readonly RandomNumberGenerator _randomNumberGenerator;
+        private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
+
+        /// <summary>
+        /// The sync point reached by <see cref="StartUpload"/> after it has claimed the upload but before it enqueues
+        /// the start of the upload process. See #1764.
+        /// </summary>
+        internal const string BeforeEnqueueUploadSyncPoint = "TelemetryUploader.StartUpload:BeforeEnqueue";
 
         public TelemetryUploader( IServiceProvider serviceProvider )
         {
@@ -53,6 +60,9 @@ namespace Metalama.Backstage.Telemetry
             this._telemetryLogger = serviceProvider.GetRequiredBackstageService<TelemetryLogger>();
             this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
             this._randomNumberGenerator = serviceProvider.GetRequiredBackstageService<RandomNumberGenerator>();
+
+            // Never registered in production, so this stays null there.
+            this._testSynchronizationProvider = serviceProvider.GetBackstageService<ITestSynchronizationProvider>();
         }
 
         private static void CopyStream( Stream inputStream, Stream outputStream )
@@ -269,20 +279,76 @@ namespace Metalama.Backstage.Telemetry
 
             this._logger.Trace?.Log( "Acquiring mutex." );
 
+            // Claiming the upload by writing LastUploadTime is what stops two processes from uploading at the same time,
+            // so it has to happen before the upload is started rather than after. The claim is therefore optimistic and
+            // is released below if the upload turns out not to start at all.
+            DateTime? previousUploadTime = null;
+
             if ( !this._configurationManager.UpdateIf<TelemetryConfiguration>(
                     c => force ||
                          c.LastUploadTime == null ||
                          c.LastUploadTime.Value.AddDays( 1 ) < now,
-                    c => c with { LastUploadTime = this._time.UtcNow } ) )
+                    c =>
+                    {
+                        // Captured here, and not from a separate read, because the update is re-evaluated whenever
+                        // another process writes the file first: this is the only place where the value we are about to
+                        // replace is the value we actually replace. Releasing the wrong one would hand the day to a
+                        // process that never uploaded.
+                        previousUploadTime = c.LastUploadTime;
+
+                        // 'now', not a second reading of the clock: the value we claim with must be the one the
+                        // condition was evaluated against, and must be known here so that the release below can tell
+                        // our own claim from somebody else's.
+                        return c with { LastUploadTime = now };
+                    } ) )
             {
-                this._logger.Trace?.Log( $"It's not time to upload the telemetry yet." );
+                // UpdateIf tells us that this call did not perform the transition, but not why: the throttle may not
+                // have elapsed, another process may have claimed the upload, or the write may have run out of
+                // contention retries (which UpdateIf logs as an error of its own). Claiming a single one of those in
+                // the message sends whoever reads the trace after it, as it did in #1764.
+                this._logger.Trace?.Log( "Not uploading the telemetry now: it is not time yet, or another process has claimed the upload." );
 
                 return false;
             }
 
-            this._backgroundTasksService.Enqueue( () => toolExecutor.Start( BackstageTool.Worker, "upload" ) );
+            // This method usually runs as a background task itself, because BackstageServicesInitializer enqueues it, so
+            // the enqueue below is a nested one. It used to be refused when the process started shutting down in
+            // between, and since the resulting exception was raised in a task nobody observes, the upload process was
+            // simply never started. The sync point lets a test hold us exactly here while it begins shutdown, rather
+            // than hope for that interleaving. See #1764.
+            this._testSynchronizationProvider?.SyncPoint( BeforeEnqueueUploadSyncPoint );
+
+            this._backgroundTasksService.Enqueue( () => this.StartUploadProcess( toolExecutor, previousUploadTime, claimedUploadTime: now ) );
 
             return true;
+        }
+
+        /// <summary>
+        /// Starts the process that performs the upload, and releases the claim made by <see cref="StartUpload"/> if it
+        /// cannot be started.
+        /// </summary>
+        /// <remarks>
+        /// Without the release, a start that fails (for instance because the tools have not been extracted) would still
+        /// consume the once-a-day upload budget for the whole machine, so a single unlucky process in the morning would
+        /// silence uploads until the next day. The failure was also entirely silent, because this runs in a task nobody
+        /// observes. See #1764.
+        /// </remarks>
+        private void StartUploadProcess( IBackstageToolsExecutor toolExecutor, DateTime? previousUploadTime, DateTime claimedUploadTime )
+        {
+            try
+            {
+                toolExecutor.Start( BackstageTool.Worker, "upload" );
+            }
+            catch ( Exception e )
+            {
+                this._logger.LogException( e, "Cannot start the telemetry upload process" );
+
+                // Release the claim only while it is still ours: another process may have claimed the upload since, and
+                // that claim must stand.
+                this._configurationManager.UpdateIf<TelemetryConfiguration>(
+                    c => c.LastUploadTime == claimedUploadTime,
+                    c => c with { LastUploadTime = previousUploadTime } );
+            }
         }
 
         private static string ComputeHash( string packageName )
