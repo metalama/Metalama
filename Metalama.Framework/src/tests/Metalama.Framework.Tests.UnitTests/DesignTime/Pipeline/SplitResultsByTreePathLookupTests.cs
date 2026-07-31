@@ -6,6 +6,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Diagnostics;
@@ -16,6 +17,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Options;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
+using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -82,15 +84,7 @@ public sealed class SplitResultsByTreePathLookupTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        var compilation = testContext.CreateCSharpCompilation(
-            new Dictionary<string, string> { ["aspect.cs"] = _aspectCode, ["base.cs"] = _baseCode, ["target.cs"] = _targetCode } );
-
-        // A full execution, which gives both a real pipeline configuration and a real inheritable aspect instance
-        // targeting BaseClass, which is declared in base.cs.
-        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var executed ) );
-
-        var inheritableAspects = executed.Result.GetInheritableAspects( "Aspect" ).ToImmutableArray();
-        var inheritableAspect = Assert.Single( inheritableAspects );
+        var (executed, compilation, inheritableAspect) = Execute( testContext, factory );
 
         // The subset the pipeline ran on: target.cs is dirty, base.cs is not.
         var targetTree = compilation.SyntaxTrees.Single( t => t.FilePath == "target.cs" );
@@ -98,6 +92,70 @@ public sealed class SplitResultsByTreePathLookupTests : UnitTestClass
 
         Assert.DoesNotContain( "base.cs", partialCompilation.SyntaxTrees.Keys );
 
+        var updated = Update( executed, compilation, partialCompilation, inheritableAspect );
+
+        // The aspect must survive the update. It is carried by the result of base.cs, which the run that did include
+        // that tree produced and which this update must leave alone: overwriting it with a result holding the aspect
+        // and nothing else would drop the diagnostics and introductions of a file that has not changed.
+        Assert.Contains( inheritableAspect, updated.SyntaxTreeResults["base.cs"].InheritableAspects );
+        Assert.Contains( inheritableAspect, updated.GetInheritableAspects( "Aspect" ) );
+
+        AssertEx.EolInvariantEqual(
+            DumpSyntaxTreeResult( executed.Result.SyntaxTreeResults["base.cs"] ),
+            DumpSyntaxTreeResult( updated.SyntaxTreeResults["base.cs"] ) );
+    }
+
+    /// <summary>
+    /// The control case: the target declaration of the inheritable aspect is in the partial compilation, so the
+    /// aspect is filed under its own tree as before. Skipping it here would lose the inheritance for consumers.
+    /// </summary>
+    [Fact]
+    public void InheritableAspectOnTreeInsidePartialCompilation()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var (executed, compilation, inheritableAspect) = Execute( testContext, factory );
+
+        var baseTree = compilation.SyntaxTrees.Single( t => t.FilePath == "base.cs" );
+        var partialCompilation = PartialCompilation.CreatePartial( compilation, baseTree );
+
+        Assert.Contains( "base.cs", partialCompilation.SyntaxTrees.Keys );
+
+        var updated = Update( executed, compilation, partialCompilation, inheritableAspect );
+
+        Assert.Contains( inheritableAspect, updated.SyntaxTreeResults["base.cs"].InheritableAspects );
+        Assert.Contains( inheritableAspect, updated.GetInheritableAspects( "Aspect" ) );
+    }
+
+    /// <summary>
+    /// Runs a full design-time execution, which supplies the real pipeline configuration that <c>Update</c> requires
+    /// and a real inheritable aspect instance targeting <c>BaseClass</c>, declared in <c>base.cs</c>.
+    /// </summary>
+    private static (DesignTimeAspectPipelineResultAndState Executed, Compilation Compilation, InheritableAspectInstance InheritableAspect) Execute(
+        TestContext testContext,
+        TestDesignTimeAspectPipelineFactory factory )
+    {
+        var compilation = testContext.CreateCSharpCompilation(
+            new Dictionary<string, string> { ["aspect.cs"] = _aspectCode, ["base.cs"] = _baseCode, ["target.cs"] = _targetCode } );
+
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var executed ) );
+
+        var inheritableAspect = Assert.Single( executed.Result.GetInheritableAspects( "Aspect" ).ToImmutableArray() );
+
+        return (executed, compilation, inheritableAspect);
+    }
+
+    /// <summary>
+    /// Files an execution result that carries <paramref name="inheritableAspect"/> and nothing else into the
+    /// accumulated result, over the given partial compilation.
+    /// </summary>
+    private static DesignTimeAspectPipelineResult Update(
+        DesignTimeAspectPipelineResultAndState executed,
+        Compilation compilation,
+        PartialCompilation partialCompilation,
+        InheritableAspectInstance inheritableAspect )
+    {
         var pipelineResults = new DesignTimePipelineExecutionResult(
             partialCompilation.SyntaxTrees,
             ImmutableArray<IntroducedSyntaxTree>.Empty,
@@ -114,14 +172,18 @@ public sealed class SplitResultsByTreePathLookupTests : UnitTestClass
             ImmutableArray<DesignTimeProjectReference>.Empty,
             DesignTimeAspectPipelineStatus.Default );
 
-        var updated = executed.Result.Update(
-            partialCompilation,
-            projectVersion,
-            pipelineResults,
-            executed.Result.Configuration.AssertNotNull() );
-
-        // The aspect must survive the update: dropping it silently would make the consumer of the manifest lose the
-        // inheritance, which is a different bug than the one being fixed.
-        Assert.Contains( inheritableAspect, updated.GetInheritableAspects( "Aspect" ) );
+        return executed.Result.Update( partialCompilation, projectVersion, pipelineResults, executed.Result.Configuration.AssertNotNull() );
     }
+
+    /// <summary>
+    /// Renders the parts of a <see cref="SyntaxTreePipelineResult"/> that an update of another tree must not disturb.
+    /// </summary>
+    private static string DumpSyntaxTreeResult( SyntaxTreePipelineResult result )
+        => string.Join(
+            "\n",
+            $"path: {result.SyntaxTreePath}",
+            $"diagnostics: {string.Join( ", ", result.Diagnostics.Select( d => d.ToString() ) )}",
+            $"suppressions: {string.Join( ", ", result.Suppressions.Select( s => s.ToString() ) )}",
+            $"introductions: {string.Join( ", ", result.Introductions.Select( i => i.Name ) )}",
+            $"inheritable aspects: {string.Join( ", ", result.InheritableAspects.Select( a => a.ToString() ) )}" );
 }
