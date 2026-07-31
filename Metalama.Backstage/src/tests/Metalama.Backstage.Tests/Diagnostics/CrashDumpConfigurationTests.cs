@@ -2,13 +2,11 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Serialization;
-using Metalama.Backstage.Testing;
+using Metalama.Backstage.Tests.Serialization;
 using System;
 using System.Collections.Immutable;
+using System.Text.Json;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -20,22 +18,22 @@ namespace Metalama.Backstage.Tests.Diagnostics;
 /// </summary>
 /// <remarks>
 /// See issue #1772. A <c>default(ImmutableArray&lt;T&gt;)</c> wraps a null backing array: it is not
-/// <see cref="ImmutableArray{T}.Empty"/>, it throws an <see cref="InvalidOperationException"/> when it is enumerated,
-/// and it throws a <see cref="NullReferenceException"/> from the source-generated
-/// <c>ImmutableArrayStringSerializeHandler</c> when it is serialized. A property initializer alone did not prevent it:
-/// the System.Text.Json source generator treats every <c>init</c> property as a constructor parameter and assigns all
-/// of them unconditionally, so a <c>diagnostics.json</c> whose <c>crashDumps</c> section has no <c>exceptionTypes</c>
-/// entry overwrote the initializer with the default value.
+/// <see cref="ImmutableArray{T}.Empty"/>, it throws when it is enumerated, and it throws a
+/// <see cref="NullReferenceException"/> from the source-generated <c>ImmutableArrayStringSerializeHandler</c> when it
+/// is serialized. A property initializer alone did not prevent it: the System.Text.Json source generator treats every
+/// <c>init</c> property as a constructor parameter and assigns all of them unconditionally, so JSON without an
+/// <c>exceptionTypes</c> entry overwrote the initializer with the default value.
 /// </remarks>
-public sealed class CrashDumpConfigurationTests : TestsBase
+public sealed class CrashDumpConfigurationTests : JsonSerializationTestsBase
 {
-    public CrashDumpConfigurationTests( ITestOutputHelper logger ) : base( logger ) { }
-
-    private Metalama.Backstage.Configuration.ConfigurationManager CreateConfigurationManager() => new( this.ServiceProvider );
+    public CrashDumpConfigurationTests( ITestOutputHelper output ) : base( output ) { }
 
     /// <summary>
-    /// Verifies that a default array explicitly assigned through an object initializer or a <c>with</c> expression is normalized.
+    /// Verifies that a default array assigned through an object initializer or a <c>with</c> expression is normalized.
     /// </summary>
+    /// <remarks>
+    /// These are the construction paths of the deserializer itself, which assigns the property unconditionally.
+    /// </remarks>
     [Fact]
     public void ExceptionTypes_WhenSetToDefault_IsEmpty()
     {
@@ -43,7 +41,7 @@ public sealed class CrashDumpConfigurationTests : TestsBase
 
         Assert.False( configuration.ExceptionTypes.IsDefault );
 
-        // This enumerates the array, which is what throws InvalidOperationException on a default instance.
+        // This enumerates the array, which is what throws on a default instance.
         Assert.Empty( configuration.ExceptionTypes );
 
         var copy = configuration with { ExceptionTypes = default };
@@ -53,33 +51,38 @@ public sealed class CrashDumpConfigurationTests : TestsBase
     }
 
     /// <summary>
-    /// Verifies that a <c>diagnostics.json</c> without an <c>exceptionTypes</c> entry is read as an empty array and can be updated.
+    /// Verifies that a non-default value is preserved, so that the normalization does not lose the configured types.
+    /// </summary>
+    [Fact]
+    public void ExceptionTypes_WhenSet_IsPreserved()
+    {
+        var configuration = new CrashDumpConfiguration { ExceptionTypes = ImmutableArray.Create( "System.InvalidOperationException" ) };
+
+        Assert.Equal( "System.InvalidOperationException", Assert.Single( configuration.ExceptionTypes ) );
+    }
+
+    /// <summary>
+    /// Verifies that JSON without an <c>exceptionTypes</c> entry is deserialized into an empty array and can be serialized back.
     /// </summary>
     /// <remarks>
-    /// Such a file is what a fresh installation, an earlier version of Metalama, or a user running
-    /// <c>metalama config edit diagnostics</c> leaves behind. <see cref="ConfigurationManager.Update{T}"/> compares the
-    /// updated configuration with the cached one through <c>StructurallyEquals</c>, which serializes both, so merely
-    /// reading and updating the file reaches the serializer.
+    /// The reserialization matters because <c>ConfigurationManager.StructurallyEquals</c> serializes configuration
+    /// objects in order to compare them, so merely reading a configuration file reaches the serializer.
     /// </remarks>
     [Theory]
-    [InlineData( """{ "crashDumps": {} }""" )]
-    [InlineData( """{ "crashDumps": { "exceptionTypes": null } }""" )]
-    [InlineData( """{ "crashDumps": { "processes": { "Compiler": true } } }""" )]
-    public void ReadConfigurationFile_WithoutExceptionTypes_YieldsEmptyArray( string json )
+    [InlineData( "{}" )]
+    [InlineData( """{ "processes": { "Compiler": true } }""" )]
+    public void Deserialize_WithoutExceptionTypes_YieldsEmptyArray( string json )
     {
-        var configurationManager = this.CreateConfigurationManager();
-        var filePath = configurationManager.GetFilePath( typeof(DiagnosticsConfiguration) );
-        this.FileSystem.WriteAllText( filePath, json );
+        var configuration = JsonSerializer.Deserialize<CrashDumpConfiguration>( json, this.JsonOptions )!;
 
-        var configuration = configurationManager.Get<DiagnosticsConfiguration>();
+        Assert.False( configuration.ExceptionTypes.IsDefault );
+        Assert.Empty( configuration.ExceptionTypes );
 
-        Assert.False( configuration.CrashDumps.ExceptionTypes.IsDefault );
-        Assert.Empty( configuration.CrashDumps.ExceptionTypes );
+        var reserialized = JsonSerializer.Serialize( configuration, this.JsonOptions );
 
-        configurationManager.Update<DiagnosticsConfiguration>(
-            c => c with { Logging = new LoggingConfiguration { StopLoggingAfterHours = 4.5 } } );
+        this.Output.WriteLine( reserialized );
 
-        Assert.False( configurationManager.Get<DiagnosticsConfiguration>().CrashDumps.ExceptionTypes.IsDefault );
+        Assert.Contains( "\"exceptionTypes\": []", reserialized, StringComparison.Ordinal );
     }
 
     /// <summary>
@@ -92,13 +95,9 @@ public sealed class CrashDumpConfigurationTests : TestsBase
     [Fact]
     public void Serialize_WithDefaultExceptionTypes_DoesNotThrow()
     {
-        var jsonSerializationService = this.ServiceProvider.GetRequiredBackstageService<IJsonSerializationService>();
+        var json = this.JsonService.Serialize( new CrashDumpConfiguration { ExceptionTypes = default }, typeof(CrashDumpConfiguration) );
 
-        var json = jsonSerializationService.Serialize(
-            new CrashDumpConfiguration { ExceptionTypes = default },
-            typeof(CrashDumpConfiguration) );
-
-        this.Logger.WriteLine( json );
+        this.Output.WriteLine( json );
 
         Assert.Contains( "\"exceptionTypes\": []", json, StringComparison.Ordinal );
     }
