@@ -85,13 +85,21 @@ internal static class MSBuildEnvironment
                             ?? throw new InvalidOperationException( "Cannot start 'dotnet --list-sdks'." );
 
         var output = new StringBuilder();
+        var error = new StringBuilder();
         process.OutputDataReceived += ( _, e ) => output.AppendLine( e.Data );
+
+        // Both redirected streams have to be drained. Reading only one of them lets the other fill its pipe buffer
+        // and block the child forever, and it also loses the diagnostic that explains a non-zero exit code.
+        process.ErrorDataReceived += ( _, e ) => error.AppendLine( e.Data );
+
         process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
         process.WaitForExit();
 
         if ( process.ExitCode != 0 )
         {
-            throw new InvalidOperationException( $"'dotnet --list-sdks' failed with exit code {process.ExitCode}." );
+            throw new InvalidOperationException(
+                $"'dotnet --list-sdks' failed with exit code {process.ExitCode}: {error.ToString().Trim()}" );
         }
 
         return output.ToString()

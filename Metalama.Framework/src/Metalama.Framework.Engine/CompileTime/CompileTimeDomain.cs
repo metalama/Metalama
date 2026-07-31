@@ -320,14 +320,24 @@ namespace Metalama.Framework.Engine.CompileTime
         /// expected to be loaded so that a later call sees the conflict.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Checking and reserving are one operation on purpose. Separating them would restore the gap this exists to
         /// close. The caller (<c>DefaultCompileTimeDomainFactory.GetOrCreateDomain</c>) holds a lock across all domains,
         /// so the pair is atomic with respect to other domain requests. Nothing is reserved when the answer is
         /// <c>false</c>, so a rejected domain is left untouched.
+        /// </para>
+        /// <para>
+        /// A set that conflicts with <i>itself</i> is not answered with <c>false</c>. That answer would mean "try
+        /// another domain", and no domain can satisfy such a set, so the factory would mint a fresh domain per request
+        /// and never say why. The conflict belongs to the input rather than to the domain, and it is diagnosed as
+        /// <c>LAMA0079</c> where the closure is built. All this method owes is a coherent reservation, so it keeps the
+        /// first identity of each simple name, which is also the one the load context resolves to once anything is
+        /// loaded.
+        /// </para>
         /// </remarks>
         public bool TryReserveAssemblies( IEnumerable<string> assemblyPaths )
         {
-            var identities = new List<AssemblyIdentity>();
+            var identities = new Dictionary<string, AssemblyIdentity>( StringComparer.OrdinalIgnoreCase );
 
             foreach ( var path in assemblyPaths )
             {
@@ -353,15 +363,27 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 var identity = assemblyName.ToAssemblyIdentity();
 
+                if ( identities.TryGetValue( identity.Name, out var previousIdentity ) )
+                {
+                    if ( Conflicts( previousIdentity, identity ) )
+                    {
+                        this._logger.Warning?.Log(
+                            $"Domain {this._domainId}: assembly '{identity}' at '{path}' conflicts with '{previousIdentity}', " +
+                            $"which the same request also provides. Reserving the latter." );
+                    }
+
+                    continue;
+                }
+
                 if ( !this.IsCompatibleWithIdentity( identity, path ) )
                 {
                     return false;
                 }
 
-                identities.Add( identity );
+                identities.Add( identity.Name, identity );
             }
 
-            foreach ( var identity in identities )
+            foreach ( var identity in identities.Values )
             {
                 this._reservedIdentitiesByName[identity.Name] = identity;
             }
@@ -370,14 +392,17 @@ namespace Metalama.Framework.Engine.CompileTime
         }
 
         /// <summary>
+        /// Determines whether two identities of one simple name cannot both be loaded into a single domain.
+        /// </summary>
+        private static bool Conflicts( AssemblyIdentity x, AssemblyIdentity y )
+            => x.Version != y.Version || !x.PublicKeyToken.SequenceEqual( y.PublicKeyToken );
+
+        /// <summary>
         /// Determines whether an identity can be loaded into this domain, i.e. whether no assembly of the same simple
         /// name but a different version or public key is already loaded into it or reserved for it.
         /// </summary>
         private bool IsCompatibleWithIdentity( AssemblyIdentity identity, string path )
         {
-            static bool Conflicts( AssemblyIdentity x, AssemblyIdentity y )
-                => x.Version != y.Version || !x.PublicKeyToken.SequenceEqual( y.PublicKeyToken );
-
             if ( this._assembliesByName.TryGetValue( identity.Name, out var existingEntry )
                  && Conflicts( existingEntry.Identity, identity ) )
             {

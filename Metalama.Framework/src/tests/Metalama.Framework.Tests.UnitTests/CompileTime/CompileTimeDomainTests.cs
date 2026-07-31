@@ -263,12 +263,61 @@ public sealed class CompileTimeDomainTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that a request whose own assemblies conflict with each other does not consume a new domain every time
+    /// it is made.
+    /// </summary>
+    /// <remarks>
+    /// No domain can satisfy such a request, so answering "incompatible" would make the factory mint a fresh domain per
+    /// request and never say why. The conflict belongs to the input, and is diagnosed as <c>LAMA0079</c> where the
+    /// closure is built, so all the domain owes is a coherent reservation: the first identity of each simple name,
+    /// which is the one the load context resolves to. See #1749.
+    /// </remarks>
+    [Fact]
+    public void GetOrCreateDomain_SelfConflictingRequest_ReusesOneDomain()
+    {
+        using var testContext = this.CreateTestContext();
+        var factory = testContext.ServiceProvider.Global.GetRequiredService<ICompileTimeDomainFactory>();
+
+        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
+        Directory.CreateDirectory( tempDir );
+
+        CompileTimeDomain? domain1 = null;
+        CompileTimeDomain? domain2 = null;
+
+        try
+        {
+            var path1 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 1, 0, 0, 0 ), "public class V1 {}" );
+            var path2 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 2, 0, 0, 0 ), "public class V2 {}" );
+
+            domain1 = factory.GetOrCreateDomain( new[] { path1, path2 } );
+            domain2 = factory.GetOrCreateDomain( new[] { path1, path2 } );
+
+            Assert.Same( domain1, domain2 );
+
+            Assert.Equal(
+                new Version( 1, 0, 0, 0 ),
+                domain1.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } ).GetName().Version );
+        }
+        finally
+        {
+            domain2?.Dispose();
+
+            if ( domain1 != null && !ReferenceEquals( domain1, domain2 ) )
+            {
+                domain1.Dispose();
+            }
+
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
     /// Regression test for #1749 reproducing the interleaving of two concurrent compilations: both select a domain
     /// before either loads.
     /// </summary>
     /// <remarks>
-    /// The interleaving is forced with <see cref="TaskCompletionSource{TResult}"/> rather than left to the scheduler, so
-    /// the test is deterministic. Without the reservation, both threads are handed one domain and the second
+    /// The interleaving is forced with <see cref="SemaphoreSlim"/> sync points rather than left to the scheduler, so the
+    /// test is deterministic. Without the reservation, both threads are handed one domain and the second
     /// <c>LoadAssembly</c> throws.
     /// </remarks>
     [Fact]

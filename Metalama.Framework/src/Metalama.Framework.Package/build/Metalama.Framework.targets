@@ -184,8 +184,7 @@
          Assembly names and not paths: the consumer compares them against the assembly identity it reads from the
          reference, which is robust, whereas a path has to match exactly across two subsystems. That comparison used
          to fail silently, because when the referenced project produces a reference assembly (the default) the
-         compiler is given the reference assembly under 'obj\<config>\<tfm>
-ef' while @(ReferencePath) still holds
+         compiler is given the reference assembly under 'obj\<config>\<tfm>\ref\X.dll' while @(ReferencePath) still holds
          'bin\<config>\<tfm>\X.dll'. Names also cannot contain the ',' that separates the list items, so they need
          no escaping. -->
     <Target Name="ExportMetalamaProjectReferences" BeforeTargets="GenerateMSBuildEditorConfigFileCore" DependsOnTargets="ResolveAssemblyReferences">
