@@ -170,6 +170,10 @@ public sealed class TelemetryUploaderTests : TestsBase, IDisposable
         var expectedExecutedFileName = platformInfo.DotNetExePath;
 
         Assert.Equal( expectedExecutedFileName, this.ProcessExecutor.StartedProcesses[0].FileName );
+
+        // The upload is claimed with the very instant the throttle was evaluated against, not with a second reading of
+        // the clock. That is what lets the claim be released again by value if the upload cannot be started. See #1764.
+        Assert.Equal( this.Time.UtcNow, this.ConfigurationManager!.Get<TelemetryConfiguration>().LastUploadTime );
     }
 
     [Fact]

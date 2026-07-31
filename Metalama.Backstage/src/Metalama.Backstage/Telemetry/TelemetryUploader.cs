@@ -280,22 +280,32 @@ namespace Metalama.Backstage.Telemetry
             this._logger.Trace?.Log( "Acquiring mutex." );
 
             // Claiming the upload by writing LastUploadTime is what stops two processes from uploading at the same time,
-            // so it has to happen before the upload is started rather than after. It is therefore optimistic, and is
-            // released below if the upload turns out not to start at all.
-            var previousUploadTime = this._configurationManager.Get<TelemetryConfiguration>().LastUploadTime;
+            // so it has to happen before the upload is started rather than after. The claim is therefore optimistic and
+            // is released below if the upload turns out not to start at all.
+            DateTime? previousUploadTime = null;
 
             if ( !this._configurationManager.UpdateIf<TelemetryConfiguration>(
                     c => force ||
                          c.LastUploadTime == null ||
                          c.LastUploadTime.Value.AddDays( 1 ) < now,
-                    c => c with { LastUploadTime = this._time.UtcNow } ) )
+                    c =>
+                    {
+                        // Captured here, and not from a separate read, because the update is re-evaluated whenever
+                        // another process writes the file first: this is the only place where the value we are about to
+                        // replace is the value we actually replace. Releasing the wrong one would hand the day to a
+                        // process that never uploaded.
+                        previousUploadTime = c.LastUploadTime;
+
+                        // 'now', not a second reading of the clock: the value we claim with must be the one the
+                        // condition was evaluated against, and must be known here so that the release below can tell
+                        // our own claim from somebody else's.
+                        return c with { LastUploadTime = now };
+                    } ) )
             {
                 this._logger.Trace?.Log( $"It's not time to upload the telemetry yet." );
 
                 return false;
             }
-
-            var claimedUploadTime = this._configurationManager.Get<TelemetryConfiguration>().LastUploadTime;
 
             // This method usually runs as a background task itself, because BackstageServicesInitializer enqueues it, so
             // the enqueue below is a nested one. It used to be refused when the process started shutting down in
@@ -304,7 +314,7 @@ namespace Metalama.Backstage.Telemetry
             // than hope for that interleaving. See #1764.
             this._testSynchronizationProvider?.SyncPoint( BeforeEnqueueUploadSyncPoint );
 
-            this._backgroundTasksService.Enqueue( () => this.StartUploadProcess( toolExecutor, previousUploadTime, claimedUploadTime ) );
+            this._backgroundTasksService.Enqueue( () => this.StartUploadProcess( toolExecutor, previousUploadTime, claimedUploadTime: now ) );
 
             return true;
         }
@@ -319,7 +329,7 @@ namespace Metalama.Backstage.Telemetry
         /// silence uploads until the next day. The failure was also entirely silent, because this runs in a task nobody
         /// observes. See #1764.
         /// </remarks>
-        private void StartUploadProcess( IBackstageToolsExecutor toolExecutor, DateTime? previousUploadTime, DateTime? claimedUploadTime )
+        private void StartUploadProcess( IBackstageToolsExecutor toolExecutor, DateTime? previousUploadTime, DateTime claimedUploadTime )
         {
             try
             {
@@ -329,8 +339,8 @@ namespace Metalama.Backstage.Telemetry
             {
                 this._logger.LogException( e, "Cannot start the telemetry upload process" );
 
-                // Only release our own claim: another process may have claimed the upload in the meantime, and its
-                // claim must stand.
+                // Release the claim only while it is still ours: another process may have claimed the upload since, and
+                // that claim must stand.
                 this._configurationManager.UpdateIf<TelemetryConfiguration>(
                     c => c.LastUploadTime == claimedUploadTime,
                     c => c with { LastUploadTime = previousUploadTime } );
