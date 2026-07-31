@@ -3,11 +3,12 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Utilities;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace Metalama.Testing.UnitTesting;
 
 internal sealed class TestLanguageVersionProvider : ILanguageVersionProvider
 {
-    public LanguageVersion GetCompileTimeLanguageVersion() => SupportedCSharpVersions.Latest;
+    public LanguageVersion GetCompileTimeLanguageVersion( Compilation runTimeCompilation ) => SupportedCSharpVersions.Latest;
 }

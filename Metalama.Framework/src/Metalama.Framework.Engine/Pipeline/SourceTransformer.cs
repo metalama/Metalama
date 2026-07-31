@@ -98,6 +98,15 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
 
             var projectOptions = context.ProjectOptions;
 
+            // The Razor RazorCompileComponentDeclaration pass cannot signal its scenario through an MSBuild property
+            // (it forwards no /analyzerconfig), so detect it here and force the RazorDeclaration scenario, which runs a
+            // precompile pipeline (signatures only, no linker). See issue #1741.
+            if ( projectOptions.CompilationScenario == CompilationScenario.Default
+                 && RazorDeclarationDetector.IsRazorDeclaration( context ) )
+            {
+                projectOptions = new RazorPrecompileProjectOptions( projectOptions );
+            }
+
             // The compile-time exception handler is a project-scoped service, so it can resolve the project options and
             // the per-project telemetry context (honoring the repository metalama.json opt-out). See #1701.
             var projectServiceProvider = globalServices

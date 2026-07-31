@@ -48,7 +48,8 @@ namespace Metalama.Framework.Engine.Templating
             this._observer = serviceProvider.GetService<ITemplateCompilerObserver>();
 
             this._options = serviceProvider.GetRequiredService<IProjectOptions>();
-            this.TemplateLanguageVersion = serviceProvider.GetRequiredService<ILanguageVersionProvider>().GetCompileTimeLanguageVersion();
+            this.TemplateLanguageVersion = serviceProvider.GetRequiredService<ILanguageVersionProvider>()
+                .GetCompileTimeLanguageVersion( compilationContext.SourceCompilation );
         }
 
         public ILocationAnnotationMapBuilder LocationAnnotationMap => this._syntaxTreeAnnotationMap;

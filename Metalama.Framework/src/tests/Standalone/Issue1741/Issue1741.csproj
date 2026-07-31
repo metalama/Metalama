@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <!-- Regression test for issue #1741: a Razor/Blazor project built with the legacy two-pass Razor build
+         (UseRazorSourceGenerator=false) used to crash with LAMA0001 in the RazorCompileComponentDeclaration
+         pass, because that pass forwards no /analyzerconfig and Metalama could not determine the compile-time
+         language version. If this project builds, the RazorDeclaration precompile scenario works. -->
+
+    <PropertyGroup>
+        <!-- See https://github.com/dotnet/sdk/issues/29949#issuecomment-1402258974. -->
+        <TargetFramework>net$(NETCoreAppMaximumVersion)</TargetFramework>
+        <RootNamespace>BlazorApp</RootNamespace>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+
+        <!-- The setting under test: forces the legacy RazorCompileComponentDeclaration two-pass build. -->
+        <UseRazorSourceGenerator>false</UseRazorSourceGenerator>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>

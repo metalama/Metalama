@@ -47,7 +47,8 @@ public class CompileTimeAspectPipeline : AspectPipeline
     public static CompileTimeAspectPipeline Create( ProjectServiceProvider serviceProvider )
         => serviceProvider.GetRequiredService<IProjectOptions>().CompilationScenario switch
         {
-            CompilationScenario.WpfPrecompile => new WpfPrecompileAspectPipeline( serviceProvider ),
+            CompilationScenario.WpfPrecompile => new PrecompileAspectPipeline( serviceProvider, ExecutionScenario.WpfPrecompile ),
+            CompilationScenario.RazorDeclaration => new PrecompileAspectPipeline( serviceProvider, ExecutionScenario.RazorPrecompile ),
             _ => new CompileTimeAspectPipeline( serviceProvider )
         };
 

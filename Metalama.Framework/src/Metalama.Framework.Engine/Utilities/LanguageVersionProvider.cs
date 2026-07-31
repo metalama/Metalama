@@ -4,9 +4,11 @@
 
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 
 namespace Metalama.Framework.Engine.Utilities;
@@ -26,20 +28,41 @@ internal sealed class LanguageVersionProvider : ILanguageVersionProvider
     /// which depends on the SDK and not on the Roslyn version of the current process.
     /// </summary>
     /// <returns></returns>
-    public LanguageVersion GetCompileTimeLanguageVersion() => this._cachedValue ??= this.GetCompileTimeLanguageVersionCore();
+    public LanguageVersion GetCompileTimeLanguageVersion( Compilation runTimeCompilation )
+        => this._cachedValue ??= this.GetCompileTimeLanguageVersionCore( runTimeCompilation );
 
-    private LanguageVersion GetCompileTimeLanguageVersionCore()
+    private LanguageVersion GetCompileTimeLanguageVersionCore( Compilation runTimeCompilation )
     {
         // NETCoreSdkVersion can be null (property not defined) or empty (old-style .NET Framework projects
         // built with msbuild.exe where Microsoft.NETCoreSdk.BundledVersions.props is not imported).
         if ( string.IsNullOrEmpty( this._projectOptions.SdkVersion ) )
         {
-            // When building with msbuild.exe from Visual Studio (no .NET SDK), we use the project's
-            // language version constrained by what the MSBuild's bundled Roslyn version supports.
-            return this.GetLanguageVersionFromMSBuild();
+            if ( !string.IsNullOrEmpty( this._projectOptions.MSBuildBinPath ) )
+            {
+                // When building with msbuild.exe from Visual Studio (no .NET SDK), we use the project's
+                // language version constrained by what the MSBuild's bundled Roslyn version supports.
+                return this.GetLanguageVersionFromMSBuild();
+            }
+
+            // No MSBuild context at all: neither NETCoreSdkVersion nor MSBuildBinPath is available. This happens
+            // when csc is invoked without an '/analyzerconfig' (e.g. Razor's RazorCompileComponentDeclaration
+            // pass), so no build_property.* option reaches us. csc still passes '/langversion' in that pass, so we
+            // fall back to the run-time compilation's effective language version, capped to what the current
+            // compiler can emit. See issue #1741.
+            return GetLanguageVersionFromCompilation( runTimeCompilation );
         }
 
         return this.GetLanguageVersionFromDotNetSdk();
+    }
+
+    private static LanguageVersion GetLanguageVersionFromCompilation( Compilation runTimeCompilation )
+    {
+        var runTimeLanguageVersion =
+            (runTimeCompilation.SyntaxTrees.FirstOrDefault()?.Options as CSharpParseOptions)?.LanguageVersion.MapSpecifiedToEffectiveVersion()
+            ?? SupportedCSharpVersions.Latest;
+
+        // The current compiler cannot emit a compile-time compilation using a language version it does not support.
+        return runTimeLanguageVersion < SupportedCSharpVersions.Latest ? runTimeLanguageVersion : SupportedCSharpVersions.Latest;
     }
 
     private LanguageVersion GetLanguageVersionFromDotNetSdk()
@@ -75,14 +98,8 @@ internal sealed class LanguageVersionProvider : ILanguageVersionProvider
 
     private LanguageVersion GetLanguageVersionFromMSBuild()
     {
-        var msBuildBinPath = this._projectOptions.MSBuildBinPath;
-
-        if ( string.IsNullOrEmpty( msBuildBinPath ) )
-        {
-            throw new InvalidOperationException(
-                $"Cannot determine the compile-time language version: neither {nameof(MSBuildPropertyNames.NETCoreSdkVersion)} nor " +
-                $"{nameof(MSBuildPropertyNames.MSBuildBinPath)} is defined for project '{this._projectOptions.ProjectName}'." );
-        }
+        // Only called when MSBuildBinPath is non-empty (see GetCompileTimeLanguageVersionCore).
+        var msBuildBinPath = this._projectOptions.MSBuildBinPath!;
 
         // Find Roslyn assembly in the MSBuild bin path to determine the version.
         // The Roslyn folder can be in the bin path itself (e.g., ...\Bin\Roslyn) or in the parent directory

@@ -22,4 +22,19 @@ public enum CompilationScenario
     /// is consumed only by the XAML compiler for type resolution and then discarded.
     /// </summary>
     WpfPrecompile = 1,
+
+    /// <summary>
+    /// The reference assembly produced by Razor's <c>RazorCompileComponentDeclaration</c> target in the legacy
+    /// (non-source-generator) build, i.e. when <c>UseRazorSourceGenerator</c> is <c>false</c>. Like
+    /// <see cref="WpfPrecompile"/>, the pipeline emits aspect-introduced member signatures only and skips the
+    /// linker, because the assembly is consumed only by the Razor code generator for type resolution and then
+    /// discarded.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="WpfPrecompile"/>, this scenario cannot be selected via the
+    /// <c>MetalamaCompilationScenario</c> MSBuild property: the Razor declaration <c>Csc</c> invocation forwards
+    /// no <c>/analyzerconfig</c>, so no <c>build_property.*</c> value reaches the compiler. It is detected inside
+    /// the compiler from the output path (<c>...\RazorDeclaration\</c>). See issue #1741.
+    /// </remarks>
+    RazorDeclaration = 2,
 }

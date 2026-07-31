@@ -16,14 +16,15 @@ using System.Threading.Tasks;
 namespace Metalama.Framework.Engine.Pipeline.CompileTime
 {
     /// <summary>
-    /// A <see cref="HighLevelPipelineStage"/> for the WPF MarkupCompilePass1 temporary assembly. Reuses the full compile-time
+    /// A <see cref="HighLevelPipelineStage"/> for precompile scenarios (the WPF <c>MarkupCompilePass1</c> temporary
+    /// assembly and the Razor <c>RazorCompileComponentDeclaration</c> reference assembly). Reuses the full compile-time
     /// front-end (aspect discovery, eligibility, advice, template expansion of observable members) but skips the linker:
-    /// the temp assembly only needs aspect-introduced member signatures so the XAML compiler can resolve type references.
-    /// Emits the same partial-class stubs the design-time source generator produces.
+    /// the assembly only needs aspect-introduced member signatures so the XAML / Razor compiler can resolve type
+    /// references. Emits the same partial-class stubs the design-time source generator produces.
     /// </summary>
-    internal sealed class WpfPrecompilePipelineStage : HighLevelPipelineStage
+    internal sealed class PrecompilePipelineStage : HighLevelPipelineStage
     {
-        public WpfPrecompilePipelineStage( IReadOnlyList<OrderedAspectLayer> aspectLayers )
+        public PrecompilePipelineStage( IReadOnlyList<OrderedAspectLayer> aspectLayers )
             : base( aspectLayers ) { }
 
         protected override async Task<AspectPipelineResult> GetStageResultAsync(

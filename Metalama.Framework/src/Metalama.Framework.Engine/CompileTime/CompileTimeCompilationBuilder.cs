@@ -168,7 +168,8 @@ internal sealed partial class CompileTimeCompilationBuilder
     private ulong ComputeProjectHash(
         AssemblyIdentity assemblyIdentity,
         IEnumerable<CompileTimeProject> referencedProjects,
-        ulong sourceHash )
+        ulong sourceHash,
+        LanguageVersion compileTimeLanguageVersion )
     {
         using var hashHandle = HashUtilities.AllocateHasher();
         var h = hashHandle.Value;
@@ -222,6 +223,13 @@ internal sealed partial class CompileTimeCompilationBuilder
         h.Append( RoslynApiVersion.Current );
         this._logger.Trace?.Log( $"ProjectHash: RoslynApiVersion={RoslynApiVersion.Current}" );
 
+        // The compile-time compilation is emitted with this language version, so it is part of the cache identity.
+        // Without it, a compile-time project built in a context that resolves a different version (e.g. the Razor
+        // RazorCompileComponentDeclaration pass, which has no MSBuild context) could be served to (or from) the real
+        // compile and vice versa. See issue #1741.
+        h.Append( (int) compileTimeLanguageVersion );
+        this._logger.Trace?.Log( $"ProjectHash: CompileTimeLanguageVersion={compileTimeLanguageVersion}" );
+
         var digest = h.GetCurrentHashAsUInt64();
 
         return digest;
@@ -255,7 +263,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         }
 
         var runTimeCompilation = compilationContext.SourceCompilation;
-        var languageVersion = this._languageVersionProvider.GetCompileTimeLanguageVersion();
+        var languageVersion = this._languageVersionProvider.GetCompileTimeLanguageVersion( runTimeCompilation );
         var transformedFileGenerator = new TransformedPathGenerator();
 
         compileTimeCompilation = this.CreateEmptyCompileTimeCompilation(
@@ -1275,6 +1283,27 @@ internal sealed partial class CompileTimeCompilationBuilder
         }
     }
 
+    /// <summary>
+    /// Resolves the language version used to compile the compile-time (template) compilation, matching
+    /// <see cref="TemplateCompiler.TemplateLanguageVersion"/>: the <c>MetalamaTemplateLanguageVersion</c> override
+    /// when set and valid, otherwise the value from <see cref="ILanguageVersionProvider"/>. Kept in sync with
+    /// <see cref="TemplateCompiler.TryReadProjectOptions"/> (which additionally reports a diagnostic on an invalid
+    /// override) so the project hash matches the manifest.
+    /// </summary>
+    private LanguageVersion ResolveCompileTimeLanguageVersion( Compilation runTimeCompilation )
+    {
+        var optionsOverride = this._projectOptions.TemplateLanguageVersion;
+
+        if ( !string.IsNullOrWhiteSpace( optionsOverride )
+             && LanguageVersionFacts.TryParse( optionsOverride, out var overrideVersion )
+             && SupportedCSharpVersions.All.Contains( overrideVersion ) )
+        {
+            return overrideVersion;
+        }
+
+        return this._languageVersionProvider.GetCompileTimeLanguageVersion( runTimeCompilation );
+    }
+
     private (ulong SourceHash, ulong ProjectHash, OutputPaths OutputPaths) GetPreCacheProjectInfo(
         Compilation runTimeCompilation,
         IReadOnlyList<SyntaxTree> sourceTreesWithCompileTimeCode,
@@ -1284,7 +1313,12 @@ internal sealed partial class CompileTimeCompilationBuilder
         var assemblyIdentity = runTimeCompilation.Assembly.Identity;
 
         var sourceHash = this.ComputeSourceHash( targetFramework, sourceTreesWithCompileTimeCode );
-        var projectHash = this.ComputeProjectHash( assemblyIdentity, referencedProjects, sourceHash );
+
+        // Must match the value that will be stored in the manifest (TemplateCompiler.TemplateLanguageVersion), because
+        // the compile-time assembly name is derived from this hash and referencing projects reconstruct it from the
+        // manifest. See ResolveCompileTimeLanguageVersion and issue #1722.
+        var compileTimeLanguageVersion = this.ResolveCompileTimeLanguageVersion( runTimeCompilation );
+        var projectHash = this.ComputeProjectHash( assemblyIdentity, referencedProjects, sourceHash, compileTimeLanguageVersion );
 
         var outputPaths = this._outputPathHelper.GetOutputPaths( runTimeCompilation.AssemblyName!, targetFramework, projectHash );
 
@@ -1309,7 +1343,12 @@ internal sealed partial class CompileTimeCompilationBuilder
         var targetFramework = string.IsNullOrEmpty( manifest.TargetFramework ) ? null : new FrameworkName( manifest.TargetFramework );
 
         this._logger.Trace?.Log( $"TryCompileDeserializedProject( '{runTimeAssemblyName}' )" );
-        var projectHash = this.ComputeProjectHash( runTimeAssemblyIdentity, referencedProjects, manifest.SourceHash );
+
+        var projectHash = this.ComputeProjectHash(
+            runTimeAssemblyIdentity,
+            referencedProjects,
+            manifest.SourceHash,
+            manifest.ResolvedLanguageVersion );
 
         var outputPaths = this._outputPathHelper.GetOutputPaths( runTimeAssemblyName, targetFramework, projectHash );
 

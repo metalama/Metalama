@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Testing.UnitTesting;
 using System.Linq;
@@ -53,7 +54,7 @@ public sealed class WpfPrecompileTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCSharpCompilation( _aspectThatIntroducesAMemberAndOverridesAMethod );
-        var pipeline = new WpfPrecompileAspectPipeline( testContext.ServiceProvider );
+        var pipeline = new PrecompileAspectPipeline( testContext.ServiceProvider, ExecutionScenario.WpfPrecompile );
 
         var result = await pipeline.ExecuteAsync( null, null, compilation, default, testContext.CancellationToken );
 

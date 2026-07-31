@@ -35,6 +35,11 @@ namespace Metalama.Framework.Engine.CodeModel
         // Used by the WPF MarkupCompilePass1 temporary assembly, whose only consumer is the XAML type resolver.
         public static ExecutionScenario WpfPrecompile { get; } = new( nameof(WpfPrecompile), false, false, false, false );
 
+        // Same as WpfPrecompile (signature stubs, no linker), but for the Razor RazorCompileComponentDeclaration
+        // reference assembly, whose only consumer is the Razor code generator's type resolver. Kept distinct from
+        // WpfPrecompile so logs and crash reports identify which precompile pass is running.
+        public static ExecutionScenario RazorPrecompile { get; } = new( nameof(RazorPrecompile), false, false, false, false );
+
         public static ExecutionScenario CodeFix { get; } = new( nameof(CodeFix), true, false, true, true );
 
         public static ExecutionScenario Introspection { get; } = new( nameof(Introspection), false, true, true, false );
