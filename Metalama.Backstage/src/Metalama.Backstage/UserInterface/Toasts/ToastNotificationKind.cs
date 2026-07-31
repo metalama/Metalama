@@ -23,4 +23,17 @@ public sealed record ToastNotificationKind( string Name )
     /// (e.g. a required license, which fails the build, or an exception) are not throttled. The default is <c>false</c>.
     /// </summary>
     internal bool IsThrottled { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this kind of notification can be muted, i.e. disabled for good. The default is
+    /// <c>true</c>.
+    /// </summary>
+    /// <remarks>
+    /// Muting is permanent and cannot be undone from the product, so it is unacceptable for a notification that is the
+    /// only way to take an action, such as approving an exception report. Such a kind sets this to <c>false</c>: the
+    /// notification offers no Mute button, <see cref="IToastNotificationStatusService.Mute"/> is a no-op, and a mute
+    /// stored by an earlier version is ignored, so users who muted before the button was removed start seeing the
+    /// notification again. See #1751.
+    /// </remarks>
+    internal bool CanBeMuted { get; init; } = true;
 }

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
 using System;
@@ -29,6 +30,9 @@ internal sealed class BackstageServicesInitializer : IBackstageService
 
     public void Initialize()
     {
+        // Before anything is enqueued, so that a background task that fails is reported instead of vanishing. See #1765.
+        this._backgroundTasksService.SetLogger( this._serviceProvider.GetLoggerFactory().GetLogger( "BackgroundTasks" ) );
+
         this._profilingService?.Initialize();
         this._telemetryConfigurationService?.Initialize();
         this._shutdownService?.Initialize();

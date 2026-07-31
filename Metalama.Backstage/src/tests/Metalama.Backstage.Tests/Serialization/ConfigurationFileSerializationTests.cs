@@ -54,6 +54,7 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                       "LicenseAuditSalt": null,
                                       "LastSaltChangeTime": "2025-01-01T00:00:00Z",
                                       "Issues": {},
+                                      "IssuePrompts": {},
                                       "Sessions": {},
                                       "LastMatomoPostTime": "2025-01-10T12:00:00Z",
                                       "RetentionPeriodInDays": null,
@@ -69,6 +70,44 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
     }
 
     [Fact]
+    public void TelemetryConfiguration_WithoutIssuePrompts_DeserializesToEmptyDictionary()
+    {
+        // #1751: 'IssuePrompts' was added in 2026.1.22, so every telemetry.json written by an earlier version omits it.
+        // Deserializing such a file must yield an empty dictionary rather than null, otherwise the first exception
+        // captured after an upgrade throws a NullReferenceException inside the exception reporter itself.
+        const string json = """
+                            {
+                              "Issues": {
+                                "ISSUE001": 1
+                              }
+                            }
+                            """;
+
+        var configuration = JsonSerializer.Deserialize<TelemetryConfiguration>( json, this.JsonOptions )!;
+
+        Assert.NotNull( configuration.IssuePrompts );
+        Assert.Empty( configuration.IssuePrompts );
+        Assert.Equal( ReportingStatus.Reported, configuration.Issues["ISSUE001"] );
+
+        // The same applies to every dictionary of the record: 'metalama config edit telemetry' lets the user remove any
+        // of them, and a file written before a property existed simply does not have it.
+        var empty = JsonSerializer.Deserialize<TelemetryConfiguration>( "{}", this.JsonOptions )!;
+
+        Assert.Empty( empty.Issues );
+        Assert.Empty( empty.IssuePrompts );
+        Assert.Empty( empty.Sessions );
+
+        // Explicit nulls must be normalized too.
+        var nulls = JsonSerializer.Deserialize<TelemetryConfiguration>(
+            """{ "Issues": null, "IssuePrompts": null, "Sessions": null }""",
+            this.JsonOptions )!;
+
+        Assert.Empty( nulls.Issues );
+        Assert.Empty( nulls.IssuePrompts );
+        Assert.Empty( nulls.Sessions );
+    }
+
+    [Fact]
     public void TelemetryConfiguration_WithIssuesAndSessions_Serialization()
     {
         // Note: Dictionary ordering is not guaranteed, so we test round-trip consistency
@@ -78,6 +117,8 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
             ExceptionConsent = TelemetryConsent.Default,
             Issues = ImmutableDictionary<string, ReportingStatus>.Empty
                 .Add( "ISSUE001", ReportingStatus.Reported ),
+            IssuePrompts = ImmutableDictionary<string, DateTime>.Empty
+                .Add( "ISSUE002", new DateTime( 2025, 1, 15, 9, 0, 0, DateTimeKind.Utc ) ),
             Sessions = ImmutableDictionary<string, DateTime>.Empty
                 .Add( "session1", new DateTime( 2025, 1, 15, 10, 0, 0, DateTimeKind.Utc ) )
         };
@@ -96,6 +137,9 @@ public sealed class ConfigurationFileSerializationTests : JsonSerializationTests
                                       "LastSaltChangeTime": null,
                                       "Issues": {
                                         "ISSUE001": 1
+                                      },
+                                      "IssuePrompts": {
+                                        "ISSUE002": "2025-01-15T09:00:00Z"
                                       },
                                       "Sessions": {
                                         "session1": "2025-01-15T10:00:00Z"
