@@ -274,8 +274,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "LAMA0080",
                 Error,
                 "Metalama is enabled in this project, but no METALAMA_PROJECT_* preprocessor symbol is defined, so the design-time experience "
-                + "is silently broken. This symbol is defined by Metalama.Framework.targets and identifies the project uniquely. Check that "
-                + "DefineConstants is appended to and not overwritten, and that MetalamaDefineProjectDiscriminator is not set to False.",
+                + "is silently broken. This symbol is defined by Metalama.Framework.targets and identifies the project uniquely. Verify that "
+                + "the DefineConstants property is appended to and not overwritten.",
                 "Metalama is enabled in this project, but no METALAMA_PROJECT_* preprocessor symbol is defined.",
                 _category );
 

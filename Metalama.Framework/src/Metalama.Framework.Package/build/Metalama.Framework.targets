@@ -4,21 +4,34 @@
         Define a METALAMA_PROJECT_<hash> compilation symbol that identifies this project. Metalama identifies a project
         by its assembly name and by a hash of its compilation symbols, because those are the only project-identifying
         data available from a Compilation alone. Without this symbol, two projects that have the same assembly name and
-        the same target framework are indistinguishable. Set MetalamaDefineProjectDiscriminator to False to suppress the
-        symbol, at the cost of the LAMA0080 warning. See https://github.com/metalama/Metalama/issues/1749.
+        the same target framework are indistinguishable. See https://github.com/metalama/Metalama/issues/1749.
+
+        The identifier is the path of the project relative to MetalamaRootDirectory, which defaults to the directory of
+        the solution. A relative path keeps the symbol, and therefore the compilation, independent of the directory into
+        which the repository is cloned, which a build that must be reproducible requires. Set MetalamaRootDirectory
+        explicitly when the same project is built from several solutions and must produce the same symbol in each.
 
         This is defined even when MetalamaEnabled is False. The symbol has no effect on the compilation of the project
         itself, and a project that Metalama does not process is still referenced by projects that it does process, which
         identify it by the same key.
     -->
     <PropertyGroup>
-        <_MetalamaProjectId>$(MSBuildProjectFullPath)|$(TargetFramework)|$(Configuration)|$(Platform)</_MetalamaProjectId>
+        <MetalamaRootDirectory Condition="'$(MetalamaRootDirectory)'==''">$(SolutionDir)</MetalamaRootDirectory>
+
+        <_MetalamaProjectPath Condition="'$(MetalamaRootDirectory)'!=''">$([MSBuild]::MakeRelative('$(MetalamaRootDirectory)', '$(MSBuildProjectFullPath)'))</_MetalamaProjectPath>
+        <!-- Without a root directory there is no stable path to be relative to, so only the file name of the project is
+             used. Two projects that have the same file name and the same assembly name then share an identifier. -->
+        <_MetalamaProjectPath Condition="'$(MetalamaRootDirectory)'==''">$(MSBuildProjectFile)</_MetalamaProjectPath>
+
+        <!-- The directory separator is normalized so that the same project yields the same symbol on every platform. -->
+        <_MetalamaProjectId>$(_MetalamaProjectPath.Replace('\','/'))|$(TargetFramework)|$(Configuration)|$(Platform)</_MetalamaProjectId>
+
         <!-- The hash is computed in two steps because MSBuild cannot parse a property function nested inside the quoted
              argument of another one (MSB4186). The hash is signed, and 'N' replaces the minus sign so that the symbol
              remains a valid identifier. -->
         <_MetalamaProjectIdHash>$([MSBuild]::StableStringHash('$(_MetalamaProjectId)'))</_MetalamaProjectIdHash>
         <_MetalamaProjectDiscriminator>$([System.String]::Copy('$(_MetalamaProjectIdHash)').Replace('-','N'))</_MetalamaProjectDiscriminator>
-        <DefineConstants Condition="'$(MetalamaDefineProjectDiscriminator)'!='False'">$(DefineConstants);METALAMA_PROJECT_$(_MetalamaProjectDiscriminator)</DefineConstants>
+        <DefineConstants>$(DefineConstants);METALAMA_PROJECT_$(_MetalamaProjectDiscriminator)</DefineConstants>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(MetalamaEnabled)'!='False'">
