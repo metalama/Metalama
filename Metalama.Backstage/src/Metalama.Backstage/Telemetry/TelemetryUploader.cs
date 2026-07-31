@@ -279,6 +279,11 @@ namespace Metalama.Backstage.Telemetry
 
             this._logger.Trace?.Log( "Acquiring mutex." );
 
+            // Claiming the upload by writing LastUploadTime is what stops two processes from uploading at the same time,
+            // so it has to happen before the upload is started rather than after. It is therefore optimistic, and is
+            // released below if the upload turns out not to start at all.
+            var previousUploadTime = this._configurationManager.Get<TelemetryConfiguration>().LastUploadTime;
+
             if ( !this._configurationManager.UpdateIf<TelemetryConfiguration>(
                     c => force ||
                          c.LastUploadTime == null ||
@@ -290,6 +295,8 @@ namespace Metalama.Backstage.Telemetry
                 return false;
             }
 
+            var claimedUploadTime = this._configurationManager.Get<TelemetryConfiguration>().LastUploadTime;
+
             // This method usually runs as a background task itself, because BackstageServicesInitializer enqueues it, so
             // the enqueue below is a nested one. It used to be refused when the process started shutting down in
             // between, and since the resulting exception was raised in a task nobody observes, the upload process was
@@ -297,9 +304,37 @@ namespace Metalama.Backstage.Telemetry
             // than hope for that interleaving. See #1764.
             this._testSynchronizationProvider?.SyncPoint( BeforeEnqueueUploadSyncPoint );
 
-            this._backgroundTasksService.Enqueue( () => toolExecutor.Start( BackstageTool.Worker, "upload" ) );
+            this._backgroundTasksService.Enqueue( () => this.StartUploadProcess( toolExecutor, previousUploadTime, claimedUploadTime ) );
 
             return true;
+        }
+
+        /// <summary>
+        /// Starts the process that performs the upload, and releases the claim made by <see cref="StartUpload"/> if it
+        /// cannot be started.
+        /// </summary>
+        /// <remarks>
+        /// Without the release, a start that fails (for instance because the tools have not been extracted) would still
+        /// consume the once-a-day upload budget for the whole machine, so a single unlucky process in the morning would
+        /// silence uploads until the next day. The failure was also entirely silent, because this runs in a task nobody
+        /// observes. See #1764.
+        /// </remarks>
+        private void StartUploadProcess( IBackstageToolsExecutor toolExecutor, DateTime? previousUploadTime, DateTime? claimedUploadTime )
+        {
+            try
+            {
+                toolExecutor.Start( BackstageTool.Worker, "upload" );
+            }
+            catch ( Exception e )
+            {
+                this._logger.LogException( e, "Cannot start the telemetry upload process" );
+
+                // Only release our own claim: another process may have claimed the upload in the meantime, and its
+                // claim must stand.
+                this._configurationManager.UpdateIf<TelemetryConfiguration>(
+                    c => c.LastUploadTime == claimedUploadTime,
+                    c => c with { LastUploadTime = previousUploadTime } );
+            }
         }
 
         private static string ComputeHash( string packageName )

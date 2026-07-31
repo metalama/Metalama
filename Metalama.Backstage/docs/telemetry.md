@@ -157,6 +157,10 @@ Mute is permanent and cannot be undone from the product, so it is unacceptable o
 
 `StartUpload` is throttled to once a day unless `force: true`, which the review page uses because the user explicitly asked. It delegates to a separate worker process, so it needs `IBackstageToolsExecutor`; when that service is absent it is a no-op and the file simply waits for the next process start (`BackstageServicesInitializer`).
 
+Writing `LastUploadTime` is how the once-a-day upload is claimed against other processes, so it necessarily happens *before* the upload starts. The claim is therefore optimistic and is released again if the upload process cannot be started, otherwise a single failed start would consume the day for the whole machine.
+
+> **Rule.** A background task that fails must not leave a claim behind, and must not fail silently. `StartUpload` runs as a background task and enqueues another one, so nothing above it observes an exception: both the log and the release have to happen inside the task. See #1764.
+
 ## Configuration files
 
 | File | Scope | Contents |

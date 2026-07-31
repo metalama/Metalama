@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
@@ -248,6 +249,35 @@ public sealed class TelemetryUploaderTests : TestsBase, IDisposable
         }
 
         Assert.True( startUploadResult );
+        Assert.Single( this.ProcessExecutor.StartedProcesses );
+    }
+
+    [Fact]
+    public async Task DailyUploadBudgetIsNotConsumedWhenTheUploadProcessCannotBeStarted()
+    {
+        // #1764: claiming the upload by writing LastUploadTime has to happen before the upload is started, otherwise two
+        // processes would upload at once. The claim is therefore optimistic, and a start that fails used to keep it:
+        // one unlucky process was then enough to silence uploads for the rest of the day, silently, because the failure
+        // happens in a task nobody observes.
+        this.Time.AddTime( TimeSpan.FromMinutes( 20 ) );
+
+        var uploadTimeBefore = this.ConfigurationManager!.Get<TelemetryConfiguration>().LastUploadTime;
+
+        this.ProcessExecutor.ExceptionToThrow = new IOException( "Simulated: the tools have not been extracted." );
+
+        Assert.True( this._uploader.StartUpload() );
+        await this.BackgroundTasks.WhenNoPendingTaskAsync();
+
+        // Nothing was started, so the claim must have been released rather than consume the day.
+        Assert.Empty( this.ProcessExecutor.StartedProcesses );
+        Assert.Equal( uploadTimeBefore, this.ConfigurationManager.Get<TelemetryConfiguration>().LastUploadTime );
+
+        // Which means the very next attempt may upload, instead of waiting until tomorrow.
+        this.ProcessExecutor.ExceptionToThrow = null;
+
+        Assert.True( this._uploader.StartUpload() );
+        await this.BackgroundTasks.WhenNoPendingTaskAsync();
+
         Assert.Single( this.ProcessExecutor.StartedProcesses );
     }
 }
