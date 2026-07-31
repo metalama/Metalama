@@ -225,10 +225,7 @@ internal sealed partial class ProjectVersionProvider
                     continue;
                 }
 
-                if ( !references.ContainsKey( projectKey ) )
-                {
-                    references.Add( projectKey, compilationReference.Compilation );
-                }
+                references.TryAdd( projectKey, compilationReference.Compilation );
             }
 
             return references;
