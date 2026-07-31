@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -8,6 +8,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CompileTime;
@@ -205,6 +207,140 @@ public sealed class CompileTimeDomainTests : UnitTestClass
         finally
         {
             domain1?.Dispose();
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
+    /// Regression test for #1749: two conflicting versions must get two domains even when neither has been loaded yet.
+    /// </summary>
+    /// <remarks>
+    /// The sibling tests all load the first assembly before asking for the second domain, which is why they passed while
+    /// this was broken. Compatibility was decided from the assemblies a domain had actually loaded, but a project loads
+    /// long after it has been given its domain, so a second project asking in that window saw no conflict and was handed
+    /// the same domain. Both then loaded, and the second failed with "Assembly with same name is already loaded". No
+    /// concurrency is needed to show it: the two requests below are strictly sequential.
+    /// </remarks>
+    [Fact]
+    public void GetOrCreateDomain_VersionConflictBeforeLoading_CreatesNewDomain()
+    {
+        using var testContext = this.CreateTestContext();
+        var factory = testContext.ServiceProvider.Global.GetRequiredService<ICompileTimeDomainFactory>();
+
+        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
+        Directory.CreateDirectory( tempDir );
+
+        CompileTimeDomain? domain1 = null;
+        CompileTimeDomain? domain2 = null;
+
+        try
+        {
+            var path1 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 1, 0, 0, 0 ), "public class V1 {}" );
+            var path2 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 2, 0, 0, 0 ), "public class V2 {}" );
+
+            // Both domains are requested before either assembly is loaded, which is what a compiler process building
+            // two projects does.
+            domain1 = factory.GetOrCreateDomain( new[] { path1 } );
+            domain2 = factory.GetOrCreateDomain( new[] { path2 } );
+
+            Assert.NotSame( domain1, domain2 );
+
+            // Loading in the order the domains were requested must now work for both.
+            Assert.Equal( new Version( 1, 0, 0, 0 ), domain1.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } ).GetName().Version );
+            Assert.Equal( new Version( 2, 0, 0, 0 ), domain2.LoadAssembly( path2, null, new LoadAssemblyOptions { IsShared = true } ).GetName().Version );
+        }
+        finally
+        {
+            domain2?.Dispose();
+
+            if ( domain1 != null && !ReferenceEquals( domain1, domain2 ) )
+            {
+                domain1.Dispose();
+            }
+
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
+    /// Regression test for #1749 reproducing the interleaving of two concurrent compilations: both select a domain
+    /// before either loads.
+    /// </summary>
+    /// <remarks>
+    /// The interleaving is forced with <see cref="TaskCompletionSource{TResult}"/> rather than left to the scheduler, so
+    /// the test is deterministic. Without the reservation, both threads are handed one domain and the second
+    /// <c>LoadAssembly</c> throws.
+    /// </remarks>
+    [Fact]
+    public async Task GetOrCreateDomain_ConcurrentSelectionBeforeLoading_CreatesNewDomain()
+    {
+        using var testContext = this.CreateTestContext();
+        var factory = testContext.ServiceProvider.Global.GetRequiredService<ICompileTimeDomainFactory>();
+
+        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
+        Directory.CreateDirectory( tempDir );
+
+        using var cancellationTokenSource = new CancellationTokenSource( TimeSpan.FromMinutes( 2 ) );
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var firstHasSelected = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+        var secondHasSelected = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        // Cancellation is wired into the sync points themselves rather than through Task.WaitAsync, which does not
+        // exist on the net48 target of this project. A hung test then fails on the timeout instead of blocking forever.
+        using var firstRegistration = cancellationToken.Register( () => firstHasSelected.TrySetCanceled() );
+        using var secondRegistration = cancellationToken.Register( () => secondHasSelected.TrySetCanceled() );
+
+        CompileTimeDomain? domain1 = null;
+        CompileTimeDomain? domain2 = null;
+
+        try
+        {
+            var path1 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 1, 0, 0, 0 ), "public class V1 {}" );
+            var path2 = CreateAssemblyOnDisk( tempDir, "Extension", new Version( 2, 0, 0, 0 ), "public class V2 {}" );
+
+            var first = Task.Run(
+                async () =>
+                {
+                    domain1 = factory.GetOrCreateDomain( new[] { path1 } );
+                    firstHasSelected.SetResult( true );
+
+                    // Load only once the other side has also chosen its domain, which is the window that used to be
+                    // unguarded.
+                    await secondHasSelected.Task;
+
+                    return domain1.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
+                },
+                cancellationToken );
+
+            var second = Task.Run(
+                async () =>
+                {
+                    await firstHasSelected.Task;
+
+                    domain2 = factory.GetOrCreateDomain( new[] { path2 } );
+                    secondHasSelected.SetResult( true );
+
+                    return domain2.LoadAssembly( path2, null, new LoadAssemblyOptions { IsShared = true } );
+                },
+                cancellationToken );
+
+            var assembly1 = await first;
+            var assembly2 = await second;
+
+            Assert.NotSame( domain1, domain2 );
+            Assert.Equal( new Version( 1, 0, 0, 0 ), assembly1.GetName().Version );
+            Assert.Equal( new Version( 2, 0, 0, 0 ), assembly2.GetName().Version );
+        }
+        finally
+        {
+            domain2?.Dispose();
+
+            if ( domain1 != null && !ReferenceEquals( domain1, domain2 ) )
+            {
+                domain1.Dispose();
+            }
+
             TryDeleteDirectory( tempDir );
         }
     }

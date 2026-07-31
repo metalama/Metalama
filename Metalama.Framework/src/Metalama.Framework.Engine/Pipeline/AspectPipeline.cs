@@ -121,15 +121,26 @@ public abstract class AspectPipeline : IDisposable
             return false;
         }
 
-        // Get a CompileTimeDomain that is compatible with the extension assemblies for this project.
+        // Get a CompileTimeDomain that is compatible with the assemblies this project will load into it.
         // The factory either reuses an existing domain or creates a new one.
         var extensionLoader = this.ServiceProvider.Global.GetRequiredService<IExtensionLoader>();
 
-        var extensionAssemblyPaths = extensionLoader
+        var domainAssemblyPaths = extensionLoader
             .GetExtensionAssemblyPaths( this.ProjectOptions.ExtensionAssemblies )
             .ToList();
 
-        var domain = this.DomainFactory.GetOrCreateDomain( extensionAssemblyPaths );
+        // The extension assemblies are not the only ones that end up in the domain. An untransformed compile-time
+        // assembly, i.e. one carrying [assembly: CompileTime] but no embedded compile-time project, is loaded under the
+        // name of the assembly it comes from, so two versions of it cannot share an AssemblyLoadContext. A transformed
+        // one cannot conflict, because its 'ml!<name>_<hash>' name is unique per content.
+        //
+        // Those references were absent from the set the domain was chosen against, so a compiler process building two
+        // projects that reference two versions of one such assembly reused a single domain and then failed on the
+        // assembly load, with an unhandled "Assembly with same name is already loaded" rather than any diagnostic. The
+        // compilations are each perfectly valid, so isolation is the answer rather than an error. See #1749.
+        domainAssemblyPaths.AddRange( GetUntransformedCompileTimeAssemblyPaths( compilation, this.ServiceProvider ) );
+
+        var domain = this.DomainFactory.GetOrCreateDomain( domainAssemblyPaths );
 
         // Extension assemblies have to be loaded before the compile-time project is created,
         // because the compile-time project can reference their types.
@@ -478,6 +489,59 @@ public abstract class AspectPipeline : IDisposable
 
     private bool IsMetalamaEnabled( Compilation compilation )
         => this.ServiceProvider.Global.GetRequiredService<IMetalamaProjectClassifier>().TryGetMetalamaVersion( compilation, out _ );
+
+    /// <summary>
+    /// Returns the paths of the referenced assemblies that will be loaded into the <see cref="CompileTimeDomain"/> under
+    /// their own name, i.e. the untransformed compile-time assemblies.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Such an assembly carries <c>[assembly: CompileTime]</c> but embeds no compile-time project, which is what the
+    /// public assembly of an SDK-based or weaver-based aspect looks like. <c>TryCreateUntransformed</c> loads it under
+    /// the identity it already has, so two versions of it cannot coexist in one <c>AssemblyLoadContext</c> and the
+    /// domain must not be shared between two projects that reference different versions.
+    /// </para>
+    /// <para>
+    /// The filtering mirrors <c>CompileTimeProjectRepository.Builder.TryGetCompileTimeProjectFromPath</c>, which does
+    /// the same work slightly later; metadata reads are cached by path, so this costs a cache miss only the first time
+    /// a reference is seen.
+    /// </para>
+    /// </remarks>
+    private static IEnumerable<string> GetUntransformedCompileTimeAssemblyPaths( Compilation compilation, ProjectServiceProvider serviceProvider )
+    {
+        var referenceAssemblyNames = serviceProvider.GetReferenceAssemblyLocator().AssemblyNames;
+
+        foreach ( var reference in compilation.References )
+        {
+            if ( reference is not PortableExecutableReference { FilePath: { } path } )
+            {
+                continue;
+            }
+
+            var simpleName = System.IO.Path.GetFileNameWithoutExtension( path );
+
+            // Same performance trick as the Builder: do not read the metadata of assemblies that cannot be ours.
+            if ( referenceAssemblyNames.Contains( simpleName )
+                 || simpleName.Equals( "System", StringComparison.OrdinalIgnoreCase )
+                 || simpleName.StartsWith( "System.", StringComparison.OrdinalIgnoreCase )
+                 || simpleName.StartsWith( "Microsoft.CodeAnalysis", StringComparison.OrdinalIgnoreCase ) )
+            {
+                continue;
+            }
+
+            if ( !MetadataReader.TryGetMetadata( path, out var metadataInfo ) )
+            {
+                continue;
+            }
+
+            // A transformed project is renamed to 'ml!<name>_<hash>', which is unique per content, so it never conflicts.
+            if ( metadataInfo.HasCompileTimeAttribute
+                 && !metadataInfo.Resources.ContainsKey( CompileTimeConstants.CompileTimeProjectResourceName ) )
+            {
+                yield return path;
+            }
+        }
+    }
 
     // ReSharper disable UnusedParameter.Global
     private protected virtual PipelineContributorSources CreatePipelineContributorSources(

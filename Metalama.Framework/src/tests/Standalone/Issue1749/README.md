@@ -54,30 +54,46 @@ there, exactly as they are for the per-TFM copies of a multi-targeted library.
 dotnet build Issue1749.sln /p:UseSharedCompilation=false
 ```
 
-`UseSharedCompilation=false` is not optional, and `test.json` now passes it through its `Properties`, because the
-harness otherwise runs a plain `dotnet build` and the scenario fails for the wrong reason.
+`UseSharedCompilation=false` is **not** passed, deliberately. The default shared compiler is what makes this scenario
+cover two distinct defects in one build, and passing the flag would hide the second one.
 
-## The separate defect the shared compiler exposes
+## The second defect: two projects, one compiler process, one domain
 
-With the shared compiler, `Middle1` and `Middle2` are compiled **in the same process**, and the second fails:
+With the shared compiler, `Middle1` and `Middle2` are compiled **in the same process**. `Middle1` loads `Contract 1.0`
+into the `CompileTimeDomain`, and `Middle2` then used to fail:
 
 ```
-CSC : error LAMA0001: Unexpected exception occurred in Metalama:
-Cannot load '...\Metalama\CompileTime\Contract\...\Contract.dll':
+CSC : error LAMA0001: Cannot load '...\Metalama\CompileTime\Contract\...\Contract.dll':
 Could not load file or assembly 'Contract, Version=1.1.0.0, ... PublicKeyToken=9f073587addbe099'.
 Assembly with same name is already loaded
 ```
 
-This is a **different** collision from the one this scenario asserts, and it is not fixed. `LAMA0079` is reported by
-`CompileTimeProjectRepository.Builder`, whose reservation table is an instance field, so it sees the compile-time
-assembly names of **one** compilation's closure. Here each of `Middle1` and `Middle2` has exactly one `Contract` in its
-own closure and neither is in conflict; the two versions collide only when both are loaded into the `CompileTimeDomain`
-shared by the compiler process.
+`LAMA0079` cannot catch this, and should not: the two compilations are each perfectly valid. `Middle1` references one
+version of `Contract` and `Middle2` references another, and neither closure contains a conflict. The reservation table
+that reports `LAMA0079` is an instance field of `CompileTimeProjectRepository.Builder`, so it only ever sees one
+compilation. The versions meet in the domain, not in a closure, so the answer is isolation rather than a diagnostic.
 
-That makes it the more realistic shape of #1749, since it needs nothing but an ordinary build of a solution where two
-projects reference two versions of one untransformed compile-time assembly. Fixing it means isolating compile-time
-assemblies per compilation rather than per process, or renaming them the way transformed projects are renamed, and it is
-tracked separately from this scenario.
+`AspectPipeline` chooses a domain through `ICompileTimeDomainFactory.GetOrCreateDomain`, which reuses one only when
+`CompileTimeDomain.IsCompatibleWithAssemblies` accepts the assemblies it is given. That mechanism was already correct;
+its **input set** was not. It received only the extension assemblies, and an untransformed compile-time assembly like
+`Contract` is an ordinary reference rather than an extension, so the conflict was invisible and the domain was reused.
+`GetUntransformedCompileTimeAssemblyPaths` now adds those references to the set, and the two projects get separate
+domains.
+
+Only untransformed assemblies need to be listed: a transformed projection is renamed to `ml!<name>_<hash>`, unique per
+content, so it cannot conflict with anything.
+
+## What `test.json` asserts, and why it is deterministic in CI
+
+The scenario now pins **both** defects with no flags to pass:
+
+- `error LAMA0079.*Contract` must appear, which is the closure collision inside `Consumer`.
+- `Assembly with same name is already loaded` must **not** appear, which is the cross-compilation collision above. That
+  string is the whole assertion, because the failure had no diagnostic id of its own: it arrived as `LAMA0001`, the
+  generic unhandled-exception report.
+
+Both are exercised by the harness's own plain `dotnet build`, so the regression is caught by an ordinary CI run rather
+than by a locally supplied property.
 
 ## Result on `develop/2026.1` (2026.1.21)
 

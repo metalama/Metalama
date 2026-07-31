@@ -45,6 +45,29 @@ public static class ProjectKeyFactory
         return new ProjectKey( assemblyName, preprocessorSymbolHashCode, isMetalamaEnabled );
     }
 
+    /// <summary>
+    /// The prefix of the compilation symbol that identifies a project, defined by <c>Metalama.Framework.targets</c>
+    /// from the project path, target framework, configuration and platform.
+    /// </summary>
+    private const string _projectDiscriminatorSymbolPrefix = "METALAMA_PROJECT_";
+
+    /// <summary>
+    /// Returns the hash that distinguishes one project from another within a <see cref="ProjectKey"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Only the <c>METALAMA_PROJECT_*</c> symbols are hashed when the project has any. They already encode everything
+    /// that identifies the project, so hashing the other symbols would only make the key depend on things that do not
+    /// identify anything: adding or removing an unrelated <c>#define</c>, or a conditional <c>DefineConstants</c>,
+    /// would change the key of a project that has not otherwise changed. That churns the design-time pipeline cache and
+    /// makes a project unrecognizable to the processes that route by key.
+    /// </para>
+    /// <para>
+    /// Every symbol is still hashed when no discriminator is present, which is the case for a project built by a
+    /// Metalama older than 2026.1 and for a host that builds its own compilations, such as a test harness. That
+    /// preserves the previous behaviour exactly where the discriminator cannot be relied on. See #1749.
+    /// </para>
+    /// </remarks>
     private static StrongBox<ulong> GetPreprocessorSymbolHashCode( ParseOptions parseOptions )
     {
         // ProjectKey is a cross-process identifier so we have to use a robust hasher.
@@ -54,16 +77,22 @@ public static class ProjectKeyFactory
         // Sorted, so that the key of a project does not depend on the order in which the symbols happen to be given.
         // Without this, the same project could yield two different keys, which is as harmful as two projects yielding
         // one key. CompileTimeCompilationBuilder.ComputeSourceHash already sorts them for the same reason.
-        var preprocessorSymbolNames = parseOptions.PreprocessorSymbolNames
+        var allSymbolNames = parseOptions.PreprocessorSymbolNames
             .OrderBy( x => x, StringComparer.Ordinal )
             .ToReadOnlyList();
 
-        if ( preprocessorSymbolNames.Count == 0 )
+        var discriminatorSymbolNames = allSymbolNames
+            .Where( x => x.StartsWith( _projectDiscriminatorSymbolPrefix, StringComparison.Ordinal ) )
+            .ToReadOnlyList();
+
+        var hashedSymbolNames = discriminatorSymbolNames.Count > 0 ? discriminatorSymbolNames : allSymbolNames;
+
+        if ( hashedSymbolNames.Count == 0 )
         {
             return new StrongBox<ulong>( 0 );
         }
 
-        foreach ( var symbol in preprocessorSymbolNames )
+        foreach ( var symbol in hashedSymbolNames )
         {
             hasher.Append( symbol );
         }

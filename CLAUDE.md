@@ -71,6 +71,18 @@ When starting work on a GitHub issue:
 
 1. **Check troubleshooting files**: Look at `%TEMP%\Metalama\CompileTimeTroubleshooting\...\errors.txt` for actual errors
 2. **File locks**: After failed builds, run `Build.ps1 tools kill` before retrying. Use this instead of killing `dotnet`/`MSBuild`/`VBCSCompiler` processes by name or pattern: doing so also kills the nodes of any other build in flight and leaves worse locks behind.
+
+   **Locked output files are by design, not a symptom.** Metalama loads *user* assemblies into the compiler process: extension assemblies (`MetalamaExtensionAssembly`) and untransformed compile-time assemblies. VBCSCompiler (the shared compiler server) and MSBuild worker nodes both outlive a build on purpose, so those DLLs stay locked in a server after the build that produced them has finished. Expect it; do not investigate it as a defect.
+
+   What it breaks: `Build.ps1 test` begins with `PrepareCommand` → `CleanCommand`, a recursive delete of every `bin`/`obj`. One held file throws `UnauthorizedAccessException` or `IOException`, the exception propagates out of `CleanCommand`, and **the whole run dies before a single test executes**. Worse, the harness still returns **exit code 0**, so the failure reads as success. Never trust that exit code alone; grep the output for `UnauthorizedAccessException`, `IOException` and `project(s) failed`.
+
+   Two traps when clearing locks:
+   - `Build.ps1 tools kill` runs *as* `BuildMetalama.dll`, so it cannot kill its own process tree and says so. **Never chain it into the next command** (`tools kill; test`) — its own process is often still holding the DLL the next command must overwrite, which fails with `MSB3027`/`MSB3021` on `BuildMetalama.dll`.
+   - Killing MSBuild nodes leaves node reuse expecting them, so the next build can fail with `MSB4166: Child node exited prematurely`. Pass `-nodeReuse:false` on the first build afterwards.
+
+   The sequence that works: kill the servers, **verify** the outputs are actually deletable, then run the suite as a *separate* invocation.
+
+   Every diagnostic `dotnet build` you run spawns servers that will lock things later, so this bites most when alternating between direct builds and `Build.ps1 test`.
 3. **Trace data flow**: For MSBuild issues, trace from `.csproj` → `.targets` → Engine code
 4. **Reading Metalama's own trace during a build**: all three of these are required, and omitting any one produces no output at all.
 

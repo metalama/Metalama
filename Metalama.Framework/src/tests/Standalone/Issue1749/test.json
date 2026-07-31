@@ -1,9 +1,9 @@
 {
     "BuildOnly": true,
     "IgnoreExitCode": true,
-    "Properties": {
-        "UseSharedCompilation": "false"
-    },
     "ExpectedDiagnosticsRegexes": [ "error LAMA0079.*Contract" ],
-    "ForbiddenDiagnosticsRegexes": [ "error CS1704" ]
+    "ForbiddenDiagnosticsRegexes": [
+        "error CS1704",
+        "Assembly with same name is already loaded"
+    ]
 }
