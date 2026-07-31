@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Telemetry;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
@@ -53,6 +54,7 @@ public sealed class DesignTimeSyntaxTreeGeneratorFailureTests : DesignTimePipeli
         services.AddProjectService<IConcurrentTaskRunner>( _ => new FailureInjectingTaskRunner(), allowOverride: true );
 
         using var testContext = this.CreateTestContext( services );
+        testContext.ExpectsReportedExceptions = true;
 
         var compilation = testContext.CreateCSharpCompilation( _code );
 
@@ -70,6 +72,12 @@ public sealed class DesignTimeSyntaxTreeGeneratorFailureTests : DesignTimePipeli
         Assert.Contains(
             results.Result.SyntaxTreeResults.Values.SelectMany( r => r.Diagnostics ),
             d => d.Id == GeneralDiagnosticDescriptors.IgnorableUnhandledException.Id );
+
+        // Containing the failure must not hide it from us: it also goes through the backstage exception handler, so a
+        // crash report reaches telemetry instead of the defect being visible only in the user's error list.
+        var report = Assert.Single( testContext.ReportedTelemetryExceptions );
+        Assert.IsType<NullReferenceException>( report.Exception );
+        Assert.Equal( TelemetryScenario.Exception, report.Scenario );
     }
 
     /// <summary>
