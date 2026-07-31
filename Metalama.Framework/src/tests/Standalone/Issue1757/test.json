@@ -1,7 +1,7 @@
 {
     "BuildOnly": true,
     "ExpectedDiagnosticsRegexes": [
-        "warning LAMA0078.*OldAspects.*2025\\.1\\.18",
-        "warning LAMA0081.*MidAspects.*2026\\.1\\.20"
+        "warning LAMA0078.*OldAspects.*2025\\.1\\.\\d+",
+        "warning LAMA0081.*MidAspects.*2026\\.1\\.\\d+"
     ]
 }

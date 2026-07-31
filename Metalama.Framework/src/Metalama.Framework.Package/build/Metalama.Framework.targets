@@ -23,12 +23,24 @@
              used. Two projects that have the same file name and the same assembly name then share an identifier. -->
         <_MetalamaProjectPath Condition="'$(MetalamaRootDirectory)'==''">$(MSBuildProjectFile)</_MetalamaProjectPath>
 
-        <!-- The directory separator is normalized so that the same project yields the same symbol on every platform. -->
-        <_MetalamaProjectId>$(_MetalamaProjectPath.Replace('\','/'))|$(TargetFramework)|$(Configuration)|$(Platform)</_MetalamaProjectId>
+        <!-- The directory separator is normalized so that the same project yields the same symbol on every platform.
+             The spaces of the platform are removed, because a solution configuration names it 'Any CPU' whereas a
+             project names it 'AnyCPU', and the identifier of a project must not depend on which of the two the host
+             happens to evaluate. -->
+        <_MetalamaNormalizedProjectPath>$(_MetalamaProjectPath.Replace('\','/'))</_MetalamaNormalizedProjectPath>
+        <_MetalamaNormalizedPlatform>$(Platform.Replace(' ',''))</_MetalamaNormalizedPlatform>
+        <_MetalamaProjectId>$(_MetalamaNormalizedProjectPath)|$(TargetFramework)|$(Configuration)|$(_MetalamaNormalizedPlatform)</_MetalamaProjectId>
 
         <!-- The hash is computed in two steps because MSBuild cannot parse a property function nested inside the quoted
              argument of another one (MSB4186). The hash is signed, and 'N' replaces the minus sign so that the symbol
-             remains a valid identifier. -->
+             remains a valid identifier.
+
+             StableStringHash is 32 bits, so two projects of one solution can collide, with the probability of the
+             birthday problem: roughly one in a million for a solution of a hundred projects. A collision is not silent:
+             the design-time pipeline compares the path, the target framework and the configuration of the two projects
+             before serving a cached pipeline, and reports the collision instead of serving the wrong one. The wider
+             overload of StableStringHash is not used, because it is not available in every supported version of
+             MSBuild. -->
         <_MetalamaProjectIdHash>$([MSBuild]::StableStringHash('$(_MetalamaProjectId)'))</_MetalamaProjectIdHash>
         <_MetalamaProjectDiscriminator>$([System.String]::Copy('$(_MetalamaProjectIdHash)').Replace('-','N'))</_MetalamaProjectDiscriminator>
         <DefineConstants>$(DefineConstants);METALAMA_PROJECT_$(_MetalamaProjectDiscriminator)</DefineConstants>

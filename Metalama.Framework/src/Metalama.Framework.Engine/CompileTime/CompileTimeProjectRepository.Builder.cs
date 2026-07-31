@@ -372,9 +372,7 @@ internal sealed partial class CompileTimeProjectRepository
             // Performance trick: do not analyze system assemblies.
             var assemblyFileName = Path.GetFileNameWithoutExtension( assemblyPath );
 
-            if ( assemblyFileName.Equals( "System", StringComparison.OrdinalIgnoreCase ) ||
-                 assemblyFileName.StartsWith( "System.", StringComparison.OrdinalIgnoreCase ) ||
-                 assemblyFileName.StartsWith( "Microsoft.CodeAnalysis", StringComparison.OrdinalIgnoreCase ) )
+            if ( CompileTimeConstants.IsSystemAssemblyFileName( assemblyFileName ) )
             {
                 this._logger.Trace?.Log( $"'{assemblyPath}' is a system assembly." );
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -395,7 +395,7 @@ namespace Metalama.Framework.Engine.CompileTime
         /// Determines whether two identities that share a simple name cannot both be loaded into a single domain.
         /// </summary>
         /// <remarks>
-        /// The comparison covers every component of the identity except the simple name, which the caller has already
+        /// The comparison covers the whole identity, including the simple name, which every caller has already
         /// established to be equal. The version, the culture and the public key are precisely the components that the
         /// C# compiler allows to differ so that two assemblies of a single simple name can be referenced side by side,
         /// and a single load context cannot hold two of them.
@@ -426,35 +426,6 @@ namespace Metalama.Framework.Engine.CompileTime
                     $"another project has reserved the identity '{reservedIdentity}'." );
 
                 return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Determines whether this domain is compatible with the given assembly paths, without reserving anything.
-        /// </summary>
-        public bool IsCompatibleWithAssemblies( IEnumerable<string> assemblyPaths )
-        {
-            foreach ( var path in assemblyPaths )
-            {
-                AssemblyName assemblyName;
-
-                try
-                {
-                    assemblyName = MetadataReferenceCache.GetAssemblyName( path );
-                }
-                catch ( Exception e ) when ( e is FileNotFoundException or BadImageFormatException or IOException )
-                {
-                    this._logger.Trace?.Log( $"Domain {this._domainId}: cannot read assembly metadata for '{path}': {e.Message}. Treating as compatible." );
-
-                    continue;
-                }
-
-                if ( assemblyName.Name != null && !this.IsCompatibleWithIdentity( assemblyName.ToAssemblyIdentity(), path ) )
-                {
-                    return false;
-                }
             }
 
             return true;

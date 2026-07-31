@@ -138,11 +138,25 @@ public abstract class WorkspaceProvider : IGlobalService, IDisposable
 
         if ( matches.Count > 1 )
         {
+            var paths = string.Join( ", ", matches.Select( p => p.FilePath ?? p.Name ) );
+
+            // A project that does not reference Metalama carries no METALAMA_PROJECT_* symbol, therefore two such
+            // projects that produce one assembly name legitimately share a key. That cannot be repaired from here, and
+            // failing would cost the consuming project its whole design-time experience over a reference that
+            // contributes no aspect, so the project is reported as not found, exactly as an absent one is.
+            if ( !projectKey.IsMetalamaEnabled )
+            {
+                this.Logger.Warning?.Log(
+                    $"{matches.Count} projects in the workspace have the key '{projectKey}': {paths}. None of them references Metalama, "
+                    + $"therefore the key cannot be made unique and no project is returned." );
+
+                return null;
+            }
+
             throw new InvalidOperationException(
-                $"{matches.Count} projects in the workspace have the same Metalama project key '{projectKey}': "
-                + $"{string.Join( ", ", matches.Select( p => p.FilePath ?? p.Name ) )}. A project key is an assembly name and a hash of the "
-                + "compilation symbols, and it must identify a project uniquely. Check that the METALAMA_PROJECT_* compilation symbol defined by "
-                + "Metalama.Framework.targets is present in these projects and has not been removed by a DefineConstants assignment." );
+                $"{matches.Count} projects in the workspace have the same Metalama project key '{projectKey}': {paths}. A project key must "
+                + "identify a project uniquely. Verify that the METALAMA_PROJECT_* compilation symbol defined by Metalama.Framework.targets "
+                + "is present in these projects and has not been removed by an assignment to the DefineConstants property." );
         }
 
         return matches[0];

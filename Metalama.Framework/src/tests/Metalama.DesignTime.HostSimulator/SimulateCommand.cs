@@ -45,9 +45,12 @@ internal sealed class SimulateCommand : AsyncCommand<SimulateCommandSettings>
 
         if ( settings.TimeoutSeconds > 0 )
         {
-            var completed = await Task.WhenAny( work, Task.Delay( TimeSpan.FromSeconds( settings.TimeoutSeconds ), cancellationToken ) );
+            // The delay observes no cancellation token. Cancelling it would fault the delay, which would win the race
+            // and cause an interruption by the user to be reported as a timeout. The delay is abandoned when the work
+            // completes first, which is harmless because the process is about to end either way.
+            var completed = await Task.WhenAny( work, Task.Delay( TimeSpan.FromSeconds( settings.TimeoutSeconds ), CancellationToken.None ) );
 
-            if ( completed != work )
+            if ( completed != work && !cancellationToken.IsCancellationRequested )
             {
                 // Written in the canonical MSBuild format, so that the build engineering sees it as a diagnostic.
                 Console.Out.WriteLine(

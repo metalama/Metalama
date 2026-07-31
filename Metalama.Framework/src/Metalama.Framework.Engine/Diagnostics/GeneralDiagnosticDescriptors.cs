@@ -269,10 +269,15 @@ namespace Metalama.Framework.Engine.Diagnostics
         /// to the other. The build itself is unaffected, which is exactly why this must be reported: the damage is
         /// invisible from the build.
         /// </remarks>
+        /// <remarks>
+        /// This is a warning and not an error, and the pipeline continues after reporting it, because the build that
+        /// reports it is correct. Failing the build would deny the user a working build over a condition that affects
+        /// only the experience in the editor.
+        /// </remarks>
         internal static readonly DiagnosticDefinition MissingMetalamaProjectPreprocessorSymbol =
             new(
                 "LAMA0080",
-                Error,
+                Warning,
                 "Metalama is enabled in this project, but no METALAMA_PROJECT_* preprocessor symbol is defined, so the design-time experience "
                 + "is silently broken. This symbol is defined by Metalama.Framework.targets and identifies the project uniquely. Verify that "
                 + "the DefineConstants property is appended to and not overwritten.",

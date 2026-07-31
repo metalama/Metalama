@@ -74,10 +74,11 @@ public sealed class CompileTimeDomainTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that IsCompatibleWithAssemblies returns true when assemblies are compatible.
+    /// Verifies that <see cref="CompileTimeDomain.TryReserveAssemblies"/> succeeds when the assembly is the one that the
+    /// domain has already loaded.
     /// </summary>
     [Fact]
-    public void IsCompatibleWithAssemblies_Compatible_ReturnsTrue()
+    public void TryReserveAssemblies_Compatible_ReturnsTrue()
     {
         using var testContext = this.CreateTestContext();
         using var domain = testContext.Domain;
@@ -91,8 +92,8 @@ public sealed class CompileTimeDomainTests : UnitTestClass
 
             domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
 
-            // Same assembly path should be compatible.
-            Assert.True( domain.IsCompatibleWithAssemblies( new[] { path1 } ) );
+            // The same assembly must be reservable, because its identity is the one already loaded.
+            Assert.True( domain.TryReserveAssemblies( new[] { path1 } ) );
         }
         finally
         {
@@ -101,11 +102,11 @@ public sealed class CompileTimeDomainTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that IsCompatibleWithAssemblies returns false when an assembly with the same name
-    /// but different version is already loaded.
+    /// Verifies that <see cref="CompileTimeDomain.TryReserveAssemblies"/> fails when an assembly of the same name but of
+    /// a different version has already been loaded into the domain.
     /// </summary>
     [Fact]
-    public void IsCompatibleWithAssemblies_VersionConflict_ReturnsFalse()
+    public void TryReserveAssemblies_VersionConflict_ReturnsFalse()
     {
         using var testContext = this.CreateTestContext();
         using var domain = testContext.Domain;
@@ -120,8 +121,8 @@ public sealed class CompileTimeDomainTests : UnitTestClass
 
             domain.LoadAssembly( path1, null, new LoadAssemblyOptions { IsShared = true } );
 
-            // Different version of the same assembly should be incompatible.
-            Assert.False( domain.IsCompatibleWithAssemblies( new[] { path2 } ) );
+            // A different version of the same assembly must not be reservable.
+            Assert.False( domain.TryReserveAssemblies( new[] { path2 } ) );
         }
         finally
         {
@@ -373,6 +374,10 @@ public sealed class CompileTimeDomainTests : UnitTestClass
                 },
                 cancellationToken );
 
+            // These two awaits take no cancellation token, which is deliberate rather than an oversight. Task.WaitAsync
+            // does not exist on net48, which this assembly targets. Neither task can outlive the token in any case: each
+            // was started with it, and every wait inside them observes it, so cancelling makes both complete promptly
+            // with an OperationCanceledException that the test then propagates.
             var assembly1 = await first;
             var assembly2 = await second;
 

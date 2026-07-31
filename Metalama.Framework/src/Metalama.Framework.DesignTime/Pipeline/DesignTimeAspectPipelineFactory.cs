@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -37,12 +37,9 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
 {
     private readonly ConcurrentDictionary<ProjectKey, DesignTimeAspectPipeline> _pipelinesByProjectKey = new();
 
-    /// <summary>
-    /// Gets every pipeline of every project.
-    /// </summary>
-    private IEnumerable<DesignTimeAspectPipeline> AllPipelines => this._pipelinesByProjectKey.Values;
     private readonly ILogger _logger;
     private readonly ConcurrentQueue<TaskCompletionSource<DesignTimeAspectPipeline>> _newPipelineListeners = new();
+
     private readonly CancellationToken _globalCancellationToken;
     private readonly IMetalamaProjectClassifier _projectClassifier;
     private readonly AnalysisProcessEventHub? _eventHub;
@@ -50,6 +47,11 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     private readonly ITaskRunner _taskRunner;
     private readonly DesignTimeExceptionHandler _exceptionHandler;
     private readonly DesignTimeExtensionManager? _extensionManager;
+
+    /// <summary>
+    /// Gets every pipeline of every project.
+    /// </summary>
+    private IEnumerable<DesignTimeAspectPipeline> AllPipelines => this._pipelinesByProjectKey.Values;
 
     internal ServiceProvider<IGlobalService> ServiceProvider { get; }
 
@@ -213,6 +215,11 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
             // The condition is reported rather than worked around. Serving the pipeline of one project to another gives
             // the consumer a compile-time projection that is absent from its own closure, and the resulting failure
             // occurs much later, while a transitive manifest is being serialized. See issue #1749.
+            //
+            // Unlike WorkspaceProvider.GetProjectAsync and ProjectVersionProvider.GetSingleCompilation, this site is not
+            // restricted to keys of projects that reference Metalama. A pipeline exists only for a project that Metalama
+            // processes, so a key that reaches this method is always one for which the symbol is defined and uniqueness
+            // is therefore guaranteed.
             var mismatch = GetProjectIdentityMismatch( pipelineOptions, projectOptions );
 
             if ( mismatch != null )

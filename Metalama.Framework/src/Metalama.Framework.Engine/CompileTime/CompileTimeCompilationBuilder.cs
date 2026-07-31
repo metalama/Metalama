@@ -187,10 +187,19 @@ internal sealed partial class CompileTimeCompilationBuilder
         // identify the content that it projects. The components are appended individually rather than through
         // GetDisplayName, because the format of the display name is not part of the contract of AssemblyIdentity and
         // must not influence the hash. See issue #1749.
+        // The components are separated, because the hasher appends the raw bytes of a string with neither a length nor
+        // a terminator. Without a separator, two different identities could produce one byte sequence, which is exactly
+        // the collision this hash exists to prevent.
+        const string separator = "|";
+
         h.Append( assemblyIdentity.Name );
+        h.Append( separator );
         h.Append( assemblyIdentity.Version.ToString() );
+        h.Append( separator );
         h.Append( assemblyIdentity.CultureName );
+        h.Append( separator );
         h.Append( assemblyIdentity.PublicKeyToken );
+        h.Append( separator );
         h.Append( assemblyIdentity.IsRetargetable );
         h.Append( (int) assemblyIdentity.ContentType );
         this._logger.Trace?.Log( $"ProjectHash: AssemblyIdentity='{assemblyIdentity.GetDisplayName()}'" );

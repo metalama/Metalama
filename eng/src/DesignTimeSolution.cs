@@ -101,7 +101,10 @@ internal sealed class DesignTimeSolution : TestableSolution
 
         if ( !File.Exists( simulator ) )
         {
-            context.Console.WriteError( $"The design-time host simulator was not found at '{simulator}'." );
+            context.Console.WriteError(
+                $"The design-time host simulator was not found at '{simulator}'. If the target framework of "
+                + $"'{_simulatorProjectDirectory}' no longer includes '{_simulatorTargetFramework}', update "
+                + $"{nameof(DesignTimeSolution)}.{nameof(_simulatorTargetFramework)}." );
 
             exitCode = 1;
             output = "";

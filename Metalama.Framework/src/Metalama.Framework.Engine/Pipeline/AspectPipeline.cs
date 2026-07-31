@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -506,6 +506,14 @@ public abstract class AspectPipeline : IDisposable
     /// the same work slightly later; metadata reads are cached by path, so this costs a cache miss only the first time
     /// a reference is seen.
     /// </para>
+    /// <para>
+    /// Only a <see cref="PortableExecutableReference"/> is examined. A <see cref="CompilationReference"/>, which is the
+    /// form a project reference takes at design time, is deliberately skipped: the builder never resolves one through
+    /// <c>TryGetCompileTimeProjectFromPath</c>, therefore never through <c>CompileTimeProject.TryCreateUntransformed</c>.
+    /// It either serves a project that is already cached or builds one, and a project that is built is transformed and
+    /// receives an <c>ml!</c> name that is unique per content. An untransformed compile-time assembly, which is the only
+    /// kind that can collide, is therefore always read from a file.
+    /// </para>
     /// </remarks>
     private static IEnumerable<string> GetUntransformedCompileTimeAssemblyPaths( Compilation compilation, ProjectServiceProvider serviceProvider )
     {
@@ -520,11 +528,11 @@ public abstract class AspectPipeline : IDisposable
 
             var simpleName = System.IO.Path.GetFileNameWithoutExtension( path );
 
-            // Same performance trick as the Builder: do not read the metadata of assemblies that cannot be ours.
-            if ( referenceAssemblyNames.Contains( simpleName )
-                 || simpleName.Equals( "System", StringComparison.OrdinalIgnoreCase )
-                 || simpleName.StartsWith( "System.", StringComparison.OrdinalIgnoreCase )
-                 || simpleName.StartsWith( "Microsoft.CodeAnalysis", StringComparison.OrdinalIgnoreCase ) )
+            // Same performance measure as the Builder, through the same predicate. The reference-assembly test
+            // uses the file name rather than the assembly name, because the metadata has deliberately not been
+            // read yet. The two agree for a reference assembly, and a disagreement would only cost a metadata
+            // read, because a reference assembly never carries compile-time code.
+            if ( referenceAssemblyNames.Contains( simpleName ) || CompileTimeConstants.IsSystemAssemblyFileName( simpleName ) )
             {
                 continue;
             }

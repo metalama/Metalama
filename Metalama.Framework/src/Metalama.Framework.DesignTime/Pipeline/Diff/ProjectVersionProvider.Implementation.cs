@@ -176,10 +176,6 @@ internal sealed partial class ProjectVersionProvider
 
             // Grouped rather than added directly, so that a duplicate key is reported with a message that names the
             // colliding projects. A plain ToDictionary would throw an ArgumentException that names neither.
-            //
-            // Note that PR #1755 rewrites this method for #1750, routing both reference sets through a single helper and
-            // also rejecting the identity-less ProjectKey that an empty Compilation.AssemblyName produces. The version
-            // of PR #1755 is the better one and should win the merge.
             var oldProjectReferences = oldCompilation?.ExternalReferences.OfType<CompilationReference>()
                 .GroupBy( x => x.Compilation.GetProjectKey() )
                 .ToDictionary( g => g.Key, this.GetSingleCompilation );
