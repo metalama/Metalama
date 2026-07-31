@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using System;
 using System.Collections.Generic;
@@ -24,6 +25,17 @@ public sealed class BackstageBackgroundTasksService : IBackstageService
 
     private int _pendingTasks;
     private bool _canEnqueue = true;
+    private volatile ILogger? _logger;
+
+    /// <summary>
+    /// Sets the logger used to report the faults of background tasks. Called once the services are built, because this
+    /// service exists before them, and because <see cref="Default"/> is a process-wide singleton.
+    /// </summary>
+    /// <remarks>
+    /// Faults enqueued before the logger is set are still observed, but cannot be reported anywhere. In practice that
+    /// window is the construction of the service provider, during which nothing is enqueued yet.
+    /// </remarks>
+    internal void SetLogger( ILogger logger ) => this._logger = logger;
 
     /// <summary>
     /// Gets the default instance, which is intentionally shared in the process.
@@ -112,9 +124,17 @@ public sealed class BackstageBackgroundTasksService : IBackstageService
         }
     }
 
-    // ReSharper disable once UnusedParameter.Local
-    private void OnTaskCompleted( Task t )
+    private void OnTaskCompleted( Task task )
     {
+        if ( task.IsFaulted )
+        {
+            // Nothing ever awaits an enqueued task: every caller discards the returned task, and this continuation is
+            // the only thing that observes the antecedent. So this is the one place where the failure of a background
+            // task can be reported at all. Without it the exception disappears entirely, which is how the telemetry
+            // upload managed to be dead for a year without a single log line. See #1765.
+            this._logger.LogException( task.Exception!, "A background task failed" );
+        }
+
         IEnumerable<TaskCompletionSource<bool>> waiters;
         bool canEnqueue;
 

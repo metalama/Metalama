@@ -3,15 +3,25 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Testing;
+using Metalama.Backstage.Utilities;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Metalama.Backstage.Tests.Infrastructure;
 
 public sealed class BackstageBackgroundTasksServiceTests
 {
+    private readonly ITestOutputHelper _testOutput;
+
+    public BackstageBackgroundTasksServiceTests( ITestOutputHelper testOutput )
+    {
+        this._testOutput = testOutput;
+    }
+
     [Fact]
     public async Task LoadTest()
     {
@@ -99,5 +109,31 @@ public sealed class BackstageBackgroundTasksServiceTests
 
         Assert.Null( nestedEnqueueException );
         Assert.Equal( 1, nestedRan );
+    }
+
+    [Fact]
+    public async Task FaultOfABackgroundTaskIsReported()
+    {
+        // #1765: nothing awaits an enqueued task, so a task that throws used to fail in complete silence. That is how
+        // the telemetry upload managed to be dead for a year without a single log line.
+        var loggerFactory = new TestLoggerFactory( this._testOutput );
+        var service = new BackstageBackgroundTasksService();
+        service.SetLogger( loggerFactory.GetLogger( "BackgroundTasks" ) );
+
+        await service.Enqueue( () => throw new InvalidOperationException( "Simulated background task failure." ) );
+        await service.WhenNoPendingTaskAsync();
+
+        Assert.Contains( loggerFactory.Entries, e => e.Message.ContainsOrdinal( "Simulated background task failure." ) );
+    }
+
+    [Fact]
+    public async Task FaultOfABackgroundTaskDoesNotBreakCompletion()
+    {
+        // A failing task must still count as completed, otherwise a process would wait for it for ever on shutdown.
+        var service = new BackstageBackgroundTasksService();
+
+        await service.Enqueue( () => throw new InvalidOperationException( "Simulated background task failure." ) );
+
+        await service.CompleteAsync();
     }
 }
