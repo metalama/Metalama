@@ -1,0 +1,7 @@
+{
+    "BuildOnly": true,
+    "ForbiddenDiagnosticsRegexes": [
+        "error LAMA0001.*same key has already been added.*ml!Contract_",
+        "error LAMA0079"
+    ]
+}

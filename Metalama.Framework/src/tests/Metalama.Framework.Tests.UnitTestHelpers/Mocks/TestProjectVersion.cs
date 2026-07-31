@@ -47,8 +47,12 @@ public sealed class TestProjectVersion : IProjectVersion
         this.ProjectKey = compilation.GetProjectKey();
         this.Compilation = compilation;
 
+        // Grouped by key, keeping the first, because two referenced projects that produce one assembly name share one
+        // ProjectKey and ToImmutableDictionary would throw on the duplicate. This mirrors what
+        // ProjectVersionProvider.Implementation does in the product (issue #1749).
         this.ReferencedProjectVersions = compilation.References.OfType<CompilationReference>()
-            .ToImmutableDictionary( r => r.Compilation.GetProjectKey(), c => (IProjectVersion) new TestProjectVersion( c.Compilation ) );
+            .GroupBy( r => r.Compilation.GetProjectKey() )
+            .ToImmutableDictionary( g => g.Key, g => (IProjectVersion) new TestProjectVersion( g.First().Compilation ) );
 
 #pragma warning disable CA1307
         this._hashes = compilation.SyntaxTrees.ToDictionary( t => t.FilePath, t => (ulong) t.GetRoot().ToFullString().GetHashCode() );

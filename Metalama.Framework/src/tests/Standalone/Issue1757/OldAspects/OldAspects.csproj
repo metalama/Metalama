@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <!-- The Metalama.Compiler shipping with this version predates the language version the current SDK defaults to. -->
+        <LangVersion>12.0</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Below 2026.1, i.e. of the previous design-time contracts generation, which is what LAMA0078 reports. -->
+        <PackageReference Include="Metalama.Framework" VersionOverride="$(OldMetalamaVersion)" />
+    </ItemGroup>
+
+</Project>

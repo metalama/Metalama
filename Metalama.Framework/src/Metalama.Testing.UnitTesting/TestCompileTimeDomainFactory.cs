@@ -4,62 +4,35 @@
 
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Services;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace Metalama.Testing.UnitTesting;
 
-internal sealed class TestCompileTimeDomainFactory : ICompileTimeDomainFactory
+/// <summary>
+/// The <see cref="ICompileTimeDomainFactory"/> of unit tests, which differs from the production one only in creating an
+/// unloadable domain where the platform supports it.
+/// </summary>
+/// <remarks>
+/// The domain selection logic deliberately lives in <see cref="CompileTimeDomainFactoryBase"/> rather than here. It was
+/// duplicated, and the copies drifted, so a production fix was invisible to every unit test. See #1749.
+/// </remarks>
+internal sealed class TestCompileTimeDomainFactory : CompileTimeDomainFactoryBase
 {
     private readonly GlobalServiceProvider _serviceProvider;
-
-    private readonly ConcurrentDictionary<Guid, WeakReference<CompileTimeDomain>> _domains = new();
-    private readonly object _lock = new();
 
     public TestCompileTimeDomainFactory( GlobalServiceProvider serviceProvider )
     {
         this._serviceProvider = serviceProvider;
     }
 
-    public CompileTimeDomain CreateDomain()
+    protected override CompileTimeDomain CreateDomainCore()
     {
 #if NET5_0_OR_GREATER
         var unloadableDomain = new UnloadableCompileTimeDomain( this._serviceProvider );
         unloadableDomain.UnloadError += _ => MemoryDumpHelper.CaptureMiniDumpOnce();
-        CompileTimeDomain domain = unloadableDomain;
+
+        return unloadableDomain;
 #else
-        var domain = new CompileTimeDomain( this._serviceProvider );
+        return new CompileTimeDomain( this._serviceProvider );
 #endif
-
-        // ReSharper disable once InconsistentlySynchronizedField
-        this._domains.TryAdd( domain.Guid, new WeakReference<CompileTimeDomain>( domain ) );
-
-        return domain;
-    }
-
-    public CompileTimeDomain GetOrCreateDomain( IReadOnlyCollection<string> assemblyPaths )
-    {
-        lock ( this._lock )
-        {
-            // Clean up dead references and check for a compatible domain among all still-alive domains.
-            foreach ( var kvp in this._domains.ToArray() )
-            {
-                if ( !kvp.Value.TryGetTarget( out var domain ) )
-                {
-                    this._domains.TryRemove( kvp.Key, out _ );
-
-                    continue;
-                }
-
-                if ( domain.IsCompatibleWithAssemblies( assemblyPaths ) )
-                {
-                    return domain;
-                }
-            }
-
-            // No compatible domain found. Create a new one.
-            return this.CreateDomain();
-        }
     }
 }

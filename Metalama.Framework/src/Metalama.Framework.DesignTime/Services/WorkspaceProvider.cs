@@ -23,7 +23,17 @@ public abstract class WorkspaceProvider : IGlobalService, IDisposable
         this.Logger = serviceProvider.GetLoggerFactory().GetLogger( "WorkspaceProvider" );
     }
 
-    protected abstract Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default );
+    /// <summary>
+    /// Gets the workspace, or <c>null</c> when this host has none.
+    /// </summary>
+    /// <remarks>
+    /// Nullable rather than throwing, because having no workspace is a normal state of a supported host and not an
+    /// error. Metalama running as a plain analyzer, which is what it does in an IDE without the Metalama extension, has
+    /// no way to reach one. Expressing that as <see cref="NotSupportedException"/> meant every caller that forgot to
+    /// catch it turned a degraded-but-working situation into an exception out of the source generator, which costs the
+    /// project all of its design-time support. See #1749.
+    /// </remarks>
+    protected abstract Task<Workspace?> GetWorkspaceAsync( CancellationToken cancellationToken = default );
 
     internal bool TryGetWorkspace( [NotNullWhen( true )] out Workspace? workspace )
     {
@@ -35,7 +45,7 @@ public abstract class WorkspaceProvider : IGlobalService, IDisposable
             workspace = task.Result;
 #pragma warning restore VSTHRD002
 
-            return true;
+            return workspace != null;
         }
         else
         {
@@ -45,9 +55,26 @@ public abstract class WorkspaceProvider : IGlobalService, IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets the project of a given <see cref="ProjectKey"/>, or <c>null</c> when there is no workspace or no project
+    /// matches. Throws when several projects share the key.
+    /// </summary>
+    /// <remarks>
+    /// A key must identify a project, and since Metalama 2026.1 it does, because the MSBuild targets define a
+    /// <c>METALAMA_PROJECT_&lt;hash&gt;</c> compilation symbol derived from the project path, target framework,
+    /// configuration and platform. Several projects under one key therefore mean a broken configuration, and returning
+    /// an arbitrary match would hand the caller another project's work with no way to notice. See #1749.
+    /// </remarks>
     public async ValueTask<Microsoft.CodeAnalysis.Project?> GetProjectAsync( ProjectKey projectKey, CancellationToken cancellationToken )
     {
         var workspace = await this.GetWorkspaceAsync( cancellationToken );
+
+        if ( workspace == null )
+        {
+            this.Logger.Trace?.Log( $"Cannot find a project for '{projectKey}': this host has no workspace." );
+
+            return null;
+        }
 
         if ( this._projectKeyToProjectIdMap.TryGetValue( projectKey, out var projectId ) )
         {
@@ -61,6 +88,11 @@ public abstract class WorkspaceProvider : IGlobalService, IDisposable
             // When a project is unloaded and reloaded, its ID changes, so we need to remove the old ID from the cache.
             this._projectKeyToProjectIdMap.TryRemove( projectKey );
         }
+
+        // The whole candidate set is collected before anything is cached or returned. Caching as we went would defeat
+        // the ambiguity check below, because the fast path above would then serve the arbitrary first match on every
+        // later call. Only projects whose assembly name matches can share the key, so this set is small.
+        var candidatesByKey = new Dictionary<ProjectKey, List<Microsoft.CodeAnalysis.Project>>();
 
         foreach ( var project in workspace.CurrentSolution.Projects )
         {
@@ -79,18 +111,55 @@ public abstract class WorkspaceProvider : IGlobalService, IDisposable
                 continue;
             }
 
-            this._projectKeyToProjectIdMap.TryAdd( thisProjectKey, project.Id );
-
-            if ( thisProjectKey == projectKey )
+            if ( !candidatesByKey.TryGetValue( thisProjectKey, out var candidates ) )
             {
-                return project;
+                candidates = [];
+                candidatesByKey[thisProjectKey] = candidates;
+            }
+
+            candidates.Add( project );
+        }
+
+        foreach ( var pair in candidatesByKey )
+        {
+            if ( pair.Value.Count == 1 )
+            {
+                this._projectKeyToProjectIdMap.TryAdd( pair.Key, pair.Value[0].Id );
             }
         }
 
-        // Error: the compilation could not be found.
-        this.Logger.Warning?.Log( $"Cannot find a project in the workspace for '{projectKey}'." );
+        if ( !candidatesByKey.TryGetValue( projectKey, out var matches ) )
+        {
+            // Error: the compilation could not be found.
+            this.Logger.Warning?.Log( $"Cannot find a project in the workspace for '{projectKey}'." );
 
-        return default;
+            return null;
+        }
+
+        if ( matches.Count > 1 )
+        {
+            var paths = string.Join( ", ", matches.Select( p => p.FilePath ?? p.Name ) );
+
+            // A project that does not reference Metalama carries no METALAMA_PROJECT_* symbol, therefore two such
+            // projects that produce one assembly name legitimately share a key. That cannot be repaired from here, and
+            // failing would cost the consuming project its whole design-time experience over a reference that
+            // contributes no aspect, so the project is reported as not found, exactly as an absent one is.
+            if ( !projectKey.IsMetalamaEnabled )
+            {
+                this.Logger.Warning?.Log(
+                    $"{matches.Count} projects in the workspace have the key '{projectKey}': {paths}. None of them references Metalama, "
+                    + $"therefore the key cannot be made unique and no project is returned." );
+
+                return null;
+            }
+
+            throw new InvalidOperationException(
+                $"{matches.Count} projects in the workspace have the same Metalama project key '{projectKey}': {paths}. A project key must "
+                + "identify a project uniquely. Verify that the METALAMA_PROJECT_* compilation symbol defined by Metalama.Framework.targets "
+                + "is present in these projects and has not been removed by an assignment to the DefineConstants property." );
+        }
+
+        return matches[0];
     }
 
     public async ValueTask<Compilation?> GetCompilationAsync( ProjectKey projectKey, CancellationToken cancellationToken = default )

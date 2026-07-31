@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <!-- The same assembly name as Aspects2, and the same preprocessor symbols, so both projects have the same
+             Metalama ProjectKey. -->
+        <AssemblyName>Aspects</AssemblyName>
+        <!-- The two versions of 'Contract' collide in the output directory, which is the point of the test. -->
+        <NoWarn>$(NoWarn);MSB3277</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <!--
+        MSBuild unifies the two 'Contract' references to the highest version, which would leave this project with a
+        single 'Contract' reference and defeat the test. We therefore inject both files after reference resolution.
+        The two files have the same assembly name and differ only in version, so both reach the compiler and the
+        workspace maps each of them to the project that produces it, i.e. to a CompilationReference.
+
+        No source file of this project names a type of 'Contract': doing so would be CS0433 (the type exists in both
+        assemblies), and the reference is only here to give this project's compilation two CompilationReferences that
+        collapse to one ProjectKey.
+    -->
+    <Target Name="ReferenceBothContractVersions" AfterTargets="ResolveAssemblyReferences">
+        <ItemGroup>
+            <ReferencePath Remove="@(ReferencePath)" Condition="'%(FileName)' == 'Contract'" />
+            <ReferencePath Include="$(MSBuildThisFileDirectory)..\Contract1\bin\$(Configuration)\netstandard2.0\Contract.dll" />
+            <ReferencePath Include="$(MSBuildThisFileDirectory)..\Contract2\bin\$(Configuration)\netstandard2.0\Contract.dll" />
+        </ItemGroup>
+    </Target>
+
+</Project>

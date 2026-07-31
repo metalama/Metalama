@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -135,6 +135,47 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// Gets the list of assemblies that should be included in the compile-time project.
     /// </summary>
     ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies { get; }
+
+    /// <summary>
+    /// Gets the assembly names of the references that originate from a <c>ProjectReference</c>, that is, the assembly
+    /// names of the other projects of the same solution.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A <c>ProjectReference</c> is a build-time concept. By the time the compiler runs, every reference is a
+    /// <c>PortableExecutableReference</c> and the distinction has been lost, therefore this property is supplied by
+    /// MSBuild, which has already computed it.
+    /// </para>
+    /// <para>
+    /// The property contains assembly names and not paths, because the consumer compares them against the assembly
+    /// identity that it reads from the reference. A path would have to match exactly across two subsystems, and it does
+    /// not, because the compiler receives the reference assembly under the <c>obj</c> directory whereas MSBuild holds
+    /// the implementation assembly under the <c>bin</c> directory.
+    /// </para>
+    /// <para>
+    /// The property is empty when the information is not available. A consumer must not conclude from an empty value
+    /// that the project has no project reference.
+    /// </para>
+    /// </remarks>
+    ImmutableArray<string> ProjectReferenceNames { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether this host guarantees that <c>Metalama.Framework.targets</c> has run, and
+    /// therefore that the compilation carries the <c>METALAMA_PROJECT_&lt;hash&gt;</c> symbol.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// That symbol is what causes a <c>ProjectKey</c> to identify a project instead of a combination of an assembly
+    /// name, a target framework and a configuration. Its absence breaks the design-time experience without any visible
+    /// symptom, therefore the compile-time pipeline reports <c>LAMA0080</c> when it is missing.
+    /// </para>
+    /// <para>
+    /// Only a host that is driven by MSBuild is able to guarantee the presence of the symbol, which is the reason why
+    /// the verification is gated on this property instead of being applied unconditionally. A test harness, a workspace
+    /// or an embedding host builds its compilations itself and runs no MSBuild targets. See issue #1749.
+    /// </para>
+    /// </remarks>
+    bool RequiresCompilationConstant { get; }
 
     /// <summary>
     /// Gets the path to <c>project.assets.json</c>.

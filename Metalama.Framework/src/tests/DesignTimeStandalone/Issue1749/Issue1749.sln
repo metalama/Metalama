@@ -1,0 +1,65 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35208.52
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Contract1", "Contract1\Contract1.csproj", "{1A1D9C51-0001-4E3B-9A11-000000000001}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Contract2", "Contract2\Contract2.csproj", "{1A1D9C51-0002-4E3B-9A11-000000000002}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Middle1", "Middle1\Middle1.csproj", "{1A1D9C51-0003-4E3B-9A11-000000000003}"
+	ProjectSection(ProjectDependencies) = postProject
+		{1A1D9C51-0001-4E3B-9A11-000000000001} = {1A1D9C51-0001-4E3B-9A11-000000000001}
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Middle2", "Middle2\Middle2.csproj", "{1A1D9C51-0004-4E3B-9A11-000000000004}"
+	ProjectSection(ProjectDependencies) = postProject
+		{1A1D9C51-0002-4E3B-9A11-000000000002} = {1A1D9C51-0002-4E3B-9A11-000000000002}
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Consumer", "Consumer\Consumer.csproj", "{1A1D9C51-0005-4E3B-9A11-000000000005}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		LamaDebug|Any CPU = LamaDebug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1A1D9C51-0001-4E3B-9A11-000000000001}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A1D9C51-0001-4E3B-9A11-000000000001}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A1D9C51-0001-4E3B-9A11-000000000001}.LamaDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A1D9C51-0001-4E3B-9A11-000000000001}.LamaDebug|Any CPU.Build.0 = Debug|Any CPU
+		{1A1D9C51-0001-4E3B-9A11-000000000001}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A1D9C51-0001-4E3B-9A11-000000000001}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A1D9C51-0002-4E3B-9A11-000000000002}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A1D9C51-0002-4E3B-9A11-000000000002}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A1D9C51-0002-4E3B-9A11-000000000002}.LamaDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A1D9C51-0002-4E3B-9A11-000000000002}.LamaDebug|Any CPU.Build.0 = Debug|Any CPU
+		{1A1D9C51-0002-4E3B-9A11-000000000002}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A1D9C51-0002-4E3B-9A11-000000000002}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A1D9C51-0003-4E3B-9A11-000000000003}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A1D9C51-0003-4E3B-9A11-000000000003}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A1D9C51-0003-4E3B-9A11-000000000003}.LamaDebug|Any CPU.ActiveCfg = LamaDebug|Any CPU
+		{1A1D9C51-0003-4E3B-9A11-000000000003}.LamaDebug|Any CPU.Build.0 = LamaDebug|Any CPU
+		{1A1D9C51-0003-4E3B-9A11-000000000003}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A1D9C51-0003-4E3B-9A11-000000000003}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A1D9C51-0004-4E3B-9A11-000000000004}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A1D9C51-0004-4E3B-9A11-000000000004}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A1D9C51-0004-4E3B-9A11-000000000004}.LamaDebug|Any CPU.ActiveCfg = LamaDebug|Any CPU
+		{1A1D9C51-0004-4E3B-9A11-000000000004}.LamaDebug|Any CPU.Build.0 = LamaDebug|Any CPU
+		{1A1D9C51-0004-4E3B-9A11-000000000004}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A1D9C51-0004-4E3B-9A11-000000000004}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A1D9C51-0005-4E3B-9A11-000000000005}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A1D9C51-0005-4E3B-9A11-000000000005}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A1D9C51-0005-4E3B-9A11-000000000005}.LamaDebug|Any CPU.ActiveCfg = LamaDebug|Any CPU
+		{1A1D9C51-0005-4E3B-9A11-000000000005}.LamaDebug|Any CPU.Build.0 = LamaDebug|Any CPU
+		{1A1D9C51-0005-4E3B-9A11-000000000005}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A1D9C51-0005-4E3B-9A11-000000000005}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1A1D9C51-9999-4E3B-9A11-000000000099}
+	EndGlobalSection
+EndGlobal
