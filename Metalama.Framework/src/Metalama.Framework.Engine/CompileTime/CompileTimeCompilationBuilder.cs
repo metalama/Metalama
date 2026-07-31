@@ -1292,7 +1292,7 @@ internal sealed partial class CompileTimeCompilationBuilder
     /// </summary>
     private LanguageVersion ResolveCompileTimeLanguageVersion( Compilation runTimeCompilation )
     {
-        var optionsOverride = this._projectOptions.TemplateLanguageVersion;
+        var optionsOverride = this._projectOptions?.TemplateLanguageVersion;
 
         if ( !string.IsNullOrWhiteSpace( optionsOverride )
              && LanguageVersionFacts.TryParse( optionsOverride, out var overrideVersion )
