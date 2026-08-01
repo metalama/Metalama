@@ -1,7 +1,8 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine;
@@ -25,6 +26,7 @@ internal sealed partial class ProjectVersionProvider
         private readonly DiffStrategy _nonMetalamaDiffStrategy;
         private readonly IMetalamaProjectClassifier _metalamaProjectClassifier;
         private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger _logger;
 
         public Implementation( GlobalServiceProvider serviceProvider, bool isTest )
         {
@@ -33,6 +35,7 @@ internal sealed partial class ProjectVersionProvider
             this._nonMetalamaDiffStrategy = new DiffStrategy( isTest, false, true, observer );
             this._metalamaProjectClassifier = serviceProvider.GetRequiredService<IMetalamaProjectClassifier>();
             this._serviceProvider = serviceProvider.Underlying;
+            this._logger = serviceProvider.GetLoggerFactory().GetLogger( "ProjectVersionProvider" );
         }
 
         /// <summary>
@@ -119,6 +122,80 @@ internal sealed partial class ProjectVersionProvider
                 portableExecutableReferences.Changes );
         }
 
+        /// <summary>
+        /// Returns the single <see cref="Compilation"/> of a group of references that share a <see cref="ProjectKey"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Since Metalama 2026.1, the MSBuild targets define a <c>METALAMA_PROJECT_*</c> compilation symbol that makes
+        /// the key of a project unique. A collision between two projects that both reference Metalama therefore means
+        /// that the symbol was suppressed or that the two projects collided on its hash, and it is reported instead of
+        /// being resolved, because either resolution would silently give one project the identity of another.
+        /// </para>
+        /// <para>
+        /// The symbol is defined by the targets of the Metalama package, so a project that does not reference Metalama
+        /// at all does not carry it, and two such projects that produce a single assembly name still share a key. That
+        /// configuration is legitimate and must not fail the design-time pipeline of the consuming project. Such a
+        /// reference contributes no aspect in any case, therefore the first one is retained. See issue #1749.
+        /// </para>
+        /// </remarks>
+        private Compilation GetSingleCompilation( IGrouping<ProjectKey, CompilationReference> group )
+        {
+            var references = group.ToReadOnlyList();
+
+            if ( references.Count > 1 )
+            {
+                var identities = string.Join( ", ", references.Select( r => $"'{r.Compilation.Assembly.Identity}'" ) );
+
+                if ( group.Key.IsMetalamaEnabled )
+                {
+                    throw new InvalidOperationException(
+                        $"The referenced projects {identities} have the same Metalama project key '{group.Key}'. A project key must "
+                        + "identify a project uniquely. Verify that the METALAMA_PROJECT_* compilation symbol defined by "
+                        + "Metalama.Framework.targets is present in each of these projects and has not been removed by an "
+                        + "assignment to the DefineConstants property." );
+                }
+
+                this._logger.Warning?.Log(
+                    $"The referenced projects {identities} have the same key '{group.Key}'. None of them references Metalama, "
+                    + $"therefore the key cannot be made unique and the first project is retained." );
+            }
+
+            return references[0].Compilation;
+        }
+
+        /// <summary>
+        /// Gets the project references of a <see cref="Compilation"/>, indexed by <see cref="ProjectKey"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A reference whose compilation has no assembly name has no identity, therefore no <see cref="ProjectKey"/> can
+        /// be derived from it and it is excluded. Roslyn allows the assembly name of a compilation to be null or empty,
+        /// and any two such references would otherwise produce a single key that identifies neither of them. See issue
+        /// #1750.
+        /// </para>
+        /// <para>
+        /// The remaining references are grouped rather than added directly, so that a duplicate key is reported by
+        /// <see cref="GetSingleCompilation"/> with a message that names the colliding projects. A plain
+        /// <c>ToDictionary</c> would throw an <see cref="ArgumentException"/> that names neither.
+        /// </para>
+        /// </remarks>
+        private Dictionary<ProjectKey, Compilation> GetProjectReferencesByKey( Compilation compilation )
+        {
+            var keyedReferences = new List<KeyValuePair<ProjectKey, CompilationReference>>();
+
+            foreach ( var reference in compilation.ExternalReferences )
+            {
+                if ( reference is CompilationReference compilationReference
+                     && compilationReference.Compilation.TryGetProjectKey( out var projectKey ) )
+                {
+                    keyedReferences.Add( new KeyValuePair<ProjectKey, CompilationReference>( projectKey, compilationReference ) );
+                }
+            }
+
+            return keyedReferences.GroupBy( x => x.Key, x => x.Value ).ToDictionary( g => g.Key, this.GetSingleCompilation );
+        }
+
         private async Task<(ImmutableDictionary<ProjectKey, ReferencedProjectChange> Changes, ImmutableDictionary<ProjectKey, IProjectVersion> References)>
             GetProjectReferencesAsync(
                 Compilation? oldCompilation,
@@ -129,8 +206,8 @@ internal sealed partial class ProjectVersionProvider
             var changeListBuilder = ImmutableDictionary.CreateBuilder<ProjectKey, ReferencedProjectChange>();
             var referenceListBuilder = ImmutableDictionary.CreateBuilder<ProjectKey, IProjectVersion>();
 
-            var oldProjectReferences = oldCompilation == null ? null : GetProjectReferencesByKey( oldCompilation );
-            var newProjectReferences = GetProjectReferencesByKey( newCompilation );
+            var oldProjectReferences = oldCompilation == null ? null : this.GetProjectReferencesByKey( oldCompilation );
+            var newProjectReferences = this.GetProjectReferencesByKey( newCompilation );
 
             foreach ( var reference in newProjectReferences )
             {

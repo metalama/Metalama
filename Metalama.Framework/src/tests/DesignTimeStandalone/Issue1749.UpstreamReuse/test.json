@@ -1,0 +1,6 @@
+{
+    "BuildOnly": true,
+    "ForbiddenDiagnosticsRegexes": [
+        "warning CS8785:.*An item with the same key has already been added\\. Key: Shared, Version="
+    ]
+}

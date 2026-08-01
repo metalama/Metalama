@@ -244,7 +244,10 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
     /// <remarks>
     /// A solution can reach the same assembly name through two different paths of the reference graph, so the
     /// identity derived from a project reference is not guaranteed to be unique within a compilation. See
-    /// issue #1750.
+    /// issue #1750. The referenced projects define no preprocessor symbol, therefore they do not reference
+    /// Metalama and their key cannot be made unique by the <c>METALAMA_PROJECT_*</c> discriminator. That
+    /// configuration is legitimate and the first reference is retained. A collision between two projects that
+    /// both reference Metalama is a different matter and is reported instead, as described in issue #1749.
     /// </remarks>
     [Fact]
     public async Task DuplicateCompilationReferenceIdentity()
@@ -255,11 +258,13 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
 
         var masterCompilationA = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { ["a.cs"] = "class D {}" },
-            assemblyName: "Master" );
+            assemblyName: "Master",
+            preprocessorSymbols: Array.Empty<string>() );
 
         var masterCompilationB = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { ["b.cs"] = "class E {}" },
-            assemblyName: "Master" );
+            assemblyName: "Master",
+            preprocessorSymbols: Array.Empty<string>() );
 
         var dependentCode = new Dictionary<string, string> { ["code.cs"] = "class C {}" };
 

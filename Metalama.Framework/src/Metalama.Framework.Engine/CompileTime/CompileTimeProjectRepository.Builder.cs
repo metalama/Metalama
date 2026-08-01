@@ -1,10 +1,12 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating.Mapping;
 using Metalama.Framework.Engine.Utilities;
@@ -14,6 +16,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
@@ -53,6 +56,12 @@ internal sealed partial class CompileTimeProjectRepository
     // This class is made internal for tests only.
     internal sealed class Builder
     {
+        /// <summary>
+        /// The version of the Metalama package that contains the currently executing engine.
+        /// </summary>
+        private static readonly string? _currentMetalamaVersion =
+            AssemblyMetadataReader.GetInstance( typeof(CompileTimeProjectManifest).Assembly ).PackageVersion;
+
         private readonly CompileTimeCompilationBuilder _builder;
         private readonly CompileTimeProject _frameworkProject;
         private readonly ILogger _logger;
@@ -65,6 +74,14 @@ internal sealed partial class CompileTimeProjectRepository
         private readonly IAssemblyLocator _runTimeAssemblyLocator;
         private readonly CacheableTemplateDiscoveryContextProvider _cacheableTemplateDiscoveryContextProvider;
         private readonly ClassifyingCompilationContextFactory _classifyingCompilationContextFactory;
+        private readonly IProjectOptions? _projectOptions;
+
+        // The run-time identity that claimed each compile-time assembly name, used to detect two references providing
+        // the same compile-time assembly. Only an untransformed project can collide, because it keeps the run-time name
+        // of the assembly it is built from as its compile-time name, so two versions of it claim one name and a single
+        // AssemblyLoadContext cannot hold both. A transformed project takes an 'ml!<name>_<hash>' name that is unique
+        // per content, the hash covering the full assembly identity. See #1749.
+        private readonly Dictionary<string, AssemblyIdentity> _runTimeIdentityByCompileTimeName = new( StringComparer.OrdinalIgnoreCase );
 
         private static Compilation CreateEmptyCompilation( in ProjectServiceProvider serviceProvider )
         {
@@ -89,6 +106,7 @@ internal sealed partial class CompileTimeProjectRepository
             this._classifyingCompilationContextFactory = serviceProvider.GetRequiredService<ClassifyingCompilationContextFactory>();
 
             this._runTimeAssemblyLocator = serviceProvider.GetRequiredService<IAssemblyLocator>();
+            this._projectOptions = serviceProvider.GetService<IProjectOptions>();
             this._domain = domain;
             this._logger = serviceProvider.GetLoggerFactory().CompileTime();
 
@@ -269,14 +287,29 @@ internal sealed partial class CompileTimeProjectRepository
                          && upstreamProvider.TryGetUpstreamConfiguration( compilationReference.Compilation, out var upstreamConfig )
                          && upstreamConfig.CompileTimeProject is { } upstreamProject )
                     {
-                        // Cache by AssemblyIdentity so subsequent identity-keyed lookups within this Builder hit the same instance.
-                        this._projects.Add( upstreamProject.RunTimeIdentity, upstreamProject );
-                        referencedProject = upstreamProject;
+                        // The provider resolves the upstream pipeline by ProjectKey, which is an assembly name and a
+                        // hash of the preprocessor symbols and carries no version, so two projects that produce one
+                        // assembly name at two versions share a single pipeline slot. The project handed back is then
+                        // the wrong one: reusing it would give this reference another version's compile-time project,
+                        // and caching it under its own identity would collide with the entry the other reference
+                        // already made, which threw here (issue #1749). Reuse only what actually matches, and let a
+                        // mismatch fall through to the recursive build below, which is correct if slower.
+                        if ( upstreamProject.RunTimeIdentity.Equals( compilationReference.Compilation.Assembly.Identity ) )
+                        {
+                            // Cache by AssemblyIdentity so subsequent identity-keyed lookups within this Builder hit the same instance.
+                            this._projects.Add( upstreamProject.RunTimeIdentity, upstreamProject );
+                            referencedProject = upstreamProject;
 
-                        this._logger.Trace?.Log(
-                            $"Reusing upstream pipeline's CompileTimeProject for '{compilationReference.Compilation.AssemblyName}' (issue #1611)." );
+                            this._logger.Trace?.Log(
+                                $"Reusing upstream pipeline's CompileTimeProject for '{compilationReference.Compilation.AssemblyName}' (issue #1611)." );
 
-                        return true;
+                            return true;
+                        }
+
+                        this._logger.Warning?.Log(
+                            $"The upstream pipeline of '{compilationReference.Compilation.AssemblyName}' provides a compile-time project for "
+                            + $"'{upstreamProject.RunTimeIdentity}', which is not the identity of the reference "
+                            + $"('{compilationReference.Compilation.Assembly.Identity}'). Building the compile-time project instead of reusing it." );
                     }
 
                     return this.TryGetCompileTimeProjectFromCompilation(
@@ -339,9 +372,7 @@ internal sealed partial class CompileTimeProjectRepository
             // Performance trick: do not analyze system assemblies.
             var assemblyFileName = Path.GetFileNameWithoutExtension( assemblyPath );
 
-            if ( assemblyFileName.Equals( "System", StringComparison.OrdinalIgnoreCase ) ||
-                 assemblyFileName.StartsWith( "System.", StringComparison.OrdinalIgnoreCase ) ||
-                 assemblyFileName.StartsWith( "Microsoft.CodeAnalysis", StringComparison.OrdinalIgnoreCase ) )
+            if ( CompileTimeConstants.IsSystemAssemblyFileName( assemblyFileName ) )
             {
                 this._logger.Trace?.Log( $"'{assemblyPath}' is a system assembly." );
 
@@ -376,12 +407,32 @@ internal sealed partial class CompileTimeProjectRepository
 
                     return false;
                 }
+
+                // No compile-time name is reserved on this branch, deliberately. A transformed project's
+                // 'ml!<name>_<hash>' name is unique per content, because ComputeProjectHash covers the full assembly
+                // identity, so two transformed projects cannot claim one name. Several projections of one run-time
+                // assembly in a closure are legitimate and expected: the per-TFM copies of a multi-targeted library are
+                // exactly that, and ClosureProjectsGroupedByRunTimeAssemblyName exists to detect the resulting
+                // ambiguity rather than to forbid it. See #1749 and the untransformed branch below, where the
+                // compile-time name IS the run-time name and a conflict is therefore unavoidable.
             }
             else if ( metadataInfo.HasCompileTimeAttribute )
             {
                 // We have an assembly that a [assembly: CompileTime] attribute but has no embedded compile-time project.
                 // This is typically the case of public assemblies of weaver-based aspects or services.
                 // These projects need to be included as compile-time projects. They typically have MetalamaRemoveCompileTimeOnlyCode=false.
+
+                // Such a project keeps the run-time name of its assembly as its compile-time name, so two versions of
+                // it claim the same compile-time assembly. Detected here rather than left to the assembly load, which
+                // fails with an unhandled FileLoadException because a single AssemblyLoadContext cannot hold two
+                // assemblies of one simple name (issue #1749).
+                if ( !this.TryReserveCompileTimeAssemblyName( assemblyIdentity.Name, assemblyIdentity, diagnosticSink ) )
+                {
+                    compileTimeProject = null;
+
+                    return false;
+                }
+
                 if ( !CompileTimeProject.TryCreateUntransformed(
                         this._serviceProvider,
                         this._domain,
@@ -405,6 +456,109 @@ internal sealed partial class CompileTimeProjectRepository
             this._projects.Add( assemblyIdentity, compileTimeProject );
 
             return true;
+        }
+
+        /// <summary>
+        /// Records that a run-time assembly claims a compile-time assembly name, and reports an error when another
+        /// assembly has already claimed the same name.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Returns <c>true</c> when the name was free, or when the same assembly claims it again, which happens when
+        /// one reference is reached through several paths.
+        /// </para>
+        /// <para>
+        /// The diagnostic names the <em>run-time</em> assembly, which for the untransformed projects this method guards
+        /// is the same string as the compile-time name, and is the name the user can act on.
+        /// </para>
+        /// </remarks>
+        private bool TryReserveCompileTimeAssemblyName(
+            string compileTimeAssemblyName,
+            AssemblyIdentity runTimeIdentity,
+            IDiagnosticAdder diagnosticSink )
+        {
+            if ( !this._runTimeIdentityByCompileTimeName.TryGetValue( compileTimeAssemblyName, out var claimant ) )
+            {
+                this._runTimeIdentityByCompileTimeName.Add( compileTimeAssemblyName, runTimeIdentity );
+
+                return true;
+            }
+
+            if ( claimant.Equals( runTimeIdentity ) )
+            {
+                return true;
+            }
+
+            this._logger.Error?.Log(
+                $"Both '{claimant}' and '{runTimeIdentity}' provide the compile-time assembly '{compileTimeAssemblyName}'." );
+
+            diagnosticSink.Report(
+                GeneralDiagnosticDescriptors.DuplicateCompileTimeAssemblyName.CreateRoslynDiagnostic(
+                    null,
+                    (runTimeIdentity.Name, claimant, runTimeIdentity) ) );
+
+            return false;
+        }
+
+        /// <summary>
+        /// Warns when a reference that comes from a <c>ProjectReference</c> was compiled by another version of
+        /// Metalama than the current one.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Restricted to project references on purpose. Consuming a package built with another version of Metalama is
+        /// normal and works, at build time and in the IDE alike, because a package is consumed statically, through the
+        /// compile-time project embedded in it. Two projects of the same solution on two versions is a different
+        /// matter: it is a configuration the user controls, it is slower, and above a generation boundary the IDE
+        /// cannot consume the reference at all.
+        /// </para>
+        /// <para>
+        /// The reference is matched by assembly name and not by path. Paths do not work: the compiler is given the
+        /// reference assembly under <c>obj</c>, whereas MSBuild's item holds the implementation assembly under
+        /// <c>bin</c>, so a path comparison fails for every project reference and reports nothing. A name is also
+        /// immune to normalization, casing and link resolution, and cannot contain the separator of the list.
+        /// </para>
+        /// <para>
+        /// When <see cref="IProjectOptions.ProjectReferenceNames"/> is empty, which is the case for a host that does
+        /// not supply it, nothing is reported rather than everything.
+        /// </para>
+        /// </remarks>
+        private void ReportMixedVersionWarnings(
+            AssemblyIdentity runTimeAssemblyIdentity,
+            CompileTimeProjectManifest manifest,
+            IDiagnosticAdder diagnosticAdder )
+        {
+            var projectReferenceNames = this._projectOptions?.ProjectReferenceNames ?? ImmutableArray<string>.Empty;
+
+            // The reference must be one of the project references of the current project. An empty list means that the
+            // host does not supply the property, in which case no reference can be recognized as a project reference.
+            if ( projectReferenceNames.IsDefaultOrEmpty
+                 || !projectReferenceNames.Any( n => string.Equals( n, runTimeAssemblyIdentity.Name, StringComparison.OrdinalIgnoreCase ) ) )
+            {
+                return;
+            }
+
+            if ( string.Equals( manifest.MetalamaVersion, _currentMetalamaVersion, StringComparison.OrdinalIgnoreCase ) )
+            {
+                return;
+            }
+
+            // The generation boundary is the more specific and more actionable of the two, so it replaces the general
+            // warning rather than adding to it.
+            if ( !DesignTimeCompatibility.IsSupportedAtDesignTime( manifest.MetalamaVersion ) )
+            {
+                diagnosticAdder.Report(
+                    GeneralDiagnosticDescriptors.ReferenceNotSupportedAtDesignTime.CreateRoslynDiagnostic(
+                        null,
+                        (runTimeAssemblyIdentity, manifest.MetalamaVersion, DesignTimeCompatibility.MinimumSupportedVersion.ToString()) ) );
+            }
+            else
+            {
+                diagnosticAdder.Report(
+                    GeneralDiagnosticDescriptors.MixedMetalamaVersionsInSolution.CreateRoslynDiagnostic(
+                        null,
+                        (runTimeAssemblyIdentity, manifest.MetalamaVersion, _currentMetalamaVersion ?? "") ) );
+            }
         }
 
         private bool TryDeserializeCompileTimeProject(
@@ -435,6 +589,8 @@ internal sealed partial class CompileTimeProjectRepository
 
                 return false;
             }
+
+            this.ReportMixedVersionWarnings( runTimeAssemblyIdentity, manifest, diagnosticAdder );
 
             // Read source files.
             var parseOptions = new CSharpParseOptions( manifest.LanguageVersion ?? SupportedCSharpVersions.Latest );

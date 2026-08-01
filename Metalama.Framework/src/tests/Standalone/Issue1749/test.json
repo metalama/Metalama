@@ -1,0 +1,9 @@
+{
+    "BuildOnly": true,
+    "IgnoreExitCode": true,
+    "ExpectedDiagnosticsRegexes": [ "error LAMA0079.*Contract" ],
+    "ForbiddenDiagnosticsRegexes": [
+        "error CS1704",
+        "Assembly with same name is already loaded"
+    ]
+}

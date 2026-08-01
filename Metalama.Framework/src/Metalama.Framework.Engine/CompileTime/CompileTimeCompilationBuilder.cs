@@ -180,9 +180,29 @@ internal sealed partial class CompileTimeCompilationBuilder
         h.Append( _buildId );
         this._logger.Trace?.Log( $"ProjectHash: BuildId='{_buildId}'" );
 
+        // Every component of the identity is hashed, and not only the name and the version. The culture and the public
+        // key are precisely the two components that the C# compiler allows to differ so that two assemblies of a single
+        // simple name can be referenced side by side. Hashing only the name and the version therefore allowed two
+        // distinct assemblies to receive a single 'ml!<name>_<hash>' compile-time name, whereas that name is required to
+        // identify the content that it projects. The components are appended individually rather than through
+        // GetDisplayName, because the format of the display name is not part of the contract of AssemblyIdentity and
+        // must not influence the hash. See issue #1749.
+        // The components are separated, because the hasher appends the raw bytes of a string with neither a length nor
+        // a terminator. Without a separator, two different identities could produce one byte sequence, which is exactly
+        // the collision this hash exists to prevent.
+        const string separator = "|";
+
         h.Append( assemblyIdentity.Name );
+        h.Append( separator );
         h.Append( assemblyIdentity.Version.ToString() );
-        this._logger.Trace?.Log( $"ProjectHash: AssemblyIdentity='{assemblyIdentity.Name}, {assemblyIdentity.Version}'" );
+        h.Append( separator );
+        h.Append( assemblyIdentity.CultureName );
+        h.Append( separator );
+        h.Append( assemblyIdentity.PublicKeyToken );
+        h.Append( separator );
+        h.Append( assemblyIdentity.IsRetargetable );
+        h.Append( (int) assemblyIdentity.ContentType );
+        this._logger.Trace?.Log( $"ProjectHash: AssemblyIdentity='{assemblyIdentity.GetDisplayName()}'" );
 
         // We include each reference's full compile-time identity (its 'ml!<name>_<hash>' assembly name), not just
         // its source hash. The compiled assembly bakes a reference to exactly that name, so if a referenced

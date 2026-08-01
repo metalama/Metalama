@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Caching;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -46,55 +47,126 @@ public static class ProjectKeyFactory
         return new ProjectKey( assemblyName, preprocessorSymbolHashCode, isMetalamaEnabled );
     }
 
+    /// <summary>
+    /// The prefix of the compilation symbol that identifies a project, defined by <c>Metalama.Framework.targets</c>
+    /// from the project path, target framework, configuration and platform.
+    /// </summary>
+    private const string _projectDiscriminatorSymbolPrefix = "METALAMA_PROJECT_";
+
+    /// <summary>
+    /// Returns the hash that distinguishes one project from another within a <see cref="ProjectKey"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Only the <c>METALAMA_PROJECT_*</c> symbols are hashed when the project defines at least one of them, because
+    /// those symbols already encode everything that identifies the project. Hashing the other symbols would make the
+    /// key depend on data that identifies nothing: the addition or the removal of an unrelated <c>#define</c>, or a
+    /// conditional assignment to <c>DefineConstants</c>, would change the key of a project that has not otherwise
+    /// changed. Such a change invalidates the design-time pipeline cache and makes the project unrecognizable to the
+    /// processes that route requests by key.
+    /// </para>
+    /// <para>
+    /// Every symbol is hashed when no discriminator is present, which is the case for a project built by a version of
+    /// Metalama older than 2026.1 and for a host that builds its own compilations, such as a test harness. The previous
+    /// behavior is therefore preserved wherever the discriminator cannot be relied upon. See issue #1749.
+    /// </para>
+    /// </remarks>
     private static StrongBox<ulong> GetPreprocessorSymbolHashCode( ParseOptions parseOptions )
     {
-        // ProjectKey is a cross-process identifier so we have to use a robust hasher.
+        var symbolNames = parseOptions.PreprocessorSymbolNames;
+
+        // The Roslyn implementation of PreprocessorSymbolNames is an ImmutableArray, which can be enumerated as a span
+        // and therefore without any allocation. This method is on a performance-sensitive path.
+        if ( symbolNames is ImmutableArray<string> immutableArray )
+        {
+            return ComputeSymbolHashCode( immutableArray.AsSpan() );
+        }
+
+        return ComputeSymbolHashCode( symbolNames as string[] ?? symbolNames.ToArray() );
+    }
+
+    /// <summary>
+    /// Computes the value returned by <see cref="GetPreprocessorSymbolHashCode"/> from the symbols of the project.
+    /// </summary>
+    private static StrongBox<ulong> ComputeSymbolHashCode( ReadOnlySpan<string> symbolNames )
+    {
+        var discriminatorCount = 0;
+
+        foreach ( var symbolName in symbolNames )
+        {
+            if ( IsDiscriminator( symbolName ) )
+            {
+                discriminatorCount++;
+            }
+        }
+
+        var hashedCount = discriminatorCount > 0 ? discriminatorCount : symbolNames.Length;
+
+        if ( hashedCount == 0 )
+        {
+            return new StrongBox<ulong>( 0 );
+        }
+
+        // ProjectKey is a cross-process identifier, therefore the hasher must be a robust one.
         using var hashHandle = HashUtilities.AllocateHasher();
         var hasher = hashHandle.Value;
 
-        var preprocessorSymbolNames = parseOptions.PreprocessorSymbolNames;
-
-        if ( preprocessorSymbolNames is ImmutableArray<string> immutableArray )
+        if ( hashedCount == 1 )
         {
-            // The Roslyn implementation of PreprocessorSymbolNames is an ImmutableArray, so we allocate less memory.
-
-            if ( immutableArray.IsDefaultOrEmpty )
+            // The usual case, in which the project defines exactly one discriminator symbol. Neither a buffer nor a
+            // sort is required.
+            foreach ( var symbolName in symbolNames )
             {
-                return new StrongBox<ulong>( 0 );
-            }
+                if ( discriminatorCount == 0 || IsDiscriminator( symbolName ) )
+                {
+                    hasher.Append( symbolName );
 
-            foreach ( var symbol in immutableArray )
-            {
-                hasher.Append( symbol );
+                    break;
+                }
             }
         }
         else
         {
-            // This is for forward compatibility.
+            var buffer = ArrayPool<string>.Shared.Rent( hashedCount );
 
-            var hasHashCode = false;
-
-            foreach ( var symbol in preprocessorSymbolNames )
+            try
             {
-                hasHashCode = true;
-                hasher.Append( symbol );
+                var index = 0;
+
+                foreach ( var symbolName in symbolNames )
+                {
+                    if ( discriminatorCount == 0 || IsDiscriminator( symbolName ) )
+                    {
+                        buffer[index++] = symbolName;
+                    }
+                }
+
+                // The symbols are sorted so that the key of a project does not depend on the order in which they happen
+                // to be supplied. Without this, a single project could yield two different keys, which is as harmful as
+                // two projects yielding a single key. CompileTimeCompilationBuilder.ComputeSourceHash sorts them for the
+                // same reason.
+                Array.Sort( buffer, 0, hashedCount, StringComparer.Ordinal );
+
+                for ( var i = 0; i < hashedCount; i++ )
+                {
+                    hasher.Append( buffer[i] );
+                }
             }
-
-            if ( !hasHashCode )
+            finally
             {
-                return new StrongBox<ulong>( 0 );
+                // The array is cleared on return because it would otherwise keep the strings alive.
+                ArrayPool<string>.Shared.Return( buffer, clearArray: true );
             }
         }
 
         var hashCode = hasher.GetCurrentHashAsUInt64();
 
-        if ( hashCode == 0 )
-        {
-            hashCode = 1;
-        }
-
-        return new StrongBox<ulong>( hashCode );
+        // Zero is reserved for the absence of a symbol.
+        return new StrongBox<ulong>( hashCode == 0 ? 1 : hashCode );
     }
+
+    private static bool IsDiscriminator( string symbolName )
+        => symbolName.StartsWith( _projectDiscriminatorSymbolPrefix, StringComparison.Ordinal );
 
     internal static ProjectKey FromCompilation( Compilation compilation ) => _compilationCache.GetOrAdd( compilation, FromCompilationCore );
 

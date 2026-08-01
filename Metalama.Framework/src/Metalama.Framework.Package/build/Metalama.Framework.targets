@@ -1,5 +1,51 @@
 ﻿<Project>
 
+    <!--
+        Define a METALAMA_PROJECT_<hash> compilation symbol that identifies this project. Metalama identifies a project
+        by its assembly name and by a hash of its compilation symbols, because those are the only project-identifying
+        data available from a Compilation alone. Without this symbol, two projects that have the same assembly name and
+        the same target framework are indistinguishable. See https://github.com/metalama/Metalama/issues/1749.
+
+        The identifier is the path of the project relative to MetalamaRootDirectory, which defaults to the directory of
+        the solution. A relative path keeps the symbol, and therefore the compilation, independent of the directory into
+        which the repository is cloned, which a build that must be reproducible requires. Set MetalamaRootDirectory
+        explicitly when the same project is built from several solutions and must produce the same symbol in each.
+
+        This is defined even when MetalamaEnabled is False. The symbol has no effect on the compilation of the project
+        itself, and a project that Metalama does not process is still referenced by projects that it does process, which
+        identify it by the same key.
+    -->
+    <PropertyGroup>
+        <MetalamaRootDirectory Condition="'$(MetalamaRootDirectory)'==''">$(SolutionDir)</MetalamaRootDirectory>
+
+        <_MetalamaProjectPath Condition="'$(MetalamaRootDirectory)'!=''">$([MSBuild]::MakeRelative('$(MetalamaRootDirectory)', '$(MSBuildProjectFullPath)'))</_MetalamaProjectPath>
+        <!-- Without a root directory there is no stable path to be relative to, so only the file name of the project is
+             used. Two projects that have the same file name and the same assembly name then share an identifier. -->
+        <_MetalamaProjectPath Condition="'$(MetalamaRootDirectory)'==''">$(MSBuildProjectFile)</_MetalamaProjectPath>
+
+        <!-- The directory separator is normalized so that the same project yields the same symbol on every platform.
+             The spaces of the platform are removed, because a solution configuration names it 'Any CPU' whereas a
+             project names it 'AnyCPU', and the identifier of a project must not depend on which of the two the host
+             happens to evaluate. -->
+        <_MetalamaNormalizedProjectPath>$(_MetalamaProjectPath.Replace('\','/'))</_MetalamaNormalizedProjectPath>
+        <_MetalamaNormalizedPlatform>$(Platform.Replace(' ',''))</_MetalamaNormalizedPlatform>
+        <_MetalamaProjectId>$(_MetalamaNormalizedProjectPath)|$(TargetFramework)|$(Configuration)|$(_MetalamaNormalizedPlatform)</_MetalamaProjectId>
+
+        <!-- The hash is computed in two steps because MSBuild cannot parse a property function nested inside the quoted
+             argument of another one (MSB4186). The hash is signed, and 'N' replaces the minus sign so that the symbol
+             remains a valid identifier.
+
+             StableStringHash is 32 bits, so two projects of one solution can collide, with the probability of the
+             birthday problem: roughly one in a million for a solution of a hundred projects. A collision is not silent:
+             the design-time pipeline compares the path, the target framework and the configuration of the two projects
+             before serving a cached pipeline, and reports the collision instead of serving the wrong one. The wider
+             overload of StableStringHash is not used, because it is not available in every supported version of
+             MSBuild. -->
+        <_MetalamaProjectIdHash>$([MSBuild]::StableStringHash('$(_MetalamaProjectId)'))</_MetalamaProjectIdHash>
+        <_MetalamaProjectDiscriminator>$([System.String]::Copy('$(_MetalamaProjectIdHash)').Replace('-','N'))</_MetalamaProjectDiscriminator>
+        <DefineConstants>$(DefineConstants);METALAMA_PROJECT_$(_MetalamaProjectDiscriminator)</DefineConstants>
+    </PropertyGroup>
+
     <PropertyGroup Condition="'$(MetalamaEnabled)'!='False'">
         <!-- Define a METALAMA compilation symbol (aka constant). -->
         <DefineConstants>$(DefineConstants);METALAMA</DefineConstants>
@@ -142,7 +188,29 @@
         </ItemGroup>
     </Target>
 
-    <Target Name="GatherCompilerVisibleProperties" BeforeTargets="GenerateMSBuildEditorConfigFileCore">
+    <!-- Exports the assembly names of the references that come from a ProjectReference, i.e. of the other projects
+         of the same solution. Metalama needs the distinction to warn about mixing Metalama versions within a
+         solution: a reference to an assembly built by another Metalama version is normal when it is a package, and is
+         only a problem when it is a sibling project. ProjectReference is a design-time concept, so by the time the
+         compiler runs every reference is a PortableExecutableReference and the distinction is lost;
+         ResolveAssemblyReferences has already computed it as %(ReferenceSourceTarget).
+
+         Assembly names and not paths: the consumer compares them against the assembly identity it reads from the
+         reference, which is robust, whereas a path has to match exactly across two subsystems. That comparison used
+         to fail silently, because when the referenced project produces a reference assembly (the default) the
+         compiler is given the reference assembly under 'obj\<config>\<tfm>\ref\X.dll' while @(ReferencePath) still holds
+         'bin\<config>\<tfm>\X.dll'. Names also cannot contain the ',' that separates the list items, so they need
+         no escaping. -->
+    <Target Name="ExportMetalamaProjectReferences" BeforeTargets="GenerateMSBuildEditorConfigFileCore" DependsOnTargets="ResolveAssemblyReferences">
+        <ItemGroup>
+            <_MetalamaProjectReference Include="@(ReferencePath)" Condition="'%(ReferencePath.ReferenceSourceTarget)'=='ProjectReference'"/>
+        </ItemGroup>
+        <PropertyGroup>
+            <MetalamaProjectReferenceNames>@(_MetalamaProjectReference->'%(Filename)', ',')</MetalamaProjectReferenceNames>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="GatherCompilerVisibleProperties" BeforeTargets="GenerateMSBuildEditorConfigFileCore" DependsOnTargets="ExportMetalamaProjectReferences">
         <!-- This is only required for Roslyn 4.0, which doesn't have AnalyzerConfigOptions.Keys. -->
         <PropertyGroup>
             <MetalamaCompilerVisiblePropertiesList>@(CompilerVisibleProperty, ',')</MetalamaCompilerVisiblePropertiesList>

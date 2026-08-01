@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -36,8 +36,10 @@ namespace Metalama.Framework.DesignTime.Pipeline;
 public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfigurationProvider
 {
     private readonly ConcurrentDictionary<ProjectKey, DesignTimeAspectPipeline> _pipelinesByProjectKey = new();
+
     private readonly ILogger _logger;
     private readonly ConcurrentQueue<TaskCompletionSource<DesignTimeAspectPipeline>> _newPipelineListeners = new();
+
     private readonly CancellationToken _globalCancellationToken;
     private readonly IMetalamaProjectClassifier _projectClassifier;
     private readonly AnalysisProcessEventHub? _eventHub;
@@ -45,6 +47,11 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     private readonly ITaskRunner _taskRunner;
     private readonly DesignTimeExceptionHandler _exceptionHandler;
     private readonly DesignTimeExtensionManager? _extensionManager;
+
+    /// <summary>
+    /// Gets every pipeline of every project.
+    /// </summary>
+    private IEnumerable<DesignTimeAspectPipeline> AllPipelines => this._pipelinesByProjectKey.Values;
 
     internal ServiceProvider<IGlobalService> ServiceProvider { get; }
 
@@ -167,6 +174,28 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         }
     }
 
+    /// <summary>
+    /// Returns a description of the first property that differs between two sets of project options that are expected
+    /// to describe the same project, or <c>null</c> when the two sets are consistent.
+    /// </summary>
+    /// <remarks>
+    /// A property is compared only when both sets define it, because a host is not required to supply any of them. The
+    /// target framework and the configuration are compared in addition to the path, because a single project file
+    /// produces a distinct compilation for each combination of the three.
+    /// </remarks>
+    private static string? GetProjectIdentityMismatch( IProjectOptions expected, IProjectOptions actual )
+    {
+        static string? Compare( string propertyName, string? expectedValue, string? actualValue )
+            => expectedValue != null && actualValue != null
+               && !string.Equals( expectedValue, actualValue, StringComparison.OrdinalIgnoreCase )
+                ? $"the projects have a different {propertyName}, respectively '{expectedValue}' and '{actualValue}'"
+                : null;
+
+        return Compare( "path", expected.ProjectPath, actual.ProjectPath )
+               ?? Compare( "target framework", expected.TargetFramework, actual.TargetFramework )
+               ?? Compare( "configuration", expected.Configuration, actual.Configuration );
+    }
+
     private bool TryGetPipeline(
         ProjectKey projectKey,
         IProjectOptions projectOptions,
@@ -176,6 +205,30 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         if ( this._pipelinesByProjectKey.TryGetValue( projectKey, out pipeline ) )
         {
             var pipelineOptions = pipeline.ServiceProvider.GetRequiredService<IProjectOptions>();
+
+            // A ProjectKey must identify a project. Since Metalama 2026.1 it does, because the MSBuild targets define a
+            // METALAMA_PROJECT_<hash> compilation symbol computed from the project path, the target framework, the
+            // configuration and the platform, and because ProjectKey hashes that symbol. Two different projects arriving
+            // under a single key therefore indicate that the symbol was suppressed or overwritten, that the project was
+            // built by a version of Metalama that predates the symbol, or that two projects collided on the hash.
+            //
+            // The condition is reported rather than worked around. Serving the pipeline of one project to another gives
+            // the consumer a compile-time projection that is absent from its own closure, and the resulting failure
+            // occurs much later, while a transitive manifest is being serialized. See issue #1749.
+            //
+            // Unlike WorkspaceProvider.GetProjectAsync and ProjectVersionProvider.GetSingleCompilation, this site is not
+            // restricted to keys of projects that reference Metalama. A pipeline exists only for a project that Metalama
+            // processes, so a key that reaches this method is always one for which the symbol is defined and uniqueness
+            // is therefore guaranteed.
+            var mismatch = GetProjectIdentityMismatch( pipelineOptions, projectOptions );
+
+            if ( mismatch != null )
+            {
+                throw new InvalidOperationException(
+                    $"Two different projects have the same Metalama project key '{projectKey}': {mismatch}. A project key must identify "
+                    + "a project uniquely. Verify that the METALAMA_PROJECT_* compilation symbol defined by Metalama.Framework.targets "
+                    + "is present in both projects and has not been removed by an assignment to the DefineConstants property." );
+            }
 
             static bool ReferencesAreEqual( ImmutableArray<PortableExecutableReference> x, ImmutableArray<PortableExecutableReference> y )
             {
@@ -264,7 +317,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         // Resuming all pipelines.
         var tasks = new List<Task>();
 
-        foreach ( var pipeline in this._pipelinesByProjectKey.Values )
+        foreach ( var pipeline in this.AllPipelines )
         {
             tasks.Add( pipeline.ResumeAsync( executionContext.Fork(), executePipelineNow, cancellationToken ) );
         }
@@ -276,7 +329,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     {
         // If a build has started, we have to invalidate the whole cache because we have allowed
         // our cache to become inconsistent when we started to have an outdated pipeline configuration.
-        foreach ( var pipeline in this._pipelinesByProjectKey.Values )
+        foreach ( var pipeline in this.AllPipelines )
         {
             // We don't do it concurrently because ResetCacheAsync is most likely synchronous.
 
@@ -366,7 +419,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
 
     public virtual void Dispose()
     {
-        foreach ( var designTimeAspectPipeline in this._pipelinesByProjectKey.Values )
+        foreach ( var designTimeAspectPipeline in this.AllPipelines )
         {
             designTimeAspectPipeline.Dispose();
         }

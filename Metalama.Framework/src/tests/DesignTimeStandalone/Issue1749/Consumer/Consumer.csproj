@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <!-- The two versions of 'Contract' collide in the output directory, which is the point of the test. -->
+        <NoWarn>$(NoWarn);MSB3277</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Middle1\Middle1.csproj" />
+        <ProjectReference Include="..\Middle2\Middle2.csproj" />
+    </ItemGroup>
+
+    <!--
+        MSBuild unifies the two 'Contract' references to the highest version, which would leave the compile-time
+        closure with a single 'Contract' project and defeat the test. The reference graphs that produce the reported
+        crash do reach the compiler with both assemblies, so we inject both files after reference resolution. The two
+        files have the same assembly name and differ only in version.
+    -->
+    <Target Name="ReferenceBothContractVersions" AfterTargets="ResolveAssemblyReferences">
+        <ItemGroup>
+            <ReferencePath Remove="@(ReferencePath)" Condition="'%(FileName)' == 'Contract'" />
+            <ReferencePath Include="$(MSBuildThisFileDirectory)..\Contract1\bin\$(Configuration)\netstandard2.0\Contract.dll" />
+            <ReferencePath Include="$(MSBuildThisFileDirectory)..\Contract2\bin\$(Configuration)\netstandard2.0\Contract.dll" />
+        </ItemGroup>
+    </Target>
+
+</Project>
