@@ -29,16 +29,16 @@ public abstract class UserInterfaceService : IUserInterfaceService
     private readonly IBackstageToolsExecutor _backstageToolExecutor;
     private readonly bool _canIgnoreRecoverableExceptions;
     private readonly IStandardDirectories _standardDirectories;
-    private readonly RandomNumberGenerator _randomNumberGenerator;
+    private readonly IServiceProvider _serviceProvider;
 
     protected UserInterfaceService( IServiceProvider serviceProvider )
     {
+        this._serviceProvider = serviceProvider;
         this._processExecutor = serviceProvider.GetRequiredBackstageService<IProcessExecutor>();
         this.Logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
         this._backstageToolExecutor = serviceProvider.GetRequiredBackstageService<IBackstageToolsExecutor>();
         this._canIgnoreRecoverableExceptions = serviceProvider.GetRequiredBackstageService<IRecoverableExceptionService>().CanIgnore;
         this._standardDirectories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
-        this._randomNumberGenerator = serviceProvider.GetRequiredBackstageService<RandomNumberGenerator>();
     }
 
     public abstract void ShowToastNotification( ToastNotification notification );
@@ -90,7 +90,7 @@ public abstract class UserInterfaceService : IUserInterfaceService
 
         // The server binds to loopback, which is reachable by every local user account, so the port is not what keeps
         // other local users out: the per-session token is. See SetupWebServerToken.
-        var authenticationToken = SetupWebServerToken.GenerateToken( this._randomNumberGenerator );
+        var authenticationToken = SetupWebServerToken.GenerateToken( this._serviceProvider );
         var tokenFilePath = SetupWebServerToken.WriteTokenFile( this._standardDirectories.TempDirectory, authenticationToken );
 
         try

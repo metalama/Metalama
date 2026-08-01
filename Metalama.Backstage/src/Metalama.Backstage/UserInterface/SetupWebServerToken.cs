@@ -2,7 +2,9 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using System;
 using System.IO;
@@ -29,8 +31,13 @@ namespace Metalama.Backstage.UserInterface;
 /// itself is not treated as a secret. The token instead travels through a file whose <i>path</i> (not content) is
 /// passed on the command line, and the server deletes that file as soon as it has read it.
 /// </para>
+/// <para>
+/// This type is public because the two ends of the protocol live in two different assemblies: the process that starts
+/// the server is in <c>Metalama.Backstage</c>, whereas the server itself is in <c>Metalama.Backstage.Worker</c>.
+/// </para>
 /// </remarks>
-internal static class SetupWebServerToken
+[PublicAPI]
+public static class SetupWebServerToken
 {
     /// <summary>
     /// Number of random bytes in a token. 256 bits is far beyond brute-force reach for a server that lives about a minute.
@@ -50,10 +57,14 @@ internal static class SetupWebServerToken
     /// <summary>
     /// Generates a new token.
     /// </summary>
-    public static string GenerateToken( RandomNumberGenerator randomNumberGenerator )
+    /// <remarks>
+    /// The random number generator is resolved from <paramref name="serviceProvider"/> rather than accepted as a
+    /// parameter, because it is an internal service of this assembly and this method is called from another one.
+    /// </remarks>
+    public static string GenerateToken( IServiceProvider serviceProvider )
     {
         var bytes = new byte[_tokenByteCount];
-        randomNumberGenerator.NextCryptographicBytes( bytes );
+        serviceProvider.GetRequiredBackstageService<RandomNumberGenerator>().NextCryptographicBytes( bytes );
 
         // Base64url, so that the token requires no escaping when it is appended to a URL.
         return Convert.ToBase64String( bytes ).Replace( '+', '-' ).Replace( '/', '_' ).TrimEnd( '=' );

@@ -4,7 +4,6 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.Worker.Logger;
 using Microsoft.AspNetCore.Builder;
@@ -54,8 +53,7 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
         {
             // The worker was started directly rather than by Metalama, so there is nobody to hand us a token. We
             // generate one and print the URL that carries it, which is the only way to reach the server.
-            authenticationToken = SetupWebServerToken.GenerateToken(
-                appData.ServiceProvider.GetRequiredBackstageService<RandomNumberGenerator>() );
+            authenticationToken = SetupWebServerToken.GenerateToken( appData.ServiceProvider );
 
             Console.WriteLine(
                 $"http://localhost:{settings.Port.ToString( CultureInfo.InvariantCulture )}/?{SetupWebServerToken.QueryParameterName}={authenticationToken}" );
