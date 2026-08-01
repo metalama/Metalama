@@ -31,6 +31,13 @@ namespace Metalama.Patterns.Caching.Tests.TestHelpersTests
             var cachingClass = new CachingClass();
 
             var valueTask = cachingClass.GetValueAsync();
+
+            // This delay models the preemption of the test thread that occurs on a loaded continuous integration
+            // agent between the call to GetValueAsync and the call to Reset. The assertion below must hold whatever
+            // the duration of that preemption, therefore the method body must be suspended on a signal that this
+            // test controls and not on a timer.
+            await Task.Delay( 200, CancellationToken.None );
+
             var called = cachingClass.Reset();
             Assert.False( called, "The caching method was called before awaiting the first value." );
             await valueTask;
