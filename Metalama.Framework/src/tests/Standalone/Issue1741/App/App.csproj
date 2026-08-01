@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <!-- A Razor/Blazor project that uses Metalama and disables the Razor source generator. Building it must fail
+         with the MetalamaCheckRazorComponentDeclaration error, because the legacy RazorCompileComponentDeclaration
+         pass does not provide Metalama with its configuration. See issue #1741. The failure is asserted by the
+         Issue1741.proj wrapper; this project is not built directly by the test harness. -->
+
+    <PropertyGroup>
+        <!-- See https://github.com/dotnet/sdk/issues/29949#issuecomment-1402258974. -->
+        <TargetFramework>net$(NETCoreAppMaximumVersion)</TargetFramework>
+        <RootNamespace>BlazorApp</RootNamespace>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+
+        <!-- The setting under test: forces the legacy RazorCompileComponentDeclaration two-pass build. -->
+        <UseRazorSourceGenerator>false</UseRazorSourceGenerator>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
