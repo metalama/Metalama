@@ -5,6 +5,8 @@
 using Metalama.Backstage.Telemetry;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Pipeline;
+using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -54,6 +56,34 @@ public sealed class DesignTimeSyntaxTreeGeneratorFailureTests : DesignTimePipeli
         services.AddProjectService<IConcurrentTaskRunner>( _ => new FailureInjectingTaskRunner(), allowOverride: true );
 
         using var testContext = this.CreateTestContext( services );
+
+        var compilation = testContext.CreateCSharpCompilation( _code );
+
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var results ) );
+
+        // The generated source of the type that did not fail is still produced.
+        var introductions = results.Result.SyntaxTreeResults.Values.SelectMany( r => r.Introductions ).ToList();
+        var introduction = Assert.Single( introductions );
+        Assert.Contains( "IntroducedMethod", introduction.GeneratedSyntaxTree.ToString(), StringComparison.Ordinal );
+
+        // No ICompileTimeExceptionHandler is registered here, so the failure is contained without being reported.
+        Assert.Empty( testContext.ReportedTelemetryExceptions );
+    }
+
+    /// <summary>
+    /// Tests that, when <see cref="ICompileTimeExceptionHandler"/> is registered, a contained failure is reported
+    /// through it, so that it reaches both the user (as a diagnostic) and backstage telemetry.
+    /// </summary>
+    [Fact]
+    public void ContainedFailureIsReportedThroughTheExceptionHandler()
+    {
+        using var services = new AdditionalServiceCollection();
+        services.AddProjectService<IConcurrentTaskRunner>( _ => new FailureInjectingTaskRunner(), allowOverride: true );
+        services.AddProjectService<ICompileTimeExceptionHandler>( sp => new CompileTimeExceptionHandler( sp.Underlying ) );
+
+        using var testContext = this.CreateTestContext( services );
         testContext.ExpectsReportedExceptions = true;
 
         var compilation = testContext.CreateCSharpCompilation( _code );
@@ -67,8 +97,8 @@ public sealed class DesignTimeSyntaxTreeGeneratorFailureTests : DesignTimePipeli
         var introduction = Assert.Single( introductions );
         Assert.Contains( "IntroducedMethod", introduction.GeneratedSyntaxTree.ToString(), StringComparison.Ordinal );
 
-        // The failure is reported rather than silently ignored. It has no location, so it lands in the result of the
-        // "empty" syntax tree rather than in the result of one of the input files.
+        // The failure is reported to the user rather than silently ignored. It has no location, so it lands in the
+        // result of the "empty" syntax tree rather than in the result of one of the input files.
         Assert.Contains(
             results.Result.SyntaxTreeResults.Values.SelectMany( r => r.Diagnostics ),
             d => d.Id == GeneralDiagnosticDescriptors.IgnorableUnhandledException.Id );
