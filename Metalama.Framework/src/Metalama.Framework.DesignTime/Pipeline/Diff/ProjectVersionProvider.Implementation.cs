@@ -277,37 +277,6 @@ internal sealed partial class ProjectVersionProvider
             return (changeListBuilder.ToImmutable(), referenceListBuilder.ToImmutable());
         }
 
-        /// <summary>
-        /// Gets the project references of a <see cref="Compilation"/>, indexed by <see cref="ProjectKey"/>.
-        /// </summary>
-        /// <remarks>
-        /// A <see cref="ProjectKey"/> is not guaranteed to be unique within a compilation: the same assembly name can be
-        /// reached through several paths of the reference graph. Since the diff cannot tell such references apart, the
-        /// first one wins and the next ones are ignored. References whose compilation has no assembly name have no
-        /// identity at all, so they are ignored too.
-        /// </remarks>
-        private static Dictionary<ProjectKey, Compilation> GetProjectReferencesByKey( Compilation compilation )
-        {
-            var references = new Dictionary<ProjectKey, Compilation>();
-
-            foreach ( var reference in compilation.ExternalReferences )
-            {
-                if ( reference is not CompilationReference compilationReference )
-                {
-                    continue;
-                }
-
-                if ( !compilationReference.Compilation.TryGetProjectKey( out var projectKey ) )
-                {
-                    continue;
-                }
-
-                references.TryAdd( projectKey, compilationReference.Compilation );
-            }
-
-            return references;
-        }
-
         private static (ImmutableDictionary<string, ReferenceChangeKind> Changes, ImmutableHashSet<string> References)
             GetPortableExecutableReferences(
                 Compilation? oldCompilation,
