@@ -4,6 +4,9 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Tests.Serialization;
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Text.Json;
 using Xunit;
 using Xunit.Abstractions;
@@ -152,6 +155,95 @@ public sealed class DiagnosticsConfigurationSerializationTests : JsonSerializati
         Assert.Equal( "System.InvalidOperationException", Assert.Single( roundTripped.CrashDumps.ExceptionTypes ) );
         Assert.True( roundTripped.Profiling.Processes["Compiler"] );
         Assert.Equal( "memory", roundTripped.Profiling.Kind );
+    }
+
+    /// <summary>
+    /// Verifies that the default <c>processes</c> of a section is matched without regard to case, both in a
+    /// default-constructed configuration and in one deserialized from a file that omits the section.
+    /// </summary>
+    /// <remarks>
+    /// Every <c>processes</c> property declares <see cref="StringComparer.OrdinalIgnoreCase"/> in its initializer, and
+    /// the converter used when the member is present in the file preserves that comparer, so the shared default value
+    /// has to use it as well. Otherwise a process kind is matched by case when the section is absent from the file, and
+    /// without regard to case when it is present. <see cref="DiagnosticsConfiguration.Logging"/> is not asserted on the
+    /// deserialized instance because a file that omits that section sets the property to <c>null</c>, which is the
+    /// defect tracked by issue #1777.
+    /// </remarks>
+    [Fact]
+    public void DefaultProcesses_AreCaseInsensitive()
+    {
+        const string differentlyCasedProcessKind = "compiler";
+
+        var defaultConfiguration = new DiagnosticsConfiguration();
+
+        Assert.True( defaultConfiguration.Logging.Processes.ContainsKey( differentlyCasedProcessKind ) );
+        Assert.True( defaultConfiguration.Debugging.Processes.ContainsKey( differentlyCasedProcessKind ) );
+        Assert.True( defaultConfiguration.CrashDumps.Processes.ContainsKey( differentlyCasedProcessKind ) );
+        Assert.True( defaultConfiguration.Profiling.Processes.ContainsKey( differentlyCasedProcessKind ) );
+
+        var deserializedConfiguration = JsonSerializer.Deserialize<DiagnosticsConfiguration>( "{}", this.JsonOptions )!;
+
+        Assert.True( deserializedConfiguration.Debugging.Processes.ContainsKey( differentlyCasedProcessKind ) );
+        Assert.True( deserializedConfiguration.CrashDumps.Processes.ContainsKey( differentlyCasedProcessKind ) );
+        Assert.True( deserializedConfiguration.Profiling.Processes.ContainsKey( differentlyCasedProcessKind ) );
+    }
+
+    /// <summary>
+    /// Verifies that an invalid process kind is reported for every section that has a <c>processes</c> member.
+    /// </summary>
+    /// <remarks>
+    /// The <c>profiling</c> section was not validated, which was harmless while the section was discarded, but it means
+    /// that a typo in a section that is now read would be silently ignored. The configuration is built in memory rather
+    /// than deserialized, because a file that omits the <c>logging</c> section makes <c>Validate</c> throw a
+    /// <see cref="NullReferenceException"/>, which is the defect tracked by issue #1777.
+    /// </remarks>
+    [Theory]
+    [InlineData( "logging.processes" )]
+    [InlineData( "debugging.processes" )]
+    [InlineData( "crashDumps.processes" )]
+    [InlineData( "profiling.processes" )]
+    public void Validate_WithInvalidProcessKind_ReportsWarning( string expectedPath )
+    {
+        const string invalidProcessKind = "NotAProcessKind";
+
+        var processes = ImmutableDictionary<string, bool>.Empty
+            .WithComparers( StringComparer.OrdinalIgnoreCase )
+            .Add( invalidProcessKind, true );
+
+        var configuration = expectedPath switch
+        {
+            "logging.processes" => new DiagnosticsConfiguration { Logging = new LoggingConfiguration { Processes = processes } },
+            "debugging.processes" => new DiagnosticsConfiguration { Debugging = new DebuggerConfiguration { Processes = processes } },
+            "crashDumps.processes" => new DiagnosticsConfiguration { CrashDumps = new CrashDumpConfiguration { Processes = processes } },
+            "profiling.processes" => new DiagnosticsConfiguration { Profiling = new ProfilingConfiguration { Processes = processes } },
+            _ => throw new ArgumentOutOfRangeException( nameof(expectedPath) )
+        };
+
+        var warnings = new List<string>();
+        configuration.Validate( warnings.Add );
+
+        foreach ( var warning in warnings )
+        {
+            this.Output.WriteLine( warning );
+        }
+
+        var reportedWarning = Assert.Single( warnings );
+        Assert.Contains( invalidProcessKind, reportedWarning, StringComparison.Ordinal );
+        Assert.Contains( expectedPath, reportedWarning, StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a file in which every process kind is valid does not produce a warning.
+    /// </summary>
+    [Fact]
+    public void Validate_WithAllSections_ReportsNoWarning()
+    {
+        var configuration = JsonSerializer.Deserialize<DiagnosticsConfiguration>( _allSectionsJson, this.JsonOptions )!;
+
+        var warnings = new List<string>();
+        configuration.Validate( warnings.Add );
+
+        Assert.Empty( warnings );
     }
 
     /// <summary>

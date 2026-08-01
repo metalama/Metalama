@@ -81,9 +81,15 @@ public sealed record DiagnosticsConfiguration : ConfigurationFile
     /// <summary>
     /// The default value of the <c>processes</c> member of every section: all known kinds of processes, disabled.
     /// </summary>
+    /// <remarks>
+    /// The comparer has to be specified explicitly. Every <c>processes</c> property declares
+    /// <see cref="StringComparer.OrdinalIgnoreCase"/> in its initializer, and a process kind written in the file is
+    /// matched without regard to case, so a default built with the default (case-sensitive) comparer would make the
+    /// lookup of a section absent from the file behave differently from the lookup of a section present in it.
+    /// </remarks>
     private static readonly ImmutableDictionary<string, bool> _defaultProcesses = Enum.GetValues( typeof(ProcessKind) )
         .Cast<ProcessKind>()
-        .ToImmutableDictionary( x => x.ToString(), _ => false );
+        .ToImmutableDictionary( x => x.ToString(), _ => false, StringComparer.OrdinalIgnoreCase );
 
     /// <summary>
     /// Creates the default value of the <see cref="Logging"/> property.
@@ -130,5 +136,6 @@ public sealed record DiagnosticsConfiguration : ConfigurationFile
         ValidateProcessKinds( this.Logging.Processes.Keys, "logging.processes" );
         ValidateProcessKinds( this.Debugging.Processes.Keys, "debugging.processes" );
         ValidateProcessKinds( this.CrashDumps.Processes.Keys, "crashDumps.processes" );
+        ValidateProcessKinds( this.Profiling.Processes.Keys, "profiling.processes" );
     }
 }
