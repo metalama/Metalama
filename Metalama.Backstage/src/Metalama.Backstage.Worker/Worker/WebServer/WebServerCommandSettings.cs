@@ -17,4 +17,20 @@ internal class WebServerCommandSettings : CommandSettings
         [UsedImplicitly]
         init;
     } = 5252;
+
+    /// <summary>
+    /// Gets the path of the file containing the per-session authentication token that the server must require.
+    /// When not specified, the server generates a token of its own and prints the URL carrying it.
+    /// </summary>
+    /// <remarks>
+    /// The token is passed by path rather than by value because a command line is readable by any local user, which
+    /// is precisely the audience the token defends against. See <c>SetupWebServerToken</c>.
+    /// </remarks>
+    [CommandOption( "--token-file" )]
+    public string? TokenFile
+    {
+        get;
+        [UsedImplicitly]
+        init;
+    }
 }

@@ -42,7 +42,9 @@ public sealed class WebServerHostFilteringTests : TestsBase
 
             builder.WebHost.UseTestServer();
 
-            var app = WebServerCommand.BuildWebApplication( builder, appData, () => { } );
+            const string authenticationToken = "host-filtering-test-token";
+
+            var app = WebServerCommand.BuildWebApplication( builder, appData, () => { }, authenticationToken );
 
             await using ( app.ConfigureAwait( false ) )
             {
@@ -50,7 +52,9 @@ public sealed class WebServerHostFilteringTests : TestsBase
 
                 using var client = app.GetTestClient();
 
-                using var request = new HttpRequestMessage( HttpMethod.Get, "/ping" );
+                // The request carries a valid token, so that what is under test is the host filtering and not the
+                // authentication middleware, which runs right after it.
+                using var request = new HttpRequestMessage( HttpMethod.Get, $"/ping?t={authenticationToken}" );
                 request.Headers.Host = hostHeader;
 
                 var response = await client.SendAsync( request, cancellationToken );

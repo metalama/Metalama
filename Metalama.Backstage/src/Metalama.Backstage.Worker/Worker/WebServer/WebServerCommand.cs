@@ -4,15 +4,18 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.Worker.Logger;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console.Cli;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -40,13 +43,29 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
     {
         var appData = (AppData) context.Data!;
 
+        string authenticationToken;
+
+        if ( settings.TokenFile != null )
+        {
+            authenticationToken = SetupWebServerToken.ReadTokenFile( settings.TokenFile );
+        }
+        else
+        {
+            // The worker was started directly rather than by Metalama, so there is nobody to hand us a token. We
+            // generate one and print the URL that carries it, which is the only way to reach the server.
+            authenticationToken = SetupWebServerToken.GenerateToken( appData.ServiceProvider );
+
+            Console.WriteLine(
+                $"http://localhost:{settings.Port.ToString( CultureInfo.InvariantCulture )}/?{SetupWebServerToken.QueryParameterName}={authenticationToken}" );
+        }
+
         var builder = WebApplication.CreateBuilder( new WebApplicationOptions() { ApplicationName = "Metalama.Backstage.Worker" } );
 
         builder.WebHost.ConfigureKestrel( serverOptions => serverOptions.ListenLocalhost( settings.Port ) );
 
         this.ExtendShutDownTime();
 
-        var app = BuildWebApplication( builder, appData, this.ExtendShutDownTime );
+        var app = BuildWebApplication( builder, appData, this.ExtendShutDownTime, authenticationToken );
 
         var serverTask = app.RunAsync();
 
@@ -87,7 +106,12 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
     /// server) before calling this method, and for running the returned application.
     /// </summary>
     /// <param name="onKeepAlive">Action invoked when the <c>ping</c> endpoint is hit, used to extend the server lifetime.</param>
-    internal static WebApplication BuildWebApplication( WebApplicationBuilder builder, AppData appData, Action onKeepAlive )
+    /// <param name="authenticationToken">The per-session token that every request must carry. See <see cref="SetupWebServerAuthentication"/>.</param>
+    internal static WebApplication BuildWebApplication(
+        WebApplicationBuilder builder,
+        AppData appData,
+        Action onKeepAlive,
+        string authenticationToken )
     {
         builder.Services.AddControllers();
         builder.Services.AddRazorPages();
@@ -118,6 +142,11 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
         // middleware so that rejected requests never reach the application.
         app.UseHostFiltering();
 
+        // Reject requests that do not carry the per-session token. Loopback is reachable by every local user account,
+        // so this, and not the binding, is what restricts the server to the session that started it. It runs before
+        // the static files and the developer exception page, so that an unauthenticated peer gets nothing at all.
+        app.UseSetupWebServerAuthentication( authenticationToken );
+
         // If the program was started from the wrong directory, fix the path of static files.
         var contentRootPath = builder.Environment.ContentRootPath;
 
@@ -132,7 +161,12 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
             app.UseStaticFiles();
         }
 
-        app.UseDeveloperExceptionPage();
+        // The developer exception page discloses stack traces and framework detail, so it is limited to the development
+        // environment rather than being served to whoever can provoke an exception.
+        if ( builder.Environment.IsDevelopment() )
+        {
+            app.UseDeveloperExceptionPage();
+        }
 
         app.UseRouting();
         app.UseAuthorization();

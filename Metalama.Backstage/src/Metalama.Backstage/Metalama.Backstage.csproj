@@ -39,6 +39,7 @@
     
 
     <ItemGroup>
+        <!-- By convention, we use InternalsVisibleTo only for test projects that must have access to internals. -->
         <InternalsVisibleTo Include="Metalama.Backstage.Tests" />
         <InternalsVisibleTo Include="Metalama.Backstage.Testing" />
     </ItemGroup>
