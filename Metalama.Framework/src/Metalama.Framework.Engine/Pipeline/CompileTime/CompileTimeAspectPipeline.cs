@@ -117,12 +117,31 @@ public class CompileTimeAspectPipeline : AspectPipeline
 
         // Report error if the compilation does not have the METALAMA preprocessor symbol.
         // Skip this check if there are no syntax trees (empty project).
-        if ( compilation.SyntaxTrees.Any()
-             && !compilation.SyntaxTrees.First().Options.PreprocessorSymbolNames.Contains( "METALAMA" ) )
+        if ( compilation.SyntaxTrees.Any() )
         {
-            reportDiagnostic( GeneralDiagnosticDescriptors.MissingMetalamaPreprocessorSymbol.CreateRoslynDiagnostic( null, default ) );
+            var preprocessorSymbols = compilation.SyntaxTrees.First().Options.PreprocessorSymbolNames.ToReadOnlyList();
 
-            return default;
+            if ( !preprocessorSymbols.Contains( "METALAMA" ) )
+            {
+                reportDiagnostic( GeneralDiagnosticDescriptors.MissingMetalamaPreprocessorSymbol.CreateRoslynDiagnostic( null, default ) );
+
+                return default;
+            }
+
+            // The build does not need this symbol, but the design-time experience does: it is what makes a ProjectKey
+            // identify a project rather than a (assembly name, target framework, configuration) triple. Its absence is
+            // therefore reported here, at compile time, because it is the only place where a diagnostic reaches the
+            // user. Gated on RequiresCompilationConstant, because only an MSBuild-driven host runs the targets that
+            // define it: a test harness or an embedding host builds its compilations itself. See LAMA0080 and #1749.
+            //
+            // The pipeline continues, because the build itself is correct without the symbol. Only the design-time
+            // experience is degraded, so failing the build would deny the user a working build over a condition that
+            // does not affect it.
+            if ( this.ProjectOptions.RequiresCompilationConstant
+                 && !preprocessorSymbols.Any( s => s.StartsWith( "METALAMA_PROJECT_", StringComparison.Ordinal ) ) )
+            {
+                reportDiagnostic( GeneralDiagnosticDescriptors.MissingMetalamaProjectPreprocessorSymbol.CreateRoslynDiagnostic( null, default ) );
+            }
         }
 
         // Validate the code in two phases. Phase 1 validates syntax trees with compile-time code,

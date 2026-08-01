@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -302,12 +302,43 @@ namespace Metalama.Framework.Engine.CompileTime
             => this._assemblyLoader?.IsCollectible( assembly ) ?? throw new ObjectDisposedException( this.ToString() );
 
         /// <summary>
-        /// Determines whether this domain is compatible with the given assembly paths, i.e. whether loading these
-        /// assemblies would not cause a conflict with already-loaded assemblies. A conflict occurs when an assembly
-        /// with the same simple name but a different version or public key token is already loaded.
+        /// The identities this domain is expected to load, recorded when the domain is chosen rather than when the
+        /// assembly is loaded.
         /// </summary>
-        public bool IsCompatibleWithAssemblies( IEnumerable<string> assemblyPaths )
+        /// <remarks>
+        /// Compatibility used to be decided from <see cref="_assembliesByName"/> alone, which is only populated when an
+        /// assembly is actually loaded. Between choosing a domain and loading into it, a project does a great deal of
+        /// work, so a second project asking for a domain in that window saw no conflict and was given the same one.
+        /// Both then loaded, and the second failed with "Assembly with same name is already loaded". This is a
+        /// check-then-act gap rather than a data race: it happens even when the two requests are perfectly serialized,
+        /// because the state the check reads is not written until much later. See #1749.
+        /// </remarks>
+        private readonly ConcurrentDictionary<string, AssemblyIdentity> _reservedIdentitiesByName = new( StringComparer.OrdinalIgnoreCase );
+
+        /// <summary>
+        /// Determines whether this domain is compatible with the given assembly paths, and, when it is, records them as
+        /// expected to be loaded so that a later call sees the conflict.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Checking and reserving are one operation on purpose. Separating them would restore the gap this exists to
+        /// close. The caller (<c>DefaultCompileTimeDomainFactory.GetOrCreateDomain</c>) holds a lock across all domains,
+        /// so the pair is atomic with respect to other domain requests. Nothing is reserved when the answer is
+        /// <c>false</c>, so a rejected domain is left untouched.
+        /// </para>
+        /// <para>
+        /// A set that conflicts with <i>itself</i> is not answered with <c>false</c>. That answer would mean "try
+        /// another domain", and no domain can satisfy such a set, so the factory would mint a fresh domain per request
+        /// and never say why. The conflict belongs to the input rather than to the domain, and it is diagnosed as
+        /// <c>LAMA0079</c> where the closure is built. All this method owes is a coherent reservation, so it keeps the
+        /// first identity of each simple name, which is also the one the load context resolves to once anything is
+        /// loaded.
+        /// </para>
+        /// </remarks>
+        public bool TryReserveAssemblies( IEnumerable<string> assemblyPaths )
         {
+            var identities = new Dictionary<string, AssemblyIdentity>( StringComparer.OrdinalIgnoreCase );
+
             foreach ( var path in assemblyPaths )
             {
                 AssemblyName assemblyName;
@@ -325,21 +356,76 @@ namespace Metalama.Framework.Engine.CompileTime
                     continue;
                 }
 
-                if ( assemblyName.Name != null
-                     && this._assembliesByName.TryGetValue( assemblyName.Name, out var existingEntry ) )
+                if ( assemblyName.Name == null )
                 {
-                    var existingName = existingEntry.Assembly.GetName();
-
-                    if ( existingName.Version != assemblyName.Version
-                         || !(existingName.GetPublicKeyToken() ?? []).SequenceEqual( assemblyName.GetPublicKeyToken() ?? [] ) )
-                    {
-                        this._logger.Trace?.Log(
-                            $"Domain {this._domainId} is incompatible with assembly '{assemblyName}' at '{path}': " +
-                            $"already-loaded assembly has identity '{existingEntry.Identity}'." );
-
-                        return false;
-                    }
+                    continue;
                 }
+
+                var identity = assemblyName.ToAssemblyIdentity();
+
+                if ( identities.TryGetValue( identity.Name, out var previousIdentity ) )
+                {
+                    if ( Conflicts( previousIdentity, identity ) )
+                    {
+                        this._logger.Warning?.Log(
+                            $"Domain {this._domainId}: assembly '{identity}' at '{path}' conflicts with '{previousIdentity}', " +
+                            $"which the same request also provides. Reserving the latter." );
+                    }
+
+                    continue;
+                }
+
+                if ( !this.IsCompatibleWithIdentity( identity, path ) )
+                {
+                    return false;
+                }
+
+                identities.Add( identity.Name, identity );
+            }
+
+            foreach ( var identity in identities.Values )
+            {
+                this._reservedIdentitiesByName[identity.Name] = identity;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether two identities that share a simple name cannot both be loaded into a single domain.
+        /// </summary>
+        /// <remarks>
+        /// The comparison covers the whole identity, including the simple name, which every caller has already
+        /// established to be equal. The version, the culture and the public key are precisely the components that the
+        /// C# compiler allows to differ so that two assemblies of a single simple name can be referenced side by side,
+        /// and a single load context cannot hold two of them.
+        /// </remarks>
+        private static bool Conflicts( AssemblyIdentity x, AssemblyIdentity y ) => !x.Equals( y );
+
+        /// <summary>
+        /// Determines whether an identity can be loaded into this domain, i.e. whether no assembly of the same simple
+        /// name but a different version or public key is already loaded into it or reserved for it.
+        /// </summary>
+        private bool IsCompatibleWithIdentity( AssemblyIdentity identity, string path )
+        {
+            if ( this._assembliesByName.TryGetValue( identity.Name, out var existingEntry )
+                 && Conflicts( existingEntry.Identity, identity ) )
+            {
+                this._logger.Trace?.Log(
+                    $"Domain {this._domainId} is incompatible with assembly '{identity}' at '{path}': " +
+                    $"already-loaded assembly has identity '{existingEntry.Identity}'." );
+
+                return false;
+            }
+
+            if ( this._reservedIdentitiesByName.TryGetValue( identity.Name, out var reservedIdentity )
+                 && Conflicts( reservedIdentity, identity ) )
+            {
+                this._logger.Trace?.Log(
+                    $"Domain {this._domainId} is incompatible with assembly '{identity}' at '{path}': " +
+                    $"another project has reserved the identity '{reservedIdentity}'." );
+
+                return false;
             }
 
             return true;

@@ -171,6 +171,9 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                     // reference (issue #1743). We silently ignore the duplicate rather than abort the whole pipeline:
                     // manifests are looked up by assembly identity, so a second entry could never be reached, and
                     // processing its aspects again would apply every inherited aspect of that assembly twice.
+                    //
+                    // Two distinct projects of one solution that produce the same assembly name and version reach this
+                    // too, which is what Standalone/Issue1749.SameAssemblyIdentity and its design-time twin cover.
                     continue;
                 }
 

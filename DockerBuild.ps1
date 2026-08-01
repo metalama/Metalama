@@ -169,7 +169,7 @@ if ($PSVersionTable.PSVersion -lt [Version]'7.5')
 ####
 # These settings are replaced by the generate-scripts command.
 $EngPath = 'eng'
-$EnvironmentVariables = 'AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AZ_IDENTITY_USERNAME,AZURE_CLIENT_ID,AZURE_CLIENT_SECRET,AZURE_DEVOPS_TOKEN,AZURE_DEVOPS_USER,AZURE_TENANT_ID,CLAUDE_CODE_OAUTH_TOKEN,DOC_API_KEY,DOWNLOADS_API_KEY,ENG_USERNAME,GIT_USER_EMAIL,GIT_USER_NAME,GITHUB_AUTHOR_EMAIL,GITHUB_REVIEWER_TOKEN,GITHUB_TOKEN,IS_POSTSHARP_OWNED,IS_TEAMCITY_AGENT,MetalamaLicense,NUGET_ORG_API_KEY,PostSharpLicense,SIGNSERVER_SECRET,TEAMCITY_CLOUD_TOKEN,TYPESENSE_API_KEY,VS_MARKETPLACE_ACCESS_TOKEN,VSS_NUGET_EXTERNAL_FEED_ENDPOINTS'
+$EnvironmentVariables = 'AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AZ_IDENTITY_USERNAME,AZURE_CLIENT_ID,AZURE_CLIENT_SECRET,AZURE_DEVOPS_TOKEN,AZURE_DEVOPS_USER,AZURE_TENANT_ID,CLAUDE_CODE_OAUTH_TOKEN,DOC_API_KEY,DOWNLOADS_API_KEY,ENG_USERNAME,GIT_USER_EMAIL,GIT_USER_NAME,GITHUB_APP_ID,GITHUB_APP_PRIVATE_KEY,GITHUB_AUTHOR_EMAIL,GITHUB_REVIEWER_TOKEN,GITHUB_TOKEN,IS_POSTSHARP_OWNED,IS_TEAMCITY_AGENT,MetalamaLicense,NUGET_ORG_API_KEY,PostSharpLicense,SIGNSERVER_SECRET,TEAMCITY_CLOUD_TOKEN,TYPESENSE_API_KEY,VS_MARKETPLACE_ACCESS_TOKEN,VSS_NUGET_EXTERNAL_FEED_ENDPOINTS'
 $DockerImagePrefix = 'metalama-2026.1'
 $OvercommitRatio = 1.0
 ####
@@ -704,6 +704,46 @@ try
         return Join-Path $dockerContextDirectory (Get-DockerfileStem $dfPath)
     }
 
+    # True when an image bakes the weekly cache-buster (`COPY .g/update.timestamp`). This is the single
+    # discriminator for "this is a Claude leaf": it decides that the day stamp folds into the tag, that the
+    # image is local-only, and that the timestamp file is staged into its context. It is derived from the
+    # Dockerfile body rather than from its name, because the stem carries a product-defined prefix
+    # (AdditionalDockerfile "agent" -> agent-claude.Dockerfile), so comparing the stem to "claude" silently
+    # misses every prefixed leaf.
+    function Test-BakesCacheBuster([string]$dfPath)
+    {
+        $body = Get-Content $dfPath -Raw -ErrorAction SilentlyContinue
+        return [bool]($body -and $body -match 'update\.timestamp')
+    }
+
+    # Stage the cache-buster into the context of the image that actually declares the COPY, i.e.
+    # docker-context/<stem>/.g/ - for whatever stem, prefixed or not. The .g/ directory is gitignored and is
+    # excluded from Get-ContentHash, so writing here neither becomes tracked nor perturbs any image tag.
+    function Copy-TimestampToContext([string]$dfPath)
+    {
+        if (-not (Test-BakesCacheBuster $dfPath))
+        {
+            return
+        }
+
+        # The run step (-NoBuildImage) skips the up-front timestamp creation, yet it still (re)builds the
+        # local-only Claude leaf when the daemon does not already carry it, so materialize the file on demand.
+        # Get-TimestampFile is idempotent and reads the same $script:DayStamp the tag was computed from.
+        if (-not $script:TimestampFile)
+        {
+            $script:TimestampFile = Get-TimestampFile
+        }
+
+        $gDir = Join-Path (Get-ContextDirFor $dfPath) ".g"
+        if (-not (Test-Path $gDir))
+        {
+            New-Item -ItemType Directory -Path $gDir -Force | Out-Null
+        }
+
+        Copy-Item -Path $script:TimestampFile -Destination (Join-Path $gDir "update.timestamp") -Force
+        Write-Host "Staged cache-buster timestamp into the context of '$( Get-DockerfileStem $dfPath )'" -ForegroundColor Cyan
+    }
+
     # Parse the parent Dockerfile from `ARG BASE_IMAGE=<parent>.Dockerfile`; $null if this is a chain root.
     function Get-BaseDockerfile([string]$dfPath)
     {
@@ -739,8 +779,7 @@ try
 
         # Fold the weekly stamp only for images that bake the update.timestamp cache-buster (the Claude leaf), so
         # @latest npm installs of the Claude CLI and plug-ins refresh once per UTC week.
-        $body = Get-Content $dfPath -Raw -ErrorAction SilentlyContinue
-        $hashDayStamp = if ($body -and $body -match 'update\.timestamp') { $script:DayStamp } else { $null }
+        $hashDayStamp = if (Test-BakesCacheBuster $dfPath) { $script:DayStamp } else { $null }
 
         $hash = Get-ContentHash -DockerfilePath $dfPath -ContextDirectory (Get-ContextDirFor $dfPath) -DayStamp $hashDayStamp -ExtraInput $extra
         # The image NAME carries the product/version prefix ($DockerImagePrefix); the Dockerfile file stem does
@@ -799,6 +838,9 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         # The per-image context dir is normally created by generate-scripts, but it is not tracked by git (it is often
         # empty), so ensure it exists here before handing it to docker build.
         if (-not (Test-Path $ctxDir)) { New-Item -ItemType Directory -Path $ctxDir -Force | Out-Null }
+        # Staged here, against the Dockerfile actually being built, so every Claude leaf gets the cache-buster in
+        # its own context regardless of prefix, and images that do not bake it are left untouched.
+        Copy-TimestampToContext $dfPath
         $cmd = @('build', '-t', $tag)
         if ($isolationArg) { $cmd += $isolationArg }
         if ($Memory -and $Isolation -ne 'process') { $cmd += "--memory=$Memory" }
@@ -874,7 +916,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         # weekly cache-buster (update.timestamp) and `@latest` npm/plugin installs, so a registry copy is stale by
         # design and sharing it saves nothing. Keeping it local-only also means a missing/unauthenticated registry
         # (which only ever served the stable ancestor chain) can never fail a Claude run on pull/push.
-        $isClaudeLeaf = (Get-DockerfileStem $dfPath) -eq 'claude'
+        $isClaudeLeaf = Test-BakesCacheBuster $dfPath
 
         Write-Host "Ensuring image: $tag" -ForegroundColor Cyan
 
@@ -1060,11 +1102,12 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     # Collect environment variables for container (will be inlined in Init.g.ps1)
     if (-not $KeepInit)
     {
-        # Create timestamp file for cache invalidation (only if building image)
-        # This is used by Dockerfile.claude but doesn't affect other Dockerfiles
+        # Create timestamp file for cache invalidation (only if building image). Build-OneImage stages it into
+        # the context of each image that bakes it; when the run step rebuilds a Claude leaf without having come
+        # through here, Copy-TimestampToContext creates it on demand.
         if (-not $NoBuildImage)
         {
-            $timestampFile = Get-TimestampFile
+            $script:TimestampFile = Get-TimestampFile
         }
 
         if ($Claude)
@@ -1736,21 +1779,9 @@ $envVarAssignments$gitConfigCommands$postInitCommands
         $initScriptContent | Set-Content -Path $initScript -Encoding UTF8
     }
 
-    # Copy timestamp file into the consuming image's per-image context. Only the Claude image bakes the
-    # cache-buster (via `COPY .g/update.timestamp`), so it goes into docker-context/<prefix>-claude/.g/ — not
-    # the shared context. (The .g/ dir is excluded from the content hash; weekly rotation is folded via DayStamp.)
-    if ($timestampFile)
-    {
-        $claudeContextDir = Join-Path $dockerContextDirectory "claude"
-        $gDirectory = Join-Path $claudeContextDir ".g"
-        if (-not (Test-Path $gDirectory))
-        {
-            New-Item -ItemType Directory -Path $gDirectory -Force | Out-Null
-        }
-        $timestampDestination = Join-Path $gDirectory "update.timestamp"
-        Copy-Item -Path $timestampFile -Destination $timestampDestination -Force
-        Write-Host "Copied timestamp file to Claude image context ($claudeContextDir)" -ForegroundColor Cyan
-    }
+    # The cache-buster is staged by Build-OneImage, into the context of each image that actually declares the
+    # `COPY .g/update.timestamp`. Doing it there rather than here is what makes it prefix-agnostic: the
+    # destination is derived from the Dockerfile being built instead of from a hardcoded "claude" directory.
 
     # Path separator depends on platform (and container OS)
     $pathSeparator = if ($IsUnix)

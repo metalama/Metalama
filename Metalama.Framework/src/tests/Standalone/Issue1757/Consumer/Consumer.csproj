@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- The version built by this repository, which is therefore the one that compiles this project. -->
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Both are ProjectReferences on purpose. The warnings are reported for a project reference only: consuming
+             a package built by another version of Metalama is normal and works, whereas two projects of one solution
+             on two versions is a configuration the user controls. -->
+        <ProjectReference Include="..\OldAspects\OldAspects.csproj" />
+        <ProjectReference Include="..\MidAspects\MidAspects.csproj" />
+    </ItemGroup>
+
+</Project>

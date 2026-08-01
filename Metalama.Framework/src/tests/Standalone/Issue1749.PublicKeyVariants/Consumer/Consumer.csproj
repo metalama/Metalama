@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <!-- MSB3243: RAR cannot unify two assemblies whose identities differ only by public key, so it warns and
+             hands both to the compiler. That is exactly what this scenario needs. -->
+        <NoWarn>$(NoWarn);MSB3243;MSB3277</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Ordering only. The assemblies themselves are injected below, because two references of the same file name
+             cannot both be resolved through the ordinary reference resolution. -->
+        <ProjectReference Include="..\Contract1\Contract1.csproj" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="..\Contract2\Contract2.csproj" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <Target Name="ReferenceBothContractVariants" AfterTargets="ResolveAssemblyReferences">
+        <ItemGroup>
+            <ReferencePath Include="$(MSBuildThisFileDirectory)..\Contract1\bin\$(Configuration)\netstandard2.0\Contract.dll" />
+            <ReferencePath Include="$(MSBuildThisFileDirectory)..\Contract2\bin\$(Configuration)\netstandard2.0\Contract.dll" />
+        </ItemGroup>
+    </Target>
+
+</Project>

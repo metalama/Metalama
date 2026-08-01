@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -16,6 +16,7 @@ using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
@@ -498,6 +499,52 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         }
     }
 
+    /// <summary>
+    /// Adds a reference whose Metalama version the design-time support cannot consume, as a reference that
+    /// contributes no aspect.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Degrading rather than failing is deliberate. The build is unaffected: the compile-time pipeline reads the
+    /// embedded compile-time project of the older version and applies its aspects. Only the transitive aspects of
+    /// this one reference cannot be obtained in the IDE. Failing the whole call would instead abort the pipeline of
+    /// the consuming project, costing the user the design-time support of their own aspects as well (issue #1757).
+    /// </para>
+    /// <para>
+    /// Nothing is reported here. A diagnostic produced on this path never reaches the user, because design-time
+    /// diagnostics surface through the analyzer, which reads a successful pipeline result. The user is warned by
+    /// <c>LAMA0081</c>, reported by the compile-time pipeline, where the diagnostic reliably surfaces.
+    /// </para>
+    /// </remarks>
+    private void SkipReferenceUnsupportedAtDesignTime(
+        List<DesignTimeProjectReference> compilationReferences,
+        IProjectVersion reference,
+        Version metalamaVersion )
+    {
+        this.Logger.Warning?.Log(
+            $"The reference '{reference.ProjectKey}' was compiled with Metalama {metalamaVersion}, which the design-time support "
+            + $"cannot consume. Its aspects will not be available in the IDE. See LAMA0081." );
+
+        compilationReferences.Add( new DesignTimeProjectReference( reference.ProjectKey ) );
+    }
+
+    /// <summary>
+    /// Records a reference whose design-time pipeline could not be obtained, so that it contributes no aspect instead of
+    /// failing the whole call.
+    /// </summary>
+    /// <remarks>
+    /// Reports nothing, for the same reason as <see cref="SkipReferenceUnsupportedAtDesignTime"/>: a diagnostic produced
+    /// on this path does not reach the user. The condition is not necessarily a defect either, since a host without a
+    /// workspace legitimately cannot resolve a project reference to a project.
+    /// </remarks>
+    private void SkipReferenceWithoutPipeline( List<DesignTimeProjectReference> compilationReferences, IProjectVersion reference )
+    {
+        this.Logger.Warning?.Log(
+            $"No design-time pipeline could be obtained for the reference '{reference.ProjectKey}'. Its aspects will not be available in the IDE." );
+
+        compilationReferences.Add( new DesignTimeProjectReference( reference.ProjectKey ) );
+    }
+
     internal async ValueTask<FallibleResultWithDiagnostics<DesignTimeProjectVersion>> GetDesignTimeProjectVersionAsync(
         Compilation compilation,
         bool autoResumePipeline,
@@ -532,7 +579,17 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
                         if ( !pipelineResult.IsSuccessful )
                         {
-                            return pipelineResult.CastFailure<DesignTimeProjectVersion>();
+                            // Degrade to a reference contributing no aspect rather than failing this project's whole
+                            // call. Failing propagated one unresolvable reference into the loss of every design-time
+                            // feature of the consuming project, including the diagnostics that would explain it. There
+                            // are ordinary reasons to land here: the host may have no workspace at all, which is the
+                            // case for a plain analyzer in an IDE without the Metalama extension, or the reference's
+                            // ProjectKey may be shared by several projects and therefore designate none of them. The
+                            // reference is still consumed through its serialized manifest, exactly as a reference
+                            // built by another version of Metalama is. The remedy is the one of issue #1757.
+                            this.SkipReferenceWithoutPipeline( compilationReferences, reference );
+
+                            continue;
                         }
 
                         pipeline = pipelineResult.Value;
@@ -587,10 +644,43 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     // We have a reference to a different version of Metalama.
 
                     var entryPointConsumer = this._entryPointConsumer.AssertNotNull();
-                    var serviceProvider = (await entryPointConsumer.GetServiceProviderAsync( metalamaVersion, cancellationToken )).AssertNotNull();
 
-                    var transitiveCompilationService =
-                        (ITransitiveCompilationService) serviceProvider.GetService( typeof(ITransitiveCompilationService) ).AssertNotNull();
+                    // A reference produced by a Metalama of a different design-time contracts generation can never be
+                    // served in this process, so it must not be waited for. #1605 rotated every GUID of
+                    // Metalama.Framework.DesignTime.Contracts and the AppDomain slot through which
+                    // DesignTimeEntryPointManager registers itself, which means that generation v1 (up to 2026.0.x) and
+                    // generation v2 (2026.1 and later) cannot observe each other's registrations. That is by design;
+                    // what must not happen is the unbounded wait that used to follow, because this method holds the
+                    // lock on the current project and would therefore suspend its design-time experience indefinitely
+                    // (issue #1757).
+                    if ( !DesignTimeCompatibility.IsSupportedAtDesignTime( metalamaVersion ) )
+                    {
+                        this.SkipReferenceUnsupportedAtDesignTime( compilationReferences, reference, metalamaVersion );
+
+                        continue;
+                    }
+
+                    // Same contracts generation, so the entry point is expected to register, but possibly not yet:
+                    // the other version's analyzer may still be initializing. How long that legitimately takes is not
+                    // something this code can know, since a large solution under an IDE that loads projects in the
+                    // background and on demand can take arbitrarily long, so the wait is governed by the caller's
+                    // cancellation token rather than by a timeout chosen here. A design-time request that is
+                    // abandoned cancels that token and is retried later, by which time the entry point has usually
+                    // registered.
+                    var serviceProvider = await entryPointConsumer.GetServiceProviderAsync( metalamaVersion, cancellationToken );
+
+                    // InvalidCompilerServiceProvider, which the entry point manager returns when the contract
+                    // versions of a same-generation peer do not match, answers null for every service.
+                    if ( serviceProvider?.GetService( typeof(ITransitiveCompilationService) ) is not ITransitiveCompilationService
+                        transitiveCompilationService )
+                    {
+                        this.Logger.Warning?.Log(
+                            $"The design-time entry point of Metalama {metalamaVersion} does not provide {nameof(ITransitiveCompilationService)}." );
+
+                        this.SkipReferenceUnsupportedAtDesignTime( compilationReferences, reference, metalamaVersion );
+
+                        continue;
+                    }
 
                     var resultArray = new ITransitiveCompilationResult?[1];
                     await transitiveCompilationService.GetTransitiveAspectManifestAsync( reference.Compilation, resultArray, cancellationToken );

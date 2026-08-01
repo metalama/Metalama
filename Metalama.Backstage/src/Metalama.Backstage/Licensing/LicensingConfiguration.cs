@@ -29,11 +29,24 @@ internal sealed record LicensingConfiguration : ConfigurationFile
     [JsonPropertyName( "license" )]
     public string? LegacyLicense { get; init; }
 
+    private readonly ImmutableArray<string?> _licenses = ImmutableArray<string?>.Empty;
+
     /// <summary>
     /// Gets the list of license keys for Metalama 2025.1 or later.
     /// </summary>
+    /// <remarks>
+    /// The value is normalized to <see cref="ImmutableArray{T}.Empty"/> because a default (uninitialized)
+    /// <see cref="ImmutableArray{T}"/> wraps a null array and throws when it is enumerated or serialized. A property
+    /// initializer alone is not enough: the System.Text.Json source generator treats every <c>init</c> property as a
+    /// constructor parameter and assigns it unconditionally, so a <c>licensing.json</c> without a <c>licenses</c> entry
+    /// (a fresh installation, or a file written by an earlier version) overwrites the initializer with the default value.
+    /// </remarks>
     [JsonPropertyName( "licenses" )]
-    public ImmutableArray<string?> Licenses { get; init; } = ImmutableArray<string?>.Empty;
+    public ImmutableArray<string?> Licenses
+    {
+        get => this._licenses;
+        init => this._licenses = value.IsDefault ? ImmutableArray<string?>.Empty : value;
+    }
 
     public CommunityLicenseReason CommunityLicenseReason { get; init; }
 

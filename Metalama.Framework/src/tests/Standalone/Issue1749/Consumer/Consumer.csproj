@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Middle1\Middle1.csproj" />
+        <ProjectReference Include="..\Middle2\Middle2.csproj" />
+    </ItemGroup>
+
+    <!--
+        Reference resolution unifies the two 'Contract' references to the highest version, which would leave the
+        compile-time closure with a single 'Contract' and defeat the test. The reference graphs that produce the
+        reported crash do reach the compiler with both assemblies, so both files are injected after resolution. They
+        have the same assembly name and version 1.0.0.0 and 1.1.0.0, and are signed with the same key, without which
+        two weak-named references of one simple name would be CS1704 and the scenario would not be a valid compilation
+        at all.
+
+        Removing the resolved item first is what keeps this quiet: RAR never sees two 'Contract' references, so it
+        never reports MSB3277 and there is nothing to suppress. It also means neither file is copied to the output
+        directory, since copy-local is driven by ReferenceCopyLocalPaths rather than by ReferencePath. That costs
+        nothing here because the scenario is BuildOnly and the build is expected to fail.
+    -->
+    <Target Name="ReferenceBothContractVersions" AfterTargets="ResolveAssemblyReferences">
+        <ItemGroup>
+            <ReferencePath Remove="@(ReferencePath)" Condition="'%(FileName)' == 'Contract'" />
+            <ReferencePath Include="$(MSBuildThisFileDirectory)..\Contract1\bin\$(Configuration)\netstandard2.0\Contract.dll" />
+            <ReferencePath Include="$(MSBuildThisFileDirectory)..\Contract2\bin\$(Configuration)\netstandard2.0\Contract.dll" />
+        </ItemGroup>
+    </Target>
+
+</Project>

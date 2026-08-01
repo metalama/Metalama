@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Only Aspects2. Aspects1 is not in this project's reference graph at all: the consumer reaches it only
+             through the ProjectKey collision, inside Metalama's pipeline cache. -->
+        <ProjectReference Include="..\Aspects2\Aspects2.csproj" />
+    </ItemGroup>
+
+</Project>

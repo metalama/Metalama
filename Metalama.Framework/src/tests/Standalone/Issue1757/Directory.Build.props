@@ -1,0 +1,13 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')" />
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS1591;CA1822</NoWarn>
+    <!-- A publicly released version below 2026.1, i.e. of the previous design-time contracts generation. -->
+    <OldMetalamaVersion>2025.1.18</OldMetalamaVersion>
+    <!-- A publicly released version of the current generation, but not the version built by this repository. -->
+    <MidMetalamaVersion>2026.1.20</MidMetalamaVersion>
+  </PropertyGroup>
+
+</Project>

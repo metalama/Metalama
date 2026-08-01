@@ -1,0 +1,4 @@
+{
+    "BuildOnly": true,
+    "ForbiddenDiagnosticsRegexes": [ "An element with the same key but a different value already exists" ]
+}

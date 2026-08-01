@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <!-- The same assembly name as Aspects1, and the same preprocessor symbols, so both projects have the same
+             Metalama ProjectKey. This project references no 'Contract', so its compilation has a different reference
+             list, and therefore a different ExternalReferences array instance, from Aspects1's. -->
+        <AssemblyName>Aspects</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <NoWarn>$(NoWarn);MSB3243;MSB3277</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Ordering only. The assemblies are injected below, because two outputs of one identity and one file name
+             cannot both survive ordinary reference resolution. -->
+        <ProjectReference Include="..\VariantA\VariantA.csproj" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="..\VariantB\VariantB.csproj" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <Target Name="ReferenceBothVariants" AfterTargets="ResolveAssemblyReferences">
+        <ItemGroup>
+            <ReferencePath Remove="@(ReferencePath)" Condition="'%(FileName)' == 'Aspects'" />
+            <ReferencePath Include="$(MSBuildThisFileDirectory)..\VariantA\bin\$(Configuration)\net8.0\Aspects.dll" />
+            <ReferencePath Include="$(MSBuildThisFileDirectory)..\VariantB\bin\$(Configuration)\net8.0\Aspects.dll" />
+        </ItemGroup>
+    </Target>
+
+</Project>

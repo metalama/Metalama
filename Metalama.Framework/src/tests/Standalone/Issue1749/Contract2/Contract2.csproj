@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <AssemblyName>Contract</AssemblyName>
+        <!-- Metalama does not process this project, so the [assembly: CompileTime] attribute survives in the output
+             assembly and the consumer resolves it through CompileTimeProject.TryCreateUntransformed. -->
+        <MetalamaEnabled>false</MetalamaEnabled>
+        <!-- The same key as Contract1. See the comment there. -->
+        <SignAssembly>True</SignAssembly>
+        <AssemblyOriginatorKeyFile>..\Contract.snk</AssemblyOriginatorKeyFile>
+        <NoWarn>$(NoWarn);CS8002</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
