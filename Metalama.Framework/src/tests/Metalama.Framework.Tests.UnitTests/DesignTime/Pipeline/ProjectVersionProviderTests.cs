@@ -8,6 +8,7 @@ using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -236,6 +237,107 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
         Assert.Equal( ReferenceChangeKind.Added, level2ReferencedCompilationChange.ChangeKind );
         Assert.Same( compilationLevel1, level2ReferencedCompilationChange.NewCompilation );
     }
+
+    /// <summary>
+    /// Tests that two project references that share the same identity do not crash the diff.
+    /// </summary>
+    /// <remarks>
+    /// A solution can reach the same assembly name through two different paths of the reference graph, so the
+    /// identity derived from a project reference is not guaranteed to be unique within a compilation. See
+    /// issue #1750. The referenced projects define no preprocessor symbol, therefore they do not reference
+    /// Metalama and their key cannot be made unique by the <c>METALAMA_PROJECT_*</c> discriminator. That
+    /// configuration is legitimate and the first reference is retained. A collision between two projects that
+    /// both reference Metalama is a different matter and is reported instead, as described in issue #1749.
+    /// </remarks>
+    [Fact]
+    public async Task DuplicateCompilationReferenceIdentity()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilationVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
+
+        var masterCompilationA = testContext.CreateCSharpCompilation(
+            new Dictionary<string, string> { ["a.cs"] = "class D {}" },
+            assemblyName: "Master",
+            preprocessorSymbols: Array.Empty<string>() );
+
+        var masterCompilationB = testContext.CreateCSharpCompilation(
+            new Dictionary<string, string> { ["b.cs"] = "class E {}" },
+            assemblyName: "Master",
+            preprocessorSymbols: Array.Empty<string>() );
+
+        var dependentCode = new Dictionary<string, string> { ["code.cs"] = "class C {}" };
+
+        var compilation1 = testContext.CreateCSharpCompilation(
+            dependentCode,
+            assemblyName: "Dependent",
+            additionalReferences: new[] { masterCompilationA.ToMetadataReference(), masterCompilationB.ToMetadataReference() },
+            ignoreErrors: true );
+
+        var compilation2 = testContext.CreateCSharpCompilation( dependentCode, assemblyName: "Dependent", ignoreErrors: true )
+            .WithReferences( compilation1.References );
+
+        // Non-incremental path. The two references collapse into a single entry keyed by the shared identity.
+        var changes1 = await compilationVersionProvider.GetCompilationChangesAsync( null, compilation1 );
+        Assert.False( changes1.IsIncremental );
+        Assert.Equal( "Master", Assert.Single( changes1.NewProjectVersion.ReferencedProjectVersions ).Key.AssemblyName );
+
+        // Incremental path, i.e. the one that throws in the crash reports.
+        var changes2 = await compilationVersionProvider.GetCompilationChangesAsync( compilation1, compilation2 );
+        Assert.True( changes2.IsIncremental );
+        Assert.False( changes2.HasChange );
+        Assert.Equal( "Master", Assert.Single( changes2.NewProjectVersion.ReferencedProjectVersions ).Key.AssemblyName );
+    }
+
+    /// <summary>
+    /// Tests that project references whose compilation has no assembly name do not crash the diff.
+    /// </summary>
+    /// <remarks>
+    /// Roslyn allows the assembly name of a compilation to be null or empty. Such references have no identity, so any two
+    /// of them collide with each other. This is the <c>Key: ', 0'</c> signature of issue #1750: an empty assembly name
+    /// followed by a zero preprocessor-symbol hash.
+    /// </remarks>
+    [Theory]
+    [InlineData( null )]
+    [InlineData( "" )]
+    public async Task CompilationReferenceWithoutAssemblyName( string? assemblyName )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilationVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
+
+        var unnamedCompilationA = CreateUnnamedCompilation( testContext, assemblyName, "class D {}", "a.cs" );
+        var unnamedCompilationB = CreateUnnamedCompilation( testContext, assemblyName, "class E {}", "b.cs" );
+
+        var dependentCode = new Dictionary<string, string> { ["code.cs"] = "class C {}" };
+
+        var compilation1 = testContext.CreateCSharpCompilation(
+            dependentCode,
+            assemblyName: "Dependent",
+            additionalReferences: new[] { unnamedCompilationA.ToMetadataReference(), unnamedCompilationB.ToMetadataReference() },
+            ignoreErrors: true );
+
+        var compilation2 = testContext.CreateCSharpCompilation( dependentCode, assemblyName: "Dependent", ignoreErrors: true )
+            .WithReferences( compilation1.References );
+
+        // References that have no identity are excluded from the diff instead of crashing it.
+        var changes1 = await compilationVersionProvider.GetCompilationChangesAsync( null, compilation1 );
+        Assert.False( changes1.IsIncremental );
+        Assert.Empty( changes1.NewProjectVersion.ReferencedProjectVersions );
+
+        var changes2 = await compilationVersionProvider.GetCompilationChangesAsync( compilation1, compilation2 );
+        Assert.True( changes2.IsIncremental );
+        Assert.False( changes2.HasChange );
+        Assert.Empty( changes2.NewProjectVersion.ReferencedProjectVersions );
+    }
+
+    /// <summary>
+    /// Creates a compilation whose assembly name is null or empty, which Roslyn allows.
+    /// </summary>
+    private static CSharpCompilation CreateUnnamedCompilation( TestContext testContext, string? assemblyName, string code, string path )
+        => CSharpCompilation.Create( assemblyName )
+            .AddReferences( testContext.GetMetadataReferences() )
+            .AddSyntaxTrees( CSharpSyntaxTree.ParseText( code, path: path ) );
 
     [Fact]
     public async Task IntermediateCompilationCanBeCollected()
