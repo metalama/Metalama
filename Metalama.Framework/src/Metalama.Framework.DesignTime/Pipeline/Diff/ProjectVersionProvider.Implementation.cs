@@ -164,6 +164,38 @@ internal sealed partial class ProjectVersionProvider
             return references[0].Compilation;
         }
 
+        /// <summary>
+        /// Gets the project references of a <see cref="Compilation"/>, indexed by <see cref="ProjectKey"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A reference whose compilation has no assembly name has no identity, therefore no <see cref="ProjectKey"/> can
+        /// be derived from it and it is excluded. Roslyn allows the assembly name of a compilation to be null or empty,
+        /// and any two such references would otherwise produce a single key that identifies neither of them. See issue
+        /// #1750.
+        /// </para>
+        /// <para>
+        /// The remaining references are grouped rather than added directly, so that a duplicate key is reported by
+        /// <see cref="GetSingleCompilation"/> with a message that names the colliding projects. A plain
+        /// <c>ToDictionary</c> would throw an <see cref="ArgumentException"/> that names neither.
+        /// </para>
+        /// </remarks>
+        private Dictionary<ProjectKey, Compilation> GetProjectReferencesByKey( Compilation compilation )
+        {
+            var keyedReferences = new List<KeyValuePair<ProjectKey, CompilationReference>>();
+
+            foreach ( var reference in compilation.ExternalReferences )
+            {
+                if ( reference is CompilationReference compilationReference
+                     && compilationReference.Compilation.TryGetProjectKey( out var projectKey ) )
+                {
+                    keyedReferences.Add( new KeyValuePair<ProjectKey, CompilationReference>( projectKey, compilationReference ) );
+                }
+            }
+
+            return keyedReferences.GroupBy( x => x.Key, x => x.Value ).ToDictionary( g => g.Key, this.GetSingleCompilation );
+        }
+
         private async Task<(ImmutableDictionary<ProjectKey, ReferencedProjectChange> Changes, ImmutableDictionary<ProjectKey, IProjectVersion> References)>
             GetProjectReferencesAsync(
                 Compilation? oldCompilation,
@@ -174,27 +206,20 @@ internal sealed partial class ProjectVersionProvider
             var changeListBuilder = ImmutableDictionary.CreateBuilder<ProjectKey, ReferencedProjectChange>();
             var referenceListBuilder = ImmutableDictionary.CreateBuilder<ProjectKey, IProjectVersion>();
 
-            // Grouped rather than added directly, so that a duplicate key is reported with a message that names the
-            // colliding projects. A plain ToDictionary would throw an ArgumentException that names neither.
-            var oldProjectReferences = oldCompilation?.ExternalReferences.OfType<CompilationReference>()
-                .GroupBy( x => x.Compilation.GetProjectKey() )
-                .ToDictionary( g => g.Key, this.GetSingleCompilation );
+            var oldProjectReferences = oldCompilation == null ? null : this.GetProjectReferencesByKey( oldCompilation );
+            var newProjectReferences = this.GetProjectReferencesByKey( newCompilation );
 
-            var newProjectReferences = newCompilation.ExternalReferences.OfType<CompilationReference>()
-                .GroupBy( x => x.Compilation.GetProjectKey() )
-                .ToDictionary( g => g.Key, this.GetSingleCompilation );
-
-            foreach ( var pair in newProjectReferences )
+            foreach ( var reference in newProjectReferences )
             {
                 ReferencedProjectChange? changes;
                 IProjectVersion projectVersion;
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var assemblyIdentity = pair.Key;
-                var newReferenceCompilation = pair.Value;
+                var projectKey = reference.Key;
+                var newReferenceCompilation = reference.Value;
 
-                if ( oldCompilation != null && oldProjectReferences!.TryGetValue( assemblyIdentity, out var oldReferenceCompilation ) )
+                if ( oldProjectReferences != null && oldProjectReferences.TryGetValue( projectKey, out var oldReferenceCompilation ) )
                 {
                     var compilationChanges = await this.GetCompilationChangesAsyncCoreAsync(
                         oldReferenceCompilation,
@@ -229,20 +254,18 @@ internal sealed partial class ProjectVersionProvider
 
                 if ( changes != null )
                 {
-                    changeListBuilder.Add( assemblyIdentity, changes.Value );
+                    changeListBuilder.Add( projectKey, changes.Value );
                 }
 
-                referenceListBuilder.Add( assemblyIdentity, projectVersion );
+                referenceListBuilder.Add( projectKey, projectVersion );
             }
 
             // Check removed references.
-            if ( oldCompilation != null )
+            if ( oldProjectReferences != null )
             {
-                var referencedAssemblyIdentifies = new HashSet<ProjectKey>( newProjectReferences.Keys );
-
-                foreach ( var reference in oldProjectReferences! )
+                foreach ( var reference in oldProjectReferences )
                 {
-                    if ( !referencedAssemblyIdentifies.Contains( reference.Key ) )
+                    if ( !newProjectReferences.ContainsKey( reference.Key ) )
                     {
                         changeListBuilder.Add(
                             reference.Key,
