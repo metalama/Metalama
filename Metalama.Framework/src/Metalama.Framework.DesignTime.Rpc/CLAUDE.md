@@ -120,6 +120,9 @@ This allows different Metalama versions to be loaded in the same AppDomain while
 
 ## Test Synchronization
 
+For the overall test-suite architecture, see `Metalama.Framework/docs/testing.md`. This section covers only the
+RPC-specific pattern for deterministic timing.
+
 For deterministic testing, use `ITestSynchronizationProvider`:
 
 ```csharp
