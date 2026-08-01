@@ -11,6 +11,7 @@ using Metalama.Backstage.Tests.Extensibility;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Immutable;
+using System.IO;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -137,9 +138,9 @@ public sealed class DiagnosticsConfigurationTests : TestsBase
     /// default instance is therefore what distinguishes the two outcomes.
     /// </para>
     /// <para>
-    /// The <c>crashDumps</c> section is present in the test input because it comes from the report of issue #1777, but
-    /// it is deliberately not asserted upon: <see cref="DiagnosticsConfiguration.CrashDumps"/> is a get-only property
-    /// and is therefore not deserialized at all, which is a separate defect tracked by its own issue.
+    /// The version is the value asserted upon because it is the only one common to both cases, the second of which has
+    /// no section other than <c>logging</c>. The <c>crashDumps</c> section of the first case comes from the report of
+    /// issue #1777, where it illustrated that a section the user had written was lost as well.
     /// </para>
     /// </remarks>
     [Theory]
@@ -160,5 +161,46 @@ public sealed class DiagnosticsConfigurationTests : TestsBase
         Assert.NotNull( configuration.Logging );
         Assert.NotNull( configuration.Logging.Processes );
         Assert.NotNull( configuration.Logging.TraceCategories );
+    }
+
+    /// <summary>
+    /// Verifies that a <c>diagnostics.json</c> file read through the <see cref="Configuration.ConfigurationManager"/>
+    /// actually reaches every section of <see cref="DiagnosticsConfiguration"/>.
+    /// </summary>
+    /// <remarks>
+    /// This is the path taken by the workflows documented in
+    /// <see href="https://doc.metalama.net/conceptual/configuration/process-dump"/> and
+    /// <see href="https://doc.metalama.net/conceptual/configuration/profiling"/>, in which the user enables a process in
+    /// the <c>crashDumps</c> or <c>profiling</c> section with <c>metalama config edit diagnostics</c>. See issue #1778.
+    /// The file contains a <c>logging</c> section, like every file written by Metalama itself. A file without that
+    /// section is covered by <see cref="ReadConfigurationFile_WithoutLogging_IsNotDiscarded"/>, the regression test of
+    /// issue #1777.
+    /// </remarks>
+    [Fact]
+    public void ConfigurationFile_AllSections_AreRead()
+    {
+        var configurationManager = new Configuration.ConfigurationManager( this.ServiceProvider );
+        var filePath = configurationManager.GetFilePath( typeof(DiagnosticsConfiguration) );
+
+        this.FileSystem.CreateDirectory( Path.GetDirectoryName( filePath )! );
+
+        this.FileSystem.WriteAllText(
+            filePath,
+            $$"""
+              {
+                "logging": { "processes": { "{{nameof(ProcessKind.Compiler)}}": false }, "trace": { "*": false } },
+                "debugging": { "processes": { "{{nameof(ProcessKind.Compiler)}}": true } },
+                "crashDumps": { "processes": { "{{nameof(ProcessKind.Compiler)}}": true }, "exceptionTypes": [ "System.InvalidOperationException" ] },
+                "profiling": { "kind": "memory", "processes": { "{{nameof(ProcessKind.Compiler)}}": true } }
+              }
+              """ );
+
+        var configuration = configurationManager.Get<DiagnosticsConfiguration>();
+
+        Assert.True( configuration.Debugging.Processes[nameof(ProcessKind.Compiler)] );
+        Assert.True( configuration.CrashDumps.Processes[nameof(ProcessKind.Compiler)] );
+        Assert.Equal( "System.InvalidOperationException", Assert.Single( configuration.CrashDumps.ExceptionTypes ) );
+        Assert.True( configuration.Profiling.Processes[nameof(ProcessKind.Compiler)] );
+        Assert.Equal( "memory", configuration.Profiling.Kind );
     }
 }

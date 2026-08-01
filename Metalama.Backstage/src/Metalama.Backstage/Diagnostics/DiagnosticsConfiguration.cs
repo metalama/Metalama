@@ -18,52 +18,117 @@ public sealed record DiagnosticsConfiguration : ConfigurationFile
 {
     public const string EnvironmentVariableName = "METALAMA_DIAGNOSTICS";
 
-    private readonly LoggingConfiguration _logging = new();
-
     /// <summary>
-    /// Gets the logging options.
+    /// Gets the options of the logging of Metalama itself.
     /// </summary>
     /// <remarks>
-    /// The value is normalized to a default instance because a null value throws a <see cref="NullReferenceException"/>
-    /// in <see cref="Validate"/>, which causes the whole configuration file to be discarded. A property initializer
-    /// alone is not enough: the System.Text.Json source generator treats every <c>init</c> property as a constructor
-    /// parameter and assigns it unconditionally, so JSON without a <c>logging</c> entry overwrites the initializer with
-    /// a null value.
+    /// The null value has to be normalized because the System.Text.Json source generator treats every <c>init</c>
+    /// property as a constructor parameter and assigns all of them unconditionally, so a file that omits the section
+    /// would otherwise set the property to <c>null</c>. A property initializer alone is not enough. The consequence is
+    /// more severe than a null property: <see cref="Validate"/> dereferences the value, and
+    /// <see cref="Configuration.ConfigurationManager"/> catches the resulting exception and discards the whole file.
+    /// See #1777.
     /// </remarks>
     [JsonPropertyName( "logging" )]
     public LoggingConfiguration Logging
     {
         get => this._logging;
-        init => this._logging = value ?? new LoggingConfiguration();
+        init => this._logging = value ?? CreateDefaultLogging();
     }
 
+    /// <summary>
+    /// Gets the options that make a Metalama process wait for a debugger to be attached.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The property needs an <c>init</c> accessor. System.Text.Json serializes a get-only property, but it cannot
+    /// deserialize into it, and <see cref="DebuggerConfiguration"/> is immutable, so it cannot be populated in place
+    /// either. The section was therefore read from the file and then discarded. See #1778.
+    /// </para>
+    /// <para>
+    /// The null value has to be normalized because the System.Text.Json source generator treats every <c>init</c>
+    /// property as a constructor parameter and assigns all of them unconditionally, so a file that omits the section
+    /// would otherwise set the property to <c>null</c>.
+    /// </para>
+    /// </remarks>
     [JsonPropertyName( "debugging" )]
-    public DebuggerConfiguration Debugging { get; } = new();
-
-    [JsonPropertyName( "crashDumps" )]
-    public CrashDumpConfiguration CrashDumps { get; } = new();
-
-    [JsonPropertyName( "profiling" )]
-    public ProfilingConfiguration Profiling { get; } = new();
-
-    public DiagnosticsConfiguration()
+    public DebuggerConfiguration Debugging
     {
-        var processes = Enum.GetValues( typeof(ProcessKind) )
-            .Cast<ProcessKind>()
-            .ToImmutableDictionary( x => x.ToString(), _ => false );
+        get => this._debugging;
+        init => this._debugging = value ?? CreateDefaultDebugging();
+    }
 
-        this.Logging = new LoggingConfiguration
+    /// <summary>
+    /// Gets the options of the collection of crash dumps.
+    /// </summary>
+    /// <remarks>
+    /// See the remarks of <see cref="Debugging"/> for the reason why this property has an <c>init</c> accessor and
+    /// normalizes the null value.
+    /// </remarks>
+    [JsonPropertyName( "crashDumps" )]
+    public CrashDumpConfiguration CrashDumps
+    {
+        get => this._crashDumps;
+        init => this._crashDumps = value ?? CreateDefaultCrashDumps();
+    }
+
+    /// <summary>
+    /// Gets the options of the profiling of Metalama processes.
+    /// </summary>
+    /// <remarks>
+    /// See the remarks of <see cref="Debugging"/> for the reason why this property has an <c>init</c> accessor and
+    /// normalizes the null value.
+    /// </remarks>
+    [JsonPropertyName( "profiling" )]
+    public ProfilingConfiguration Profiling
+    {
+        get => this._profiling;
+        init => this._profiling = value ?? CreateDefaultProfiling();
+    }
+
+    private readonly LoggingConfiguration _logging = CreateDefaultLogging();
+    private readonly DebuggerConfiguration _debugging = CreateDefaultDebugging();
+    private readonly CrashDumpConfiguration _crashDumps = CreateDefaultCrashDumps();
+    private readonly ProfilingConfiguration _profiling = CreateDefaultProfiling();
+
+    /// <summary>
+    /// The default value of the <c>processes</c> member of every section: all known kinds of processes, disabled.
+    /// </summary>
+    /// <remarks>
+    /// The comparer has to be specified explicitly. Every <c>processes</c> property declares
+    /// <see cref="StringComparer.OrdinalIgnoreCase"/> in its initializer, and a process kind written in the file is
+    /// matched without regard to case, so a default built with the default (case-sensitive) comparer would make the
+    /// lookup of a section absent from the file behave differently from the lookup of a section present in it.
+    /// </remarks>
+    private static readonly ImmutableDictionary<string, bool> _defaultProcesses = Enum.GetValues( typeof(ProcessKind) )
+        .Cast<ProcessKind>()
+        .ToImmutableDictionary( x => x.ToString(), _ => false, StringComparer.OrdinalIgnoreCase );
+
+    /// <summary>
+    /// Creates the default value of the <see cref="Logging"/> property.
+    /// </summary>
+    private static LoggingConfiguration CreateDefaultLogging()
+        => new()
         {
-            Processes = processes,
+            Processes = _defaultProcesses,
             TraceCategories = ImmutableDictionary<string, bool>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase ).Add( "*", false )
         };
 
-        this.Debugging = new DebuggerConfiguration() { Processes = processes };
+    /// <summary>
+    /// Creates the default value of the <see cref="Debugging"/> property.
+    /// </summary>
+    private static DebuggerConfiguration CreateDefaultDebugging() => new() { Processes = _defaultProcesses };
 
-        this.Profiling = new ProfilingConfiguration() { Kind = "performance", Processes = processes };
+    /// <summary>
+    /// Creates the default value of the <see cref="CrashDumps"/> property.
+    /// </summary>
+    private static CrashDumpConfiguration CreateDefaultCrashDumps()
+        => new() { Processes = _defaultProcesses, ExceptionTypes = ImmutableArray.Create( "*" ) };
 
-        this.CrashDumps = new CrashDumpConfiguration() { Processes = processes, ExceptionTypes = ImmutableArray.Create( "*" ) };
-    }
+    /// <summary>
+    /// Creates the default value of the <see cref="Profiling"/> property.
+    /// </summary>
+    private static ProfilingConfiguration CreateDefaultProfiling() => new() { Kind = "performance", Processes = _defaultProcesses };
 
     public override void Validate( Action<string> reportWarning )
     {
@@ -84,5 +149,6 @@ public sealed record DiagnosticsConfiguration : ConfigurationFile
         ValidateProcessKinds( this.Logging.Processes.Keys, "logging.processes" );
         ValidateProcessKinds( this.Debugging.Processes.Keys, "debugging.processes" );
         ValidateProcessKinds( this.CrashDumps.Processes.Keys, "crashDumps.processes" );
+        ValidateProcessKinds( this.Profiling.Processes.Keys, "profiling.processes" );
     }
 }

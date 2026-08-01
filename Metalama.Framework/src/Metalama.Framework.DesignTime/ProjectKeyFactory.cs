@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Buffers;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 // ReSharper disable NonReadonlyMemberInGetHashCode
@@ -168,6 +169,29 @@ public static class ProjectKeyFactory
         => symbolName.StartsWith( _projectDiscriminatorSymbolPrefix, StringComparison.Ordinal );
 
     internal static ProjectKey FromCompilation( Compilation compilation ) => _compilationCache.GetOrAdd( compilation, FromCompilationCore );
+
+    /// <summary>
+    /// Gets the <see cref="ProjectKey"/> of a <see cref="Compilation"/>, unless the compilation has no assembly name
+    /// and therefore no identity.
+    /// </summary>
+    /// <remarks>
+    /// Roslyn allows a <see cref="Compilation"/> to have a null or empty <see cref="Compilation.AssemblyName"/>, and such
+    /// compilations do reach us as project references at design time. They have no usable identity: any two of them would
+    /// produce the same <see cref="ProjectKey"/>.
+    /// </remarks>
+    internal static bool TryFromCompilation( Compilation compilation, [NotNullWhen( true )] out ProjectKey? projectKey )
+    {
+        if ( string.IsNullOrEmpty( compilation.AssemblyName ) )
+        {
+            projectKey = null;
+
+            return false;
+        }
+
+        projectKey = FromCompilation( compilation );
+
+        return true;
+    }
 
     private static ProjectKey FromCompilationCore( Compilation compilation )
     {
