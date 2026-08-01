@@ -98,7 +98,15 @@ public sealed class WebServerAuthenticationTests : TestsBase
     /// presenting a valid token is redirected so that the token leaves the address bar, whereas a programmatic call
     /// such as the readiness probe of the parent process is served directly.
     /// </param>
-    private async Task<HttpResponseMessage> SendRequestAsync( string path, string? token, bool acceptHtml = false )
+    /// <param name="tokenParameterName">
+    /// The name of the query-string parameter carrying the token. The lookup of a query parameter is case-insensitive,
+    /// so a test can present the token under a different casing than the canonical one.
+    /// </param>
+    private async Task<HttpResponseMessage> SendRequestAsync(
+        string path,
+        string? token,
+        bool acceptHtml = false,
+        string tokenParameterName = "t" )
     {
         using var cancellationTokenSource = new CancellationTokenSource( TimeSpan.FromSeconds( 30 ) );
         var cancellationToken = cancellationTokenSource.Token;
@@ -117,7 +125,7 @@ public sealed class WebServerAuthenticationTests : TestsBase
                 // token is observable.
                 using var client = app.GetTestClient();
 
-                var requestUri = token == null ? path : $"{path}?t={Uri.EscapeDataString( token )}";
+                var requestUri = token == null ? path : $"{path}?{tokenParameterName}={Uri.EscapeDataString( token )}";
 
                 using var request = new HttpRequestMessage( HttpMethod.Get, requestUri );
                 request.Headers.Host = "localhost";
@@ -201,6 +209,24 @@ public sealed class WebServerAuthenticationTests : TestsBase
         Assert.Contains( $"{_cookieName}={_expectedToken}", setCookie, StringComparison.Ordinal );
         Assert.Contains( "httponly", setCookie, StringComparison.OrdinalIgnoreCase );
         Assert.Contains( "samesite=strict", setCookie, StringComparison.OrdinalIgnoreCase );
+    }
+
+    /// <summary>
+    /// Verifies that a token presented under a different casing of the query-parameter name is stripped from the URL of
+    /// the redirect as well.
+    /// </summary>
+    /// <remarks>
+    /// The lookup of a query parameter is case-insensitive, so such a request authenticates. Were the parameter name
+    /// compared case-sensitively when the query string is rebuilt, the token would survive the redirect and remain in
+    /// the address bar and in the browsing history, which is precisely what the redirect exists to prevent.
+    /// </remarks>
+    [Fact]
+    public async Task BrowserNavigationWithDifferentlyCasedTokenParameterStripsTokenFromUrl()
+    {
+        using var response = await this.SendRequestAsync( "/LicenseKey", token: _expectedToken, acceptHtml: true, tokenParameterName: "T" );
+
+        Assert.Equal( HttpStatusCode.Found, response.StatusCode );
+        Assert.Equal( "/LicenseKey", response.Headers.Location?.ToString() );
     }
 
     /// <summary>

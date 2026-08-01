@@ -14,6 +14,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Metalama.Backstage.UserInterface;
@@ -110,7 +111,7 @@ public abstract class UserInterfaceService : IUserInterfaceService
             var pingAddress = new Uri( baseAddress, $"ping?{SetupWebServerToken.QueryParameterName}={authenticationToken}" );
 
             // ReSharper disable once ShortLivedHttpClient
-            var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds( 1 ) };
+            using var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds( 1 ) };
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -127,7 +128,9 @@ public abstract class UserInterfaceService : IUserInterfaceService
                         return;
                     }
 
-                    var response = await httpClient.GetAsync( pingAddress );
+                    // There is no ambient cancellation token in this call chain, so the token is passed explicitly as
+                    // none. The wait is bounded by the timeout of the client and by the stopwatch below.
+                    using var response = await httpClient.GetAsync( pingAddress, CancellationToken.None );
 
                     if ( response.IsSuccessStatusCode )
                     {

@@ -116,7 +116,9 @@ internal static class SetupWebServerAuthentication
 
         foreach ( var parameter in query )
         {
-            if ( parameter.Key == SetupWebServerToken.QueryParameterName )
+            // The lookup of a query parameter is case-insensitive, so a token presented under a different casing
+            // authenticates the request and must therefore be stripped from the URL as well.
+            if ( string.Equals( parameter.Key, SetupWebServerToken.QueryParameterName, StringComparison.OrdinalIgnoreCase ) )
             {
                 continue;
             }

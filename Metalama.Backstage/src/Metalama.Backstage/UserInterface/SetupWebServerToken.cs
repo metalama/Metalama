@@ -86,24 +86,32 @@ internal static class SetupWebServerToken
     /// </summary>
     public static string ReadTokenFile( string path )
     {
-        var token = File.ReadAllText( path ).Trim();
-
-        if ( token.Length == 0 )
+        try
         {
-            throw new InvalidOperationException( $"The token file '{path}' is empty." );
+            var token = File.ReadAllText( path ).Trim();
+
+            if ( token.Length == 0 )
+            {
+                throw new InvalidOperationException( $"The token file '{path}' is empty." );
+            }
+
+            return token;
         }
-
-        File.Delete( path );
-
-        return token;
+        finally
+        {
+            // The deletion is in a finally block so that the token is not left on disk when the file is empty or cannot
+            // be read. The deletion is best-effort, so that a failure to delete does not mask a failure to read.
+            DeleteTokenFile( path );
+        }
     }
 
     /// <summary>
     /// Deletes the token file if it still exists, on a best-effort basis. Called by the process that started the server
     /// once it no longer needs the file, so that a token is not left on disk when the server failed to start and never
-    /// consumed it.
+    /// consumed it, and by <see cref="ReadTokenFile"/> once the token has been read.
     /// </summary>
-    public static void DeleteTokenFile( string path, ILogger logger )
+    /// <param name="logger">A logger receiving a warning when the file cannot be deleted, or <c>null</c> when no logger is available.</param>
+    public static void DeleteTokenFile( string path, ILogger? logger = null )
     {
         try
         {
@@ -111,7 +119,7 @@ internal static class SetupWebServerToken
         }
         catch ( Exception e ) when ( e is IOException or UnauthorizedAccessException )
         {
-            logger.Warning?.Log( $"Cannot delete the setup server token file '{path}': {e.Message}" );
+            logger?.Warning?.Log( $"Cannot delete the setup server token file '{path}': {e.Message}" );
         }
     }
 
