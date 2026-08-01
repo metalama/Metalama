@@ -4,10 +4,15 @@
 
 using Metalama.Framework.DesignTime.Rpc;
 using Microsoft.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime;
 
 internal static class ProjectKeyExtensions
 {
     public static ProjectKey GetProjectKey( this Compilation compilation ) => ProjectKeyFactory.FromCompilation( compilation );
+
+    /// <inheritdoc cref="ProjectKeyFactory.TryFromCompilation"/>
+    public static bool TryGetProjectKey( this Compilation compilation, [NotNullWhen( true )] out ProjectKey? projectKey )
+        => ProjectKeyFactory.TryFromCompilation( compilation, out projectKey );
 }
