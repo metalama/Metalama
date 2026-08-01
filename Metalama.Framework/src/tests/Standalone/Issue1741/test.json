@@ -1,0 +1,5 @@
+{
+    "IgnoreExitCode": true,
+    "ExpectedDiagnosticsRegexes": [ "does not support the legacy Razor build" ],
+    "BuildOnly": true
+}

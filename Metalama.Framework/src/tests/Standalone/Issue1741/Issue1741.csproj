@@ -3,7 +3,7 @@
     <!-- A Razor/Blazor project that uses Metalama and disables the Razor source generator. Building it must fail
          with the MetalamaCheckRazorComponentDeclaration error, because the legacy RazorCompileComponentDeclaration
          pass does not provide Metalama with its configuration. See issue #1741. The failure is asserted by the
-         Issue1741.proj wrapper; this project is not built directly by the test harness. -->
+         test.json (IgnoreExitCode + ExpectedDiagnosticsRegexes). -->
 
     <PropertyGroup>
         <!-- See https://github.com/dotnet/sdk/issues/29949#issuecomment-1402258974. -->
