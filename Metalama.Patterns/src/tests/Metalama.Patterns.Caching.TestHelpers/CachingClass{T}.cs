@@ -9,28 +9,78 @@ namespace Metalama.Patterns.Caching.TestHelpers
     {
         private int _counter;
 
-        private bool _methodCalled;
+        /// <summary>
+        /// A value indicating whether the cached method has been called since the last call to <see cref="Reset"/>,
+        /// where <c>0</c> means <c>false</c> and <c>1</c> means <c>true</c>.
+        /// </summary>
+        /// <remarks>
+        /// The asynchronous methods set this field on the thread that resumes their body, while tests read it on their
+        /// own thread, therefore all accesses go through <see cref="Interlocked"/> and the field is an <see cref="int"/>
+        /// rather than a <see cref="bool"/>.
+        /// </remarks>
+        private int _methodCalled;
+
+        /// <summary>
+        /// The signal on which the asynchronous methods wait before executing their body, or <c>null</c> if they are
+        /// not suspended. See <see cref="SuspendAsyncMethods"/>.
+        /// </summary>
+        private TaskCompletionSource<bool>? _suspension;
 
         // ReSharper disable once EventNeverSubscribedTo.Global
         public event EventHandler<T>? MethodCalled;
 
+        /// <summary>
+        /// Suspends the asynchronous methods of this object immediately before they execute their body, until
+        /// <see cref="ResumeAsyncMethods"/> is called.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This method allows a test to observe the object at a point where an asynchronous method has been started but
+        /// its body has not run yet, which is otherwise not observable in a deterministic manner: without a suspension
+        /// point that the test itself controls, the test would depend on the body being slower than the statements that
+        /// follow the call, and that assumption does not hold on a loaded machine.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">The asynchronous methods are already suspended.</exception>
+        public void SuspendAsyncMethods()
+        {
+            if ( Volatile.Read( ref this._suspension ) != null )
+            {
+                throw new InvalidOperationException( "The asynchronous methods are already suspended." );
+            }
+
+            Volatile.Write( ref this._suspension, new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously ) );
+        }
+
+        /// <summary>
+        /// Resumes the asynchronous methods suspended by <see cref="SuspendAsyncMethods"/>, and lets the asynchronous
+        /// methods started afterwards execute their body without suspension.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The asynchronous methods are not suspended.</exception>
+        public void ResumeAsyncMethods()
+        {
+            var suspension = Interlocked.Exchange( ref this._suspension, null );
+
+            if ( suspension == null )
+            {
+                throw new InvalidOperationException( "The asynchronous methods are not suspended." );
+            }
+
+            suspension.SetResult( true );
+        }
+
         public bool Reset()
         {
-            var result = this._methodCalled;
-            this._methodCalled = false;
-
-            return result;
+            return Interlocked.Exchange( ref this._methodCalled, 0 ) != 0;
         }
 
         private T CreateNextValue()
         {
-            if ( this._methodCalled )
+            if ( Interlocked.Exchange( ref this._methodCalled, 1 ) != 0 )
             {
                 throw new InvalidOperationException(
                     "Cached method called twice unexpectedly. If this is the expected behavior, call reset before the second call of the method." );
             }
-
-            this._methodCalled = true;
 
             var value = new T() { Id = this._counter++ };
             this.MethodCalled?.Invoke( this, value );
@@ -40,7 +90,19 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
         private async Task<T> CreateNextValueAsync()
         {
-            await Task.Delay( 1 );
+            var suspension = Volatile.Read( ref this._suspension );
+
+            if ( suspension == null )
+            {
+                // Complete asynchronously, so that the caller observes a genuinely asynchronous method. A timer is
+                // deliberately not used here: the point at which the body runs must never be defined by a duration,
+                // because a test that asserts the ordering would then be racing that duration.
+                await Task.Yield();
+            }
+            else
+            {
+                await suspension.Task.WaitWithTimeoutAsync( "The test did not resume the asynchronous methods." );
+            }
 
             return this.CreateNextValue();
         }
