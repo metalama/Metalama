@@ -76,4 +76,84 @@ public sealed class DiagnosticsConfigurationTests : TestsBase
         var logger3 = serviceProvider3.GetRequiredBackstageService<ILoggerFactory>().GetLogger( "Foo" );
         Assert.Null( logger3.Trace );
     }
+
+    private Configuration.ConfigurationManager CreateConfigurationManager() => new( this.ServiceProvider );
+
+    /// <summary>
+    /// Verifies that a null value assigned through an object initializer or a <c>with</c> expression is normalized.
+    /// </summary>
+    /// <remarks>
+    /// See issue #1777. These are the construction paths of the deserializer itself: the System.Text.Json source
+    /// generator treats every <c>init</c> property as a constructor parameter and assigns all of them unconditionally,
+    /// so JSON without a <c>logging</c> member overwrote the value set by the constructor with a null reference.
+    /// </remarks>
+    [Fact]
+    public void Logging_WhenSetToNull_IsDefaultInstance()
+    {
+        var configuration = new DiagnosticsConfiguration { Logging = null! };
+
+        Assert.NotNull( configuration.Logging );
+        Assert.NotNull( configuration.Logging.Processes );
+        Assert.NotNull( configuration.Logging.TraceCategories );
+
+        var copy = configuration with { Logging = null! };
+
+        Assert.NotNull( copy.Logging );
+        Assert.NotNull( copy.Logging.Processes );
+        Assert.NotNull( copy.Logging.TraceCategories );
+    }
+
+    /// <summary>
+    /// Verifies that a non-default value is preserved, so that the normalization does not lose the configured logging.
+    /// </summary>
+    [Fact]
+    public void Logging_WhenSet_IsPreserved()
+    {
+        var logging = new LoggingConfiguration { Processes = ImmutableDictionary<string, bool>.Empty.Add( ProcessKind.Compiler.ToString(), true ) };
+
+        var configuration = new DiagnosticsConfiguration { Logging = logging };
+
+        Assert.Same( logging, configuration.Logging );
+        Assert.True( configuration.Logging.Processes[ProcessKind.Compiler.ToString()] );
+    }
+
+    /// <summary>
+    /// Verifies that a <c>diagnostics.json</c> without a usable <c>logging</c> member is neither rejected nor discarded.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A <c>diagnostics.json</c> written by a version that had no <c>logging</c> section, or one the user edited with
+    /// <c>metalama config edit diagnostics</c> and reduced to the sections they care about, simply has no <c>logging</c>
+    /// entry. Reading it must yield a usable configuration rather than throw a <see cref="NullReferenceException"/> from
+    /// <c>DiagnosticsConfiguration.Validate</c>.
+    /// </para>
+    /// <para>
+    /// The assertion on the crash dump section is the one that detects the defect of issue #1777. Asserting only that
+    /// <c>Logging</c> is not null would pass even when the bug is present, because
+    /// <c>ConfigurationManager.TryLoadConfigurationFile</c> catches every exception thrown by <c>Validate</c> and falls
+    /// back to the default configuration, whose <c>Logging</c> is not null either. That fallback is the actual impact:
+    /// the entire file was silently discarded and every setting was lost, not only the logging section, and the only
+    /// trace was a log entry that this very failure may have disabled.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData( """{ "crashDumps": { "processes": { "Compiler": true } } }""" )]
+    [InlineData( """{ "logging": null, "crashDumps": { "processes": { "Compiler": true } } }""" )]
+    public void ReadConfigurationFile_WithoutLogging_IsNotDiscarded( string json )
+    {
+        var configurationManager = this.CreateConfigurationManager();
+        var filePath = configurationManager.GetFilePath<DiagnosticsConfiguration>();
+        this.FileSystem.WriteAllText( filePath, json );
+
+        var configuration = configurationManager.Get<DiagnosticsConfiguration>();
+
+        // The omitted section falls back to a usable default.
+        Assert.NotNull( configuration.Logging );
+        Assert.NotNull( configuration.Logging.Processes );
+        Assert.NotNull( configuration.Logging.TraceCategories );
+
+        // The sections the user did write are preserved.
+        Assert.True( configuration.CrashDumps.Processes.TryGetValue( ProcessKind.Compiler.ToString(), out var isCrashDumpEnabled ) );
+        Assert.True( isCrashDumpEnabled );
+    }
 }
