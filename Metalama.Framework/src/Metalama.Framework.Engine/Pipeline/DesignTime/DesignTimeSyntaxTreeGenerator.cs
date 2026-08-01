@@ -87,6 +87,31 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
             void ProcessTransformationsOnTypeOrNamespace( KeyValuePair<IRef<INamespaceOrNamedType>, IEnumerable<ITransformation>> transformationGroup )
             {
+                try
+                {
+                    ProcessTransformationsOnTypeOrNamespaceCore( transformationGroup );
+                }
+                catch ( Exception e ) when ( e is not OperationCanceledException )
+                {
+                    // Each group is a future generated file (for a namespace group, the files of the introduced types
+                    // that have no group of their own), so an unexpected failure here must be contained to that group:
+                    // letting it escape aborts the whole design-time pipeline execution and the user sees the generated
+                    // source of the entire project disappear instead of losing a single type. See #1767.
+                    // Containing the failure must not make it invisible to us, so it is reported through
+                    // ICompileTimeExceptionHandler: that service writes the local crash report, reports the exception
+                    // to backstage telemetry through the per-project context, and reports the diagnostic that tells the
+                    // user which file was lost and why. When the service is not registered, the failure is contained
+                    // but not reported.
+                    // canIgnoreException: the failure is contained, so it is reported as a warning (LAMA0049) rather
+                    // than as an error that would fail the build.
+                    serviceProvider.GetService<ICompileTimeExceptionHandler>()
+                        ?.ReportException( e, d => diagnostics.Report( d ), canIgnoreException: true, out _ );
+                }
+            }
+
+            void ProcessTransformationsOnTypeOrNamespaceCore(
+                KeyValuePair<IRef<INamespaceOrNamedType>, IEnumerable<ITransformation>> transformationGroup )
+            {
                 var target = transformationGroup.Key.GetTarget( finalCompilationModel );
 
                 switch ( target.DeclarationKind )
