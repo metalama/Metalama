@@ -87,7 +87,13 @@ public sealed class InvokerTests : UnitTestClass
 }
 ```
 
-See the `## Unit Test Patterns` section of the project `CLAUDE.md` for common idioms (`SyntaxSerializationContext`, `TemplateExpansionContext.WithTestingContext`, type resolution, comparers). Some unit tests do run the real pipeline — e.g. `Aspects/AspectTestBase.cs` runs the `CompileTimeAspectPipeline` in memory.
+Some unit tests do run the real pipeline — e.g. `Aspects/AspectTestBase.cs` runs the `CompileTimeAspectPipeline` in memory. Common idioms (see `InvokerTests.cs`, `ExpressionFactoryTests.cs` as references):
+
+- For template-expansion tests, use a `SyntaxSerializationContext` with `TemplateExpansionContext.WithTestingContext(ctx, serviceProvider)`.
+- `using Microsoft.CodeAnalysis;` is needed for the `NormalizeWhitespace()` extension on `SyntaxNode`; without it only the `SyntaxToken` overload resolves.
+- `TypedExpressionSyntaxImpl.Convert()` wraps casts in `ParenthesizedExpression()`, so the output is `((Type)expr)`, not `(Type)expr`.
+- `AssertEx.DynamicEquals()` compares via the `IExpression.ToExpressionSyntax()` chain.
+- Resolve types with `compilation.Factory.GetTypeByReflectionType(typeof(int))` (built-in) or `compilation.Types.OfName("A").Single()` (user-defined); compare with `compilation.Comparers.Default.Equals(a, b)`.
 
 **Analyzer tests.** [`Metalama.Framework.Engine.Analyzers.Tests`](../src/tests/Metalama.Framework.Engine.Analyzers.Tests) (net8.0 only, no Roslyn variant) tests the internal Roslyn analyzers that police Metalama's own source (e.g. `KindCheckOptimizationAnalyzer`/`LAMA0860`). It does not use `UnitTestClass`; it builds raw `CSharpCompilation`s and runs `compilation.WithAnalyzers(...)`.
 
