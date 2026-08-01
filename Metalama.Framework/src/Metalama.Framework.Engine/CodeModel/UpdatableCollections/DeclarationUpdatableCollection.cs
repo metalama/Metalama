@@ -28,7 +28,15 @@ internal abstract class DeclarationUpdatableCollection<TDeclaration, TRef> : Bas
     where TDeclaration : class, IDeclaration
     where TRef : class, IRef<TDeclaration>
 {
-    private List<TRef>? _allItems;
+    /// <remarks>
+    /// This field is <c>volatile</c> and is the single source of truth for <see cref="IsComplete"/>: a non-null value
+    /// means the collection has been fully populated. Publishing the list only once it is complete, through a volatile
+    /// write, is what makes the lock-free fast path of <see cref="EnsureComplete"/> safe. Readers race on that fast
+    /// path from the concurrent design-time and pipeline task runners, and a partially published list would surface as
+    /// a <see cref="NullReferenceException"/> inside the enumerator of the front-end collection. See #1767.
+    /// </remarks>
+    private volatile List<TRef>? _allItems;
+
     private volatile int _removeOperationsCount;
 
     protected DeclarationUpdatableCollection( CompilationModel compilation ) : base( compilation ) { }
@@ -36,7 +44,7 @@ internal abstract class DeclarationUpdatableCollection<TDeclaration, TRef> : Bas
     /// <summary>
     /// Gets a value indicating whether the construction has been populated for all names.
     /// </summary>
-    public bool IsComplete { get; private set; }
+    public bool IsComplete => this._allItems != null;
 
     protected void EnsureComplete()
     {
@@ -54,9 +62,11 @@ internal abstract class DeclarationUpdatableCollection<TDeclaration, TRef> : Bas
 
             using ( StackOverflowHelper.Detect() )
             {
-                this._allItems = new List<TRef>();
-                this.PopulateAllItems( r => this._allItems.Add( r ) );
-                this.IsComplete = true;
+                // The list is populated locally and published only when it is complete, so that no other thread can
+                // observe it half-built or, worse, observe IsComplete before the list itself.
+                var items = new List<TRef>();
+                this.PopulateAllItems( items.Add );
+                this._allItems = items;
             }
         }
     }
@@ -122,8 +132,10 @@ internal abstract class DeclarationUpdatableCollection<TDeclaration, TRef> : Bas
         {
             lock ( this )
             {
-                clone._allItems = new List<TRef>( this._allItems.Count );
-                clone._allItems.AddRange( this._allItems );
+                // As in EnsureComplete, the copy is filled before it is published to the clone.
+                var items = new List<TRef>( this._allItems.Count );
+                items.AddRange( this._allItems );
+                clone._allItems = items;
             }
         }
 
