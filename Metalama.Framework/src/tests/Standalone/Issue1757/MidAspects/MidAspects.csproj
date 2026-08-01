@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- A released version of the current contracts generation, but not the version built by this repository,
+             which is what LAMA0077 reports. -->
+        <PackageReference Include="Metalama.Framework" VersionOverride="$(MidMetalamaVersion)" />
+    </ItemGroup>
+
+</Project>

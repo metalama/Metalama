@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!-- Several target frameworks, because the MSBuild version, and therefore the .NET runtime version, must
+             match the .NET SDK that builds the simulated solution. Same reason as Metalama.Framework.Workspaces. -->
+        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <OutputType>Exe</OutputType>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <RootNamespace>Metalama.DesignTime.HostSimulator</RootNamespace>
+        <AssemblyName>Metalama.DesignTime.HostSimulator</AssemblyName>
+        <!-- This project deliberately does not reference Metalama. It hosts Metalama the way an IDE does, through
+             Roslyn analyzer references loaded from the simulated solution, so that it exercises the real analyzer
+             assemblies rather than the ones this repository compiles into the test process. -->
+        <MetalamaEnabled>false</MetalamaEnabled>
+        <UseMetalamaCompiler>false</UseMetalamaCompiler>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" />
+
+        <!-- Microsoft.Build must not be copied to the output directory: its location is resolved by Microsoft.Build.Locator. -->
+        <PackageReference Include="Microsoft.Build" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.Build.Locator" />
+
+        <PackageReference Include="Spectre.Console" />
+        <PackageReference Include="Spectre.Console.Cli" />
+    </ItemGroup>
+
+</Project>

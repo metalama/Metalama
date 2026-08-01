@@ -46,6 +46,10 @@ if ($env:RUNNING_IN_DOCKER)
 }
 
 
+# The exit code of the engineering tool, propagated as the script's own exit code at the very end. Initialized here,
+# at script scope, so a purely interactive run that never invokes the tool still exits 0.
+$engExitCode = 0
+
 if (-not $Interactive -or $BuildArgs)
 {
     # The generate-scripts command implies -NoCache
@@ -188,6 +192,12 @@ if (-not $Interactive -or $BuildArgs)
         $env:ENG_REPO_DIRECTORY = if ($snapshotRepoDir) { $snapshotRepoDir } else { $PSScriptRoot }
         & dotnet exec $execDll $BuildArgs
 
+        # Captured on the very next line: $LASTEXITCODE is clobbered by any later command, including the vsmon kill
+        # just below and everything in the finally block. Without this, the wrapper always exited 0 and every failure
+        # of the tool was reported to CI as success. The tool returns 1 for a reported failure and 100 for an
+        # unhandled exception; both are preserved rather than flattened into a `throw`, so the two stay distinguishable.
+        $engExitCode = $LASTEXITCODE
+
         if ($StartVsmon)
         {
             Write-Host ""
@@ -232,3 +242,8 @@ if ($Interactive)
 {
     Write-Host "Entering interactive PowerShell." -ForegroundColor Green
 }
+
+# The last statement, so it is the script's exit code. The finally block above has already run, so the working
+# directory is restored and snapshots are cleaned up before this. A `throw` earlier in the script (a build failure,
+# a missing DLL) exits non-zero on its own and never reaches here.
+exit $engExitCode

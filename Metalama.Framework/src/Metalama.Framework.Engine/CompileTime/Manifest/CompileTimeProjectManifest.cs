@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -35,7 +35,8 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             IReadOnlyList<CompileTimeDiagnosticManifest> diagnostics,
             bool referencesMetalamaSdk,
             int manifestVersion = 0,
-            LanguageVersion? languageVersion = null )
+            LanguageVersion? languageVersion = null,
+            string? metalamaVersion = null )
         {
             this.RunTimeAssemblyIdentity = runTimeAssemblyIdentity;
             this.TargetFramework = targetFramework;
@@ -51,7 +52,13 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             this.Files = files;
             this.Diagnostics = diagnostics;
             this.ReferencesMetalamaSdk = referencesMetalamaSdk;
-            this.MetalamaVersion = AssemblyMetadataReader.GetInstance( typeof(CompileTimeProjectManifest).Assembly ).PackageVersion.AssertNotNull();
+            // Restored from the manifest when there is one, so that a deserialized manifest keeps the version that
+            // *wrote* it, and defaulted to the current version only when a manifest is being created. Same pattern as
+            // ManifestVersion below. Without this the property silently reported the reading version, which made it
+            // useless for telling how a reference was built, and made LAMA0061 name the wrong version.
+            this.MetalamaVersion = string.IsNullOrEmpty( metalamaVersion )
+                ? AssemblyMetadataReader.GetInstance( typeof(CompileTimeProjectManifest).Assembly ).PackageVersion.AssertNotNull()
+                : metalamaVersion!;
             this.ManifestVersion = manifestVersion == 0 ? CurrentManifestVersion : manifestVersion;
             this.LanguageVersion = languageVersion;
 
@@ -74,6 +81,10 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
         /// <summary>
         /// Gets the version of Metalama that created the compile-time project.
         /// </summary>
+        /// <remarks>
+        /// Round-trips through serialization: a manifest read from a reference reports the version that produced that
+        /// reference, not the version reading it.
+        /// </remarks>
         public string MetalamaVersion { get; }
 
         public int ManifestVersion { get; }

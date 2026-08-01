@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -258,6 +258,32 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "Metalama is enabled in this project, but the METALAMA preprocessor symbol is not defined.",
                 _category );
 
+        /// <summary>
+        /// Reported when the <c>METALAMA_PROJECT_&lt;hash&gt;</c> symbol that makes a <c>ProjectKey</c> identify a
+        /// project is missing.
+        /// </summary>
+        /// <remarks>
+        /// Reported at compile time although the consequence is a design-time one, because a diagnostic reported on the
+        /// design-time path does not reach the user (see #1758). Without the symbol, two projects of one solution that
+        /// produce the same assembly name share a <c>ProjectKey</c>, and the design-time pipeline of one is then served
+        /// to the other. The build itself is unaffected, which is exactly why this must be reported: the damage is
+        /// invisible from the build.
+        /// </remarks>
+        /// <remarks>
+        /// This is a warning and not an error, and the pipeline continues after reporting it, because the build that
+        /// reports it is correct. Failing the build would deny the user a working build over a condition that affects
+        /// only the experience in the editor.
+        /// </remarks>
+        internal static readonly DiagnosticDefinition MissingMetalamaProjectPreprocessorSymbol =
+            new(
+                "LAMA0080",
+                Warning,
+                "Metalama is enabled in this project, but no METALAMA_PROJECT_* preprocessor symbol is defined, so the design-time experience "
+                + "is silently broken. This symbol is defined by Metalama.Framework.targets and identifies the project uniquely. Verify that "
+                + "the DefineConstants property is appended to and not overwritten.",
+                "Metalama is enabled in this project, but no METALAMA_PROJECT_* preprocessor symbol is defined.",
+                _category );
+
         internal static readonly DiagnosticDefinition<(string[] SelectedVersions, string SupportedVersion)> MetalamaVersionNotSupported =
             new(
                 "LAMA0054",
@@ -307,6 +333,53 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "The referenced assembly '{0}' has been compiled with Metalama {1}. It must be recompiled with the current version because " +
                     "backward compatibility of compiled assemblies has been broken.",
                     "The referenced assembly must be recompiled with a more recent version of Metalama.",
+                    _category );
+
+        // Both of the following are reported only for a ProjectReference, never for a package: consuming a package
+        // built with another version of Metalama is normal, whereas two projects of one solution on two versions is
+        // a configuration the user controls and should fix. Both are warnings, so both can be suppressed.
+        internal static readonly DiagnosticDefinition<(AssemblyIdentity AssemblyIdentity, string ReferenceVersion, string CurrentVersion)>
+            MixedMetalamaVersionsInSolution =
+                new(
+                    // LAMA0081 and not LAMA0077: #1743 took 0077 for DuplicateAspectWeaver while this branch was open.
+                    "LAMA0081",
+                    Warning,
+                    "The project reference '{0}' has been compiled with Metalama {1}, but the current project uses Metalama {2}. Using several " +
+                    "versions of Metalama in the same solution is not recommended: it makes the build and the IDE slower, and it exposes you to " +
+                    "compatibility issues. Align the version of Metalama across the projects of the solution.",
+                    "Several versions of Metalama are used in the same solution.",
+                    _category );
+
+        // A warning and not an error, and worded for the IDE only, because the build genuinely is not affected: the
+        // compile-time pipeline reads the embedded compile-time project of an older version and applies its aspects.
+        // Only the design-time pipeline cannot, because it additionally needs that version's design-time entry point,
+        // which belongs to a contracts generation the current one can never observe. See DesignTimeCompatibility and
+        // issue #1757.
+        internal static readonly DiagnosticDefinition<(AssemblyIdentity AssemblyIdentity, string ReferenceVersion, string MinimumVersion)>
+            ReferenceNotSupportedAtDesignTime =
+                new(
+                    "LAMA0078",
+                    Warning,
+                    "The project reference '{0}' has been compiled with Metalama {1}, which is older than {2}. The design-time (IDE) support of " +
+                    "the current version cannot consume it, so aspects inherited from it will not appear in the editor. The build is not " +
+                    "affected. Upgrade '{0}' to Metalama {2} or a later version to restore the design-time experience.",
+                    "The project reference has been compiled with a version of Metalama that the IDE support cannot consume.",
+                    _category );
+
+        // An error and not a warning: the situation has no usable outcome. The compile-time domain is a single
+        // AssemblyLoadContext, which can hold only one assembly per simple name, and the closure maps a compile-time
+        // assembly name to a single project, so neither of the two candidates can be chosen. Reported instead of
+        // letting the assembly load fail with an unhandled FileLoadException, which surfaced as LAMA0001 and a crash
+        // report that named neither reference. See #1749.
+        internal static readonly DiagnosticDefinition<(string CompileTimeAssemblyName, AssemblyIdentity First, AssemblyIdentity Second)>
+            DuplicateCompileTimeAssemblyName =
+                new(
+                    "LAMA0079",
+                    Error,
+                    "Two references provide the compile-time assembly '{0}': '{1}' and '{2}'. Metalama cannot use two " +
+                    "versions of the same compile-time assembly. Fix the references of the project so that a single version of " +
+                    "'{0}' is referenced.",
+                    "Two references provide the same compile-time assembly.",
                     _category );
 
         internal static readonly DiagnosticDefinition<(IMember Member, INamedType TargetType, InvokerOptions InvokerOptions)>

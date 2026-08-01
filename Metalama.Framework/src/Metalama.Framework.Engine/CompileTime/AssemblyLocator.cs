@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -79,7 +80,14 @@ namespace Metalama.Framework.Engine.CompileTime
             }
             else
             {
-                reference = candidates[0].MetadataReference;
+                // AssemblyName.ReferenceMatchesDefinition matches on the simple name when the reference specifies no
+                // version, culture or public key, so the candidate list can contain several distinct identities. The
+                // ordering above is by version only, therefore selecting the first candidate can return an assembly
+                // whose culture or public key differs from the requested identity. An exact identity match is preferred
+                // when the candidate list contains one. See issue #1749.
+                var exactMatch = candidates.FirstOrDefault( x => x.AssemblyName!.ToAssemblyIdentity().Equals( assemblyIdentity ) );
+
+                reference = exactMatch.MetadataReference ?? candidates[0].MetadataReference;
 
                 this._logger.Trace?.Log( $"Selecting '{reference}'." );
 
