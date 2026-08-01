@@ -128,17 +128,23 @@ public sealed class DiagnosticsConfigurationTests : TestsBase
     /// <c>DiagnosticsConfiguration.Validate</c>.
     /// </para>
     /// <para>
-    /// The assertion on the crash dump section is the one that detects the defect of issue #1777. Asserting only that
-    /// <c>Logging</c> is not null would pass even when the bug is present, because
+    /// The assertion on <see cref="ConfigurationFile.Version"/> is the one that detects the defect of issue #1777.
+    /// Asserting only that <c>Logging</c> is not null would pass even when the bug is present, because
     /// <c>ConfigurationManager.TryLoadConfigurationFile</c> catches every exception thrown by <c>Validate</c> and falls
-    /// back to the default configuration, whose <c>Logging</c> is not null either. That fallback is the actual impact:
+    /// back to a fresh default instance, whose <c>Logging</c> is not null either. That fallback is the actual impact:
     /// the entire file was silently discarded and every setting was lost, not only the logging section, and the only
-    /// trace was a log entry that this very failure may have disabled.
+    /// trace was a log entry that this very failure may have disabled. A value read from the file and absent from a
+    /// default instance is therefore what distinguishes the two outcomes.
+    /// </para>
+    /// <para>
+    /// The <c>crashDumps</c> section is present in the test input because it comes from the report of issue #1777, but
+    /// it is deliberately not asserted upon: <see cref="DiagnosticsConfiguration.CrashDumps"/> is a get-only property
+    /// and is therefore not deserialized at all, which is a separate defect tracked by its own issue.
     /// </para>
     /// </remarks>
     [Theory]
-    [InlineData( """{ "crashDumps": { "processes": { "Compiler": true } } }""" )]
-    [InlineData( """{ "logging": null, "crashDumps": { "processes": { "Compiler": true } } }""" )]
+    [InlineData( """{ "version": 7, "crashDumps": { "processes": { "Compiler": true } } }""" )]
+    [InlineData( """{ "version": 7, "logging": null }""" )]
     public void ReadConfigurationFile_WithoutLogging_IsNotDiscarded( string json )
     {
         var configurationManager = this.CreateConfigurationManager();
@@ -147,13 +153,12 @@ public sealed class DiagnosticsConfigurationTests : TestsBase
 
         var configuration = configurationManager.Get<DiagnosticsConfiguration>();
 
+        // The content of the file is preserved, which means that the file was not discarded.
+        Assert.Equal( 7, configuration.Version );
+
         // The omitted section falls back to a usable default.
         Assert.NotNull( configuration.Logging );
         Assert.NotNull( configuration.Logging.Processes );
         Assert.NotNull( configuration.Logging.TraceCategories );
-
-        // The sections the user did write are preserved.
-        Assert.True( configuration.CrashDumps.Processes.TryGetValue( ProcessKind.Compiler.ToString(), out var isCrashDumpEnabled ) );
-        Assert.True( isCrashDumpEnabled );
     }
 }

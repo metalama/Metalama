@@ -18,8 +18,24 @@ public sealed record DiagnosticsConfiguration : ConfigurationFile
 {
     public const string EnvironmentVariableName = "METALAMA_DIAGNOSTICS";
 
+    private readonly LoggingConfiguration _logging = new();
+
+    /// <summary>
+    /// Gets the logging options.
+    /// </summary>
+    /// <remarks>
+    /// The value is normalized to a default instance because a null value throws a <see cref="NullReferenceException"/>
+    /// in <see cref="Validate"/>, which causes the whole configuration file to be discarded. A property initializer
+    /// alone is not enough: the System.Text.Json source generator treats every <c>init</c> property as a constructor
+    /// parameter and assigns it unconditionally, so JSON without a <c>logging</c> entry overwrites the initializer with
+    /// a null value.
+    /// </remarks>
     [JsonPropertyName( "logging" )]
-    public LoggingConfiguration Logging { get; init; } = new();
+    public LoggingConfiguration Logging
+    {
+        get => this._logging;
+        init => this._logging = value ?? new LoggingConfiguration();
+    }
 
     [JsonPropertyName( "debugging" )]
     public DebuggerConfiguration Debugging { get; } = new();
