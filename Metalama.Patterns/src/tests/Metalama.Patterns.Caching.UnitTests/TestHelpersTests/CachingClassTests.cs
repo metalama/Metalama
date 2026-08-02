@@ -30,15 +30,53 @@ namespace Metalama.Patterns.Caching.Tests.TestHelpersTests
         {
             var cachingClass = new CachingClass();
 
-            var valueTask = cachingClass.GetValueAsync();
-            var called = cachingClass.Reset();
-            Assert.False( called, "The caching method was called before awaiting the first value." );
+            // Suspend the method body on a signal that this test controls. The assertions below concern the state of
+            // the object before the body has run, and that state is only observable in a deterministic manner while
+            // the body is held at a suspension point.
+            cachingClass.SuspendAsyncMethods();
+
+            Task<CachedValueClass> valueTask;
+
+            // The suspended section is guarded, so that a failing assertion does not leave the method body waiting for
+            // a resumption that never comes. Without the guard, the failure would be reported only after the timeout
+            // of the suspension, and the abandoned task would raise its exception as unobserved.
+            try
+            {
+                valueTask = cachingClass.GetValueAsync();
+                var earlyCall = cachingClass.Reset();
+                Assert.False( earlyCall, "The caching method was called before awaiting the first value." );
+                Assert.False( valueTask.IsCompleted, "The cached method completed before its body was allowed to run." );
+            }
+            finally
+            {
+                cachingClass.ResumeAsyncMethods();
+            }
+
             await valueTask;
-            called = cachingClass.Reset();
+            var called = cachingClass.Reset();
             Assert.True( called, "The method was not called when awaiting the first value." );
 
             called = cachingClass.Reset();
             Assert.False( called, "It is indicated the method has been called after the flag was reset." );
+        }
+
+        /// <summary>
+        /// Verifies that <see cref="CachingClass{T}.SuspendAsyncMethods"/> and
+        /// <see cref="CachingClass{T}.ResumeAsyncMethods"/> reject the calls that do not match the current state,
+        /// so that a test cannot silently assert on a suspension that is not in effect.
+        /// </summary>
+        [Fact]
+        public void TestAsyncSuspensionGuards()
+        {
+            var cachingClass = new CachingClass();
+
+            Assert.Throws<InvalidOperationException>( () => cachingClass.ResumeAsyncMethods() );
+
+            cachingClass.SuspendAsyncMethods();
+            Assert.Throws<InvalidOperationException>( () => cachingClass.SuspendAsyncMethods() );
+
+            cachingClass.ResumeAsyncMethods();
+            Assert.Throws<InvalidOperationException>( () => cachingClass.ResumeAsyncMethods() );
         }
 
         [Fact]
