@@ -19,6 +19,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -86,34 +87,8 @@ public class ConsumerClass
 
         try
         {
-            // Compiles the given code with Metalama, emits the run-time assembly (including the compile-time project
-            // resource) to disk, and registers it with the assembly locator so that the compile-time project can be
-            // loaded even by a compilation that does not reference the assembly.
-            PortableExecutableReference CompileProject( string code, string assemblyName, params MetadataReference[] references )
-            {
-                var compilation = testContext.CreateCSharpCompilation( code, additionalReferences: references, assemblyName: assemblyName );
-
-                var repository = CompileTimeProjectRepository.Create( testContext.Domain, testContext.ServiceProvider, compilation )
-                    .AssertNotNull();
-
-                var path = MetalamaPathUtilities.GetTempFileName();
-                tempFiles.Add( path );
-
-                using ( var stream = File.Create( path ) )
-                {
-                    var emitResult = compilation.Emit( stream, manifestResources: [repository.RootProject.ToResource().Resource] );
-
-                    Assert.True( emitResult.Success );
-                }
-
-                var reference = MetadataReference.CreateFromFile( path );
-                assemblyLocator.Files.Add( compilation.Assembly.Identity, reference );
-
-                return reference;
-            }
-
-            var fabricAssembly = CompileProject( _fabricCode, "FabricAssembly" );
-            var middleAssembly = CompileProject( _middleCode, "MiddleAssembly", fabricAssembly );
+            var fabricAssembly = CompileProject( testContext, assemblyLocator, tempFiles, _fabricCode, "FabricAssembly" );
+            var middleAssembly = CompileProject( testContext, assemblyLocator, tempFiles, _middleCode, "MiddleAssembly", fabricAssembly );
 
             // The consumer references the middle assembly only. The fabric assembly is a part of the compile-time
             // closure, but its run-time assembly is not referenced.
@@ -129,15 +104,101 @@ public class ConsumerClass
             Assert.True(
                 pipeline.InvokeTryInitialize( diagnostics, consumerCompilation, out _ ),
                 $"Pipeline initialization failed.\n{FormatDiagnostics( diagnostics )}" );
+
+            // The fabric is skipped, but not silently: dropping it can change the generated code.
+            var diagnostic = Assert.Single( diagnostics, d => d.Id == GeneralDiagnosticDescriptors.FabricTypeNotAvailableInRunTimeCompilation.Id );
+
+            Assert.Equal( DiagnosticSeverity.Warning, diagnostic.Severity );
+            Assert.Contains( "UnreferencedFabricNamespace.Fabric", diagnostic.GetMessage( CultureInfo.InvariantCulture ), StringComparison.Ordinal );
+            Assert.Contains( "FabricAssembly", diagnostic.GetMessage( CultureInfo.InvariantCulture ), StringComparison.Ordinal );
         }
         finally
         {
-            foreach ( var path in tempFiles )
+            DeleteFiles( tempFiles );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that the guard added for issue #1759 does not affect the supported scenario, in which the assembly
+    /// declaring the transitive fabric is referenced by the consuming project.
+    /// </summary>
+    [Fact]
+    public void PipelineInitializesWhenFabricAssemblyIsReferenced()
+    {
+        var assemblyLocator = new TestAssemblyLocator();
+        var services = CreateAdditionalServiceCollection( assemblyLocator );
+
+        using var testContext = this.CreateTestContext( services );
+
+        List<string> tempFiles = [];
+
+        try
+        {
+            var fabricAssembly = CompileProject( testContext, assemblyLocator, tempFiles, _fabricCode, "FabricAssembly" );
+
+            var consumerCompilation = testContext.CreateCSharpCompilation(
+                _consumerCode,
+                additionalReferences: [fabricAssembly],
+                assemblyName: "ConsumerAssembly" );
+
+            var pipeline = new TestablePipeline( testContext.ServiceProvider );
+            var diagnostics = new DiagnosticBag();
+
+            Assert.True(
+                pipeline.InvokeTryInitialize( diagnostics, consumerCompilation, out _ ),
+                $"Pipeline initialization failed.\n{FormatDiagnostics( diagnostics )}" );
+
+            Assert.DoesNotContain( diagnostics, d => d.Id == GeneralDiagnosticDescriptors.FabricTypeNotAvailableInRunTimeCompilation.Id );
+        }
+        finally
+        {
+            DeleteFiles( tempFiles );
+        }
+    }
+
+    /// <summary>
+    /// Compiles the given code with Metalama, emits the run-time assembly (including the compile-time project
+    /// resource) to disk, and registers it with the assembly locator.
+    /// </summary>
+    /// <remarks>
+    /// The assembly must exist on disk and be resolvable by <see cref="IAssemblyLocator"/>, so that its compile-time
+    /// project can be loaded even by a compilation that does not reference the assembly.
+    /// </remarks>
+    private static PortableExecutableReference CompileProject(
+        TestContext testContext,
+        TestAssemblyLocator assemblyLocator,
+        List<string> tempFiles,
+        string code,
+        string assemblyName,
+        params MetadataReference[] references )
+    {
+        var compilation = testContext.CreateCSharpCompilation( code, additionalReferences: references, assemblyName: assemblyName );
+
+        var repository = CompileTimeProjectRepository.Create( testContext.Domain, testContext.ServiceProvider, compilation ).AssertNotNull();
+
+        var path = MetalamaPathUtilities.GetTempFileName();
+        tempFiles.Add( path );
+
+        using ( var stream = File.Create( path ) )
+        {
+            var emitResult = compilation.Emit( stream, manifestResources: [repository.RootProject.ToResource().Resource] );
+
+            Assert.True( emitResult.Success );
+        }
+
+        var reference = MetadataReference.CreateFromFile( path );
+        assemblyLocator.Files.Add( compilation.Assembly.Identity, reference );
+
+        return reference;
+    }
+
+    private static void DeleteFiles( List<string> paths )
+    {
+        foreach ( var path in paths )
+        {
+            if ( File.Exists( path ) )
             {
-                if ( File.Exists( path ) )
-                {
-                    File.Delete( path );
-                }
+                File.Delete( path );
             }
         }
     }

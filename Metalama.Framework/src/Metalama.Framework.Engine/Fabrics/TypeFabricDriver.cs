@@ -34,14 +34,8 @@ internal sealed class TypeFabricDriver : FabricDriver
         this._targetTypeFullName = targetType.AssertSymbolNotNull().GetFullName().AssertNotNull();
     }
 
-    public static IEnumerable<TypeFabricDriver> Create(
-        FabricManager fabricManager,
-        CompileTimeProject compileTimeProject,
-        Fabric fabric,
-        CompilationModel compilation )
+    public static IEnumerable<TypeFabricDriver> Create( CreationData creationData, CompilationModel compilation )
     {
-        var creationData = GetCreationData( fabricManager, compileTimeProject, fabric, compilation.RoslynCompilation );
-
         if ( creationData.FabricType.ContainingAssembly.Equals( compilation.RoslynCompilation.Assembly ) )
         {
             yield return new TypeFabricDriver( creationData, creationData.FabricType.ContainingType );

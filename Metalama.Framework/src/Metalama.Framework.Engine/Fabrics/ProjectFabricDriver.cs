@@ -26,12 +26,7 @@ namespace Metalama.Framework.Engine.Fabrics
         private readonly (int Min, int Max) _referenceDepth;
         private readonly AssemblyIdentity _containingAssemblyIdentity;
 
-        public static ProjectFabricDriver Create(
-            FabricManager fabricManager,
-            CompileTimeProject compileTimeProject,
-            Fabric fabric,
-            Compilation runTimeCompilation )
-            => new( GetCreationData( fabricManager, compileTimeProject, fabric, runTimeCompilation ) );
+        public static ProjectFabricDriver Create( in CreationData creationData ) => new( creationData );
 
         private ProjectFabricDriver( CreationData creationData ) :
             base( creationData )

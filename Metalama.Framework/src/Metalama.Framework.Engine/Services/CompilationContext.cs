@@ -18,6 +18,7 @@ using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -90,6 +91,25 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
     [Memo]
     internal bool ReferencesMetalamaFramework
         => this.Compilation.SourceModule.ReferencedAssemblySymbols.Any( a => a.Name == "Metalama.Framework" );
+
+    /// <summary>
+    /// Gets the simple names of the assembly of the compilation itself and of all assemblies it references.
+    /// </summary>
+    [Memo]
+    private ImmutableHashSet<string> AssemblyNames
+        => this.Compilation.SourceModule.ReferencedAssemblySymbols
+            .Concat( this.Compilation.Assembly )
+            .Select( a => a.Name )
+            .ToImmutableHashSet( StringComparer.Ordinal );
+
+    /// <summary>
+    /// Determines whether the compilation is, or references, an assembly of a given simple name.
+    /// </summary>
+    /// <remarks>
+    /// The comparison ignores the version, because several versions of the same assembly can reach the compilation
+    /// and any of them can supply the type being looked for.
+    /// </remarks>
+    internal bool ContainsOrReferencesAssembly( string assemblyName ) => this.AssemblyNames.Contains( assemblyName );
 
     [Memo]
     internal IEqualityComparer<IEvent> EventComparer => new MemberComparer<IEvent>( this.Comparers.Default );

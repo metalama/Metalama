@@ -39,7 +39,7 @@ internal abstract partial class FabricDriver : IComparable<FabricDriver>
         this.CompileTimeProject = creationData.CompileTimeProject;
     }
 
-    protected record struct CreationData(
+    internal record struct CreationData(
         Fabric Fabric,
         FabricManager FabricManager,
         CompileTimeProject CompileTimeProject,
@@ -47,31 +47,59 @@ internal abstract partial class FabricDriver : IComparable<FabricDriver>
         string OriginalPath,
         Compilation Compilation );
 
-    protected static CreationData GetCreationData(
+    /// <summary>
+    /// Resolves the run-time symbol of a fabric type and returns the data required to create a <see cref="FabricDriver"/>,
+    /// or returns <c>false</c> when the fabric type has no counterpart in the run-time compilation.
+    /// </summary>
+    /// <remarks>
+    /// The compile-time closure is walked through <see cref="CompileTimeProject.References"/> and referenced compile-time
+    /// projects are resolved through <see cref="IAssemblyLocator"/>, so the closure can contain an assembly that the
+    /// run-time compilation does not reference. The reference set can also be momentarily incomplete when the IDE
+    /// analyzes a project. In both cases the fabric type cannot be resolved and the caller must report a diagnostic
+    /// instead of failing. See https://github.com/metalama/Metalama/issues/1759.
+    /// </remarks>
+    internal static bool TryGetCreationData(
         FabricManager fabricManager,
         CompileTimeProject compileTimeProject,
         Fabric fabric,
-        Compilation runTimeCompilation )
+        Compilation runTimeCompilation,
+        out CreationData creationData )
     {
-        var originalPath = fabric.GetType().GetCustomAttribute<OriginalPathAttribute>().AssertNotNull().Path;
+        var fabricType = fabric.GetType();
+        var originalPath = fabricType.GetCustomAttribute<OriginalPathAttribute>().AssertNotNull().Path;
 
         // Get the original symbol for the fabric. If it has been moved, we have a custom attribute.
-        var originalId = fabric.GetType().GetCustomAttribute<OriginalIdAttribute>()?.Id;
+        var originalId = fabricType.GetCustomAttribute<OriginalIdAttribute>()?.Id;
 
-        INamedTypeSymbol symbol;
+        INamedTypeSymbol? symbol;
 
         if ( originalId != null )
         {
-            symbol = (INamedTypeSymbol) DocumentationCommentId.GetFirstSymbolForDeclarationId( originalId, runTimeCompilation ).AssertSymbolNotNull();
+            symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( originalId, runTimeCompilation ) as INamedTypeSymbol;
+        }
+        else if ( !runTimeCompilation.GetCompilationContext().ContainsOrReferencesAssembly( compileTimeProject.RunTimeIdentity.Name ) )
+        {
+            // The run-time assembly that declares the fabric is not a part of the compilation, so resolving the
+            // symbol would throw.
+            symbol = null;
         }
         else
         {
             symbol = (INamedTypeSymbol) runTimeCompilation.GetCompilationContext()
                 .ReflectionMapper
-                .GetTypeSymbol( fabric.GetType() );
+                .GetTypeSymbol( fabricType );
         }
 
-        return new CreationData( fabric, fabricManager, compileTimeProject, symbol, originalPath, runTimeCompilation );
+        if ( symbol == null )
+        {
+            creationData = default;
+
+            return false;
+        }
+
+        creationData = new CreationData( fabric, fabricManager, compileTimeProject, symbol, originalPath, runTimeCompilation );
+
+        return true;
     }
 
     public Location? DiagnosticLocation { get; }

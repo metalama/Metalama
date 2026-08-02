@@ -502,6 +502,20 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "An aspect weaver is provided by several assemblies." );
 
+        // Reported when a fabric of the compile-time closure has no counterpart in the run-time compilation, which
+        // happens when the assembly declaring it is not referenced by the project. The compile-time closure is walked
+        // through the compile-time project references and is resolved through IAssemblyLocator, so it can contain an
+        // assembly that the run-time compilation does not reference. The same situation arises transiently when the
+        // IDE analyzes a project whose references are momentarily incomplete. See #1759.
+        internal static readonly DiagnosticDefinition<(string FabricType, string DeclaringAssembly, string Project)> FabricTypeNotAvailableInRunTimeCompilation =
+            new(
+                "LAMA0082",
+                _category,
+                "The fabric '{0}' is ignored because the assembly '{1}' that declares it is not referenced by the project '{2}'. "
+                + "Add a reference to '{1}' if the fabric is expected to be applied.",
+                Warning,
+                "A fabric is ignored because the assembly that declares it is not referenced by the project." );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(

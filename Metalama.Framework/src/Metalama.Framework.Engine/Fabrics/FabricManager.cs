@@ -156,19 +156,34 @@ internal sealed class FabricManager
             return [];
         }
 
-        switch ( fabric )
+        if ( fabric is not Fabric typedFabric )
         {
-            case TypeFabric typeFabric:
-                return TypeFabricDriver.Create( this, compileTimeProject, typeFabric, compilation );
+            throw new AssertionFailedException( $"Unexpected fabric type: '{fabricType.FullName}." );
+        }
 
-            case TransitiveProjectFabric transitiveCompilationFabric:
-                return [ProjectFabricDriver.Create( this, compileTimeProject, transitiveCompilationFabric, compilation.RoslynCompilation )];
+        if ( !FabricDriver.TryGetCreationData( this, compileTimeProject, typedFabric, compilation.RoslynCompilation, out var creationData ) )
+        {
+            // The fabric cannot be identified in the run-time compilation, so it is ignored. See
+            // https://github.com/metalama/Metalama/issues/1759.
+            diagnostics.Report(
+                GeneralDiagnosticDescriptors.FabricTypeNotAvailableInRunTimeCompilation.CreateRoslynDiagnostic(
+                    null,
+                    (fabricTypeName, compileTimeProject.RunTimeIdentity.Name, compilation.RoslynCompilation.AssemblyName ?? "") ) );
 
-            case ProjectFabric compilationFabric:
-                return [ProjectFabricDriver.Create( this, compileTimeProject, compilationFabric, compilation.RoslynCompilation )];
+            return [];
+        }
 
-            case NamespaceFabric namespaceFabric:
-                return [NamespaceFabricDriver.Create( this, compileTimeProject, namespaceFabric, compilation.RoslynCompilation )];
+        switch ( typedFabric )
+        {
+            case TypeFabric:
+                return TypeFabricDriver.Create( creationData, compilation );
+
+            case ProjectFabric:
+                // This branch covers TransitiveProjectFabric, which derives from ProjectFabric.
+                return [ProjectFabricDriver.Create( creationData )];
+
+            case NamespaceFabric:
+                return [NamespaceFabricDriver.Create( creationData )];
 
             default:
                 throw new AssertionFailedException( $"Unexpected fabric type: '{fabricType.FullName}." );

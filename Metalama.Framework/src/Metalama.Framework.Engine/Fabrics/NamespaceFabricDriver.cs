@@ -29,12 +29,7 @@ namespace Metalama.Framework.Engine.Fabrics
             this._targetNamespace = creationData.FabricType.ContainingNamespace.GetFullName().AssertNotNull();
         }
 
-        public static NamespaceFabricDriver Create(
-            FabricManager fabricManager,
-            CompileTimeProject compileTimeProject,
-            Fabric fabric,
-            Compilation runTimeCompilation )
-            => new( GetCreationData( fabricManager, compileTimeProject, fabric, runTimeCompilation ) );
+        public static NamespaceFabricDriver Create( in CreationData creationData ) => new( creationData );
 
         public override FabricKind Kind => FabricKind.Namespace;
 
