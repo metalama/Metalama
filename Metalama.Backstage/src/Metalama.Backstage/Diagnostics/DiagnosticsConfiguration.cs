@@ -21,8 +21,20 @@ public sealed record DiagnosticsConfiguration : ConfigurationFile
     /// <summary>
     /// Gets the options of the logging of Metalama itself.
     /// </summary>
+    /// <remarks>
+    /// The null value has to be normalized because the System.Text.Json source generator treats every <c>init</c>
+    /// property as a constructor parameter and assigns all of them unconditionally, so a file that omits the section
+    /// would otherwise set the property to <c>null</c>. A property initializer alone is not enough. The consequence is
+    /// more severe than a null property: <see cref="Validate"/> dereferences the value, and
+    /// <see cref="Configuration.ConfigurationManager"/> catches the resulting exception and discards the whole file.
+    /// See #1777.
+    /// </remarks>
     [JsonPropertyName( "logging" )]
-    public LoggingConfiguration Logging { get; init; } = CreateDefaultLogging();
+    public LoggingConfiguration Logging
+    {
+        get => this._logging;
+        init => this._logging = value ?? CreateDefaultLogging();
+    }
 
     /// <summary>
     /// Gets the options that make a Metalama process wait for a debugger to be attached.
@@ -74,6 +86,7 @@ public sealed record DiagnosticsConfiguration : ConfigurationFile
         init => this._profiling = value ?? CreateDefaultProfiling();
     }
 
+    private readonly LoggingConfiguration _logging = CreateDefaultLogging();
     private readonly DebuggerConfiguration _debugging = CreateDefaultDebugging();
     private readonly CrashDumpConfiguration _crashDumps = CreateDefaultCrashDumps();
     private readonly ProfilingConfiguration _profiling = CreateDefaultProfiling();
