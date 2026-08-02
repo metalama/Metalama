@@ -1,7 +1,7 @@
 # Issue 1759 at design time: a fabric whose type name is ambiguous in the consumer
 
-**Red.** This scenario reproduces [#1759](https://github.com/metalama/Metalama/issues/1759) on `develop/2026.1` at
-`23d57ba747`. It fails, and it is expected to fail until the defect is fixed.
+**Status: Fixed.** This scenario reproduces [#1759](https://github.com/metalama/Metalama/issues/1759) on `develop/2026.1` at
+`23d57ba747`. It failed before the fix and is expected to pass once the defect is fixed.
 
 ## What it reproduces
 
