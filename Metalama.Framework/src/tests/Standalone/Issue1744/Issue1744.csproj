@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <!-- Makes the nested reference-assembly build fail, deterministically and without network access: no process
+             can start and complete within one millisecond, so the assembly locator kills it and reports a timeout.
+             The salt keeps this scenario on a cache directory of its own; the cache is never populated, because the
+             build never completes, so every run exercises the failure. See README.md. -->
+        <MetalamaReferenceAssemblyRestoreTimeout>1</MetalamaReferenceAssemblyRestoreTimeout>
+        <MetalamaAssemblyLocatorSalt>Issue1744</MetalamaAssemblyLocatorSalt>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
