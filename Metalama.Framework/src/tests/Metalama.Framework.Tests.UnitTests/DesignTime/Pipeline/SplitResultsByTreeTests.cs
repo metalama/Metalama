@@ -2,7 +2,9 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System;
@@ -37,7 +39,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 /// which is unaffected and shows the pipeline succeeding.
 /// </para>
 /// </remarks>
-public sealed class SplitResultsByTreeTests : UnitTestClass
+public sealed class SplitResultsByTreeTests : DesignTimePipelineTestsBase
 {
     public SplitResultsByTreeTests( ITestOutputHelper testOutput ) : base( testOutput ) { }
 
@@ -134,7 +136,7 @@ public sealed class SplitResultsByTreeTests : UnitTestClass
         // Library's pipeline has to run first so its transitive manifest is available to App's pipeline.
         Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out _ ) );
 
-        this.AssertPipelineSucceeds( pipelineFactory, appContext, app );
+        this.AssertParameterIsPulled( pipelineFactory, appContext, app );
     }
 
     /// <summary>
@@ -168,27 +170,36 @@ public sealed class SplitResultsByTreeTests : UnitTestClass
 
         Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out _ ) );
 
-        this.AssertPipelineSucceeds( pipelineFactory, appContext, app );
+        this.AssertParameterIsPulled( pipelineFactory, appContext, app );
     }
 
     /// <summary>
-    /// Runs the consumer's pipeline and asserts that it completed, reporting neither an <see cref="InvalidCastException"/>
-    /// nor any other failure.
+    /// Runs the consumer's pipeline, asserts that it completed (reporting neither an <see cref="InvalidCastException"/>
+    /// nor any other failure), and asserts that the transitive aspect actually applied, that is, that the pulled
+    /// parameter <c>p1</c> was introduced into the derived type.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The cast failure surfaces differently depending on the entry point (bare on the source-generator path, wrapped
     /// in an <see cref="AggregateException"/> on the analyzer path, and possibly caught and turned into a diagnostic),
-    /// so all three channels are inspected.
+    /// so all three channels are inspected. That part is the regression guard for issue #1748.
+    /// </para>
+    /// <para>
+    /// The assertion on the generated code is the regression guard for issue #1752: on the deserializing channel the
+    /// aspect instance is created but its target does not resolve, so nothing is introduced and no diagnostic is
+    /// reported. Completing successfully is therefore not sufficient evidence that the aspect ran.
+    /// </para>
     /// </remarks>
-    private void AssertPipelineSucceeds( TestDesignTimeAspectPipelineFactory pipelineFactory, TestContext appContext, Compilation app )
+    private void AssertParameterIsPulled( TestDesignTimeAspectPipelineFactory pipelineFactory, TestContext appContext, Compilation app )
     {
         Exception? thrown = null;
         var success = false;
         ImmutableArray<Diagnostic> diagnostics = default;
+        DesignTimeAspectPipelineResultAndState? result = null;
 
         try
         {
-            success = pipelineFactory.TryExecute( appContext.ProjectOptions, app, default, out _, out diagnostics );
+            success = pipelineFactory.TryExecute( appContext.ProjectOptions, app, default, out result, out diagnostics );
         }
         catch ( Exception e )
         {
@@ -218,6 +229,12 @@ public sealed class SplitResultsByTreeTests : UnitTestClass
 
         Assert.True( thrown == null, $"App's pipeline threw: {thrown}" );
         Assert.True( success, "App's pipeline did not succeed." );
+
+        var generatedCode = DumpResults( result! );
+        this.TestOutput.WriteLine( "--- App's design-time results ---" );
+        this.TestOutput.WriteLine( generatedCode );
+
+        Assert.Contains( "p1", generatedCode, StringComparison.Ordinal );
     }
 
     /// <summary>
