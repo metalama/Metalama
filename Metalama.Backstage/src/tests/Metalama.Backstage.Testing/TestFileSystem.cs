@@ -184,6 +184,38 @@ namespace Metalama.Backstage.Testing
             return date.Year < _historicalYearThreshold ? this._initializationTime : date;
         }
 
+        /// <summary>
+        /// Returns the creation time of every directory that currently exists, so that
+        /// <see cref="RestoreOrSetDirectoryCreationTimes"/> can tell which directories an operation has created.
+        /// </summary>
+        private Dictionary<string, DateTime> GetDirectoryCreationTimes()
+            => this.Mock.AllDirectories.ToDictionary(
+                directory => directory,
+                directory => this.Mock.Directory.GetCreationTime( directory ),
+                StringComparer.OrdinalIgnoreCase );
+
+        /// <summary>
+        /// Restores the creation time of the directories that already existed when
+        /// <see cref="GetDirectoryCreationTimes"/> was called, and sets the creation time of the directories created
+        /// since then to <paramref name="creationTime"/>.
+        /// </summary>
+        /// <remarks>
+        /// An operation implicitly creates the missing ancestor directories of its path, and the mock file system stamps
+        /// them with the real clock instead of with the injected <see cref="IDateTimeProvider"/>. It does so even for
+        /// the ancestor directories that already exist, whose creation time it therefore overwrites. Any value derived
+        /// from such a creation time (for instance the device age reported by the telemetry) would then depend on the
+        /// day on which the test runs.
+        /// </remarks>
+        private void RestoreOrSetDirectoryCreationTimes( Dictionary<string, DateTime> creationTimesBefore, DateTime creationTime )
+        {
+            foreach ( var directory in this.Mock.AllDirectories )
+            {
+                this.Mock.Directory.SetCreationTime(
+                    directory,
+                    creationTimesBefore.TryGetValue( directory, out var previousCreationTime ) ? previousCreationTime : creationTime );
+            }
+        }
+
         public void SetDirectoryLastWriteTime( string path, DateTime lastWriteTime )
             => this._directory.Execute(
                 ExecutionKind.Manage,
