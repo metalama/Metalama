@@ -26,10 +26,38 @@ public sealed class UsageSessionFactoryTests : TestsBase
     private static readonly Guid _testDeviceId = new( "d8e7f6a5-b4c3-2d1e-0f9a-8b7c6d5e4f3a" );
     private const long _testSalt = 0x0123456789ABCDEF;
 
+    /// <summary>
+    /// The point in time to which the test clock is pinned.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="TestDateTimeProvider"/> reports the real current time until it is set, so a test that advances the
+    /// clock by a day observes a different interval depending on the day it runs on. The telemetry device identifier
+    /// and the salts are rotated when the clock crosses the first Monday of the month
+    /// (see <c>TelemetryConfigurationService.RotateDeviceIdAndSaltIfActivated</c>), which replaces the pinned
+    /// <see cref="_testDeviceId"/> and <see cref="_testSalt"/> with random values and therefore changes the device
+    /// hash asserted below. This date lies in the middle of a month, so advancing the clock by a few days never
+    /// crosses a rotation boundary.
+    /// </para>
+    /// <para>
+    /// The clock must be pinned before the services are created, because the device age reported to Matomo is measured
+    /// from the time at which <see cref="TestFileSystem"/> was constructed.
+    /// </para>
+    /// <para>
+    /// The time of the day must not be midnight, because <see cref="TelemetryConfiguration.CleanUp"/> compares the date
+    /// of a session with a threshold that has a time of the day, so a session started at midnight is retained for a
+    /// full extra day. See <see cref="SessionShouldBeCleanedUpAfterOneDay"/>.
+    /// </para>
+    /// </remarks>
+    private static readonly DateTime _testTime = new( 2026, 1, 15, 10, 30, 0, DateTimeKind.Utc );
+
     // This field can be modified by tests before the first use of the service provider.
     private TestApplicationInfo _applicationInfo = new() { IsTelemetryEnabled = true };
 
-    public UsageSessionFactoryTests( ITestOutputHelper logger ) : base( logger ) { }
+    public UsageSessionFactoryTests( ITestOutputHelper logger ) : base( logger )
+    {
+        this.Time.Set( _testTime );
+    }
 
     protected override void OnAfterServicesCreated( Services services )
     {
