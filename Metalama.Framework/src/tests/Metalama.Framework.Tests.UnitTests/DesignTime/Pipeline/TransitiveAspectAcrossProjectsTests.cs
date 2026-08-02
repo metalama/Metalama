@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Pipeline;
+using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
@@ -20,11 +21,10 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 /// </summary>
 /// <remarks>
 /// <para>
-/// These tests accompany the review of pull request #1784. That pull request repairs the pulled constructor parameter
-/// on the deserializing channel by carrying a description of the parameter beside its reference, because the reference
-/// does not resolve at design time. The tests below pin the reason the reference does not resolve, which is general and
-/// not specific to the pulled parameter, and the property that the repair has to preserve, which is that the two
-/// channels produce the same result.
+/// These tests come from the review of pull request #1784. The reason a reference to a pulled constructor parameter did
+/// not resolve at design time is general and not specific to that parameter: a consumer did not see the surface that a
+/// referenced project introduces. The first two tests pin that, and the last two pin the property that the two channels
+/// have to produce the same result.
 /// </para>
 /// <para>
 /// The solution shape is the one of <see cref="SplitResultsByTreeTests"/>: a multi-targeted <c>Shared</c> library
@@ -118,22 +118,17 @@ public sealed class TransitiveAspectAcrossProjectsTests : DesignTimePipelineTest
     /// <remarks>
     /// <para>
     /// At compile time the consumer is compiled against the producer's transformed output, so the overload is part of
-    /// the producer's surface. At design time the consumer sees the producer before transformation, because
-    /// <c>SymbolRef.Strategy.IsValidSymbol</c> rejects every symbol declared in a document produced by the Metalama
-    /// source generator, and <c>SourceGeneratorHelper.IsGeneratedSymbol</c> makes no distinction between the current
-    /// assembly and a referenced one. The rule immediately above it, which hides the private symbols of external
-    /// assemblies, does make that distinction.
+    /// the producer's surface. At design time the consumer used to see the producer before transformation, because
+    /// <c>SymbolRef.Strategy.IsValidSymbol</c> rejected every symbol declared in a document produced by the Metalama
+    /// source generator, whichever assembly declared it, unlike the rule immediately above it, which hides the private
+    /// symbols of external assemblies only.
     /// </para>
     /// <para>
     /// Hiding is necessary for the current project, because a source generator must not read its own output back, but
-    /// applying it to a referenced project makes the consumer's design-time view of that project differ from what the
-    /// project will ship. Every reference into a declaration that a referenced project introduced is therefore
-    /// unresolvable at design time, which is the general defect of which the pulled constructor parameter of #1752 is
-    /// one instance.
-    /// </para>
-    /// <para>
-    /// This test fails until that scoping is corrected. It is expected to fail on the branch of pull request #1784,
-    /// which repairs the symptom for the pulled parameter only.
+    /// applying it to a referenced project made the consumer's design-time view of that project differ from what the
+    /// project ships, so that every reference into a declaration a referenced project introduced was unresolvable at
+    /// design time. That is the general defect of which the pulled constructor parameter of #1752 is one instance, and
+    /// the hiding is now scoped to the current assembly.
     /// </para>
     /// </remarks>
     [Fact]
@@ -167,7 +162,7 @@ public sealed class TransitiveAspectAcrossProjectsTests : DesignTimePipelineTest
         Assert.NotNull( baseType );
 
         var constructorSignatures = baseType.Constructors
-            .Select( c => string.Join( ",", c.Parameters.Select( p => p.Type.ToString() ) ) )
+            .SelectAsArray( c => string.Join( ",", c.Parameters.SelectAsArray( p => p.Type.ToString() ) ) )
             .OrderBy( s => s )
             .ToArray();
 
@@ -205,12 +200,8 @@ public sealed class TransitiveAspectAcrossProjectsTests : DesignTimePipelineTest
     /// <para>
     /// This is <see cref="ConsumerSeesConstructorOverloadIntroducedByProducer"/> generalized from a constructor overload
     /// to an ordinary member, and it uses no transitive aspect at all. It establishes that the whole surface a producer
-    /// introduces is absent from a consumer's design-time code model, therefore that any reference into that surface is
-    /// unresolvable at design time, whatever mechanism carries the reference.
-    /// </para>
-    /// <para>
-    /// This test fails until the hiding performed by <c>SourceGeneratorHelper.IsGeneratedSymbol</c> is scoped to the
-    /// current assembly.
+    /// introduces is part of a consumer's design-time code model, therefore that a reference into that surface can be
+    /// resolved whatever mechanism carries it.
     /// </para>
     /// </remarks>
     [Fact]
@@ -238,7 +229,7 @@ public sealed class TransitiveAspectAcrossProjectsTests : DesignTimePipelineTest
 
         Assert.NotNull( baseType );
 
-        var methodNames = baseType.Methods.Select( m => m.Name ).OrderBy( n => n, System.StringComparer.Ordinal ).ToArray();
+        var methodNames = baseType.Methods.SelectAsArray( m => m.Name ).OrderBy( n => n, System.StringComparer.Ordinal ).ToArray();
 
         this.TestOutput.WriteLine( $"Methods of '{baseType.Name}' as seen by App: {string.Join( ", ", methodNames )}" );
 
@@ -251,11 +242,10 @@ public sealed class TransitiveAspectAcrossProjectsTests : DesignTimePipelineTest
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Pull request #1784 makes the pulled parameter available on the deserializing channel from a description carried
-    /// beside its reference, and uses the reference whenever it resolves. The parameter is therefore described twice
-    /// and the two descriptions can disagree, so the equivalence of the two channels is a property that has to be
-    /// asserted rather than assumed. The existing tests assert a single expected signature on each channel, which does
-    /// not compare the channels to each other.
+    /// The two channels reach the pulled parameter by different routes, the live manifest keeping the full reference
+    /// and the deserialized one an identifier that has to be resolved, so their agreement is a property to assert
+    /// rather than to assume. The existing tests assert a single expected signature on each channel, which does not
+    /// compare the channels to each other.
     /// </para>
     /// <para>
     /// The comparison is made on the whole design-time output, with whitespace removed so that it does not depend on
@@ -271,9 +261,8 @@ public sealed class TransitiveAspectAcrossProjectsTests : DesignTimePipelineTest
     /// </summary>
     /// <remarks>
     /// <c>OnConstructedMethodAdvice</c> exports <c>AddConstructorEpilogueTransitiveAspect</c>, which is documented to
-    /// run after <c>PullConstructorParameterTransitiveAspect</c> in the system layer ordering. The parameter that pull
-    /// request #1784 rebuilds from a description, rather than resolving from the compilation, is therefore observed by
-    /// a second aspect, so the two are exercised together.
+    /// run after <c>PullConstructorParameterTransitiveAspect</c> in the system layer ordering, so the parameter that
+    /// the pull resolved is observed by a second aspect and the two are exercised together.
     /// </remarks>
     [Fact]
     public void BothChannelsProduceTheSameGeneratedCodeWithAnInitializer() => this.AssertChannelsAgree( _libraryWithInitializerCode );

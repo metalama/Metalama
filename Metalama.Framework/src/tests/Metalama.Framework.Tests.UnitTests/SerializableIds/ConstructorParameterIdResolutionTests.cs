@@ -102,7 +102,11 @@ public sealed class ConstructorParameterIdResolutionTests : UnitTestClass
 
         var parameter = Assert.IsAssignableFrom<IParameter>( id.ResolveToDeclaration( compilation ) );
         Assert.Equal( "p1", parameter.Name );
-        Assert.Equal( 2, parameter.DeclaringMember.Parameters.Count );
+
+        var declaringMember = parameter.DeclaringMember;
+
+        Assert.NotNull( declaringMember );
+        Assert.Equal( 2, declaringMember.Parameters.Count );
     }
 
     /// <summary>
@@ -154,7 +158,10 @@ public sealed class ConstructorParameterIdResolutionTests : UnitTestClass
         var parameter = Assert.IsAssignableFrom<IParameter>( resolved );
         Assert.Equal( "s", parameter.Name );
 
-        Assert.Single( parameter.DeclaringMember.Parameters );
+        var declaringMember = parameter.DeclaringMember;
+
+        Assert.NotNull( declaringMember );
+        Assert.Single( declaringMember.Parameters );
     }
 
     /// <summary>
@@ -176,6 +183,11 @@ public sealed class ConstructorParameterIdResolutionTests : UnitTestClass
         var first = Assert.IsAssignableFrom<IParameter>( id.ResolveToDeclaration( compilation ) );
         var second = Assert.IsAssignableFrom<IParameter>( id.ResolveToDeclaration( compilation ) );
 
-        Assert.Equal( first.DeclaringMember.Parameters.Count, second.DeclaringMember.Parameters.Count );
+        var firstDeclaringMember = first.DeclaringMember;
+        var secondDeclaringMember = second.DeclaringMember;
+
+        Assert.NotNull( firstDeclaringMember );
+        Assert.NotNull( secondDeclaringMember );
+        Assert.Equal( firstDeclaringMember.Parameters.Count, secondDeclaringMember.Parameters.Count );
     }
 }
