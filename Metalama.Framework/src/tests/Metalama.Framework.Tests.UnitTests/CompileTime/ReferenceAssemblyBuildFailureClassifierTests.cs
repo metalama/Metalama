@@ -26,16 +26,33 @@ public sealed class ReferenceAssemblyBuildFailureClassifierTests
     private static string GetProbableCause( ImmutableArray<string> output )
         => ReferenceAssemblyBuildFailureClassifier.GetProbableCause( output, _projectDirectory, null );
 
-    [Fact]
-    public void ProbableCause_FeedRequiresCredentials()
+    /// <summary>
+    /// NuGet reports the rejected request without a message identifier, so the HTTP status code is the only invariant
+    /// signal. It is recognized in a localized output, where every word around it differs.
+    /// </summary>
+    [Theory]
+    [InlineData( "TempProject.csproj(5): error :   Response status code does not indicate success: 401 (Unauthorized)." )]
+    [InlineData( "TempProject.csproj(5): erreur :   Le code d'état de la réponse n'indique pas une réussite : 401 (Unauthorized)." )]
+    public void ProbableCause_FeedRequiresCredentials( string statusLine )
     {
         var output = ImmutableArray.Create(
             "MSBuild version 17.8.43+f0cbb1397 for .NET",
-            "  Determining projects to restore...",
             "TempProject.csproj(5): error : Unable to load the service index for source https://feed.example.com/v3/index.json.",
-            "TempProject.csproj(5): error :   Response status code does not indicate success: 401 (Unauthorized)." );
+            statusLine );
 
-        Assert.Contains( "credentials", GetProbableCause( output ) );
+        Assert.Contains( "HTTP authentication error", GetProbableCause( output ) );
+    }
+
+    /// <summary>
+    /// The status code is recognized only in an output that also contains a URL, and only as a whole number, so that a
+    /// package version or a build number that ends in 401 does not produce a message about credentials.
+    /// </summary>
+    [Theory]
+    [InlineData( "TempProject.csproj(5): error : Restore failed for https://feed.example.com after 1.0.401 seconds." )]
+    [InlineData( "TempProject.csproj(5): error : Package Some.Package 3.401.0 could not be installed." )]
+    public void ProbableCause_NumberResemblingAStatusCodeIsNotAnAuthenticationFailure( string line )
+    {
+        Assert.Contains( "not a defect of Metalama", GetProbableCause( ImmutableArray.Create( line ) ) );
     }
 
     [Fact]
@@ -56,18 +73,18 @@ public sealed class ReferenceAssemblyBuildFailureClassifierTests
         Assert.Contains( "packageSourceMapping", GetProbableCause( output ) );
     }
 
-    [Fact]
-    public void ProbableCause_SdkPinnedByGlobalJsonIsNotInstalled()
+    /// <summary>
+    /// The .NET host fails before MSBuild is loaded, so the output carries no message identifier and the file name
+    /// <c>global.json</c> is the only invariant signal. The prose around it differs in a localized toolchain.
+    /// </summary>
+    [Theory]
+    [InlineData( "      A compatible .NET SDK was not found.", "Requested SDK version: 9.0.311" )]
+    [InlineData( "      Aucun SDK .NET compatible n'a été trouvé.", "Version du SDK demandée : 9.0.311" )]
+    public void ProbableCause_SdkPinnedByGlobalJsonIsNotInstalled( string notFoundLine, string requestedVersionLine )
     {
-        var output = ImmutableArray.Create(
-            "The command could not be loaded, possibly because:",
-            "  * You intended to execute a .NET SDK command:",
-            "      A compatible .NET SDK was not found.",
-            "",
-            "Requested SDK version: 9.0.311",
-            "global.json file: C:\\src\\global.json" );
+        var output = ImmutableArray.Create( notFoundLine, requestedVersionLine, "global.json file: C:\\src\\global.json" );
 
-        Assert.Contains( "global.json", GetProbableCause( output ) );
+        Assert.Contains( "This build resolved a global.json file", GetProbableCause( output ) );
     }
 
     /// <summary>
@@ -95,13 +112,19 @@ public sealed class ReferenceAssemblyBuildFailureClassifierTests
         Assert.Contains( "MetalamaCompileTimeTargetFrameworks", GetProbableCause( output ) );
     }
 
+    /// <summary>
+    /// The .NET SDK reports an MSBuild that is too old for it without any message identifier, and the sentence that
+    /// carries the two versions is localized, so the condition carries no invariant signal and is deliberately left
+    /// unclassified. The quoted output still shows the user what happened. See #1744.
+    /// </summary>
     [Fact]
-    public void ProbableCause_MSBuildTooOldForSdk()
+    public void ProbableCause_MSBuildTooOldForSdkIsLeftUnclassified()
     {
         var output = ImmutableArray.Create(
             "Version 10.0.201 of the .NET SDK requires at least version 18.0.0 of MSBuild. The current available version of MSBuild is 17.14.23.42201." );
 
-        Assert.Contains( "older than the version required by the .NET SDK", GetProbableCause( output ) );
+        Assert.Contains( "not a defect of Metalama", GetProbableCause( output ) );
+        Assert.Contains( "requires at least version 18.0.0 of MSBuild", ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( output ) );
     }
 
     [Fact]
@@ -131,6 +154,25 @@ public sealed class ReferenceAssemblyBuildFailureClassifierTests
         var output = ImmutableArray.Create( "TempProject.csproj(5): erreur NU1101: Impossible de trouver le package Microsoft.CodeAnalysis.CSharp." );
 
         Assert.Contains( "NU1101", ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( output ) );
+    }
+
+    /// <summary>
+    /// An output that carries no message identifier cannot be filtered down to its error lines without depending on the
+    /// language of the toolchain, so the last lines are quoted instead. They are where a failing build explains itself,
+    /// and the user reads them in the language of their own toolchain.
+    /// </summary>
+    [Fact]
+    public void ReportedErrors_LocalizedOutputWithoutMessageIdentifierFallsBackToTheLastLines()
+    {
+        var output = ImmutableArray.Create(
+            "Version de MSBuild 17.8.43+f0cbb1397 pour .NET",
+            "  Determination des projets a restaurer...",
+            "TempProject.csproj(5): erreur :   Le code d'etat de la reponse n'indique pas une reussite : 401 (Unauthorized)." );
+
+        var errors = ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( output );
+
+        Assert.Contains( "Its last output lines were the following:", errors );
+        Assert.Contains( "401 (Unauthorized)", errors );
     }
 
     [Fact]

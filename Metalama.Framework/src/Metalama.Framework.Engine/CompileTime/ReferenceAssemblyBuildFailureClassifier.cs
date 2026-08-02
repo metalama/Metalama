@@ -23,8 +23,12 @@ namespace Metalama.Framework.Engine.CompileTime;
 /// failure in its own output. See issue #1744.
 /// </para>
 /// <para>
-/// The output is matched on message identifiers such as <c>NU1101</c> whenever possible, because MSBuild localizes the
-/// prose that surrounds them and a substantial share of the affected users run a localized toolchain.
+/// The child process writes its output in the language of the toolchain, and a substantial share of the affected users
+/// run a localized toolchain, therefore no rule of this class may depend on the wording of a message. Only the
+/// following signals are recognized, all of which are invariant across languages: message identifiers such as
+/// <c>NU1101</c>, process exit codes, HTTP status codes, and the file name <c>global.json</c>. A condition for which no
+/// invariant signal exists is deliberately left unclassified and falls back to the generic explanation, which is a less
+/// precise message but never a wrong one.
 /// </para>
 /// </remarks>
 internal static class ReferenceAssemblyBuildFailureClassifier
@@ -36,26 +40,35 @@ internal static class ReferenceAssemblyBuildFailureClassifier
     private const int _maxReportedErrorsLength = 600;
 
     /// <summary>
-    /// The maximal number of error lines quoted by <see cref="GetReportedErrors"/>. A multi-targeted build repeats
-    /// the same error once per target framework, so quoting all of them adds length but no information.
+    /// The maximal number of lines quoted by <see cref="GetReportedErrors"/>. A multi-targeted build repeats the same
+    /// error once per target framework, so quoting all of them adds length but no information.
     /// </summary>
     private const int _maxReportedErrorCount = 4;
 
     /// <summary>
-    /// Matches a line that carries an MSBuild, NuGet or .NET SDK message identifier followed by a colon, such as
-    /// <c>error NU1101:</c>. The identifier survives localization, unlike the word <c>error</c> that precedes it.
+    /// Matches a line that carries an MSBuild, NuGet, .NET SDK or compiler message identifier followed by a colon, such
+    /// as <c>error NU1101:</c>.
     /// </summary>
+    /// <remarks>
+    /// The identifier is the only part of such a line that is invariant across languages: both the word that precedes it
+    /// and the text that follows it are localized.
+    /// </remarks>
     private static readonly Regex _messageIdRegex = new(
         @"\b(?:NU|NETSDK|MSB|CS|AD)[0-9]{3,5}\s*:",
         RegexOptions.CultureInvariant );
 
     /// <summary>
-    /// Matches an English error line that carries no message identifier, such as the <c>error :</c> lines that NuGet
-    /// emits for a transport failure.
+    /// Matches an HTTP status code that denotes an authentication or authorization failure, as it appears in the message
+    /// that NuGet produces for a rejected request.
     /// </summary>
-    private static readonly Regex _englishErrorRegex = new(
-        @"\berror\s*:",
-        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase );
+    /// <remarks>
+    /// The status code is a number defined by the HTTP protocol and is therefore invariant, whereas the sentence that
+    /// carries it is localized. The boundaries exclude a digit or a dot on either side so that a version such as
+    /// <c>1.0.401</c> does not match.
+    /// </remarks>
+    private static readonly Regex _unauthorizedStatusCodeRegex = new(
+        @"(?<![\w.])40[13](?![\w.])",
+        RegexOptions.CultureInvariant );
 
     /// <summary>
     /// Matches a run of whitespace, used to fold the output into the single line that a Roslyn diagnostic requires.
@@ -64,7 +77,7 @@ internal static class ReferenceAssemblyBuildFailureClassifier
 
     /// <summary>
     /// Returns the sentence that describes the probable cause of the failure and the action that resolves it, or the
-    /// generic sentence when the output matches none of the known conditions.
+    /// generic sentence when the output carries no signal that identifies a known condition.
     /// </summary>
     /// <param name="output">The console output of the nested build.</param>
     /// <param name="projectDirectory">
@@ -75,13 +88,72 @@ internal static class ReferenceAssemblyBuildFailureClassifier
     /// The version of the .NET SDK that Metalama pinned in the <c>global.json</c> that it wrote beside the
     /// reference-assembly project, or <c>null</c> when it pinned none.
     /// </param>
+    /// <remarks>
+    /// The rules are ordered by decreasing confidence: a message identifier identifies a condition exactly, whereas the
+    /// presence of an HTTP status code or of a file name is circumstantial, so the former must win when both are present.
+    /// </remarks>
     public static string GetProbableCause( ImmutableArray<string> output, string projectDirectory, string? requestedSdkVersion )
     {
         var text = string.Join( "\n", output );
 
-        // The .NET host refuses to run before MSBuild is even loaded, so this condition is recognized by the prose of
-        // the host and not by a message identifier. See issue #1745.
-        if ( Contains( text, "A compatible .NET SDK was not found" ) || Contains( text, "Requested SDK version" ) )
+        if ( ContainsMessageId( text, "NU1302" ) )
+        {
+            return
+                "A NuGet feed is configured with an insecure HTTP address, which NuGet rejects by default. Give that feed an HTTPS address, "
+                + "or set the allowInsecureConnections attribute of that feed in nuget.config.";
+        }
+
+        // packageSourceMapping applies to the nested build because it inherits the nuget.config of the project, and a
+        // Microsoft.CodeAnalysis.* pattern is more specific than a * pattern. See issue #1747.
+        if ( ContainsMessageId( text, "NU1101" ) )
+        {
+            return
+                "A package that is required to resolve the compile-time reference assemblies was not found on the configured NuGet sources. "
+                + "When nuget.config maps the Microsoft.CodeAnalysis.* pattern to a private feed through packageSourceMapping, this build is "
+                + "restricted to that feed, therefore these packages must be mapped to a source that provides them, such as nuget.org.";
+        }
+
+        if ( ContainsMessageId( text, "NETSDK1045" ) )
+        {
+            return
+                "The .NET SDK that this build resolved is too old for the target frameworks of the reference-assembly project. "
+                + $"Install a more recent .NET SDK, or set the {MSBuildPropertyNames.MetalamaCompileTimeTargetFrameworks} MSBuild property "
+                + "to target frameworks that this .NET SDK supports.";
+        }
+
+        // 0xC0000005, that is, STATUS_ACCESS_VIOLATION, reported by MSB6006 as the exit code of a task that crashed. Both
+        // the identifier and the exit code are invariant. See issue #1746.
+        if ( ContainsMessageId( text, "MSB6006" ) && text.IndexOf( "-1073741819", StringComparison.Ordinal ) >= 0 )
+        {
+            return
+                "A tool started by this build terminated abnormally with an access violation. This is a failure of the .NET SDK toolchain "
+                + "and not of Metalama. Verify the integrity of the .NET SDK installation, and consider excluding the build directories "
+                + "from real-time antivirus scanning.";
+        }
+
+        // The nested build is a separate process and therefore does not inherit the interactive credential provider of
+        // the IDE or of the outer build. See issue #1744. NuGet reports the transport failure without a message
+        // identifier on some paths, so the HTTP status code is the only invariant signal available here. It is accepted
+        // only in an output that also contains a URL, so that an unrelated occurrence of the number does not match.
+        if ( _unauthorizedStatusCodeRegex.IsMatch( text ) && text.IndexOf( "http", StringComparison.OrdinalIgnoreCase ) >= 0 )
+        {
+            return
+                "A NuGet feed refused the request with an HTTP authentication error. This build runs in a separate process, "
+                + "which does not inherit the interactive credential provider of the outer build, therefore the credentials of the feed "
+                + "must be available without user interaction, typically in a nuget.config file or through a credential provider.";
+        }
+
+        if ( ContainsMessageId( text, "NU1301" ) )
+        {
+            return
+                "A NuGet feed could not be reached. Verify that the feed is available from this computer and that the "
+                + "network configuration of the build environment allows the build to reach it.";
+        }
+
+        // When the .NET host cannot satisfy the SDK version that a global.json requests, it fails before MSBuild is
+        // loaded, so the output carries no message identifier at all. The file name is the only invariant signal, which
+        // is why this rule comes after every rule based on an identifier. See issue #1745.
+        if ( text.IndexOf( "global.json", StringComparison.OrdinalIgnoreCase ) >= 0 )
         {
             // Metalama writes a global.json beside the reference-assembly project to pin the .NET SDK to the version that
             // builds the project. Blaming the user's global.json when the file at fault is that one would send the user
@@ -104,112 +176,57 @@ internal static class ReferenceAssemblyBuildFailureClassifier
                 + "Install the requested version of the .NET SDK, or change global.json so that it requests a version that is installed.";
         }
 
-        // The nested build is a separate process and therefore does not inherit the interactive credential provider of
-        // the IDE or of the outer build. See issue #1744.
-        if ( Contains( text, "401 (Unauthorized)" ) || Contains( text, "403 (Forbidden)" ) )
-        {
-            return
-                "A NuGet feed refused the request because no valid credentials were supplied. This build runs in a separate process, "
-                + "which does not inherit the interactive credential provider of the outer build, therefore the credentials of the feed "
-                + "must be available without user interaction, typically in a nuget.config file or through a credential provider.";
-        }
-
-        if ( Contains( text, "NU1302" ) )
-        {
-            return
-                "A NuGet feed is configured with an insecure HTTP address, which NuGet rejects by default. Give that feed an HTTPS address, "
-                + "or set the allowInsecureConnections attribute of that feed in nuget.config.";
-        }
-
-        // packageSourceMapping applies to the nested build because it inherits the nuget.config of the project, and a
-        // Microsoft.CodeAnalysis.* pattern is more specific than a * pattern. See issue #1747.
-        if ( Contains( text, "NU1101" ) )
-        {
-            return
-                "A package that is required to resolve the compile-time reference assemblies was not found on the configured NuGet sources. "
-                + "When nuget.config maps the Microsoft.CodeAnalysis.* pattern to a private feed through packageSourceMapping, this build is "
-                + "restricted to that feed, therefore these packages must be mapped to a source that provides them, such as nuget.org.";
-        }
-
-        if ( Contains( text, "NU1301" ) || Contains( text, "Unable to load the service index for source" ) )
-        {
-            return
-                "A NuGet feed could not be reached. Verify that the feed is available from this computer and that the "
-                + "network configuration of the build environment allows the build to reach it.";
-        }
-
-        if ( Contains( text, "NETSDK1045" ) )
-        {
-            return
-                "The .NET SDK that this build resolved is too old for the target frameworks of the reference-assembly project. "
-                + $"Install a more recent .NET SDK, or set the {MSBuildPropertyNames.MetalamaCompileTimeTargetFrameworks} MSBuild property "
-                + "to target frameworks that this .NET SDK supports.";
-        }
-
-        if ( Contains( text, "of MSBuild" ) && Contains( text, "requires at least version" ) )
-        {
-            return
-                "The version of MSBuild that this build used is older than the version required by the .NET SDK that it resolved. "
-                + "Build with a version of MSBuild or of Visual Studio that matches the .NET SDK, or request an older .NET SDK in a "
-                + "global.json file.";
-        }
-
-        // 0xC0000005, that is, STATUS_ACCESS_VIOLATION, reported by MSB6006 for a task that crashed. See issue #1746.
-        if ( Contains( text, "-1073741819" ) )
-        {
-            return
-                "A tool started by this build terminated abnormally with an access violation. This is a failure of the .NET SDK toolchain "
-                + "and not of Metalama. Verify the integrity of the .NET SDK installation, and consider excluding the build directories "
-                + "from real-time antivirus scanning.";
-        }
-
         return
             "The cause of this failure is generally the build environment, typically the .NET SDK installation or the NuGet configuration, "
             + "and not a defect of Metalama.";
     }
 
     /// <summary>
-    /// Returns the sentence that quotes the errors that the nested build reported, folded into a single line because a
-    /// Roslyn diagnostic cannot contain line breaks.
+    /// Returns the sentence that quotes the lines of the output that explain the failure, folded into a single line
+    /// because a Roslyn diagnostic cannot contain line breaks.
     /// </summary>
+    /// <remarks>
+    /// The lines that carry a message identifier are preferred, because they are the diagnostics of the child build and
+    /// can be recognized whatever the language of the toolchain. When the output carries none, as when the .NET host
+    /// fails before MSBuild is loaded, the last lines are quoted instead: they cannot be recognized as errors without
+    /// depending on the language, but they are where a failing build explains itself.
+    /// </remarks>
     public static string GetReportedErrors( ImmutableArray<string> output )
     {
-        var errorLines = GetErrorLines( output );
+        var errorLines = GetLinesWithMessageId( output );
 
-        if ( errorLines.Count == 0 )
+        if ( errorLines.Count > 0 )
         {
-            // Either the build failed before it could report a diagnostic, as when the .NET host cannot satisfy a
-            // global.json, or the output was empty. The last lines are then the informative ones.
-            errorLines = output
-                .Select( Normalize )
-                .Where( line => line.Length > 0 )
-                .Reverse()
-                .Take( _maxReportedErrorCount )
-                .Reverse()
-                .ToReadOnlyList();
-
-            if ( errorLines.Count == 0 )
-            {
-                return "It did not produce any output.";
-            }
-
-            return "Its last output lines were the following: " + Truncate( string.Join( " ", errorLines ) );
+            return "It reported the following errors: " + Truncate( string.Join( " ", errorLines ) );
         }
 
-        return "It reported the following errors: " + Truncate( string.Join( " ", errorLines ) );
+        var lastLines = output
+            .Select( Normalize )
+            .Where( line => line.Length > 0 )
+            .Reverse()
+            .Take( _maxReportedErrorCount )
+            .Reverse()
+            .ToReadOnlyList();
+
+        if ( lastLines.Count == 0 )
+        {
+            return "It did not produce any output.";
+        }
+
+        return "Its last output lines were the following: " + Truncate( string.Join( " ", lastLines ) );
     }
 
     /// <summary>
-    /// Returns the distinct error lines of the output, in the order in which they were produced.
+    /// Returns the distinct lines of the output that carry a message identifier, in the order in which they were produced.
     /// </summary>
-    private static IReadOnlyList<string> GetErrorLines( ImmutableArray<string> output )
+    private static IReadOnlyList<string> GetLinesWithMessageId( ImmutableArray<string> output )
     {
         var errorLines = new List<string>();
         var seenErrorLines = new HashSet<string>( StringComparer.Ordinal );
 
         foreach ( var line in output )
         {
-            if ( !_messageIdRegex.IsMatch( line ) && !_englishErrorRegex.IsMatch( line ) )
+            if ( !_messageIdRegex.IsMatch( line ) )
             {
                 continue;
             }
@@ -242,7 +259,34 @@ internal static class ReferenceAssemblyBuildFailureClassifier
         return index > 0 && line.EndsWith( "]", StringComparison.Ordinal ) ? line.Substring( 0, index ) : line;
     }
 
-    private static bool Contains( string text, string value ) => text.IndexOf( value, StringComparison.OrdinalIgnoreCase ) >= 0;
+    /// <summary>
+    /// Determines whether the output contains the given message identifier, which must be followed by a colon so that an
+    /// occurrence in prose, such as a suggestion to consult the documentation of that message, does not match.
+    /// </summary>
+    private static bool ContainsMessageId( string text, string messageId )
+    {
+        var index = 0;
+
+        while ( (index = text.IndexOf( messageId, index, StringComparison.OrdinalIgnoreCase )) >= 0 )
+        {
+            var end = index + messageId.Length;
+
+            // Skip the whitespace that some loggers insert between the identifier and the colon.
+            while ( end < text.Length && text[end] == ' ' )
+            {
+                end++;
+            }
+
+            if ( end < text.Length && text[end] == ':' )
+            {
+                return true;
+            }
+
+            index += messageId.Length;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Folds a line of the output into a form that can appear in a Roslyn diagnostic, which cannot contain line breaks.
