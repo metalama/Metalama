@@ -7,6 +7,7 @@ using Metalama.Backstage.Infrastructure;
 using Metalama.Framework.Engine.Services;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 
@@ -99,14 +100,18 @@ public sealed class DotNetTool
                 // ignored
             }
 
-            throw new AssertionFailedException( $"The process '{startInfo.FileName} {startInfo.Arguments}' did not complete in {timeout / 1000f} s." );
+            throw ProcessFailedException.CreateTimeout( startInfo.FileName, startInfo.Arguments, startInfo.WorkingDirectory, timeout );
         }
 
         if ( process.ExitCode != 0 )
         {
-            throw new InvalidOperationException(
-                $"Error calling `\"{this._platformInfo.DotNetExePath}\" {arguments}` in `{startInfo.WorkingDirectory}` returned {process.ExitCode}. Process output:"
-                + Environment.NewLine + Environment.NewLine + string.Join( Environment.NewLine, lines ) );
+            throw ProcessFailedException.CreateNonZeroExitCode(
+                this._platformInfo.DotNetExePath,
+                arguments,
+                startInfo.WorkingDirectory,
+                process.ExitCode,
+                timeout,
+                lines.ToImmutableArray() );
         }
     }
 }

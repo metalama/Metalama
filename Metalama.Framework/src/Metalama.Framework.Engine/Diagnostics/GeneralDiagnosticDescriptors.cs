@@ -502,6 +502,35 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "An aspect weaver is provided by several assemblies." );
 
+        // The nested build that resolves the compile-time reference assemblies fails almost exclusively for reasons that
+        // belong to the environment (a NuGet feed that requires credentials, a global.json that pins an absent .NET SDK,
+        // an MSBuild older than the .NET SDK), and the child process has already explained the failure in its own output.
+        // Surfacing that as LAMA0001 presented a legible, self-service condition as a defect of Metalama and invited a
+        // crash report. These two diagnostics replace the exception. See #1744, #1745, #1746 and #1747.
+        internal static readonly DiagnosticDefinition<(string ProjectPath, int ExitCode, string ReportedErrors, string ProbableCause, string BinaryLogPath)>
+            ReferenceAssemblyBuildFailed =
+                new(
+                    "LAMA0082",
+                    Error,
+                    "Metalama could not build the internal project that resolves the compile-time reference assemblies, therefore the compilation "
+                    + "cannot continue. The build of '{0}' exited with code {1}. {2} {3} The binary log of that build is '{4}'.",
+                    "The build of the reference-assembly project failed.",
+                    _category );
+
+        // A separate diagnostic from ReferenceAssemblyBuildFailed because the remedy is different: there is no output to
+        // interpret, and the timeout itself is configurable. See #1740.
+        internal static readonly DiagnosticDefinition<(string ProjectPath, float Seconds, string TimeoutPropertyName, string BinaryLogPath)>
+            ReferenceAssemblyBuildTimedOut =
+                new(
+                    "LAMA0083",
+                    Error,
+                    "Metalama could not build the internal project that resolves the compile-time reference assemblies, therefore the compilation "
+                    + "cannot continue. The build of '{0}' did not complete within {1} s and was terminated. If this build is merely slow, for "
+                    + "instance because it must download NuGet packages, raise the timeout by setting the '{2}' MSBuild property to a higher value, "
+                    + "expressed in milliseconds. The binary log of that build, if it was written, is '{3}'.",
+                    "The build of the reference-assembly project timed out.",
+                    _category );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(

@@ -9,6 +9,7 @@ using Metalama.Compiler;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.AspectWeavers;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
@@ -575,27 +576,40 @@ internal sealed class CompileTimeAssemblyLocator
 
             this._logger.Trace?.Log( $"Building with restore timeout {this._restoreTimeout}." );
 
-            // When NETCoreSdkVersion is not available (e.g., old-style .NET Framework projects built with msbuild.exe),
-            // use msbuild.exe directly instead of dotnet.exe.
-            if ( string.IsNullOrEmpty( this._sdkVersion ) && !string.IsNullOrEmpty( this._msBuildBinPath ) )
-            {
-                var msBuildTool = new MSBuildTool( this._msBuildBinPath );
-                var arguments = $"\"{projectFilePath}\" /t:Restore;Build /bl:msbuild_{Guid.NewGuid():N}.binlog";
+            // The binary log is written in the working directory, i.e. in the cache directory. Its name is computed here
+            // and not inline in the arguments so that the diagnostic reported on a failure can name its full path, which
+            // is the only artifact from which such a failure can be diagnosed after the fact. See #1740 and #1746.
+            var binaryLogFileName = $"msbuild_{Guid.NewGuid():N}.binlog";
+            var binaryLogPath = Path.Combine( this._cacheDirectory, binaryLogFileName );
 
-                msBuildTool.Execute( arguments, this._cacheDirectory, this._restoreTimeout );
+            try
+            {
+                // When NETCoreSdkVersion is not available (e.g., old-style .NET Framework projects built with msbuild.exe),
+                // use msbuild.exe directly instead of dotnet.exe.
+                if ( string.IsNullOrEmpty( this._sdkVersion ) && !string.IsNullOrEmpty( this._msBuildBinPath ) )
+                {
+                    var msBuildTool = new MSBuildTool( this._msBuildBinPath );
+                    var arguments = $"\"{projectFilePath}\" /t:Restore;Build /bl:{binaryLogFileName}";
+
+                    msBuildTool.Execute( arguments, this._cacheDirectory, this._restoreTimeout );
+                }
+                else
+                {
+                    // Remove configuration environment variable to avoid having different output directory than Debug.
+                    // Build scripts may rely on env var to set the configuration in MSBuild.
+                    // Case insensitive comparison needed because MSBuild is case insensitive.
+                    var arguments = $"build -bl:{binaryLogFileName}";
+
+                    this._dotNetTool.Execute(
+                        arguments,
+                        this._cacheDirectory,
+                        this._restoreTimeout,
+                        envVar => !StringComparer.OrdinalIgnoreCase.Equals( envVar.Key, "configuration" ) );
+                }
             }
-            else
+            catch ( ProcessFailedException exception )
             {
-                // Remove configuration environment variable to avoid having different output directory than Debug.
-                // Build scripts may rely on env var to set the configuration in MSBuild.
-                // Case insensitive comparison needed because MSBuild is case insensitive.
-                var arguments = $"build -bl:msbuild_{Guid.NewGuid():N}.binlog";
-
-                this._dotNetTool.Execute(
-                    arguments,
-                    this._cacheDirectory,
-                    this._restoreTimeout,
-                    envVar => !StringComparer.OrdinalIgnoreCase.Equals( envVar.Key, "configuration" ) );
+                throw this.CreateReferenceAssemblyBuildException( exception, projectFilePath, binaryLogPath );
             }
 
             var assemblies = File.ReadAllLines( assembliesListPath );
@@ -607,5 +621,32 @@ internal sealed class CompileTimeAssemblyLocator
 
             return assemblies;
         }
+    }
+
+    /// <summary>
+    /// Converts the failure of the nested reference-assembly build into a <see cref="DiagnosticException"/>, so that it
+    /// is reported to the user as an actionable diagnostic instead of an unexpected exception and a crash report.
+    /// </summary>
+    /// <remarks>
+    /// The complete output of the child process is written to the Metalama log, because the diagnostic can quote only a
+    /// few of its lines: a Roslyn diagnostic cannot contain line breaks, and a console transcript embedded in a build
+    /// error is unreadable. See issue #1744.
+    /// </remarks>
+    private DiagnosticException CreateReferenceAssemblyBuildException( ProcessFailedException exception, string projectFilePath, string binaryLogPath )
+    {
+        this._logger.Error?.Log( exception.Message );
+
+        var diagnostic =
+            exception.HasTimedOut
+                ? GeneralDiagnosticDescriptors.ReferenceAssemblyBuildTimedOut.CreateRoslynDiagnostic(
+                    null,
+                    (projectFilePath, exception.Timeout / 1000f, MSBuildPropertyNames.MetalamaReferenceAssemblyRestoreTimeout, binaryLogPath) )
+                : GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.CreateRoslynDiagnostic(
+                    null,
+                    (projectFilePath, exception.ExitCode!.Value, ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( exception.Output ),
+                     ReferenceAssemblyBuildFailureClassifier.GetProbableCause( exception.Output, this._cacheDirectory, this._sdkVersion ), binaryLogPath) );
+
+        // inSourceCode: false, because the failure is not attributable to any syntax tree of the compilation.
+        return new DiagnosticException( exception.Message, ImmutableArray.Create( diagnostic ), false );
     }
 }

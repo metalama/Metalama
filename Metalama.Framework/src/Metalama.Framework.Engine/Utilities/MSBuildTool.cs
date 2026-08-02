@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -97,14 +98,18 @@ public sealed class MSBuildTool
                 // ignored
             }
 
-            throw new AssertionFailedException( $"The process '{this._msBuildExePath} {arguments}' did not complete in {timeout / 1000f} s." );
+            throw ProcessFailedException.CreateTimeout( this._msBuildExePath, arguments, startInfo.WorkingDirectory, timeout );
         }
 
         if ( process.ExitCode != 0 )
         {
-            throw new InvalidOperationException(
-                $"Error calling `\"{this._msBuildExePath}\" {arguments}` in `{startInfo.WorkingDirectory}` returned {process.ExitCode}. Process output:"
-                + Environment.NewLine + Environment.NewLine + string.Join( Environment.NewLine, lines ) );
+            throw ProcessFailedException.CreateNonZeroExitCode(
+                this._msBuildExePath,
+                arguments,
+                startInfo.WorkingDirectory,
+                process.ExitCode,
+                timeout,
+                lines.ToImmutableArray() );
         }
     }
 }
