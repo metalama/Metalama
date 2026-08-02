@@ -12,8 +12,14 @@ public static class SourceGeneratorHelper
 {
     private static readonly char[] _pathSeparators = [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar];
 
+    /// <summary>
+    /// The path segment that Roslyn inserts into the path of every document produced by the Metalama source generator,
+    /// and by which such documents are recognized.
+    /// </summary>
+    public const string GeneratedFilePathSegment = "Metalama.Framework.CompilerExtensions.MetalamaSourceGenerator";
+
     public static bool IsGeneratedFile( SyntaxTree syntaxTree )
-        => syntaxTree.FilePath.AnySegmentEquals( _pathSeparators, "Metalama.Framework.CompilerExtensions.MetalamaSourceGenerator" );
+        => syntaxTree.FilePath.AnySegmentEquals( _pathSeparators, GeneratedFilePathSegment );
 
     internal static bool IsGeneratedSymbol( ISymbol symbol )
     {

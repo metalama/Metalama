@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Pipeline;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
@@ -126,15 +127,17 @@ public sealed class SplitResultsByTreeTests : DesignTimePipelineTestsBase
             assemblyName: "Library",
             additionalReferences: new[] { sharedNetStandard.ToMetadataReference() } );
 
-        var app = testContext.CreateCSharpCompilation(
-            _appCode,
-            assemblyName: "App",
-            additionalReferences: new[] { sharedNetFramework.ToMetadataReference(), library.ToMetadataReference() } );
-
         using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
 
         // Library's pipeline has to run first so its transitive manifest is available to App's pipeline.
-        Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out _ ) );
+        Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out var libraryResult ) );
+
+        var libraryWithDesignTimeCode = this.AddDesignTimeGeneratedCode( library, libraryResult );
+
+        var app = testContext.CreateCSharpCompilation(
+            _appCode,
+            assemblyName: "App",
+            additionalReferences: new[] { sharedNetFramework.ToMetadataReference(), libraryWithDesignTimeCode.ToMetadataReference() } );
 
         this.AssertParameterIsPulled( pipelineFactory, appContext, app );
     }
@@ -160,17 +163,57 @@ public sealed class SplitResultsByTreeTests : DesignTimePipelineTestsBase
             assemblyName: "Library",
             additionalReferences: new[] { shared.ToMetadataReference() } );
 
+        using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out var libraryResult ) );
+
+        var libraryWithDesignTimeCode = this.AddDesignTimeGeneratedCode( library, libraryResult );
+
         // App references the SAME Shared compilation as Library, so both compile-time closures share one copy.
         var app = testContext.CreateCSharpCompilation(
             _appCode,
             assemblyName: "App",
-            additionalReferences: new[] { shared.ToMetadataReference(), library.ToMetadataReference() } );
-
-        using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
-
-        Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out _ ) );
+            additionalReferences: new[] { shared.ToMetadataReference(), libraryWithDesignTimeCode.ToMetadataReference() } );
 
         this.AssertParameterIsPulled( pipelineFactory, appContext, app );
+    }
+
+    /// <summary>
+    /// Returns <paramref name="compilation"/> augmented with the code that the design-time pipeline generated for it,
+    /// as reported by <paramref name="results"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is what a consumer project sees in the editor. The design-time pipeline cannot change the signature of an
+    /// existing constructor, so it exposes a pulled parameter as an additional overload in a generated partial class,
+    /// and that generated document is part of the producer's compilation as far as any referencing project is
+    /// concerned. Referencing the bare compilation instead would model no real scenario: the pulled parameter would be
+    /// invisible to the consumer on both channels, and the consumer could not apply the transitive aspect however its
+    /// references were resolved.
+    /// </para>
+    /// <para>
+    /// The generated documents are filed under <see cref="SourceGeneratorHelper.GeneratedFilePathSegment"/>, which is
+    /// how Roslyn names the output of the Metalama source generator and how
+    /// <see cref="SourceGeneratorHelper.IsGeneratedFile"/> recognizes it. The producer's own pipeline therefore ignores
+    /// them, exactly as a source generator never sees its own output. Without that path, the producer's pipeline reads
+    /// the generated overloads back as source and the recursive pull does not terminate.
+    /// </para>
+    /// </remarks>
+    private Compilation AddDesignTimeGeneratedCode( Compilation compilation, DesignTimeAspectPipelineResultAndState results )
+    {
+        this.TestOutput.WriteLine( $"--- {compilation.AssemblyName}'s design-time results ---" );
+        this.TestOutput.WriteLine( DumpResults( results ) );
+
+        var generatedTrees = results.Result.SyntaxTreeResults.Values
+            .SelectMany( r => r.Introductions )
+            .Select(
+                i => i.GeneratedSyntaxTree.WithFilePath(
+                    $"{SourceGeneratorHelper.GeneratedFilePathSegment}/{i.Name}.cs" ) )
+            .ToArray();
+
+        Assert.NotEmpty( generatedTrees );
+
+        return compilation.AddSyntaxTrees( generatedTrees );
     }
 
     /// <summary>
@@ -234,7 +277,14 @@ public sealed class SplitResultsByTreeTests : DesignTimePipelineTestsBase
         this.TestOutput.WriteLine( "--- App's design-time results ---" );
         this.TestOutput.WriteLine( generatedCode );
 
-        Assert.Contains( "p1", generatedCode, StringComparison.Ordinal );
+        // Whitespace is removed so that the assertion states the signature and the forwarded argument without
+        // depending on the formatting of the generated code.
+        var normalizedGeneratedCode = new string( generatedCode.Where( c => !char.IsWhiteSpace( c ) ).ToArray() );
+
+        Assert.Contains(
+            "D(global::System.Strings,global::System.Int32p1=20):this(s)",
+            normalizedGeneratedCode,
+            StringComparison.Ordinal );
     }
 
     /// <summary>

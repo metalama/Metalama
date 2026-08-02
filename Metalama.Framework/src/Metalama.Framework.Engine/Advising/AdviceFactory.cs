@@ -89,6 +89,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
     CompilationModel IAdviceFactoryImpl.MutableCompilation => this._state.MutableCompilation;
 
+    /// <summary>
+    /// Gets the aspect layer instance on behalf of which this factory adds advice.
+    /// </summary>
+    public AspectLayerInstance AspectLayerInstance => this._state.AspectLayerInstance;
+
     // We use return lazy object readers because these methods can be called before the BuildAspect method is called,
     // for declarative advice.
     private IObjectReader GetTagsReader( object? tags ) => this._state.AspectBuilderState.AssertNotNull().GetTagsReader( tags );
