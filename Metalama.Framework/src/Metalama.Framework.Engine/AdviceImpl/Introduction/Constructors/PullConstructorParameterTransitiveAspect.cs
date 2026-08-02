@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.Services;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
@@ -84,7 +85,7 @@ internal sealed partial class PullConstructorParameterTransitiveAspect : IAspect
     /// pass a value.
     /// </para>
     /// </remarks>
-    private bool TryGetPulledParameter( AspectBuilder<INamedType> builder, out IParameter parameter )
+    private bool TryGetPulledParameter( AspectBuilder<INamedType> builder, [NotNullWhen( true )] out IParameter? parameter )
     {
         var compilation = builder.AdviceFactory.MutableCompilation;
 
@@ -98,7 +99,7 @@ internal sealed partial class PullConstructorParameterTransitiveAspect : IAspect
         if ( this._declaringConstructor.GetTargetOrNull( compilation ) is not { } declaringConstructor
              || this._parameterType.GetTargetOrNull( compilation ) is not { } parameterType )
         {
-            parameter = null!;
+            parameter = null;
 
             return false;
         }

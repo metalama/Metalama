@@ -18,11 +18,17 @@ using Xunit.Abstractions;
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
 /// <summary>
-/// In-process reproduction of https://github.com/metalama/Metalama/issues/1748: the design-time pipeline aborts with
+/// In-process reproduction of https://github.com/metalama/Metalama/issues/1748 and of
+/// https://github.com/metalama/Metalama/issues/1752. In the first, the design-time pipeline aborts with
 /// <see cref="InvalidCastException"/> when <c>DesignTimeAspectPipelineResult.SplitResultsByTree</c> casts a reference
-/// to <c>IFullRef</c> and gets a <c>DeclarationIdRef&lt;INamedType&gt;</c> instead.
+/// to <c>IFullRef</c> and gets a <c>DeclarationIdRef&lt;INamedType&gt;</c> instead. In the second, which remained once
+/// the first was fixed, the pipeline completes but the transitive aspect never applies and no diagnostic is reported.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Both tests therefore assert the code that the consumer generates, not merely that its pipeline completed. The two
+/// channels have to produce the same result, so the same assertion is made on both.
+/// </para>
 /// <para>
 /// The id-based reference comes from a transitive aspect instance that reached the consumer through the
 /// <em>deserialized</em> transitive manifest. The producer of such an instance here is the pulled constructor
@@ -101,9 +107,10 @@ public sealed class SplitResultsByTreeTests : DesignTimePipelineTestsBase
                                     """;
 
     /// <summary>
-    /// Reproduces issue #1748: <c>App</c> consumes <c>Library</c>'s transitive manifest through the deserializing
-    /// channel, so the pulled-parameter transitive aspect instance carries an id-based <c>DeclarationIdRef</c>, which
-    /// <c>SplitResultsByTree</c> casts to <c>IFullRef</c>. Before the fix the design-time execution aborts.
+    /// Reproduces issues #1748 and #1752: <c>App</c> consumes <c>Library</c>'s transitive manifest through the
+    /// deserializing channel, so the pulled-parameter transitive aspect instance carries an id-based
+    /// <c>DeclarationIdRef</c>, which <c>SplitResultsByTree</c> casts to <c>IFullRef</c>. Before the fix of #1748 the
+    /// design-time execution aborts; before the fix of #1752 it completes but introduces nothing.
     /// </summary>
     [Fact]
     public void PulledConstructorParameterThroughDeserializedManifest()
@@ -145,7 +152,7 @@ public sealed class SplitResultsByTreeTests : DesignTimePipelineTestsBase
     /// <summary>
     /// The control case: <c>Library</c> and <c>App</c> reference the <em>same</em> <c>Shared</c> compile-time copy, so
     /// <c>App</c> reuses the live transitive manifest and the aspect instance keeps its full reference. This path is
-    /// unaffected by issue #1748 and must keep working.
+    /// unaffected by issues #1748 and #1752, and defines the result that the deserializing channel has to match.
     /// </summary>
     [Fact]
     public void PulledConstructorParameterThroughLiveManifest()
