@@ -105,7 +105,7 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             // NuGet feed that requires credentials, as a defect of Metalama. See #1744.
             if ( DiagnosticException.TryFind( exception ) is { } diagnosticException )
             {
-                this._logger.Warning?.Log( $"A user-attributable failure was reported as a diagnostic: {diagnosticException.Message}" );
+                this._logger.Warning?.Log( $"A user-attributable failure was reported as a diagnostic: {diagnosticException.GetSingleLineMessage()}" );
 
                 foreach ( var diagnostic in diagnosticException.Diagnostics )
                 {

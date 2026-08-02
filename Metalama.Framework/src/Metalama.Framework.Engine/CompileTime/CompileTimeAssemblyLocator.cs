@@ -675,17 +675,32 @@ internal sealed class CompileTimeAssemblyLocator
     {
         this._logger.Error?.Log( exception.Message );
 
-        var diagnostic =
-            exception.HasTimedOut
-                ? GeneralDiagnosticDescriptors.ReferenceAssemblyBuildTimedOut.CreateRoslynDiagnostic(
-                    null,
-                    (projectFilePath, exception.Timeout / 1000f, MSBuildPropertyNames.MetalamaReferenceAssemblyRestoreTimeout, binaryLogPath) )
-                : GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.CreateRoslynDiagnostic(
-                    null,
-                    (projectFilePath, exception.ExitCode!.Value, ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( exception.Output ),
-                     ReferenceAssemblyBuildFailureClassifier.GetProbableCause( exception.Output, this._cacheDirectory, this._sdkVersion ), binaryLogPath) );
+        Diagnostic diagnostic;
+        string summary;
 
+        if ( exception.HasTimedOut )
+        {
+            diagnostic = GeneralDiagnosticDescriptors.ReferenceAssemblyBuildTimedOut.CreateRoslynDiagnostic(
+                null,
+                (projectFilePath, exception.Timeout / 1000f, MSBuildPropertyNames.MetalamaReferenceAssemblyRestoreTimeout, binaryLogPath) );
+
+            summary = $"The build of '{projectFilePath}' did not complete in {exception.Timeout / 1000f} s.";
+        }
+        else
+        {
+            diagnostic = GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.CreateRoslynDiagnostic(
+                null,
+                (projectFilePath, exception.ExitCode!.Value, ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( exception.Output ),
+                 ReferenceAssemblyBuildFailureClassifier.GetProbableCause( exception.Output, this._cacheDirectory, this._sdkVersion ), binaryLogPath) );
+
+            summary = $"The build of '{projectFilePath}' exited with code {exception.ExitCode}.";
+        }
+
+        // A short summary, and not the message of the ProcessFailedException, which embeds the whole console transcript
+        // of the child process. That transcript has just been written to the log, and repeating it in the message of an
+        // exception that higher layers log in turn would reintroduce the illegible wall of text that this diagnostic
+        // exists to replace.
         // inSourceCode: false, because the failure is not attributable to any syntax tree of the compilation.
-        return new DiagnosticException( exception.Message, ImmutableArray.Create( diagnostic ), false );
+        return new DiagnosticException( summary, ImmutableArray.Create( diagnostic ), false );
     }
 }

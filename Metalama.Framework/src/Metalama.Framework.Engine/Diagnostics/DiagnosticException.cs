@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace Metalama.Framework.Engine.Diagnostics
 {
@@ -22,6 +23,8 @@ namespace Metalama.Framework.Engine.Diagnostics
     /// </remarks>
     public sealed class DiagnosticException : Exception
     {
+        private static readonly Regex _whitespaceRegex = new( @"\s+", RegexOptions.CultureInvariant );
+
         public ImmutableArray<Diagnostic> Diagnostics { get; }
 
         /// <summary>
@@ -45,6 +48,17 @@ namespace Metalama.Framework.Engine.Diagnostics
 
         private static string GetMessage( string message, IReadOnlyList<Diagnostic> diagnostics )
             => message + Environment.NewLine + string.Join( Environment.NewLine, diagnostics.Where( d => d.Severity == DiagnosticSeverity.Error ) );
+
+        /// <summary>
+        /// Returns <see cref="Exception.Message"/> folded onto a single line, for a log record.
+        /// </summary>
+        /// <remarks>
+        /// The message concatenates the diagnostics with <see cref="Environment.NewLine"/>, and a diagnostic message
+        /// may itself contain a line break, so logging it as it is produces a multi-line log record. The text is not
+        /// truncated: a log record is the only remaining trace of a failure that is deliberately not reported as a
+        /// crash, so its length is preferable to its loss.
+        /// </remarks>
+        public string GetSingleLineMessage() => _whitespaceRegex.Replace( this.Message, " " ).Trim();
 
         /// <summary>
         /// Returns the <see cref="DiagnosticException"/> carried by <paramref name="exception"/>, or <c>null</c> when

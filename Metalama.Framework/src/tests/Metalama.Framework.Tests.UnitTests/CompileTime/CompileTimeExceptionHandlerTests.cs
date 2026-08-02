@@ -137,6 +137,28 @@ public sealed class CompileTimeExceptionHandlerTests : UnitTestClass
         Assert.DoesNotContain( "\n", message );
     }
 
+    /// <summary>
+    /// The message of a <see cref="DiagnosticException"/> concatenates its diagnostics with line breaks, so the
+    /// exception handlers log the folded rendering instead, otherwise a single failure produces a multi-line log record.
+    /// </summary>
+    [Fact]
+    public void GetSingleLineMessage_HasNoLineBreak()
+    {
+        var diagnostic = GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.CreateRoslynDiagnostic(
+            null,
+            ("TempProject.csproj", 1, "It reported the following errors: error NU1101.", "Probable cause.", "msbuild.binlog") );
+
+        var exception = new DiagnosticException(
+            "The build of 'TempProject.csproj' exited with code 1.",
+            ImmutableArray.Create( diagnostic ),
+            false );
+
+        Assert.Contains( "\n", exception.Message );
+        Assert.DoesNotContain( "\r", exception.GetSingleLineMessage() );
+        Assert.DoesNotContain( "\n", exception.GetSingleLineMessage() );
+        Assert.Contains( GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.Id, exception.GetSingleLineMessage() );
+    }
+
     private sealed class ProjectOptionsStub : DefaultProjectOptions
     {
         public ProjectOptionsStub( string? projectPath )

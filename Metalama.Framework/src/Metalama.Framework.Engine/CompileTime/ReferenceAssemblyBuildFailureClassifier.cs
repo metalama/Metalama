@@ -271,8 +271,9 @@ internal static class ReferenceAssemblyBuildFailureClassifier
         {
             var end = index + messageId.Length;
 
-            // Skip the whitespace that some loggers insert between the identifier and the colon.
-            while ( end < text.Length && text[end] == ' ' )
+            // Skip the whitespace that some loggers insert between the identifier and the colon. Any whitespace is
+            // skipped, and not the space alone, so that this method recognizes exactly what _messageIdRegex does.
+            while ( end < text.Length && char.IsWhiteSpace( text[end] ) )
             {
                 end++;
             }

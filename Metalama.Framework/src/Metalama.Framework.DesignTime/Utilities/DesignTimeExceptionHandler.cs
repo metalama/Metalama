@@ -56,7 +56,7 @@ namespace Metalama.Framework.DesignTime.Utilities
             // packages. Such a condition is not a defect of Metalama and must not be sent as a crash report. See #1744.
             if ( DiagnosticException.TryFind( e ) is { } diagnosticException )
             {
-                logger.Warning?.Log( $"A user-attributable failure occurred: {diagnosticException.Message}" );
+                logger.Warning?.Log( $"A user-attributable failure occurred: {diagnosticException.GetSingleLineMessage()}" );
 
                 return;
             }
