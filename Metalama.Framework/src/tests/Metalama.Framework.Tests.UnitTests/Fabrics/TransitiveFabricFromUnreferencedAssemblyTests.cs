@@ -5,7 +5,6 @@
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline;
@@ -14,12 +13,12 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Tests.UnitTests.CompileTime;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -204,7 +203,7 @@ public class ConsumerClass
     }
 
     private static string FormatDiagnostics( DiagnosticBag bag )
-        => string.Join( "\n  ", bag.Select( d => d.GetMessage( CultureInfo.InvariantCulture ) ) );
+        => string.Join( "\n  ", bag.SelectAsReadOnlyCollection( d => d.GetMessage( CultureInfo.InvariantCulture ) ) );
 
     /// <summary>
     /// Test-only subclass exposing the <c>protected</c> <see cref="AspectPipeline.TryInitialize"/>.
