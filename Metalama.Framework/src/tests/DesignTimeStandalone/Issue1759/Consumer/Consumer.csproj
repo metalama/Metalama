@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <NoWarn>$(NoWarn);MSB3243;MSB3277</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+            Both fabric libraries are referenced, so both of them contribute a compile-time project to the closure of
+            this project and both of them export a type named SharedFabrics.SharedProjectFabric.
+        -->
+        <ProjectReference Include="..\FabricsA\FabricsA.csproj" />
+        <ProjectReference Include="..\FabricsB\FabricsB.csproj" />
+    </ItemGroup>
+
+</Project>
