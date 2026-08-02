@@ -41,11 +41,13 @@ public partial class TestFileSystem
                 var accessTime = this.Parent._time.UtcNow;
 
                 var isCreated = executionKind == ExecutionKind.Write && !this.Exists( path );
+                var directoryCreationTimesBefore = isCreated ? this.Parent.GetDirectoryCreationTimes() : null;
                 var result = action();
 
                 if ( isCreated )
                 {
                     this.SetCreationTime( path, accessTime );
+                    this.Parent.RestoreOrSetDirectoryCreationTimes( directoryCreationTimesBefore!, accessTime );
                 }
 
                 if ( executionKind is ExecutionKind.Read or ExecutionKind.Write )
