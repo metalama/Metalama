@@ -191,8 +191,15 @@ internal partial class SymbolRef<T>
             return false;
         }
 
-        // Symbols defined by a our own source generator must be hidden.
-        if ( SourceGeneratorHelper.IsGeneratedSymbol( symbol ) )
+        // Symbols defined by our own source generator in the current project must be hidden, because a source generator
+        // must not read its own output back: the pipeline would then apply its transformations to code it has already
+        // produced. The symbols that the source generator produced for a referenced project are not hidden, because
+        // they are the surface that the project exposes once transformed, which is what a consumer is compiled against
+        // at compile time. Hiding them made the design-time code model of a referenced project differ from the one it
+        // ships, so that a reference to any declaration a referenced project introduced could not be resolved. See
+        // issue #1752 and the review of pull request #1784.
+        if ( SourceGeneratorHelper.IsGeneratedSymbol( symbol )
+             && compilation.CompilationContext.SymbolComparer.Equals( symbol.ContainingAssembly, compilation.RoslynCompilation.Assembly ) )
         {
             return false;
         }

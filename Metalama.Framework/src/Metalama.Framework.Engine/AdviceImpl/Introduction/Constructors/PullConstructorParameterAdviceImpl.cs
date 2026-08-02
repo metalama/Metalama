@@ -220,19 +220,11 @@ internal sealed class PullConstructorParameterAdviceImpl
             // Register a transitive aspect for the current type.
             if ( this._pullStrategy is not null && this._pullStrategy is not LegacyPullStrategy && baseConstructor.CanBeChainedFromOutsideAssembly() )
             {
-                // The description of the parameter is carried beside its reference because the reference resolves only
-                // where the declaring project is visible in its transformed shape. See
-                // PullConstructorParameterTransitiveAspect.TryGetPulledParameter.
                 var transitiveAspect = new PullConstructorParameterTransitiveAspect(
                     this._pullStrategy,
                     baseParameter.ToRef(),
                     this._context.AspectOrder,
-                    this._forwardingHelper?.OverloadingStrategy,
-                    baseConstructor.ToRef(),
-                    baseParameter.Name,
-                    baseParameter.Type.ToRef(),
-                    baseParameter.Index,
-                    baseParameter.RefKind );
+                    this._forwardingHelper?.OverloadingStrategy );
 
                 this._context.AddTransitiveAspect(
                     new TransitiveAspectInstance(
