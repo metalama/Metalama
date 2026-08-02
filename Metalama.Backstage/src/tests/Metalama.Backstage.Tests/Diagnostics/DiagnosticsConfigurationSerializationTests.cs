@@ -165,9 +165,7 @@ public sealed class DiagnosticsConfigurationSerializationTests : JsonSerializati
     /// Every <c>processes</c> property declares <see cref="StringComparer.OrdinalIgnoreCase"/> in its initializer, and
     /// the converter used when the member is present in the file preserves that comparer, so the shared default value
     /// has to use it as well. Otherwise a process kind is matched by case when the section is absent from the file, and
-    /// without regard to case when it is present. <see cref="DiagnosticsConfiguration.Logging"/> is not asserted on the
-    /// deserialized instance because a file that omits that section sets the property to <c>null</c>, which is the
-    /// defect tracked by issue #1777.
+    /// without regard to case when it is present.
     /// </remarks>
     [Fact]
     public void DefaultProcesses_AreCaseInsensitive()
@@ -183,6 +181,7 @@ public sealed class DiagnosticsConfigurationSerializationTests : JsonSerializati
 
         var deserializedConfiguration = JsonSerializer.Deserialize<DiagnosticsConfiguration>( "{}", this.JsonOptions )!;
 
+        Assert.True( deserializedConfiguration.Logging.Processes.ContainsKey( differentlyCasedProcessKind ) );
         Assert.True( deserializedConfiguration.Debugging.Processes.ContainsKey( differentlyCasedProcessKind ) );
         Assert.True( deserializedConfiguration.CrashDumps.Processes.ContainsKey( differentlyCasedProcessKind ) );
         Assert.True( deserializedConfiguration.Profiling.Processes.ContainsKey( differentlyCasedProcessKind ) );
@@ -194,8 +193,8 @@ public sealed class DiagnosticsConfigurationSerializationTests : JsonSerializati
     /// <remarks>
     /// The <c>profiling</c> section was not validated, which was harmless while the section was discarded, but it means
     /// that a typo in a section that is now read would be silently ignored. The configuration is built in memory rather
-    /// than deserialized, because a file that omits the <c>logging</c> section makes <c>Validate</c> throw a
-    /// <see cref="NullReferenceException"/>, which is the defect tracked by issue #1777.
+    /// than deserialized, so that exactly one section holds an invalid value and the path reported in the warning is
+    /// unambiguous.
     /// </remarks>
     [Theory]
     [InlineData( "logging.processes" )]
@@ -247,14 +246,11 @@ public sealed class DiagnosticsConfigurationSerializationTests : JsonSerializati
     }
 
     /// <summary>
-    /// Asserts that none of the sections covered by this issue is <c>null</c>.
+    /// Asserts that no section is <c>null</c>.
     /// </summary>
-    /// <remarks>
-    /// <see cref="DiagnosticsConfiguration.Logging"/> is deliberately not asserted here: it has always had an
-    /// <c>init</c> accessor, and the normalization of its null value is tracked by issue #1777.
-    /// </remarks>
     private static void AssertNoSectionIsNull( DiagnosticsConfiguration configuration )
     {
+        Assert.NotNull( configuration.Logging );
         Assert.NotNull( configuration.Debugging );
         Assert.NotNull( configuration.CrashDumps );
         Assert.NotNull( configuration.Profiling );
