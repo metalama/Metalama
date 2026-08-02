@@ -44,12 +44,15 @@ namespace Metalama.Patterns.Caching.TestHelpers
         /// <exception cref="InvalidOperationException">The asynchronous methods are already suspended.</exception>
         public void SuspendAsyncMethods()
         {
-            if ( Volatile.Read( ref this._suspension ) != null )
+            var suspension = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+            // The test and the suspended method bodies run on different threads, therefore the transition from the
+            // resumed state to the suspended state must be atomic: a check followed by a separate write would let two
+            // concurrent calls both succeed, and one of the two signals would then have no matching resumption.
+            if ( Interlocked.CompareExchange( ref this._suspension, suspension, null ) != null )
             {
                 throw new InvalidOperationException( "The asynchronous methods are already suspended." );
             }
-
-            Volatile.Write( ref this._suspension, new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously ) );
         }
 
         /// <summary>

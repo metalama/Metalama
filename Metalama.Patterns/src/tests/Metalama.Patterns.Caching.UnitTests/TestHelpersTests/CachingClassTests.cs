@@ -35,14 +35,25 @@ namespace Metalama.Patterns.Caching.Tests.TestHelpersTests
             // the body is held at a suspension point.
             cachingClass.SuspendAsyncMethods();
 
-            var valueTask = cachingClass.GetValueAsync();
-            var called = cachingClass.Reset();
-            Assert.False( called, "The caching method was called before awaiting the first value." );
-            Assert.False( valueTask.IsCompleted, "The cached method completed before its body was allowed to run." );
+            Task<CachedValueClass> valueTask;
 
-            cachingClass.ResumeAsyncMethods();
+            // The suspended section is guarded, so that a failing assertion does not leave the method body waiting for
+            // a resumption that never comes. Without the guard, the failure would be reported only after the timeout
+            // of the suspension, and the abandoned task would raise its exception as unobserved.
+            try
+            {
+                valueTask = cachingClass.GetValueAsync();
+                var earlyCall = cachingClass.Reset();
+                Assert.False( earlyCall, "The caching method was called before awaiting the first value." );
+                Assert.False( valueTask.IsCompleted, "The cached method completed before its body was allowed to run." );
+            }
+            finally
+            {
+                cachingClass.ResumeAsyncMethods();
+            }
+
             await valueTask;
-            called = cachingClass.Reset();
+            var called = cachingClass.Reset();
             Assert.True( called, "The method was not called when awaiting the first value." );
 
             called = cachingClass.Reset();
