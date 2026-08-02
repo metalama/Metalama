@@ -134,30 +134,13 @@ When a class has nested types that are large enough to warrant their own file, u
 
 Example: `TemplateExpansionContext.ProceedUserExpression.cs` contains `private sealed class ProceedUserExpression` inside `internal sealed partial class TemplateExpansionContext`.
 
-## Aspect Test Discovery
+## Testing
 
-Aspect tests in `Metalama.Framework.Tests.AspectTests` are discovered by a custom xUnit test runner based on `.cs` file paths under `Tests/`. Test names are the **file name without extension** (e.g., `ReplaceParameter_Covariant`), not the full path. To run a specific test:
+The testing strategies and every test suite (unit, aspect, template, linker, standalone, design-time standalone, benchmarks, workspaces) are documented in `Metalama.Framework/docs/testing.md`. Read it before writing or debugging tests. A few reminders that bite in practice:
 
-```bash
-dotnet test <project> -f net8.0 --filter "ReplaceParameter_Covariant"
-```
-
-Note: `--filter "Name~ReplaceParameter"` (partial match with `~`) may not work reliably. Use `--filter "ReplaceParameter_Covariant"` (bare name) or `--list-tests` to verify discovery. After adding a new `.cs` test file, rebuild before running — the test runner discovers files compiled into the assembly.
-
-## Debugging Tests
-
-When you need to debug anything, you can use ITestOutputService to write the test output.
-
-## Unit Test Patterns
-
-For `Metalama.Framework.Tests.UnitTests` (see `InvokerTests.cs`, `ExpressionFactoryTests.cs` as references):
-- Inherit `UnitTestClass`, use `CreateTestContext()` / `CreateCompilationModel(code)`
-- Use `SyntaxSerializationContext` + `TemplateExpansionContext.WithTestingContext(ctx, serviceProvider)`
-- Need `using Microsoft.CodeAnalysis;` for `NormalizeWhitespace()` extension on `SyntaxNode` — without it, only the `SyntaxToken` overload resolves
-- `TypedExpressionSyntaxImpl.Convert()` wraps casts in `ParenthesizedExpression()`, so output is `((Type)expr)` not `(Type)expr`
-- `AssertEx.DynamicEquals()` compares via `IExpression.ToExpressionSyntax()` chain
-- Type resolution: `compilation.Factory.GetTypeByReflectionType(typeof(int))` for built-in types, `compilation.Types.OfName("A").Single()` for user-defined types
-- Type comparison: `compilation.Comparers.Default.Equals(type1, type2)`
+- **Aspect tests** are discovered by `.cs` file path under `Tests/`; the test name is the file name without extension. Filter with the bare name (`dotnet test <project> -f net8.0 --filter "ReplaceParameter_Covariant"`), not `Name~`, and rebuild after adding a new `.cs` test file.
+- **Unit tests** inherit `UnitTestClass` and use `CreateTestContext()` / `CreateCompilationModel(code)`.
+- To emit output from a test, use `ITestOutputService`; for deterministic timing use `ITestSynchronizationProvider` sync points, never hardcoded delays.
 
 ## Syntax Generation and Simplification
 

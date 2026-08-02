@@ -251,5 +251,18 @@
       Text="IncludePackageReferencesDuringMarkupCompilation is set to 'false' in a WPF project that uses Metalama. This excludes Metalama from the temporary assembly that WPF builds for MarkupCompilePass1, which causes XAML references to aspect-introduced members to fail. Remove the explicit 'false' (or set it to 'true') to let Metalama run in the temp compile."
       Condition="'$(UseWPF)'=='true' AND '$(MetalamaEnabled)'!='False' AND '$(IncludePackageReferencesDuringMarkupCompilation)'=='false'" />
   </Target>
-    
+
+  <!-- Reject the legacy Razor build (UseRazorSourceGenerator=false) in Metalama projects.
+       The RazorCompileComponentDeclaration pass invokes the compiler without an /analyzerconfig, so none of
+       Metalama's MSBuild configuration (extension assemblies, compile-time assemblies, user-code trust, language
+       version, and so on) reaches the compiler. Metalama cannot run reliably in that pass. The Razor source
+       generator, which is the default, does not have this limitation. Failing fast with a clear error is friendlier
+       than the compiler crash or the silently incomplete output that would otherwise result.
+       See https://github.com/metalama/Metalama/issues/1741. -->
+  <Target Name="MetalamaCheckRazorComponentDeclaration" BeforeTargets="RazorCompileComponentDeclaration"
+          Condition="'$(MetalamaEnabled)'!='False'">
+    <Error
+      Text="Metalama does not support the legacy Razor build that runs when the 'UseRazorSourceGenerator' property is set to 'false'. The 'RazorCompileComponentDeclaration' compilation pass does not provide Metalama with its configuration, so aspects cannot be applied reliably. Remove the 'UseRazorSourceGenerator' property (or set it to 'true') to use the Razor source generator, which is the default and is fully supported by Metalama." />
+  </Target>
+
 </Project>

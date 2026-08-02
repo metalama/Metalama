@@ -14,6 +14,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Metalama.Backstage.UserInterface;
@@ -27,13 +28,17 @@ public abstract class UserInterfaceService : IUserInterfaceService
 
     private readonly IBackstageToolsExecutor _backstageToolExecutor;
     private readonly bool _canIgnoreRecoverableExceptions;
+    private readonly IStandardDirectories _standardDirectories;
+    private readonly IServiceProvider _serviceProvider;
 
     protected UserInterfaceService( IServiceProvider serviceProvider )
     {
+        this._serviceProvider = serviceProvider;
         this._processExecutor = serviceProvider.GetRequiredBackstageService<IProcessExecutor>();
         this.Logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
         this._backstageToolExecutor = serviceProvider.GetRequiredBackstageService<IBackstageToolsExecutor>();
         this._canIgnoreRecoverableExceptions = serviceProvider.GetRequiredBackstageService<IRecoverableExceptionService>().CanIgnore;
+        this._standardDirectories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
     }
 
     public abstract void ShowToastNotification( ToastNotification notification );
@@ -83,56 +88,89 @@ public abstract class UserInterfaceService : IUserInterfaceService
     {
         var port = GetFreePort();
 
-        using var webServerProcess =
-            this._backstageToolExecutor.Start( BackstageTool.Worker, "web", "--port", port.ToString( CultureInfo.InvariantCulture ) );
+        // The server binds to loopback, which is reachable by every local user account, so the port is not what keeps
+        // other local users out: the per-session token is. See SetupWebServerToken.
+        var authenticationToken = SetupWebServerToken.GenerateToken( this._serviceProvider );
+        var tokenFilePath = SetupWebServerToken.WriteTokenFile( this._standardDirectories.TempDirectory, authenticationToken );
 
-        // Wait until the server has started.
-        var baseAddress = new Uri( $"http://localhost:{port}/" );
-
-        // ReSharper disable once ShortLivedHttpClient
-        var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds( 1 ) };
-
-        var stopwatch = Stopwatch.StartNew();
-
-        this.Logger.Trace?.Log( "Waiting for the HTTP server." );
-
-        while ( true )
+        try
         {
-            try
+            using var webServerProcess =
+                this._backstageToolExecutor.Start(
+                    BackstageTool.Worker,
+                    "web",
+                    "--port",
+                    port.ToString( CultureInfo.InvariantCulture ),
+                    "--token-file",
+                    tokenFilePath );
+
+            // Wait until the server has started.
+            var baseAddress = new Uri( $"http://localhost:{port}/" );
+
+            // The readiness probe must carry the token too, otherwise it would be answered with 401 forever.
+            var pingAddress = new Uri( baseAddress, $"ping?{SetupWebServerToken.QueryParameterName}={authenticationToken}" );
+
+            // ReSharper disable once ShortLivedHttpClient
+            using var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds( 1 ) };
+
+            var stopwatch = Stopwatch.StartNew();
+
+            this.Logger.Trace?.Log( "Waiting for the HTTP server." );
+
+            while ( true )
             {
-                if ( webServerProcess.HasExited )
+                try
                 {
-                    this.Logger.Error?.Log( "The server process has exited prematurely." );
+                    if ( webServerProcess.HasExited )
+                    {
+                        this.Logger.Error?.Log( "The server process has exited prematurely." );
+
+                        return;
+                    }
+
+                    // There is no ambient cancellation token in this call chain, so the token is passed explicitly as
+                    // none. The wait is bounded by the timeout of the client and by the stopwatch below.
+                    using var response = await httpClient.GetAsync( pingAddress, CancellationToken.None );
+
+                    if ( response.IsSuccessStatusCode )
+                    {
+                        break;
+                    }
+                }
+                catch ( TaskCanceledException )
+                {
+                    // This happens because of the timeout.
+                }
+                catch ( HttpRequestException e )
+                {
+                    this.Logger.Warning?.Log( e.Message );
+                }
+
+                if ( stopwatch.Elapsed.TotalSeconds > 30 )
+                {
+                    this.Logger.Error?.Log( $"Timeout while waiting for {baseAddress}." );
 
                     return;
                 }
-
-                var response = await httpClient.GetAsync( baseAddress );
-
-                if ( response.IsSuccessStatusCode )
-                {
-                    break;
-                }
-            }
-            catch ( TaskCanceledException )
-            {
-                // This happens because of the timeout.
-            }
-            catch ( HttpRequestException e )
-            {
-                this.Logger.Warning?.Log( e.Message );
             }
 
-            if ( stopwatch.Elapsed.TotalSeconds > 30 )
-            {
-                this.Logger.Error?.Log( $"Timeout while waiting for {baseAddress}." );
+            // Carry the token to the browser. The requested path may already have a query string (the exception report
+            // page takes a report id), so the separator depends on what is already there. The server sets a session
+            // cookie on the first request and redirects to the same page without the token, so the token does not stay
+            // in the address bar or in the browsing history.
+            var pageUri = new Uri( baseAddress, path );
 
-                return;
-            }
+            var separator = string.IsNullOrEmpty( pageUri.Query ) ? "?" : "&";
+
+            var url = $"{pageUri}{separator}{SetupWebServerToken.QueryParameterName}={authenticationToken}";
+
+            this.OpenExternalWebPage( url, BrowserMode.Application );
         }
-
-        var url = new Uri( baseAddress, path ).ToString();
-
-        this.OpenExternalWebPage( url, BrowserMode.Application );
+        finally
+        {
+            // The server deletes the token file as soon as it has read it, so this only matters when the server never
+            // got that far, in which case the token must not be left on disk.
+            SetupWebServerToken.DeleteTokenFile( tokenFilePath, this.Logger );
+        }
     }
 }
