@@ -4,9 +4,10 @@ Asserts that a failure of the nested reference-assembly build degrades the desig
 analysis does not crash, does not report `LAMA0001` and does not let the exception escape into `AD0001`. See issues
 #1744, #1745, #1746 and #1747.
 
-The failure is provoked exactly as in the standalone scenario of the same name: `MetalamaReferenceAssemblyRestoreTimeout`
-is set to one millisecond, so the nested build is killed before it can complete. The design-time pipeline reaches that
-build through `SystemTypeResolver`, exactly as the compile-time pipeline does.
+The failure is provoked exactly as in the standalone scenario of the same name: `MetalamaAssemblyLocatorHooksDirectory`
+points at a targets file that is imported into the temporary reference-assembly project and fails its build. The
+design-time pipeline reaches that build through `SystemTypeResolver`, exactly as the compile-time pipeline does. See
+the standalone `README.md` for why the scenario also sets a locator salt and disables the shared compiler.
 
 The pre-build that the harness runs before the host simulator fails here, which is expected and ignored: a design-time
 scenario is allowed to be one that does not compile.

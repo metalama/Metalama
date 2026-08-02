@@ -13,5 +13,5 @@ namespace Issue1744;
 public class Aspect : TypeAspect
 {
     [Introduce]
-    public string GetMessage() => "ok";
+    public static string GetMessage() => "ok";
 }

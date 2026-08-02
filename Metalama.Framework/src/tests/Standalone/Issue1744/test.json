@@ -1,6 +1,6 @@
 {
     "BuildOnly": true,
     "IgnoreExitCode": true,
-    "ExpectedDiagnosticsRegexes": [ "LAMA0083", "MetalamaReferenceAssemblyRestoreTimeout" ],
+    "ExpectedDiagnosticsRegexes": [ "LAMA0082", "failed on purpose" ],
     "ForbiddenDiagnosticsRegexes": [ "LAMA0001" ]
 }

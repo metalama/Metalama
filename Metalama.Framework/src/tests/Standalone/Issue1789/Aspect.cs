@@ -4,11 +4,11 @@
 
 using Metalama.Framework.Aspects;
 
-namespace Issue1744;
+namespace Issue1789;
 
 /// <summary>
-/// An aspect, whose only purpose is to make the compile-time pipeline initialize, which is what runs the nested
-/// reference-assembly build that this scenario makes fail.
+/// An aspect, whose only purpose is to make the compile-time pipeline initialize, which is what parses the
+/// target frameworks that this scenario sets.
 /// </summary>
 public class Aspect : TypeAspect
 {

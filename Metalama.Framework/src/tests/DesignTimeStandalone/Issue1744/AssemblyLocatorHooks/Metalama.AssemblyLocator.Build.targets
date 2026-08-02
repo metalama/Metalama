@@ -1,0 +1,17 @@
+<Project>
+
+    <!--
+        Imported into the temporary project whose build resolves the compile-time reference assemblies, through the
+        MetalamaAssemblyLocatorHooksDirectory property. It fails that build on purpose, which is what this scenario
+        exists to observe.
+
+        The failure has to be one that the build cannot recover from and that leaves no result behind: the assembly
+        locator caches the list of reference assemblies, so a provocation that lets the build complete would populate
+        the cache and every later run would silently assert nothing. Failing before the WriteAssembliesList target
+        keeps the cache empty for good.
+    -->
+    <Target Name="_FailReferenceAssemblyBuildOnPurpose" BeforeTargets="Build">
+        <Error Text="The reference-assembly build is failed on purpose by the Issue1744 test scenario." />
+    </Target>
+
+</Project>

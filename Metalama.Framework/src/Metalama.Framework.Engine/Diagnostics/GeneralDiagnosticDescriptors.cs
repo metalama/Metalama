@@ -531,6 +531,19 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "The build of the reference-assembly project timed out.",
                     _category );
 
+        // The value of this property is written by the user and can only be corrected by the user, so an invalid one is
+        // a diagnostic and not an exception. It used to throw an InvalidOperationException, which surfaced as LAMA0001
+        // and invited a crash report for a configuration mistake. See #1789.
+        internal static readonly DiagnosticDefinition<(string PropertyName, string Value, string Requirement)>
+            InvalidCompileTimeTargetFrameworks =
+                new(
+                    "LAMA0084",
+                    Error,
+                    "The '{0}' MSBuild property has the value '{1}', which is not valid because {2}. Separate the target "
+                    + "frameworks with a semicolon or with a comma.",
+                    "The MSBuild property that selects the compile-time target frameworks is invalid.",
+                    _category );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(

@@ -120,16 +120,19 @@ internal sealed class CompileTimeAssemblyLocator
                 new[] { this.GetType(), typeof(IAspect), typeof(IAspectWeaver), typeof(ITemplateSyntaxFactory), typeof(FieldOrPropertyInfo) }
                     .SelectAsReadOnlyList( x => x.Assembly.Location ) ) );
 
-        var targetFrameworksString = string.IsNullOrEmpty( projectOptions.CompileTimeTargetFrameworks )
-            ? _defaultCompileTimeTargetFrameworks
-            : projectOptions.CompileTimeTargetFrameworks;
+        this._targetFrameworks = ParseTargetFrameworks(
+            string.IsNullOrEmpty( projectOptions.CompileTimeTargetFrameworks )
+                ? _defaultCompileTimeTargetFrameworks
+                : projectOptions.CompileTimeTargetFrameworks! );
 
-        this._targetFrameworks = targetFrameworksString.Split( ';' ).ToImmutableArray();
+        // The parsed value is rejoined with the separator that MSBuild expects, because it is written into the
+        // TargetFrameworks property of the temporary project, and it is what the cache key is computed from, so that
+        // two spellings of one set of target frameworks share a cache directory.
+        var targetFrameworksString = string.Join( ";", this._targetFrameworks );
 
         if ( !this._targetFrameworks.Contains( "netstandard2.0" ) )
         {
-            throw new InvalidOperationException(
-                $"Custom MetalamaCompileTimeTargetFrameworks has to include 'netstandard2.0', but it was {this._targetFrameworks}" );
+            throw CreateInvalidTargetFrameworksException( targetFrameworksString, "it must include 'netstandard2.0'" );
         }
 
         // Load nuget.config.
@@ -245,19 +248,55 @@ internal sealed class CompileTimeAssemblyLocator
         this._referenceCompilationContext = this._referenceCompilation.GetCompilationContext();
     }
 
+    /// <summary>
+    /// Splits the value of the <see cref="MSBuildPropertyNames.MetalamaCompileTimeTargetFrameworks"/> property into
+    /// target framework monikers.
+    /// </summary>
+    /// <remarks>
+    /// Both the comma and the semicolon are accepted. The property reaches the compiler through the generated analyzer
+    /// configuration file, in which a semicolon starts a comment, so the build normalizes the semicolon that a user
+    /// naturally writes in MSBuild into a comma. A value set directly through <see cref="IProjectOptions"/>, as in
+    /// tests, does not go through that file and keeps whichever separator it was given. See issue #1789.
+    /// </remarks>
+    internal static ImmutableArray<string> ParseTargetFrameworks( string value )
+        => value
+            .Split( [',', ';'], StringSplitOptions.RemoveEmptyEntries )
+            .SelectAsArray( f => f.Trim() )
+            .Where( f => f.Length > 0 )
+            .ToImmutableArray();
+
+    /// <summary>
+    /// Creates the exception reported when the <see cref="MSBuildPropertyNames.MetalamaCompileTimeTargetFrameworks"/>
+    /// property does not describe a usable set of target frameworks.
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="DiagnosticException"/> and not an <see cref="InvalidOperationException"/>, because the value comes
+    /// from the project and the user is the one who can correct it. Reported as <c>LAMA0001</c>, it invited a crash
+    /// report for what is a configuration mistake. See issues #1744 and #1789.
+    /// </remarks>
+    private static DiagnosticException CreateInvalidTargetFrameworksException( string value, string requirement )
+    {
+        var diagnostic = GeneralDiagnosticDescriptors.InvalidCompileTimeTargetFrameworks.CreateRoslynDiagnostic(
+            null,
+            (MSBuildPropertyNames.MetalamaCompileTimeTargetFrameworks, value, requirement) );
+
+        return new DiagnosticException( $"Invalid {MSBuildPropertyNames.MetalamaCompileTimeTargetFrameworks}.", ImmutableArray.Create( diagnostic ), false );
+    }
+
     private string GetAdditionalCompileTimeAssembliesDirectory()
     {
         string platform;
+        var targetFrameworks = string.Join( ";", this._targetFrameworks );
 
         if ( Environment.Version.Major < 6 )
         {
             platform = this._targetFrameworks.FirstOrDefault( f => f.StartsWith( "net4", StringComparison.Ordinal ) )
-                       ?? throw new InvalidOperationException( "Custom MetalamaCompileTimeTargetFrameworks did not include .NET Framework 4.x." );
+                       ?? throw CreateInvalidTargetFrameworksException( targetFrameworks, "it must include a .NET Framework 4.x target framework" );
         }
         else
         {
             platform = this._targetFrameworks.FirstOrDefault( f => f is ['n', 'e', 't', '1' or (>= '6' and <= '9'), ..] )
-                       ?? throw new InvalidOperationException( "Custom MetalamaCompileTimeTargetFrameworks did not include .NET 6+." );
+                       ?? throw CreateInvalidTargetFrameworksException( targetFrameworks, "it must include a .NET 6.0 or later target framework" );
         }
 
         return Path.Combine( this._cacheDirectory, "bin", "Debug", platform );
@@ -514,7 +553,7 @@ internal sealed class CompileTimeAssemblyLocator
   <Import Project=""{hooksDirectory}/Metalama.AssemblyLocator.Build.props"" Condition=""Exists('{hooksDirectory}/Metalama.AssemblyLocator.Build.props')"" />";
 
                 hooksTargetsImport = $@"
-  <Import Project=""{{hooksDirectory}}/Metalama.AssemblyLocator.Build.targets"" Condition=""Exists('{{hooksDirectory}}/Metalama.AssemblyLocator.Build.targets')"" />";
+  <Import Project=""{hooksDirectory}/Metalama.AssemblyLocator.Build.targets"" Condition=""Exists('{hooksDirectory}/Metalama.AssemblyLocator.Build.targets')"" />";
 
                 hooksImportWarnings = $@"
   <Target Name=""_WarnOfImports"">

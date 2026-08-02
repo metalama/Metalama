@@ -4,15 +4,19 @@
         <OutputType>Exe</OutputType>
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <!-- The shared compiler server outlives a build and can serve a compile-time assembly locator that a
+             previous compilation created successfully, which would keep this scenario from reaching the failure
+             it exists to observe. Each compilation must therefore start from a fresh compiler process. -->
+        <UseSharedCompilation>false</UseSharedCompilation>
     </PropertyGroup>
 
     <PropertyGroup>
-        <!-- Makes the nested reference-assembly build fail, deterministically and without network access: no process
-             can start and complete within one millisecond, so the assembly locator kills it and reports a timeout.
-             The salt keeps this scenario on a cache directory of its own; the cache is never populated, because the
-             build never completes, so every run exercises the failure. See README.md. -->
-        <MetalamaReferenceAssemblyRestoreTimeout>1</MetalamaReferenceAssemblyRestoreTimeout>
-        <MetalamaAssemblyLocatorSalt>Issue1744</MetalamaAssemblyLocatorSalt>
+        <!-- Makes the nested reference-assembly build fail, deterministically and without network access: the hooks
+             directory below is imported into the temporary project and raises an error before anything is produced.
+             The salt keeps this scenario on a cache directory of its own, which the failing build never populates, so
+             every run exercises the failure rather than reading a cached result. See README.md. -->
+        <MetalamaAssemblyLocatorHooksDirectory>$(MSBuildThisFileDirectory)AssemblyLocatorHooks</MetalamaAssemblyLocatorHooksDirectory>
+        <MetalamaAssemblyLocatorSalt>Issue1744.HooksFailure.DesignTime</MetalamaAssemblyLocatorSalt>
     </PropertyGroup>
 
     <ItemGroup>
