@@ -53,10 +53,11 @@ internal abstract partial class FabricDriver : IComparable<FabricDriver>
         Fabric fabric,
         Compilation runTimeCompilation )
     {
-        var originalPath = fabric.GetType().GetCustomAttribute<OriginalPathAttribute>().AssertNotNull().Path;
+        var fabricType = fabric.GetType();
+        var originalPath = fabricType.GetCustomAttribute<OriginalPathAttribute>().AssertNotNull().Path;
 
         // Get the original symbol for the fabric. If it has been moved, we have a custom attribute.
-        var originalId = fabric.GetType().GetCustomAttribute<OriginalIdAttribute>()?.Id;
+        var originalId = fabricType.GetCustomAttribute<OriginalIdAttribute>()?.Id;
 
         INamedTypeSymbol symbol;
 
@@ -66,9 +67,16 @@ internal abstract partial class FabricDriver : IComparable<FabricDriver>
         }
         else
         {
-            symbol = (INamedTypeSymbol) runTimeCompilation.GetCompilationContext()
+            // The fabric is instantiated from the compile-time projection of the project that declares it, so the
+            // assembly of its CLR type is the compile-time assembly 'ml!<name>_<hash>'. That assembly is built in
+            // memory and is never a reference of a compilation, so passing its name to the ReflectionMapper makes the
+            // recovery that resolves a type against the referenced assemblies unreachable, and makes the resulting
+            // message name an assembly whose absence is certain and irrelevant. The run-time identity of the
+            // compile-time project is the identity that the run-time compilation can actually contain, therefore it is
+            // the one to resolve against. See https://github.com/metalama/Metalama/issues/1759.
+            symbol = runTimeCompilation.GetCompilationContext()
                 .ReflectionMapper
-                .GetTypeSymbol( fabric.GetType() );
+                .GetNamedTypeSymbolByMetadataName( fabricType.FullName.AssertNotNull(), new AssemblyName( compileTimeProject.RunTimeIdentity.Name ) );
         }
 
         return new CreationData( fabric, fabricManager, compileTimeProject, symbol, originalPath, runTimeCompilation );
