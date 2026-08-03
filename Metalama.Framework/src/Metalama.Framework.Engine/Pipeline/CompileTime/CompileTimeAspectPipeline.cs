@@ -100,6 +100,15 @@ public class CompileTimeAspectPipeline : AspectPipeline
     {
         reportDiagnostic ??= _ => { };
 
+        // The compile-time reference assemblies are resolved here, before anything else needs them, because this is the
+        // first point of the pipeline that has a diagnostic sink. Resolving them runs a nested build, which fails for
+        // reasons that belong to the environment, and such a failure must be reported as a diagnostic of this pipeline
+        // instead of being thrown through the layers above. See issue #1744.
+        if ( !this.ServiceProvider.TryResolveReferenceAssemblies( new DiagnosticAdderAdapter( reportDiagnostic ) ) )
+        {
+            return default;
+        }
+
         var compilationContext = this.ServiceProvider.GetRequiredService<ClassifyingCompilationContextFactory>().GetInstance( compilation );
         var partialCompilation = PartialCompilation.CreateComplete( compilation );
 

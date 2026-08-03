@@ -795,6 +795,18 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
             }
         }
 
+        // The compile-time reference assemblies are resolved here, before anything else needs them, because this is the
+        // first point of the design-time pipeline that can carry diagnostics. Resolving them runs a nested build, which
+        // fails for reasons that belong to the environment. Returning the failure lets TheDiagnosticAnalyzer report it
+        // in the editor, whereas throwing would escape the source generator and be reported as CS8785, which tells the
+        // user only that a generator failed. See issue #1744.
+        var referenceAssemblyDiagnostics = new DiagnosticBag();
+
+        if ( !this.ServiceProvider.TryResolveReferenceAssemblies( referenceAssemblyDiagnostics ) )
+        {
+            return FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>.Failed( referenceAssemblyDiagnostics.ToImmutableArray() );
+        }
+
         if ( this._compilationResultCache.TryGetValue( compilation, out var compilationResult ) )
         {
             if ( !compilationResult.IsSuccessful )
