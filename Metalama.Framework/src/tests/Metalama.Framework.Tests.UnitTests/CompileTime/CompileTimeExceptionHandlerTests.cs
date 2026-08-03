@@ -9,6 +9,8 @@ using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Globalization;
 using System.IO;
 using Xunit;
 
@@ -79,6 +81,82 @@ public sealed class CompileTimeExceptionHandlerTests : UnitTestClass
         Assert.Single( diagnostics );
         var report = Assert.Single( testContext.ReportedTelemetryExceptions );
         Assert.Equal( TelemetryRouting.Tooling, report.Routing );
+    }
+
+    /// <summary>
+    /// A <see cref="DiagnosticException"/> carries a failure that has already been analyzed and attributed to the user or
+    /// to the build environment, therefore its diagnostics must be reported as such, with neither a crash report nor
+    /// telemetry. See #1744.
+    /// </summary>
+    [Theory]
+    [InlineData( false )]
+    [InlineData( true )]
+    public void ReportException_DiagnosticException_ReportsItsDiagnosticsAndNoTelemetry( bool wrapInAggregateException )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var serviceProvider = testContext.ServiceProvider.Underlying.WithService(
+            new ProjectOptionsStub( Path.Combine( Path.GetTempPath(), "repo", "proj.csproj" ) ),
+            allowOverride: true );
+
+        var handler = new CompileTimeExceptionHandler( serviceProvider );
+        var diagnostics = new List<Diagnostic>();
+
+        var reportedDiagnostic = GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.CreateRoslynDiagnostic(
+            null,
+            ("TempProject.csproj", 1, "It reported the following errors: error NU1101.", "Probable cause.", "msbuild.binlog") );
+
+        Exception exception = new DiagnosticException( "The nested build failed.", ImmutableArray.Create( reportedDiagnostic ), false );
+
+        if ( wrapInAggregateException )
+        {
+            exception = new AggregateException( exception );
+        }
+
+        handler.ReportException( exception, diagnostics.Add, canIgnoreException: false, out var isHandled );
+
+        Assert.True( isHandled );
+        var diagnostic = Assert.Single( diagnostics );
+        Assert.Equal( GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.Id, diagnostic.Id );
+        Assert.Empty( testContext.ReportedTelemetryExceptions );
+    }
+
+    /// <summary>
+    /// Verifies that the message of the reported diagnostic contains no line break, which a Roslyn diagnostic cannot carry.
+    /// </summary>
+    [Fact]
+    public void ReferenceAssemblyBuildFailed_MessageHasNoLineBreak()
+    {
+        var diagnostic = GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.CreateRoslynDiagnostic(
+            null,
+            ("TempProject.csproj", 1, "It reported the following errors: error NU1101.", "Probable cause.", "msbuild.binlog") );
+
+        var message = diagnostic.GetMessage( CultureInfo.InvariantCulture );
+
+        Assert.DoesNotContain( "\r", message );
+        Assert.DoesNotContain( "\n", message );
+    }
+
+    /// <summary>
+    /// The message of a <see cref="DiagnosticException"/> concatenates its diagnostics with line breaks, so the
+    /// exception handlers log the folded rendering instead, otherwise a single failure produces a multi-line log record.
+    /// </summary>
+    [Fact]
+    public void GetSingleLineMessage_HasNoLineBreak()
+    {
+        var diagnostic = GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.CreateRoslynDiagnostic(
+            null,
+            ("TempProject.csproj", 1, "It reported the following errors: error NU1101.", "Probable cause.", "msbuild.binlog") );
+
+        var exception = new DiagnosticException(
+            "The build of 'TempProject.csproj' exited with code 1.",
+            ImmutableArray.Create( diagnostic ),
+            false );
+
+        Assert.Contains( "\n", exception.Message );
+        Assert.DoesNotContain( "\r", exception.GetSingleLineMessage() );
+        Assert.DoesNotContain( "\n", exception.GetSingleLineMessage() );
+        Assert.Contains( GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.Id, exception.GetSingleLineMessage() );
     }
 
     private sealed class ProjectOptionsStub : DefaultProjectOptions

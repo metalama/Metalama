@@ -99,6 +99,24 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                 exception = innerExceptions[0];
             }
 
+            // A DiagnosticException means that the failure has already been analyzed and that the responsibility for it
+            // lies with the user or with the build environment. Report the diagnostics that it carries, and neither write
+            // a crash report nor send telemetry: doing so would present a legible and self-service condition, such as a
+            // NuGet feed that requires credentials, as a defect of Metalama. See #1744.
+            if ( DiagnosticException.TryFind( exception ) is { } diagnosticException )
+            {
+                this._logger.Warning?.Log( $"A user-attributable failure was reported as a diagnostic: {diagnosticException.GetSingleLineMessage()}" );
+
+                foreach ( var diagnostic in diagnosticException.Diagnostics )
+                {
+                    reportDiagnostic( diagnostic );
+                }
+
+                isHandled = true;
+
+                return;
+            }
+
             SyntaxNode? node = null;
 
             if ( exception is SyntaxProcessingException syntaxProcessingException )

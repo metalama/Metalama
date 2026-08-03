@@ -1,0 +1,5 @@
+{
+    "BuildOnly": true,
+    "ExpectedDiagnosticsRegexes": [ "LAMA0082" ],
+    "ForbiddenDiagnosticsRegexes": [ "LAMA0001", "AD0001", "CS8785" ]
+}

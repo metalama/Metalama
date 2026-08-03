@@ -21,6 +21,7 @@ public static class ServiceProviderExtensions
     internal static CompileTimeAssemblyLocator GetReferenceAssemblyLocator( this ProjectServiceProvider serviceProvider )
         => serviceProvider.Global.GetRequiredService<ICompileTimeAssemblyLocatorProvider>().GetInstance( serviceProvider );
 
+
     public static T GetRequiredBackstageService<T>( this GlobalServiceProvider serviceProvider )
         where T : class, IBackstageService
         => serviceProvider.Underlying.GetRequiredBackstageService<T>();
