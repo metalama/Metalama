@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -95,7 +96,7 @@ public sealed class SourceGeneratorMemoryLeakTests : DesignTimeTestBase
     /// generator.
     /// </summary>
     [Fact]
-    public void CancelledAnalyses_DoNotRetainTheirCompilations()
+    public async Task CancelledAnalyses_DoNotRetainTheirCompilations()
     {
         using var testContext = this.CreateTestContext( new TestContextOptions { HasSourceGeneratorTouchFile = true } );
 
@@ -121,6 +122,11 @@ public sealed class SourceGeneratorMemoryLeakTests : DesignTimeTestBase
         {
             const int editCount = 15;
             var compilations = RunEditingSession( testContext, sourceGenerator, editCount );
+
+            // The scheduled analyses remove their own entry from the bag when they run, and they run on the thread
+            // pool. Asserting before they have run would observe a generator that is merely still busy, and the
+            // result would depend on how loaded the thread pool happens to be.
+            await PendingTasksHelper.WaitForPendingTasksAsync( sourceGenerator.PendingTasks, testContext );
 
             MemoryLeakAssert.AtMostAlive(
                 compilations,

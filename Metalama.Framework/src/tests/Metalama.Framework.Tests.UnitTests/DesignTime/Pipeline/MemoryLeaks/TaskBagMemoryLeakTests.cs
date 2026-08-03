@@ -89,25 +89,8 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
     /// Waits until every task of the bag has run, so that the assertions that follow do not depend on the scheduling
     /// of the thread pool.
     /// </summary>
-    /// <remarks>
-    /// The entry of a task is removed by the task itself, therefore an assertion made before the task has run would
-    /// observe a bag that is merely still busy. A bag that strands a task leaves it in the canceled state, which
-    /// <see cref="TaskBag.WaitAllAsync"/> surfaces as an exception. That exception is swallowed here, because it is
-    /// the very defect that the assertions of the caller are there to diagnose, and their failure message names the
-    /// field that retains the compilation. The cancellation of the test context is not swallowed, so a bag that never
-    /// completes fails the test rather than hanging it.
-    /// </remarks>
-    private static async Task WaitForPendingTasksAsync( TaskBag taskBag, TestContext testContext )
-    {
-        try
-        {
-            await taskBag.WaitAllAsync( testContext.CancellationToken );
-        }
-        catch ( OperationCanceledException ) when ( !testContext.CancellationToken.IsCancellationRequested )
-        {
-            // See the remarks above.
-        }
-    }
+    private static Task WaitForPendingTasksAsync( TaskBag taskBag, TestContext testContext )
+        => PendingTasksHelper.WaitForPendingTasksAsync( taskBag, testContext );
 
     /// <summary>
     /// Verifies that a task that completes normally is removed from the bag and does not retain what it captured.
