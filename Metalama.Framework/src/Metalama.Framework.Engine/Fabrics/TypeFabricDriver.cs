@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
@@ -119,6 +120,7 @@ internal sealed class TypeFabricDriver : FabricDriver
     {
         private readonly IAspectBuilderInternal _aspectBuilder;
         private readonly IAdviser<INamedType> _adviser;
+        private readonly UserCodeExecutionContext _userCodeExecutionContext;
 
         public Amender(
             INamedType namedType,
@@ -131,9 +133,10 @@ internal sealed class TypeFabricDriver : FabricDriver
             fabricManager,
             fabricInstance,
             fabricInstance.TargetDeclaration.As<INamedType>(),
-            userCodeExecutionContext )
+            userCodeExecutionContext.Description )
         {
             this._aspectBuilder = aspectBuilder;
+            this._userCodeExecutionContext = userCodeExecutionContext;
             this.Type = namedType;
 
 #pragma warning disable CS0618 // ITypeAmender.Advice is obsolete
@@ -143,6 +146,16 @@ internal sealed class TypeFabricDriver : FabricDriver
         }
 
         public INamedType Type { get; }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// Unlike the amender of a static fabric, which is durable and must build a context per compilation, this one
+        /// is created for a single execution of the aspect that hosts the type fabric, and already holds a live
+        /// <see cref="INamedType"/> and the aspect builder. It may therefore reuse the context it was given, rebound to
+        /// the compilation of the query, which also preserves the aspect layer and the meta API that context carries.
+        /// </remarks>
+        public override UserCodeExecutionContext GetUserCodeExecutionContext( CompilationModel compilation, IDiagnosticAdder diagnostics )
+            => this._userCodeExecutionContext.WithCompilationAndDiagnosticAdder( compilation, diagnostics );
 
         public override void AddContributor( IPipelineContributor contributor ) => this._aspectBuilder.AddContributor( contributor );
 

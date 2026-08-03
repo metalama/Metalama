@@ -8,6 +8,7 @@ using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Fabrics;
 using Metalama.Framework.Engine.Services;
@@ -87,13 +88,32 @@ namespace Metalama.Framework.Engine.Queries
         ITaggedQuery<INamedType, TTag> ITaggedQuery<TDeclaration, TTag>.SelectTypesDerivedFrom(
             INamedType baseType,
             DerivedTypesOptions options )
-            => this.SelectTypesDerivedFromCore( _ => baseType, options );
+            => this.SelectTypesDerivedFromCore( CreateBaseTypeResolver( baseType ), options );
 
         IQuery<INamedType> IQuery<TDeclaration>.SelectTypesDerivedFrom( Type baseType, DerivedTypesOptions options )
             => this.SelectTypesDerivedFromCore( c => c.Factory.GetNamedTypeByReflectionType( baseType ), options );
 
         IQuery<INamedType> IQuery<TDeclaration>.SelectTypesDerivedFrom( INamedType baseType, DerivedTypesOptions options )
-            => this.SelectTypesDerivedFromCore( _ => baseType, options );
+            => this.SelectTypesDerivedFromCore( CreateBaseTypeResolver( baseType ), options );
+
+        /// <summary>
+        /// Returns a function that resolves <paramref name="baseType"/> in the compilation of the run, given the type
+        /// as it stands in the compilation in which the query is being built.
+        /// </summary>
+        /// <remarks>
+        /// A query outlives by far the compilation it is built from: the query of a static fabric belongs to the
+        /// amender, which belongs to the pipeline configuration, which is long-lived by design and reused across
+        /// keystrokes. Capturing <paramref name="baseType"/> itself, which these overloads used to do, therefore made
+        /// the configuration pin the version of the project the fabric ran in, for the whole editing session. The
+        /// reference is made durable here, while the compilation is certainly available, and resolved again on each
+        /// run, which is what the overloads taking a <see cref="Type"/> do already. See issue #1799.
+        /// </remarks>
+        private static Func<CompilationModel, INamedType> CreateBaseTypeResolver( INamedType baseType )
+        {
+            var baseTypeRef = baseType.ToRef().ToDurable();
+
+            return c => baseTypeRef.GetTarget( c );
+        }
 
         private ITaggedQuery<INamedType, TTag> SelectTypesDerivedFromCore( Func<CompilationModel, INamedType> getBaseType, DerivedTypesOptions options )
             => this.AddChild(
@@ -188,7 +208,7 @@ namespace Metalama.Framework.Engine.Queries
                             compilationModel,
                             NullDiagnosticAdder.Instance,
                             this.Owner.UserCodeInvoker,
-                            this.Owner.UserCodeExecutionContext,
+                            this.Owner.GetUserCodeExecutionContext( compilationModel, NullDiagnosticAdder.Instance ),
                             CancellationToken.None ),
                         ( declaration, _, _ ) =>
                         {
@@ -416,7 +436,7 @@ namespace Metalama.Framework.Engine.Queries
                 compilation,
                 diagnosticAdder,
                 this.Owner.UserCodeInvoker,
-                this.Owner.UserCodeExecutionContext.WithCompilationAndDiagnosticAdder( compilation, diagnosticAdder ),
+                this.Owner.GetUserCodeExecutionContext( compilation, diagnosticAdder ),
                 cancellationToken );
 
             await this.InvokeAdderAsync( context, ProcessTarget );

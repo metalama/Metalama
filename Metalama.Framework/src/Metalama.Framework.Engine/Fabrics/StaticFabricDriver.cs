@@ -41,8 +41,8 @@ namespace Metalama.Framework.Engine.Fabrics
                 FabricInstance fabricInstance,
                 IRef<T> targetDeclaration,
                 string? ns,
-                UserCodeExecutionContext userCodeExecutionContext ) :
-                base( project, fabricManager, fabricInstance, targetDeclaration.ToDurable(), userCodeExecutionContext )
+                UserCodeDescription userCodeDescription ) :
+                base( project, fabricManager, fabricInstance, targetDeclaration.ToDurable(), userCodeDescription )
             {
                 this.Namespace = ns;
             }

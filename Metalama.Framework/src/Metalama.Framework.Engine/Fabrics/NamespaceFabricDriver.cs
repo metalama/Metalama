@@ -56,9 +56,13 @@ namespace Metalama.Framework.Engine.Fabrics
                 return true;
             }
 
+            var description = UserCodeDescription.Create( "calling the AmendNamespace method for the fabric {0}", this.Fabric.GetType() );
+
+            // The context is for the immediate call to AmendNamespace below. The amender, which outlives this
+            // compilation, is given the description only. See IQueryOwner.GetUserCodeExecutionContext.
             var executionContext = UserCodeExecutionContext.CreateInstance(
                 this.FabricManager.ServiceProvider,
-                UserCodeDescription.Create( "calling the AmendNamespace method for the fabric {0}", this.Fabric.GetType() ),
+                description,
                 compilation,
                 diagnostics: diagnosticAdder );
 
@@ -67,7 +71,7 @@ namespace Metalama.Framework.Engine.Fabrics
                 this.FabricManager,
                 new FabricInstance( this, compilation.Factory.GetNamespace( namespaceSymbol ) ),
                 namespaceSymbol.GetFullName() ?? "",
-                executionContext );
+                description );
 
             if ( !this.FabricManager.UserCodeInvoker.TryInvoke( () => ((NamespaceFabric) this.Fabric).AmendNamespace( amender ), executionContext ) )
             {
@@ -90,13 +94,13 @@ namespace Metalama.Framework.Engine.Fabrics
                 FabricManager fabricManager,
                 FabricInstance fabricInstance,
                 string ns,
-                UserCodeExecutionContext userCodeExecutionContext ) : base(
+                UserCodeDescription userCodeDescription ) : base(
                 project,
                 fabricManager,
                 fabricInstance,
                 fabricInstance.TargetDeclaration.As<INamespace>(),
                 ns,
-                userCodeExecutionContext ) { }
+                userCodeDescription ) { }
 
             string INamespaceAmender.Namespace => this.Namespace.AssertNotNull();
         }

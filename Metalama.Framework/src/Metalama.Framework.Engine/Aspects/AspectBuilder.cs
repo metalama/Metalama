@@ -8,6 +8,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.Advising;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Queries;
@@ -174,7 +175,14 @@ namespace Metalama.Framework.Engine.Aspects
 
         Type IQueryOwner.Type => this.AspectInstance.AspectClass.Type;
 
-        public UserCodeExecutionContext UserCodeExecutionContext => this._aspectBuilderState.UserCodeExecutionContext;
+        /// <inheritdoc />
+        /// <remarks>
+        /// An aspect builder lives for the duration of a single execution of the aspect, so it may return the context
+        /// it already holds, rebound to the compilation of the query. See <see cref="IQueryOwner.GetUserCodeExecutionContext"/>
+        /// for the owners that may not.
+        /// </remarks>
+        public UserCodeExecutionContext GetUserCodeExecutionContext( CompilationModel compilation, IDiagnosticAdder diagnostics )
+            => this._aspectBuilderState.UserCodeExecutionContext.WithCompilationAndDiagnosticAdder( compilation, diagnostics );
 
         UserCodeInvoker IQueryOwner.UserCodeInvoker => this._aspectBuilderState.Configuration.UserCodeInvoker;
 

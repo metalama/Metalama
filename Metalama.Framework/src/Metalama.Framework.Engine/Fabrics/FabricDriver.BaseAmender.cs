@@ -6,7 +6,9 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Queries;
 using Metalama.Framework.Engine.Services;
@@ -31,13 +33,14 @@ internal abstract partial class FabricDriver
 
         private readonly FabricManager _fabricManager;
         private readonly IProject _project;
+        private readonly UserCodeDescription _userCodeDescription;
 
         protected BaseAmender(
             IProject project,
             FabricManager fabricManager,
             FabricInstance fabricInstance,
             IRef<T> targetDeclaration,
-            UserCodeExecutionContext userCodeExecutionContext ) : base(
+            UserCodeDescription userCodeDescription ) : base(
             fabricManager.ServiceProvider,
             targetDeclaration,
             CompilationModelVersion.Final,
@@ -68,7 +71,16 @@ internal abstract partial class FabricDriver
         {
             this._project = project;
             this._fabricInstance = fabricInstance;
-            this.UserCodeExecutionContext = userCodeExecutionContext;
+
+            // Only the description of the fabric method is kept, never the execution context it belongs to. An amender
+            // belongs to the pipeline configuration, which is long-lived by design, being reused across keystrokes
+            // because rebuilding it per keystroke would be prohibitively slow; an execution context is bound to one
+            // compilation. Storing one here would therefore make the configuration pin a whole version of the project
+            // for the entire editing session, which is the defect reported by issue #1799. The context is built per
+            // run instead, by GetUserCodeExecutionContext. The description is a format string and its arguments, and
+            // is compilation-neutral.
+            this._userCodeDescription = userCodeDescription;
+
             this.TargetDeclaration = targetDeclaration.ToDurable(); // TODO PERF: ToDurable is useful only at design time.
             this._fabricManager = fabricManager;
         }
@@ -91,7 +103,13 @@ internal abstract partial class FabricDriver
 
         Type IQueryOwner.Type => this._fabricInstance.Fabric.GetType();
 
-        public UserCodeExecutionContext UserCodeExecutionContext { get; }
+        /// <inheritdoc />
+        /// <remarks>
+        /// Built afresh for each compilation, because a static fabric amender is durable. An amender whose own lifetime
+        /// is a single run overrides this and may reuse a context it holds.
+        /// </remarks>
+        public virtual UserCodeExecutionContext GetUserCodeExecutionContext( CompilationModel compilation, IDiagnosticAdder diagnostics )
+            => new( this._fabricManager.ServiceProvider, this._userCodeDescription, compilation, diagnostics: diagnostics );
 
         [Memo]
         public IQuery<T> Outbound
