@@ -5,7 +5,6 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Framework.Engine.CompileTime;
-using Metalama.Framework.Engine.Diagnostics;
 
 namespace Metalama.Framework.Engine.Services;
 
