@@ -1242,14 +1242,22 @@ internal sealed partial class CompileTimeCompilationBuilder
 
                         if ( diagnostics.Any() )
                         {
-                            // Distinct paths, because a compilation is not guaranteed to hold one syntax tree per path
-                            // and this index only has to give each path a number. See issue #1742.
-                            sourceFilePathIndexes = new Dictionary<string, int>( StringComparer.Ordinal );
+                            // The index assigned here is a persistent identifier: it is written to the compile-time
+                            // project manifest and read back by a later build to resolve the file a cached diagnostic
+                            // belongs to. Changing the order in which the indexes are handed out therefore makes an
+                            // existing manifest resolve an index to a different file, and the text span of one file is
+                            // then applied to another. The ordering must stay exactly as it was, which is why the
+                            // default comparer is kept here even though it is culture-sensitive.
+                            sourceFilePathIndexes = new Dictionary<string, int>();
 
+                            // Distinct, because a compilation is not guaranteed to hold one syntax tree per path and
+                            // this index only has to give each path a number. This does not disturb the order, and
+                            // therefore does not disturb the indexes, of a compilation that has no duplicate. See issue
+                            // #1742.
                             var distinctSourceFilePaths = sourceTreesWithCompileTimeCode
                                 .SelectAsArray( x => x.FilePath )
-                                .Distinct( StringComparer.Ordinal )
-                                .OrderBy( x => x, StringComparer.Ordinal );
+                                .Distinct()
+                                .OrderBy( x => x );
 
                             foreach ( var filePath in distinctSourceFilePaths )
                             {

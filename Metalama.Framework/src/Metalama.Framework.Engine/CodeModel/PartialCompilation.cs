@@ -132,10 +132,14 @@ namespace Metalama.Framework.Engine.CodeModel
                         continue;
                     }
 
-                    // Find the tree in InitialCompilation. When the path has not been modified since, the tree the
-                    // transformation applies to is itself the initial tree, so it is taken from the transformation
-                    // rather than looked up by path: Compilation.ReplaceSyntaxTree resolves the tree by identity, and
-                    // resolving it by path here would let the two disagree.
+                    // Find the tree in InitialCompilation.
+                    //
+                    // The tree of the base compilation is preferred over the one the transformation carries, and the
+                    // difference shows when two transformations of one batch apply to the same path: the second carries
+                    // the tree the first produced, which is not in the initial compilation, whereas the base compilation
+                    // still holds the initial one. What is recorded here reaches Metalama.Compiler as the transformation
+                    // to apply, and it tracks the replacement to map diagnostics back to the source, so an intermediate
+                    // tree recorded as the initial one leaves a diagnostic pointing into a tree it does not belong to.
                     SyntaxTree? initialTree;
 
                     if ( transformation.OldTree == null )
@@ -146,7 +150,7 @@ namespace Metalama.Framework.Engine.CodeModel
                     {
                         initialTree = initialTreeReplacement.OldTree;
                     }
-                    else
+                    else if ( !baseCompilation.TryGetSyntaxTree( DocumentKey.FromPath( transformation.FilePath ), out initialTree ) )
                     {
                         initialTree = transformation.OldTree;
                     }

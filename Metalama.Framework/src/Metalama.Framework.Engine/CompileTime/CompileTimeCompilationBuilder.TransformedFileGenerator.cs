@@ -19,13 +19,7 @@ internal sealed partial class CompileTimeCompilationBuilder
     /// </remarks>
     internal sealed class TransformedPathGenerator
     {
-        /// <summary>
-        /// The number of characters reserved for the ordinal that disambiguates a collision, including its separator.
-        /// </summary>
-        private const int _maxOrdinalLength = 3;
-
-        private static int NameMaxLength
-            => OutputPathHelper.MaxOutputFilenameLength - 1 /* backslash */ - 1 /* - */ - 8 /* hash */ - 3 /* .cs */ - _maxOrdinalLength;
+        private static int NameMaxLength => OutputPathHelper.MaxOutputFilenameLength - 1 /* backslash */ - 1 /* - */ - 8 /* hash */ - 3 /* .cs */;
 
         private readonly HashSet<string> _generatedNames = new( StringComparer.OrdinalIgnoreCase );
 
@@ -52,40 +46,45 @@ internal sealed partial class CompileTimeCompilationBuilder
         /// before calling. Widening the hash instead would only make the collision rarer, and would spend eight
         /// characters of a name budget that <see cref="OutputPathHelper.MaxOutputFilenameLength"/> already constrains.
         /// </para>
+        /// <para>
+        /// The first name of a series carries no ordinal, so a file that collides with nothing keeps the name it had
+        /// before collisions were resolved at all. That matters because the name reaches the compile-time project and
+        /// its manifest, which a later build reads from the cache: shortening every name to reserve room for an ordinal
+        /// would have changed names that no collision ever touches.
+        /// </para>
         /// </remarks>
         public string GetTransformedFilePath( string fileName, ulong hash )
         {
-            var transformedFileName = fileName;
-
-            if ( transformedFileName.Length > NameMaxLength )
-            {
-                transformedFileName = transformedFileName.Substring( 0, NameMaxLength );
-            }
-
-            string fileNameWithHash;
-
-            unchecked
-            {
-                fileNameWithHash = $"{transformedFileName}_{(uint) hash:x8}";
-            }
-
-            var candidate = fileNameWithHash + ".cs";
-
-            for ( var ordinal = 2; !this._generatedNames.Add( candidate ); ordinal++ )
+            for ( var ordinal = 1;; ordinal++ )
             {
                 if ( ordinal > 99 )
                 {
                     // Unreachable in practice: it would take a hundred compile-time files of one name colliding on the
-                    // same thirty-two bits. Reported rather than silently truncated, because beyond this the ordinal no
-                    // longer fits the reserved budget and the name could exceed the maximum length.
+                    // same thirty-two bits.
                     throw new InvalidOperationException(
-                        $"More than 99 compile-time files named '{transformedFileName}' have a content hash with the same lower 32 bits." );
+                        $"More than 99 compile-time files named '{fileName}' have a content hash with the same lower 32 bits." );
                 }
 
-                candidate = $"{fileNameWithHash}_{ordinal}.cs";
-            }
+                var suffix = ordinal == 1 ? "" : $"_{ordinal}";
+                var transformedFileName = fileName;
 
-            return candidate;
+                if ( transformedFileName.Length > NameMaxLength - suffix.Length )
+                {
+                    transformedFileName = transformedFileName.Substring( 0, NameMaxLength - suffix.Length );
+                }
+
+                string candidate;
+
+                unchecked
+                {
+                    candidate = $"{transformedFileName}_{(uint) hash:x8}{suffix}.cs";
+                }
+
+                if ( this._generatedNames.Add( candidate ) )
+                {
+                    return candidate;
+                }
+            }
         }
     }
 }
