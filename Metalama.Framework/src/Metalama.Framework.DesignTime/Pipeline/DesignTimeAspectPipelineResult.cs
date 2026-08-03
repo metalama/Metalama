@@ -68,6 +68,18 @@ public sealed partial class DesignTimeAspectPipelineResult
 
     private readonly ImmutableDictionaryOfHashSet<string, InheritableAspectInstance> _inheritableAspects = _emptyInheritableAspects;
 
+    /// <summary>
+    /// The contributors of the last run that belong to a syntax tree of another compilation, typically the validators
+    /// that a fabric of this project applies to declarations of a referenced project.
+    /// </summary>
+    /// <remarks>
+    /// No <see cref="SyntaxTreePipelineResult"/> of this project is keyed by the path of such a tree, so these
+    /// contributors cannot be indexed and un-indexed per tree like the others. They are kept here instead, and
+    /// <see cref="Update"/> replaces the whole set on every run rather than adding to it. See issue #1796.
+    /// </remarks>
+    private readonly ImmutableArray<IDesignTimePipelineResultExtension> _foreignExtensions =
+        ImmutableArray<IDesignTimePipelineResultExtension>.Empty;
+
     public ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> InheritableOptions { get; } = _emptyInheritableOptions;
 
     public ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> Annotations { get; } = _emptyAnnotations;
@@ -83,8 +95,10 @@ public sealed partial class DesignTimeAspectPipelineResult
         DesignTimeAspectPipelineResultExtensionCollection extensions,
         ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> inheritableOptions,
         ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> annotations,
-        ulong aspectInstancesHashCode )
+        ulong aspectInstancesHashCode,
+        ImmutableArray<IDesignTimePipelineResultExtension> foreignExtensions )
     {
+        this._foreignExtensions = foreignExtensions;
         this.SyntaxTreeResults = syntaxTreeResults;
         this._invalidSyntaxTreeResults = invalidSyntaxTreeResults;
         this.IntroducedSyntaxTrees = introducedSyntaxTrees;
@@ -122,7 +136,7 @@ public sealed partial class DesignTimeAspectPipelineResult
     {
         Logger.DesignTime.Trace?.Log( $"CompilationPipelineResult.Update( id = {this._id} )" );
 
-        var resultsByTree = SplitResultsByTree( compilation, pipelineResults );
+        var (resultsByTree, foreignExtensions) = SplitResultsByTree( compilation, pipelineResults );
 
         var syntaxTreeResultBuilder = this.SyntaxTreeResults.ToBuilder();
 
@@ -296,6 +310,24 @@ public sealed partial class DesignTimeAspectPipelineResult
             aspectInstancesHashCode ^= newSyntaxTreeResult.AspectInstancesHashCode;
         }
 
+        // Replace the contributors that belong to another compilation. They cannot be indexed per tree, because no
+        // result of this project is keyed by the path of such a tree, so the set of the previous run is removed and
+        // the set of this run is added. A run re-produces the complete set, therefore replacing loses nothing.
+        if ( !this._foreignExtensions.IsEmpty || !foreignExtensions.IsEmpty )
+        {
+            extensionsBuilder ??= this.Extensions.ToBuilder();
+
+            foreach ( var oldForeignExtension in this._foreignExtensions )
+            {
+                extensionsBuilder.Remove( oldForeignExtension );
+            }
+
+            foreach ( var newForeignExtension in foreignExtensions )
+            {
+                extensionsBuilder.Add( newForeignExtension );
+            }
+        }
+
         // Make immutable and return.
         var introducedTrees = introducedSyntaxTreeBuilder?.ToImmutable() ?? this.IntroducedSyntaxTrees;
         var inheritableAspects = inheritableAspectsBuilder?.ToImmutable() ?? this._inheritableAspects;
@@ -315,14 +347,21 @@ public sealed partial class DesignTimeAspectPipelineResult
             extensions,
             inheritableOptions,
             annotations,
-            aspectInstancesHashCode );
+            aspectInstancesHashCode,
+            foreignExtensions );
     }
 
     /// <summary>
     /// Splits a <see cref="DesignTimePipelineExecutionResult"/>, which includes data for several syntax trees, into
     /// a list of <see cref="SyntaxTreePipelineResult"/> which each have information related to a single syntax tree.
     /// </summary>
-    private static IEnumerable<SyntaxTreePipelineResult> SplitResultsByTree(
+    /// <param name="compilation">The partial compilation the pipeline ran on.</param>
+    /// <param name="pipelineResults">The results to split.</param>
+    /// <returns>
+    /// The results for each syntax tree of <paramref name="compilation"/>, and the contributors that belong to a
+    /// syntax tree of another compilation, which no result of this project can carry.
+    /// </returns>
+    private static (IEnumerable<SyntaxTreePipelineResult> Results, ImmutableArray<IDesignTimePipelineResultExtension> ForeignExtensions) SplitResultsByTree(
         PartialCompilation compilation,
         DesignTimePipelineExecutionResult pipelineResults )
     {
@@ -331,6 +370,8 @@ public sealed partial class DesignTimeAspectPipelineResult
         var resultBuilders = pipelineResults
             .InputSyntaxTrees
             .ToDictionary( r => r.Key, syntaxTree => new SyntaxTreePipelineResult.Builder( syntaxTree.Value ) );
+
+        ImmutableArray<IDesignTimePipelineResultExtension>.Builder? foreignExtensions = null;
 
         // Split diagnostic by syntax tree.
         foreach ( var diagnostic in pipelineResults.Diagnostics.ReportedDiagnostics )
@@ -487,20 +528,34 @@ public sealed partial class DesignTimeAspectPipelineResult
                     builder.Extensions ??= ImmutableArray.CreateBuilder<IDesignTimePipelineResultExtension>();
                     builder.Extensions.Add( designTimeExtension );
                 }
-                else
+                else if ( compilation.Compilation.ContainsSyntaxTree( syntaxTree! ) )
                 {
-                    // The contributor is not bound to the trees the pipeline ran on, for the same reason as an
-                    // inheritable aspect instance above: an aspect can export one onto a declaration it did not
-                    // itself target, such as the declaring type of a base constructor, and that declaration can be in
-                    // a tree that is not dirty. The contributor is skipped instead of being filed under that tree,
-                    // because the tree keeps the result of the run that did include it, and that result already
-                    // carries this contributor. Filing it under the tree would overwrite that result and drop the
-                    // diagnostics and introductions it holds, and accumulating it outside any tree, which is what
-                    // this method used to do, gives the collection an entry per run that nothing can ever remove.
-                    // See issues #1768 and #1796.
+                    // The tree belongs to this project but is not dirty, so it is not part of the partial compilation.
+                    // This is the same situation as for an inheritable aspect instance above: an aspect can export a
+                    // contributor onto a declaration it did not itself target, such as the declaring type of a base
+                    // constructor. The contributor is skipped rather than filed under that tree, because the tree
+                    // keeps the result of the run that did include it and that result already carries this
+                    // contributor. Filing it under the tree would overwrite that result and drop the diagnostics and
+                    // introductions it holds. See issue #1768.
                     Logger.DesignTime.Trace?.Log(
                         $"SplitResultsByTree: skipping the transitive contributor of kind '{designTimeExtension.ContributorKind}' because it belongs "
-                        + $"to syntax tree '{filePath}', which is not a part of the partial compilation." );
+                        + $"to syntax tree '{filePath}' of this project, which is not a part of the partial compilation." );
+                }
+                else
+                {
+                    // The tree belongs to another compilation. This happens with cross-project validators: the syntax
+                    // tree a reference validator reports is that of the validated declaration, and a fabric of this
+                    // project can validate references to declarations of a referenced project. No result of this
+                    // project is keyed by that path, and none ever will be, so skipping the contributor would lose it
+                    // and the rules it enforces would silently stop being applied.
+                    //
+                    // Such a contributor is therefore kept, in a collection that is replaced on every run rather than
+                    // appended to. Replacing is correct because a run re-produces the complete set: the extension that
+                    // creates reference validators runs every validator source over the whole compilation, not over
+                    // the partial one. Appending, which is what this method used to do, gave the collection an entry
+                    // per run that nothing could ever remove. See issue #1796.
+                    foreignExtensions ??= ImmutableArray.CreateBuilder<IDesignTimePipelineResultExtension>();
+                    foreignExtensions.Add( designTimeExtension );
                 }
             }
             else
@@ -654,7 +709,8 @@ public sealed partial class DesignTimeAspectPipelineResult
             resultBuilders[""] = emptySyntaxTreeResult;
         }
 
-        return resultBuilders.SelectAsReadOnlyCollection( b => b.Value.ToImmutable( compilation.Compilation ) );
+        return (resultBuilders.SelectAsReadOnlyCollection( b => b.Value.ToImmutable( compilation.Compilation ) ),
+                foreignExtensions?.ToImmutable() ?? ImmutableArray<IDesignTimePipelineResultExtension>.Empty);
     }
 
     internal Invalidator ToInvalidator() => new( this );
