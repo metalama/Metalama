@@ -11,7 +11,20 @@ namespace Metalama.Framework.Engine.Extensibility;
 /// </summary>
 public interface ITransitivePipelineContributor : IPipelineContributor
 {
+    /// <summary>
+    /// Gets the syntax tree that this contributor belongs to, which is the one under whose file path the design-time
+    /// pipeline files it, or <c>null</c> when it belongs to none.
+    /// </summary>
     SyntaxTree? SyntaxTree { get; }
 
+    /// <summary>
+    /// Returns the design-time form of this contributor, or <c>null</c> when it has none.
+    /// </summary>
+    /// <remarks>
+    /// The returned object is stored by the design-time pipeline for far longer than the run that produced it, and it
+    /// must therefore be durable. The contributor itself is under no such constraint, so this method is where a
+    /// compilation-bound state is converted into a serializable identifier. See
+    /// <see cref="IDesignTimePipelineResultExtension"/> for the requirement in full.
+    /// </remarks>
     IDesignTimePipelineResultExtension? ToDesignTime();
 }

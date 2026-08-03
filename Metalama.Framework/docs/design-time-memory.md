@@ -41,6 +41,9 @@ It is useful to classify every field by the lifetime of the object that declares
 | A single request (locals, parameters, a `PartialCompilation` being processed) | Yes, freely. |
 | The current version of a project (`PipelineState.ProjectVersion`) | Yes, exactly one version. |
 | A project (`DesignTimeAspectPipeline`, a `ProjectSourceGenerator`) | No. |
+| The pipeline configuration (`AspectPipelineConfiguration` and everything it reaches) | No: it is long-lived by design, reused across keystrokes. |
+| An ambient `UserCodeExecutionContext` | Yes: it is scoped to one execution of user code. |
+| A per-file result (`SyntaxTreePipelineResult` and everything it holds) | No: it survives every run in which its file is not dirty. |
 | The process (a static field, an `IGlobalService`, an analyzer or generator instance) | No. |
 
 The last row deserves emphasis: Roslyn keeps **one instance** of a `DiagnosticAnalyzer` or an `IIncrementalGenerator`
@@ -130,6 +133,57 @@ An event handler holds its target. `AnalysisProcessEventHub` exposes its high-tr
 `WeakEvent<T>` and `AsyncWeakEvent<T>`, which hold subscribers weakly and compact their list. Where a plain event is
 used instead, the subscriber must unsubscribe in `Dispose`, and the event must carry only values, such as a
 `ProjectKey`, rather than compilation-bound objects.
+
+## What the pipeline stores for longer than one request
+
+Three collections outlive a request without being obviously long-lived, because they belong to objects a reader
+naturally takes to be per-run. Each of them is a place where the rule has been broken.
+
+**The pipeline configuration.** `AspectPipelineConfiguration` is built once, from whichever version of the project was
+current at the time, and `PipelineState` then reuses it for every subsequent version, discarding it only when the
+compile-time code changes. **That long life is deliberate and is not the defect.** Rebuilding the configuration on
+every keystroke would mean recompiling the compile-time assemblies each time, which is far too slow to be done between
+one keystroke and the next; the reuse is what makes the design-time pipeline viable and it must stay.
+
+What follows from it is a constraint, not a licence: because the configuration is long-lived, **it must not pin a
+compilation**. For a session in which the user edits run-time code alone, anything it holds that is bound to a
+compilation retains the *first* version of the session, the oldest rather than the most recent, and holds it in
+addition to the current one. The exception in the rule above does not cover that. Everything reachable from the
+configuration is therefore subject to the rule, including `FabricsContributors`, which reaches the amender of every
+static fabric and, through the amender, the queries it owns. `FabricMemoryLeakTests` guards this.
+
+The corollary is worth stating separately, because it is where the rule is easiest to break by accident.
+`UserCodeExecutionContext` is ambient and scoped to one execution of user code, so it is entitled to hold a
+compilation, a declaration and a syntax builder: that is its purpose. **The objects created from a context and outliving
+it are the ones that must not.** An amender stored a whole context, and a query built by `SelectTypesDerivedFrom`
+captured the `INamedType` it was given. Both are durable, both are reachable from the configuration, and both were
+fixed by keeping a durable reference and resolving it against the compilation of each run, which
+`UserCodeExecutionContext.WithCompilationAndDiagnosticAdder` was already doing for everything else.
+
+**The per-file results.** `SyntaxTreePipelineResult` describes itself as compilation-independent and cacheable, and
+the pipeline relies on that: `DesignTimeAspectPipelineResult.Update` carries forward the entry of every file the run
+did not analyse, and `SplitResultsByTree` goes further, discarding a freshly produced item whose file is not dirty so
+that the item produced earlier survives. A file the user never edits therefore keeps, for the whole session, whatever
+its first analysis produced. Two kinds of member of that result reach the code model and must be checked:
+
+- the extensions, which are opaque to the engine: an extension chooses what its contributor carries, and nothing in
+  `IDesignTimePipelineResultExtension` or `ITransitivePipelineContributor.ToDesignTime` says that it must be durable.
+  It must. `ExtensionContributorMemoryLeakTests` states this as a matched pair, one contributor holding a durable
+  reference and one holding the reference the code model returns.
+- the diagnostics. A `DiagnosticDefinition` formats lazily, so the arguments passed to `WithArguments` are stored in
+  the descriptor of the diagnostic and are held for as long as the diagnostic is. An argument that is an
+  `IDeclaration` reaches its `CompilationModel`. Passing the declaration is the natural way to write the message, and
+  it is what a validator does on every reference it rejects; passing `declaration.Name`, or another value, is what
+  keeps the diagnostic durable. `DiagnosticArgumentMemoryLeakTests` states this, also as a matched pair.
+
+**A `TaskCompletionSource` that no path completes.** Awaiting one retains the awaiting frame, and with it every
+argument and local the frame captured. On the design-time RPC surface those captures are Roslyn objects: a service is
+initialized only when a client attaches to its endpoint, and every method of every server-side service awaits that
+initialization before doing anything, including before checking whether there is any client to serve. When no client
+ever attaches, which is the ordinary state of the analysis process when the Visual Studio extension is absent, each
+such call parks forever. Passing a cancellation token is not by itself enough: it has to be *observed*, which means
+composing it with `WithCancellation` rather than handing it to a helper that only uses it for a timeout.
+`RpcServiceCancellationTests` states the property for the wait itself, and separately for what the parked frame holds.
 
 ## Testing it
 
