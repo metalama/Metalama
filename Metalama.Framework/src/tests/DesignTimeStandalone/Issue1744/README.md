@@ -1,24 +1,25 @@
 # Issue1744 (design time)
 
-Asserts that a failure of the nested reference-assembly build degrades the design-time experience gracefully: the
-analysis does not crash, does not report `LAMA0001` and does not let the exception escape into `AD0001`. See issues
-#1744, #1745, #1746 and #1747.
+Asserts that a failure of the nested reference-assembly build is reported to the user at design time, as the
+`LAMA0082` diagnostic of the design-time pipeline, and that it does not escape as an exception. See issues #1744,
+#1745, #1746 and #1747.
 
 The failure is provoked exactly as in the standalone scenario of the same name: `MetalamaAssemblyLocatorHooksDirectory`
 points at a targets file that is imported into the temporary reference-assembly project and fails its build. The
-design-time pipeline reaches that build through `SystemTypeResolver`, exactly as the compile-time pipeline does. See
-the standalone `README.md` for why the scenario also sets a locator salt and disables the shared compiler.
+design-time pipeline reaches that build through its own entry point, exactly as the compile-time pipeline does. See the
+standalone `README.md` for why the scenario also sets a locator salt and disables the shared compiler.
 
 The pre-build that the harness runs before the host simulator fails here, which is expected and ignored: a design-time
 scenario is allowed to be one that does not compile.
 
-## What this scenario does and does not assert
+## What this scenario asserts
 
-It asserts that the design-time host survives the condition. It does **not** assert that the user is told about it: at
-design time the exception is caught by `TheDiagnosticAnalyzer` and no diagnostic reaches the editor, so there is
-nothing for the simulator to observe beyond the absence of a crash. Surfacing the condition in the IDE is a separate
-concern, tracked by #1758.
-
-What changed with #1744 on this path is therefore not observable here: the failure is now recognized as a
-`DiagnosticException`, so it is neither written as a crash report nor sent as a telemetry report. This scenario guards
-the part that is observable, namely that the analysis continues to degrade gracefully rather than throwing.
+- `LAMA0082` is reported. The design-time pipeline resolves the compile-time reference assemblies at its entry point,
+  where it has a diagnostic sink, so the failure is returned as a failed result carrying the diagnostic, and
+  `TheDiagnosticAnalyzer` reports the diagnostics of a failed result. The user therefore sees the same actionable
+  message in the editor as in a build.
+- `CS8785` is **not** reported. Before this was fixed, the failure travelled as an exception, which escaped
+  `BaseSourceGenerator`. That class rethrows on purpose, so Roslyn reported `CS8785`, telling the user only that a
+  generator had failed, and the host simulator counted the project as failed.
+- `LAMA0001` and `AD0001` are **not** reported: the condition belongs to the environment and must be presented neither
+  as a defect of Metalama nor as an analyzer that threw.
