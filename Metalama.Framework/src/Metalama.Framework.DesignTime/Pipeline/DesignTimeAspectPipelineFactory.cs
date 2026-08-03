@@ -38,7 +38,19 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     private readonly ConcurrentDictionary<ProjectKey, DesignTimeAspectPipeline> _pipelinesByProjectKey = new();
 
     private readonly ILogger _logger;
-    private readonly ConcurrentQueue<TaskCompletionSource<DesignTimeAspectPipeline>> _newPipelineListeners = new();
+
+    /// <summary>
+    /// The callers that are waiting for the pipeline of a project that does not exist yet, indexed by an arbitrary
+    /// identifier so that a caller can remove its own entry when it stops waiting.
+    /// </summary>
+    /// <remarks>
+    /// A queue was used previously, but its entries were completed by enumerating it and were never dequeued, so the
+    /// collection grew for the lifetime of the process and an entry that was never completed retained the suspended
+    /// state machine of its waiter, and therefore the compilation that waiter had been given. See issue #1793.
+    /// </remarks>
+    private readonly ConcurrentDictionary<long, TaskCompletionSource<DesignTimeAspectPipeline>> _newPipelineListeners = new();
+
+    private long _nextPipelineListenerId;
 
     private readonly CancellationToken _globalCancellationToken;
     private readonly IMetalamaProjectClassifier _projectClassifier;
@@ -165,7 +177,9 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
                 throw new AssertionFailedException( $"The pipeline '{projectKey}' has already been created." );
             }
 
-            foreach ( var listener in this._newPipelineListeners )
+            // The entries are removed by the waiters themselves, in the finally block of GetPipelineAndWaitAsync,
+            // because a waiter must also remove its entry when it gives up because its token was cancelled.
+            foreach ( var listener in this._newPipelineListeners.Values )
             {
                 listener.TrySetResult( pipeline );
             }
@@ -445,18 +459,33 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
 
             this._logger.Trace?.Log( $"Awaiting for the pipeline '{projectKey}'." );
 
-            var taskCompletionSource = new TaskCompletionSource<DesignTimeAspectPipeline>();
+            // The continuations run asynchronously because the listeners are completed while the lock on
+            // _pipelinesByProjectKey is held, and a synchronous continuation would run arbitrary code under that lock.
+            var taskCompletionSource = new TaskCompletionSource<DesignTimeAspectPipeline>( TaskCreationOptions.RunContinuationsAsynchronously );
 
+            var listenerId = Interlocked.Increment( ref this._nextPipelineListenerId );
+
+            // The registration covers the whole wait, not only the registration of the listener. It previously
+            // covered only the latter, so a cancelled token did not end the wait and the caller was never released.
+            // TrySetCanceled is used rather than SetCanceled because the listener may already have been completed by
+            // the creation of a pipeline. See issue #1793.
 #if NET6_0_OR_GREATER
-            await using ( cancellationToken.Register( () => taskCompletionSource.SetCanceled( cancellationToken ) ) )
+            await using ( cancellationToken.Register( () => taskCompletionSource.TrySetCanceled( cancellationToken ) ) )
 #else
-            using ( cancellationToken.Register( () => taskCompletionSource.SetCanceled() ) )
+            using ( cancellationToken.Register( () => taskCompletionSource.TrySetCanceled() ) )
 #endif
             {
-                this._newPipelineListeners.Enqueue( taskCompletionSource );
-            }
+                this._newPipelineListeners[listenerId] = taskCompletionSource;
 
-            await taskCompletionSource.Task;
+                try
+                {
+                    await taskCompletionSource.Task;
+                }
+                finally
+                {
+                    this._newPipelineListeners.TryRemove( listenerId, out _ );
+                }
+            }
         }
 
         return pipeline;

@@ -28,6 +28,19 @@ public sealed class TaskBag
         this._exceptionHandler = exceptionHandler.GetRequiredService<DesignTimeExceptionHandler>();
     }
 
+    /// <summary>
+    /// Runs an asynchronous action in the background and keeps track of it until it has completed.
+    /// </summary>
+    /// <remarks>
+    /// The cancellation token is not passed to <see cref="Task.Run(Func{Task})"/> and is observed from inside the
+    /// delegate instead. When a token is given to <see cref="Task.Run(Func{Task},CancellationToken)"/> and is
+    /// signalled before the thread pool invokes the delegate, the task goes directly to the canceled state and the
+    /// delegate never runs at all. The <c>finally</c> block below, which is what removes the entry from
+    /// <see cref="_pendingTasks"/>, is part of that delegate, so the entry would stay in the dictionary forever
+    /// together with the closure that produced it, and therefore with everything that closure captured. The callers
+    /// of this class enqueue one delegate per version of a compilation and cancel the previous one, so such an entry
+    /// retains a whole Roslyn compilation. See issue #1793.
+    /// </remarks>
     internal void Enqueue( Func<Task> asyncAction, CancellationToken cancellationToken = default )
     {
         var taskId = Interlocked.Increment( ref this._nextId );
@@ -39,7 +52,16 @@ public sealed class TaskBag
             {
                 try
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     await asyncAction();
+                }
+                catch ( OperationCanceledException ) when ( cancellationToken.IsCancellationRequested )
+                {
+                    // Cancellation of the token given to this method is the normal way for the caller to abandon work
+                    // that a newer request has superseded, therefore it is not reported as an exception. The filter
+                    // restricts this to that token: an operation cancelled for any other reason, such as an inner
+                    // operation using a token of its own, still reaches the handler below.
                 }
                 catch ( Exception e )
                 {
@@ -53,8 +75,7 @@ public sealed class TaskBag
                         this._pendingTasks.TryRemove( taskId, out _ );
                     }
                 }
-            },
-            cancellationToken );
+            } );
 
         lock ( sync )
         {

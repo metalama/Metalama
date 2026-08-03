@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.CodeModel.References;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Immutable;
@@ -37,10 +38,23 @@ public sealed partial class InheritableAspectInstance : IAspectInstance, IAspect
 
     public int PredecessorDegree { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InheritableAspectInstance"/> class from an aspect instance of the
+    /// current compilation.
+    /// </summary>
+    /// <remarks>
+    /// The target declaration is converted to a durable reference. A reference obtained from the code model is bound
+    /// to the compilation it came from, through the symbol it holds and through its reference factory, and this class
+    /// is stored in the design-time results of a syntax tree, which the pipeline carries forward from one version of
+    /// the project to the next without re-analysing the file. A compilation-bound reference here therefore keeps the
+    /// compilation in which the aspect was found alive for as long as the project stays open. See issue #1793. The
+    /// reference is serialized as a declaration identifier in any case, so this only makes the in-memory form agree
+    /// with the serialized one.
+    /// </remarks>
     public InheritableAspectInstance( IAspectInstance aspectInstance )
     {
         var asPredecessor = (IAspectPredecessorImpl) aspectInstance;
-        this.TargetDeclaration = asPredecessor.TargetDeclaration;
+        this.TargetDeclaration = asPredecessor.TargetDeclaration.ToDurable();
         this.TargetDeclarationDepth = asPredecessor.TargetDeclarationDepth;
         this.Aspect = aspectInstance.Aspect;
         this._aspectClass = aspectInstance.AspectClass;
