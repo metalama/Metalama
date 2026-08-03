@@ -70,7 +70,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
                 }
 
                 return new SyntaxTreePipelineResult(
-                    this._syntaxTree == null ? DocumentKey.Compilation : this._syntaxTree.GetDocumentKey(),
+                    this._syntaxTree?.GetDocumentKey() ?? default,
                     this.Diagnostics?.ToImmutable(),
                     this.Suppressions?.ToImmutable(),
                     this.Introductions?.ToImmutable(),

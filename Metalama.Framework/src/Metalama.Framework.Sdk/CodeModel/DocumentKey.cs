@@ -56,12 +56,14 @@ public readonly struct DocumentKey : IEquatable<DocumentKey>, IComparable<Docume
     public string Path => this._path ?? "";
 
     /// <summary>
-    /// Gets a value indicating whether this key is the default value, which identifies no document.
+    /// Gets a value indicating whether this key is the default value, which identifies no document. This is the key
+    /// under which a design-time cache files what belongs to the compilation rather than to any document.
     /// </summary>
     /// <remarks>
-    /// Distinct from a key over the empty path. <c>SplitResultsByTree</c> files results that belong to the compilation
-    /// rather than to a document under the empty path, so the empty path is a legitimate key with a defined meaning
-    /// and must not be confused with the absence of a key.
+    /// The default key cannot collide with a document, which is the reason it, rather than a key over the empty path,
+    /// marks the absence of one. It wraps a null path, and no key of a document can: <see cref="FromPath"/> rejects
+    /// null and <see cref="FromSyntaxTree"/> reads <see cref="SyntaxTree.FilePath"/>, which Roslyn never returns as
+    /// null. The empty path carries no such guarantee, because a syntax tree may have one.
     /// </remarks>
     public bool IsDefault => this._path == null;
 
@@ -86,11 +88,6 @@ public readonly struct DocumentKey : IEquatable<DocumentKey>, IComparable<Docume
     /// Gets the key of the document a <see cref="SyntaxTree"/> belongs to.
     /// </summary>
     public static DocumentKey FromSyntaxTree( SyntaxTree syntaxTree ) => new( syntaxTree.FilePath );
-
-    /// <summary>
-    /// Gets the key under which results that belong to the compilation rather than to any document are filed.
-    /// </summary>
-    public static DocumentKey Compilation { get; } = new( "" );
 
     public bool Equals( DocumentKey other )
         => this._hashCode == other._hashCode && string.Equals( this._path, other._path, StringComparison.Ordinal );

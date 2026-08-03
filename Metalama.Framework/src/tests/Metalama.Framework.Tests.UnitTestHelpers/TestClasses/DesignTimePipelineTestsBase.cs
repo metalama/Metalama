@@ -73,7 +73,7 @@ public abstract class DesignTimePipelineTestsBase : UnitTestClass
 
             i++;
 
-            // Probed rather than indexed, because a result can be filed under DocumentKey.Compilation, which identifies
+            // Probed rather than indexed, because a result can be filed under the default DocumentKey, which identifies
             // no document and is therefore absent from the version index.
             var syntaxTree = results.ProjectVersion.SyntaxTrees.TryGetValue( syntaxTreeResult.SyntaxTreePath, out var syntaxTreeVersion )
                 ? syntaxTreeVersion.SyntaxTree

@@ -1856,7 +1856,7 @@ Target.cs:
                                   """;
 
         var expectedResult = $"""
-                              :
+                              (none):
                               2 diagnostic(s):
                                  Error LAMA0113 on ``: `Cannot find in the current compilation the aspect type 'MyAspect' defined in the aspect library '{aspect1AssemblyName}'.`
                                  Error LAMA0113 on ``: `Cannot find in the current compilation the aspect type 'MyAspect' defined in the aspect library '{aspect2AssemblyName}'.`
