@@ -142,6 +142,15 @@ The testing strategies and every test suite (unit, aspect, template, linker, sta
 - **Unit tests** inherit `UnitTestClass` and use `CreateTestContext()` / `CreateCompilationModel(code)`.
 - To emit output from a test, use `ITestOutputService`; for deterministic timing use `ITestSynchronizationProvider` sync points, never hardcoded delays.
 
+## Design-Time Memory
+
+The rules that keep the design-time code from accumulating memory are documented in `Metalama.Framework/docs/design-time-memory.md`. Read it before adding a field, a cache, a background task or an event handler to `Metalama.Framework.DesignTime`, and before storing anything derived from the code model in an object that outlives a single request. The core rule:
+
+- The analysis process is long-lived and Roslyn produces a **new `Compilation` per keystroke**. An object that outlives a single request must not strongly reference a `Compilation`, `SyntaxTree`, `SemanticModel`, `ISymbol`, `CompilationModel` or `PartialCompilation`, nor anything that transitively reaches one, apart from the single most recent version of the project.
+- Persist declarations as durable references (`IRef.ToDurable()`), and key caches by file path rather than by syntax tree or compilation instance.
+- Never pass a cancellation token to `Task.Run`: when the token is already signalled the delegate never runs, so any `finally` that removes the task from a pending-work collection never executes and the closure, with everything it captured, is retained forever.
+- The guard suite is `Metalama.Framework.Tests.UnitTests/DesignTime/Pipeline/MemoryLeaks/`; its `RetentionPathFinder` reports the chain of fields that retains an object when an assertion fails.
+
 ## Syntax Generation and Simplification
 
 The syntax generation pipeline intentionally produces over-specified syntax (redundant casts, fully-qualified type names, explicit `new DelegateType(methodGroup)` wrappers) to ensure correctness. The `CodeFormatter` pipeline then simplifies in context:

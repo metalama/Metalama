@@ -97,6 +97,8 @@ Some unit tests do run the real pipeline — e.g. `Aspects/AspectTestBase.cs` ru
 
 **Analyzer tests.** [`Metalama.Framework.Engine.Analyzers.Tests`](../src/tests/Metalama.Framework.Engine.Analyzers.Tests) (net8.0 only, no Roslyn variant) tests the internal Roslyn analyzers that police Metalama's own source (e.g. `KindCheckOptimizationAnalyzer`/`LAMA0860`). It does not use `UnitTestClass`; it builds raw `CSharpCompilation`s and runs `compilation.WithAnalyzers(...)`.
 
+**Memory-retention tests.** `DesignTime/Pipeline/MemoryLeaks` holds the suite that asserts that a design-time editing session releases the versions of the project it has superseded. These tests simulate an editing session and assert on the liveness of weak references after a forced collection, so they follow conventions of their own: no compilation may reach a local of the test method, the collection must be forced in several rounds, and a failure reports the chain of fields that retains the object. The rules they enforce, and the reasons for those conventions, are in [`design-time-memory.md`](design-time-memory.md). Read it before extending the suite.
+
 ## Aspect tests
 
 Aspect tests are the primary way the transformation behavior of the framework is verified. Each test is a **single C# file** placed anywhere under a project's `Tests/` tree; the framework compiles it through Metalama and compares the transformed output to a checked-in golden file.
