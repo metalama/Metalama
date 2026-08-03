@@ -70,6 +70,15 @@ public sealed class MSBuildTool
             }
         }
 
+        // MSBuild node reuse keeps worker processes alive for about fifteen minutes so that a later build can reuse
+        // them, which the short-lived builds started through this class have nothing to gain from. It is a re-entrancy
+        // hazard as well, because the reference-assembly build runs inside the compiler, hence inside a task of a
+        // build whose own nodes are occupied waiting for it. The command line of that build disables node reuse too;
+        // this variable covers any further MSBuild that the child may start on its own. It is set after the filter,
+        // because it is a requirement of the child process and not a variable inherited from this one. See issue
+        // #1740.
+        startInfo.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+
         // ReSharper disable once UsingStatementResourceInitialization
         using var process = new Process { StartInfo = startInfo };
 
