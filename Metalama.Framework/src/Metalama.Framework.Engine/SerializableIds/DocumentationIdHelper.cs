@@ -61,6 +61,21 @@ namespace Metalama.Framework.Engine.SerializableIds
         /// </summary>
         public static IDeclaration? GetFirstDeclarationForDeclarationId( string id, CompilationModel compilation )
         {
+            var results = GetDeclarationsForDeclarationId( id, compilation );
+
+            return results.Count == 0 ? null : results[0];
+        }
+
+        /// <summary>
+        /// Gets all declarations that match the declaration id string, order undefined.
+        /// </summary>
+        /// <remarks>
+        /// An identifier can match several declarations, in particular for constructors, whose identifier is written
+        /// from the source signature and therefore also matches the same constructor extended with the parameters that
+        /// an aspect pulled into it.
+        /// </remarks>
+        public static IReadOnlyList<IDeclaration> GetDeclarationsForDeclarationId( string id, CompilationModel compilation )
+        {
             if ( id == null )
             {
                 throw new ArgumentNullException( nameof(id) );
@@ -76,7 +91,7 @@ namespace Metalama.Framework.Engine.SerializableIds
             var parser = new Parser( compilation );
             parser.ParseDeclaredSymbolId( id, results );
 
-            return results.Count == 0 ? null : results[0];
+            return results;
         }
 
         private static int GetTotalTypeParameterCount( INamedType? namedType )
