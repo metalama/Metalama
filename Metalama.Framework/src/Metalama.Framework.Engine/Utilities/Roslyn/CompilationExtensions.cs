@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Utilities.Caching;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -23,21 +24,22 @@ public static class CompilationExtensions
         => _syntaxTreeIndexCache.GetOrAdd( compilation, SyntaxTreeIndex.Create );
 
     /// <summary>
-    /// Gets the syntax trees of a <see cref="Compilation"/> indexed by <see cref="SyntaxTree.FilePath"/>.
+    /// Gets the syntax trees of a <see cref="Compilation"/> indexed by <see cref="DocumentKey"/>.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// When two syntax trees share a path, the first one in the order of <see cref="Compilation.SyntaxTrees"/> is
-    /// indexed and the others are not. See <see cref="SyntaxTreeIndex"/> for why that condition is reachable and why it
-    /// is resolved rather than reported here. A caller that goes on to process the indexed trees must first remove the
-    /// others from the compilation, which <see cref="RemoveDuplicatePathSyntaxTrees"/> does.
+    /// When two syntax trees represent one document, the first one in the order of
+    /// <see cref="Compilation.SyntaxTrees"/> is indexed and the others are not. See <see cref="SyntaxTreeIndex"/> for
+    /// why that condition is reachable and why it is resolved rather than reported here. A caller that goes on to
+    /// process the indexed trees must first remove the others from the compilation, which
+    /// <see cref="RemoveDuplicatePathSyntaxTrees"/> does.
     /// </para>
     /// <para>
     /// The dictionary is read-only rather than immutable, because it is built once per compilation and never updated.
     /// </para>
     /// </remarks>
-    public static IReadOnlyDictionary<string, SyntaxTree> GetIndexedSyntaxTrees( this Compilation compilation )
-        => compilation.GetSyntaxTreeIndex().SyntaxTreesByPath;
+    public static IReadOnlyDictionary<DocumentKey, SyntaxTree> GetIndexedSyntaxTrees( this Compilation compilation )
+        => compilation.GetSyntaxTreeIndex().SyntaxTreesByDocumentKey;
 
     /// <summary>
     /// Gets the syntax trees of a <see cref="Compilation"/> that share their <see cref="SyntaxTree.FilePath"/> with an

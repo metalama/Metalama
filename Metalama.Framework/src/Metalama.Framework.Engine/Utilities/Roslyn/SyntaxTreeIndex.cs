@@ -2,16 +2,16 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
 using Microsoft.CodeAnalysis;
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Utilities.Roslyn;
 
 /// <summary>
-/// Indexes the syntax trees of a <see cref="Compilation"/> by <see cref="SyntaxTree.FilePath"/> and records the trees
-/// that had to be excluded from the index because an earlier tree already held their path.
+/// Indexes the syntax trees of a <see cref="Compilation"/> by <see cref="DocumentKey"/> and records the trees that had
+/// to be excluded from the index because an earlier tree already represented their document.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -29,65 +29,68 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 /// cross-process preview contract, so a second document at the same path would have no way of being asked for.
 /// </para>
 /// <para>
-/// The first tree of a path wins, in the order of <see cref="Compilation.SyntaxTrees"/>, which is deterministic for a
-/// given compilation. <see cref="DuplicatePathSyntaxTrees"/> holds the others so that the caller can remove them from
+/// The first tree of a document wins, in the order of <see cref="Compilation.SyntaxTrees"/>, which is deterministic for
+/// a given compilation. <see cref="DuplicatePathSyntaxTrees"/> holds the others so that the caller can remove them from
 /// the compilation as well: an index that excludes a tree the compilation still contains describes a compilation it
 /// does not match, and the pipeline would then leave that tree unrewritten while its declarations remain visible in the
 /// code model.
 /// </para>
-/// <para>
-/// Comparison is ordinal, matching <c>DocumentKey</c>. Case-insensitive comparison would match the command-line
-/// compiler on Windows and be wrong on Linux, where two paths differing in case are two files.
-/// </para>
 /// </remarks>
 internal sealed class SyntaxTreeIndex
 {
+    private readonly Dictionary<DocumentKey, SyntaxTree> _syntaxTreesByDocumentKey;
+
     /// <summary>
-    /// Gets the syntax trees of the compilation indexed by path, holding the first tree of each path.
+    /// Gets the syntax trees of the compilation indexed by <see cref="DocumentKey"/>, holding the first tree of each
+    /// document.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// Keyed by <see cref="DocumentKey"/> rather than by the path it wraps, so that a lookup made from a key reuses the
+    /// hash the key computed once, instead of hashing a long path string again on every call.
+    /// </para>
+    /// <para>
     /// A <see cref="Dictionary{TKey,TValue}"/> and not an <see cref="ImmutableDictionary{TKey,TValue}"/>. The index is
     /// built once per compilation and never updated, so the structural sharing an immutable dictionary provides buys
     /// nothing, while its cost is paid on every build and every lookup: an ordered tree walk instead of a hash lookup,
     /// and two allocations per entry instead of one array.
+    /// </para>
     /// </remarks>
-    public IReadOnlyDictionary<string, SyntaxTree> SyntaxTreesByPath => this._syntaxTreesByPath;
+    public IReadOnlyDictionary<DocumentKey, SyntaxTree> SyntaxTreesByDocumentKey => this._syntaxTreesByDocumentKey;
 
     /// <summary>
-    /// Gets the syntax trees of the compilation, one per path.
+    /// Gets the syntax trees of the compilation, one per document.
     /// </summary>
-    public IReadOnlyCollection<SyntaxTree> SyntaxTrees => this._syntaxTreesByPath.Values;
+    public IReadOnlyCollection<SyntaxTree> SyntaxTrees => this._syntaxTreesByDocumentKey.Values;
 
     /// <summary>
-    /// Gets the syntax trees that share a path with an earlier tree of the compilation, and are therefore absent from
-    /// <see cref="SyntaxTreesByPath"/>.
+    /// Gets the syntax trees that represent a document an earlier tree of the compilation already represents, and are
+    /// therefore absent from <see cref="SyntaxTreesByDocumentKey"/>.
     /// </summary>
     public ImmutableArray<SyntaxTree> DuplicatePathSyntaxTrees { get; }
 
     public bool HasDuplicatePaths => !this.DuplicatePathSyntaxTrees.IsEmpty;
 
-    private readonly Dictionary<string, SyntaxTree> _syntaxTreesByPath;
-
-    private SyntaxTreeIndex( Dictionary<string, SyntaxTree> syntaxTreesByPath, ImmutableArray<SyntaxTree> duplicatePathSyntaxTrees )
+    private SyntaxTreeIndex( Dictionary<DocumentKey, SyntaxTree> syntaxTreesByDocumentKey, ImmutableArray<SyntaxTree> duplicatePathSyntaxTrees )
     {
-        this._syntaxTreesByPath = syntaxTreesByPath;
+        this._syntaxTreesByDocumentKey = syntaxTreesByDocumentKey;
         this.DuplicatePathSyntaxTrees = duplicatePathSyntaxTrees;
     }
 
     public static SyntaxTreeIndex Create( Compilation compilation )
     {
-        var syntaxTreesByPath = new Dictionary<string, SyntaxTree>( StringComparer.Ordinal );
+        var syntaxTreesByDocumentKey = new Dictionary<DocumentKey, SyntaxTree>();
         ImmutableArray<SyntaxTree>.Builder? duplicatesBuilder = null;
 
         foreach ( var syntaxTree in compilation.SyntaxTrees )
         {
-            if ( !syntaxTreesByPath.TryAdd( syntaxTree.FilePath, syntaxTree ) )
+            if ( !syntaxTreesByDocumentKey.TryAdd( syntaxTree.GetDocumentKey(), syntaxTree ) )
             {
                 duplicatesBuilder ??= ImmutableArray.CreateBuilder<SyntaxTree>();
                 duplicatesBuilder.Add( syntaxTree );
             }
         }
 
-        return new SyntaxTreeIndex( syntaxTreesByPath, duplicatesBuilder?.ToImmutable() ?? ImmutableArray<SyntaxTree>.Empty );
+        return new SyntaxTreeIndex( syntaxTreesByDocumentKey, duplicatesBuilder?.ToImmutable() ?? ImmutableArray<SyntaxTree>.Empty );
     }
 }

@@ -22,35 +22,35 @@ internal readonly struct DependencyGraphByMasterSyntaxTree
     /// <summary>
     /// Gets the list of dependent syntax trees, by their file path.
     /// </summary>
-    public ImmutableHashSet<DocumentKey> DependentFilePaths { get; }
+    public ImmutableHashSet<DocumentKey> DependentDocumentKeys { get; }
 
     public DependencyGraphByMasterSyntaxTree( ulong declarationHash ) : this( declarationHash, _emptyDependencies ) { }
 
     private DependencyGraphByMasterSyntaxTree( ulong declarationHash, ImmutableHashSet<DocumentKey> dependentFilePaths )
     {
         this.DeclarationHash = declarationHash;
-        this.DependentFilePaths = dependentFilePaths;
+        this.DependentDocumentKeys = dependentFilePaths;
     }
 
-    public DependencyGraphByMasterSyntaxTree AddSyntaxTreeDependency( DocumentKey dependentFilePath )
+    public DependencyGraphByMasterSyntaxTree AddSyntaxTreeDependency( DocumentKey dependentDocumentKey )
     {
-        if ( this.DependentFilePaths.Contains( dependentFilePath ) )
+        if ( this.DependentDocumentKeys.Contains( dependentDocumentKey ) )
         {
             return this;
         }
         else
         {
-            return new DependencyGraphByMasterSyntaxTree( this.DeclarationHash, this.DependentFilePaths.Add( dependentFilePath ) );
+            return new DependencyGraphByMasterSyntaxTree( this.DeclarationHash, this.DependentDocumentKeys.Add( dependentDocumentKey ) );
         }
     }
 
-    public DependencyGraphByMasterSyntaxTree RemoveDependency( DocumentKey dependentFilePath )
+    public DependencyGraphByMasterSyntaxTree RemoveDependency( DocumentKey dependentDocumentKey )
     {
-        return new DependencyGraphByMasterSyntaxTree( this.DeclarationHash, this.DependentFilePaths.Remove( dependentFilePath ) );
+        return new DependencyGraphByMasterSyntaxTree( this.DeclarationHash, this.DependentDocumentKeys.Remove( dependentDocumentKey ) );
     }
 
     public DependencyGraphByMasterSyntaxTree UpdateDeclarationHash( ulong hash )
     {
-        return new DependencyGraphByMasterSyntaxTree( hash, this.DependentFilePaths );
+        return new DependencyGraphByMasterSyntaxTree( hash, this.DependentDocumentKeys );
     }
 }

@@ -12,24 +12,24 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// </summary>
 internal sealed class DependencyCollectorByDependentSyntaxTreeAndMasterProject
 {
-    private readonly Dictionary<DocumentKey, ulong> _masterFilePathsAndHashes = new();
+    private readonly Dictionary<DocumentKey, ulong> _masterDocumentKeysAndHashes = new();
     private readonly HashSet<TypeDependencyKey> _masterPartialTypes = new();
     private int _hashCode;
 
-    public DocumentKey DependentFilePath { get; }
+    public DocumentKey DependentDocumentKey { get; }
 
-    public IReadOnlyDictionary<DocumentKey, ulong> MasterFilePathsAndHashes => this._masterFilePathsAndHashes;
+    public IReadOnlyDictionary<DocumentKey, ulong> MasterDocumentKeysAndHashes => this._masterDocumentKeysAndHashes;
 
     public IReadOnlyCollection<TypeDependencyKey> MasterPartialTypes => this._masterPartialTypes;
 
     public bool Contains( TypeDependencyKey type ) => this._masterPartialTypes.Contains( type );
 
-    public DependencyCollectorByDependentSyntaxTreeAndMasterProject( DocumentKey dependentFilePath )
+    public DependencyCollectorByDependentSyntaxTreeAndMasterProject( DocumentKey dependentDocumentKey )
     {
-        this.DependentFilePath = dependentFilePath;
+        this.DependentDocumentKey = dependentDocumentKey;
     }
 
-    public void AddSyntaxTreeDependency( DocumentKey masterFilePath, ulong masterHash )
+    public void AddSyntaxTreeDependency( DocumentKey masterDocumentKey, ulong masterHash )
     {
 #if DEBUG
         if ( this._isReadOnly )
@@ -37,16 +37,16 @@ internal sealed class DependencyCollectorByDependentSyntaxTreeAndMasterProject
             throw new InvalidOperationException();
         }
 #endif
-        lock ( this._masterFilePathsAndHashes )
+        lock ( this._masterDocumentKeysAndHashes )
         {
-            if ( !this._masterFilePathsAndHashes.TryGetValue( masterFilePath, out var existingHash ) )
+            if ( !this._masterDocumentKeysAndHashes.TryGetValue( masterDocumentKey, out var existingHash ) )
             {
-                this._masterFilePathsAndHashes.Add( masterFilePath, masterHash );
-                this._hashCode ^= HashCode.Combine( masterFilePath, masterHash );
+                this._masterDocumentKeysAndHashes.Add( masterDocumentKey, masterHash );
+                this._hashCode ^= HashCode.Combine( masterDocumentKey, masterHash );
             }
             else if ( existingHash != masterHash )
             {
-                throw new AssertionFailedException( $"Hashes '{existingHash}' and '{masterHash}' do not match for '{masterFilePath}'." );
+                throw new AssertionFailedException( $"Hashes '{existingHash}' and '{masterHash}' do not match for '{masterDocumentKey}'." );
             }
         }
     }
@@ -86,15 +86,15 @@ internal sealed class DependencyCollectorByDependentSyntaxTreeAndMasterProject
         }
 
         if ( this._hashCode != other._hashCode
-             || this._masterFilePathsAndHashes.Count != other._masterFilePathsAndHashes.Count
+             || this._masterDocumentKeysAndHashes.Count != other._masterDocumentKeysAndHashes.Count
              || this._masterPartialTypes.Count != other._masterPartialTypes.Count )
         {
             return false;
         }
 
-        foreach ( var dependency in this._masterFilePathsAndHashes )
+        foreach ( var dependency in this._masterDocumentKeysAndHashes )
         {
-            if ( !other._masterFilePathsAndHashes.TryGetValue( dependency.Key, out var otherHash ) || otherHash != dependency.Value )
+            if ( !other._masterDocumentKeysAndHashes.TryGetValue( dependency.Key, out var otherHash ) || otherHash != dependency.Value )
             {
                 return false;
             }

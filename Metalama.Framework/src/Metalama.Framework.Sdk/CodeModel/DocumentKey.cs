@@ -4,6 +4,7 @@
 
 using Microsoft.CodeAnalysis;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel;
 
@@ -123,6 +124,21 @@ public static class DocumentKeyExtensions
     /// Gets the key of the document a <see cref="SyntaxTree"/> belongs to.
     /// </summary>
     public static DocumentKey GetDocumentKey( this SyntaxTree syntaxTree ) => DocumentKey.FromSyntaxTree( syntaxTree );
+
+    /// <summary>
+    /// Gets the syntax tree of an <see cref="IPartialCompilation"/> that represents the document at a given path.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="string"/> counterpart of
+    /// <see cref="IPartialCompilation.TryGetSyntaxTree(DocumentKey,out SyntaxTree)"/>, for the boundaries at which a
+    /// path arrives as a <see cref="string"/> and nothing else is available: the Roslyn analyzer callbacks and the
+    /// cross-process contracts. Everything inside those boundaries holds a <see cref="DocumentKey"/> already.
+    /// </remarks>
+    public static bool TryGetSyntaxTreeByPath(
+        this IPartialCompilation compilation,
+        string path,
+        [NotNullWhen( true )] out SyntaxTree? syntaxTree )
+        => compilation.TryGetSyntaxTree( DocumentKey.FromPath( path ), out syntaxTree );
 
     /// <summary>
     /// Gets the key of the document a <see cref="Location"/> points into, or <see langword="false"/> when the location

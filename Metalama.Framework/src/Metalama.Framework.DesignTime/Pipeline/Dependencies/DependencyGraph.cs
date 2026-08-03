@@ -37,23 +37,23 @@ internal readonly partial struct DependencyGraph
         var builder = this.ToBuilder();
 
         // Add or update dependencies.
-        foreach ( var dependenciesByDependentFilePath in dependencyCollector.DependenciesByDependentFilePath )
+        foreach ( var dependenciesByDependentDocumentKey in dependencyCollector.DependenciesByDependentDocumentKey )
         {
-            var dependentFilePath = dependenciesByDependentFilePath.Key;
+            var dependentDocumentKey = dependenciesByDependentDocumentKey.Key;
 
             // ReSharper disable once SuspiciousTypeConversion.Global
 
-            foreach ( var dependenciesByMasterProject in dependenciesByDependentFilePath.Value.DependenciesByMasterProject )
+            foreach ( var dependenciesByMasterProject in dependenciesByDependentDocumentKey.Value.DependenciesByMasterProject )
             {
                 var projectKey = dependenciesByMasterProject.Key;
-                builder.UpdateDependencies( projectKey, dependentFilePath, dependenciesByMasterProject.Value );
+                builder.UpdateDependencies( projectKey, dependentDocumentKey, dependenciesByMasterProject.Value );
             }
         }
 
         // Remove graphs for dependent syntax trees were analyzed but for which no dependency was found.
         foreach ( var syntaxTree in dependencyCollector.PartialCompilation.SyntaxTreeCollection )
         {
-            if ( !dependencyCollector.DependenciesByDependentFilePath.ContainsKey( syntaxTree.GetDocumentKey() ) )
+            if ( !dependencyCollector.DependenciesByDependentDocumentKey.ContainsKey( syntaxTree.GetDocumentKey() ) )
             {
                 // The syntax tree does not have any dependency in any compilation.
                 builder.RemoveDependentSyntaxTree( syntaxTree.GetDocumentKey() );

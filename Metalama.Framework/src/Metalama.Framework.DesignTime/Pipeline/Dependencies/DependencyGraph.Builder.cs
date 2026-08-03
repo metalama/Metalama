@@ -68,7 +68,7 @@ internal readonly partial struct DependencyGraph
 
         public void UpdateDependencies(
             ProjectKey projectKey,
-            DocumentKey dependentFilePath,
+            DocumentKey dependentDocumentKey,
             DependencyCollectorByDependentSyntaxTreeAndMasterProject dependencies )
         {
             if ( !this.GetDependenciesByCompilation().TryGetValue( projectKey, out var currentDependenciesOfCompilation ) )
@@ -77,7 +77,7 @@ internal readonly partial struct DependencyGraph
             }
 
             if ( currentDependenciesOfCompilation.TryUpdateDependencies(
-                    dependentFilePath,
+                    dependentDocumentKey,
                     dependencies,
                     out var newDependenciesOfCompilation ) )
             {

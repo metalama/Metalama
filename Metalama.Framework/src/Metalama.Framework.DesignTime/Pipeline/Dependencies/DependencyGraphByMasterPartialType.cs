@@ -16,14 +16,14 @@ internal readonly struct DependencyGraphByMasterPartialType
 
     public DependencyGraphByMasterPartialType() : this( _emptyDependencies ) { }
 
-    public DependencyGraphByMasterPartialType RemoveDependency( DocumentKey dependentFilePath ) => new( this.DependentFilePaths.Remove( dependentFilePath ) );
+    public DependencyGraphByMasterPartialType RemoveDependency( DocumentKey dependentDocumentKey ) => new( this.DependentDocumentKeys.Remove( dependentDocumentKey ) );
 
-    public ImmutableHashSet<DocumentKey> DependentFilePaths { get; }
+    public ImmutableHashSet<DocumentKey> DependentDocumentKeys { get; }
 
     private DependencyGraphByMasterPartialType( ImmutableHashSet<DocumentKey> dependentFilePaths )
     {
-        this.DependentFilePaths = dependentFilePaths;
+        this.DependentDocumentKeys = dependentFilePaths;
     }
 
-    public DependencyGraphByMasterPartialType AddPartialTypeDependency( DocumentKey dependentFilePath ) => new( this.DependentFilePaths.Add( dependentFilePath ) );
+    public DependencyGraphByMasterPartialType AddPartialTypeDependency( DocumentKey dependentDocumentKey ) => new( this.DependentDocumentKeys.Add( dependentDocumentKey ) );
 }

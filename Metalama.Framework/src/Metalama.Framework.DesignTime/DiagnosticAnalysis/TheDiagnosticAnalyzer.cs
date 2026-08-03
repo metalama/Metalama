@@ -403,7 +403,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
 
             var syntaxTree = context.SemanticModel.SyntaxTree;
 
-            if ( compilation.GetIndexedSyntaxTrees().TryGetValue( syntaxTreeFilePath, out var indexedSyntaxTree )
+            if ( compilation.GetIndexedSyntaxTrees().TryGetValue( syntaxTree.GetDocumentKey(), out var indexedSyntaxTree )
                  && indexedSyntaxTree == syntaxTree
                  && duplicates.Any( t => string.Equals( t.FilePath, syntaxTreeFilePath, StringComparison.Ordinal ) ) )
             {
@@ -432,7 +432,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
 
                 // Find the new syntax tree in the compilation.
 
-                if ( !compilation.GetIndexedSyntaxTrees().TryGetValue( reportSourceTree.FilePath, out var newSyntaxTree ) )
+                if ( !compilation.GetIndexedSyntaxTrees().TryGetValue( reportSourceTree.GetDocumentKey(), out var newSyntaxTree ) )
                 {
                     mappedLocation = Location.Create( reportSourceTree.FilePath, location.SourceSpan, location.GetLineSpan().Span );
 

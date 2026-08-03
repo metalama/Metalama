@@ -22,13 +22,13 @@ public sealed partial class DependencyCollectorTests : UnitTestClass
         var assemblyIdentity = ProjectKeyFactory.CreateTest( "DependentAssembly" );
         var dependencies = new BaseDependencyCollector( new TestProjectVersion( assemblyIdentity ) );
 
-        var dependentFilePath = DocumentKey.FromPath( "dependent.cs" );
+        var dependentDocumentKey = DocumentKey.FromPath( "dependent.cs" );
         var masterType = new TypeDependencyKey( "type" );
-        dependencies.AddPartialTypeDependency( dependentFilePath, assemblyIdentity, masterType );
+        dependencies.AddPartialTypeDependency( dependentDocumentKey, assemblyIdentity, masterType );
 
         Assert.Contains(
             masterType,
-            dependencies.DependenciesByDependentFilePath[dependentFilePath]
+            dependencies.DependenciesByDependentDocumentKey[dependentDocumentKey]
                 .DependenciesByMasterProject.Values.Single()
                 .MasterPartialTypes );
     }
@@ -39,14 +39,14 @@ public sealed partial class DependencyCollectorTests : UnitTestClass
         var projectKey = ProjectKeyFactory.CreateTest( "DependentAssembly" );
         var dependencies = new BaseDependencyCollector( new TestProjectVersion( projectKey ) );
 
-        var dependentFilePath = DocumentKey.FromPath( "dependent.cs" );
+        var dependentDocumentKey = DocumentKey.FromPath( "dependent.cs" );
         var masterType = new TypeDependencyKey( "type" );
-        dependencies.AddPartialTypeDependency( dependentFilePath, projectKey, masterType );
-        dependencies.AddPartialTypeDependency( dependentFilePath, projectKey, masterType );
+        dependencies.AddPartialTypeDependency( dependentDocumentKey, projectKey, masterType );
+        dependencies.AddPartialTypeDependency( dependentDocumentKey, projectKey, masterType );
 
         Assert.Contains(
             masterType,
-            dependencies.DependenciesByDependentFilePath[dependentFilePath]
+            dependencies.DependenciesByDependentDocumentKey[dependentDocumentKey]
                 .DependenciesByMasterProject.Values.Single()
                 .MasterPartialTypes );
     }
@@ -77,7 +77,7 @@ public sealed partial class DependencyCollectorTests : UnitTestClass
 
         var actualDependencies = string.Join(
             Environment.NewLine,
-            dependencyCollector.EnumeratePartialTypeDependencies().Select( x => $"'{x.MasterType}'->'{x.DependentFilePath}'" ).OrderBy( x => x ) );
+            dependencyCollector.EnumeratePartialTypeDependencies().Select( x => $"'{x.MasterType}'->'{x.DependentDocumentKey}'" ).OrderBy( x => x ) );
 
         const string expectedDependencies = @"'Class1'->'Class2_1.cs'
 'Class1'->'Class2_2.cs'
@@ -123,7 +123,7 @@ public sealed partial class DependencyCollectorTests : UnitTestClass
 
         var actualDependencies = string.Join(
             "\r\n",
-            dependencyCollector.EnumeratePartialTypeDependencies().Select( x => $"'{x.MasterType}'->'{x.DependentFilePath}'" ).OrderBy( x => x ) );
+            dependencyCollector.EnumeratePartialTypeDependencies().Select( x => $"'{x.MasterType}'->'{x.DependentDocumentKey}'" ).OrderBy( x => x ) );
 
         const string expectedDependencies = @"'Class1'->'Class2_1.cs'
 'Class1'->'Class2_2.cs'

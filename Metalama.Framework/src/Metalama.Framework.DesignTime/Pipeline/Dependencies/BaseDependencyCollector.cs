@@ -20,9 +20,9 @@ internal class BaseDependencyCollector
     /// </summary>
     public PartialCompilation PartialCompilation { get; }
 
-    private readonly ConcurrentDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTree> _dependenciesByDependentFilePath = new();
+    private readonly ConcurrentDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTree> _dependenciesByDependentDocumentKey = new();
 
-    public IReadOnlyDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTree> DependenciesByDependentFilePath => this._dependenciesByDependentFilePath;
+    public IReadOnlyDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTree> DependenciesByDependentDocumentKey => this._dependenciesByDependentDocumentKey;
 
     public BaseDependencyCollector( IProjectVersion projectVersion, PartialCompilation? partialCompilation = null )
     {
@@ -35,13 +35,13 @@ internal class BaseDependencyCollector
     /// </summary>
     public IEnumerable<SyntaxTreeDependency> EnumerateSyntaxTreeDependencies()
     {
-        foreach ( var dependenciesByDependentSyntaxTree in this._dependenciesByDependentFilePath )
+        foreach ( var dependenciesByDependentSyntaxTree in this._dependenciesByDependentDocumentKey )
         {
             foreach ( var dependenciesInCompilation in dependenciesByDependentSyntaxTree.Value.DependenciesByMasterProject )
             {
-                foreach ( var masterFilePath in dependenciesInCompilation.Value.MasterFilePathsAndHashes.Keys )
+                foreach ( var masterDocumentKey in dependenciesInCompilation.Value.MasterDocumentKeysAndHashes.Keys )
                 {
-                    yield return new SyntaxTreeDependency( masterFilePath, dependenciesInCompilation.Value.DependentFilePath );
+                    yield return new SyntaxTreeDependency( masterDocumentKey, dependenciesInCompilation.Value.DependentDocumentKey );
                 }
             }
         }
@@ -52,19 +52,19 @@ internal class BaseDependencyCollector
     /// </summary>
     public IEnumerable<PartialTypeDependency> EnumeratePartialTypeDependencies()
     {
-        foreach ( var dependenciesByDependentSyntaxTree in this._dependenciesByDependentFilePath )
+        foreach ( var dependenciesByDependentSyntaxTree in this._dependenciesByDependentDocumentKey )
         {
             foreach ( var dependenciesInCompilation in dependenciesByDependentSyntaxTree.Value.DependenciesByMasterProject )
             {
                 foreach ( var masterType in dependenciesInCompilation.Value.MasterPartialTypes )
                 {
-                    yield return new PartialTypeDependency( masterType, dependenciesInCompilation.Value.DependentFilePath );
+                    yield return new PartialTypeDependency( masterType, dependenciesInCompilation.Value.DependentDocumentKey );
                 }
             }
         }
     }
 
-    public void AddPartialTypeDependency( DocumentKey dependentFilePath, ProjectKey masterProjectKey, TypeDependencyKey masterPartialType )
+    public void AddPartialTypeDependency( DocumentKey dependentDocumentKey, ProjectKey masterProjectKey, TypeDependencyKey masterPartialType )
     {
 #if DEBUG
         if ( this.IsReadOnly )
@@ -73,12 +73,12 @@ internal class BaseDependencyCollector
         }
 #endif
 
-        var dependencies = this._dependenciesByDependentFilePath.GetOrAdd( dependentFilePath, x => new DependencyCollectorByDependentSyntaxTree( x ) );
+        var dependencies = this._dependenciesByDependentDocumentKey.GetOrAdd( dependentDocumentKey, x => new DependencyCollectorByDependentSyntaxTree( x ) );
 
         dependencies.AddPartialTypeDependency( masterProjectKey, masterPartialType );
     }
 
-    public void AddSyntaxTreeDependency( DocumentKey dependentFilePath, ProjectKey masterProjectKey, DocumentKey masterFilePath, ulong masterHash )
+    public void AddSyntaxTreeDependency( DocumentKey dependentDocumentKey, ProjectKey masterProjectKey, DocumentKey masterDocumentKey, ulong masterHash )
     {
 #if DEBUG
         if ( this.IsReadOnly )
@@ -87,9 +87,9 @@ internal class BaseDependencyCollector
         }
 #endif
 
-        var dependencies = this._dependenciesByDependentFilePath.GetOrAdd( dependentFilePath, x => new DependencyCollectorByDependentSyntaxTree( x ) );
+        var dependencies = this._dependenciesByDependentDocumentKey.GetOrAdd( dependentDocumentKey, x => new DependencyCollectorByDependentSyntaxTree( x ) );
 
-        dependencies.AddSyntaxTreeDependency( masterProjectKey, masterFilePath, masterHash );
+        dependencies.AddSyntaxTreeDependency( masterProjectKey, masterDocumentKey, masterHash );
     }
 
 #if DEBUG
@@ -99,7 +99,7 @@ internal class BaseDependencyCollector
     {
         this.IsReadOnly = true;
 
-        foreach ( var child in this._dependenciesByDependentFilePath.Values )
+        foreach ( var child in this._dependenciesByDependentDocumentKey.Values )
         {
             child.Freeze();
         }

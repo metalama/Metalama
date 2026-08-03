@@ -131,11 +131,11 @@ internal sealed partial class ProjectVersionProvider : IGlobalService, IDisposab
 
                     if ( syntaxTreeChange.SyntaxTreeChangeKind is SyntaxTreeChangeKind.Changed or SyntaxTreeChangeKind.Removed )
                     {
-                        if ( dependenciesOfCompilation.DependenciesByMasterFilePath.TryGetValue(
+                        if ( dependenciesOfCompilation.DependenciesByMasterDocumentKey.TryGetValue(
                                 syntaxTreeChange.DocumentKey,
                                 out var dependenciesOfSyntaxTree ) )
                         {
-                            foreach ( var dependentSyntaxTree in dependenciesOfSyntaxTree.DependentFilePaths )
+                            foreach ( var dependentSyntaxTree in dependenciesOfSyntaxTree.DependentDocumentKeys )
                             {
                                 invalidateAction( dependentSyntaxTree );
                             }
@@ -149,7 +149,7 @@ internal sealed partial class ProjectVersionProvider : IGlobalService, IDisposab
                                 partialTypeChange.Type,
                                 out var dependenciesOfPartialType ) )
                         {
-                            foreach ( var dependentSyntaxTree in dependenciesOfPartialType.DependentFilePaths )
+                            foreach ( var dependentSyntaxTree in dependenciesOfPartialType.DependentDocumentKeys )
                             {
                                 invalidateAction( dependentSyntaxTree );
                             }

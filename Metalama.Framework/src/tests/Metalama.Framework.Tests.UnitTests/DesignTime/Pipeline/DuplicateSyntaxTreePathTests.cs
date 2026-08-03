@@ -87,7 +87,7 @@ public sealed class DuplicateSyntaxTreePathTests : UnitTestClass
 
         var index = compilation.GetIndexedSyntaxTrees();
 
-        Assert.True( index.ContainsKey( _duplicatePath ) );
+        Assert.True( index.ContainsKey( DocumentKey.FromPath( _duplicatePath ) ) );
     }
 
     /// <summary>

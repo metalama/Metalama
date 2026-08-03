@@ -242,7 +242,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
             return new PartialImpl(
                 compilationContext,
-                closure.Trees.ToImmutableDictionary( t => t.FilePath, t => t ),
+                closure.Trees.ToImmutableDictionary( t => t.GetDocumentKey(), t => t ),
                 observedSyntaxTreePaths: null,
                 closure.DeclaredTypes,
                 new Lazy<DerivedTypeIndex>( () => closure.DerivedTypeIndex ),
@@ -267,7 +267,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
             return new PartialImpl(
                 compilationContext,
-                closure.Trees.ToImmutableDictionary( t => t.FilePath, t => t ),
+                closure.Trees.ToImmutableDictionary( t => t.GetDocumentKey(), t => t ),
                 observedSyntaxTreePaths,
                 closure.DeclaredTypes.ToImmutableHashSet(),
                 new Lazy<DerivedTypeIndex>( () => closure.DerivedTypeIndex ),
@@ -341,7 +341,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
             foreach ( var requestedSyntaxTree in requestedSyntaxTrees )
             {
-                if ( syntaxTreesByPath.TryGetValue( requestedSyntaxTree.FilePath, out var mappedSyntaxTree )
+                if ( syntaxTreesByPath.TryGetValue( requestedSyntaxTree.GetDocumentKey(), out var mappedSyntaxTree )
                      && !mappedSyntaxTrees.Contains( mappedSyntaxTree ) )
                 {
                     mappedSyntaxTrees.Add( mappedSyntaxTree );

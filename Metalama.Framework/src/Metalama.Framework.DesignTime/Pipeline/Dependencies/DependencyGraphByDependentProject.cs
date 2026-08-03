@@ -13,10 +13,10 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// </summary>
 internal readonly struct DependencyGraphByDependentProject
 {
-    private static readonly ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree> _emptyDependenciesByMasterFilePath =
+    private static readonly ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree> _emptyDependenciesByMasterDocumentKey =
         ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree>.Empty;
 
-    private static readonly ImmutableDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> _emptyDependenciesByDependentFilePath =
+    private static readonly ImmutableDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> _emptyDependenciesByDependentDocumentKey =
         ImmutableDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject>.Empty;
 
     public ProjectKey ProjectKey { get; }
@@ -24,35 +24,35 @@ internal readonly struct DependencyGraphByDependentProject
     /// <summary>
     /// Gets the list of dependencies on syntax trees within the master compilation, indexed by file path.
     /// </summary>
-    public ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree> DependenciesByMasterFilePath { get; }
+    public ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree> DependenciesByMasterDocumentKey { get; }
 
     public ImmutableDictionary<TypeDependencyKey, DependencyGraphByMasterPartialType> DependenciesByMasterPartialType { get; }
 
-    public bool IsEmpty => this.DependenciesByMasterFilePath.Count == 0 && this.DependenciesByMasterPartialType.Count == 0;
+    public bool IsEmpty => this.DependenciesByMasterDocumentKey.Count == 0 && this.DependenciesByMasterPartialType.Count == 0;
 
-    internal ImmutableDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> DependenciesByDependentFilePath { get; }
+    internal ImmutableDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> DependenciesByDependentDocumentKey { get; }
 
     public DependencyGraphByDependentProject( ProjectKey projectKey ) : this(
         projectKey,
-        _emptyDependenciesByMasterFilePath,
+        _emptyDependenciesByMasterDocumentKey,
         ImmutableDictionary<TypeDependencyKey, DependencyGraphByMasterPartialType>.Empty,
-        _emptyDependenciesByDependentFilePath ) { }
+        _emptyDependenciesByDependentDocumentKey ) { }
 
     private DependencyGraphByDependentProject(
         ProjectKey projectKey,
-        ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree> dependenciesByMasterFilePath,
+        ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree> dependenciesByMasterDocumentKey,
         ImmutableDictionary<TypeDependencyKey, DependencyGraphByMasterPartialType> dependenciesByMasterPartialType,
-        ImmutableDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> dependenciesByDependentFilePath )
+        ImmutableDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> dependenciesByDependentDocumentKey )
     {
         this.ProjectKey = projectKey;
-        this.DependenciesByMasterFilePath = dependenciesByMasterFilePath;
+        this.DependenciesByMasterDocumentKey = dependenciesByMasterDocumentKey;
         this.DependenciesByMasterPartialType = dependenciesByMasterPartialType;
-        this.DependenciesByDependentFilePath = dependenciesByDependentFilePath;
+        this.DependenciesByDependentDocumentKey = dependenciesByDependentDocumentKey;
     }
 
-    public bool TryRemoveDependentSyntaxTree( DocumentKey dependentFilePath, out DependencyGraphByDependentProject newDependenciesGraph )
+    public bool TryRemoveDependentSyntaxTree( DocumentKey dependentDocumentKey, out DependencyGraphByDependentProject newDependenciesGraph )
     {
-        if ( !this.DependenciesByDependentFilePath.TryGetValue( dependentFilePath, out var oldDependencies ) )
+        if ( !this.DependenciesByDependentDocumentKey.TryGetValue( dependentDocumentKey, out var oldDependencies ) )
         {
             // There is nothing to do because the dependency was not present.
             newDependenciesGraph = this;
@@ -61,23 +61,23 @@ internal readonly struct DependencyGraphByDependentProject
         }
 
         // Update syntax tree dependencies.
-        var dependenciesByMasterFilePathBuilder = this.DependenciesByMasterFilePath.ToBuilder();
+        var dependenciesByMasterFilePathBuilder = this.DependenciesByMasterDocumentKey.ToBuilder();
 
-        foreach ( var oldMasterFilePathAndHash in oldDependencies.MasterFilePathsAndHashes )
+        foreach ( var oldMasterFilePathAndHash in oldDependencies.MasterDocumentKeysAndHashes )
         {
-            var masterFilePath = oldMasterFilePathAndHash.Key;
+            var masterDocumentKey = oldMasterFilePathAndHash.Key;
 
-            if ( dependenciesByMasterFilePathBuilder.TryGetValue( masterFilePath, out var syntaxTreeDependencies ) )
+            if ( dependenciesByMasterFilePathBuilder.TryGetValue( masterDocumentKey, out var syntaxTreeDependencies ) )
             {
-                var newSyntaxTreeDependencies = syntaxTreeDependencies.RemoveDependency( dependentFilePath );
+                var newSyntaxTreeDependencies = syntaxTreeDependencies.RemoveDependency( dependentDocumentKey );
 
-                if ( newSyntaxTreeDependencies.DependentFilePaths.IsEmpty )
+                if ( newSyntaxTreeDependencies.DependentDocumentKeys.IsEmpty )
                 {
-                    dependenciesByMasterFilePathBuilder.Remove( masterFilePath );
+                    dependenciesByMasterFilePathBuilder.Remove( masterDocumentKey );
                 }
                 else
                 {
-                    dependenciesByMasterFilePathBuilder[masterFilePath] = newSyntaxTreeDependencies;
+                    dependenciesByMasterFilePathBuilder[masterDocumentKey] = newSyntaxTreeDependencies;
                 }
             }
         }
@@ -89,9 +89,9 @@ internal readonly struct DependencyGraphByDependentProject
         {
             if ( dependenciesByMasterPartialTypesBuilder.TryGetValue( type, out var typeDependencies ) )
             {
-                var newTypeDependencies = typeDependencies.RemoveDependency( dependentFilePath );
+                var newTypeDependencies = typeDependencies.RemoveDependency( dependentDocumentKey );
 
-                if ( newTypeDependencies.DependentFilePaths.IsEmpty )
+                if ( newTypeDependencies.DependentDocumentKeys.IsEmpty )
                 {
                     dependenciesByMasterPartialTypesBuilder.Remove( type );
                 }
@@ -106,18 +106,18 @@ internal readonly struct DependencyGraphByDependentProject
             this.ProjectKey,
             dependenciesByMasterFilePathBuilder.ToImmutable(),
             dependenciesByMasterPartialTypesBuilder.ToImmutable(),
-            this.DependenciesByDependentFilePath.Remove( dependentFilePath ) );
+            this.DependenciesByDependentDocumentKey.Remove( dependentDocumentKey ) );
 
         return true;
     }
 
     public bool TryUpdateDependencies(
-        DocumentKey dependentFilePath,
+        DocumentKey dependentDocumentKey,
         DependencyCollectorByDependentSyntaxTreeAndMasterProject dependencies,
         out DependencyGraphByDependentProject newDependenciesGraph )
     {
         // Check if there is any change.
-        if ( this.DependenciesByDependentFilePath.TryGetValue( dependentFilePath, out var oldDependencies )
+        if ( this.DependenciesByDependentDocumentKey.TryGetValue( dependentDocumentKey, out var oldDependencies )
              && dependencies.IsStructurallyEqual( oldDependencies ) )
         {
             newDependenciesGraph = this;
@@ -125,11 +125,11 @@ internal readonly struct DependencyGraphByDependentProject
             return false;
         }
 
-        var dependenciesByMasterFilePathBuilder = this.DependenciesByMasterFilePath.ToBuilder();
+        var dependenciesByMasterFilePathBuilder = this.DependenciesByMasterDocumentKey.ToBuilder();
         var dependenciesByMasterPartialTypeBuilder = this.DependenciesByMasterPartialType.ToBuilder();
 
         // Add syntax tree dependencies.
-        foreach ( var masterFilePathAndHash in dependencies.MasterFilePathsAndHashes )
+        foreach ( var masterFilePathAndHash in dependencies.MasterDocumentKeysAndHashes )
         {
             if ( !dependenciesByMasterFilePathBuilder.TryGetValue( masterFilePathAndHash.Key, out var syntaxTreeDependencies ) )
             {
@@ -140,7 +140,7 @@ internal readonly struct DependencyGraphByDependentProject
                 syntaxTreeDependencies = syntaxTreeDependencies.UpdateDeclarationHash( masterFilePathAndHash.Value );
             }
 
-            dependenciesByMasterFilePathBuilder[masterFilePathAndHash.Key] = syntaxTreeDependencies.AddSyntaxTreeDependency( dependentFilePath );
+            dependenciesByMasterFilePathBuilder[masterFilePathAndHash.Key] = syntaxTreeDependencies.AddSyntaxTreeDependency( dependentDocumentKey );
         }
 
         // Add partial type dependencies.
@@ -151,29 +151,29 @@ internal readonly struct DependencyGraphByDependentProject
                 partialTypeDependencies = new DependencyGraphByMasterPartialType();
             }
 
-            dependenciesByMasterPartialTypeBuilder[masterPartialType] = partialTypeDependencies.AddPartialTypeDependency( dependentFilePath );
+            dependenciesByMasterPartialTypeBuilder[masterPartialType] = partialTypeDependencies.AddPartialTypeDependency( dependentDocumentKey );
         }
 
         if ( oldDependencies != null )
         {
             // Remove syntax tree dependencies.
-            foreach ( var oldMasterFilePathAndHash in oldDependencies.MasterFilePathsAndHashes )
+            foreach ( var oldMasterFilePathAndHash in oldDependencies.MasterDocumentKeysAndHashes )
             {
-                var masterFilePath = oldMasterFilePathAndHash.Key;
+                var masterDocumentKey = oldMasterFilePathAndHash.Key;
 
-                if ( !dependencies.MasterFilePathsAndHashes.ContainsKey( masterFilePath ) )
+                if ( !dependencies.MasterDocumentKeysAndHashes.ContainsKey( masterDocumentKey ) )
                 {
-                    if ( dependenciesByMasterFilePathBuilder.TryGetValue( masterFilePath, out var syntaxTreeDependencies ) )
+                    if ( dependenciesByMasterFilePathBuilder.TryGetValue( masterDocumentKey, out var syntaxTreeDependencies ) )
                     {
-                        var newSyntaxTreeDependencies = syntaxTreeDependencies.RemoveDependency( dependentFilePath );
+                        var newSyntaxTreeDependencies = syntaxTreeDependencies.RemoveDependency( dependentDocumentKey );
 
-                        if ( newSyntaxTreeDependencies.DependentFilePaths.IsEmpty )
+                        if ( newSyntaxTreeDependencies.DependentDocumentKeys.IsEmpty )
                         {
-                            dependenciesByMasterFilePathBuilder.Remove( masterFilePath );
+                            dependenciesByMasterFilePathBuilder.Remove( masterDocumentKey );
                         }
                         else
                         {
-                            dependenciesByMasterFilePathBuilder[masterFilePath] = newSyntaxTreeDependencies;
+                            dependenciesByMasterFilePathBuilder[masterDocumentKey] = newSyntaxTreeDependencies;
                         }
                     }
                 }
@@ -187,9 +187,9 @@ internal readonly struct DependencyGraphByDependentProject
                 {
                     if ( dependenciesByMasterPartialTypeBuilder.TryGetValue( type, out var partialTypeDependencies ) )
                     {
-                        var newPartialTypeDependencies = partialTypeDependencies.RemoveDependency( dependentFilePath );
+                        var newPartialTypeDependencies = partialTypeDependencies.RemoveDependency( dependentDocumentKey );
 
-                        if ( newPartialTypeDependencies.DependentFilePaths.IsEmpty )
+                        if ( newPartialTypeDependencies.DependentDocumentKeys.IsEmpty )
                         {
                             dependenciesByMasterPartialTypeBuilder.Remove( type );
                         }
@@ -206,7 +206,7 @@ internal readonly struct DependencyGraphByDependentProject
             this.ProjectKey,
             dependenciesByMasterFilePathBuilder.ToImmutable(),
             dependenciesByMasterPartialTypeBuilder.ToImmutable(),
-            this.DependenciesByDependentFilePath.SetItem( dependentFilePath, dependencies ) );
+            this.DependenciesByDependentDocumentKey.SetItem( dependentDocumentKey, dependencies ) );
 
         return true;
     }

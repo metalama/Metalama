@@ -49,7 +49,7 @@ public sealed class TransformationPreviewServiceImpl : PreviewPipelineBasedServi
             return SerializablePreviewTransformationResult.Failure( errorMessages );
         }
 
-        if ( !pipelineResult.Value.TryGetSyntaxTree( DocumentKey.FromPath( syntaxTreeName ), out var transformedSyntaxTree ) )
+        if ( !pipelineResult.Value.TryGetSyntaxTreeByPath( syntaxTreeName, out var transformedSyntaxTree ) )
         {
             return SerializablePreviewTransformationResult.Failure( [$"The transformed compilation does not contain a syntax tree for '{syntaxTreeName}'."] );
         }

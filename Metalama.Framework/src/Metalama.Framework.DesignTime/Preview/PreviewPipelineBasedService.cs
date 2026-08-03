@@ -101,10 +101,10 @@ public abstract class PreviewPipelineBasedService
         }
 
         // Get all syntax trees that the given syntax tree depends on.
-        var dependenciesByDependentFilePath = pipeline.Dependencies.DependenciesByMasterProject.GetValueOrDefault( projectKey ).DependenciesByDependentFilePath;
+        var dependenciesByDependentDocumentKey = pipeline.Dependencies.DependenciesByMasterProject.GetValueOrDefault( projectKey ).DependenciesByDependentDocumentKey;
 
         var syntaxTreeNames = syntaxTreeName.SelectManyRecursiveDistinct(
-            treeName => dependenciesByDependentFilePath?.GetValueOrDefault( DocumentKey.FromPath( treeName ) )?.MasterFilePathsAndHashes.Keys.Select( k => k.Path ) ?? [],
+            treeName => dependenciesByDependentDocumentKey?.GetValueOrDefault( DocumentKey.FromPath( treeName ) )?.MasterDocumentKeysAndHashes.Keys.Select( k => k.Path ) ?? [],
             includeRoot: true );
 
         // Find the syntax trees of the given names.

@@ -162,7 +162,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
         this.Logger.Trace?.Log( $"Processing change notification from dependent project '{data.ProjectKey}'." );
 
-        if ( !data.IsPartialCompilation || data.SyntaxTreePaths.Any( p => dependenciesInThisProject.DependenciesByMasterFilePath.ContainsKey( DocumentKey.FromPath( p ) ) ) )
+        if ( !data.IsPartialCompilation || data.SyntaxTreePaths.Any( p => dependenciesInThisProject.DependenciesByMasterDocumentKey.ContainsKey( DocumentKey.FromPath( p ) ) ) )
         {
             this.Logger.Trace?.Log( $"Processing change notification from dependent project '{data.ProjectKey}': the current project may be affected." );
             this._eventHub?.OnProjectDirty( this.ProjectKey );

@@ -40,12 +40,12 @@ namespace Metalama.Framework.Engine.CodeModel
             [Memo]
             [Obsolete( "Use SyntaxTreeCollection to enumerate the syntax trees, or TryGetSyntaxTree to find one by its DocumentKey." )]
             public override ImmutableDictionary<string, SyntaxTree> SyntaxTrees
-                => this.Compilation.GetIndexedSyntaxTrees().ToImmutableDictionary( x => x.Key, x => x.Value, StringComparer.Ordinal );
+                => this.Compilation.GetIndexedSyntaxTrees().ToImmutableDictionary( x => x.Key.Path, x => x.Value, StringComparer.Ordinal );
 
             public override IReadOnlyCollection<SyntaxTree> SyntaxTreeCollection => this.Compilation.GetSyntaxTreeIndex().SyntaxTrees;
 
             public override bool TryGetSyntaxTree( DocumentKey documentKey, [NotNullWhen( true )] out SyntaxTree? syntaxTree )
-                => this.Compilation.GetIndexedSyntaxTrees().TryGetValue( documentKey.Path, out syntaxTree );
+                => this.Compilation.GetIndexedSyntaxTrees().TryGetValue( documentKey, out syntaxTree );
 
             [Memo]
             public override ImmutableHashSet<INamedTypeSymbol> Types => this.Compilation.SourceModule.GetTypes().ToImmutableHashSet();

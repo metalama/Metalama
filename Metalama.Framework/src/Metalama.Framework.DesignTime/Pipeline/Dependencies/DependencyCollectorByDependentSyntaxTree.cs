@@ -15,17 +15,17 @@ internal sealed class DependencyCollectorByDependentSyntaxTree
 {
     private readonly ConcurrentDictionary<ProjectKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> _dependenciesByMasterProject = new();
 
-    public DocumentKey DependentFilePath { get; }
+    public DocumentKey DependentDocumentKey { get; }
 
     public IReadOnlyDictionary<ProjectKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> DependenciesByMasterProject
         => this._dependenciesByMasterProject;
 
-    public DependencyCollectorByDependentSyntaxTree( DocumentKey dependentFilePath )
+    public DependencyCollectorByDependentSyntaxTree( DocumentKey dependentDocumentKey )
     {
-        this.DependentFilePath = dependentFilePath;
+        this.DependentDocumentKey = dependentDocumentKey;
     }
 
-    public void AddSyntaxTreeDependency( ProjectKey masterCompilation, DocumentKey masterFilePath, ulong masterHash )
+    public void AddSyntaxTreeDependency( ProjectKey masterCompilation, DocumentKey masterDocumentKey, ulong masterHash )
     {
 #if DEBUG
         if ( this._isReadOnly )
@@ -37,9 +37,9 @@ internal sealed class DependencyCollectorByDependentSyntaxTree
         var compilationCollector = this._dependenciesByMasterProject.GetOrAdd(
             masterCompilation,
             static ( _, path ) => new DependencyCollectorByDependentSyntaxTreeAndMasterProject( path ),
-            this.DependentFilePath );
+            this.DependentDocumentKey );
 
-        compilationCollector.AddSyntaxTreeDependency( masterFilePath, masterHash );
+        compilationCollector.AddSyntaxTreeDependency( masterDocumentKey, masterHash );
     }
 
     public void AddPartialTypeDependency( ProjectKey masterProject, TypeDependencyKey masterPartialType )
@@ -54,7 +54,7 @@ internal sealed class DependencyCollectorByDependentSyntaxTree
         var compilationCollector = this._dependenciesByMasterProject.GetOrAdd(
             masterProject,
             static ( _, path ) => new DependencyCollectorByDependentSyntaxTreeAndMasterProject( path ),
-            this.DependentFilePath );
+            this.DependentDocumentKey );
 
         compilationCollector.AddPartialTypeDependency( masterPartialType );
     }
