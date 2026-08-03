@@ -104,7 +104,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
         // first point of the pipeline that has a diagnostic sink. Resolving them runs a nested build, which fails for
         // reasons that belong to the environment, and such a failure must be reported as a diagnostic of this pipeline
         // instead of being thrown through the layers above. See issue #1744.
-        if ( !this.ServiceProvider.TryResolveReferenceAssemblies( new DiagnosticAdderAdapter( reportDiagnostic ) ) )
+        if ( !this.TryResolveReferenceAssemblies( new DiagnosticAdderAdapter( reportDiagnostic ) ) )
         {
             return default;
         }

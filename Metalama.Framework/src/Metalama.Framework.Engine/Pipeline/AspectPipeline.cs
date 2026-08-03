@@ -82,6 +82,20 @@ public abstract class AspectPipeline : IDisposable
 
     protected abstract SyntaxGenerationOptions GetSyntaxGenerationOptions();
 
+    /// <summary>
+    /// Resolves the compile-time reference assemblies of the project, and reports to <paramref name="diagnostics"/>
+    /// and returns <c>false</c> when they cannot be resolved.
+    /// </summary>
+    /// <remarks>
+    /// Resolving them runs a nested build, which fails for reasons that belong to the environment rather than to
+    /// Metalama. A pipeline calls this method at its entry point, which is the first point that has a diagnostic sink,
+    /// so that the failure becomes one of its own diagnostics instead of an exception thrown through the layers above.
+    /// Every later use of the locator in the same project then finds it already resolved. See issue #1744.
+    /// </remarks>
+    protected bool TryResolveReferenceAssemblies( IDiagnosticAdder diagnostics )
+        => this.ServiceProvider.Global.GetRequiredService<ICompileTimeAssemblyLocatorProvider>()
+            .TryGetInstance( this.ServiceProvider, diagnostics, out _ );
+
     protected virtual bool TryInitialize(
         IDiagnosticAdder diagnosticAdder,
         Compilation compilation,

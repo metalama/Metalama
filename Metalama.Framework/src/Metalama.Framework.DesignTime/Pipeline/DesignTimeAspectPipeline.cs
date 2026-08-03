@@ -802,7 +802,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         // user only that a generator failed. See issue #1744.
         var referenceAssemblyDiagnostics = new DiagnosticBag();
 
-        if ( !this.ServiceProvider.TryResolveReferenceAssemblies( referenceAssemblyDiagnostics ) )
+        if ( !this.TryResolveReferenceAssemblies( referenceAssemblyDiagnostics ) )
         {
             return FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>.Failed( referenceAssemblyDiagnostics.ToImmutableArray() );
         }
