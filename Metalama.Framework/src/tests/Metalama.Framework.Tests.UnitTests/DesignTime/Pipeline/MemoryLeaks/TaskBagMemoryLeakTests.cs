@@ -86,6 +86,30 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
     }
 
     /// <summary>
+    /// Waits until every task of the bag has run, so that the assertions that follow do not depend on the scheduling
+    /// of the thread pool.
+    /// </summary>
+    /// <remarks>
+    /// The entry of a task is removed by the task itself, therefore an assertion made before the task has run would
+    /// observe a bag that is merely still busy. A bag that strands a task leaves it in the canceled state, which
+    /// <see cref="TaskBag.WaitAllAsync"/> surfaces as an exception. That exception is swallowed here, because it is
+    /// the very defect that the assertions of the caller are there to diagnose, and their failure message names the
+    /// field that retains the compilation. The cancellation of the test context is not swallowed, so a bag that never
+    /// completes fails the test rather than hanging it.
+    /// </remarks>
+    private static async Task WaitForPendingTasksAsync( TaskBag taskBag, TestContext testContext )
+    {
+        try
+        {
+            await taskBag.WaitAllAsync( testContext.CancellationToken );
+        }
+        catch ( OperationCanceledException ) when ( !testContext.CancellationToken.IsCancellationRequested )
+        {
+            // See the remarks above.
+        }
+    }
+
+    /// <summary>
     /// Verifies that a task that completes normally is removed from the bag and does not retain what it captured.
     /// </summary>
     /// <remarks>
@@ -123,7 +147,7 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
     /// with the closure that produced it.
     /// </remarks>
     [Fact]
-    public void CancelledBeforeStart_TaskIsRemovedFromTheBag()
+    public async Task CancelledBeforeStart_TaskIsRemovedFromTheBag()
     {
         using var testContext = this.CreateTestContext();
         var taskBag = CreateTaskBag( testContext );
@@ -136,6 +160,8 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
             taskBag,
             nameof(this.CancelledBeforeStart_TaskIsRemovedFromTheBag),
             cancellationTokenSource.Token );
+
+        await WaitForPendingTasksAsync( taskBag, testContext );
 
         // The memory consequence is asserted first, because its failure message contains the chain of references that
         // retains the compilation, which is the information needed to act on the defect.
@@ -155,7 +181,7 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
     /// grows with the number of keystrokes, which is the shape of the growth that has been reported.
     /// </remarks>
     [Fact]
-    public void RepeatedCancellationBeforeStart_DoesNotAccumulate()
+    public async Task RepeatedCancellationBeforeStart_DoesNotAccumulate()
     {
         using var testContext = this.CreateTestContext();
         var taskBag = CreateTaskBag( testContext );
@@ -174,6 +200,8 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
                 $"{nameof(this.RepeatedCancellationBeforeStart_DoesNotAccumulate)}{i}",
                 cancellationTokenSource.Token );
         }
+
+        await WaitForPendingTasksAsync( taskBag, testContext );
 
         MemoryLeakAssert.AtMostAlive(
             compilations,

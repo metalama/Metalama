@@ -115,6 +115,8 @@ public sealed class SourceGeneratorMemoryLeakTests : DesignTimeTestBase
             testContext.ProjectOptions,
             projectKey );
 
+        Exception? disposeException = null;
+
         try
         {
             const int editCount = 15;
@@ -130,16 +132,27 @@ public sealed class SourceGeneratorMemoryLeakTests : DesignTimeTestBase
         finally
         {
             // The source generator is not disposed by a using statement, because disposing it waits for the pending
-            // tasks and therefore throws when one of them was cancelled. An exception raised while the stack is
-            // unwinding replaces the exception that the assertion raised, and would hide the result of the test.
+            // tasks and therefore throws when one of them was stranded in the canceled state. An exception raised
+            // while the stack is unwinding replaces the exception that the assertion raised, and would hide the
+            // result of the test. The failure is recorded instead and reported below.
             try
             {
                 sourceGenerator.Dispose();
             }
             catch ( Exception e )
             {
-                this.TestOutput.WriteLine( $"Disposing the source generator failed, which is a second symptom of the same defect: {e.Message}" );
+                disposeException = e;
             }
+        }
+
+        // This is only reached when the assertion above succeeded, because an assertion failure propagates through
+        // the finally block. A disposal that fails at this point is the second symptom of the same defect, so it
+        // fails the test rather than being merely logged.
+        if ( disposeException != null )
+        {
+            Assert.Fail(
+                "The compilations were released, but disposing the source generator failed. Disposal waits for the "
+                + $"pending tasks, so this means one of them was left in the canceled state: {disposeException}" );
         }
     }
 

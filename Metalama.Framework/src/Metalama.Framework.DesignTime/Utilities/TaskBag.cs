@@ -56,10 +56,12 @@ public sealed class TaskBag
 
                     await asyncAction();
                 }
-                catch ( OperationCanceledException )
+                catch ( OperationCanceledException ) when ( cancellationToken.IsCancellationRequested )
                 {
-                    // Cancellation is the normal way for the caller to abandon work that a newer request has
-                    // superseded, therefore it is not reported as an exception.
+                    // Cancellation of the token given to this method is the normal way for the caller to abandon work
+                    // that a newer request has superseded, therefore it is not reported as an exception. The filter
+                    // restricts this to that token: an operation cancelled for any other reason, such as an inner
+                    // operation using a token of its own, still reaches the handler below.
                 }
                 catch ( Exception e )
                 {
