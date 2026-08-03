@@ -245,14 +245,25 @@ This is worth re-checking after any change on that surface, because the mistake 
 grep -rn "Task\.WarnIfLongAsync" --include=*.cs . | grep -v WithCancellation
 ```
 
-### `WithCancellation` leaves a small object behind per cancelled wait
+### `WithCancellation` does not leave anything behind: measured, contrary to a claim made here earlier
 
-The fix above releases the awaiting frame, which is what matters, because that frame is what holds the Roslyn objects.
-It does not detach the `Task.WhenAny` continuation from the source that is never completed, so a cancelled wait leaves
-a promise of about a hundred bytes attached to it. That is unbounded over a session in which no client ever connects,
-though it holds nothing bound to a compilation. The shape that avoids it is a collection of waiters an entry can be
-removed from, as in the `DesignTimeAspectPipelineFactory` fix for
-[#1793](https://github.com/metalama/Metalama/issues/1793). This was reasoned about rather than measured.
+An earlier revision of this section stated that a cancelled `WithCancellation` leaves a `Task.WhenAny` continuation on
+the task it waited for, and that this accumulates on a task that never completes. **That is false, and it was asserted
+from reading the code rather than from measuring it.**
+
+`Task.WhenAny` removes its continuation from the task that did not win. Measured on a task that is never completed, the
+number of continuations left after 10, 100 and 1000 cancelled waits is the same small constant, for both
+implementations in use: `TaskExtensions.WithCancellation` of this codebase, and
+`Microsoft.VisualStudio.Threading.ThreadingTools.WithCancellation`, which the two waits in
+`Metalama.Framework.DesignTime.Rpc` resolve to because that project does not reference the engine.
+
+`WithCancellationMemoryLeakTests` holds the property, since it belongs to the runtime and to a third-party library
+rather than to this codebase, and nothing else here would notice its loss. It counts continuations by reflection over
+a private field of `Task`, which is the only way to observe something that no public API exposes and that no weak
+reference can track.
+
+The lesson is the one this section exists to enforce: an entry here has to say whether it was measured or reasoned
+about, and a reasoned one is a question rather than a finding.
 
 ### `TransitiveAspectInstance` retains the compilation it was produced in
 
