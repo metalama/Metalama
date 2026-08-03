@@ -223,6 +223,82 @@ one version at a time and waits for each to be analysed never cancels anything a
 why the growth was so hard to reproduce outside a real editing session. When testing a component that cancels
 superseded work, the test must cancel too.
 
+## Known residuals
+
+What follows is deliberately not fixed, or not fixed everywhere. It is recorded here rather than left in a pull
+request description, because the next person to work on design-time memory will read this document and not that.
+Please keep the list honest: strike an entry when it is closed, and add one rather than leaving a repair half-applied.
+
+### Two remaining uncancellable waits on a task completion source
+
+`RpcService.WaitUntilInitializedAsync` was fixed for [#1799](https://github.com/metalama/Metalama/issues/1799), but the
+same pattern survives in two places:
+
+- `Metalama.Framework.DesignTime/VisualStudio/ServiceProvider/RpcServiceProviderServerEndpoint.cs:133`, on
+  `_hubRegistrationTask`, which `OnServerPipeCreatedAsync` leaves uncompleted when the Visual Studio extension is
+  absent.
+- `Metalama.Framework.DesignTime.Rpc/ClientEndpoint.cs:140`, on an entry of `_clientAwaiters`, which is not completed
+  when a connection attempt fails: the catch path calls `RpcClient.SetFailure`, which completes the client's own
+  source and not the awaiter.
+
+Both pass the cancellation token to `WarnIfLongAsync` alone, which is the defect: that method uses the token for its
+own delay and returns the original task untouched when warning logging is disabled. The fix is the one already applied
+to `RpcService`, namely to compose with `WithCancellation` first. Tracked by
+[#1800](https://github.com/metalama/Metalama/issues/1800).
+
+To find any recurrence:
+
+```bash
+grep -rn "Task\.WarnIfLongAsync" --include=*.cs . | grep -v WithCancellation
+```
+
+### `WithCancellation` leaves a small object behind per cancelled wait
+
+The fix above releases the awaiting frame, which is what matters, because that frame is what holds the Roslyn objects.
+It does not detach the `Task.WhenAny` continuation from the source that is never completed, so a cancelled wait leaves
+a promise of about a hundred bytes attached to it. That is unbounded over a session in which no client ever connects,
+though it holds nothing bound to a compilation. The shape that avoids it is a collection of waiters an entry can be
+removed from, as in the `DesignTimeAspectPipelineFactory` fix for
+[#1793](https://github.com/metalama/Metalama/issues/1793). This was reasoned about rather than measured.
+
+### `TransitiveAspectInstance` retains the compilation it was produced in
+
+Bounded to one version, and tracked by [#1797](https://github.com/metalama/Metalama/issues/1797). Its target
+declaration closes with `ToDurable()` exactly as the inheritable aspect instances did. The aspect object is the harder
+half: it carries an `IntroducedRef` to a declaration the pipeline introduced, which has no source identity to be
+durable against, so it needs a design change rather than a repair.
+
+### `TransitiveManifestDeserializationCache` has no eviction
+
+`_manifests` and `_manifestsByHash` (`Metalama.Framework.Engine/Aspects/TransitiveManifestDeserializationCache.cs:42`
+and `:43`) grow without bound and are reset only wholesale, in `EnsureBoundTo`. The values are compilation-neutral
+deserialized manifests, so this is uncapped managed memory rather than a retained compilation, which is why it is not
+treated as a leak by the rules above. It is reached only on a minority reference configuration, namely a cross-version
+reference or one whose live manifest cannot be reused.
+
+### Requirements that cannot be enforced
+
+Two of the rules in this document are contracts that the framework states and cannot check, because what is stored is
+opaque to it.
+
+- What an extension puts in an `IDesignTimePipelineResultExtension`. The one violation known at the time of writing,
+  `TypeEqualityPredicate` in Metalama.Premium, is fixed; another extension can break it silently.
+- What a user lambda captures. `Select`, `SelectMany`, `Where` and `Tag` take delegates written by the user, and the
+  query that holds them is as durable as the amender that owns it. Only the framework's own captures, such as the one
+  in `SelectTypesDerivedFrom`, could be fixed.
+
+An assertion in `DesignTimeAspectPipelineResult.Update`, in DEBUG only, walking a stored extension for a non-durable
+`IFullRef`, would turn the first of these into something detectable. It has not been written.
+
+### What the audit did not cover
+
+The sweep behind [#1799](https://github.com/metalama/Metalama/issues/1799) examined the extension, fabric, query, RPC
+and design-time-result surfaces. It did not examine the linker, the code-model caches, or the source-generator pipeline
+beyond what the RPC surface touched. It also missed the diagnostic-argument defect that the same issue fixes, which was
+found by accident when it broke an unrelated control test, and which was probably the most consequential of the set.
+Treat the absence of an entry here as "not looked at" rather than "clean", except for the list under **Checked and
+clean** in the issue.
+
 ## Related documents
 
 - `pipeline.md` for the structure of the pipeline whose state these rules constrain.
