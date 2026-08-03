@@ -1,0 +1,4 @@
+{
+    "BuildOnly": true,
+    "ErrorRegexes": [ "cannot be used at run-time, because the assembly" ]
+}
