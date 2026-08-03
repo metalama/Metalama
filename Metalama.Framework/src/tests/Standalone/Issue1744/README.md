@@ -25,9 +25,10 @@ Two settings make the scenario repeatable, and both are necessary:
   previous compilation created successfully, in which case this scenario would build cleanly and assert nothing.
 
 An earlier version of this scenario provoked the failure with a one-millisecond
-`MetalamaReferenceAssemblyRestoreTimeout`. That does not work: killing the `dotnet` process does not stop the MSBuild
-worker processes it started, which finish the build and populate the cache, so the scenario passed once and silently
-stopped asserting afterwards.
+`MetalamaReferenceAssemblyRestoreTimeout`. That did not work: killing the `dotnet` process did not stop the MSBuild
+worker processes it had started, which finished the build and populated the cache, so the scenario passed once and
+silently stopped asserting afterwards. The nested build no longer starts worker processes since issue #1740, but the
+provocation used here is still preferred, because it does not depend on timing.
 
 ## Why the build is expected to fail
 
