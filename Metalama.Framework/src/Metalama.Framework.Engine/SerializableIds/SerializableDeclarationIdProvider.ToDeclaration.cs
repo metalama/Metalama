@@ -72,7 +72,7 @@ public static partial class SerializableDeclarationIdProvider
             // Almost every identifier matches a single declaration, which is not worth ordering.
             var orderedCandidates = candidates.Count <= 1
                 ? (IEnumerable<IDeclaration>) candidates
-                : candidates.OrderBy( c => c is IHasParameters hasParameters ? hasParameters.Parameters.Count : 0 );
+                : candidates.OrderBy( GetParameterCount );
 
             foreach ( var candidate in orderedCandidates )
             {
@@ -83,6 +83,12 @@ public static partial class SerializableDeclarationIdProvider
             }
 
             return null;
+
+            static int GetParameterCount( IDeclaration declaration )
+                => declaration.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor or DeclarationKind.Indexer
+                   && declaration is IHasParameters hasParameters
+                    ? hasParameters.Parameters.Count
+                    : 0;
 
             ICompilationElement? ResolveChild( IDeclaration parent )
                 => (parent, kind) switch
