@@ -122,7 +122,7 @@ public sealed partial class DesignTimeAspectPipelineResult
     {
         Logger.DesignTime.Trace?.Log( $"CompilationPipelineResult.Update( id = {this._id} )" );
 
-        var (resultsByTree, externalExtensions) = SplitResultsByTree( compilation, pipelineResults );
+        var resultsByTree = SplitResultsByTree( compilation, pipelineResults );
 
         var syntaxTreeResultBuilder = this.SyntaxTreeResults.ToBuilder();
 
@@ -300,16 +300,6 @@ public sealed partial class DesignTimeAspectPipelineResult
         var introducedTrees = introducedSyntaxTreeBuilder?.ToImmutable() ?? this.IntroducedSyntaxTrees;
         var inheritableAspects = inheritableAspectsBuilder?.ToImmutable() ?? this._inheritableAspects;
 
-        if ( externalExtensions != null )
-        {
-            extensionsBuilder ??= this.Extensions.ToBuilder();
-
-            foreach ( var externalExtension in externalExtensions )
-            {
-                extensionsBuilder.Add( externalExtension );
-            }
-        }
-
         var extensions = extensionsBuilder?.ToImmutable( projectVersion.ReferencedExtensions )
                          ?? this.Extensions.WithChildCollections( projectVersion.ReferencedExtensions );
 
@@ -332,18 +322,15 @@ public sealed partial class DesignTimeAspectPipelineResult
     /// Splits a <see cref="DesignTimePipelineExecutionResult"/>, which includes data for several syntax trees, into
     /// a list of <see cref="SyntaxTreePipelineResult"/> which each have information related to a single syntax tree.
     /// </summary>
-    private static (IEnumerable<SyntaxTreePipelineResult> Results, IReadOnlyList<IDesignTimePipelineResultExtension>? ExternalValidators)
-        SplitResultsByTree(
-            PartialCompilation compilation,
-            DesignTimePipelineExecutionResult pipelineResults )
+    private static IEnumerable<SyntaxTreePipelineResult> SplitResultsByTree(
+        PartialCompilation compilation,
+        DesignTimePipelineExecutionResult pipelineResults )
     {
         SyntaxTreePipelineResult.Builder? emptySyntaxTreeResult = null;
 
         var resultBuilders = pipelineResults
             .InputSyntaxTrees
             .ToDictionary( r => r.Key, syntaxTree => new SyntaxTreePipelineResult.Builder( syntaxTree.Value ) );
-
-        List<IDesignTimePipelineResultExtension>? externalValidators = null;
 
         // Split diagnostic by syntax tree.
         foreach ( var diagnostic in pipelineResults.Diagnostics.ReportedDiagnostics )
@@ -502,9 +489,18 @@ public sealed partial class DesignTimeAspectPipelineResult
                 }
                 else
                 {
-                    // This happens with cross-project validators
-                    externalValidators ??= new List<IDesignTimePipelineResultExtension>();
-                    externalValidators.Add( designTimeExtension );
+                    // The contributor is not bound to the trees the pipeline ran on, for the same reason as an
+                    // inheritable aspect instance above: an aspect can export one onto a declaration it did not
+                    // itself target, such as the declaring type of a base constructor, and that declaration can be in
+                    // a tree that is not dirty. The contributor is skipped instead of being filed under that tree,
+                    // because the tree keeps the result of the run that did include it, and that result already
+                    // carries this contributor. Filing it under the tree would overwrite that result and drop the
+                    // diagnostics and introductions it holds, and accumulating it outside any tree, which is what
+                    // this method used to do, gives the collection an entry per run that nothing can ever remove.
+                    // See issues #1768 and #1796.
+                    Logger.DesignTime.Trace?.Log(
+                        $"SplitResultsByTree: skipping the transitive contributor of kind '{designTimeExtension.ContributorKind}' because it belongs "
+                        + $"to syntax tree '{filePath}', which is not a part of the partial compilation." );
                 }
             }
             else
@@ -658,7 +654,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             resultBuilders[""] = emptySyntaxTreeResult;
         }
 
-        return (resultBuilders.SelectAsReadOnlyCollection( b => b.Value.ToImmutable( compilation.Compilation ) ), externalValidators);
+        return resultBuilders.SelectAsReadOnlyCollection( b => b.Value.ToImmutable( compilation.Compilation ) );
     }
 
     internal Invalidator ToInvalidator() => new( this );
