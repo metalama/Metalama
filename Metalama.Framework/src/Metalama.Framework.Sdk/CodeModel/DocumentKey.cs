@@ -139,24 +139,4 @@ public static class DocumentKeyExtensions
         string path,
         [NotNullWhen( true )] out SyntaxTree? syntaxTree )
         => compilation.TryGetSyntaxTree( DocumentKey.FromPath( path ), out syntaxTree );
-
-    /// <summary>
-    /// Gets the key of the document a <see cref="Location"/> points into, or <see langword="false"/> when the location
-    /// is not in a document.
-    /// </summary>
-    public static bool TryGetDocumentKey( this Location location, out DocumentKey documentKey )
-    {
-        var path = location.GetLineSpan().Path;
-
-        if ( path == null )
-        {
-            documentKey = default;
-
-            return false;
-        }
-
-        documentKey = DocumentKey.FromPath( path );
-
-        return true;
-    }
 }
