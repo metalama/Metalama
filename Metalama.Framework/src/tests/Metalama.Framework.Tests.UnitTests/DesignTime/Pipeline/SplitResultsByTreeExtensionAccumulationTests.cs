@@ -135,6 +135,104 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
     }
 
     /// <summary>
+    /// A contributor whose syntax tree belongs to a <em>different</em> compilation must be kept, because this project
+    /// has no result keyed by that path and never will.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the case the deleted comment named "cross-project validators". A fabric in this project can validate
+    /// references to declarations in a referenced project, which is a core scenario of
+    /// <c>Metalama.Extensions.Architecture</c>. The syntax tree that a reference validator reports is that of the
+    /// validated declaration, not of the code that declared the validator, and at design time an in-solution project
+    /// reference is a <see cref="Microsoft.CodeAnalysis.CompilationReference"/>, so the symbol does have a syntax
+    /// tree and that tree belongs to the other project's compilation.
+    /// </para>
+    /// <para>
+    /// Skipping such a contributor, which is correct for a tree of this project that is merely not dirty, loses it
+    /// altogether here: no <see cref="SyntaxTreePipelineResult"/> of this project is keyed by that path, so nothing
+    /// carries it. In <c>Metalama.Premium</c> the observable effect is that
+    /// <c>SideBySideVersionTests.TransitiveValidator</c> reports no diagnostic at all, that is, the architecture rules
+    /// of a project silently stop being enforced. This test reproduces the same condition without Premium, so that
+    /// this repository is self-contained.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void ContributorOnTreeOfAnotherCompilation_IsRetained()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var (executed, compilation) = Execute( testContext, factory );
+
+        var foreignTree = CreateForeignTree( testContext );
+        var targetTree = compilation.SyntaxTrees.Single( t => t.FilePath == "target.cs" );
+        var partialCompilation = PartialCompilation.CreatePartial( compilation, targetTree );
+
+        Assert.DoesNotContain( foreignTree, compilation.SyntaxTrees );
+
+        var contributor = new TestContributor( foreignTree );
+        var updated = Update( executed.Result, compilation, partialCompilation, contributor );
+
+        Assert.Contains( contributor, updated.Extensions.Extensions );
+    }
+
+    /// <summary>
+    /// The contributor of another compilation must be kept, but exactly once, however many times the pipeline runs.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Together with <see cref="ContributorOnTreeOfAnotherCompilation_IsRetained"/> this pins the whole of the
+    /// required behaviour, and the two are what distinguish a correct fix from either of the two wrong ones. Appending
+    /// the contributor keeps it but grows the collection by one entry per run, which is the defect of issue #1796.
+    /// Skipping it bounds the collection but drops the contributor, which is the regression described above.
+    /// </para>
+    /// <para>
+    /// A distinct instance is submitted on every update, because that is what the pipeline does: it re-materializes
+    /// every reference validator on every run. In <c>Metalama.Premium</c>,
+    /// <c>ValidationPipelineExtension.ExecuteDesignTimePipelineContributorsAsync</c> runs every validator source over
+    /// the whole compilation, so the complete set is produced each time and replacing the previous set loses nothing.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData( 3 )]
+    [InlineData( 12 )]
+    public void ContributorOnTreeOfAnotherCompilation_DoesNotAccumulate( int updateCount )
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var (executed, compilation) = Execute( testContext, factory );
+
+        var foreignTree = CreateForeignTree( testContext );
+        var targetTree = compilation.SyntaxTrees.Single( t => t.FilePath == "target.cs" );
+        var partialCompilation = PartialCompilation.CreatePartial( compilation, targetTree );
+
+        var result = executed.Result;
+
+        for ( var i = 0; i < updateCount; i++ )
+        {
+            result = Update( result, compilation, partialCompilation, new TestContributor( foreignTree ) );
+        }
+
+        this.TestOutput.WriteLine( $"After {updateCount} updates the collection holds {result.Extensions.Extensions.Length} extension(s)." );
+
+        Assert.Single( result.Extensions.Extensions );
+    }
+
+    /// <summary>
+    /// Creates a syntax tree that belongs to another compilation, standing in for a declaration of a referenced
+    /// project.
+    /// </summary>
+    private static SyntaxTree CreateForeignTree( TestContext testContext )
+    {
+        var referencedCompilation = testContext.CreateCSharpCompilation(
+            new Dictionary<string, string> { ["referenced.cs"] = "public class ReferencedClass { }" },
+            assemblyName: "ReferencedProject" );
+
+        return referencedCompilation.SyntaxTrees.Single( t => t.FilePath == "referenced.cs" );
+    }
+
+    /// <summary>
     /// The control case: a contributor whose syntax tree is inside the partial compilation is filed under that tree,
     /// so repeated updates replace the entry rather than adding to it.
     /// </summary>
