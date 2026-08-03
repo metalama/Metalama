@@ -71,6 +71,14 @@ public sealed class DotNetTool
             }
         }
 
+        // Every process started through this class is a short-lived build that runs inside another build, so it must
+        // never take part in MSBuild node reuse: acquiring a worker node from within a build whose own nodes are
+        // occupied waiting for us is a re-entrancy hazard. The command line of the nested build disables node reuse as
+        // well; this variable covers any further MSBuild that the child may start on its own. It is set after the
+        // filter, because it is a requirement of the child process and not a variable inherited from this one. See
+        // issue #1740.
+        startInfo.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+
         var process = new Process() { StartInfo = startInfo };
 
         var lines = new List<string>();

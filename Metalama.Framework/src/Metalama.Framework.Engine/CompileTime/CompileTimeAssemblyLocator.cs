@@ -543,6 +543,37 @@ internal sealed class CompileTimeAssemblyLocator
         return true;
     }
 
+    /// <summary>
+    /// Gets the command line of the nested reference-assembly build when it is run through <c>dotnet build</c>.
+    /// </summary>
+    /// <remarks>
+    /// See <see cref="GetMSBuildToolArguments"/> for the reason why node reuse and multi-node builds are switched off.
+    /// </remarks>
+    internal static string GetDotNetToolArguments( string binaryLogFileName ) => $"build -nodeReuse:false -m:1 -bl:{binaryLogFileName}";
+
+    /// <summary>
+    /// Gets the command line of the nested reference-assembly build when it is run through <c>MSBuild.exe</c>, which is
+    /// the case for old-style .NET Framework projects, for which the .NET SDK version is unknown.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This build is started from inside the compiler, which itself runs inside a task of the outer build. With its
+    /// default settings, MSBuild would build with as many worker nodes as there are processors and leave those nodes
+    /// alive for about fifteen minutes so that a later build can reuse them. Requesting worker nodes from within a
+    /// build whose own nodes are all occupied, waiting for the compiler that started this build, is a re-entrancy
+    /// hazard: whether a node can be acquired depends on how many of them happen to be free at that instant, which is
+    /// what made the failure reported in issue #1740 intermittent and unrelated to any axis of the build matrix.
+    /// </para>
+    /// <para>
+    /// A single-project build gains nothing from either parallelism or node reuse, so both are switched off. The
+    /// nested build then runs entirely in the process that Metalama starts, which has the further benefit that
+    /// terminating that process when it exceeds its time budget genuinely terminates the build, instead of leaving
+    /// worker processes behind to finish it.
+    /// </para>
+    /// </remarks>
+    internal static string GetMSBuildToolArguments( string projectFilePath, string binaryLogFileName )
+        => $"\"{projectFilePath}\" /t:Restore;Build /nodeReuse:false /m:1 /bl:{binaryLogFileName}";
+
     private bool TryGetReferenceAssembliesManifest(
         string targetFrameworks,
         string additionalPackageReferences,
@@ -691,19 +722,16 @@ internal sealed class CompileTimeAssemblyLocator
                 if ( string.IsNullOrEmpty( this._sdkVersion ) && !string.IsNullOrEmpty( this._msBuildBinPath ) )
                 {
                     var msBuildTool = new MSBuildTool( this._msBuildBinPath );
-                    var arguments = $"\"{projectFilePath}\" /t:Restore;Build /bl:{binaryLogFileName}";
 
-                    msBuildTool.Execute( arguments, this._cacheDirectory, this._restoreTimeout );
+                    msBuildTool.Execute( GetMSBuildToolArguments( projectFilePath, binaryLogFileName ), this._cacheDirectory, this._restoreTimeout );
                 }
                 else
                 {
                     // Remove configuration environment variable to avoid having different output directory than Debug.
                     // Build scripts may rely on env var to set the configuration in MSBuild.
                     // Case insensitive comparison needed because MSBuild is case insensitive.
-                    var arguments = $"build -bl:{binaryLogFileName}";
-
                     this._dotNetTool.Execute(
-                        arguments,
+                        GetDotNetToolArguments( binaryLogFileName ),
                         this._cacheDirectory,
                         this._restoreTimeout,
                         envVar => !StringComparer.OrdinalIgnoreCase.Equals( envVar.Key, "configuration" ) );
