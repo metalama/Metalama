@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <!-- A different assembly name than FabricsA, so that the two assemblies bind to two distinct assembly
+             symbols in the consumer and both of them supply the shared fabric type. -->
+        <AssemblyName>FabricsB</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
