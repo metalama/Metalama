@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -14,6 +14,7 @@ using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Threading;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
@@ -105,6 +106,12 @@ public sealed class RpcServiceProviderServerEndpoint : ServerEndpoint
                 {
                     this.Logger.Warning?.Log( "Cannot get the ServiceHubClientEndpoint." );
 
+                    // Completed even though the registration did not take place. Registration is attempted once, so
+                    // nothing else would ever complete this task, and every caller of RegisterProjectAsync would wait
+                    // for an event that cannot occur. That method tests the provider again and degrades gracefully,
+                    // therefore completing here loses nothing. See issue #1799.
+                    this._hubRegistrationTask.TrySetResult( false );
+
                     return;
                 }
 
@@ -118,19 +125,23 @@ public sealed class RpcServiceProviderServerEndpoint : ServerEndpoint
                 this.Logger.Warning?.Log( "ServiceHubClientEndpointProvider is not available." );
             }
 
-            this._hubRegistrationTask.SetResult( true );
+            this._hubRegistrationTask.TrySetResult( true );
         }
         catch ( Exception ex )
         {
             this.Logger.LogException( ex, $"Cannot register the endpoint '{this.PipeName}' on the hub" );
-            this._hubRegistrationTask.SetException( ex );
+            this._hubRegistrationTask.TrySetException( ex );
         }
     }
 
     [PublicAPI( "Used by Metalama.Premium tests." )]
     public async Task RegisterProjectAsync( ProjectKey projectKey, CancellationToken cancellationToken )
     {
-        await this._hubRegistrationTask.Task.WarnIfLongAsync( this.Logger, "Awaiting for _hubRegistrationTask", cancellationToken );
+        // WithCancellation first, for the reason given in ClientEndpoint.GetOrWaitForClientAsync: passing the token
+        // to WarnIfLongAsync alone does not make the wait cancellable.
+        await this._hubRegistrationTask.Task
+            .WithCancellation( cancellationToken )
+            .WarnIfLongAsync( this.Logger, "Awaiting for _hubRegistrationTask", cancellationToken );
 
         if ( this._serviceHubApiClientProvider != null )
         {

@@ -229,24 +229,17 @@ What follows is deliberately not fixed, or not fixed everywhere. It is recorded 
 request description, because the next person to work on design-time memory will read this document and not that.
 Please keep the list honest: strike an entry when it is closed, and add one rather than leaving a repair half-applied.
 
-### Two remaining uncancellable waits on a task completion source
+### Uncancellable waits on a task completion source
 
-`RpcService.WaitUntilInitializedAsync` was fixed for [#1799](https://github.com/metalama/Metalama/issues/1799), but the
-same pattern survives in two places:
+Closed. All three call sites now compose the token with `WithCancellation` before `WarnIfLongAsync`, which is the
+defect: that method uses the token for its own delay and returns the original task untouched when warning logging is
+disabled, so passing it there alone leaves the wait uncancellable by either path. `RpcServiceProviderServerEndpoint`
+also completes `_hubRegistrationTask` when the service hub endpoint cannot be obtained, because registration is
+attempted once and nothing else would ever complete it. The awaiters of `ClientEndpoint` are deliberately left waiting
+in that situation, because a later connection attempt can legitimately complete them; making the wait cancellable is
+the whole of what was needed there.
 
-- `Metalama.Framework.DesignTime/VisualStudio/ServiceProvider/RpcServiceProviderServerEndpoint.cs:133`, on
-  `_hubRegistrationTask`, which `OnServerPipeCreatedAsync` leaves uncompleted when the Visual Studio extension is
-  absent.
-- `Metalama.Framework.DesignTime.Rpc/ClientEndpoint.cs:140`, on an entry of `_clientAwaiters`, which is not completed
-  when a connection attempt fails: the catch path calls `RpcClient.SetFailure`, which completes the client's own
-  source and not the awaiter.
-
-Both pass the cancellation token to `WarnIfLongAsync` alone, which is the defect: that method uses the token for its
-own delay and returns the original task untouched when warning logging is disabled. The fix is the one already applied
-to `RpcService`, namely to compose with `WithCancellation` first. Tracked by
-[#1800](https://github.com/metalama/Metalama/issues/1800).
-
-To find any recurrence:
+This is worth re-checking after any change on that surface, because the mistake is easy to repeat and invisible:
 
 ```bash
 grep -rn "Task\.WarnIfLongAsync" --include=*.cs . | grep -v WithCancellation

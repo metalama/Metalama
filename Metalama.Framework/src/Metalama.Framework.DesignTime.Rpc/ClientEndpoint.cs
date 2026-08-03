@@ -1,9 +1,10 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
+using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -137,7 +138,13 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
         await this.EnsureInitialServicesRetrievedAsync( cancellationToken );
 
-        return (TClient) await awaiter.Task.WarnIfLongAsync( this.Logger, $"waiting for client '{typeof(TClient)}'", cancellationToken );
+        // WithCancellation first: WarnIfLongAsync uses the token for its own delay only, and returns the original
+        // task untouched when warning logging is disabled, so passing the token to it alone leaves the wait
+        // uncancellable by either path. A suspended caller retains its frame and everything it captured. See
+        // issue #1799, which fixed the same defect in RpcService.
+        return (TClient) await awaiter.Task
+            .WithCancellation( cancellationToken )
+            .WarnIfLongAsync( this.Logger, $"waiting for client '{typeof(TClient)}'", cancellationToken );
     }
 
     /// <summary>
