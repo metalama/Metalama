@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Testing.UnitTesting;
 using System.Linq;

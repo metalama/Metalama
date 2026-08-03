@@ -3,11 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Pipeline;
-using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
-using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System.Linq;
 using Xunit;
@@ -148,7 +146,7 @@ public sealed class TransitiveAspectAcrossProjectsTests : DesignTimePipelineTest
 
         Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out var libraryResult ) );
 
-        var libraryWithDesignTimeCode = this.AddDesignTimeGeneratedCode( library, libraryResult );
+        var libraryWithDesignTimeCode = AddDesignTimeGeneratedCode( library, libraryResult );
 
         var app = testContext.CreateCSharpCompilation(
             _appCode,
@@ -168,7 +166,7 @@ public sealed class TransitiveAspectAcrossProjectsTests : DesignTimePipelineTest
 
         this.TestOutput.WriteLine( $"Constructors of '{baseType.Name}' as seen by App: [{string.Join( "] [", constructorSignatures )}]" );
 
-        Assert.Contains( constructorSignatures, s => s.Contains( "int", System.StringComparison.Ordinal ) );
+        Assert.Contains( constructorSignatures, s => s.ContainsOrdinal( "int" ) );
     }
 
     /// <summary>
@@ -216,7 +214,7 @@ public sealed class TransitiveAspectAcrossProjectsTests : DesignTimePipelineTest
 
         Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out var libraryResult ) );
 
-        var libraryWithDesignTimeCode = this.AddDesignTimeGeneratedCode( library, libraryResult );
+        var libraryWithDesignTimeCode = AddDesignTimeGeneratedCode( library, libraryResult );
 
         var app = testContext.CreateCSharpCompilation(
             _appDerivingFromIntroducedCode,
@@ -311,7 +309,7 @@ public sealed class TransitiveAspectAcrossProjectsTests : DesignTimePipelineTest
 
         Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out var libraryResult ) );
 
-        var libraryWithDesignTimeCode = this.AddDesignTimeGeneratedCode( library, libraryResult );
+        var libraryWithDesignTimeCode = AddDesignTimeGeneratedCode( library, libraryResult );
 
         var app = testContext.CreateCSharpCompilation(
             _appCode,
@@ -342,7 +340,7 @@ public sealed class TransitiveAspectAcrossProjectsTests : DesignTimePipelineTest
     /// This is what a consumer project sees in the editor. The path matters: without it the producer's own pipeline
     /// reads its output back as source and the recursive pull does not terminate.
     /// </remarks>
-    private Compilation AddDesignTimeGeneratedCode( Compilation compilation, DesignTimeAspectPipelineResultAndState results )
+    private static Compilation AddDesignTimeGeneratedCode( Compilation compilation, DesignTimeAspectPipelineResultAndState results )
     {
         var generatedTrees = results.Result.SyntaxTreeResults.Values
             .SelectMany( r => r.Introductions )
