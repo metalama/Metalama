@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using System.Collections.Immutable;
 
@@ -12,8 +13,8 @@ public sealed partial class DesignTimeAspectPipelineResult
     internal sealed class Invalidator
     {
         private readonly DesignTimeAspectPipelineResult _parent;
-        private readonly ImmutableDictionary<string, SyntaxTreePipelineResult>.Builder _syntaxTreeBuilders;
-        private readonly ImmutableDictionary<string, SyntaxTreePipelineResult>.Builder _invalidSyntaxTreeBuilders;
+        private readonly ImmutableDictionary<DocumentKey, SyntaxTreePipelineResult>.Builder _syntaxTreeBuilders;
+        private readonly ImmutableDictionary<DocumentKey, SyntaxTreePipelineResult>.Builder _invalidSyntaxTreeBuilders;
 
         public Invalidator( DesignTimeAspectPipelineResult parent )
         {
@@ -23,7 +24,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             this._invalidSyntaxTreeBuilders = parent._invalidSyntaxTreeResults.ToBuilder();
         }
 
-        public void InvalidateSyntaxTree( string path )
+        public void InvalidateSyntaxTree( DocumentKey path )
         {
             Logger.DesignTime.Trace?.Log( $"DesignTimeSyntaxTreeResultCache.InvalidateCache({path}): removed from cache." );
 

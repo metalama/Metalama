@@ -50,7 +50,7 @@ namespace Metalama.Testing.AspectTesting
 
             var targets = new List<(ISymbol Target, INamedTypeSymbol AspectType)>();
 
-            foreach ( var syntaxTree in partialCompilation.SyntaxTrees.Values )
+            foreach ( var syntaxTree in partialCompilation.SyntaxTreeCollection )
             {
                 var semanticModel = partialCompilation.Compilation.GetCachedSemanticModel( syntaxTree );
                 new TargetAttributeWalker( semanticModel, targets.Add ).Visit( await syntaxTree.GetRootAsync() );

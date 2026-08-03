@@ -89,7 +89,7 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
         var partialCompilation = PartialCompilation.CreateComplete( compilation );
 
         var pipelineResults = new DesignTimePipelineExecutionResult(
-            partialCompilation.SyntaxTrees,
+            partialCompilation.SyntaxTreeCollection,
             ImmutableArray<IntroducedSyntaxTree>.Empty,
             ImmutableUserDiagnosticList.Empty,
             ImmutableArray<InheritableAspectInstance>.Empty,

@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Extensibility;
@@ -69,7 +70,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
                 }
 
                 return new SyntaxTreePipelineResult(
-                    this._syntaxTree?.FilePath,
+                    this._syntaxTree?.GetDocumentKey() ?? default,
                     this.Diagnostics?.ToImmutable(),
                     this.Suppressions?.ToImmutable(),
                     this.Introductions?.ToImmutable(),

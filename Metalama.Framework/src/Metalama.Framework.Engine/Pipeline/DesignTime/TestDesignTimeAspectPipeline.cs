@@ -26,7 +26,7 @@ public sealed class TestDesignTimeAspectPipeline : BaseDesignTimeAspectPipeline
         var partialCompilation = PartialCompilation.CreateComplete( inputCompilation );
 
         // Run the validator, which is run in design-time and may crash on invalid code.
-        foreach ( var syntaxTree in partialCompilation.SyntaxTrees.Values )
+        foreach ( var syntaxTree in partialCompilation.SyntaxTreeCollection )
         {
             var semanticModel = partialCompilation.Compilation.GetSemanticModel( syntaxTree );
 

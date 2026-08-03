@@ -30,8 +30,8 @@ namespace Metalama.Framework.DesignTime.Pipeline;
 /// </summary>
 public sealed partial class DesignTimeAspectPipelineResult
 {
-    private static readonly ImmutableDictionary<string, SyntaxTreePipelineResult> _emptySyntaxTreeResults =
-        ImmutableDictionary.Create<string, SyntaxTreePipelineResult>( StringComparer.Ordinal );
+    private static readonly ImmutableDictionary<DocumentKey, SyntaxTreePipelineResult> _emptySyntaxTreeResults =
+        ImmutableDictionary.Create<DocumentKey, SyntaxTreePipelineResult>();
 
     private static readonly ImmutableDictionary<string, IntroducedSyntaxTree> _emptyIntroducedSyntaxTrees =
         ImmutableDictionary.Create<string, IntroducedSyntaxTree>( StringComparer.Ordinal );
@@ -59,12 +59,12 @@ public sealed partial class DesignTimeAspectPipelineResult
     /// <summary>
     /// Gets a maps if the syntax tree name to the pipeline result for this syntax tree.
     /// </summary>
-    internal ImmutableDictionary<string, SyntaxTreePipelineResult> SyntaxTreeResults { get; } = _emptySyntaxTreeResults;
+    internal ImmutableDictionary<DocumentKey, SyntaxTreePipelineResult> SyntaxTreeResults { get; } = _emptySyntaxTreeResults;
 
     /// <summary>
     /// List of SyntaxTreeResult that have been invalidated.
     /// </summary>
-    private readonly ImmutableDictionary<string, SyntaxTreePipelineResult> _invalidSyntaxTreeResults = _emptySyntaxTreeResults;
+    private readonly ImmutableDictionary<DocumentKey, SyntaxTreePipelineResult> _invalidSyntaxTreeResults = _emptySyntaxTreeResults;
 
     private readonly ImmutableDictionaryOfHashSet<string, InheritableAspectInstance> _inheritableAspects = _emptyInheritableAspects;
 
@@ -76,8 +76,8 @@ public sealed partial class DesignTimeAspectPipelineResult
 
     private DesignTimeAspectPipelineResult(
         AspectPipelineConfiguration? configuration,
-        ImmutableDictionary<string, SyntaxTreePipelineResult> syntaxTreeResults,
-        ImmutableDictionary<string, SyntaxTreePipelineResult> invalidSyntaxTreeResults,
+        ImmutableDictionary<DocumentKey, SyntaxTreePipelineResult> syntaxTreeResults,
+        ImmutableDictionary<DocumentKey, SyntaxTreePipelineResult> invalidSyntaxTreeResults,
         ImmutableDictionary<string, IntroducedSyntaxTree> introducedSyntaxTrees,
         ImmutableDictionaryOfHashSet<string, InheritableAspectInstance> inheritableAspects,
         DesignTimeAspectPipelineResultExtensionCollection extensions,
@@ -122,7 +122,11 @@ public sealed partial class DesignTimeAspectPipelineResult
     {
         Logger.DesignTime.Trace?.Log( $"CompilationPipelineResult.Update( id = {this._id} )" );
 
-        var (resultsByTree, externalExtensions) = SplitResultsByTree( compilation, pipelineResults );
+        var (lazyResultsByTree, externalExtensions) = SplitResultsByTree( compilation, pipelineResults );
+
+        // Materialized because it is enumerated twice below and the projection allocates a new result on each
+        // enumeration.
+        var resultsByTree = lazyResultsByTree.ToReadOnlyList();
 
         var syntaxTreeResultBuilder = this.SyntaxTreeResults.ToBuilder();
 
@@ -138,23 +142,32 @@ public sealed partial class DesignTimeAspectPipelineResult
             UnindexOldTree( filePath, oldResult );
         }
 
+        // Every old result is un-indexed before any new one is indexed. Interleaving the two, which this loop used to
+        // do, lets the un-indexing of one tree remove an entry that the indexing of another tree has already added,
+        // whenever the two are keyed alike. That happens with the introduced syntax trees, which are keyed by a name
+        // rendered from the target type while the results they belong to are keyed by a source path: when the primary
+        // declaration of a partial type moves from one file to another, both files are in this batch, and processing
+        // the new owner first made the old owner delete the entry the new one had just written. See issue #1742.
         foreach ( var result in resultsByTree )
         {
-            var filePath = result.SyntaxTreePath ?? "";
+            var filePath = result.SyntaxTreePath;
 
-            // Un-index the old tree.
             if ( syntaxTreeResultBuilder.TryGetValue( filePath, out var oldSyntaxTreeResult ) )
             {
                 UnindexOldTree( filePath, oldSyntaxTreeResult );
             }
+        }
 
-            // Index the new tree.
+        foreach ( var result in resultsByTree )
+        {
+            var filePath = result.SyntaxTreePath;
+
             IndexNewTree( filePath, result );
 
             syntaxTreeResultBuilder[filePath] = result;
         }
 
-        void UnindexOldTree( string filePath, SyntaxTreePipelineResult oldSyntaxTreeResult )
+        void UnindexOldTree( DocumentKey filePath, SyntaxTreePipelineResult oldSyntaxTreeResult )
         {
             if ( !oldSyntaxTreeResult.Introductions.IsEmpty )
             {
@@ -220,7 +233,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             aspectInstancesHashCode ^= oldSyntaxTreeResult.AspectInstancesHashCode;
         }
 
-        void IndexNewTree( string filePath, SyntaxTreePipelineResult newSyntaxTreeResult )
+        void IndexNewTree( DocumentKey filePath, SyntaxTreePipelineResult newSyntaxTreeResult )
         {
             if ( !newSyntaxTreeResult.Introductions.IsEmpty )
             {
@@ -231,12 +244,23 @@ public sealed partial class DesignTimeAspectPipelineResult
                     Logger.DesignTime.Trace?.Log(
                         $"CompilationPipelineResult.Update( id = {this._id} ): adding introduced syntax tree '{introducedTree.Name}'." );
 
-                    if ( !introducedSyntaxTreeBuilder.TryAdd( introducedTree.Name, introducedTree ) )
+                    // The last one wins. This index is keyed by the introduced tree name, which
+                    // DesignTimeSyntaxTreeGenerator.GetUniqueFilenameForType renders from the target type and never from
+                    // a path, while the un-indexing pass above is keyed by the source path. The two keys are therefore
+                    // independent, and the pass is not a transaction: when the primary declaration of a partial type
+                    // moves from one file to another, this update un-indexes the new file only and the entry the old
+                    // file left behind is still present. It names a tree of an earlier run, so the new one replaces it,
+                    // and the stale result of the old file is corrected when that file is next analysed. See issue
+                    // #1742.
+                    if ( introducedSyntaxTreeBuilder.TryGetValue( introducedTree.Name, out var existingIntroducedTree )
+                         && existingIntroducedTree.SourceSyntaxTree?.FilePath != introducedTree.SourceSyntaxTree?.FilePath )
                     {
-                        // This can happen when the introduced syntax tree name is not deterministic.
-                        throw new AssertionFailedException(
-                            $"CompilationPipelineResult.Update( id = {this._id} ): Attempting to add duplicate syntax tree '{introducedTree.Name}'." );
+                        Logger.DesignTime.Trace?.Log(
+                            $"CompilationPipelineResult.Update( id = {this._id} ): the introduced syntax tree '{introducedTree.Name}' moves from "
+                            + $"'{existingIntroducedTree.SourceSyntaxTree?.FilePath ?? "(none)"}' to '{introducedTree.SourceSyntaxTree?.FilePath ?? "(none)"}'." );
                     }
+
+                    introducedSyntaxTreeBuilder[introducedTree.Name] = introducedTree;
                 }
             }
 
@@ -319,7 +343,7 @@ public sealed partial class DesignTimeAspectPipelineResult
         return new DesignTimeAspectPipelineResult(
             configuration,
             syntaxTreeResultBuilder.ToImmutable(),
-            ImmutableDictionary<string, SyntaxTreePipelineResult>.Empty,
+            ImmutableDictionary<DocumentKey, SyntaxTreePipelineResult>.Empty,
             introducedTrees,
             inheritableAspects,
             extensions,
@@ -339,9 +363,13 @@ public sealed partial class DesignTimeAspectPipelineResult
     {
         SyntaxTreePipelineResult.Builder? emptySyntaxTreeResult = null;
 
+        // Keyed by DocumentKey, with the default key holding the results that belong to the compilation rather than to
+        // any document. The default key cannot collide with a document, because it wraps a null path while every key of
+        // a document wraps SyntaxTree.FilePath, which Roslyn never returns as null. The empty path, which this method
+        // used as its sentinel, has no such guarantee: a syntax tree may carry it.
         var resultBuilders = pipelineResults
             .InputSyntaxTrees
-            .ToDictionary( r => r.Key, syntaxTree => new SyntaxTreePipelineResult.Builder( syntaxTree.Value ) );
+            .ToDictionary( syntaxTree => syntaxTree.GetDocumentKey(), syntaxTree => new SyntaxTreePipelineResult.Builder( syntaxTree ) );
 
         List<IDesignTimePipelineResultExtension>? externalValidators = null;
 
@@ -353,7 +381,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             // GetLineSpan() works even for "external" locations (i.e. not tree-based), which we use for exceptions.
             if ( diagnostic.Location.GetLineSpan().Path is { } filePath )
             {
-                if ( !resultBuilders.TryGetValue( filePath, out builder ) )
+                if ( !resultBuilders.TryGetValue( DocumentKey.FromPath( filePath ), out builder ) )
                 {
                     // This can happen when a CS error is reported in the aspect. These errors can be ignored.
                     continue;
@@ -375,7 +403,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             {
                 if ( !string.IsNullOrEmpty( path ) )
                 {
-                    if ( resultBuilders.TryGetValue( path, out var builder ) )
+                    if ( resultBuilders.TryGetValue( DocumentKey.FromPath( path! ), out var builder ) )
                     {
                         builder.Suppressions ??= ImmutableArray.CreateBuilder<CacheableScopedSuppression>();
                         builder.Suppressions.Add( new CacheableScopedSuppression( suppression ) );
@@ -416,12 +444,12 @@ public sealed partial class DesignTimeAspectPipelineResult
 
             if ( introduction.SourceSyntaxTree is { } syntaxTree )
             {
-                var filePath = syntaxTree.FilePath;
+                var documentKey = syntaxTree.GetDocumentKey();
 
-                if ( !resultBuilders.TryGetValue( filePath, out builder ) )
+                if ( !resultBuilders.TryGetValue( documentKey, out builder ) )
                 {
                     // This happens when the source tree is not dirty, so it's not part of the PartialCompilation.
-                    builder = resultBuilders[filePath] = new SyntaxTreePipelineResult.Builder( syntaxTree );
+                    builder = resultBuilders[documentKey] = new SyntaxTreePipelineResult.Builder( syntaxTree );
                 }
             }
             else
@@ -447,9 +475,9 @@ public sealed partial class DesignTimeAspectPipelineResult
                 continue;
             }
 
-            var filePath = syntaxTree.FilePath;
+            var documentKey = syntaxTree.GetDocumentKey();
 
-            if ( !resultBuilders.TryGetValue( filePath, out var builder ) )
+            if ( !resultBuilders.TryGetValue( documentKey, out var builder ) )
             {
                 // An inheritable aspect instance is not bound to the tree the pipeline ran on, because an aspect can add one to
                 // a declaration it did not itself target, e.g. through RequireAspect or through the transitive instance exported
@@ -459,7 +487,7 @@ public sealed partial class DesignTimeAspectPipelineResult
                 // diagnostics and introductions it holds.
                 Logger.DesignTime.Trace?.Log(
                     $"SplitResultsByTree: skipping the inheritable aspect of type '{inheritableAspectInstance.AspectClass.ShortName}' because its target "
-                    + $"declaration is in syntax tree '{filePath}', which is not a part of the partial compilation." );
+                    + $"declaration is in syntax tree '{documentKey}', which is not a part of the partial compilation." );
 
                 continue;
             }
@@ -473,9 +501,9 @@ public sealed partial class DesignTimeAspectPipelineResult
         {
             var syntaxTree = extension.SyntaxTree;
 
-            if ( syntaxTree == null && !resultBuilders.ContainsKey( string.Empty ) )
+            if ( syntaxTree == null && !resultBuilders.ContainsKey( default ) )
             {
-                resultBuilders.Add( string.Empty, new SyntaxTreePipelineResult.Builder( null ) );
+                resultBuilders.Add( default, new SyntaxTreePipelineResult.Builder( null ) );
             }
 
             var designTimeExtension = extension.ToDesignTime();
@@ -493,9 +521,9 @@ public sealed partial class DesignTimeAspectPipelineResult
                 extension.Granularity,
                 compilation.CompilationContext ); */
 
-                var filePath = syntaxTree?.FilePath ?? string.Empty;
+                var documentKey = syntaxTree?.GetDocumentKey() ?? default;
 
-                if ( resultBuilders.TryGetValue( filePath, out var builder ) )
+                if ( resultBuilders.TryGetValue( documentKey, out var builder ) )
                 {
                     builder.Extensions ??= ImmutableArray.CreateBuilder<IDesignTimePipelineResultExtension>();
                     builder.Extensions.Add( designTimeExtension );
@@ -519,9 +547,9 @@ public sealed partial class DesignTimeAspectPipelineResult
             var syntaxTree = aspectInstance.TargetDeclaration.GetPrimarySyntaxTree( compilationContext );
 
             // No continue here to handle even aspect instances without a syntax tree.
-            if ( syntaxTree == null && !resultBuilders.ContainsKey( string.Empty ) )
+            if ( syntaxTree == null && !resultBuilders.ContainsKey( default ) )
             {
-                resultBuilders.Add( string.Empty, new SyntaxTreePipelineResult.Builder( null ) );
+                resultBuilders.Add( default, new SyntaxTreePipelineResult.Builder( null ) );
             }
 
             var targetDeclarationId = aspectInstance.TargetDeclaration.ToSerializableId();
@@ -545,9 +573,9 @@ public sealed partial class DesignTimeAspectPipelineResult
                 predecessorDeclarationId = predecessorDeclarationSymbol?.GetSerializableId();
             }
 
-            var filePath = syntaxTree?.FilePath ?? string.Empty;
+            var documentKey = syntaxTree?.GetDocumentKey() ?? default;
 
-            if ( resultBuilders.TryGetValue( filePath, out var builder ) )
+            if ( resultBuilders.TryGetValue( documentKey, out var builder ) )
             {
                 builder.AspectInstances ??= ImmutableArray.CreateBuilder<DesignTimeAspectInstance>();
 
@@ -568,9 +596,9 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split transformations by syntax tree.
         foreach ( var transformation in pipelineResults.Transformations )
         {
-            var filePath = (transformation as ISyntaxTreeTransformationBase)?.TransformedSyntaxTree.FilePath;
+            var documentKey = (transformation as ISyntaxTreeTransformationBase)?.TransformedSyntaxTree.GetDocumentKey();
 
-            if ( filePath == null || !resultBuilders.TryGetValue( filePath, out var builder ) )
+            if ( documentKey == null || !resultBuilders.TryGetValue( documentKey.Value, out var builder ) )
             {
                 builder = emptySyntaxTreeResult ??= new SyntaxTreePipelineResult.Builder( null );
             }
@@ -597,7 +625,7 @@ public sealed partial class DesignTimeAspectPipelineResult
 
             if ( syntaxTreePath != null )
             {
-                builder = resultBuilders[syntaxTreePath];
+                builder = resultBuilders[DocumentKey.FromPath( syntaxTreePath )];
             }
             else
             {
@@ -632,8 +660,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             }
             else
             {
-                var filePath = syntaxTree.FilePath;
-                builder = resultBuilders[filePath];
+                builder = resultBuilders[syntaxTree.GetDocumentKey()];
             }
 
             builder.Annotations ??= ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>.CreateBuilder();
@@ -641,21 +668,17 @@ public sealed partial class DesignTimeAspectPipelineResult
         }
 
         // Add syntax trees with empty output so they get cached too.
-        var inputTreesWithoutOutput = compilation.SyntaxTrees.ToBuilder();
-
-        foreach ( var path in resultBuilders.Keys )
+        foreach ( var syntaxTree in compilation.SyntaxTreeCollection )
         {
-            inputTreesWithoutOutput.Remove( path );
-        }
-
-        foreach ( var empty in inputTreesWithoutOutput )
-        {
-            resultBuilders.Add( empty.Key, new SyntaxTreePipelineResult.Builder( empty.Value ) );
+            if ( !resultBuilders.ContainsKey( syntaxTree.GetDocumentKey() ) )
+            {
+                resultBuilders.Add( syntaxTree.GetDocumentKey(), new SyntaxTreePipelineResult.Builder( syntaxTree ) );
+            }
         }
 
         if ( emptySyntaxTreeResult != null )
         {
-            resultBuilders[""] = emptySyntaxTreeResult;
+            resultBuilders[default] = emptySyntaxTreeResult;
         }
 
         return (resultBuilders.SelectAsReadOnlyCollection( b => b.Value.ToImmutable( compilation.Compilation ) ), externalValidators);
@@ -663,7 +686,7 @@ public sealed partial class DesignTimeAspectPipelineResult
 
     internal Invalidator ToInvalidator() => new( this );
 
-    internal bool IsSyntaxTreeDirty( SyntaxTree syntaxTree ) => !this.SyntaxTreeResults.ContainsKey( syntaxTree.FilePath );
+    internal bool IsSyntaxTreeDirty( SyntaxTree syntaxTree ) => !this.SyntaxTreeResults.ContainsKey( syntaxTree.GetDocumentKey() );
 
     public IEnumerable<string> InheritableAspectTypes => this._inheritableAspects.Keys;
 

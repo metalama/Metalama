@@ -82,7 +82,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 
         ConcurrentDictionary<IFullRef<IMember>, AuxiliaryMemberTransformations> auxiliaryMemberTransformations = new( RefEqualityComparer<IMember>.Default );
 
-        var existingSyntaxTrees = input.FinalCompilationModel.PartialCompilation.SyntaxTrees;
+        var existingCompilation = input.FinalCompilationModel.PartialCompilation;
 
         void IndexTransformationsInSyntaxTree( IGrouping<SyntaxTree, ISyntaxTreeTransformation> transformationGroup )
         {
@@ -94,7 +94,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             foreach ( var transformation in sortedTransformations )
             {
                 IndexIntroduceDeclarationTransformation(
-                    existingSyntaxTrees,
+                    existingCompilation,
                     transformation,
                     transformationCollection );
             }
@@ -288,7 +288,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 
         var syntaxTreeForGlobalAttributes = input.FinalCompilationModel.PartialCompilation.SyntaxTreeForCompilationLevelAttributes;
 
-        if ( !input.FinalCompilationModel.PartialCompilation.SyntaxTrees.ContainsKey( syntaxTreeForGlobalAttributes.FilePath )
+        if ( !input.FinalCompilationModel.PartialCompilation.TryGetSyntaxTree( syntaxTreeForGlobalAttributes.GetDocumentKey(), out _ )
              && input.Transformations.OfType<IntroduceAttributeTransformation>().Any( t => t.TransformedSyntaxTree == syntaxTreeForGlobalAttributes ) )
         {
             transformationCollection.AddIntroducedSyntaxTree( syntaxTreeForGlobalAttributes );
@@ -361,7 +361,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 
         await
             this._concurrentTaskRunner.RunConcurrentlyAsync(
-                compilationWithIntroducedTrees.SyntaxTrees.Values,
+                compilationWithIntroducedTrees.SyntaxTreeCollection,
                 RewriteSyntaxTreeAsync,
                 cancellationToken );
 
@@ -441,7 +441,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
     }
 
     private static void IndexIntroduceDeclarationTransformation(
-        ImmutableDictionary<string, SyntaxTree> existingSyntaxTrees,
+        PartialCompilation existingCompilation,
         ISyntaxTreeTransformation transformation,
         TransformationCollection transformationCollection )
     {
@@ -451,7 +451,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                 introduceDeclarationTransformation.DeclarationBuilderData,
                 introduceDeclarationTransformation );
 
-            if ( !existingSyntaxTrees.ContainsKey( transformation.TransformedSyntaxTree.FilePath ) )
+            if ( !existingCompilation.TryGetSyntaxTree( transformation.TransformedSyntaxTree.GetDocumentKey(), out _ ) )
             {
                 transformationCollection.AddIntroducedSyntaxTree( transformation.TransformedSyntaxTree );
             }

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Rpc;
+using Metalama.Framework.Engine.CodeModel;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 
@@ -19,7 +20,7 @@ public interface IProjectVersion
     /// </summary>
     ProjectKey ProjectKey { get; }
 
-    bool TryGetSyntaxTreeVersion( string path, out SyntaxTreeVersion syntaxTreeVersion );
+    bool TryGetSyntaxTreeVersion( DocumentKey documentKey, out SyntaxTreeVersion syntaxTreeVersion );
 
     /// <summary>
     /// Gets the compilation of the current version.

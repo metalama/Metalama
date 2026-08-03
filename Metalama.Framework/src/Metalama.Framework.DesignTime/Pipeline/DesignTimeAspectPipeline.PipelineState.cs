@@ -40,14 +40,14 @@ public sealed partial class DesignTimeAspectPipeline
         public DependencyGraph Dependencies => this._dependencies;
 #pragma warning restore IDE0032
 
-        private static readonly ImmutableDictionary<string, bool> _emptyCompileTimeSyntaxTrees =
-            ImmutableDictionary.Create<string, bool>( StringComparer.Ordinal );
+        private static readonly ImmutableDictionary<DocumentKey, bool> _emptyCompileTimeSyntaxTrees =
+            ImmutableDictionary.Create<DocumentKey, bool>();
 
         // Syntax trees that may have compile time code based on namespaces. When a syntax tree is known to be compile-time but
         // has been invalidated, we set its value to false. It allows to know
         // that this specific tree is outdated, which then allows us to display a warning.
 
-        public ImmutableDictionary<string, bool>? CompileTimeSyntaxTrees { get; }
+        public ImmutableDictionary<DocumentKey, bool>? CompileTimeSyntaxTrees { get; }
 
         public FallibleResultWithDiagnostics<AspectPipelineConfiguration>? Configuration { get; }
 
@@ -94,7 +94,7 @@ public sealed partial class DesignTimeAspectPipeline
 
         private PipelineState(
             PipelineState prototype,
-            ImmutableDictionary<string, bool> compileTimeSyntaxTrees,
+            ImmutableDictionary<DocumentKey, bool> compileTimeSyntaxTrees,
             DesignTimeAspectPipelineStatus status,
             ProjectVersion projectVersion,
             DesignTimeAspectPipelineResult pipelineResult,
@@ -110,7 +110,7 @@ public sealed partial class DesignTimeAspectPipeline
             this._dependencies = dependencies;
         }
 
-        private PipelineState( PipelineState prototype, ImmutableDictionary<string, bool> compileTimeSyntaxTrees )
+        private PipelineState( PipelineState prototype, ImmutableDictionary<DocumentKey, bool> compileTimeSyntaxTrees )
             : this( prototype )
         {
             this.CompileTimeSyntaxTrees = compileTimeSyntaxTrees;
@@ -149,7 +149,7 @@ public sealed partial class DesignTimeAspectPipeline
                     throw new AssertionFailedException( $"Compilation mismatch with '{compilation.Assembly.Identity}'." );
                 }
 
-                var newCompileTimeSyntaxTrees = ImmutableDictionary<string, bool>.Empty;
+                var newCompileTimeSyntaxTrees = ImmutableDictionary<DocumentKey, bool>.Empty;
 
                 foreach ( var syntaxTree in compilation.SyntaxTrees )
                 {
@@ -157,7 +157,7 @@ public sealed partial class DesignTimeAspectPipeline
 
                     if ( CompileTimeCodeFastDetector.HasCompileTimeCode( syntaxTree.GetRoot() ) )
                     {
-                        newCompileTimeSyntaxTrees = newCompileTimeSyntaxTrees.Add( syntaxTree.FilePath, true );
+                        newCompileTimeSyntaxTrees = newCompileTimeSyntaxTrees.Add( syntaxTree.GetDocumentKey(), true );
                         trees.Add( syntaxTree );
                     }
                 }
@@ -170,7 +170,7 @@ public sealed partial class DesignTimeAspectPipeline
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    if ( state.CompileTimeSyntaxTrees.ContainsKey( syntaxTree.FilePath ) )
+                    if ( state.CompileTimeSyntaxTrees.ContainsKey( syntaxTree.GetDocumentKey() ) )
                     {
                         trees.Add( syntaxTree );
                     }
@@ -200,7 +200,7 @@ public sealed partial class DesignTimeAspectPipeline
                 newCompilation,
                 cancellationToken );
 
-            ImmutableDictionary<string, bool> newCompileTimeSyntaxTrees;
+            ImmutableDictionary<DocumentKey, bool> newCompileTimeSyntaxTrees;
             DependencyGraph newDependencyGraph;
             DesignTimeAspectPipelineResult newAspectPipelineResult;
 
@@ -225,7 +225,7 @@ public sealed partial class DesignTimeAspectPipeline
                 }
 
                 var compileTimeSyntaxTreesBuilder = this.CompileTimeSyntaxTrees?.ToBuilder()
-                                                    ?? ImmutableDictionary.CreateBuilder<string, bool>( StringComparer.Ordinal );
+                                                    ?? ImmutableDictionary.CreateBuilder<DocumentKey, bool>();
 
                 foreach ( var changeEntry in newChanges.SyntaxTreeChanges )
                 {
@@ -239,15 +239,15 @@ public sealed partial class DesignTimeAspectPipeline
                                 // When a syntax tree is known to be compile-time but has been invalidated, we don't remove it from the dictionary,
                                 // but we set its value to null. It allows to know that this specific tree is outdated,
                                 // which then allows us to display a warning.
-                                compileTimeSyntaxTreesBuilder[change.FilePath] = false;
+                                compileTimeSyntaxTreesBuilder[change.DocumentKey] = false;
 
                                 // We require an external build because we don't want to invalidate the pipeline configuration at
                                 // each keystroke.
                                 this._pipeline.Logger.Trace?.Log(
-                                    $"Compile-time change detected: {change.FilePath} has changed. Old hash: {change.OldHash}, new hash: {change.NewHash}." );
+                                    $"Compile-time change detected: {change.DocumentKey} has changed. Old hash: {change.OldHash}, new hash: {change.NewHash}." );
 
                                 // Generated files may change during the startup sequence, and it is safe to reset the pipeline in this case.
-                                var requiresRebuild = !change.FilePath.EndsWith( ".g.cs", StringComparison.OrdinalIgnoreCase );
+                                var requiresRebuild = !change.DocumentKey.Path.EndsWith( ".g.cs", StringComparison.OrdinalIgnoreCase );
 
                                 OnCompileTimeChange( this._pipeline.Logger, requiresRebuild );
                             }
@@ -258,15 +258,15 @@ public sealed partial class DesignTimeAspectPipeline
                             // We don't require an external rebuild when a new syntax tree is added because Roslyn does not give us a complete
                             // compilation in the first call in the Visual Studio initializations sequence. Roslyn calls us later with
                             // a complete compilation, but we don't want to bother the user with the need of an external build.
-                            compileTimeSyntaxTreesBuilder[change.FilePath] = true;
-                            this._pipeline.Logger.Trace?.Log( $"Compile-time change detected: {change.FilePath} is a new compile-time syntax tree." );
+                            compileTimeSyntaxTreesBuilder[change.DocumentKey] = true;
+                            this._pipeline.Logger.Trace?.Log( $"Compile-time change detected: {change.DocumentKey} is a new compile-time syntax tree." );
                             OnCompileTimeChange( this._pipeline.Logger, false );
 
                             break;
 
                         case CompileTimeChangeKind.NoLongerCompileTime:
-                            compileTimeSyntaxTreesBuilder.Remove( change.FilePath );
-                            this._pipeline.Logger.Trace?.Log( $"Compile-time change detected: : {change.FilePath} no longer contains compile-time code." );
+                            compileTimeSyntaxTreesBuilder.Remove( change.DocumentKey );
+                            this._pipeline.Logger.Trace?.Log( $"Compile-time change detected: : {change.DocumentKey} no longer contains compile-time code." );
                             OnCompileTimeChange( this._pipeline.Logger, false );
 
                             break;
@@ -560,7 +560,7 @@ public sealed partial class DesignTimeAspectPipeline
             Invariant.Assert( annotations.KeyComparer is IRefEqualityComparer );
 
             var result = new DesignTimePipelineExecutionResult(
-                compilation.SyntaxTrees,
+                compilation.SyntaxTreeCollection,
                 additionalSyntaxTrees,
                 immutableUserDiagnostics,
                 inheritableAspectInstances,

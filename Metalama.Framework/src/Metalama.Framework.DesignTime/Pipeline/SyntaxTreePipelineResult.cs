@@ -5,6 +5,7 @@
 using System.IO.Hashing;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline;
@@ -24,7 +25,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
         /// Gets the file path of the <see cref="Microsoft.CodeAnalysis.SyntaxTree"/> for which the results was prepared,
         /// or <c>null</c> if this object represents the part of the results that do not pertain to any syntax tree.
         /// </summary>
-        public string? SyntaxTreePath { get; }
+        public DocumentKey SyntaxTreePath { get; }
 
         public ImmutableArray<Diagnostic> Diagnostics { get; }
 
@@ -56,7 +57,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
         public ulong AspectInstancesHashCode { get; }
 
         private SyntaxTreePipelineResult(
-            string? syntaxTreePath,
+            DocumentKey syntaxTreePath,
             ImmutableArray<Diagnostic>? diagnostics,
             ImmutableArray<CacheableScopedSuppression>? suppressions,
             ImmutableArray<IntroducedSyntaxTree>? introductions,

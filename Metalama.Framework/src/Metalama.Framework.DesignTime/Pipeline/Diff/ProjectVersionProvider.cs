@@ -4,6 +4,7 @@
 
 using Metalama.Framework.DesignTime.Pipeline.Dependencies;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Services;
@@ -60,7 +61,7 @@ internal sealed partial class ProjectVersionProvider : IGlobalService, IDisposab
     public async ValueTask<DependencyGraph> ProcessCompilationChangesAsync(
         CompilationChanges changes,
         DependencyGraph dependencyGraph,
-        Action<string> invalidateAction,
+        Action<DocumentKey> invalidateAction,
         bool invalidateOnlyDependencies = false,
         TestableCancellationToken cancellationToken = default )
     {
@@ -105,7 +106,7 @@ internal sealed partial class ProjectVersionProvider : IGlobalService, IDisposab
 
                     if ( syntaxTreeChange.SyntaxTreeChangeKind == SyntaxTreeChangeKind.Removed )
                     {
-                        dependencyGraphBuilder.RemoveDependentSyntaxTree( syntaxTreeChange.FilePath );
+                        dependencyGraphBuilder.RemoveDependentSyntaxTree( syntaxTreeChange.DocumentKey );
                     }
 
                     if ( invalidatedAllTrees )
@@ -120,7 +121,7 @@ internal sealed partial class ProjectVersionProvider : IGlobalService, IDisposab
                         // but editing a file with global attributes should be relatively rare, so that's probably not worth it.
                         foreach ( var tree in currentCompilationChanges.NewProjectVersion.Compilation.SyntaxTrees )
                         {
-                            invalidateAction( tree.FilePath );
+                            invalidateAction( tree.GetDocumentKey() );
                         }
 
                         invalidatedAllTrees = true;
@@ -130,11 +131,11 @@ internal sealed partial class ProjectVersionProvider : IGlobalService, IDisposab
 
                     if ( syntaxTreeChange.SyntaxTreeChangeKind is SyntaxTreeChangeKind.Changed or SyntaxTreeChangeKind.Removed )
                     {
-                        if ( dependenciesOfCompilation.DependenciesByMasterFilePath.TryGetValue(
-                                syntaxTreeChange.FilePath,
+                        if ( dependenciesOfCompilation.DependenciesByMasterDocumentKey.TryGetValue(
+                                syntaxTreeChange.DocumentKey,
                                 out var dependenciesOfSyntaxTree ) )
                         {
-                            foreach ( var dependentSyntaxTree in dependenciesOfSyntaxTree.DependentFilePaths )
+                            foreach ( var dependentSyntaxTree in dependenciesOfSyntaxTree.DependentDocumentKeys )
                             {
                                 invalidateAction( dependentSyntaxTree );
                             }
@@ -148,7 +149,7 @@ internal sealed partial class ProjectVersionProvider : IGlobalService, IDisposab
                                 partialTypeChange.Type,
                                 out var dependenciesOfPartialType ) )
                         {
-                            foreach ( var dependentSyntaxTree in dependenciesOfPartialType.DependentFilePaths )
+                            foreach ( var dependentSyntaxTree in dependenciesOfPartialType.DependentDocumentKeys )
                             {
                                 invalidateAction( dependentSyntaxTree );
                             }

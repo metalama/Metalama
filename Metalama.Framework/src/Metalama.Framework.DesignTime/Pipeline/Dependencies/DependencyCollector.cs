@@ -73,9 +73,9 @@ internal sealed class DependencyCollector : BaseDependencyCollector, IDependency
                     if ( dependentTree != masterSyntaxReference.SyntaxTree )
                     {
                         this.AddSyntaxTreeDependency(
-                            dependentTree.FilePath,
+                            dependentTree.GetDocumentKey(),
                             this.ProjectVersion.ProjectKey,
-                            masterSyntaxReference.SyntaxTree.FilePath,
+                            masterSyntaxReference.SyntaxTree.GetDocumentKey(),
                             0 );
                     }
                 }
@@ -83,7 +83,7 @@ internal sealed class DependencyCollector : BaseDependencyCollector, IDependency
                 if ( masterIsPartial )
                 {
                     this.AddPartialTypeDependency(
-                        dependentTree.FilePath,
+                        dependentTree.GetDocumentKey(),
                         this.ProjectVersion.ProjectKey,
                         new TypeDependencyKey( masterSymbol, this._storeTypeName ) );
                 }
@@ -102,14 +102,14 @@ internal sealed class DependencyCollector : BaseDependencyCollector, IDependency
 
                 foreach ( var masterSyntaxReference in masterSymbol.DeclaringSyntaxReferences )
                 {
-                    if ( referencedCompilationVersion.TryGetSyntaxTreeVersion( masterSyntaxReference.SyntaxTree.FilePath, out var masterSyntaxTreeVersion ) )
+                    if ( referencedCompilationVersion.TryGetSyntaxTreeVersion( masterSyntaxReference.SyntaxTree.GetDocumentKey(), out var masterSyntaxTreeVersion ) )
                     {
                         foreach ( var dependentSyntaxReference in dependentTrees )
                         {
                             this.AddSyntaxTreeDependency(
-                                dependentSyntaxReference.FilePath,
+                                dependentSyntaxReference.GetDocumentKey(),
                                 referencedCompilationVersion.ProjectKey,
-                                masterSyntaxReference.SyntaxTree.FilePath,
+                                masterSyntaxReference.SyntaxTree.GetDocumentKey(),
                                 masterSyntaxTreeVersion.DeclarationHash );
                         }
                     }
@@ -124,7 +124,7 @@ internal sealed class DependencyCollector : BaseDependencyCollector, IDependency
                         foreach ( var dependentSyntaxReference in dependentTrees )
                         {
                             this.AddPartialTypeDependency(
-                                dependentSyntaxReference.FilePath,
+                                dependentSyntaxReference.GetDocumentKey(),
                                 referencedCompilationVersion.ProjectKey,
                                 new TypeDependencyKey( masterSymbol, this._storeTypeName ) );
                         }
@@ -215,9 +215,9 @@ internal sealed class DependencyCollector : BaseDependencyCollector, IDependency
         if ( dependentTree != masterTree )
         {
             this.AddSyntaxTreeDependency(
-                dependentTree.FilePath,
+                dependentTree.GetDocumentKey(),
                 this.ProjectVersion.ProjectKey,
-                masterTree.FilePath,
+                masterTree.GetDocumentKey(),
                 0 );
         }
     }

@@ -22,17 +22,17 @@ public sealed partial class DependencyCollectorTests
         var dependencies = new BaseDependencyCollector( new TestProjectVersion( projectKey ) );
         const ulong hash = 54;
 
-        const string dependentFilePath = "dependent.cs";
-        const string masterFilePath = "master.cs";
-        dependencies.AddSyntaxTreeDependency( dependentFilePath, projectKey, masterFilePath, hash );
+        var dependentDocumentKey = DocumentKey.FromPath( "dependent.cs" );
+        var masterDocumentKey = DocumentKey.FromPath( "master.cs" );
+        dependencies.AddSyntaxTreeDependency( dependentDocumentKey, projectKey, masterDocumentKey, hash );
 
-        Assert.Equal( dependentFilePath, dependencies.DependenciesByDependentFilePath[dependentFilePath].DependentFilePath );
+        Assert.Equal( dependentDocumentKey, dependencies.DependenciesByDependentDocumentKey[dependentDocumentKey].DependentDocumentKey );
 
         Assert.Equal(
             hash,
-            dependencies.DependenciesByDependentFilePath[dependentFilePath]
+            dependencies.DependenciesByDependentDocumentKey[dependentDocumentKey]
                 .DependenciesByMasterProject.Values.Single()
-                .MasterFilePathsAndHashes[masterFilePath] );
+                .MasterDocumentKeysAndHashes[masterDocumentKey] );
     }
 
     [Fact]
@@ -43,18 +43,18 @@ public sealed partial class DependencyCollectorTests
 
         const ulong hash = 54;
 
-        const string dependentFilePath = "dependent.cs";
-        const string masterFilePath = "master.cs";
-        dependencies.AddSyntaxTreeDependency( dependentFilePath, projectKey, masterFilePath, hash );
-        dependencies.AddSyntaxTreeDependency( dependentFilePath, projectKey, masterFilePath, hash );
+        var dependentDocumentKey = DocumentKey.FromPath( "dependent.cs" );
+        var masterDocumentKey = DocumentKey.FromPath( "master.cs" );
+        dependencies.AddSyntaxTreeDependency( dependentDocumentKey, projectKey, masterDocumentKey, hash );
+        dependencies.AddSyntaxTreeDependency( dependentDocumentKey, projectKey, masterDocumentKey, hash );
 
-        Assert.Equal( dependentFilePath, dependencies.DependenciesByDependentFilePath[dependentFilePath].DependentFilePath );
+        Assert.Equal( dependentDocumentKey, dependencies.DependenciesByDependentDocumentKey[dependentDocumentKey].DependentDocumentKey );
 
         Assert.Equal(
             hash,
-            dependencies.DependenciesByDependentFilePath[dependentFilePath]
+            dependencies.DependenciesByDependentDocumentKey[dependentDocumentKey]
                 .DependenciesByMasterProject.Values.Single()
-                .MasterFilePathsAndHashes[masterFilePath] );
+                .MasterDocumentKeysAndHashes[masterDocumentKey] );
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed partial class DependencyCollectorTests
 
         var actualDependencies = string.Join(
             Environment.NewLine,
-            dependencyCollector.EnumerateSyntaxTreeDependencies().Select( x => $"'{x.MasterFilePath}'->'{x.DependentFilePath}'" ).OrderBy( x => x ) );
+            dependencyCollector.EnumerateSyntaxTreeDependencies().Select( x => $"'{x.MasterDocumentKey}'->'{x.DependentDocumentKey}'" ).OrderBy( x => x ) );
 
         const string expectedDependencies = @"'Class2.cs'->'Class3.cs'
 'Class2.cs'->'Class4.cs'
@@ -130,7 +130,7 @@ public sealed partial class DependencyCollectorTests
 
         var actualDependencies = string.Join(
             "\r\n",
-            dependencyCollector.EnumerateSyntaxTreeDependencies().Select( x => $"'{x.MasterFilePath}'->'{x.DependentFilePath}'" ).OrderBy( x => x ) );
+            dependencyCollector.EnumerateSyntaxTreeDependencies().Select( x => $"'{x.MasterDocumentKey}'->'{x.DependentDocumentKey}'" ).OrderBy( x => x ) );
 
         const string expectedDependencies = @"'Class2.cs'->'Class3.cs'
 'Class2.cs'->'Class4.cs'

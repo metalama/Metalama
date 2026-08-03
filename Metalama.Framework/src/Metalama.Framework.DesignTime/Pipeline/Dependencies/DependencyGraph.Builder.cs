@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Rpc;
+using Metalama.Framework.Engine.CodeModel;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
@@ -27,7 +28,7 @@ internal readonly partial struct DependencyGraph
             => (IReadOnlyDictionary<ProjectKey, DependencyGraphByDependentProject>?) this._dependenciesByCompilationBuilder
                ?? this._dependencyGraph.DependenciesByMasterProject;
 
-        public void RemoveDependentSyntaxTree( string path )
+        public void RemoveDependentSyntaxTree( DocumentKey path )
         {
             List<DependencyGraphByDependentProject>? modifiedDependencies = null;
 
@@ -67,7 +68,7 @@ internal readonly partial struct DependencyGraph
 
         public void UpdateDependencies(
             ProjectKey projectKey,
-            string dependentFilePath,
+            DocumentKey dependentDocumentKey,
             DependencyCollectorByDependentSyntaxTreeAndMasterProject dependencies )
         {
             if ( !this.GetDependenciesByCompilation().TryGetValue( projectKey, out var currentDependenciesOfCompilation ) )
@@ -76,7 +77,7 @@ internal readonly partial struct DependencyGraph
             }
 
             if ( currentDependenciesOfCompilation.TryUpdateDependencies(
-                    dependentFilePath,
+                    dependentDocumentKey,
                     dependencies,
                     out var newDependenciesOfCompilation ) )
             {

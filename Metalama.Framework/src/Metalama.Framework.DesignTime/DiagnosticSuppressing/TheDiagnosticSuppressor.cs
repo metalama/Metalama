@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Compiler;
@@ -163,7 +164,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticSuppressing
                 {
                     var syntaxTree = diagnosticGroup.Key;
 
-                    var pipelineSuppressions = pipelineResult.Value.GetSuppressionsOnSyntaxTree( syntaxTree.FilePath );
+                    var pipelineSuppressions = pipelineResult.Value.GetSuppressionsOnSyntaxTree( syntaxTree.GetDocumentKey() );
 
                     var supportedPipelineSuppressions = pipelineSuppressions
                         .Where( s => supportedSuppressionDescriptors.ContainsKey( s.Suppression.Definition.SuppressedDiagnosticId ) )

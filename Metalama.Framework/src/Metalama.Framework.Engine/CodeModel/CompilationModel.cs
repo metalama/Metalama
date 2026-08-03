@@ -253,9 +253,9 @@ namespace Metalama.Framework.Engine.CodeModel
             // Discover custom attributes.
             AttributeDiscoveryVisitor attributeDiscoveryVisitor = new( this );
 
-            foreach ( var tree in partialCompilation.SyntaxTrees )
+            foreach ( var tree in partialCompilation.SyntaxTreeCollection )
             {
-                attributeDiscoveryVisitor.Visit( tree.Value );
+                attributeDiscoveryVisitor.Visit( tree );
             }
 
             this._allMemberAttributesByType = attributeDiscoveryVisitor.GetDiscoveredAttributes();
