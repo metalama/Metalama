@@ -59,9 +59,22 @@ public static partial class SerializableDeclarationIdProvider
             // The identifier of a constructor is written from its source signature and therefore matches both the
             // source constructor and the constructor that an aspect extended with pulled parameters. At design time
             // both are present, because the generated overload is added beside the original one rather than replacing
-            // it, so the first candidate is not necessarily the one that declares the requested ordinal. Consider all
-            // candidates and keep the first that does.
-            foreach ( var candidate in DocumentationIdHelper.GetDeclarationsForDeclarationId( parentId, compilation ) )
+            // it, so the first candidate is not necessarily the one that declares the requested ordinal.
+            //
+            // The candidates are considered from the fewest parameters to the most, and the first one that declares the
+            // requested ordinal is kept. Two candidates that match one identifier cannot have the same number of
+            // parameters, because their signatures would then be identical, so the order is total and the selection
+            // does not depend on the order in which DocumentationIdHelper enumerated the members, which is undefined.
+            // Preferring the fewest parameters selects the declaration whose signature the identifier describes, which
+            // is the pre-transformation one, as documented on AspectGeneratedAttribute.
+            var candidates = DocumentationIdHelper.GetDeclarationsForDeclarationId( parentId, compilation );
+
+            // Almost every identifier matches a single declaration, which is not worth ordering.
+            var orderedCandidates = candidates.Count <= 1
+                ? (IEnumerable<IDeclaration>) candidates
+                : candidates.OrderBy( c => c is IHasParameters hasParameters ? hasParameters.Parameters.Count : 0 );
+
+            foreach ( var candidate in orderedCandidates )
             {
                 if ( ResolveChild( candidate ) is { } child )
                 {

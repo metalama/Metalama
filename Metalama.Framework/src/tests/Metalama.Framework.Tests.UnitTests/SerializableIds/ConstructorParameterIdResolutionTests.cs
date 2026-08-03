@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Testing.UnitTesting;
 using System.Linq;
@@ -76,10 +77,40 @@ public sealed class ConstructorParameterIdResolutionTests : UnitTestClass
         var compilation = testContext.CreateCompilationModel( _code );
 
         var (source, _) = GetConstructors( compilation );
+        var id = source.ToSerializableId().Id;
 
-        var candidates = DocumentationIdHelper.GetDeclarationsForDeclarationId( source.ToSerializableId().Id, compilation );
+        var candidates = DocumentationIdHelper.GetDeclarationsForDeclarationId( id, compilation );
 
-        Assert.Equal( 2, candidates.Count );
+        var descriptions = candidates.SelectAsArray( Describe );
+
+        this.TestOutput.WriteLine( $"'{id}' matches {descriptions.Length} declaration(s):" );
+
+        foreach ( var description in descriptions )
+        {
+            this.TestOutput.WriteLine( $"  {description}" );
+        }
+
+        Assert.Equal(
+            ["Constructor( string )", "Constructor( string, int [AspectGenerated] )"],
+            descriptions );
+    }
+
+    /// <summary>
+    /// Describes a declaration by its signature, marking the parameters that carry <c>AspectGeneratedAttribute</c>,
+    /// which are the ones the parser excludes when it compares a constructor against an identifier.
+    /// </summary>
+    private static string Describe( IDeclaration declaration )
+    {
+        var parameterList = declaration is IHasParameters hasParameters
+            ? string.Join(
+                ", ",
+                hasParameters.Parameters.SelectAsArray(
+                    p => p.Attributes.Any( a => a.Type.Name == "AspectGeneratedAttribute" )
+                        ? $"{p.Type} [AspectGenerated]"
+                        : p.Type.ToString() ) )
+            : "";
+
+        return $"{declaration.DeclarationKind}( {parameterList} )";
     }
 
     /// <summary>
@@ -135,14 +166,15 @@ public sealed class ConstructorParameterIdResolutionTests : UnitTestClass
     /// <remarks>
     /// <para>
     /// The identifier is documented as the pre-transformation identifier of the member, so the declaration it names is
-    /// the one without aspect-generated parameters. Resolution currently returns the first candidate that declares the
-    /// ordinal, in an order that <c>DocumentationIdHelper.GetDeclarationsForDeclarationId</c> documents as undefined,
-    /// so which of the two constructors is returned is not specified.
+    /// the one without aspect-generated parameters. Resolution considers the candidates from the fewest parameters to
+    /// the most and keeps the first that declares the ordinal, which selects that declaration without depending on the
+    /// order in which <c>DocumentationIdHelper.GetDeclarationsForDeclarationId</c> enumerated the members, an order
+    /// that it documents as undefined.
     /// </para>
     /// <para>
     /// The distinction is observable: the two parameters have the same name and type but different declaring members,
     /// so a caller that navigates from the resolved parameter to its constructor reaches a different declaration
-    /// depending on an ordering that is not defined.
+    /// depending on which candidate was selected.
     /// </para>
     /// </remarks>
     [Fact]
